@@ -1,4 +1,4 @@
-## faction_data.gd - Static data definitions for all factions (v0.8.3)
+## faction_data.gd - Static data definitions for all factions (v2.0 — SR07+TW:W数值对齐)
 ## No .tres needed; everything is const dictionaries.
 extends RefCounted
 class_name FactionData
@@ -85,18 +85,18 @@ const FACTION_COLORS: Dictionary = {
 # ── Strategic Resources ──
 const STRATEGIC_RESOURCES: Array = ["magic_crystal", "war_horse", "gunpowder", "shadow_essence"]
 
-# ── Starting resources per faction (design_reference.md: 200g/100f/50i base) ──
+# ── Starting resources per faction (TW:W aligned: 500g/150f/80i base) ──
 const STARTING_RESOURCES: Dictionary = {
 	FactionID.ORC: {
-		"gold": 200, "food": 100, "iron": 50, "slaves": 2, "prestige": 0, "army": 5,
+		"gold": 500, "food": 150, "iron": 80, "slaves": 2, "prestige": 0, "army": 5,
 		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
 	},
 	FactionID.PIRATE: {
-		"gold": 200, "food": 100, "iron": 50, "slaves": 3, "prestige": 0, "army": 3,
+		"gold": 500, "food": 150, "iron": 80, "slaves": 3, "prestige": 0, "army": 3,
 		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
 	},
 	FactionID.DARK_ELF: {
-		"gold": 200, "food": 100, "iron": 50, "slaves": 5, "prestige": 0, "army": 3,
+		"gold": 500, "food": 150, "iron": 80, "slaves": 5, "prestige": 0, "army": 3,
 		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
 	},
 }
@@ -163,101 +163,101 @@ const FACTION_PARAMS: Dictionary = {
 	},
 }
 
-# ── Shared Unit Definitions (v1.0: aligned with 04_经济设定 + 11_兵种数据包) ──
+# ── Shared Unit Definitions (v2.0: SR07 ratio-aligned, base scale Ashigaru ATK=8) ──
 # Recruit cost = soldiers × 2金 × cost_mult (per 04_经济设定.md §七)
 # Row and targeting per 11_兵种数据包.md §一
 const RECRUIT_COST_MULT: Dictionary = {
-	"ashigaru": 1.0, "samurai": 1.5, "archer": 1.2, "cavalry": 2.0,
-	"ninja": 1.8, "priest": 1.5, "mage_unit": 2.0, "cannon": 2.5,
+	"ashigaru": 1.0, "samurai": 2.0, "archer": 1.5, "cavalry": 2.5,
+	"ninja": 2.5, "priest": 3.0, "mage_unit": 3.0, "cannon": 5.0,
 }
 const SHARED_UNIT_DEFS: Dictionary = {
-	"ashigaru": {"name": "足軽", "atk": 6, "def": 5, "soldiers": 8, "spd": 4, "row": "front", "food_per_soldier": 0.1, "cost_mult": 1.0, "special": "none", "tier": 1, "class": "infantry"},
-	"samurai": {"name": "武士", "atk": 10, "def": 8, "soldiers": 6, "spd": 5, "row": "front", "food_per_soldier": 0.1, "cost_mult": 1.5, "special": "counter_1_2", "tier": 2, "class": "infantry"},
-	"archer": {"name": "弓兵", "atk": 8, "def": 3, "soldiers": 5, "spd": 6, "row": "back", "food_per_soldier": 0.1, "cost_mult": 1.2, "special": "preemptive", "tier": 1, "class": "ranged"},
-	"cannon": {"name": "砲兵", "atk": 14, "def": 2, "soldiers": 4, "spd": 2, "row": "back", "food_per_soldier": 0.1, "cost_mult": 2.5, "special": "siege_x2", "tier": 2, "class": "ranged"},
-	"cavalry": {"name": "騎兵", "atk": 11, "def": 5, "soldiers": 6, "spd": 7, "row": "front", "food_per_soldier": 0.1, "cost_mult": 2.0, "special": "charge_1_5", "tier": 2, "class": "cavalry"},
-	"ninja": {"name": "忍者", "atk": 7, "def": 3, "soldiers": 5, "spd": 8, "row": "back", "food_per_soldier": 0.1, "cost_mult": 1.8, "special": "assassinate_back", "tier": 1, "class": "infantry"},
-	"priest": {"name": "祭司", "atk": 4, "def": 4, "soldiers": 5, "spd": 4, "row": "back", "food_per_soldier": 0.1, "cost_mult": 1.5, "special": "charge_mana_1", "tier": 1, "class": "special"},
-	"mage_unit": {"name": "術師", "atk": 12, "def": 2, "soldiers": 4, "spd": 5, "row": "back", "food_per_soldier": 0.1, "cost_mult": 2.0, "special": "aoe_mana", "tier": 2, "class": "ranged"},
-	"shadow_walker": {"name": "暗影行者", "atk": 10, "def": 6, "soldiers": 5, "spd": 9, "row": "back", "food_per_soldier": 0.1, "cost_mult": 2.5, "special": "assassinate_back", "tier": 3, "class": "infantry", "requires_unlock": true},
+	"ashigaru": {"name": "足軽", "atk": 8, "def": 6, "soldiers": 12, "spd": 5, "row": "front", "food_per_soldier": 0.5, "cost_mult": 1.0, "special": "none", "tier": 1, "class": "infantry"},
+	"samurai": {"name": "武士", "atk": 11, "def": 9, "soldiers": 8, "spd": 5, "row": "front", "food_per_soldier": 0.5, "cost_mult": 2.0, "special": "counter_1_2", "tier": 2, "class": "infantry"},
+	"archer": {"name": "弓兵", "atk": 7, "def": 4, "soldiers": 10, "spd": 4, "row": "back", "food_per_soldier": 0.5, "cost_mult": 1.5, "special": "preemptive", "tier": 1, "class": "ranged"},
+	"cannon": {"name": "砲兵", "atk": 20, "def": 1, "soldiers": 6, "spd": 2, "row": "back", "food_per_soldier": 0.5, "cost_mult": 5.0, "special": "siege_x2", "tier": 2, "class": "ranged"},
+	"cavalry": {"name": "騎兵", "atk": 14, "def": 8, "soldiers": 7, "spd": 8, "row": "front", "food_per_soldier": 0.5, "cost_mult": 2.5, "special": "charge_1_5", "tier": 2, "class": "cavalry"},
+	"ninja": {"name": "忍者", "atk": 7, "def": 4, "soldiers": 5, "spd": 9, "row": "back", "food_per_soldier": 0.5, "cost_mult": 2.5, "special": "assassinate_back", "tier": 1, "class": "infantry"},
+	"priest": {"name": "祭司", "atk": 5, "def": 3, "soldiers": 5, "spd": 4, "row": "back", "food_per_soldier": 0.5, "cost_mult": 3.0, "special": "charge_mana_1", "tier": 1, "class": "special"},
+	"mage_unit": {"name": "術師", "atk": 6, "def": 3, "soldiers": 6, "spd": 4, "row": "back", "food_per_soldier": 0.5, "cost_mult": 3.0, "special": "aoe_mana", "tier": 2, "class": "ranged"},
+	"shadow_walker": {"name": "暗影行者", "atk": 12, "def": 7, "soldiers": 5, "spd": 9, "row": "back", "food_per_soldier": 0.5, "cost_mult": 4.0, "special": "assassinate_back", "tier": 3, "class": "infantry", "requires_unlock": true},
 }
 
-# ── Unit Definitions (evil factions) — aligned with 11_兵种数据包.md ──
+# ── Unit Definitions (evil factions) — SR07 ratio-aligned ──
 const UNIT_DEFS: Dictionary = {
 	FactionID.ORC: {
-		"orc_ashigaru": {"name": "兽人足軽", "atk": 6, "def": 3, "soldiers": 8, "spd": 4, "row": "front", "food_per_soldier": 0.1, "recruit_gold": 16, "special": "none", "tier": 1, "class": "infantry"},
-		"orc_samurai": {"name": "巨魔", "atk": 9, "def": 6, "soldiers": 6, "spd": 4, "row": "front", "food_per_soldier": 0.1, "recruit_gold": 27, "special": "regen_1", "tier": 2, "class": "infantry"},
-		"orc_cavalry": {"name": "战猪骑兵", "atk": 8, "def": 4, "soldiers": 5, "spd": 7, "row": "front", "food_per_soldier": 0.1, "recruit_gold": 40, "special": "charge_1_5", "tier": 2, "class": "cavalry"},
+		"orc_ashigaru": {"name": "兽人足軽", "atk": 9, "def": 4, "soldiers": 12, "spd": 5, "row": "front", "food_per_soldier": 0.5, "recruit_gold": 24, "special": "none", "tier": 1, "class": "infantry"},
+		"orc_samurai": {"name": "巨魔", "atk": 13, "def": 8, "soldiers": 8, "spd": 4, "row": "front", "food_per_soldier": 0.5, "recruit_gold": 48, "special": "regen_1", "tier": 2, "class": "infantry"},
+		"orc_cavalry": {"name": "战猪骑兵", "atk": 15, "def": 5, "soldiers": 6, "spd": 7, "row": "front", "food_per_soldier": 0.5, "recruit_gold": 60, "special": "charge_1_5", "tier": 2, "class": "cavalry"},
 	},
 	FactionID.PIRATE: {
-		"pirate_ashigaru": {"name": "海盗散兵", "atk": 5, "def": 4, "soldiers": 6, "spd": 4, "row": "front", "food_per_soldier": 0.1, "recruit_gold": 12, "special": "escape_30", "tier": 1, "class": "infantry"},
-		"pirate_archer": {"name": "火枪手", "atk": 7, "def": 3, "soldiers": 5, "spd": 6, "row": "back", "food_per_soldier": 0.1, "recruit_gold": 14, "special": "preemptive", "tier": 1, "class": "ranged"},
-		"pirate_cannon": {"name": "炮击手", "atk": 10, "def": 2, "soldiers": 4, "spd": 2, "row": "back", "food_per_soldier": 0.1, "recruit_gold": 50, "special": "siege_x2", "tier": 2, "class": "ranged"},
+		"pirate_ashigaru": {"name": "海盗散兵", "atk": 7, "def": 5, "soldiers": 10, "spd": 5, "row": "front", "food_per_soldier": 0.5, "recruit_gold": 20, "special": "escape_30", "tier": 1, "class": "infantry"},
+		"pirate_archer": {"name": "火枪手", "atk": 18, "def": 1, "soldiers": 5, "spd": 6, "row": "back", "food_per_soldier": 0.5, "recruit_gold": 60, "special": "preemptive", "tier": 1, "class": "ranged"},
+		"pirate_cannon": {"name": "炮击手", "atk": 22, "def": 1, "soldiers": 5, "spd": 2, "row": "back", "food_per_soldier": 0.5, "recruit_gold": 80, "special": "siege_x2", "tier": 2, "class": "ranged"},
 	},
 	FactionID.DARK_ELF: {
-		"de_samurai": {"name": "暗精灵战士", "atk": 7, "def": 5, "soldiers": 5, "spd": 5, "row": "front", "food_per_soldier": 0.1, "recruit_gold": 22, "special": "extra_action", "tier": 1, "class": "infantry"},
-		"de_ninja": {"name": "暗影刺客", "atk": 5, "def": 2, "soldiers": 4, "spd": 8, "row": "back", "food_per_soldier": 0.1, "recruit_gold": 25, "special": "assassinate_back", "tier": 1, "class": "infantry"},
-		"de_cavalry": {"name": "冷蜥骑兵", "atk": 8, "def": 6, "soldiers": 5, "spd": 7, "row": "front", "food_per_soldier": 0.1, "recruit_gold": 40, "special": "ignore_terrain", "tier": 2, "class": "cavalry"},
+		"de_samurai": {"name": "暗精灵战士", "atk": 11, "def": 7, "soldiers": 7, "spd": 6, "row": "front", "food_per_soldier": 0.5, "recruit_gold": 36, "special": "extra_action", "tier": 1, "class": "infantry"},
+		"de_ninja": {"name": "暗影刺客", "atk": 7, "def": 3, "soldiers": 5, "spd": 9, "row": "back", "food_per_soldier": 0.5, "recruit_gold": 40, "special": "assassinate_back", "tier": 1, "class": "infantry"},
+		"de_cavalry": {"name": "冷蜥骑兵", "atk": 14, "def": 7, "soldiers": 6, "spd": 8, "row": "front", "food_per_soldier": 0.5, "recruit_gold": 55, "special": "ignore_terrain", "tier": 2, "class": "cavalry"},
 	},
 }
 
-# ── Ultimate Units (require shadow_essence) — aligned with 11_兵种数据包.md §六 ──
+# ── Ultimate Units (require shadow_essence) — SR07 ratio-aligned §六 ──
 const ULTIMATE_UNITS: Dictionary = {
 	FactionID.ORC: {
-		"name": "狂暴巨兽", "atk": 12, "def": 8, "soldiers": 12, "spd": 3, "row": "front",
-		"recruit_gold": 120, "shadow_essence_cost": 8,
+		"name": "狂暴巨兽", "atk": 22, "def": 12, "soldiers": 15, "spd": 3, "row": "front",
+		"recruit_gold": 200, "shadow_essence_cost": 8,
 		"special": "waaagh_triple", "class": "infantry",
 	},
 	FactionID.PIRATE: {
-		"name": "深海利维坦", "atk": 11, "def": 10, "soldiers": 10, "spd": 2, "row": "back",
-		"recruit_gold": 100, "shadow_essence_cost": 8,
+		"name": "深海利维坦", "atk": 20, "def": 14, "soldiers": 12, "spd": 2, "row": "back",
+		"recruit_gold": 180, "shadow_essence_cost": 8,
 		"special": "siege_ignore", "class": "ranged",
 	},
 	FactionID.DARK_ELF: {
-		"name": "暗影龙骑", "atk": 13, "def": 7, "soldiers": 8, "spd": 8, "row": "front",
-		"recruit_gold": 130, "shadow_essence_cost": 8,
+		"name": "暗影龙骑", "atk": 24, "def": 10, "soldiers": 10, "spd": 9, "row": "front",
+		"recruit_gold": 220, "shadow_essence_cost": 8,
 		"special": "shadow_flight", "class": "cavalry",
 	},
 }
 
-# ── Building Level Data (3 levels each) ──
+# ── Building Level Data (3 levels each, TW:W economy scaled) ──
 const BUILDING_LEVELS: Dictionary = {
 	# Common buildings
 	"slave_market": {
-		1: {"name": "奴隶市场 Lv1", "cost_gold": 100, "cost_iron": 8, "slaves_per_turn": 2, "desc": "+2奴隶/回合"},
-		2: {"name": "奴隶市场 Lv2", "cost_gold": 150, "cost_iron": 12, "slaves_per_turn": 3, "desc": "+3奴隶/回合，开放交易"},
-		3: {"name": "奴隶市场 Lv3", "cost_gold": 200, "cost_iron": 18, "slaves_per_turn": 5, "desc": "+5奴隶/回合"},
+		1: {"name": "奴隶市场 Lv1", "cost_gold": 300, "cost_iron": 24, "slaves_per_turn": 2, "desc": "+2奴隶/回合"},
+		2: {"name": "奴隶市场 Lv2", "cost_gold": 500, "cost_iron": 40, "slaves_per_turn": 3, "desc": "+3奴隶/回合，开放交易"},
+		3: {"name": "奴隶市场 Lv3", "cost_gold": 800, "cost_iron": 60, "slaves_per_turn": 5, "desc": "+5奴隶/回合"},
 	},
 	"labor_camp": {
-		1: {"name": "苦役营 Lv1", "cost_gold": 150, "cost_iron": 15, "food_bonus": 1.0, "iron_bonus": 0.5, "desc": "奴隶劳动+1粮+0.5铁"},
-		2: {"name": "苦役营 Lv2", "cost_gold": 200, "cost_iron": 20, "food_bonus": 1.5, "iron_bonus": 0.75, "desc": "+50%产出"},
-		3: {"name": "苦役营 Lv3", "cost_gold": 250, "cost_iron": 25, "food_bonus": 2.0, "iron_bonus": 1.0, "desc": "双倍产出+物品"},
+		1: {"name": "苦役营 Lv1", "cost_gold": 450, "cost_iron": 45, "food_bonus": 1.0, "iron_bonus": 0.5, "desc": "奴隶劳动+1粮+0.5铁"},
+		2: {"name": "苦役营 Lv2", "cost_gold": 700, "cost_iron": 65, "food_bonus": 1.5, "iron_bonus": 0.75, "desc": "+50%产出"},
+		3: {"name": "苦役营 Lv3", "cost_gold": 1000, "cost_iron": 85, "food_bonus": 2.0, "iron_bonus": 1.0, "desc": "双倍产出+物品"},
 	},
 	"arena": {
-		1: {"name": "竞技场 Lv1", "cost_gold": 120, "cost_iron": 12, "slave_consume": 1, "atk_bonus": 3, "def_bonus": 0, "desc": "消耗1奴隶/回合 +3攻"},
-		2: {"name": "竞技场 Lv2", "cost_gold": 180, "cost_iron": 18, "slave_consume": 1, "atk_bonus": 5, "def_bonus": 2, "desc": "+5攻 +2防"},
-		3: {"name": "竞技场 Lv3", "cost_gold": 240, "cost_iron": 24, "slave_consume": 1, "atk_bonus": 8, "def_bonus": 8, "desc": "+8攻+防"},
+		1: {"name": "竞技场 Lv1", "cost_gold": 400, "cost_iron": 36, "slave_consume": 1, "atk_bonus": 3, "def_bonus": 0, "desc": "消耗1奴隶/回合 +3攻"},
+		2: {"name": "竞技场 Lv2", "cost_gold": 650, "cost_iron": 55, "slave_consume": 1, "atk_bonus": 5, "def_bonus": 2, "desc": "+5攻 +2防"},
+		3: {"name": "竞技场 Lv3", "cost_gold": 1000, "cost_iron": 80, "slave_consume": 1, "atk_bonus": 8, "def_bonus": 8, "desc": "+8攻+防"},
 	},
 	"training_ground": {
-		1: {"name": "训练场 Lv1", "cost_gold": 100, "cost_iron": 15, "recruit_discount": 10, "atk_bonus": 3, "def_bonus": 0, "desc": "招募-10金 +3攻"},
-		2: {"name": "训练场 Lv2", "cost_gold": 160, "cost_iron": 20, "recruit_discount": 20, "atk_bonus": 5, "def_bonus": 5, "desc": "-20金 +5攻/防"},
-		3: {"name": "训练场 Lv3", "cost_gold": 220, "cost_iron": 28, "recruit_discount": 30, "atk_bonus": 8, "def_bonus": 8, "desc": "-30金 +8攻/防"},
+		1: {"name": "训练场 Lv1", "cost_gold": 350, "cost_iron": 45, "recruit_discount": 10, "atk_bonus": 3, "def_bonus": 0, "desc": "招募-10金 +3攻"},
+		2: {"name": "训练场 Lv2", "cost_gold": 600, "cost_iron": 65, "recruit_discount": 20, "atk_bonus": 5, "def_bonus": 5, "desc": "-20金 +5攻/防"},
+		3: {"name": "训练场 Lv3", "cost_gold": 900, "cost_iron": 90, "recruit_discount": 30, "atk_bonus": 8, "def_bonus": 8, "desc": "-30金 +8攻/防"},
 	},
 	# Faction buildings
 	"totem_pole": {
-		1: {"name": "图腾柱 Lv1", "cost_gold": 80, "cost_iron": 10, "waaagh_per_turn": 5, "desc": "+5 WAAAGH!/回合"},
-		2: {"name": "图腾柱 Lv2", "cost_gold": 130, "cost_iron": 16, "waaagh_per_turn": 8, "extra_turn": 1, "desc": "+8 WAAAGH! 狂暴+1回合"},
-		3: {"name": "图腾柱 Lv3", "cost_gold": 200, "cost_iron": 24, "waaagh_per_turn": 12, "loss_reduction": 0.10, "desc": "+12 WAAAGH! 损失→10%"},
+		1: {"name": "图腾柱 Lv1", "cost_gold": 300, "cost_iron": 30, "waaagh_per_turn": 5, "desc": "+5 WAAAGH!/回合"},
+		2: {"name": "图腾柱 Lv2", "cost_gold": 500, "cost_iron": 50, "waaagh_per_turn": 8, "extra_turn": 1, "desc": "+8 WAAAGH! 狂暴+1回合"},
+		3: {"name": "图腾柱 Lv3", "cost_gold": 800, "cost_iron": 75, "waaagh_per_turn": 12, "loss_reduction": 0.10, "desc": "+12 WAAAGH! 损失→10%"},
 	},
 	"black_market": {
-		1: {"name": "黑市 Lv1", "cost_gold": 90, "cost_iron": 6, "trade_bonus": true, "items_per_turn": 1, "desc": "交易+1物品/回合"},
-		2: {"name": "黑市 Lv2", "cost_gold": 140, "cost_iron": 10, "trade_bonus": true, "items_per_turn": 2, "desc": "更好价格+2物品"},
-		3: {"name": "黑市 Lv3", "cost_gold": 200, "cost_iron": 16, "trade_bonus": true, "items_per_turn": 3, "desc": "最佳价格+遗物"},
+		1: {"name": "黑市 Lv1", "cost_gold": 300, "cost_iron": 20, "trade_bonus": true, "items_per_turn": 1, "desc": "交易+1物品/回合"},
+		2: {"name": "黑市 Lv2", "cost_gold": 500, "cost_iron": 35, "trade_bonus": true, "items_per_turn": 2, "desc": "更好价格+2物品"},
+		3: {"name": "黑市 Lv3", "cost_gold": 800, "cost_iron": 55, "trade_bonus": true, "items_per_turn": 3, "desc": "最佳价格+遗物"},
 	},
 	"temple_of_agony": {
-		1: {"name": "痛苦神殿 Lv1", "cost_gold": 100, "cost_iron": 12, "altar_mult": 1.0, "desc": "开启祭坛"},
-		2: {"name": "痛苦神殿 Lv2", "cost_gold": 160, "cost_iron": 18, "altar_mult": 1.5, "desc": "+50%祭坛效果"},
-		3: {"name": "痛苦神殿 Lv3", "cost_gold": 220, "cost_iron": 25, "altar_mult": 2.0, "desc": "双倍祭坛+痛苦仪式"},
+		1: {"name": "痛苦神殿 Lv1", "cost_gold": 350, "cost_iron": 40, "altar_mult": 1.0, "desc": "开启祭坛"},
+		2: {"name": "痛苦神殿 Lv2", "cost_gold": 600, "cost_iron": 60, "altar_mult": 1.5, "desc": "+50%祭坛效果"},
+		3: {"name": "痛苦神殿 Lv3", "cost_gold": 900, "cost_iron": 80, "altar_mult": 2.0, "desc": "双倍祭坛+痛苦仪式"},
 	},
 }
 
@@ -281,9 +281,9 @@ const LIGHT_FACTION_DATA: Dictionary = {
 	LightFaction.HUMAN_KINGDOM: {
 		"name": "人类王国",
 		"mechanic": "city_defense",
-		"wall_hp_base": 50,
-		"wall_regen_per_turn": 3,
-		"desc": "城防系统: 城墙HP必须先消耗完才能进入战斗，每回合回复+3",
+		"wall_hp_base": 100,
+		"wall_regen_per_turn": 5,
+		"desc": "城防系统: 城墙HP必须先消耗完才能进入战斗，每回合回复+5",
 	},
 	LightFaction.HIGH_ELVES: {
 		"name": "精灵族",
@@ -295,8 +295,8 @@ const LIGHT_FACTION_DATA: Dictionary = {
 	LightFaction.MAGE_TOWER: {
 		"name": "法师塔",
 		"mechanic": "mana_pool",
-		"mana_pool_base": 50,
-		"mana_regen_per_turn": 5,
+		"mana_pool_base": 100,
+		"mana_regen_per_turn": 8,
 		"spells": {
 			"teleport": {"cost": 15, "desc": "传送部队"},
 			"barrier": {"cost": 10, "desc": "护盾"},
@@ -306,29 +306,29 @@ const LIGHT_FACTION_DATA: Dictionary = {
 	},
 }
 
-# ── Light Unit Definitions — aligned with 11_兵种数据包.md §三 ──
+# ── Light Unit Definitions — SR07 ratio-aligned §三 ──
 const LIGHT_UNIT_DEFS: Dictionary = {
 	LightFaction.HUMAN_KINGDOM: {
-		"human_ashigaru": {"name": "民兵", "atk": 4, "def": 6, "soldiers": 8, "spd": 4, "row": "front", "special": "fort_def_3", "class": "infantry"},
-		"human_cavalry": {"name": "骑士", "atk": 7, "def": 7, "soldiers": 6, "spd": 7, "row": "front", "special": "counter_1_2", "class": "cavalry"},
-		"human_samurai": {"name": "圣殿女卫", "atk": 6, "def": 9, "soldiers": 10, "spd": 4, "row": "front", "special": "immobile", "class": "infantry"},
+		"human_ashigaru": {"name": "民兵", "atk": 6, "def": 9, "soldiers": 15, "spd": 4, "row": "front", "special": "fort_def_3", "class": "infantry"},
+		"human_cavalry": {"name": "骑士", "atk": 14, "def": 8, "soldiers": 7, "spd": 7, "row": "front", "special": "counter_1_2", "class": "cavalry"},
+		"human_samurai": {"name": "圣殿女卫", "atk": 10, "def": 12, "soldiers": 10, "spd": 3, "row": "front", "special": "immobile", "class": "infantry"},
 	},
 	LightFaction.HIGH_ELVES: {
-		"elf_archer": {"name": "精灵游侠", "atk": 7, "def": 3, "soldiers": 5, "spd": 6, "row": "back", "special": "preemptive_1_3", "class": "ranged"},
-		"elf_mage": {"name": "法师", "atk": 8, "def": 2, "soldiers": 4, "spd": 5, "row": "back", "special": "aoe_mana", "class": "ranged"},
-		"elf_ashigaru": {"name": "树人", "atk": 4, "def": 10, "soldiers": 15, "spd": 2, "row": "front", "special": "taunt", "class": "infantry"},
+		"elf_archer": {"name": "精灵游侠", "atk": 9, "def": 4, "soldiers": 8, "spd": 6, "row": "back", "special": "preemptive_1_3", "class": "ranged"},
+		"elf_mage": {"name": "法师", "atk": 6, "def": 2, "soldiers": 5, "spd": 5, "row": "back", "special": "aoe_mana", "class": "ranged"},
+		"elf_ashigaru": {"name": "树人", "atk": 6, "def": 14, "soldiers": 18, "spd": 1, "row": "front", "special": "taunt", "class": "infantry"},
 	},
 	LightFaction.MAGE_TOWER: {
-		"mage_apprentice": {"name": "学徒法师", "atk": 4, "def": 3, "soldiers": 4, "spd": 5, "row": "back", "special": "charge_mana_1", "class": "ranged"},
-		"mage_battle": {"name": "战斗法师", "atk": 8, "def": 4, "soldiers": 5, "spd": 5, "row": "back", "special": "aoe_1_5_cost5", "class": "ranged"},
-		"mage_grand": {"name": "大法师", "atk": 9, "def": 7, "soldiers": 8, "spd": 4, "row": "back", "special": "death_burst", "class": "ranged"},
+		"mage_apprentice": {"name": "学徒法师", "atk": 5, "def": 3, "soldiers": 5, "spd": 5, "row": "back", "special": "charge_mana_1", "class": "ranged"},
+		"mage_battle": {"name": "战斗法师", "atk": 12, "def": 4, "soldiers": 6, "spd": 4, "row": "back", "special": "aoe_1_5_cost5", "class": "ranged"},
+		"mage_grand": {"name": "大法师", "atk": 15, "def": 8, "soldiers": 8, "spd": 3, "row": "back", "special": "death_burst", "class": "ranged"},
 	},
 }
 
-# ── Alliance Unit Definitions — aligned with 11_兵种数据包.md §五 ──
+# ── Alliance Unit Definitions — SR07 ratio-aligned §五 ──
 const ALLIANCE_UNIT_DEFS: Dictionary = {
-	"alliance_vanguard": {"name": "联军先锋", "atk": 8, "def": 6, "soldiers": 7, "spd": 7, "row": "front", "special": "first_strike_counter", "class": "cavalry", "desc": "先手射击+反击加成"},
-	"arcane_artillery": {"name": "奥术炮台", "atk": 10, "def": 3, "soldiers": 6, "spd": 4, "row": "back", "special": "pre_combat_aoe", "class": "ranged", "desc": "AoE×1.5+法力爆发"},
+	"alliance_vanguard": {"name": "联军先锋", "atk": 14, "def": 8, "soldiers": 8, "spd": 7, "row": "front", "special": "first_strike_counter", "class": "cavalry", "desc": "先手射击+反击加成"},
+	"arcane_artillery": {"name": "奥术炮台", "atk": 18, "def": 3, "soldiers": 7, "spd": 4, "row": "back", "special": "pre_combat_aoe", "class": "ranged", "desc": "AoE×1.5+法力爆发"},
 }
 
 # ── Strategic Resource Costs ──

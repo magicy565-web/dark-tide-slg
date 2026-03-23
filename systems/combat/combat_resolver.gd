@@ -2,7 +2,7 @@ extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
 
 ## combat_resolver.gd - Turn-based Sengoku Rance-style combat (v1.0 rewrite)
-## Front row (3 slots) + Back row (2 slots), SPD-based action queue, 12-round max.
+## Front row (3 slots) + Back row (3 slots), SPD-based action queue, 12-round max.
 ## Damage formula: soldiers × max(1, ATK - DEF) / 10 × skill_mult × terrain_mult
 ## Defender wins on timeout (12 rounds).
 
@@ -11,8 +11,8 @@ const FactionData = preload("res://systems/faction/faction_data.gd")
 # ---------------------------------------------------------------------------
 const MAX_ROUNDS: int = 12
 const FRONT_SLOTS: int = 3       # indices 0, 1, 2
-const BACK_SLOTS: int = 2        # indices 3, 4
-const TOTAL_SLOTS: int = 5
+const BACK_SLOTS: int = 3        # indices 3, 4, 5
+const TOTAL_SLOTS: int = 6
 const SIEGE_DAMAGE_MULT: float = 0.5
 const CANNON_SIEGE_MULT: float = 2.0
 const WALL_DAMAGE_MULTIPLIER: float = 0.5

@@ -41,11 +41,11 @@ const COMBAT_POWER_PER_UNIT: int = 10
 # ── Army system constants (v0.9.2) ──
 const MAX_ARMIES_BASE: int = 3
 const MAX_ARMIES_UPGRADED: int = 5
-const MAX_TROOPS_PER_ARMY: int = 5  # 3 front + 2 back
+const MAX_TROOPS_PER_ARMY: int = 6  # 3 front + 3 back (SR07 formation)
 const MAX_HEROES_PER_ARMY: int = 2
-const SUPPLY_LINE_SAFE: int = 5
-const SUPPLY_LINE_ATTRITION: int = 2   # -2 soldiers/turn if > safe
-const SUPPLY_LINE_CUT_ATTRITION: int = 5  # -5 soldiers/turn if disconnected
+const SUPPLY_LINE_SAFE: int = 4  # BalanceConfig.SUPPLY_SAFE_RANGE
+const SUPPLY_LINE_ATTRITION_PCT: float = 0.03  # 3% soldiers/turn if > safe range
+const SUPPLY_LINE_CUT_ATTRITION_PCT: float = 0.08  # 8% soldiers/turn if disconnected
 const FORCED_MARCH_AP: int = 2
 const FORCED_MARCH_LOSS_PCT: float = 0.10
 
@@ -1993,14 +1993,16 @@ func _tick_supply_lines(player_id: int) -> void:
 		if supply_dist < 0:
 			# Disconnected — heavy attrition
 			for troop in army["troops"]:
-				troop["soldiers"] = maxi(0, troop["soldiers"] - SUPPLY_LINE_CUT_ATTRITION)
-			EventBus.message_log.emit("[color=red]%s 补给线被切断! 每回合损失%d兵[/color]" % [army["name"], SUPPLY_LINE_CUT_ATTRITION])
+				var loss := maxi(1, int(float(troop["soldiers"]) * SUPPLY_LINE_CUT_ATTRITION_PCT))
+				troop["soldiers"] = maxi(0, troop["soldiers"] - loss)
+			EventBus.message_log.emit("[color=red]%s 补给线被切断! 每回合损失%.0f%%兵[/color]" % [army["name"], SUPPLY_LINE_CUT_ATTRITION_PCT * 100.0])
 			_cleanup_army_troops(army)
 		elif supply_dist > SUPPLY_LINE_SAFE:
 			# Over-extended — light attrition
 			for troop in army["troops"]:
-				troop["soldiers"] = maxi(0, troop["soldiers"] - SUPPLY_LINE_ATTRITION)
-			EventBus.message_log.emit("[color=orange]%s 补给线过长(%d格)! 每回合损失%d兵[/color]" % [army["name"], supply_dist, SUPPLY_LINE_ATTRITION])
+				var loss := maxi(1, int(float(troop["soldiers"]) * SUPPLY_LINE_ATTRITION_PCT))
+				troop["soldiers"] = maxi(0, troop["soldiers"] - loss)
+			EventBus.message_log.emit("[color=orange]%s 补给线过长(%d格)! 每回合损失%.0f%%兵[/color]" % [army["name"], supply_dist, SUPPLY_LINE_ATTRITION_PCT * 100.0])
 			_cleanup_army_troops(army)
 
 

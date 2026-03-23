@@ -1,4 +1,4 @@
-## order_manager.gd - Tracks Order value (0-100, start 50)
+## order_manager.gd - Tracks Order value (-100 to +100, start 50)
 extends Node
 
 var _order: int = 50
@@ -17,7 +17,7 @@ func get_order() -> int:
 
 func change_order(delta: int) -> void:
 	var old: int = _order
-	_order = clampi(_order + delta, 0, 100)
+	_order = clampi(_order + delta, BalanceConfig.ORDER_MIN, BalanceConfig.ORDER_MAX)
 	if _order != old:
 		EventBus.message_log.emit("秩序值: %d -> %d" % [old, _order])
 		EventBus.resources_changed.emit(-1)  # global refresh
@@ -40,20 +40,16 @@ func get_production_multiplier() -> float:
 # ═══════════════ REBELLION ═══════════════
 
 func get_rebellion_chance() -> float:
-	## Per-turn rebellion probability.
-	if _order <= 25:
-		return 0.20
-	elif _order <= 50:
-		return 0.10
-	else:
-		return 0.0
+	# v2.0: deterministic rebellion below threshold
+	if _order <= BalanceConfig.ORDER_REBELLION_THRESHOLD:
+		return 1.0  # guaranteed rebellion
+	return 0.0
 
 
 func try_rebellion() -> Dictionary:
-	## Roll for rebellion. Returns { "occurred": bool, "tile_index": int, "garrison": int }.
-	var chance: float = get_rebellion_chance()
-	if chance <= 0.0 or randf() >= chance:
-		return {"occurred": false, "tile_index": -1, "garrison": 0}
+	if _order > BalanceConfig.ORDER_REBELLION_THRESHOLD:
+		return {"rebelled": false}
+	var strength := int(BalanceConfig.REBELLION_GARRISON_STRENGTH * abs(_order) / 100.0)
 
 	# Pick a random player-owned tile to rebel
 	var player_id: int = GameManager.get_human_player_id()
@@ -63,17 +59,26 @@ func try_rebellion() -> Dictionary:
 			owned_tiles.append(tile)
 
 	if owned_tiles.is_empty():
-		return {"occurred": false, "tile_index": -1, "garrison": 0}
+		return {"rebelled": false}
 
 	var rebel_tile: Dictionary = owned_tiles[randi_range(0, owned_tiles.size() - 1)]
-	var garrison: int = randi_range(10, 25)
+	var garrison: int = maxi(1, strength)
 	rebel_tile["owner_id"] = -1
 	rebel_tile["garrison"] = garrison
 
 	EventBus.message_log.emit("[color=red]叛乱爆发! %s 脱离控制，叛军驻守%d![/color]" % [rebel_tile["name"], garrison])
 	EventBus.tile_lost.emit(player_id, rebel_tile["index"])
 	change_order(-3)  # slave revolt penalty
-	return {"occurred": true, "tile_index": rebel_tile["index"], "garrison": garrison}
+	return {"rebelled": true, "strength": maxi(1, strength), "tile_index": rebel_tile["index"], "garrison": garrison}
+
+
+# ═══════════════ TURN TICK (self-correcting drift) ═══════════════
+
+func tick_turn() -> void:
+	if _order > 50:
+		change_order(BalanceConfig.ORDER_DRIFT_HIGH)
+	elif _order < -25:
+		change_order(BalanceConfig.ORDER_DRIFT_LOW)
 
 
 # ═══════════════ ORDER CHANGE TRIGGERS ═══════════════

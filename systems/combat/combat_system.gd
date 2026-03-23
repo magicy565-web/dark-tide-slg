@@ -1,5 +1,6 @@
 class_name CombatSystem
 ## Core battle resolution engine for a Sengoku Rance-style tactical strategy game.
+## v2.0 — SR07+TW:W数值对齐
 ##
 ## Usage:
 ##   var combat = CombatSystem.new()
@@ -18,8 +19,8 @@ class_name CombatSystem
 
 const MAX_ROUNDS := 12
 const MAX_FRONT_SLOTS := 3
-const MAX_BACK_SLOTS := 2
-const MAX_SLOTS := 5  # front(3) + back(2)
+const MAX_BACK_SLOTS := 3
+const MAX_SLOTS := 6  # front(3) + back(3), SR07 formation
 
 # Terrain enum mirrors GameData.Terrain.  We reference GameData at runtime but
 # keep local copies so the file is self-documenting.
@@ -341,16 +342,16 @@ func _apply_terrain_modifiers(state: BattleState) -> void:
 
 		match state.terrain:
 			Terrain.PLAINS:
-				# Cavalry ATK+1
+				# Cavalry ATK+3
 				if troop == "cavalry":
-					u.atk += 1
+					u.atk += 3
 
 			Terrain.FOREST:
-				# Archer ATK+1, cavalry ATK-1
+				# Archer ATK+3, cavalry ATK-3
 				if troop == "archer":
-					u.atk += 1
+					u.atk += 3
 				if troop == "cavalry" and not ignore:
-					u.atk -= 1
+					u.atk -= 3
 
 			Terrain.MOUNTAIN:
 				# DEF mod x1.2 handled in damage calc; cavalry blocked
@@ -359,9 +360,9 @@ func _apply_terrain_modifiers(state: BattleState) -> void:
 					u.soldiers = 0
 
 			Terrain.SWAMP:
-				# All SPD-2
+				# All SPD-3
 				if not ignore:
-					u.spd -= 2
+					u.spd -= 3
 
 			Terrain.FORTRESS:
 				# DEF mod x1.5 for defender only – applied in damage calc
@@ -652,10 +653,15 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 # Damage Calculation
 # ---------------------------------------------------------------------------
 
-## Core damage formula.
-## base_damage = attacker_soldiers * max(1, attacker_ATK - defender_DEF) / 10.0
-## final_damage = base_damage * skill_multiplier * terrain_modifier
+## Core damage formula (SR07-style percentage-based).
+## base_damage = adjusted_soldiers * max(10, ATK - DEF) / 100.0
+## final_damage = base_damage * skill_multiplier
 ## soldiers_killed = floor(final_damage), minimum 1 if attacker has soldiers
+##
+## SR07 diminishing returns on troop count:
+##   0-8 troops: value = troops (1:1)
+##   9-15 troops: value = 8 + (troops-8)*0.5
+##   16+: value = 11.5 + (troops-15)*0.25
 func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: BattleState, skill_mult: float = 1.0) -> int:
 	var atk_val: int = attacker.atk
 	var def_val: int = defender.def_stat
@@ -673,11 +679,22 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 			if not defender.is_attacker:
 				terrain_def_mult = 1.5
 
-	# Apply terrain defense multiplier to defender's DEF
 	def_val = int(float(def_val) * terrain_def_mult)
 
-	var raw_diff: int = maxi(1, atk_val - def_val)
-	var base_damage: float = float(attacker.soldiers) * float(raw_diff) / 10.0
+	# SR07-style: max(10, ATK - DEF) percentage-based damage
+	var raw_diff: int = maxi(10, atk_val - def_val)
+
+	# SR07-style diminishing returns on troop count
+	var troops := float(attacker.soldiers)
+	var adjusted: float
+	if troops <= 8.0:
+		adjusted = troops
+	elif troops <= 15.0:
+		adjusted = 8.0 + (troops - 8.0) * 0.5
+	else:
+		adjusted = 11.5 + (troops - 15.0) * 0.25
+
+	var base_damage: float = adjusted * float(raw_diff) / 100.0
 	var final_damage: float = base_damage * skill_mult
 
 	var soldiers_killed: int = int(floor(final_damage))
