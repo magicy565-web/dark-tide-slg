@@ -44,6 +44,8 @@ AIScaling="*res://systems/faction/ai_scaling.gd"
 SaveManager="*res://autoloads/save_manager.gd"
 ModManager="*res://systems/mod/mod_manager.gd"
 GameManager="*res://autoloads/game_manager.gd"
+AudioManager="*res://autoloads/audio_manager.gd"
+TutorialManager="*res://systems/tutorial/tutorial_manager.gd"
 
 [display]
 

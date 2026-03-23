@@ -160,17 +160,8 @@ func _setup_ground() -> void:
 	ground.position = Vector3(9.0, GROUND_Y - 0.1, -7.0)
 	add_child(ground)
 
-	# DEBUG: Big bright cube to verify 3D rendering works
-	var debug_cube := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(5.0, 5.0, 5.0)
-	debug_cube.mesh = box
-	var debug_mat := StandardMaterial3D.new()
-	debug_mat.albedo_color = Color(1.0, 1.0, 0.0)
-	debug_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	debug_cube.material_override = debug_mat
-	debug_cube.position = Vector3(9.0, 2.5, -8.0)  # Center of map at y=2.5
-	add_child(debug_cube)
+	# Ambient particle emitter for atmosphere
+	_setup_ambient_particles()
 
 
 # ═══════════════ INPUT ═══════════════
@@ -906,3 +897,90 @@ func _make_mat(color: Color) -> StandardMaterial3D:
 	mat.albedo_color = color
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	return mat
+
+
+# ═══════════════ AMBIENT PARTICLES ═══════════════
+
+func _setup_ambient_particles() -> void:
+	# Floating dust/ember particles for atmosphere
+	# Using simple animated meshes since GPUParticles3D may not work in gl_compatibility
+	for i in range(20):
+		var particle := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.03 + randf() * 0.02
+		sm.height = sm.radius * 2
+		particle.mesh = sm
+		var pm := _make_mat(Color(0.8, 0.6, 0.3, 0.4))
+		pm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		particle.material_override = pm
+		particle.position = Vector3(
+			randf_range(-5.0, 25.0),
+			randf_range(0.5, 4.0),
+			randf_range(-25.0, 5.0)
+		)
+		particle.name = "AmbientParticle_%d" % i
+		add_child(particle)
+
+	# Start particle animation
+	_animate_particles()
+
+
+func _animate_particles() -> void:
+	for child in get_children():
+		if child.name.begins_with("AmbientParticle_"):
+			var tween := create_tween()
+			tween.set_loops()
+			var duration: float = randf_range(3.0, 8.0)
+			var target_y: float = child.position.y + randf_range(0.5, 1.5)
+			var drift_x: float = randf_range(-1.0, 1.0)
+			tween.tween_property(child, "position:y", target_y, duration).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			tween.parallel().tween_property(child, "position:x", child.position.x + drift_x, duration).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			tween.tween_property(child, "position:y", child.position.y, duration).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			tween.parallel().tween_property(child, "position:x", child.position.x, duration).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+
+
+# ═══════════════ MINIMAP ═══════════════
+
+var minimap_container: SubViewportContainer
+var minimap_viewport: SubViewport
+var minimap_camera: Camera3D
+
+func setup_minimap(parent_control: Control) -> void:
+	## Call from HUD to embed minimap in a Control node.
+	minimap_container = SubViewportContainer.new()
+	minimap_container.name = "MinimapContainer"
+	minimap_container.custom_minimum_size = Vector2(180, 140)
+	minimap_container.stretch = true
+	parent_control.add_child(minimap_container)
+
+	minimap_viewport = SubViewport.new()
+	minimap_viewport.name = "MinimapViewport"
+	minimap_viewport.size = Vector2i(360, 280)
+	minimap_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	minimap_viewport.transparent_bg = false
+	minimap_container.add_child(minimap_viewport)
+
+	minimap_camera = Camera3D.new()
+	minimap_camera.name = "MinimapCamera"
+	minimap_camera.position = Vector3(9.0, 40.0, -8.0)
+	minimap_camera.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	minimap_camera.fov = 60.0
+	minimap_camera.current = true
+	minimap_viewport.add_child(minimap_camera)
+
+
+# ═══════════════ TILE PULSE ANIMATION ═══════════════
+
+func pulse_tile(idx: int, color: Color, duration: float = 0.6) -> void:
+	## Brief color pulse on a tile (e.g. on capture).
+	if not tile_visuals.has(idx):
+		return
+	var base_mi: MeshInstance3D = tile_visuals[idx]["base"]
+	var original_mat: StandardMaterial3D = base_mi.material_override
+	var pulse_mat := _make_mat(color)
+	pulse_mat.emission_enabled = true
+	pulse_mat.emission = color
+	pulse_mat.emission_energy_multiplier = 2.0
+	base_mi.material_override = pulse_mat
+	var tween := create_tween()
+	tween.tween_callback(func(): base_mi.material_override = original_mat).set_delay(duration)

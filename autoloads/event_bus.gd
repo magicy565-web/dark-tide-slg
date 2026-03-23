@@ -142,3 +142,19 @@ signal army_created(player_id: int, army_id: int, tile_index: int)
 signal army_disbanded(player_id: int, army_id: int)
 signal army_selected(army_id: int)
 signal board_ready()
+
+# ── Audio ──
+signal bgm_changed(track_id: int)
+signal sfx_requested(sfx_id: int)
+
+# ── Tutorial ──
+signal tutorial_step(step_id: String)
+signal tutorial_completed()
+
+# ── Combat View ──
+signal combat_view_requested(battle_result: Dictionary)
+signal combat_view_closed()
+
+# ── Settings ──
+signal settings_opened()
+signal settings_closed()

@@ -2,6 +2,78 @@
 
 ---
 
+## v1.5.0 — 2026-03-23 (可视化强化 + 音频系统 + 教程)
+
+### 战斗可视化系统 (新增)
+
+**combat_view.gd + combat_view.tscn** — 战国兰斯风格战斗演出:
+- 5v5 阵型网格显示 (前排3 + 后排2)
+- 兵种颜色编码: 足轻/武士/骑兵/弓兵/炮兵/忍者/法师/特殊
+- 血量条动画 + 伤害闪烁效果
+- 战斗日志逐步回放 (播放/单步/跳过)
+- 回合计数器 + 地形信息显示
+- 战斗结果覆盖层 (进攻方/防御方胜利)
+- 死亡单位视觉变暗效果
+
+### 音频系统 (新增)
+
+**audio_manager.gd** — 完整音频管理框架:
+- BGM 系统: 8种场景音乐ID (标题/选阵营/大地图/紧张/战斗/Boss/胜利/失败)
+- 交叉淡入淡出 BGM 切换
+- SFX 系统: 24种音效ID, 8通道并行播放
+- 环境音支持
+- 音量独立控制 (BGM/SFX/环境)
+- 全局静音开关
+- 自动响应 EventBus 信号切换音乐 (威胁值≥60→紧张BGM)
+- 设置持久化 (Save/Load)
+
+### 设置面板 (新增)
+
+**settings_panel.gd + settings_panel.tscn**:
+- BGM/SFX/环境音量滑块
+- 静音切换
+- 教程开关
+- 边缘滚动开关
+- ESC键打开/关闭
+
+### 教程系统 (新增)
+
+**tutorial_manager.gd** — 引导式新手教程:
+- 13步教程流程: 欢迎→阵营→地图→军团→招募→进攻→战斗→经济→秩序/威胁→外交→胜利条件
+- 事件触发机制: 根据游戏进度自动推进
+- 半透明覆盖层 + 弹出面板
+- 跳过/继续按钮
+- 教程状态持久化 (Save/Load)
+
+### 地图可视化改进
+
+**board.gd**:
+- 移除调试大方块 (debug cube)
+- 新增环境粒子系统: 20个浮动光点 (Tween动画, 不依赖 GPUParticles)
+- 新增小地图接口: `setup_minimap()` (SubViewport + 俯视Camera)
+- 新增领地脉冲动画: `pulse_tile()` (占领/失去时闪烁效果)
+
+### 项目配置更新
+
+**project.godot**:
+- 新增 Autoload: AudioManager, TutorialManager
+
+**main.tscn**:
+- 新增子场景: CombatView, SettingsPanel
+
+**main.gd**:
+- 版本升级至 v1.5
+- 集成战斗视图: `show_combat_view()` + 关闭回调
+- 集成教程: 游戏开始时启动教程
+- ESC键打开设置面板
+
+**event_bus.gd**:
+- 新增信号: bgm_changed, sfx_requested, tutorial_step, tutorial_completed
+- 新增信号: combat_view_requested, combat_view_closed
+- 新增信号: settings_opened, settings_closed
+
+---
+
 ## v1.4.0 — 2026-03-22 (V1+V2 合并版)
 
 ### 从 V2 分支合并的内容
