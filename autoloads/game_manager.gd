@@ -1792,6 +1792,11 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	var is_siege: bool = tile.get("wall_hp", 0) > 0 or tile.get("core_fortress_wall_hp", 0) > 0
 	var city_def: int = tile.get("wall_hp", tile.get("core_fortress_wall_hp", 0))
 
+	# Apply Orc WAAAGH! ATK bonus to attacker units
+	var faction_id: int = get_player_faction(pid)
+	if faction_id == FactionData.FactionID.ORC:
+		OrcMechanic.apply_waaagh_bonus_to_units(pid, attacker_units)
+
 	var attacker_data: Dictionary = {"units": attacker_units}
 	var defender_data: Dictionary = {"units": defender_units}
 	var node_data: Dictionary = {
@@ -3320,6 +3325,12 @@ func run_ai_turn() -> void:
 
 	EventBus.message_log.emit("%s 正在行动..." % player["name"])
 
+	# Orc AI: use aggressive WAAAGH-driven strategy instead of generic AI
+	var faction_id: int = get_player_faction(pid)
+	if faction_id == FactionData.FactionID.ORC:
+		await _run_orc_ai(pid)
+		return
+
 	while player["ap"] > 0 and game_active:
 		await get_tree().create_timer(0.4).timeout
 		if not game_active:
@@ -3495,3 +3506,250 @@ func _ai_score_attack(player: Dictionary, tile: Dictionary, army: Dictionary = {
 		score += friendly_neighbors * 1.5  # Connecting territory is valuable
 
 	return score
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Orc AI: Aggressive WAAAGH-driven strategy
+# ═══════════════════════════════════════════════════════════════════════════════
+
+func _run_orc_ai(player_id: int) -> void:
+	## Orc AI: aggressive WAAAGH-driven strategy.
+	## Prioritises constant warfare over defense; quantity over quality.
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or not game_active:
+		return
+
+	var waaagh: int = OrcMechanic.get_waaagh(player_id)
+	var in_frenzy: bool = OrcMechanic.is_in_frenzy(player_id)
+
+	# ── Phase 0: Create army if we have none ──
+	var ai_armies: Array = get_player_armies(player_id)
+	if ai_armies.is_empty():
+		var owned: Array = get_domestic_tiles(player_id)
+		if not owned.is_empty():
+			var best_tile: int = owned[0]["index"]
+			for ot in owned:
+				if ot["type"] == TileType.CORE_FORTRESS or ot["type"] == TileType.DARK_BASE:
+					best_tile = ot["index"]
+					break
+			create_army(player_id, best_tile, player["name"] + "WAAAGH軍")
+			ai_armies = get_player_armies(player_id)
+
+	# ── Main action loop ──
+	while player["ap"] > 0 and game_active:
+		await get_tree().create_timer(0.35).timeout
+		if not game_active:
+			return
+
+		# Refresh state each iteration
+		waaagh = OrcMechanic.get_waaagh(player_id)
+		in_frenzy = OrcMechanic.is_in_frenzy(player_id)
+		ai_armies = get_player_armies(player_id)
+		var did_action: bool = false
+
+		# ── Phase 1: AGGRESSIVE ATTACKS (primary behavior) ──
+		# Orc aggression threshold based on WAAAGH: higher WAAAGH = attack even bad odds
+		var aggression_threshold: float = 0.0
+		if waaagh < 30:
+			aggression_threshold = -5.0  # Desperate for WAAAGH, attack anything
+		elif waaagh >= 60:
+			aggression_threshold = 5.0   # High WAAAGH, confident strikes
+		if in_frenzy:
+			aggression_threshold = 10.0  # Frenzy: attack everything
+
+		for army in ai_armies:
+			if player["ap"] <= 0:
+				break
+			var attackable: Array = get_army_attackable_tiles(army["id"])
+			if attackable.is_empty():
+				continue
+			# Orcs attack even with low combat power (unlike generic AI which needs >= 3)
+			var army_power: int = get_army_combat_power(army["id"])
+			if army_power < 1:
+				continue
+
+			# Score each target with orc-specific logic
+			var best_tile_idx: int = -1
+			var best_score: float = aggression_threshold
+			for nb_idx in attackable:
+				var score: float = _orc_score_attack(army, tiles[nb_idx], waaagh, in_frenzy)
+				if score > best_score:
+					best_score = score
+					best_tile_idx = nb_idx
+
+			if best_tile_idx >= 0:
+				action_attack_with_army(army["id"], best_tile_idx)
+				did_action = true
+				break  # Re-evaluate after attack
+
+		if did_action:
+			continue
+
+		# ── Phase 2: Deploy armies toward enemy territory (offensive positions) ──
+		ai_armies = get_player_armies(player_id)
+		for army in ai_armies:
+			if player["ap"] <= 0:
+				break
+			# Skip armies already on the front line
+			var attackable: Array = get_army_attackable_tiles(army["id"])
+			if not attackable.is_empty():
+				continue
+			var deployable: Array = get_army_deployable_tiles(army["id"])
+			if deployable.is_empty():
+				continue
+			# Orc deploy: pick tile closest to enemies, prefer hostile over neutral
+			var best_deploy: int = -1
+			var best_deploy_score: float = -1.0
+			for dtile in deployable:
+				var dscore: float = 0.0
+				if adjacency.has(dtile):
+					for nb in adjacency[dtile]:
+						if nb < tiles.size() and tiles[nb]["owner_id"] >= 0 and tiles[nb]["owner_id"] != player_id:
+							dscore += 5.0  # Adjacent to enemy player
+							if tiles[nb].get("garrison", 0) < 5:
+								dscore += 3.0  # Weak garrison = juicy target
+						elif nb < tiles.size() and tiles[nb]["owner_id"] < 0:
+							dscore += 3.0  # Adjacent to neutral (more aggressive than generic)
+				if dscore > best_deploy_score:
+					best_deploy_score = dscore
+					best_deploy = dtile
+			if best_deploy >= 0:
+				action_deploy_army(army["id"], best_deploy)
+				did_action = true
+				break
+
+		if did_action:
+			continue
+
+		# ── Phase 3: Create additional armies (quantity over quality) ──
+		ai_armies = get_player_armies(player_id)
+		var owned_tiles: Array = get_domestic_tiles(player_id)
+		if ai_armies.size() < get_max_armies(player_id) and owned_tiles.size() > 0:
+			# Prefer frontier tiles for army creation
+			var created: bool = false
+			var best_spawn: int = -1
+			var best_spawn_score: float = 0.0
+			for ot in owned_tiles:
+				var existing: Dictionary = get_army_at_tile(ot["index"])
+				if not existing.is_empty():
+					continue
+				var sscore: float = 0.0
+				if adjacency.has(ot["index"]):
+					for nb in adjacency[ot["index"]]:
+						if nb < tiles.size() and tiles[nb]["owner_id"] != player_id:
+							sscore += 3.0
+				if sscore > best_spawn_score:
+					best_spawn_score = sscore
+					best_spawn = ot["index"]
+			if best_spawn >= 0:
+				var new_id: int = create_army(player_id, best_spawn, player["name"] + "第%d WAAAGH!" % (ai_armies.size() + 1))
+				if new_id > 0:
+					did_action = true
+			if did_action:
+				continue
+
+		# ── Phase 4: Recruit troops - prefer cheap units to fill armies fast ──
+		if not owned_tiles.is_empty():
+			var recruited: bool = false
+			for army in ai_armies:
+				if player["ap"] <= 0:
+					break
+				if army["troops"].size() >= MAX_TROOPS_PER_ARMY:
+					continue
+				var recruit_tile: Dictionary = _get_tile_dict(army["tile_index"])
+				if recruit_tile.is_empty() or recruit_tile["owner_id"] != player_id:
+					# Army not on owned tile, use first owned tile instead
+					recruit_tile = owned_tiles[0]
+				var available: Array = RecruitManager.get_available_units(player_id, recruit_tile)
+				if available.is_empty():
+					continue
+				# Sort by gold cost ascending - Orcs want cheap hordes
+				var cheapest: Dictionary = available[0]
+				for u in available:
+					if u.get("cost", {}).get("gold", 9999) < cheapest.get("cost", {}).get("gold", 9999):
+						cheapest = u
+				# Use action_domestic recruit to spend AP and resources properly
+				if ResourceManager.can_afford(player_id, cheapest.get("cost", {})):
+					action_domestic(player_id, recruit_tile["index"], "recruit")
+					recruited = true
+					break
+			if recruited:
+				continue
+
+		# ── Phase 5: Convert slaves to army (Orc war pit) ──
+		if ResourceManager.get_slaves(player_id) > 0:
+			OrcMechanic.convert_slave_to_army(player_id)
+			# Slave conversion doesn't cost AP, but keep looping
+			continue
+
+		# ── Phase 6: Explore only if nothing else to do (Orcs dislike idle turns) ──
+		if not owned_tiles.is_empty():
+			var explore_tile: Dictionary = owned_tiles[randi() % owned_tiles.size()]
+			action_explore(player_id, explore_tile["index"])
+			continue
+
+		# No valid action, break
+		break
+
+	await get_tree().create_timer(0.3).timeout
+	if game_active:
+		end_turn()
+
+
+func _orc_score_attack(army: Dictionary, tile: Dictionary, waaagh: int, in_frenzy: bool) -> float:
+	## Orc-specific attack scoring. More aggressive than generic _ai_score_attack.
+	## Prefers weak targets, bonuses for high WAAAGH, strategic value, and desperation.
+	var score: float = 0.0
+
+	# Base tile value (same priorities but boosted)
+	match tile["type"]:
+		TileType.CORE_FORTRESS: score += 15.0  # Orcs love capturing fortresses
+		TileType.LIGHT_STRONGHOLD: score += 12.0
+		TileType.CHOKEPOINT: score += 8.0
+		TileType.RESOURCE_STATION: score += 6.0
+		TileType.LIGHT_VILLAGE: score += 5.0
+		TileType.NEUTRAL_BASE: score += 4.0
+		TileType.HARBOR, TileType.TRADING_POST: score += 4.0
+		TileType.MINE_TILE, TileType.FARM_TILE: score += 3.0
+		_: score += 2.0
+
+	# Army strength vs garrison - Orcs tolerate worse odds
+	var army_power: float = float(get_army_combat_power(army["id"]))
+	var def_power: float = float(tile.get("garrison", 0)) * 8.0
+	if def_power > army_power * 1.5:
+		score -= 10.0  # Even Orcs avoid suicidal attacks (but threshold is higher)
+	elif def_power > army_power * 1.0:
+		score -= 4.0   # Unfavorable but Orcs don't mind
+	elif def_power > army_power * 0.5:
+		score -= 1.0
+	elif def_power < army_power * 0.3:
+		score += 5.0   # Easy prey - Orcs love stomping the weak
+
+	# WAAAGH aggression bonus: more WAAAGH = more reckless
+	score += float(waaagh) * 0.15
+
+	# Frenzy bonus: massive aggression boost during frenzy (1.5x damage active)
+	if in_frenzy:
+		score += 8.0
+
+	# Desperate for WAAAGH: if low, attack anything to generate combat WAAAGH
+	if waaagh < 30:
+		score += 8.0
+
+	# Territory connection bonus
+	var tile_idx: int = tile.get("index", -1)
+	if tile_idx >= 0 and adjacency.has(tile_idx):
+		var friendly_neighbors: int = 0
+		for nb in adjacency[tile_idx]:
+			if nb < tiles.size() and tiles[nb]["owner_id"] == army["player_id"]:
+				friendly_neighbors += 1
+		score += friendly_neighbors * 1.0  # Less weight than generic AI (Orcs don't care about clean borders)
+
+	return score
+
+
+func _get_tile_dict(tile_index: int) -> Dictionary:
+	## Returns tile dictionary by index, or empty dict if invalid.
+	if tile_index >= 0 and tile_index < tiles.size():
+		return tiles[tile_index]
+	return {}

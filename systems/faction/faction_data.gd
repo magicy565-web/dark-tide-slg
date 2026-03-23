@@ -128,6 +128,12 @@ const FACTION_PARAMS: Dictionary = {
 		"waaagh_zero_infighting_loss_pct": 0.10,
 		"waaagh_infighting_threshold": 20,
 		"waaagh_infighting_chance": 0.10,
+		# 兽人繁衍机制 (orc_mechanic.gd v2.0)
+		"breed_base_per_territory": 2,      # 每块领地每回合基础人口增长
+		"breed_food_consumption": 0.3,      # 每族人每回合消耗粮食
+		"breed_auto_spawn_threshold": 20,   # 人口池≥此值可自动征召
+		"breed_desperate_territory": 3,     # 领地<此值触发绝望繁衍(双倍增长)
+		"breed_desperate_tribe_size": 10,   # 族群<此值触发绝望繁衍
 	},
 	FactionID.PIRATE: {
 		"food_per_soldier": 1.0,
@@ -248,6 +254,11 @@ const BUILDING_LEVELS: Dictionary = {
 		1: {"name": "图腾柱 Lv1", "cost_gold": 300, "cost_iron": 30, "waaagh_per_turn": 5, "desc": "+5 WAAAGH!/回合"},
 		2: {"name": "图腾柱 Lv2", "cost_gold": 500, "cost_iron": 50, "waaagh_per_turn": 8, "extra_turn": 1, "desc": "+8 WAAAGH! 狂暴+1回合"},
 		3: {"name": "图腾柱 Lv3", "cost_gold": 800, "cost_iron": 75, "waaagh_per_turn": 12, "loss_reduction": 0.10, "desc": "+12 WAAAGH! 损失→10%"},
+	},
+	"brood_pit": {
+		1: {"name": "繁衍坑 Lv1", "cost_gold": 250, "cost_iron": 20, "growth_bonus": 3, "desc": "+3人口/回合, 兽人独有繁衍设施"},
+		2: {"name": "繁衍坑 Lv2", "cost_gold": 450, "cost_iron": 40, "growth_bonus": 5, "food_efficiency": 0.15, "desc": "+5人口/回合, 粮食消耗-15%"},
+		3: {"name": "繁衍坑 Lv3", "cost_gold": 750, "cost_iron": 65, "growth_bonus": 8, "food_efficiency": 0.25, "auto_spawn_threshold": -5, "desc": "+8人口/回合, 自动征召阈值降低5"},
 	},
 	"black_market": {
 		1: {"name": "黑市 Lv1", "cost_gold": 300, "cost_iron": 20, "trade_bonus": true, "items_per_turn": 1, "desc": "交易+1物品/回合"},

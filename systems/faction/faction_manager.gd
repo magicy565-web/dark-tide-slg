@@ -102,8 +102,8 @@ func get_faction_atk_bonus(player_id: int, faction_id: int) -> int:
 	var bonus: int = 0
 	match faction_id:
 		FactionData.FactionID.ORC:
-			# WAAAGH! frenzy is a multiplier, not flat bonus, handled in combat
-			pass
+			# WAAAGH! graduated ATK bonus (+1/+2/+4 by tier)
+			bonus += OrcMechanic.get_waaagh_atk_bonus(player_id)
 		FactionData.FactionID.DARK_ELF:
 			bonus += DarkElfMechanic.get_combat_atk_bonus(player_id)
 	return bonus
