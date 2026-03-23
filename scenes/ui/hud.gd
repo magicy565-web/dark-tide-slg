@@ -107,9 +107,9 @@ func _connect_signals() -> void:
 	EventBus.charm_changed.connect(_on_legacy_changed)
 	if EventBus.has_signal("territory_selected"):
 		EventBus.territory_selected.connect(_on_territory_selected)
-	EventBus.building_constructed.connect(_on_building_constructed)
-	EventBus.gold_changed.connect(_on_legacy_changed)
-	EventBus.charm_changed.connect(_on_legacy_changed)
+	EventBus.combat_result.connect(_on_combat_result)
+	EventBus.order_changed.connect(_on_order_changed)
+	EventBus.threat_changed.connect(_on_threat_changed)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1561,6 +1561,22 @@ func _on_game_over(winner_id: int) -> void:
 	else:
 		game_over_label.text = "游戏結束!"
 	_update_buttons()
+
+
+func _on_combat_result(_attacker_id: int, _defender_desc: String, _won: bool) -> void:
+	# Refresh all UI after combat resolves
+	_update_tile_info()
+	_update_buttons()
+
+
+func _on_order_changed(new_value: int) -> void:
+	if order_label:
+		order_label.text = "秩序: %d" % new_value
+
+
+func _on_threat_changed(new_value: int) -> void:
+	if threat_label:
+		threat_label.text = "威胁: %d" % new_value
 
 
 # ═══════════════════════════════════════════════════════════════

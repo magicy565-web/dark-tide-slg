@@ -14,6 +14,7 @@ config/features=PackedStringArray("4.2")
 
 EventBus="*res://autoloads/event_bus.gd"
 GameData="*res://autoloads/game_data.gd"
+BalanceConfig="*res://systems/balance_config.gd"
 ResourceManager="*res://systems/economy/resource_manager.gd"
 SlaveManager="*res://systems/economy/slave_manager.gd"
 BuffManager="*res://systems/economy/buff_manager.gd"

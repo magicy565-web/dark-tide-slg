@@ -32,6 +32,9 @@ func _ready() -> void:
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)
 
+	# Listen for combat view requests from GameManager
+	EventBus.combat_view_requested.connect(_on_combat_view_requested)
+
 
 func _on_game_started(faction_id: int) -> void:
 	# Show the HUD
@@ -61,8 +64,8 @@ func _on_combat_view_closed() -> void:
 	pass
 
 
-func show_combat_view(battle_result: Dictionary) -> void:
-	## Call from GameManager after resolving combat to show animated battle.
+func _on_combat_view_requested(battle_result: Dictionary) -> void:
+	## Triggered by EventBus when GameManager resolves combat.
 	combat_view.show_battle(battle_result)
 
 

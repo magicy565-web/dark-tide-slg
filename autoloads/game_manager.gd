@@ -1806,6 +1806,13 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	var combat: CombatSystem = CombatSystem.new()
 	var result: Dictionary = combat.resolve_battle(attacker_data, defender_data, node_data)
 
+	# Add title for combat view display
+	result["title"] = "%s 进攻 %s" % [army.get("name", "军团"), defender_desc]
+
+	# Request combat view visualization (human player only)
+	if pid == get_human_player_id():
+		EventBus.combat_view_requested.emit(result)
+
 	var won: bool = result.get("winner", "defender") == "attacker"
 	var att_losses: Dictionary = result.get("attacker_losses", {})
 	var def_losses: Dictionary = result.get("defender_losses", {})

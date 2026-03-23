@@ -138,6 +138,10 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 	state.mana_attacker = 0
 	state.mana_defender = 0
 
+	# Snapshot initial unit states for combat visualization
+	var attacker_units_initial: Array = _snapshot_units(state.attacker_units)
+	var defender_units_initial: Array = _snapshot_units(state.defender_units)
+
 	# Record starting soldier counts so we can compute losses later.
 	var start_att: Dictionary = {}
 	for u in state.attacker_units:
@@ -226,6 +230,12 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		"defender_losses": defender_losses,
 		"captured_heroes": captured,
 		"log": state.action_log,
+		"terrain": state.terrain,
+		"rounds": state.round_number,
+		"attacker_units_initial": attacker_units_initial,
+		"defender_units_initial": defender_units_initial,
+		"attacker_units_final": _snapshot_units(state.attacker_units),
+		"defender_units_final": _snapshot_units(state.defender_units),
 	}
 
 # ---------------------------------------------------------------------------
@@ -270,6 +280,39 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 		units.append(bu)
 
 	return units
+
+
+## Snapshot current unit states to serializable dictionaries (for combat view).
+func _snapshot_units(units: Array[BattleUnit]) -> Array:
+	var snap: Array = []
+	for u in units:
+		snap.append({
+			"id": u.id,
+			"commander_id": u.commander_id,
+			"troop_id": u.troop_id,
+			"atk": u.atk,
+			"def": u.def_stat,
+			"spd": u.spd,
+			"soldiers": u.soldiers,
+			"max_soldiers": u.max_soldiers,
+			"row": u.row,
+			"slot": u.slot,
+			"passive": u.passive,
+			"class": _infer_unit_class(u.troop_id),
+		})
+	return snap
+
+
+## Infer a display class from troop_id for color coding in combat view.
+func _infer_unit_class(troop_id: String) -> String:
+	if troop_id.find("ashigaru") != -1: return "ashigaru"
+	if troop_id.find("samurai") != -1: return "samurai"
+	if troop_id.find("cavalry") != -1 or troop_id.find("rider") != -1: return "cavalry"
+	if troop_id.find("archer") != -1 or troop_id.find("ranger") != -1: return "archer"
+	if troop_id.find("cannon") != -1 or troop_id.find("bombardier") != -1: return "cannon"
+	if troop_id.find("ninja") != -1 or troop_id.find("assassin") != -1: return "ninja"
+	if troop_id.find("mage") != -1 or troop_id.find("apprentice") != -1: return "mage"
+	return "special"
 
 # ---------------------------------------------------------------------------
 # Terrain

@@ -1,8 +1,8 @@
-## save_manager.gd - Save/Load orchestration (v1.4.0)
+## save_manager.gd - Save/Load orchestration (v1.5.0)
 ## Autoload singleton. Serializes full game state to JSON files.
 extends Node
 
-const SAVE_VERSION: String = "1.4.0"
+const SAVE_VERSION: String = "1.5.0"
 const SAVE_DIR: String = "user://saves/"
 const MAX_MANUAL_SLOTS: int = 5
 const AUTO_SLOT: int = 99
@@ -198,6 +198,8 @@ func _collect_save_data() -> Dictionary:
 		"light_faction_ai": LightFactionAI.to_save_data(),
 		"alliance_ai": AllianceAI.to_save_data(),
 		"evil_faction_ai": EvilFactionAI.to_save_data(),
+		"audio": AudioManager.to_save_data(),
+		"tutorial": TutorialManager.to_save_data(),
 	}
 
 
@@ -261,7 +263,13 @@ func _apply_save_data(data: Dictionary) -> void:
 	AllianceAI.from_save_data(data.get("alliance_ai", {}))
 	EvilFactionAI.from_save_data(data.get("evil_faction_ai", {}))
 
-	# 4. Emit signals to refresh UI
+	# 4. Restore new systems (v1.5+)
+	if data.has("audio"):
+		AudioManager.from_save_data(data.get("audio", {}))
+	if data.has("tutorial"):
+		TutorialManager.from_save_data(data.get("tutorial", {}))
+
+	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
 	EventBus.resources_changed.emit(pid)
 	EventBus.army_changed.emit(pid, ResourceManager.get_army(pid))
