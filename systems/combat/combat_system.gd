@@ -165,6 +165,13 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 	while winner == "" and state.round_number < MAX_ROUNDS:
 		state.round_number += 1
 
+		# Emit round_start log entry
+		state.action_log.append({
+			"action": "round_start",
+			"round": state.round_number,
+			"desc": "第%d回合开始" % state.round_number,
+		})
+
 		# Start-of-round passives (regen, mana charge)
 		_apply_round_start_passives(state)
 
@@ -179,13 +186,15 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 				continue
 
 			var entry := _execute_action(unit, state)
-			state.action_log.append(entry)
+			if entry.get("action", "") != "_already_logged":
+				state.action_log.append(entry)
 
 			# extra_action: unit acts twice per round
 			if unit.has_passive("extra_action") and unit.is_alive():
 				unit.has_acted = false  # allow a second action
 				var entry2 := _execute_action(unit, state)
-				state.action_log.append(entry2)
+				if entry2.get("action", "") != "_already_logged":
+					state.action_log.append(entry2)
 
 			winner = _check_battle_end(state)
 			if winner != "":
@@ -374,10 +383,14 @@ func _resolve_siege_phase(state: BattleState) -> void:
 		state.city_def = max(0, state.city_def - siege_dmg)
 
 		state.action_log.append({
+			"action": "siege",
 			"phase": "siege",
 			"unit": u.id,
+			"side": "attacker",
+			"slot": u.slot,
 			"damage_to_wall": siege_dmg,
 			"wall_remaining": state.city_def,
+			"desc": "%s 攻城，对城墙造成%d伤害（剩余%d）" % [u.troop_id, siege_dmg, state.city_def],
 		})
 
 		if state.city_def <= 0:
@@ -425,12 +438,23 @@ func _resolve_preemptive_phase(state: BattleState) -> void:
 		var dmg := _calculate_damage(u, target, state, mult)
 		_apply_damage(target, dmg, state)
 
+		var _pre_side := "attacker" if u.is_attacker else "defender"
+		var _pre_tgt_side := "attacker" if target.is_attacker else "defender"
 		state.action_log.append({
+			"action": "attack",
 			"phase": "preemptive",
-			"attacker": u.id,
+			"unit": u.id,
+			"side": _pre_side,
+			"slot": u.slot,
 			"target": target.id,
+			"target_side": _pre_tgt_side,
+			"target_slot": target.slot,
+			"target_name": target.troop_id,
 			"damage": dmg,
-			"soldiers_remaining": target.soldiers,
+			"remaining_soldiers": target.soldiers,
+			"max_soldiers": target.max_soldiers,
+			"round": state.round_number,
+			"desc": "%s 先制攻击 %s" % [u.troop_id, target.troop_id],
 		})
 
 		# On-hit passives (counter, etc.)
@@ -495,9 +519,11 @@ func _get_action_queue(state: BattleState) -> Array[BattleUnit]:
 func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 	unit.has_acted = true
 
+	var _unit_side := "attacker" if unit.is_attacker else "defender"
+
 	var enemies := _get_enemies(unit, state)
 	if enemies.is_empty():
-		return { "action": "idle", "unit": unit.id, "reason": "no_targets" }
+		return { "action": "idle", "unit": unit.id, "side": _unit_side, "slot": unit.slot, "reason": "no_targets", "desc": "%s 无目标" % unit.troop_id }
 
 	# ---- Decide whether to use AoE skill ---------------------------------
 	var use_aoe := false
@@ -539,23 +565,44 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 			var dmg := _calculate_damage(unit, t, state, skill_mult)
 			_apply_damage(t, dmg, state)
 			total_dmg += dmg
-			sub_log.append({ "target": t.id, "damage": dmg, "soldiers_remaining": t.soldiers })
+			var _aoe_tgt_side := "attacker" if t.is_attacker else "defender"
+			sub_log.append({ "target": t.id, "damage": dmg, "remaining_soldiers": t.soldiers, "target_side": _aoe_tgt_side, "target_slot": t.slot, "target_name": t.troop_id, "max_soldiers": t.max_soldiers })
 			_apply_passive_on_hit(unit, t, dmg, state)
+			# Emit death entry if target died
+			if t.soldiers <= 0:
+				state.action_log.append({
+					"action": "death",
+					"unit": t.id,
+					"side": _aoe_tgt_side,
+					"slot": t.slot,
+					"round": state.round_number,
+					"desc": "%s 被歼灭" % t.troop_id,
+				})
 
 		unit.first_attack = false
-		return {
-			"action": "aoe",
-			"unit": unit.id,
-			"mana_cost": aoe_cost,
-			"targets": sub_log,
-			"total_damage": total_dmg,
-			"round": state.round_number,
-		}
+		# Emit one attack entry per AoE target for combat_view compatibility
+		for _aoe_entry in sub_log:
+			state.action_log.append({
+				"action": "attack",
+				"unit": unit.id,
+				"side": _unit_side,
+				"slot": unit.slot,
+				"target": _aoe_entry["target"],
+				"target_side": _aoe_entry["target_side"],
+				"target_slot": _aoe_entry["target_slot"],
+				"target_name": _aoe_entry["target_name"],
+				"damage": _aoe_entry["damage"],
+				"remaining_soldiers": _aoe_entry["remaining_soldiers"],
+				"max_soldiers": _aoe_entry["max_soldiers"],
+				"round": state.round_number,
+				"desc": "%s 范围攻击 %s" % [unit.troop_id, _aoe_entry["target_name"]],
+			})
+		return { "action": "_already_logged" }
 
 	# ---- Normal single-target attack --------------------------------------
 	var target := _select_target(unit, enemies)
 	if target == null:
-		return { "action": "idle", "unit": unit.id, "reason": "no_valid_target" }
+		return { "action": "idle", "unit": unit.id, "side": _unit_side, "slot": unit.slot, "reason": "no_valid_target", "desc": "%s 无有效目标" % unit.troop_id }
 
 	var skill_mult := 1.0
 	# charge_1_5: first attack deals x1.5 damage
@@ -566,17 +613,38 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 	_apply_damage(target, dmg, state)
 	unit.first_attack = false
 
+	var _target_side := "attacker" if target.is_attacker else "defender"
 	var entry := {
 		"action": "attack",
 		"unit": unit.id,
+		"side": _unit_side,
+		"slot": unit.slot,
 		"target": target.id,
+		"target_side": _target_side,
+		"target_slot": target.slot,
+		"target_name": target.troop_id,
 		"damage": dmg,
-		"soldiers_remaining": target.soldiers,
+		"remaining_soldiers": target.soldiers,
+		"max_soldiers": target.max_soldiers,
 		"round": state.round_number,
+		"desc": "%s 攻击 %s" % [unit.troop_id, target.troop_id],
 	}
 
 	# On-hit passives (counter, death_burst, etc.)
 	_apply_passive_on_hit(unit, target, dmg, state)
+
+	# Emit death entry if target died
+	if target.soldiers <= 0:
+		state.action_log.append(entry)
+		state.action_log.append({
+			"action": "death",
+			"unit": target.id,
+			"side": _target_side,
+			"slot": target.slot,
+			"round": state.round_number,
+			"desc": "%s 被歼灭" % target.troop_id,
+		})
+		return { "action": "_already_logged" }
 
 	return entry
 
@@ -635,9 +703,16 @@ func _apply_damage(target: BattleUnit, damage: int, state: BattleState) -> void:
 	if new_soldiers <= 0 and target.has_passive("escape_30"):
 		if randf() < 0.30:
 			target.soldiers = 1
+			var _esc_side := "attacker" if target.is_attacker else "defender"
 			state.action_log.append({
+				"action": "passive",
 				"event": "escape_30_triggered",
 				"unit": target.id,
+				"side": _esc_side,
+				"slot": target.slot,
+				"remaining_soldiers": 1,
+				"max_soldiers": target.max_soldiers,
+				"desc": "%s 触发逃脱被动，保留1兵" % target.troop_id,
 			})
 			return
 
@@ -655,11 +730,16 @@ func _trigger_death_burst(dead_unit: BattleUnit, state: BattleState) -> void:
 	for e in enemies:
 		e.soldiers = maxi(0, e.soldiers - burst_dmg)
 
+	var _db_side := "attacker" if dead_unit.is_attacker else "defender"
 	state.action_log.append({
+		"action": "passive",
 		"event": "death_burst",
 		"unit": dead_unit.id,
+		"side": _db_side,
+		"slot": dead_unit.slot,
 		"damage_each": burst_dmg,
 		"targets_hit": enemies.size(),
+		"desc": "%s 死亡爆发，对%d个敌方各造成%d伤害" % [dead_unit.troop_id, enemies.size(), burst_dmg],
 	})
 
 # ---------------------------------------------------------------------------
@@ -763,12 +843,22 @@ func _apply_passive_on_hit(attacker: BattleUnit, defender: BattleUnit, damage: i
 	if defender.is_alive() and defender.has_passive("counter_1_2"):
 		var counter_dmg := _calculate_damage(defender, attacker, state, 1.2)
 		_apply_damage(attacker, counter_dmg, state)
+		var _ctr_side := "attacker" if defender.is_attacker else "defender"
+		var _ctr_tgt_side := "attacker" if attacker.is_attacker else "defender"
 		state.action_log.append({
+			"action": "passive",
 			"event": "counter_1_2",
 			"unit": defender.id,
+			"side": _ctr_side,
+			"slot": defender.slot,
 			"target": attacker.id,
+			"target_side": _ctr_tgt_side,
+			"target_slot": attacker.slot,
+			"target_name": attacker.troop_id,
 			"damage": counter_dmg,
-			"soldiers_remaining": attacker.soldiers,
+			"remaining_soldiers": attacker.soldiers,
+			"max_soldiers": attacker.max_soldiers,
+			"desc": "%s 反击 %s，造成%d伤害" % [defender.troop_id, attacker.troop_id, counter_dmg],
 		})
 
 # ---------------------------------------------------------------------------

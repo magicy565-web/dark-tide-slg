@@ -958,10 +958,15 @@ func _get_terrain_name(terrain) -> String:
 
 
 func _get_troop_display_name(troop_id: String) -> String:
-	if FactionData.UNIT_DEFS.has(troop_id):
-		return FactionData.UNIT_DEFS[troop_id].get("name", troop_id)
-	if FactionData.LIGHT_UNIT_DEFS.has(troop_id):
-		return FactionData.LIGHT_UNIT_DEFS[troop_id].get("name", troop_id)
+	# UNIT_DEFS and LIGHT_UNIT_DEFS are nested by faction ID; iterate sub-dicts.
+	for faction_id in FactionData.UNIT_DEFS:
+		var faction_units: Dictionary = FactionData.UNIT_DEFS[faction_id]
+		if faction_units.has(troop_id):
+			return faction_units[troop_id].get("name", troop_id)
+	for faction_id in FactionData.LIGHT_UNIT_DEFS:
+		var faction_units: Dictionary = FactionData.LIGHT_UNIT_DEFS[faction_id]
+		if faction_units.has(troop_id):
+			return faction_units[troop_id].get("name", troop_id)
 	return troop_id
 
 
