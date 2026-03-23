@@ -5,12 +5,14 @@ const FactionData = preload("res://systems/faction/faction_data.gd")
 
 # Track faction relations: { player_id: { faction_id: { "hostile": bool, "recruited": bool, "method": String, "rebellion_turns": int } } }
 var _relations: Dictionary = {}
+var _ceasefire: Dictionary = {}  # {player_id: {target_faction_id: turns_remaining}}
 
 func _ready() -> void:
 	pass
 
 func reset() -> void:
 	_relations.clear()
+	_ceasefire.clear()
 
 func init_player(player_id: int) -> void:
 	_relations[player_id] = {}
@@ -24,9 +26,15 @@ func mark_hostile(player_id: int, faction_id: int) -> void:
 		_relations[player_id][faction_id]["hostile"] = true
 		EventBus.message_log.emit("[color=red]对该军团的外交途径已关闭![/color]")
 
+func is_orc_player(player_id: int) -> bool:
+	return GameManager.get_player_faction(player_id) == FactionData.FactionID.ORC
+
 func can_diplomacy(player_id: int, faction_id: int) -> Dictionary:
 	## Check if diplomatic recruitment is possible.
 	## Returns { "possible": bool, "missing": Array of String }
+	# Orc players cannot use diplomacy at all
+	if is_orc_player(player_id):
+		return {"possible": false, "missing": ["兽人部落只懂得征服! 无法进行外交收编"]}
 	var result := {"possible": true, "missing": []}
 	if not _relations.has(player_id) or not _relations[player_id].has(faction_id):
 		return {"possible": false, "missing": ["无效阵营"]}
@@ -165,13 +173,69 @@ func _faction_to_ai_key(faction_id: int) -> String:
 	return ""
 
 
+# ═══════════════ CEASEFIRE (ORC-ONLY) ═══════════════
+
+func offer_ceasefire(player_id: int, faction_id: int, turns: int = 5) -> bool:
+	## Orc can offer ceasefire (costs gold, temporary peace)
+	if not is_orc_player(player_id):
+		return false  # Only orcs use this
+	var cost: int = 100  # Ceasefire costs gold (tribute)
+	if not ResourceManager.can_afford(player_id, {"gold": cost}):
+		EventBus.message_log.emit("[color=red]金币不足! 停战需要%d金作为贡品[/color]" % cost)
+		return false
+	ResourceManager.spend(player_id, {"gold": cost})
+	if not _ceasefire.has(player_id):
+		_ceasefire[player_id] = {}
+	_ceasefire[player_id][faction_id] = turns
+	_relations[player_id][faction_id]["hostile"] = false
+	EventBus.message_log.emit("[color=yellow]与%s达成停战协议! %d回合内不可互攻[/color]" % [_get_faction_name(faction_id), turns])
+	return true
+
+func is_ceasefire_active(player_id: int, faction_id: int) -> bool:
+	if not _ceasefire.has(player_id):
+		return false
+	return _ceasefire[player_id].get(faction_id, 0) > 0
+
+func tick_ceasefire(player_id: int) -> void:
+	## Called each turn to decrement ceasefire timers
+	if not _ceasefire.has(player_id):
+		return
+	for fid in _ceasefire[player_id]:
+		if _ceasefire[player_id][fid] > 0:
+			_ceasefire[player_id][fid] -= 1
+			if _ceasefire[player_id][fid] <= 0:
+				EventBus.message_log.emit("[color=red]与%s的停战协议已到期![/color]" % _get_faction_name(fid))
+
+# ═══════════════ DIPLOMACY UI ACTIONS ═══════════════
+
+func get_available_actions(player_id: int, faction_id: int) -> Array:
+	## Returns list of available diplomatic actions for UI display
+	var actions: Array = []
+	if is_orc_player(player_id):
+		# Orc: only war/ceasefire
+		var rel = _relations.get(player_id, {}).get(faction_id, {})
+		if rel.get("hostile", false) and not is_ceasefire_active(player_id, faction_id):
+			actions.append({"id": "ceasefire", "name": "停战协议", "cost": "100金", "desc": "贡品换取5回合和平"})
+		elif not rel.get("hostile", false):
+			actions.append({"id": "declare_war", "name": "宣战", "cost": "无", "desc": "兽人只懂征服!"})
+		return actions
+	# Non-orc: full diplomacy options
+	if not _relations.get(player_id, {}).get(faction_id, {}).get("recruited", false):
+		var check = can_diplomacy(player_id, faction_id)
+		if check["possible"]:
+			actions.append({"id": "recruit_diplomacy", "name": "外交收编", "cost": "威望+金币", "desc": "和平收编该势力"})
+	return actions
+
+
 # ═══════════════ SAVE / LOAD ═══════════════
 
 func to_save_data() -> Dictionary:
 	return {
 		"relations": _relations.duplicate(true),
+		"ceasefire": _ceasefire.duplicate(true),
 	}
 
 
 func from_save_data(data: Dictionary) -> void:
 	_relations = data.get("relations", {}).duplicate(true)
+	_ceasefire = data.get("ceasefire", {}).duplicate(true)

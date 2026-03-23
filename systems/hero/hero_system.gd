@@ -17,6 +17,10 @@ var hero_equipment: Dictionary = {}
 # hero_id -> int (remaining cooldown turns, 0 = ready)
 var _skill_cooldowns: Dictionary = {}
 
+# ── Pirate Harem System (v2.0) ──
+var hero_submission: Dictionary = {}       # hero_id -> int (0-10, 服从度/调教度)
+var _pirate_mode: bool = false             # true if player is pirate faction
+
 
 func reset() -> void:
 	captured_heroes.clear()
@@ -25,6 +29,17 @@ func reset() -> void:
 	hero_affection.clear()
 	hero_equipment.clear()
 	_skill_cooldowns.clear()
+	hero_submission.clear()
+	_pirate_mode = false
+
+
+## Called when pirate faction is selected. Enables harem mechanics.
+func init_pirate_mode() -> void:
+	_pirate_mode = true
+
+
+func is_pirate_mode() -> bool:
+	return _pirate_mode
 
 
 # ═══════════════ CAPTURE ═══════════════
@@ -33,12 +48,16 @@ func reset() -> void:
 func attempt_capture(hero_id: String, capture_chance: float = -1.0) -> bool:
 	if hero_id in captured_heroes or hero_id in recruited_heroes:
 		return false
-	if captured_heroes.size() >= FactionData.PRISON_CAPACITY:
+	var max_prison: int = FactionData.PIRATE_PRISON_CAPACITY if _pirate_mode else FactionData.PRISON_CAPACITY
+	if captured_heroes.size() >= max_prison:
 		return false
 	# Use hero's default capture chance if not overridden
 	if capture_chance < 0.0:
 		var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
 		capture_chance = hero_data.get("capture_chance", 0.5)
+	# Pirate capture bonus
+	if _pirate_mode:
+		capture_chance = minf(capture_chance + FactionData.PIRATE_CAPTURE_BONUS, 1.0)
 	if randf() <= capture_chance:
 		captured_heroes.append(hero_id)
 		hero_corruption[hero_id] = 0
@@ -55,7 +74,10 @@ func attempt_capture(hero_id: String, capture_chance: float = -1.0) -> bool:
 ## Process prison each turn: increase corruption
 func process_prison_turn() -> void:
 	for hero_id in captured_heroes:
-		hero_corruption[hero_id] = hero_corruption.get(hero_id, 0) + 1
+		var increment: int = 1
+		if _pirate_mode:
+			increment = ceili(float(increment) * FactionData.PIRATE_CORRUPTION_SPEED)
+		hero_corruption[hero_id] = hero_corruption.get(hero_id, 0) + increment
 
 
 ## Attempt to recruit a captured hero
@@ -418,6 +440,112 @@ func apply_skill_in_combat(hero_id: String) -> Dictionary:
 	return {}
 
 
+# ═══════════════ PIRATE HAREM SYSTEM (海盗后宫) ═══════════════
+
+## 获取角色服从度 (0-10)
+func get_submission(hero_id: String) -> int:
+	return hero_submission.get(hero_id, 0)
+
+
+## 调教角色 (需要已招募). 消耗性奴隶资源提升服从度.
+## Returns { "ok": bool, "submission": int, "desc": String }
+func train_heroine(hero_id: String) -> Dictionary:
+	if hero_id not in recruited_heroes:
+		return {"ok": false, "submission": 0, "desc": "角色未招募"}
+	var current: int = hero_submission.get(hero_id, 0)
+	if current >= FactionData.SUBMISSION_MAX:
+		return {"ok": false, "submission": current, "desc": "服从度已满"}
+	# 消耗1性奴隶作为调教辅助
+	var pid: int = GameManager.get_human_player_id()
+	if not PirateMechanic.consume_sex_slaves(pid, 1):
+		return {"ok": false, "submission": current, "desc": "性奴隶不足 (需要1名辅助调教)"}
+	var gain: int = FactionData.SUBMISSION_PER_TRAINING
+	# 调教所建筑加成
+	var training_pens: int = _count_pirate_building("slave_training_pen")
+	if training_pens > 0:
+		gain += 1
+	hero_submission[hero_id] = mini(current + gain, FactionData.SUBMISSION_MAX)
+	var hero_name: String = _get_hero_name(hero_id)
+	var new_sub: int = hero_submission[hero_id]
+	EventBus.message_log.emit("[color=pink]调教 %s! 服从度 %d -> %d[/color]" % [hero_name, current, new_sub])
+	# 服从度阈值事件
+	if current < 3 and new_sub >= 3:
+		EventBus.message_log.emit("[color=pink]%s 开始顺从... 解锁: 特殊对话[/color]" % hero_name)
+	if current < 5 and new_sub >= 5:
+		EventBus.message_log.emit("[color=pink]%s 已被驯服! 解锁: 专属H场景[/color]" % hero_name)
+	if current < 7 and new_sub >= 7:
+		EventBus.message_log.emit("[color=pink]%s 完全臣服! 解锁: 后宫成员确认[/color]" % hero_name)
+	if current < 10 and new_sub >= 10:
+		EventBus.message_log.emit("[color=gold]%s 彻底堕落! 成为你的专属奴隶![/color]" % hero_name)
+	_check_harem_progress()
+	return {"ok": true, "submission": new_sub, "desc": "调教成功"}
+
+
+## 赠礼提升服从度 (花费金币, 更温和的方式)
+func gift_heroine(hero_id: String, gold_cost: int = 30) -> Dictionary:
+	if hero_id not in recruited_heroes:
+		return {"ok": false, "desc": "角色未招募"}
+	var pid: int = GameManager.get_human_player_id()
+	if not ResourceManager.can_afford(pid, {"gold": gold_cost}):
+		return {"ok": false, "desc": "金币不足 (需要%d金)" % gold_cost}
+	var current: int = hero_submission.get(hero_id, 0)
+	if current >= FactionData.SUBMISSION_MAX:
+		return {"ok": false, "desc": "服从度已满"}
+	ResourceManager.spend(pid, {"gold": gold_cost})
+	hero_submission[hero_id] = mini(current + FactionData.SUBMISSION_PER_GIFT, FactionData.SUBMISSION_MAX)
+	var hero_name: String = _get_hero_name(hero_id)
+	EventBus.message_log.emit("[color=pink]赠礼 %s! 服从度 +%d (当前: %d)[/color]" % [
+		hero_name, FactionData.SUBMISSION_PER_GIFT, hero_submission[hero_id]])
+	_check_harem_progress()
+	return {"ok": true, "desc": "赠礼成功", "submission": hero_submission[hero_id]}
+
+
+## 获取后宫收集进度 { "total": int, "recruited": int, "submitted": int, "complete": bool }
+func get_harem_progress() -> Dictionary:
+	var total_heroes: int = FactionData.HEROES.size()
+	var recruited_count: int = recruited_heroes.size()
+	var submitted_count: int = 0
+	for hero_id in recruited_heroes:
+		if hero_submission.get(hero_id, 0) >= FactionData.HAREM_VICTORY_SUBMISSION_MIN:
+			submitted_count += 1
+	return {
+		"total": total_heroes,
+		"recruited": recruited_count,
+		"submitted": submitted_count,
+		"complete": submitted_count >= total_heroes,
+	}
+
+
+## 检查后宫收集进度并输出提示
+func _check_harem_progress() -> void:
+	if not _pirate_mode:
+		return
+	var progress: Dictionary = get_harem_progress()
+	var total: int = progress["total"]
+	var submitted: int = progress["submitted"]
+	if submitted > 0 and submitted % 3 == 0 and submitted < total:
+		EventBus.message_log.emit("[color=gold]后宫进度: %d/%d 角色已臣服! 继续收集...[/color]" % [submitted, total])
+	if progress["complete"]:
+		EventBus.message_log.emit("[color=gold]═══ 所有角色已完全臣服! 后宫胜利条件达成! ═══[/color]")
+
+
+## 检查是否达成后宫胜利条件
+func check_harem_victory() -> bool:
+	if not _pirate_mode:
+		return false
+	return get_harem_progress()["complete"]
+
+
+## 内部: 计算海盗建筑数量
+func _count_pirate_building(building_id: String) -> int:
+	var pid: int = GameManager.get_human_player_id()
+	var count: int = 0
+	for tile in GameManager.tiles:
+		if tile["owner_id"] == pid and tile.get("building_id", "") == building_id:
+			count += 1
+	return count
+
+
 # ═══════════════ SERIALIZATION ═══════════════
 
 func to_save_data() -> Dictionary:
@@ -428,6 +556,8 @@ func to_save_data() -> Dictionary:
 		"hero_affection": hero_affection.duplicate(),
 		"hero_equipment": hero_equipment.duplicate(true),
 		"skill_cooldowns": _skill_cooldowns.duplicate(),
+		"hero_submission": hero_submission.duplicate(),
+		"pirate_mode": _pirate_mode,
 	}
 
 
@@ -438,6 +568,8 @@ func from_save_data(data: Dictionary) -> void:
 	hero_affection = data.get("hero_affection", {})
 	hero_equipment = data.get("hero_equipment", {}).duplicate(true)
 	_skill_cooldowns = data.get("skill_cooldowns", {})
+	hero_submission = data.get("hero_submission", {})
+	_pirate_mode = data.get("pirate_mode", false)
 
 
 # ═══════════════ INTERNAL ═══════════════

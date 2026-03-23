@@ -81,6 +81,23 @@ signal faction_selected(faction_id: int)
 signal plunder_changed(player_id: int, new_value: int)
 signal slave_allocation_changed(player_id: int)
 
+# ── Pirate faction (v2.0) ──
+signal infamy_changed(player_id: int, new_value: int)
+signal rum_morale_changed(player_id: int, new_value: int)
+signal treasure_found(player_id: int, reward_type: String)
+signal smuggle_route_changed(player_id: int, route_count: int)
+signal raid_party_spawned(tile_index: int, strength: int)
+signal raid_party_defeated(tile_index: int, loot: int)
+signal sex_slave_trained(player_id: int, slave_index: int, training_value: int)
+signal sex_slave_sold(player_id: int, gold_earned: int)
+signal sex_slave_ransomed(player_id: int, gold_earned: int)
+signal black_market_refreshed(player_id: int, item_count: int)
+
+# ── Pirate Harem System (后宫收集) ──
+signal heroine_submission_changed(hero_id: String, new_value: int)
+signal harem_progress_updated(recruited: int, submitted: int, total: int)
+signal harem_victory_achieved()
+
 # ── Light faction ──
 signal mana_pool_changed(new_value: int)
 signal alliance_formed(threat_level: int)

@@ -12,6 +12,15 @@ const CORRUPTION_TO_RECRUIT: int = 5
 const AFFECTION_MAX: int = 10
 const MANA_BASE_MAX: int = 10
 
+# ── Pirate Harem Victory (海盗后宫收集胜利) ──
+const HAREM_VICTORY_SUBMISSION_MIN: int = 7    # 所有角色服从度≥7即可触发
+const PIRATE_PRISON_CAPACITY: int = 6          # 海盗牢房容量翻倍
+const PIRATE_CORRUPTION_SPEED: float = 1.5     # 海盗腐化速度×1.5
+const PIRATE_CAPTURE_BONUS: float = 0.15       # 海盗捕获概率+15%
+const SUBMISSION_PER_TRAINING: int = 1          # 每次调教+1服从度
+const SUBMISSION_PER_GIFT: int = 2              # 每次赠礼+2服从度
+const SUBMISSION_MAX: int = 10                  # 服从度上限
+
 # ── Territory Distribution (v0.8.3) ──
 # Evil factions combined = 20% of total map (55 nodes)
 # Hierarchy: Orc > Pirate > Dark Elf
@@ -52,7 +61,7 @@ const HEROES: Dictionary = {
 		"capture_chance": 0.4, "active": "爆裂火球", "passive": "火焰亲和"},
 	# --- Pirate / Dark Elf Heroes ---
 	"shion_pirate": {"name": "潮音", "faction": "pirate", "troop": "archer", "atk": 7, "def": 4, "int": 5, "spd": 7,
-		"capture_chance": 0.0, "join_condition": "turn_gte_15", "active": "连射", "passive": "海风"},
+		"capture_chance": 0.0, "join_condition": "turn_gte_15", "active": "连射", "passive": "海风", "pirate_native": true},
 	"youya": {"name": "妖夜", "faction": "dark_elf", "troop": "ninja", "atk": 6, "def": 3, "int": 4, "spd": 9,
 		"capture_chance": 0.0, "join_condition": "turn_gte_10", "active": "致命一击", "passive": "夜行者"},
 	# --- Neutral Leaders (6, guard neutral bases) ---
@@ -92,7 +101,7 @@ const STARTING_RESOURCES: Dictionary = {
 		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
 	},
 	FactionID.PIRATE: {
-		"gold": 500, "food": 150, "iron": 80, "slaves": 3, "prestige": 0, "army": 3,
+		"gold": 600, "food": 100, "iron": 40, "slaves": 2, "prestige": 0, "army": 3,
 		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
 	},
 	FactionID.DARK_ELF: {
@@ -134,22 +143,64 @@ const FACTION_PARAMS: Dictionary = {
 		"breed_auto_spawn_threshold": 20,   # 人口池≥此值可自动征召
 		"breed_desperate_territory": 3,     # 领地<此值触发绝望繁衍(双倍增长)
 		"breed_desperate_tribe_size": 10,   # 族群<此值触发绝望繁衍
+		# 兽人外交限制 (纯征服路线)
+		"diplomacy_type": "conquest_only",     # 仅征服
+		"ceasefire_cost_gold": 100,            # 停战贡品费用
+		"ceasefire_duration": 5,               # 停战持续回合
+		"war_slave_penalty_base": 0.5,         # 与兽人开战时敌方奴隶产出-50%
+		"threat_increase_per_war": 5,          # 每场战争额外增加威胁值
 	},
 	FactionID.PIRATE: {
 		"food_per_soldier": 1.0,
 		"recruit_cost_gold": 60,
 		"recruit_cost_iron": 5,
 		"slave_capture_bonus": 1.0,
-		"base_production_mult": 1.0,
-		"gold_income_mult": 1.3,          # v0.7: gold x1.3
-		"iron_income_mult": 0.8,          # v0.7: iron x0.8
-		"food_production_mult": 1.0,      # v1.0: 04_经济设定 says ×1.0
-		# Black Market
+		"base_production_mult": 0.6,       # v2.0: 基础产出大幅降低 (掠夺为主)
+		"gold_income_mult": 1.5,           # v2.0: 掠夺金币系数提升至1.5x
+		"iron_income_mult": 0.5,           # v2.0: 铁矿产出极低 (需要掠夺)
+		"food_production_mult": 0.7,       # v2.0: 粮食产出降低 (靠掠夺补充)
+		# 黑市
 		"slave_sell_price": 25,
 		"slave_buy_price": 40,
-		# Plunder
-		"plunder_base_per_tile": 2,
-		"stronghold_capture_plunder_mult": 10,
+		# 掠夺
+		"plunder_base_per_tile": 3,        # v2.0: 每据点掠夺值+3 (原2)
+		"plunder_combat_mult": 1.8,        # v2.0: 战斗掠夺金币系数×1.8
+		"stronghold_capture_plunder_mult": 12,  # v2.0: 要塞掠夺×12 (原10)
+		# 性奴隶系统
+		"sex_slave_base_capacity": 3,
+		"sex_slave_per_territory": 2,
+		"sex_slave_per_black_market": 3,
+		"slave_training_per_turn": 10,
+		"slave_training_max": 100,
+		"slave_ransom_base": 50,
+		"slave_ransom_relation_mult": 2.0,
+		# 恶名系统
+		"infamy_per_plunder": 5,
+		"infamy_per_ransom": -3,
+		"infamy_decay_per_turn": 2,
+		"infamy_high_threshold": 70,
+		"infamy_low_threshold": 30,
+		# 朗姆酒士气
+		"rum_morale_per_barrel": 15,
+		"rum_decay_per_turn": 5,
+		"rum_atk_threshold": 50,
+		"rum_high_atk": 2,
+		"rum_drunk_threshold": 90,
+		"rum_drunk_atk": 4,
+		"rum_drunk_def_penalty": -2,
+		# 走私航线
+		"smuggle_income_per_route": 8,
+		"max_smuggle_routes": 3,
+		# 雇佣兵
+		"mercenary_cost_mult": 2.0,
+		"mercenary_stat_penalty": 0.8,     # 雇佣兵属性仅为本系80%
+		# AI海盗
+		"ai_raid_spawn_chance": 0.25,
+		"ai_raid_min_strength": 4,
+		"ai_raid_max_strength": 10,
+		"ai_raid_duration": 3,
+		"ai_raid_loot_on_defeat": 40,
+		"ai_max_raid_parties": 4,
 	},
 	FactionID.DARK_ELF: {
 		"food_per_soldier": 1.0,
@@ -264,6 +315,15 @@ const BUILDING_LEVELS: Dictionary = {
 		1: {"name": "黑市 Lv1", "cost_gold": 300, "cost_iron": 20, "trade_bonus": true, "items_per_turn": 1, "desc": "交易+1物品/回合"},
 		2: {"name": "黑市 Lv2", "cost_gold": 500, "cost_iron": 35, "trade_bonus": true, "items_per_turn": 2, "desc": "更好价格+2物品"},
 		3: {"name": "黑市 Lv3", "cost_gold": 800, "cost_iron": 55, "trade_bonus": true, "items_per_turn": 3, "desc": "最佳价格+遗物"},
+	},
+	"rum_distillery": {
+		1: {"name": "朗姆酒坊 Lv1", "cost_gold": 80, "cost_iron": 4, "rum_per_turn": 1, "desc": "+1朗姆酒/回合"},
+		2: {"name": "朗姆酒坊 Lv2", "cost_gold": 150, "cost_iron": 8, "rum_per_turn": 2, "desc": "+2朗姆酒/回合, 解锁烈酒"},
+		3: {"name": "朗姆酒坊 Lv3", "cost_gold": 250, "cost_iron": 14, "rum_per_turn": 3, "desc": "+3朗姆酒/回合, 士气衰减减半"},
+	},
+	"slave_training_pen": {
+		1: {"name": "调教所 Lv1", "cost_gold": 120, "cost_iron": 10, "training_mult": 2.0, "desc": "调教速度×2"},
+		2: {"name": "调教所 Lv2", "cost_gold": 220, "cost_iron": 18, "training_mult": 3.0, "desc": "调教速度×3, 解锁特殊调教"},
 	},
 	"temple_of_agony": {
 		1: {"name": "痛苦神殿 Lv1", "cost_gold": 350, "cost_iron": 40, "altar_mult": 1.0, "desc": "开启祭坛"},
@@ -545,9 +605,9 @@ const UNIQUE_BUILDINGS: Dictionary = {
 	},
 	FactionID.PIRATE: {
 		"black_market": {
-			"name": "黑市",
+			"name": "海盗黑市",
 			"cost_gold": 90, "cost_iron": 6, "cost_slaves": 0,
-			"desc": "交易+1物品/回合",
+			"desc": "解锁黑市交易, 可买卖性奴隶和消耗品",
 			"effect": "black_market",
 			"effect_value": 0,
 			"max_level": 3,
@@ -555,9 +615,25 @@ const UNIQUE_BUILDINGS: Dictionary = {
 		"smugglers_den": {
 			"name": "走私者巢穴",
 			"cost_gold": 100, "cost_iron": 8, "cost_slaves": 0,
-			"desc": "+5金/回合，战利品+50%",
+			"desc": "+5金/回合, 战利品+50%, 解锁走私航线",
 			"effect": "smuggler_income",
 			"effect_value": 5,
+		},
+		"rum_distillery": {
+			"name": "朗姆酒酿造坊",
+			"cost_gold": 80, "cost_iron": 4, "cost_slaves": 0,
+			"desc": "每回合产出1桶朗姆酒, 提升船员士气",
+			"effect": "rum_production",
+			"effect_value": 1,
+			"max_level": 3,
+		},
+		"slave_training_pen": {
+			"name": "奴隶调教所",
+			"cost_gold": 120, "cost_iron": 10, "cost_slaves": 0,
+			"desc": "性奴隶调教速度翻倍, 解锁高级调教",
+			"effect": "training_boost",
+			"effect_value": 2,
+			"max_level": 2,
 		},
 	},
 	FactionID.DARK_ELF: {

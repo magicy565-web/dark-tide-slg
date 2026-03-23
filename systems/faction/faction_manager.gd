@@ -21,9 +21,10 @@ func init_faction(player_id: int, faction_id: int) -> void:
 	match faction_id:
 		FactionData.FactionID.ORC:
 			OrcMechanic.init_player(player_id)
+		FactionData.FactionID.PIRATE:
+			PirateMechanic.init_player(player_id)
 		FactionData.FactionID.DARK_ELF:
 			DarkElfMechanic.init_player(player_id)
-		# Pirate has no per-player init needed
 
 
 func register_rival(faction_id: int, player_id: int) -> void:
@@ -104,6 +105,10 @@ func get_faction_atk_bonus(player_id: int, faction_id: int) -> int:
 		FactionData.FactionID.ORC:
 			# WAAAGH! graduated ATK bonus (+1/+2/+4 by tier)
 			bonus += OrcMechanic.get_waaagh_atk_bonus(player_id)
+		FactionData.FactionID.PIRATE:
+			# Rum morale ATK bonus (+2 or +4 drunk)
+			var rum_bonus: Dictionary = PirateMechanic.get_rum_combat_bonus(player_id)
+			bonus += rum_bonus.get("atk", 0)
 		FactionData.FactionID.DARK_ELF:
 			bonus += DarkElfMechanic.get_combat_atk_bonus(player_id)
 	return bonus

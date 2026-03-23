@@ -1,4 +1,4 @@
-## orc_mechanic.gd - Complete Orc faction mechanics (v2.0 — 兽人完整游戏性)
+## orc_mechanic.gd - Complete Orc faction mechanics (v2.1 — 兽人完整游戏性)
 ##
 ## Graduated WAAAGH! thresholds:
 ##   0-29:  No bonus
@@ -14,6 +14,13 @@
 ##   - WAAAGH! Roar active ability (怒吼技能)
 ##   - Tribe Momentum / combat streak system (部落势头)
 ##   - apply_waaagh_bonus_to_units() for CombatSystem integration
+##
+## v2.1 changes:
+##   - Sex-slave-driven reproduction (性奴隶繁殖机制)
+##   - Territory slave penalty (领地掠夺惩罚)
+##   - Warrior pool replaces population pool
+##   - Advanced units consume sex slaves
+##   - War impact on enemy slave production
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
 
@@ -26,12 +33,18 @@ var _idle_turns: Dictionary = {}       # player_id -> int turns without combat
 var _frenzy_count: int = 0
 
 # ══════════════════════════════════════════════════════════════════════════════
-# BREEDING / REPRODUCTION STATE (兽人繁衍机制)
+# SEX SLAVE REPRODUCTION STATE (性奴隶繁殖机制)
 # ══════════════════════════════════════════════════════════════════════════════
 var _brood_pits: Dictionary = {}       # player_id -> int (number of brood pits)
-var _population_pool: Dictionary = {}  # player_id -> int (unassigned population)
-var _growth_rate: Dictionary = {}      # player_id -> float (last calculated growth mult)
-var _tribe_size: Dictionary = {}       # player_id -> int (total tribe pop including army)
+var _sex_slaves: Dictionary = {}       # player_id -> int (性奴隶数量)
+var _warrior_pool: Dictionary = {}     # player_id -> int (unassigned warriors for recruitment)
+var _breed_rate: Dictionary = {}       # player_id -> float (繁殖效率, last calculated)
+var _total_warriors: Dictionary = {}   # player_id -> int (总兵力, synced from army)
+
+# Sex slave cost constants for advanced unit training
+const SLAVE_COST_TIER2: int = 1        # orc_samurai, orc_cavalry
+const SLAVE_COST_TIER3: int = 2        # shadow_walker
+const SLAVE_COST_ULTIMATE: int = 3     # ultimate units
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WAAAGH! ROAR ABILITY STATE (怒吼技能)
@@ -61,11 +74,12 @@ func reset() -> void:
 	_frenzy_turns.clear()
 	_idle_turns.clear()
 	_frenzy_count = 0
-	# Breeding state
+	# Sex slave / reproduction state
 	_brood_pits.clear()
-	_population_pool.clear()
-	_growth_rate.clear()
-	_tribe_size.clear()
+	_sex_slaves.clear()
+	_warrior_pool.clear()
+	_breed_rate.clear()
+	_total_warriors.clear()
 	# Roar state
 	_roar_cooldown.clear()
 	_roar_active.clear()
@@ -77,11 +91,12 @@ func init_player(player_id: int) -> void:
 	_waaagh[player_id] = 0
 	_frenzy_turns[player_id] = 0
 	_idle_turns[player_id] = 0
-	# Breeding defaults
+	# Sex slave / reproduction defaults
 	_brood_pits[player_id] = 0
-	_population_pool[player_id] = 5  # Start with a small population pool
-	_growth_rate[player_id] = 0.0
-	_tribe_size[player_id] = 0
+	_sex_slaves[player_id] = 3       # Start with 3 sex slaves (性奴隶初始数量)
+	_warrior_pool[player_id] = 0     # No free warriors at start
+	_breed_rate[player_id] = 0.0
+	_total_warriors[player_id] = 0
 	# Roar defaults
 	_roar_cooldown[player_id] = 0
 	_roar_active[player_id] = false
@@ -221,8 +236,8 @@ func tick(player_id: int, had_combat: bool) -> void:
 			_frenzy_turns[player_id], params["waaagh_frenzy_damage_mult"]])
 		if _frenzy_turns[player_id] <= 0:
 			_end_frenzy(player_id)
-		# Run breeding even during frenzy (frenzy boosts growth)
-		_tick_breeding(player_id)
+		# Run reproduction even during frenzy (frenzy boosts breeding)
+		_tick_reproduction(player_id)
 		return
 
 	# ── Threshold check: 90+ triggers frenzy explosion ──
@@ -237,8 +252,8 @@ func tick(player_id: int, had_combat: bool) -> void:
 		EventBus.message_log.emit("[color=red]WAAAGH! %s: 全军ATK+%d (当前: %d)[/color]" % [
 			get_waaagh_tier_name(player_id), atk_bonus, _waaagh[player_id]])
 
-	# ── Breeding tick (at end of turn processing) ──
-	_tick_breeding(player_id)
+	# ── Reproduction tick (at end of turn processing) ──
+	_tick_reproduction(player_id)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -273,20 +288,27 @@ func on_combat_win(player_id: int) -> void:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# WAR PIT (existing feature)
+# WAR PIT (updated to use sex slaves as source)
 # ══════════════════════════════════════════════════════════════════════════════
 
+## War Pit: captures sex slaves instead of converting generic slaves.
+## 1 captured slave -> 1 sex slave (added to sex slave pool, subject to capacity).
 func convert_slave_to_army(player_id: int) -> bool:
-	## War Pit: 1 slave -> 3 army.
 	var slaves: int = ResourceManager.get_slaves(player_id)
 	if slaves <= 0:
 		EventBus.message_log.emit("没有奴隶可以转换!")
 		return false
+	# Check sex slave capacity
+	var capacity: int = get_sex_slave_capacity(player_id)
+	var current: int = _sex_slaves.get(player_id, 0)
+	if current >= capacity:
+		EventBus.message_log.emit("[color=red]性奴隶已达上限 (%d/%d)! 无法转换更多![/color]" % [current, capacity])
+		return false
 	ResourceManager.apply_delta(player_id, {"slaves": -1})
 	SlaveManager.remove_slaves(player_id, 1)
-	var gain: int = FactionData.UNIQUE_BUILDINGS[FactionData.FactionID.ORC]["war_pit"]["effect_value"]
-	ResourceManager.add_army(player_id, gain)
-	EventBus.message_log.emit("[color=red]战争深坑: 1奴隶 -> %d军队![/color]" % gain)
+	_sex_slaves[player_id] = current + 1
+	EventBus.message_log.emit("[color=red]战争深坑: 1奴隶 -> 1性奴隶! (当前: %d/%d)[/color]" % [
+		_sex_slaves[player_id], capacity])
 	return true
 
 
@@ -318,146 +340,243 @@ func is_roar_active(player_id: int) -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# BREEDING / REPRODUCTION SYSTEM (兽人繁衍机制)
+# SEX SLAVE REPRODUCTION SYSTEM (性奴隶繁殖机制)
 # ══════════════════════════════════════════════════════════════════════════════
 
-## Returns the unassigned orc population available for recruitment.
-func get_population_pool(player_id: int) -> int:
-	return _population_pool.get(player_id, 0)
+## Returns the warrior pool available for recruitment.
+func get_warrior_pool(player_id: int) -> int:
+	return _warrior_pool.get(player_id, 0)
 
 
-## Returns the total tribe size (army + unassigned population).
-func get_tribe_size(player_id: int) -> int:
-	return _tribe_size.get(player_id, 0)
+## Returns the total warrior count (army + warrior pool).
+func get_total_warriors(player_id: int) -> int:
+	return _total_warriors.get(player_id, 0)
 
 
-## Returns the last calculated growth rate multiplier for display.
-func get_growth_rate(player_id: int) -> float:
-	return _growth_rate.get(player_id, 0.0)
+## Returns the last calculated breed rate multiplier for display.
+func get_breed_rate(player_id: int) -> float:
+	return _breed_rate.get(player_id, 0.0)
 
 
-## Consume population from the pool for recruitment purposes.
-## Returns true if there was enough population, false otherwise.
-func consume_population(player_id: int, amount: int) -> bool:
-	var pool: int = _population_pool.get(player_id, 0)
-	if pool < amount:
-		EventBus.message_log.emit("[color=red]兽人人口不足! 需要%d, 仅有%d[/color]" % [amount, pool])
+## Returns the current sex slave count for the player.
+func get_sex_slaves(player_id: int) -> int:
+	return _sex_slaves.get(player_id, 0)
+
+
+## Returns the maximum sex slave capacity for the player.
+## Formula: 5 + territory_count * 2 + brood_pits * 3
+func get_sex_slave_capacity(player_id: int) -> int:
+	var territory_count: int = _count_territory(player_id)
+	var brood_pits: int = _brood_pits.get(player_id, 0)
+	return 5 + territory_count * 2 + brood_pits * 3
+
+
+## Add captured sex slaves (applies territory penalty and capacity cap).
+## Returns the actual number of sex slaves added.
+func add_sex_slaves(player_id: int, count: int) -> int:
+	var penalty: float = _get_territory_slave_penalty(player_id)
+	var effective: int = maxi(int(float(count) * penalty), 0)
+	var capacity: int = get_sex_slave_capacity(player_id)
+	var current: int = _sex_slaves.get(player_id, 0)
+	var space: int = maxi(capacity - current, 0)
+	var added: int = mini(effective, space)
+	if added > 0:
+		_sex_slaves[player_id] = current + added
+		EventBus.message_log.emit("[color=red]捕获性奴隶 +%d (领地惩罚: x%.1f, 容量: %d/%d)[/color]" % [
+			added, penalty, _sex_slaves[player_id], capacity])
+	elif effective > 0 and space <= 0:
+		EventBus.message_log.emit("[color=red]性奴隶已满! 无法容纳更多 (%d/%d)[/color]" % [current, capacity])
+	return added
+
+
+## Consume sex slaves for advanced unit training.
+## Returns true if enough sex slaves were available, false otherwise.
+func consume_sex_slaves(player_id: int, count: int) -> bool:
+	var current: int = _sex_slaves.get(player_id, 0)
+	if current < count:
+		EventBus.message_log.emit("[color=red]性奴隶不足! 需要%d, 仅有%d[/color]" % [count, current])
 		return false
-	_population_pool[player_id] = pool - amount
-	# Tribe size does NOT decrease — soldiers are still part of the tribe
-	EventBus.message_log.emit("[color=red]征召%d兽人入伍! 剩余人口池: %d[/color]" % [amount, _population_pool[player_id]])
+	_sex_slaves[player_id] = current - count
+	EventBus.message_log.emit("[color=red]消耗性奴隶 -%d (剩余: %d)[/color]" % [count, _sex_slaves[player_id]])
 	return true
 
 
-## Check if the population pool is large enough to auto-spawn a free unit.
+## Returns the sex slave cost for training a specific unit type.
+func get_slave_cost_for_unit(troop_id: String) -> int:
+	match troop_id:
+		"orc_ashigaru": return 0  # basic unit, free
+		"orc_samurai", "orc_cavalry": return SLAVE_COST_TIER2
+		"shadow_walker": return SLAVE_COST_TIER3
+		_: return SLAVE_COST_ULTIMATE  # ultimate units
+
+
+## Called after a battle to capture sex slaves (applies territory penalty).
+## Returns the actual number of sex slaves captured.
+func on_battle_capture_slaves(player_id: int, base_count: int) -> int:
+	return add_sex_slaves(player_id, base_count)
+
+
+## Consume warriors from the pool for recruitment purposes.
+## Returns true if there were enough warriors, false otherwise.
+func consume_warriors(player_id: int, amount: int) -> bool:
+	var pool: int = _warrior_pool.get(player_id, 0)
+	if pool < amount:
+		EventBus.message_log.emit("[color=red]战士不足! 需要%d, 仅有%d[/color]" % [amount, pool])
+		return false
+	_warrior_pool[player_id] = pool - amount
+	# Total warriors does NOT decrease — soldiers are still part of the army
+	EventBus.message_log.emit("[color=red]征召%d战士入伍! 剩余战士池: %d[/color]" % [amount, _warrior_pool[player_id]])
+	return true
+
+
+## Check if the warrior pool is large enough to auto-spawn a free unit.
 func can_auto_spawn(player_id: int) -> bool:
-	return _population_pool.get(player_id, 0) >= 20
+	return _warrior_pool.get(player_id, 0) >= 15
 
 
-## Auto-spawn a free basic unit by splitting the tribe.
-## Consumes 20 population from pool and returns a dictionary with unit info.
-## Returns {} if not enough population.
+## Auto-spawn a free basic unit from the warrior pool.
+## Consumes 15 warriors from pool and returns a dictionary with unit info.
+## Returns {} if not enough warriors.
 func auto_spawn_unit(player_id: int) -> Dictionary:
 	if not can_auto_spawn(player_id):
 		return {}
-	_population_pool[player_id] -= 20
-	# Tribe size stays the same (unit is part of tribe)
+	_warrior_pool[player_id] -= 15
+	# Total warriors stays the same (unit is part of army)
 	var unit_info: Dictionary = {
 		"troop_id": "orc_ashigaru",
-		"count": 20,
+		"count": 15,
 		"atk": 3,
 		"hp": 40,
-		"source": "tribe_split",
+		"source": "sex_slave_breeding",
 	}
-	EventBus.message_log.emit("[color=red]部落分裂! 20名兽人自发组成新战队![/color]")
+	EventBus.message_log.emit("[color=red]性奴隶繁殖成功! 15名新生战士自动编入战队![/color]")
 	return unit_info
 
 
-## Internal: calculate new population growth for this turn.
-func _calculate_growth(player_id: int) -> int:
-	# Count controlled territory
-	var territory_count: int = 0
-	var brood_pits: int = 0
-	var totem_growth_bonus: int = 0
+## Territory slave penalty (核心机制): the more territory orcs control, the LESS
+## slaves they can capture. Represents "plundering the land dry".
+func _get_territory_slave_penalty(player_id: int) -> float:
+	var territory_count: int = _count_territory(player_id)
+	# 1-5 tiles: no penalty (1.0x)
+	# 6-10 tiles: 0.8x
+	# 11-15 tiles: 0.6x
+	# 16-20 tiles: 0.4x
+	# 21+: 0.2x (almost no slaves from new conquests)
+	if territory_count <= 5: return 1.0
+	elif territory_count <= 10: return 0.8
+	elif territory_count <= 15: return 0.6
+	elif territory_count <= 20: return 0.4
+	else: return 0.2
+
+
+## Internal: count territories owned by player.
+func _count_territory(player_id: int) -> int:
+	var count: int = 0
 	for tile in GameManager.tiles:
 		if tile["owner_id"] == player_id:
-			territory_count += 1
+			count += 1
+	return count
+
+
+## Internal: check if two players are at war.
+func _is_at_war_with(player_a: int, player_b: int) -> bool:
+	# Delegate to DiplomacyManager if available
+	if DiplomacyManager != null and DiplomacyManager.has_method("is_at_war"):
+		return DiplomacyManager.is_at_war(player_a, player_b)
+	return false
+
+
+## Returns the slave production penalty for factions at war with orcs.
+## Called by other faction mechanics to reduce their slave production.
+func get_war_slave_penalty(target_player_id: int) -> float:
+	# Check if any orc player is at war with target
+	# If so, return a penalty multiplier based on orc territory size
+	for pid in _waaagh:
+		if pid == target_player_id:
+			continue
+		# Check if orc player is at war with target
+		if _is_at_war_with(pid, target_player_id):
+			var orc_territory: int = _count_territory(pid)
+			# More orc territory = bigger penalty on enemies
+			if orc_territory >= 15:
+				return 0.3  # -70% slave production
+			elif orc_territory >= 10:
+				return 0.5  # -50%
+			elif orc_territory >= 5:
+				return 0.7  # -30%
+	return 1.0  # No penalty
+
+
+## Internal: calculate new warrior output from sex slave breeding for this turn.
+func _calculate_breed_output(player_id: int) -> int:
+	# Count brood pits from tiles
+	var brood_pits: int = 0
+	for tile in GameManager.tiles:
+		if tile["owner_id"] == player_id:
 			var bid: String = tile.get("building_id", "")
 			if bid == "brood_pit":
 				brood_pits += 1
-			elif bid == "totem_pole":
-				# Totem poles give +1 growth per level as secondary source
-				totem_growth_bonus += tile.get("building_level", 1)
 	_brood_pits[player_id] = brood_pits
 
-	# Base growth: 2 per territory
-	var base_growth: int = territory_count * 2
+	var sex_slaves: int = _sex_slaves.get(player_id, 0)
+	if sex_slaves <= 0:
+		_breed_rate[player_id] = 0.0
+		return 0
 
-	# Food multiplier: clamp food ratio to [0.5, 2.0]
-	var tribe_sz: int = _tribe_size.get(player_id, 1)
-	var food: float = float(ResourceManager.get_resource(player_id, "food"))
-	var food_need: float = maxf(1.0, float(tribe_sz) * 0.5)
-	var food_mult: float = clampf(food / food_need, 0.5, 2.0)
+	# Base breed: each sex slave produces 2 warriors per turn
+	var base_breed: int = sex_slaves * 2
 
 	# WAAAGH multiplier: 0 WAAAGH = x1.0, 100 WAAAGH = x2.0
 	var waaagh_mult: float = 1.0 + float(get_waaagh(player_id)) * 0.01
 
-	# Brood pit bonus: +3 per pit
-	var brood_pit_bonus: int = brood_pits * 3
+	# Brood pit multiplier: each brood pit +25% efficiency
+	var brood_pit_mult: float = 1.0 + float(brood_pits) * 0.25
 
-	# Totem pole secondary bonus
-	var extra_bonus: int = totem_growth_bonus
+	# Frenzy bonus: frenzy doubles breeding output (adds sex_slaves extra warriors)
+	var frenzy_bonus: int = sex_slaves if is_in_frenzy(player_id) else 0
 
-	# Frenzy bonus: +5 during frenzy
-	var frenzy_bonus: int = 5 if is_in_frenzy(player_id) else 0
-
-	# Desperate breeding: if tribe is very small and territory scarce, double rate
-	var desperate_mult: float = 1.0
-	if tribe_sz < 10 and territory_count < 3:
-		desperate_mult = 2.0
-		EventBus.message_log.emit("[color=red]绝境繁衍! 部落濒临灭亡, 繁殖速度翻倍![/color]")
-
-	# Momentum: Unstoppable Horde (5+ streak) doubles population growth
+	# Momentum: Unstoppable Horde (5+ streak) doubles breeding output
 	var momentum_mult: float = 1.0
 	var streak: int = _combat_streak.get(player_id, 0)
 	if streak >= 5:
 		momentum_mult = 2.0
-		EventBus.message_log.emit("[color=red]势不可挡! 连续战斗%d回合, 人口增长翻倍![/color]" % streak)
+		EventBus.message_log.emit("[color=red]势不可挡! 连续战斗%d回合, 繁殖产出翻倍![/color]" % streak)
 
-	var raw_growth: float = float(base_growth + brood_pit_bonus + extra_bonus + frenzy_bonus)
-	var new_pop: int = int(raw_growth * food_mult * waaagh_mult * desperate_mult * momentum_mult)
+	var new_warriors: int = int(float(base_breed) * waaagh_mult * brood_pit_mult * momentum_mult) + frenzy_bonus
 
-	# Store computed growth rate for UI queries
-	_growth_rate[player_id] = food_mult * waaagh_mult * desperate_mult * momentum_mult
+	# Store computed breed rate for UI queries
+	_breed_rate[player_id] = waaagh_mult * brood_pit_mult * momentum_mult
 
-	return maxi(new_pop, 0)
+	return maxi(new_warriors, 0)
 
 
-## Internal: run the breeding phase at end of turn tick.
-func _tick_breeding(player_id: int) -> void:
-	# Sync tribe size with current army + population pool
+## Internal: run the reproduction phase at end of turn tick.
+func _tick_reproduction(player_id: int) -> void:
+	# Sync total warriors with current army + warrior pool
 	var army_count: int = ResourceManager.get_army(player_id)
-	var pool: int = _population_pool.get(player_id, 0)
-	_tribe_size[player_id] = army_count + pool
+	var pool: int = _warrior_pool.get(player_id, 0)
+	_total_warriors[player_id] = army_count + pool
 
-	# Calculate and apply growth
-	var growth: int = _calculate_growth(player_id)
-	if growth > 0:
-		_population_pool[player_id] = _population_pool.get(player_id, 0) + growth
-		_tribe_size[player_id] += growth
-		EventBus.message_log.emit("[color=red]兽人繁衍: 人口 +%d (人口池: %d, 部落总数: %d)[/color]" % [
-			growth, _population_pool[player_id], _tribe_size[player_id]])
+	# Calculate and apply breeding output
+	var new_warriors: int = _calculate_breed_output(player_id)
+	if new_warriors > 0:
+		_warrior_pool[player_id] = _warrior_pool.get(player_id, 0) + new_warriors
+		_total_warriors[player_id] += new_warriors
+		var slaves: int = _sex_slaves.get(player_id, 0)
+		var capacity: int = get_sex_slave_capacity(player_id)
+		EventBus.message_log.emit("[color=red]性奴隶繁殖: 战士 +%d (战士池: %d, 性奴隶: %d/%d, 总兵力: %d)[/color]" % [
+			new_warriors, _warrior_pool[player_id], slaves, capacity, _total_warriors[player_id]])
 
-	# Food consumption: tribe eats tribe_size * 0.3 food per turn
-	var tribe_sz: int = _tribe_size.get(player_id, 0)
-	var food_cost: int = ceili(float(tribe_sz) * 0.3)
+	# Food consumption: total warriors eat total_warriors * 0.3 food per turn
+	var total_w: int = _total_warriors.get(player_id, 0)
+	var food_cost: int = ceili(float(total_w) * 0.3)
 	if food_cost > 0:
 		ResourceManager.apply_delta(player_id, {"food": -food_cost})
-		EventBus.message_log.emit("[color=red]兽人食物消耗: -%d (部落规模: %d)[/color]" % [food_cost, tribe_sz])
+		EventBus.message_log.emit("[color=red]兽人食物消耗: -%d (总兵力: %d)[/color]" % [food_cost, total_w])
 
-	# Auto-spawn check: notify player if they can split
+	# Auto-spawn check: notify player if they can spawn
 	if can_auto_spawn(player_id):
-		EventBus.message_log.emit("[color=yellow]人口池已达%d! 可以执行'部落分裂'获得免费战队![/color]" % _population_pool[player_id])
+		EventBus.message_log.emit("[color=yellow]战士池已达%d! 可以自动编成新战队![/color]" % _warrior_pool[player_id])
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -472,7 +591,7 @@ func _tick_momentum(player_id: int, had_combat: bool) -> void:
 		if streak == 3:
 			EventBus.message_log.emit("[color=red]血潮降临! 连续战斗%d回合, WAAAGH获取+50%%![/color]" % streak)
 		elif streak == 5:
-			EventBus.message_log.emit("[color=red]势不可挡的部落! 连续战斗%d回合, 人口增长翻倍![/color]" % streak)
+			EventBus.message_log.emit("[color=red]势不可挡的部落! 连续战斗%d回合, 繁殖产出翻倍![/color]" % streak)
 		elif streak > 5 and streak % 5 == 0:
 			EventBus.message_log.emit("[color=red]战斗狂潮持续! 连续%d回合![/color]" % streak)
 	else:
@@ -533,6 +652,30 @@ func _trigger_infighting(player_id: int) -> void:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# BACKWARD COMPATIBILITY (deprecated wrappers)
+# ══════════════════════════════════════════════════════════════════════════════
+
+## Deprecated: use get_warrior_pool() instead.
+func get_population_pool(player_id: int) -> int:
+	return get_warrior_pool(player_id)
+
+
+## Deprecated: use get_total_warriors() instead.
+func get_tribe_size(player_id: int) -> int:
+	return get_total_warriors(player_id)
+
+
+## Deprecated: use get_breed_rate() instead.
+func get_growth_rate(player_id: int) -> float:
+	return get_breed_rate(player_id)
+
+
+## Deprecated: use consume_warriors() instead.
+func consume_population(player_id: int, amount: int) -> bool:
+	return consume_warriors(player_id, amount)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # SAVE / LOAD
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -543,11 +686,12 @@ func to_save_data() -> Dictionary:
 		"frenzy_turns": _frenzy_turns.duplicate(),
 		"idle_turns": _idle_turns.duplicate(),
 		"frenzy_count": _frenzy_count,
-		# Breeding state
+		# Sex slave / reproduction state
 		"brood_pits": _brood_pits.duplicate(),
-		"population_pool": _population_pool.duplicate(),
-		"growth_rate": _growth_rate.duplicate(),
-		"tribe_size": _tribe_size.duplicate(),
+		"sex_slaves": _sex_slaves.duplicate(),
+		"warrior_pool": _warrior_pool.duplicate(),
+		"breed_rate": _breed_rate.duplicate(),
+		"total_warriors": _total_warriors.duplicate(),
 		# Roar state
 		"roar_cooldown": _roar_cooldown.duplicate(),
 		"roar_active": _roar_active.duplicate(),
@@ -562,11 +706,33 @@ func from_save_data(data: Dictionary) -> void:
 	_frenzy_turns = data.get("frenzy_turns", {}).duplicate()
 	_idle_turns = data.get("idle_turns", {}).duplicate()
 	_frenzy_count = int(data.get("frenzy_count", 0))
-	# Breeding state
+	# Sex slave / reproduction state (with backward compatibility)
 	_brood_pits = data.get("brood_pits", {}).duplicate()
-	_population_pool = data.get("population_pool", {}).duplicate()
-	_growth_rate = data.get("growth_rate", {}).duplicate()
-	_tribe_size = data.get("tribe_size", {}).duplicate()
+	if data.has("sex_slaves"):
+		_sex_slaves = data.get("sex_slaves", {}).duplicate()
+	else:
+		_sex_slaves = {}  # Old save: no sex slaves, start fresh
+	if data.has("warrior_pool"):
+		_warrior_pool = data.get("warrior_pool", {}).duplicate()
+	elif data.has("population_pool"):
+		# Backward compat: migrate population_pool -> warrior_pool
+		_warrior_pool = data.get("population_pool", {}).duplicate()
+	else:
+		_warrior_pool = {}
+	if data.has("breed_rate"):
+		_breed_rate = data.get("breed_rate", {}).duplicate()
+	elif data.has("growth_rate"):
+		# Backward compat: migrate growth_rate -> breed_rate
+		_breed_rate = data.get("growth_rate", {}).duplicate()
+	else:
+		_breed_rate = {}
+	if data.has("total_warriors"):
+		_total_warriors = data.get("total_warriors", {}).duplicate()
+	elif data.has("tribe_size"):
+		# Backward compat: migrate tribe_size -> total_warriors
+		_total_warriors = data.get("tribe_size", {}).duplicate()
+	else:
+		_total_warriors = {}
 	# Roar state
 	_roar_cooldown = data.get("roar_cooldown", {}).duplicate()
 	_roar_active = data.get("roar_active", {}).duplicate()

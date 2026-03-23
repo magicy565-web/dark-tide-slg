@@ -979,6 +979,8 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	ResourceManager.init_player(0, human_start_res)
 	SlaveManager.init_player(0, human_start_res.get("slaves", 0))
 	FactionManager.init_faction(0, chosen_faction)
+	if chosen_faction == FactionData.FactionID.PIRATE:
+		HeroSystem.init_pirate_mode()
 	ItemManager.init_player(0)
 	RelicManager.init_player(0)
 	NpcManager.init_player(0)
@@ -1307,11 +1309,17 @@ func begin_turn() -> void:
 	# ── Phase 5e: Conquered faction rebellion ──
 	DiplomacyManager.tick_rebellion(pid)
 
-	# ── Phase 5e: Alliance AI actions ──
+	# ── Phase 5e2: Ceasefire timer tick ──
+	DiplomacyManager.tick_ceasefire(pid)
+
+	# ── Phase 5f: Alliance AI actions ──
 	AllianceAI.tick(ThreatManager.get_threat())
 
-	# ── Phase 5f: Unrecruited evil faction AI ──
+	# ── Phase 5g: Unrecruited evil faction AI ──
 	EvilFactionAI.tick(pid)
+
+	# ── Phase 5g2: AI pirate raiding parties ──
+	PirateMechanic.ai_tick(pid)
 
 	# ── Phase 5g: Light faction passive regen (wall, barrier, mana) ──
 	LightFactionAI.tick_light_factions()
@@ -1792,10 +1800,12 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	var is_siege: bool = tile.get("wall_hp", 0) > 0 or tile.get("core_fortress_wall_hp", 0) > 0
 	var city_def: int = tile.get("wall_hp", tile.get("core_fortress_wall_hp", 0))
 
-	# Apply Orc WAAAGH! ATK bonus to attacker units
+	# Apply faction-specific ATK bonuses to attacker units
 	var faction_id: int = get_player_faction(pid)
 	if faction_id == FactionData.FactionID.ORC:
 		OrcMechanic.apply_waaagh_bonus_to_units(pid, attacker_units)
+	elif faction_id == FactionData.FactionID.PIRATE:
+		PirateMechanic.apply_rum_bonus_to_units(pid, attacker_units)
 
 	var attacker_data: Dictionary = {"units": attacker_units}
 	var defender_data: Dictionary = {"units": defender_units}
@@ -2399,8 +2409,11 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 			ResourceManager.apply_delta(pid, {"slaves": slaves_captured})
 			SlaveManager.add_slaves(pid, slaves_captured)
 			EventBus.message_log.emit("俘获 %d 名奴隶!" % slaves_captured)
+			# Orc: convert captured slaves to sex slaves for breeding
+			if _get_faction_tag_for_player(pid) == "orc":
+				OrcMechanic.on_battle_capture_slaves(pid, slaves_captured)
 			# Dark Elf auto-conversion: queue captured slaves for troop conversion
-			if _get_faction_tag_for_player(pid) == "dark_elf":
+			elif _get_faction_tag_for_player(pid) == "dark_elf":
 				var fp: Dictionary = GameData.get_faction_passive("dark_elf")
 				var conv_turns: int = fp.get("slave_conversion_turns", 3)
 				SlaveManager.queue_conversion(pid, slaves_captured, conv_turns)
@@ -2412,6 +2425,15 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 			var orc_count: int = atk_units.size()
 			var enemy_destroyed: int = maxi(1, int(ceil(float(defender_losses) / maxf(float(def_units.size()), 1.0))))
 			OrcMechanic.on_combat_result(pid, orc_count, enemy_destroyed)
+		# Pirate: plunder gold + sex slave capture + treasure map check
+		elif _get_faction_tag_for_player(pid) == "pirate":
+			var enemy_strength: int = 0
+			for du in def_units:
+				enemy_strength += du.get("count", 0)
+			PirateMechanic.on_combat_win_plunder(pid, maxi(enemy_strength, 1))
+			PirateMechanic.on_combat_win_treasure_check(pid)
+			if slaves_captured > 0:
+				PirateMechanic.add_sex_slaves(pid, slaves_captured)
 		return true
 	else:
 		ResourceManager.remove_army(pid, maxi(attacker_losses, 1))
@@ -2480,7 +2502,11 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 			ResourceManager.apply_delta(pid, {"slaves": slaves_captured})
 			SlaveManager.add_slaves(pid, slaves_captured)
 			EventBus.message_log.emit("俘获 %d 名奴隶!" % slaves_captured)
-			if _get_faction_tag_for_player(pid) == "dark_elf":
+			# Orc: convert captured slaves to sex slaves for breeding
+			if _get_faction_tag_for_player(pid) == "orc":
+				OrcMechanic.on_battle_capture_slaves(pid, slaves_captured)
+			# Dark Elf auto-conversion: queue captured slaves for troop conversion
+			elif _get_faction_tag_for_player(pid) == "dark_elf":
 				var fp: Dictionary = GameData.get_faction_passive("dark_elf")
 				var conv_turns: int = fp.get("slave_conversion_turns", 3)
 				SlaveManager.queue_conversion(pid, slaves_captured, conv_turns)
@@ -2488,6 +2514,15 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 		# WAAAGH! gain for NPC combat
 		if _get_faction_tag_for_player(pid) == "orc":
 			OrcMechanic.on_combat_result(pid, atk_units.size(), 1)
+		# Pirate: plunder gold + sex slave capture + treasure map check
+		elif _get_faction_tag_for_player(pid) == "pirate":
+			var enemy_strength: int = 0
+			for nu in npc_units:
+				enemy_strength += nu.get("count", 0)
+			PirateMechanic.on_combat_win_plunder(pid, maxi(enemy_strength, 1))
+			PirateMechanic.on_combat_win_treasure_check(pid)
+			if slaves_captured > 0:
+				PirateMechanic.add_sex_slaves(pid, slaves_captured)
 		return true
 	else:
 		ResourceManager.remove_army(pid, maxi(attacker_losses, 1))
@@ -3293,6 +3328,15 @@ func check_win_condition() -> void:
 		game_active = false
 		EventBus.message_log.emit("[color=purple]═══ 暗影统治! ═══[/color]")
 		EventBus.message_log.emit("[color=purple]威胁值达到极限, 终极兵器已觉醒! 大陆在暗潮中沉沦![/color]")
+		EventBus.game_over.emit(human_id)
+		return
+
+	# ── Victory Path 4: Pirate Harem Collection (海盗后宫收集胜利) ──
+	if human_faction == FactionData.FactionID.PIRATE and HeroSystem.check_harem_victory():
+		game_active = false
+		EventBus.message_log.emit("[color=pink]═══ 后宫胜利! ═══[/color]")
+		EventBus.message_log.emit("[color=pink]所有角色都已臣服于你的魅力! 海盗王的后宫建立完成![/color]")
+		EventBus.message_log.emit("[color=pink]大陆上每一位女性都将成为你的收藏...[/color]")
 		EventBus.game_over.emit(human_id)
 		return
 
