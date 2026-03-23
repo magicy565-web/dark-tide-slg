@@ -1,0 +1,332 @@
+## ai_scaling.gd - AI combat scaling via threat tiers (v0.8.5)
+## AI factions do NOT use training/research. Their stats scale with threat value.
+## Each AI faction has independent threat tracking.
+extends Node
+const FactionData = preload("res://systems/faction/faction_data.gd")
+const TrainingData = preload("res://systems/faction/training_data.gd")
+
+# ── Signals ──
+signal ai_tier_changed(faction_key: String, old_tier: int, new_tier: int)
+signal expedition_spawned(faction_key: String, tile_index: int)
+signal boss_spawned(faction_key: String, tile_index: int)
+
+# ── Per-faction threat state ──
+# Keys: "human", "elf", "mage", "orc_ai", "pirate_ai", "dark_elf_ai"
+var _faction_threat: Dictionary = {}  # faction_key -> int (0-100)
+var _faction_tier: Dictionary = {}     # faction_key -> int (0-3)
+var _expedition_cd: Dictionary = {}    # faction_key -> int (turns remaining)
+var _boss_cd: Dictionary = {}          # faction_key -> int (turns remaining)
+
+# All possible AI faction keys
+const AI_FACTION_KEYS: Array = ["human", "elf", "mage", "orc_ai", "pirate_ai", "dark_elf_ai"]
+
+# Tier thresholds (same as ThreatManager)
+const TIER_THRESHOLDS: Array = [0, 30, 60, 80]
+
+
+func _ready() -> void:
+	pass
+
+
+func reset() -> void:
+	_faction_threat.clear()
+	_faction_tier.clear()
+	_expedition_cd.clear()
+	_boss_cd.clear()
+	for key in AI_FACTION_KEYS:
+		_faction_threat[key] = 0
+		_faction_tier[key] = 0
+		_expedition_cd[key] = 0
+		_boss_cd[key] = 0
+
+
+# ═══════════════ INITIALIZATION ═══════════════
+
+func init_for_game(player_faction_id: int) -> void:
+	## Call at game start. Sets up tracking for all non-player factions.
+	reset()
+	# Remove player's faction from AI tracking if it's an evil faction
+	var player_key: String = _faction_id_to_ai_key(player_faction_id)
+	if player_key != "" and _faction_threat.has(player_key):
+		_faction_threat.erase(player_key)
+		_faction_tier.erase(player_key)
+		_expedition_cd.erase(player_key)
+		_boss_cd.erase(player_key)
+
+
+# ═══════════════ THREAT MANAGEMENT ═══════════════
+
+func get_threat(faction_key: String) -> int:
+	return _faction_threat.get(faction_key, 0)
+
+
+func get_tier(faction_key: String) -> int:
+	return _faction_tier.get(faction_key, 0)
+
+
+func get_tier_name(faction_key: String) -> String:
+	var tier: int = get_tier(faction_key)
+	var scaling: Dictionary = TrainingData.AI_THREAT_SCALING
+	if scaling.has("tiers") and scaling["tiers"].has(tier):
+		return scaling["tiers"][tier]["name"]
+	return "未知"
+
+
+func change_threat(faction_key: String, delta: int) -> void:
+	if not _faction_threat.has(faction_key):
+		return
+	var old_val: int = _faction_threat[faction_key]
+	_faction_threat[faction_key] = clampi(old_val + delta, 0, 100)
+	var new_val: int = _faction_threat[faction_key]
+	if new_val == old_val:
+		return
+
+	var old_tier: int = _faction_tier[faction_key]
+	var new_tier: int = _calc_tier(new_val)
+	_faction_tier[faction_key] = new_tier
+
+	EventBus.message_log.emit("[%s] 威胁值: %d → %d" % [faction_key, old_val, new_val])
+	if new_tier != old_tier:
+		var tier_name: String = get_tier_name(faction_key)
+		EventBus.message_log.emit("[color=orange][%s] 威胁阶梯变更: %s (Tier %d)[/color]" % [faction_key, tier_name, new_tier])
+		ai_tier_changed.emit(faction_key, old_tier, new_tier)
+	EventBus.ai_threat_changed.emit(faction_key, new_val, new_tier)
+
+
+func _calc_tier(threat_val: int) -> int:
+	if threat_val >= 80:
+		return 3
+	elif threat_val >= 60:
+		return 2
+	elif threat_val >= 30:
+		return 1
+	else:
+		return 0
+
+
+# ═══════════════ STAT QUERIES (for combat system) ═══════════════
+
+func get_stat_multipliers(faction_key: String) -> Dictionary:
+	## Returns {"atk_mult": float, "def_mult": float, "hp_mult": float} for an AI faction.
+	var tier: int = get_tier(faction_key)
+	var scaling: Dictionary = TrainingData.AI_THREAT_SCALING
+	if scaling.has("tiers") and scaling["tiers"].has(tier):
+		return scaling["tiers"][tier]
+	return {"atk_mult": 1.0, "def_mult": 1.0, "hp_mult": 1.0}
+
+
+func get_atk_multiplier(faction_key: String) -> float:
+	return get_stat_multipliers(faction_key).get("atk_mult", 1.0)
+
+
+func get_def_multiplier(faction_key: String) -> float:
+	return get_stat_multipliers(faction_key).get("def_mult", 1.0)
+
+
+func get_hp_multiplier(faction_key: String) -> float:
+	return get_stat_multipliers(faction_key).get("hp_mult", 1.0)
+
+
+func get_garrison_regen_bonus(faction_key: String) -> int:
+	return get_stat_multipliers(faction_key).get("garrison_regen_bonus", 0)
+
+
+func get_wall_bonus(faction_key: String) -> float:
+	return get_stat_multipliers(faction_key).get("wall_bonus", 0.0)
+
+
+# ═══════════════ PASSIVE & ULTIMATE QUERIES ═══════════════
+
+func has_tier2_passive(faction_key: String) -> bool:
+	return get_tier(faction_key) >= 2
+
+
+func get_tier2_passive(faction_key: String) -> Dictionary:
+	if not has_tier2_passive(faction_key):
+		return {}
+	var scaling: Dictionary = TrainingData.AI_THREAT_SCALING
+	if scaling.has("tier2_passives") and scaling["tier2_passives"].has(faction_key):
+		return scaling["tier2_passives"][faction_key]
+	return {}
+
+
+func has_tier3_ultimate(faction_key: String) -> bool:
+	return get_tier(faction_key) >= 3
+
+
+func get_tier3_ultimate(faction_key: String) -> Dictionary:
+	if not has_tier3_ultimate(faction_key):
+		return {}
+	var scaling: Dictionary = TrainingData.AI_THREAT_SCALING
+	if scaling.has("tier3_ultimates") and scaling["tier3_ultimates"].has(faction_key):
+		return scaling["tier3_ultimates"][faction_key]
+	return {}
+
+
+# ═══════════════ TURN PROCESSING ═══════════════
+
+func process_turn() -> void:
+	## Called once per turn. Handles threat decay, expedition/boss spawns.
+	for faction_key in _faction_threat:
+		# Natural decay: -1 per turn
+		if _faction_threat[faction_key] > 0:
+			change_threat(faction_key, -1)
+
+		var tier: int = get_tier(faction_key)
+
+		# Expedition spawn check
+		var exp_data: Dictionary = TrainingData.AI_THREAT_SCALING.get("expedition", {})
+		if tier >= exp_data.get("min_tier", 2):
+			if _expedition_cd.get(faction_key, 0) <= 0:
+				_try_spawn_expedition(faction_key)
+				_expedition_cd[faction_key] = exp_data.get("interval_turns", 3)
+			else:
+				_expedition_cd[faction_key] -= 1
+
+		# Boss spawn check
+		var boss_data: Dictionary = TrainingData.AI_THREAT_SCALING.get("boss", {})
+		if tier >= boss_data.get("min_tier", 3):
+			if _boss_cd.get(faction_key, 0) <= 0:
+				_try_spawn_boss(faction_key)
+				_boss_cd[faction_key] = boss_data.get("interval_turns", 5)
+			else:
+				_boss_cd[faction_key] -= 1
+
+
+func _try_spawn_expedition(faction_key: String) -> void:
+	## Attempt to spawn an expedition army for the given AI faction.
+	var exp_data: Dictionary = TrainingData.AI_THREAT_SCALING.get("expedition", {})
+	var count_range: Array = exp_data.get("unit_count_range", [3, 5])
+	var unit_count: int = randi_range(count_range[0], count_range[1])
+
+	# Find a suitable tile owned by this AI faction
+	var target_tile_idx: int = _find_ai_border_tile(faction_key)
+	if target_tile_idx < 0:
+		return
+
+	# Add garrison as the expedition
+	if target_tile_idx < GameManager.tiles.size():
+		GameManager.tiles[target_tile_idx]["garrison"] += unit_count
+		EventBus.message_log.emit("[color=red][%s] 远征军出动! +%d 兵力 → 据点#%d[/color]" % [faction_key, unit_count, target_tile_idx])
+		expedition_spawned.emit(faction_key, target_tile_idx)
+
+
+func _try_spawn_boss(faction_key: String) -> void:
+	## Spawn a boss unit at one of this faction's key tiles.
+	var target_tile_idx: int = _find_ai_fortress_tile(faction_key)
+	if target_tile_idx < 0:
+		target_tile_idx = _find_ai_border_tile(faction_key)
+	if target_tile_idx < 0:
+		return
+
+	var boss_data: Dictionary = TrainingData.AI_THREAT_SCALING.get("boss", {})
+	var boss_garrison: int = int(15 * boss_data.get("hp_mult", 3.0))
+
+	if target_tile_idx < GameManager.tiles.size():
+		GameManager.tiles[target_tile_idx]["garrison"] += boss_garrison
+		GameManager.tiles[target_tile_idx]["has_boss"] = true
+		EventBus.message_log.emit("[color=red][%s] Boss级单位出现! +%d 兵力 → 据点#%d[/color]" % [faction_key, boss_garrison, target_tile_idx])
+		boss_spawned.emit(faction_key, target_tile_idx)
+
+
+func _find_ai_border_tile(faction_key: String) -> int:
+	## Find a tile owned by this AI faction that borders player territory.
+	var candidates: Array = []
+	for tile in GameManager.tiles:
+		if tile["owner_id"] >= 0:
+			continue  # Player-owned
+		if not _tile_belongs_to_faction(tile, faction_key):
+			continue
+		# Check adjacency to player tiles
+		if GameManager.adjacency.has(tile["index"]):
+			for nb_idx in GameManager.adjacency[tile["index"]]:
+				if nb_idx < GameManager.tiles.size() and GameManager.tiles[nb_idx]["owner_id"] >= 0:
+					candidates.append(tile["index"])
+					break
+	if candidates.is_empty():
+		# Fallback: any tile of this faction
+		for tile in GameManager.tiles:
+			if tile["owner_id"] < 0 and _tile_belongs_to_faction(tile, faction_key):
+				return tile["index"]
+		return -1
+	return candidates[randi() % candidates.size()]
+
+
+func _find_ai_fortress_tile(faction_key: String) -> int:
+	## Find a fortress tile for this AI faction.
+	for tile in GameManager.tiles:
+		if tile["owner_id"] >= 0:
+			continue
+		if tile.get("type", -1) == GameManager.TileType.CORE_FORTRESS:
+			if _tile_belongs_to_faction(tile, faction_key):
+				return tile["index"]
+	return -1
+
+
+func _tile_belongs_to_faction(tile: Dictionary, faction_key: String) -> bool:
+	## Check if a tile belongs to the given AI faction.
+	match faction_key:
+		"human":
+			return tile.get("light_faction", -1) == FactionData.LightFaction.HUMAN_KINGDOM
+		"elf":
+			return tile.get("light_faction", -1) == FactionData.LightFaction.HIGH_ELVES
+		"mage":
+			return tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER
+		"orc_ai":
+			return tile.get("original_faction", -1) == FactionData.FactionID.ORC
+		"pirate_ai":
+			return tile.get("original_faction", -1) == FactionData.FactionID.PIRATE
+		"dark_elf_ai":
+			return tile.get("original_faction", -1) == FactionData.FactionID.DARK_ELF
+	return false
+
+
+# ═══════════════ THREAT TRIGGERS ═══════════════
+
+func on_tile_captured(faction_key: String) -> void:
+	change_threat(faction_key, 15)
+
+func on_army_defeated(faction_key: String) -> void:
+	change_threat(faction_key, 10)
+
+func on_border_pressure(faction_key: String) -> void:
+	change_threat(faction_key, 2)
+
+func on_tile_recaptured(faction_key: String) -> void:
+	change_threat(faction_key, -10)
+
+func on_treaty_signed(faction_key: String) -> void:
+	change_threat(faction_key, -20)
+
+
+# ═══════════════ HELPER ═══════════════
+
+func _faction_id_to_ai_key(faction_id: int) -> String:
+	match faction_id:
+		FactionData.FactionID.ORC: return "orc_ai"
+		FactionData.FactionID.PIRATE: return "pirate_ai"
+		FactionData.FactionID.DARK_ELF: return "dark_elf_ai"
+	return ""
+
+
+func get_all_ai_factions() -> Array:
+	## Returns all currently tracked AI faction keys.
+	return _faction_threat.keys()
+
+
+# ═══════════════ SAVE / LOAD ═══════════════
+
+func to_save_data() -> Dictionary:
+	return {
+		"faction_threat": _faction_threat.duplicate(),
+		"faction_tier": _faction_tier.duplicate(),
+		"expedition_cd": _expedition_cd.duplicate(),
+		"boss_cd": _boss_cd.duplicate(),
+	}
+
+
+func from_save_data(data: Dictionary) -> void:
+	_faction_threat = data.get("faction_threat", {})
+	_faction_tier = data.get("faction_tier", {})
+	_expedition_cd = data.get("expedition_cd", {})
+	_boss_cd = data.get("boss_cd", {})
