@@ -101,8 +101,8 @@ const STARTING_RESOURCES: Dictionary = {
 		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
 	},
 	FactionID.PIRATE: {
-		"gold": 600, "food": 100, "iron": 40, "slaves": 2, "prestige": 0, "army": 3,
-		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
+		"gold": 600, "food": 180, "iron": 60, "slaves": 2, "prestige": 0, "army": 3,
+		"magic_crystal": 0, "war_horse": 0, "gunpowder": 5, "shadow_essence": 0,
 	},
 	FactionID.DARK_ELF: {
 		"gold": 500, "food": 150, "iron": 80, "slaves": 5, "prestige": 0, "army": 3,
@@ -151,11 +151,11 @@ const FACTION_PARAMS: Dictionary = {
 		"threat_increase_per_war": 5,          # 每场战争额外增加威胁值
 	},
 	FactionID.PIRATE: {
-		"food_per_soldier": 1.0,
+		"food_per_soldier": 0.7,           # v3.0.1: 1.0→0.7 (缓解前期粮荒)
 		"recruit_cost_gold": 60,
 		"recruit_cost_iron": 5,
 		"slave_capture_bonus": 1.0,
-		"base_production_mult": 0.6,       # v2.0: 基础产出大幅降低 (掠夺为主)
+		"base_production_mult": 0.7,       # v3.0.1: 0.6→0.7 (前期产出提升)
 		"gold_income_mult": 1.3,           # v3.0: 掠夺金币 1.5→1.3 (防止滚雪球)
 		"iron_income_mult": 0.65,          # v3.0: 铁矿产出 0.5→0.65 (缓解资源荒)
 		"food_production_mult": 0.75,      # v3.0: 粮食产出 0.7→0.75 (微调)
@@ -163,7 +163,7 @@ const FACTION_PARAMS: Dictionary = {
 		"slave_sell_price": 25,
 		"slave_buy_price": 40,
 		# 掠夺
-		"plunder_base_per_tile": 3,        # v2.0: 每据点掠夺值+3 (原2)
+		"plunder_base_per_tile": 5,        # v3.0.1: 3→5 (前期掠夺收益提升)
 		"plunder_combat_mult": 1.8,        # v2.0: 战斗掠夺金币系数×1.8
 		"stronghold_capture_plunder_mult": 12,  # v2.0: 要塞掠夺×12 (原10)
 		# 性奴隶系统

@@ -225,7 +225,7 @@ func init_player(player_id: int) -> void:
 	_infamy[player_id] = 20              # 起始恶名: 20 (小有名气)
 	_plunder_streak[player_id] = 0
 	_bonus_plunder[player_id] = 0
-	_rum_morale[player_id] = 30          # 起始朗姆酒士气
+	_rum_morale[player_id] = 50          # v3.0.1: 30→50 起始朗姆酒士气 (前期ATK+2)
 	_treasure_maps[player_id] = []
 	_smuggle_routes[player_id] = []
 	_market_stock[player_id] = []

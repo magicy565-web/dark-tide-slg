@@ -83,7 +83,7 @@ static func _register_evil_faction(d: Dictionary) -> void:
 	d["pirate_ashigaru"] = {
 		"name": "海盗散兵", "faction": "pirate",
 		"troop_class": TC_ASHIGARU, "row": ROW_FRONT,
-		"base_atk": 5, "base_def": 4, "max_soldiers": 6,
+		"base_atk": 6, "base_def": 4, "max_soldiers": 7,
 		"recruit_cost": 12, "passive": "pistol_shot", "category": CAT_FACTION,
 		"tier": 1, "desc": "手枪散兵, 前排可攻击后排",
 	}

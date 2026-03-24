@@ -135,7 +135,7 @@ static var FACTION_BUILDINGS: Dictionary = {
 			"name": "走私者巢穴",
 			"max_level": 3,
 			"levels": {
-				1: {"cost": {"gold": 100, "iron": 8}, "desc": "+5金/回合, 战利品+30%", "effects": {"gold_per_turn": 5, "loot_mult": 1.3}},
+				1: {"cost": {"gold": 70, "iron": 5}, "desc": "+5金/回合, 战利品+30%", "effects": {"gold_per_turn": 5, "loot_mult": 1.3}},
 				2: {"cost": {"gold": 160, "iron": 14}, "desc": "+10金/回合, 战利品+60%, 走私路线", "effects": {"gold_per_turn": 10, "loot_mult": 1.6, "smuggle_route": true}, "upgrade_req": {"tile_level": 2}},
 				3: {"cost": {"gold": 230, "iron": 20}, "desc": "+18金/回合, 战利品×2, 掠夺值×1.5", "effects": {"gold_per_turn": 18, "loot_mult": 2.0, "plunder_mult": 1.5}, "upgrade_req": {"tile_level": 3, "plunder_min": 50}},
 			},
