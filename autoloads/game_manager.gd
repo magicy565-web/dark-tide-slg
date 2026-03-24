@@ -1379,6 +1379,15 @@ func end_turn() -> void:
 	selected_army_id = -1
 	EventBus.turn_ended.emit(player["id"])
 
+	# Auto-save at end of human player's turn if setting enabled
+	if player["id"] == get_human_player_id():
+		var settings_node = get_tree().get_root().find_child("SettingsPanel", true, false)
+		var auto_save_on: bool = false
+		if settings_node and settings_node.has_method("get_setting"):
+			auto_save_on = settings_node.get_setting("auto_end_turn") == true
+		if auto_save_on:
+			SaveManager.auto_save()
+
 	current_player_index = (current_player_index + 1) % players.size()
 	begin_turn()
 

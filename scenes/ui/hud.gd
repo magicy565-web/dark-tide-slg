@@ -132,6 +132,7 @@ func _build_ui() -> void:
 	_build_tile_info(root)
 	_build_message_log(root)
 	_build_game_over(root)
+	_build_minimap(root)
 
 
 # ── Top bar (resources, turn info, strategic resources) ──
@@ -518,6 +519,46 @@ func _build_game_over(parent: Control) -> void:
 	var restart := _make_button("重新开始")
 	restart.pressed.connect(_on_restart_pressed)
 	vbox.add_child(restart)
+
+
+var minimap_anchor: Control
+
+func _build_minimap(parent: Control) -> void:
+	## Bottom-right minimap container — board.setup_minimap() fills it on board_ready.
+	minimap_anchor = Control.new()
+	minimap_anchor.name = "MinimapAnchor"
+	minimap_anchor.anchor_left = 1.0
+	minimap_anchor.anchor_right = 1.0
+	minimap_anchor.anchor_top = 1.0
+	minimap_anchor.anchor_bottom = 1.0
+	minimap_anchor.offset_left = -196
+	minimap_anchor.offset_top = -156
+	minimap_anchor.offset_right = -8
+	minimap_anchor.offset_bottom = -8
+	minimap_anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(minimap_anchor)
+
+	# Border frame around minimap
+	var frame := PanelContainer.new()
+	frame.anchor_right = 1.0
+	frame.anchor_bottom = 1.0
+	var frame_style := StyleBoxFlat.new()
+	frame_style.bg_color = Color(0.05, 0.05, 0.08, 0.8)
+	frame_style.border_color = Color(0.5, 0.45, 0.3)
+	frame_style.set_border_width_all(1)
+	frame_style.set_corner_radius_all(4)
+	frame_style.set_content_margin_all(2)
+	frame.add_theme_stylebox_override("panel", frame_style)
+	minimap_anchor.add_child(frame)
+
+	# Hook into board_ready to request minimap setup
+	EventBus.board_ready.connect(_on_board_ready_minimap)
+
+
+func _on_board_ready_minimap() -> void:
+	var board_node = get_tree().get_root().find_child("Board", true, false)
+	if board_node and board_node.has_method("setup_minimap"):
+		board_node.setup_minimap(minimap_anchor)
 
 
 # ═══════════════════════════════════════════════════════════════

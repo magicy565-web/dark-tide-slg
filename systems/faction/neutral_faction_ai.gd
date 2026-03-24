@@ -248,6 +248,10 @@ func get_vassal_production(player_id: int) -> Dictionary:
 	## Calculate total production from vassal territories for a player.
 	var income: Dictionary = {"gold": 0, "food": 0, "iron": 0}
 	var share: float = BalanceConfig.VASSAL_PRODUCTION_SHARE
+	# Apply order multiplier so vassal income respects public order like normal production
+	var order_mult: float = 1.0
+	if OrderManager and OrderManager.has_method("get_production_multiplier"):
+		order_mult = OrderManager.get_production_multiplier()
 
 	for nf_id in _faction_state:
 		var state: Dictionary = _faction_state[nf_id]
@@ -263,9 +267,9 @@ func get_vassal_production(player_id: int) -> Dictionary:
 			if tile["owner_id"] >= 0:
 				continue
 			var prod: Dictionary = tile.get("base_production", {})
-			income["gold"] += int(float(prod.get("gold", 0)) * share)
-			income["food"] += int(float(prod.get("food", 0)) * share)
-			income["iron"] += int(float(prod.get("iron", 0)) * share)
+			income["gold"] += int(float(prod.get("gold", 0)) * share * order_mult)
+			income["food"] += int(float(prod.get("food", 0)) * share * order_mult)
+			income["iron"] += int(float(prod.get("iron", 0)) * share * order_mult)
 
 	return income
 
