@@ -205,7 +205,7 @@ static func dps_estimate(troop: Dictionary) -> float:
 	var atk: float = float(troop.get("base_atk", 0))
 	var soldiers: int = troop.get("max_soldiers", 1)
 	var passive: String = troop.get("passive", "")
-	var mult: float = PASSIVE_POWER_MULT.get(passive, 1.0)
+	var mult: float = maxf(0.0, PASSIVE_POWER_MULT.get(passive, 1.0))
 	# Assume average enemy DEF of 5
 	var effective_atk: float = maxf(1.0, atk - 5.0)
 	return soldiers * effective_atk * mult / 10.0

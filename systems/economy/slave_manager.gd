@@ -148,6 +148,8 @@ func convert_slaves_to_soldiers(player_id: int) -> bool:
 	alloc["idle"] -= SLAVES_PER_SOLDIER
 	ResourceManager.apply_delta(player_id, {"slaves": -SLAVES_PER_SOLDIER})
 	ResourceManager.add_army(player_id, 1)
+	# Sync: ensure ResourceManager slave count matches allocation total
+	sync_slave_count(player_id)
 	EventBus.message_log.emit("[color=purple]奴隶转化: %d名奴隶 → 1名士兵[/color]" % SLAVES_PER_SOLDIER)
 	return true
 

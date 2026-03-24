@@ -252,21 +252,23 @@ func cast_spell(spell_name: String) -> bool:
 func apply_spell_effect(spell_name: String, target_tile_index: int) -> Dictionary:
 	## Returns effect data for the spell.
 	var result := {"type": spell_name, "success": false}
+	# Validate tile index before applying any spell effect
+	if target_tile_index < 0 or target_tile_index >= GameManager.tiles.size():
+		push_warning("light_faction_ai: spell '%s' target_tile_index %d out of bounds (tiles: %d)" % [spell_name, target_tile_index, GameManager.tiles.size()])
+		return result
 	match spell_name:
 		"teleport":
 			# Teleport defenders to a tile
 			result["success"] = true
 			result["garrison_add"] = randi_range(BalanceConfig.SPELL_TELEPORT_GARRISON_MIN, BalanceConfig.SPELL_TELEPORT_GARRISON_MAX)
-			if target_tile_index >= 0 and target_tile_index < GameManager.tiles.size():
-				GameManager.tiles[target_tile_index]["garrison"] += result["garrison_add"]
-				EventBus.message_log.emit("传送增援 +%d 守军" % result["garrison_add"])
+			GameManager.tiles[target_tile_index]["garrison"] += result["garrison_add"]
+			EventBus.message_log.emit("传送增援 +%d 守军" % result["garrison_add"])
 		"barrier":
 			# Add temporary defense
 			result["success"] = true
 			result["defense_bonus"] = BalanceConfig.SPELL_BARRIER_DEFENSE_BONUS
-			if target_tile_index >= 0 and target_tile_index < GameManager.tiles.size():
-				GameManager.tiles[target_tile_index]["garrison"] += result["defense_bonus"]
-				EventBus.message_log.emit("魔法屏障: +%d 防御" % result["defense_bonus"])
+			GameManager.tiles[target_tile_index]["garrison"] += result["defense_bonus"]
+			EventBus.message_log.emit("魔法屏障: +%d 防御" % result["defense_bonus"])
 		"barrage":
 			# Damage attacking army
 			result["success"] = true

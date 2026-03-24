@@ -62,38 +62,73 @@ func use_item(player_id: int, item_id: String) -> bool:
 	var item_data: Dictionary = FactionData.ITEM_DEFS[item_id]
 	var effect: Dictionary = item_data.get("effect", {})
 
+	# Validate effect values before applying
+	if effect.is_empty():
+		EventBus.message_log.emit("[color=red]道具 %s 无有效效果![/color]" % item_data.get("name", item_id))
+		return false
+
 	# Immediate resource effects
 	if effect.has("gold"):
-		ResourceManager.apply_delta(player_id, {"gold": effect["gold"]})
-		EventBus.message_log.emit("使用 %s: +%d金币" % [item_data["name"], effect["gold"]])
+		var val: int = int(effect["gold"])
+		if val == 0:
+			return false
+		ResourceManager.apply_delta(player_id, {"gold": val})
+		EventBus.message_log.emit("使用 %s: +%d金币" % [item_data["name"], val])
 	elif effect.has("food"):
-		ResourceManager.apply_delta(player_id, {"food": effect["food"]})
-		EventBus.message_log.emit("使用 %s: +%d粮草" % [item_data["name"], effect["food"]])
+		var val: int = int(effect["food"])
+		if val == 0:
+			return false
+		ResourceManager.apply_delta(player_id, {"food": val})
+		EventBus.message_log.emit("使用 %s: +%d粮草" % [item_data["name"], val])
 	elif effect.has("iron"):
-		ResourceManager.apply_delta(player_id, {"iron": effect["iron"]})
-		EventBus.message_log.emit("使用 %s: +%d铁矿" % [item_data["name"], effect["iron"]])
+		var val: int = int(effect["iron"])
+		if val == 0:
+			return false
+		ResourceManager.apply_delta(player_id, {"iron": val})
+		EventBus.message_log.emit("使用 %s: +%d铁矿" % [item_data["name"], val])
 	elif effect.has("heal"):
-		ResourceManager.add_army(player_id, effect["heal"])
-		EventBus.message_log.emit("使用 %s: 恢复%d兵力" % [item_data["name"], effect["heal"]])
+		var val: int = int(effect["heal"])
+		if val <= 0:
+			return false
+		ResourceManager.add_army(player_id, val)
+		EventBus.message_log.emit("使用 %s: 恢复%d兵力" % [item_data["name"], val])
 	elif effect.has("dice_bonus"):
-		BuffManager.add_buff(player_id, "item_dice", "dice_bonus", effect["dice_bonus"], 1, "item")
-		EventBus.message_log.emit("使用 %s: 本回合骰子+%d" % [item_data["name"], effect["dice_bonus"]])
+		var val: int = int(effect["dice_bonus"])
+		if val == 0:
+			return false
+		BuffManager.add_buff(player_id, "item_dice", "dice_bonus", val, 1, "item")
+		EventBus.message_log.emit("使用 %s: 本回合骰子+%d" % [item_data["name"], val])
 	elif effect.has("atk_mult"):
-		BuffManager.add_buff(player_id, "item_atk", "atk_mult", effect["atk_mult"], 1, "item")
+		var val: float = float(effect["atk_mult"])
+		if val <= 0.0:
+			return false
+		BuffManager.add_buff(player_id, "item_atk", "atk_mult", val, 1, "item")
 		EventBus.message_log.emit("使用 %s: 下次战斗攻击+30%%" % item_data["name"])
 	elif effect.has("def_mult"):
-		BuffManager.add_buff(player_id, "item_def", "def_mult", effect["def_mult"], 1, "item")
+		var val: float = float(effect["def_mult"])
+		if val <= 0.0:
+			return false
+		BuffManager.add_buff(player_id, "item_def", "def_mult", val, 1, "item")
 		EventBus.message_log.emit("使用 %s: 下次战斗防御+30%%" % item_data["name"])
 	elif effect.has("guaranteed_slave"):
 		BuffManager.add_buff(player_id, "item_slave", "guaranteed_slave", true, 1, "item")
 		EventBus.message_log.emit("使用 %s: 下次战斗必定俘获奴隶" % item_data["name"])
 	elif effect.has("mage_weaken"):
-		BuffManager.add_buff(player_id, "item_mage_weak", "mage_weaken", effect["mage_weaken"], 5, "item")
+		var val: float = float(effect["mage_weaken"])
+		if val <= 0.0:
+			return false
+		BuffManager.add_buff(player_id, "item_mage_weak", "mage_weaken", val, 5, "item")
 		EventBus.message_log.emit("使用 %s: 法师效果减半(5回合)" % item_data["name"])
 	elif effect.has("wall_damage"):
+		var val: int = int(effect["wall_damage"])
+		if val <= 0:
+			return false
 		# Stored as buff; applied at next siege combat
-		BuffManager.add_buff(player_id, "item_wall_dmg", "wall_damage", effect["wall_damage"], 1, "item")
-		EventBus.message_log.emit("使用 %s: 下次攻城削减%d城防" % [item_data["name"], effect["wall_damage"]])
+		BuffManager.add_buff(player_id, "item_wall_dmg", "wall_damage", val, 1, "item")
+		EventBus.message_log.emit("使用 %s: 下次攻城削减%d城防" % [item_data["name"], val])
+	else:
+		EventBus.message_log.emit("[color=red]道具 %s 效果类型未识别![/color]" % item_data.get("name", item_id))
+		return false
 
 	remove_item(player_id, item_id)
 	return true

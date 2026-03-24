@@ -163,7 +163,8 @@ func apply_morale_modifier(units: Array) -> float:
 		total_morale += float(unit.get("_morale", 50))
 	var avg_morale: float = total_morale / float(units.size())
 	# Morale modifier: 50 = 1.0x, 0 = 0.6x, 100 = 1.15x
-	return clampf(0.6 + avg_morale * 0.0055, 0.6, 1.15)
+	# FIX(CRITICAL): 修正系数0.0055→0.008，使50士气正确返回1.0倍率（原公式50士气仅0.875x）
+	return clampf(0.6 + avg_morale * 0.008, 0.6, 1.15)
 
 ## Set initial morale on combat units before battle starts.
 func prepare_combat_morale(units: Array, player_id: int) -> void:

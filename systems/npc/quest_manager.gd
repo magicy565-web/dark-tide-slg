@@ -134,7 +134,10 @@ func complete_quest(player_id: int, neutral_faction: int) -> bool:
 	## Mark quest as completed and recruit the faction.
 	if not _quest_progress.has(player_id) or not _quest_progress[player_id].has(neutral_faction):
 		return false
-	if _quest_progress[player_id][neutral_faction]["step"] < 3:
+	var fd: Dictionary = FactionData.NEUTRAL_FACTION_DATA.get(neutral_faction, {})
+	var quest_chain: Array = fd.get("quest_chain", [])
+	var max_steps: int = quest_chain.size() if not quest_chain.is_empty() else 3
+	if _quest_progress[player_id][neutral_faction]["step"] < max_steps:
 		return false
 	_quest_progress[player_id][neutral_faction]["completed"] = true
 	if not _recruited_factions.has(player_id):
@@ -359,7 +362,10 @@ func resolve_quest_combat_win(player_id: int) -> void:
 	advance_quest(player_id, nf)
 	# Check completion
 	var new_step: int = get_quest_step(player_id, nf)
-	if new_step >= 3:
+	var faction_data: Dictionary = FactionData.NEUTRAL_FACTION_DATA.get(nf, {})
+	var quest_chain: Array = faction_data.get("quest_chain", [])
+	var max_steps: int = quest_chain.size() if not quest_chain.is_empty() else 3
+	if new_step >= max_steps:
 		complete_quest(player_id, nf)
 	clear_pending_combat(player_id)
 
@@ -414,7 +420,10 @@ func _check_auto_advance(player_id: int) -> void:
 		advance_quest(player_id, nf)
 
 		var new_step: int = get_quest_step(player_id, nf)
-		if new_step >= 3:
+		var nf_data: Dictionary = FactionData.NEUTRAL_FACTION_DATA.get(nf, {})
+		var nf_chain: Array = nf_data.get("quest_chain", [])
+		var nf_max_steps: int = nf_chain.size() if not nf_chain.is_empty() else 3
+		if new_step >= nf_max_steps:
 			complete_quest(player_id, nf)
 
 

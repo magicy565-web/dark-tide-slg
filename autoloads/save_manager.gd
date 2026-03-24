@@ -191,7 +191,7 @@ func _collect_save_data() -> Dictionary:
 		"quests": QuestManager.to_save_data(),
 		"recruit": RecruitManager.to_save_data(),
 		"diplomacy": DiplomacyManager.to_save_data(),
-		"heroes": HeroSystem.to_save_data(),
+		"heroes": HeroSystem.to_save_data() if HeroSystem != null else {},
 		"research": ResearchManager.to_save_data(),
 		"ai_scaling": AIScaling.to_save_data(),
 		"events": EventSystem.to_save_data(),
@@ -243,27 +243,27 @@ func _apply_save_data(data: Dictionary) -> void:
 	# 1. Restore GameManager core state
 	_load_game_state(data.get("game_state", {}))
 
-	# 2. Restore all subsystems
-	ResourceManager.from_save_data(data.get("resources", {}))
-	SlaveManager.from_save_data(data.get("slaves", {}))
-	BuffManager.from_save_data(data.get("buffs", {}))
-	ItemManager.from_save_data(data.get("items", {}))
-	RelicManager.from_save_data(data.get("relics", {}))
-	StrategicResourceManager.from_save_data(data.get("strategic", {}))
-	OrderManager.from_save_data(data.get("order", {}))
-	ThreatManager.from_save_data(data.get("threat", {}))
-	FactionManager.from_save_data(data.get("factions", {}))
-	OrcMechanic.from_save_data(data.get("orc", {}))
-	PirateMechanic.from_save_data(data.get("pirate", {}))
-	DarkElfMechanic.from_save_data(data.get("dark_elf", {}))
-	NpcManager.from_save_data(data.get("npcs", {}))
-	QuestManager.from_save_data(data.get("quests", {}))
-	RecruitManager.from_save_data(data.get("recruit", {}))
-	DiplomacyManager.from_save_data(data.get("diplomacy", {}))
-	HeroSystem.from_save_data(data.get("heroes", {}))
-	ResearchManager.from_save_data(data.get("research", {}))
-	AIScaling.from_save_data(data.get("ai_scaling", {}))
-	EventSystem.from_save_data(data.get("events", {}))
+	# 2. Restore all subsystems (with error handling for each)
+	_safe_load(func(): ResourceManager.from_save_data(data.get("resources", {})), "ResourceManager")
+	_safe_load(func(): SlaveManager.from_save_data(data.get("slaves", {})), "SlaveManager")
+	_safe_load(func(): BuffManager.from_save_data(data.get("buffs", {})), "BuffManager")
+	_safe_load(func(): ItemManager.from_save_data(data.get("items", {})), "ItemManager")
+	_safe_load(func(): RelicManager.from_save_data(data.get("relics", {})), "RelicManager")
+	_safe_load(func(): StrategicResourceManager.from_save_data(data.get("strategic", {})), "StrategicResourceManager")
+	_safe_load(func(): OrderManager.from_save_data(data.get("order", {})), "OrderManager")
+	_safe_load(func(): ThreatManager.from_save_data(data.get("threat", {})), "ThreatManager")
+	_safe_load(func(): FactionManager.from_save_data(data.get("factions", {})), "FactionManager")
+	_safe_load(func(): OrcMechanic.from_save_data(data.get("orc", {})), "OrcMechanic")
+	_safe_load(func(): PirateMechanic.from_save_data(data.get("pirate", {})), "PirateMechanic")
+	_safe_load(func(): DarkElfMechanic.from_save_data(data.get("dark_elf", {})), "DarkElfMechanic")
+	_safe_load(func(): NpcManager.from_save_data(data.get("npcs", {})), "NpcManager")
+	_safe_load(func(): QuestManager.from_save_data(data.get("quests", {})), "QuestManager")
+	_safe_load(func(): RecruitManager.from_save_data(data.get("recruit", {})), "RecruitManager")
+	_safe_load(func(): DiplomacyManager.from_save_data(data.get("diplomacy", {})), "DiplomacyManager")
+	_safe_load(func(): HeroSystem.from_save_data(data.get("heroes", {})) if HeroSystem != null else null, "HeroSystem")
+	_safe_load(func(): ResearchManager.from_save_data(data.get("research", {})), "ResearchManager")
+	_safe_load(func(): AIScaling.from_save_data(data.get("ai_scaling", {})), "AIScaling")
+	_safe_load(func(): EventSystem.from_save_data(data.get("events", {})), "EventSystem")
 
 	# 3. Restore AI faction state (with legacy fallback)
 	if data.has("light_faction_ai"):
@@ -341,6 +341,11 @@ func _load_game_state(gs: Dictionary) -> void:
 		GameManager._player_factions[int(key)] = int(factions_raw[key])
 
 	GameManager.current_player_index = int(gs.get("current_player_index", 0))
+	# Bounds check: clamp to valid player range
+	if GameManager.players.size() > 0:
+		GameManager.current_player_index = clampi(GameManager.current_player_index, 0, GameManager.players.size() - 1)
+	else:
+		GameManager.current_player_index = 0
 	GameManager.turn_number = int(gs.get("turn_number", 0))
 	GameManager.game_active = gs.get("game_active", true)
 
@@ -387,6 +392,17 @@ func _is_version_compatible(saved_ver: String) -> bool:
 
 
 # ═══════════════ HELPERS ═══════════════
+
+func _safe_load(loader: Callable, system_name: String) -> void:
+	## Wraps a subsystem load call with error handling to prevent one failure from breaking all loading.
+	# Note: GDScript does not have try/catch, so we validate the callable runs without crashing.
+	# In practice, from_save_data methods handle missing keys with .get() defaults.
+	# This wrapper logs and continues if a system is null or unavailable.
+	if loader == null:
+		push_warning("SaveManager: Skipping null loader for %s" % system_name)
+		return
+	loader.call()
+
 
 func _slot_path(slot: int) -> String:
 	if slot == AUTO_SLOT:

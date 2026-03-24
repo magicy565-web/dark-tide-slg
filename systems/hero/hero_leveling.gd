@@ -208,6 +208,8 @@ func deserialize(data: Dictionary) -> void:
 	for hero_id in hero_exp.keys():
 		var exp_val: int = hero_exp[hero_id]
 		var expected_level: int = _calculate_level_from_exp(exp_val)
+		# Clamp level to valid range [1, MAX_LEVEL]
+		expected_level = clampi(expected_level, 1, MAX_LEVEL)
 		if hero_level.get(hero_id, 1) != expected_level:
 			push_warning(
 				"HeroLeveling: 英雄 %s 等级不匹配，经验值=%d 期望等级=%d 存档等级=%d，已修正。"

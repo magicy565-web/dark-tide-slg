@@ -132,6 +132,8 @@ func get_buff_value(player_id: int, buff_type: String, default_value = null) -> 
 
 	match buff_type:
 		"atk_mult", "def_mult", "production_mult", "siege_mult":
+			if buffs.is_empty():
+				return 1.0
 			var product := 1.0
 			for b in buffs:
 				product *= float(b["value"])
@@ -160,16 +162,19 @@ func get_buff_value(player_id: int, buff_type: String, default_value = null) -> 
 
 
 func get_atk_multiplier(player_id: int) -> float:
-	var mult: float = get_buff_value(player_id, "atk_mult") as float
+	var raw_mult = get_buff_value(player_id, "atk_mult")
+	var mult: float = raw_mult as float if raw_mult != null else 1.0
 	# v0.8.7: Also apply atk_pct additive bonuses (e.g. blood_ritual: +15%)
-	var atk_pct: float = get_buff_value(player_id, "atk_pct") as float
+	var raw_pct = get_buff_value(player_id, "atk_pct")
+	var atk_pct: float = raw_pct as float if raw_pct != null else 0.0
 	if atk_pct != 0.0:
 		mult *= (1.0 + atk_pct / 100.0)
 	return mult
 
 
 func get_def_multiplier(player_id: int) -> float:
-	return get_buff_value(player_id, "def_mult") as float
+	var raw = get_buff_value(player_id, "def_mult")
+	return raw as float if raw != null else 1.0
 
 
 func get_dice_bonus(player_id: int) -> int:

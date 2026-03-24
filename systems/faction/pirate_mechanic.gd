@@ -428,6 +428,8 @@ func _remove_slave_at_index(player_id: int, slave_index: int) -> void:
 func _find_lowest_trained_slave(player_id: int) -> int:
 	var training: Dictionary = _slave_training.get(player_id, {})
 	var slave_count: int = _sex_slaves.get(player_id, 0)
+	if slave_count <= 0:
+		return -1
 	var lowest_idx: int = 0
 	var lowest_val: int = TRAINING_MAX + 1
 	for i in range(slave_count):
@@ -442,6 +444,8 @@ func _find_lowest_trained_slave(player_id: int) -> int:
 func _find_highest_trained_slave(player_id: int) -> int:
 	var training: Dictionary = _slave_training.get(player_id, {})
 	var slave_count: int = _sex_slaves.get(player_id, 0)
+	if slave_count <= 0:
+		return -1
 	var highest_idx: int = 0
 	var highest_val: int = -1
 	for i in range(slave_count):

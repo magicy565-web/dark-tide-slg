@@ -199,8 +199,12 @@ func _load_single_mod(mod: Dictionary) -> void:
 	var troops_path: String = data_path + "troops.json"
 	if FileAccess.file_exists(troops_path):
 		var troops_data: Dictionary = _read_json(troops_path)
+		if not _validate_mod_schema(troops_data, "troops", mod_id):
+			return
 		var troops: Dictionary = troops_data.get("troops", {})
 		for troop_id in troops:
+			if not _validate_entry_schema(troops[troop_id], ["name"], "troops", troop_id, mod_id):
+				continue
 			troops[troop_id]["_mod_id"] = mod_id
 			_troop_overrides[troop_id] = troops[troop_id]
 		_loaded_data[mod_id]["troops"] = troops
@@ -210,8 +214,12 @@ func _load_single_mod(mod: Dictionary) -> void:
 	var heroes_path: String = data_path + "heroes.json"
 	if FileAccess.file_exists(heroes_path):
 		var heroes_data: Dictionary = _read_json(heroes_path)
+		if not _validate_mod_schema(heroes_data, "heroes", mod_id):
+			return
 		var heroes: Dictionary = heroes_data.get("heroes", {})
 		for hero_id in heroes:
+			if not _validate_entry_schema(heroes[hero_id], ["name"], "heroes", hero_id, mod_id):
+				continue
 			heroes[hero_id]["_mod_id"] = mod_id
 			_hero_overrides[hero_id] = heroes[hero_id]
 		_loaded_data[mod_id]["heroes"] = heroes
@@ -221,6 +229,8 @@ func _load_single_mod(mod: Dictionary) -> void:
 	var events_path: String = data_path + "events.json"
 	if FileAccess.file_exists(events_path):
 		var events_data: Dictionary = _read_json(events_path)
+		if not _validate_mod_schema(events_data, "events", mod_id):
+			return
 		var events: Dictionary = events_data.get("events", {})
 		for event_id in events:
 			events[event_id]["_mod_id"] = mod_id
@@ -231,6 +241,8 @@ func _load_single_mod(mod: Dictionary) -> void:
 	var items_path: String = data_path + "items.json"
 	if FileAccess.file_exists(items_path):
 		var items_data: Dictionary = _read_json(items_path)
+		if not _validate_mod_schema(items_data, "items", mod_id):
+			return
 		var items: Dictionary = items_data.get("items", {})
 		for item_id in items:
 			items[item_id]["_mod_id"] = mod_id
@@ -241,6 +253,8 @@ func _load_single_mod(mod: Dictionary) -> void:
 	var buildings_path: String = data_path + "buildings.json"
 	if FileAccess.file_exists(buildings_path):
 		var buildings_data: Dictionary = _read_json(buildings_path)
+		if not _validate_mod_schema(buildings_data, "buildings", mod_id):
+			return
 		var buildings: Dictionary = buildings_data.get("buildings", {})
 		for bld_id in buildings:
 			buildings[bld_id]["_mod_id"] = mod_id
@@ -257,6 +271,11 @@ func _read_json(path: String) -> Dictionary:
 	var json_str: String = file.get_as_text()
 	file.close()
 
+	# Basic safety check: reject excessively large files (> 10MB)
+	if json_str.length() > 10 * 1024 * 1024:
+		push_warning("ModManager: File too large, rejecting %s (%d bytes)" % [path, json_str.length()])
+		return {}
+
 	var json := JSON.new()
 	if json.parse(json_str) != OK:
 		push_warning("ModManager: JSON parse error in %s: %s" % [path, json.get_error_message()])
@@ -264,6 +283,32 @@ func _read_json(path: String) -> Dictionary:
 	if json.data is Dictionary:
 		return json.data
 	return {}
+
+
+func _validate_mod_schema(data: Dictionary, expected_key: String, mod_id: String) -> bool:
+	## Basic schema validation: the top-level dict must contain the expected key as a Dictionary.
+	if data.is_empty():
+		push_warning("ModManager: [%s] Empty data file for '%s'" % [mod_id, expected_key])
+		return false
+	if not data.has(expected_key):
+		push_warning("ModManager: [%s] Missing required key '%s' in data file" % [mod_id, expected_key])
+		return false
+	if not data[expected_key] is Dictionary:
+		push_warning("ModManager: [%s] Key '%s' must be a Dictionary, got %s" % [mod_id, expected_key, typeof(data[expected_key])])
+		return false
+	return true
+
+
+func _validate_entry_schema(entry: Variant, required_fields: Array, category: String, entry_id: String, mod_id: String) -> bool:
+	## Validate that an individual entry is a Dictionary and has required fields.
+	if not entry is Dictionary:
+		push_warning("ModManager: [%s] %s entry '%s' is not a Dictionary" % [mod_id, category, entry_id])
+		return false
+	for field in required_fields:
+		if not entry.has(field):
+			push_warning("ModManager: [%s] %s entry '%s' missing required field '%s'" % [mod_id, category, entry_id, field])
+			return false
+	return true
 
 
 func _is_mod_compatible(mod: Dictionary) -> bool:

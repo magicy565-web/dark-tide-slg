@@ -331,8 +331,9 @@ func process_turn_start() -> void:
 	for batch in _temp_soldier_batches:
 		batch["remaining"] -= 1
 		if batch["remaining"] <= 0:
-			# Temp soldiers leave
-			var count: int = mini(batch["count"], ResourceManager.get_army(pid) - 1)
+			# Temp soldiers leave — clamp to prevent negative army
+			var current_army: int = ResourceManager.get_army(pid)
+			var count: int = mini(batch["count"], maxi(0, current_army - 1))
 			if count > 0:
 				ResourceManager.remove_army(pid, count)
 				EventBus.message_log.emit("[color=yellow]佣兵合同到期: %d名临时士兵离开[/color]" % count)
@@ -507,16 +508,17 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 		var available_npcs: Array = NpcManager.get_available_npcs_for_faction(faction_id)
 		var captured_ids: Array = []
 		for npc in NpcManager.get_captured_npcs(pid):
-			captured_ids.append(npc.get("id", ""))
+			captured_ids.append(npc.get("npc_id", ""))
 		var uncaptured: Array = []
-		for npc_data in available_npcs:
-			if npc_data.get("id", "") not in captured_ids:
-				uncaptured.append(npc_data)
+		for npc_id_str in available_npcs:
+			if npc_id_str not in captured_ids:
+				uncaptured.append(npc_id_str)
 		if not uncaptured.is_empty():
 			uncaptured.shuffle()
-			var npc_id: String = uncaptured[0]["id"]
+			var npc_id: String = uncaptured[0]
 			NpcManager.capture_npc(pid, npc_id)
-			EventBus.message_log.emit("[color=green]事件获得特殊NPC: %s[/color]" % uncaptured[0].get("name", npc_id))
+			var npc_def: Dictionary = NpcManager.NPC_DEFS.get(npc_id, {})
+			EventBus.message_log.emit("[color=green]事件获得特殊NPC: %s[/color]" % npc_def.get("name", npc_id))
 		else:
 			ResourceManager.apply_delta(pid, {"prestige": 5})
 			EventBus.message_log.emit("无可用NPC, 转化为 +5威望")

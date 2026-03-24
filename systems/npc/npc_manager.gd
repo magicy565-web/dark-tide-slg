@@ -250,6 +250,7 @@ func tick_all(player_id: int, current_turn: int) -> void:
 	if not _npc_states.has(player_id):
 		return
 
+	var npcs_to_remove: Array = []
 	for npc_id in _npc_states[player_id]:
 		var state: Dictionary = _npc_states[player_id][npc_id]
 		if not state["active"]:
@@ -261,6 +262,7 @@ func tick_all(player_id: int, current_turn: int) -> void:
 				var esc_def: Dictionary = NPC_DEFS[npc_id]
 				EventBus.message_log.emit("[color=red]%s 趁机逃跑了![/color]" % esc_def["name"])
 				state["active"] = false
+				npcs_to_remove.append(npc_id)
 				continue
 
 		var turns_since_train: int = current_turn - state["last_trained_turn"]
@@ -272,6 +274,8 @@ func tick_all(player_id: int, current_turn: int) -> void:
 			if state["obedience"] <= 0:
 				EventBus.message_log.emit("[color=red]%s 反叛逃跑了![/color]" % def["name"])
 				state["active"] = false
+				npcs_to_remove.append(npc_id)
+				continue
 
 		# Natural growth: +2 every 5 turns
 		if current_turn > 0 and current_turn % 5 == 0:
@@ -281,6 +285,10 @@ func tick_all(player_id: int, current_turn: int) -> void:
 
 		# Check event chain triggers after obedience changes
 		_check_event_chains(player_id, npc_id)
+
+	# Remove escaped/rebelled NPCs from active state
+	for npc_id in npcs_to_remove:
+		_npc_states[player_id].erase(npc_id)
 
 
 func on_combat_loss(player_id: int) -> void:

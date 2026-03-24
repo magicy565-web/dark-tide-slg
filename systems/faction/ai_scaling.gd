@@ -45,9 +45,13 @@ func reset() -> void:
 func init_for_game(player_faction_id: int) -> void:
 	## Call at game start. Sets up tracking for all non-player factions.
 	reset()
-	# Remove player's faction from AI tracking if it's an evil faction
+	# Validate faction_id before proceeding
 	var player_key: String = _faction_id_to_ai_key(player_faction_id)
-	if player_key != "" and _faction_threat.has(player_key):
+	if player_key == "":
+		push_warning("ai_scaling: invalid player_faction_id %d — no matching AI key, skipping removal" % player_faction_id)
+		return
+	# Remove player's faction from AI tracking if it's an evil faction
+	if _faction_threat.has(player_key):
 		_faction_threat.erase(player_key)
 		_faction_tier.erase(player_key)
 		_expedition_cd.erase(player_key)

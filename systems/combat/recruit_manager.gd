@@ -161,6 +161,7 @@ func _build_unit_entry(troop_id: String, td: Dictionary, cost: Dictionary, playe
 
 
 ## Recruit a troop. Creates a full squad at max_soldiers. Deducts cost.
+# FIX(HIGH): 使用原子校验+扣除模式，防止并发招募时资源竞态条件
 func recruit_unit(player_id: int, troop_id: String, tile: Dictionary) -> bool:
 	var available: Array = get_available_units(player_id, tile)
 	var found: Dictionary = {}
@@ -178,7 +179,10 @@ func recruit_unit(player_id: int, troop_id: String, tile: Dictionary) -> bool:
 		EventBus.message_log.emit("[color=red]军团已满(%d/%d)[/color]" % [army_ref.size(), pop_cap])
 		return false
 
-	ResourceManager.spend(player_id, found["cost"])
+	# 原子校验并扣除资源：try_spend内部同时检查余额并扣除，避免竞态
+	if not ResourceManager.try_spend(player_id, found["cost"]):
+		EventBus.message_log.emit("[color=red]资源不足，招募失败[/color]")
+		return false
 
 	# Orc WAAAGH! cost: deduct from OrcMechanic (not tracked in ResourceManager)
 	var waaagh_cost: int = found["cost"].get("waaagh", 0)

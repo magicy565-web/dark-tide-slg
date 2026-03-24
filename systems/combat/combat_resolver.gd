@@ -268,11 +268,11 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 			base_def += um.get("def", 0)
 			spd += um.get("spd", 0)
 	else:
-		var troop_base: String = _get_troop_base_type(unit_type)
-		var um: Dictionary = terrain_data.get("unit_mods", {}).get(troop_base, {})
-		if um.get("atk", 0) > 0: base_atk += um["atk"]
-		if um.get("def", 0) > 0: base_def += um["def"]
-		if um.get("spd", 0) > 0: spd += um["spd"]
+		var troop_base_ign: String = _get_troop_base_type(unit_type)
+		var um_ign: Dictionary = terrain_data.get("unit_mods", {}).get(troop_base_ign, {})
+		if um_ign.get("atk", 0) > 0: base_atk += um_ign["atk"]
+		if um_ign.get("def", 0) > 0: base_def += um_ign["def"]
+		if um_ign.get("spd", 0) > 0: spd += um_ign["spd"]
 
 	# Fort defense passive: DEF+3 when defending own node
 	if "fort_def_3" in passives and not is_attacker:
@@ -581,6 +581,9 @@ func _execute_aoe_attack(state: Dictionary, unit: Dictionary, log: Array) -> voi
 		if not enemy["is_alive"]:
 			continue
 		var damage: int = _calculate_damage(unit, enemy, state)
+		# FIX(CRITICAL): damage为0表示miss，跳过AoE处理，避免miss变为1点伤害
+		if damage == 0:
+			continue
 		damage = int(float(damage) * mult)
 		# AoE reduces per-target damage slightly
 		damage = maxi(1, int(float(damage) * 0.6))
@@ -820,6 +823,10 @@ func _select_target(state: Dictionary, unit: Dictionary) -> Dictionary:
 	if candidates.is_empty():
 		candidates = targetable
 
+	# FIX(CRITICAL): 候选数组为空时直接返回null，防止越界崩溃
+	if candidates.is_empty():
+		return null
+
 	# Pick lowest-soldiers target (focus fire)
 	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return a["soldiers"] < b["soldiers"])
@@ -894,15 +901,9 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 		log.append("%s [%s] 被消灭!" % [target["unit_type"], target["side"]])
 
 		# Death burst: on death, deal ATK × 2 to all enemies
+		# FIX(HIGH): 清理冗余赋值，死亡爆发伤害对方阵营（即杀死自己的一方）
 		if "death_burst" in target["passives"]:
 			var burst_enemies: Array
-			if target["side"] == "attacker":
-				burst_enemies = state["def_units"]
-			else:
-				burst_enemies = state["atk_units"]
-			# Swap: death_burst damages the killer's side
-			burst_enemies = state["atk_units"] if target["side"] == "defender" else state["def_units"]
-			# Actually death_burst should hurt the side that killed us (the opposite side)
 			if target["side"] == "attacker":
 				burst_enemies = state["def_units"]
 			else:

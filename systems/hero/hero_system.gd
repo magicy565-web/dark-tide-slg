@@ -32,6 +32,7 @@ func reset() -> void:
 	_skill_cooldowns.clear()
 	hero_submission.clear()
 	_pirate_mode = false
+	_capture_in_progress.clear()
 
 
 ## Called when pirate faction is selected. Enables harem mechanics.
@@ -46,11 +47,16 @@ func is_pirate_mode() -> bool:
 # ═══════════════ CAPTURE ═══════════════
 
 ## Attempt to capture a hero after battle (called by combat resolution)
+var _capture_in_progress: Dictionary = {}  # hero_id -> true (guard against double capture)
 func attempt_capture(hero_id: String, capture_chance: float = -1.0) -> bool:
+	if _capture_in_progress.get(hero_id, false):
+		return false
 	if hero_id in captured_heroes or hero_id in recruited_heroes:
 		return false
+	_capture_in_progress[hero_id] = true
 	var max_prison: int = FactionData.PIRATE_PRISON_CAPACITY if _pirate_mode else FactionData.PRISON_CAPACITY
 	if captured_heroes.size() >= max_prison:
+		_capture_in_progress.erase(hero_id)
 		return false
 	# Use hero's default capture chance if not overridden
 	if capture_chance < 0.0:
@@ -62,11 +68,13 @@ func attempt_capture(hero_id: String, capture_chance: float = -1.0) -> bool:
 	if randf() <= capture_chance:
 		captured_heroes.append(hero_id)
 		hero_corruption[hero_id] = 0
+		_capture_in_progress.erase(hero_id)
 		EventBus.hero_captured.emit(hero_id)
 		EventBus.message_log.emit("捕获英雄: %s" % _get_hero_name(hero_id))
 		# 03_战略设定: 俘英雄+20威胁
 		ThreatManager.on_hero_captured()
 		return true
+	_capture_in_progress.erase(hero_id)
 	return false
 
 
@@ -124,7 +132,7 @@ func add_affection(hero_id: String, amount: int = 1) -> void:
 	if hero_id not in recruited_heroes:
 		return
 	var old_val: int = hero_affection.get(hero_id, 0)
-	var new_val: int = mini(old_val + amount, FactionData.AFFECTION_MAX)
+	var new_val: int = clampi(old_val + amount, 0, FactionData.AFFECTION_MAX)
 	if new_val == old_val:
 		return
 	hero_affection[hero_id] = new_val
@@ -579,6 +587,9 @@ func from_save_data(data: Dictionary) -> void:
 	hero_corruption = data.get("hero_corruption", {})
 	hero_affection = data.get("hero_affection", {})
 	hero_equipment = data.get("hero_equipment", {}).duplicate(true)
+	# Ensure all recruited heroes have properly initialized equipment slots
+	for hid in recruited_heroes:
+		_ensure_equip_slots(hid)
 	_skill_cooldowns = data.get("skill_cooldowns", {})
 	hero_submission = data.get("hero_submission", {})
 	_pirate_mode = data.get("pirate_mode", false)

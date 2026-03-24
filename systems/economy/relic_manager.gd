@@ -67,11 +67,13 @@ func get_relic_effect(player_id: int, effect_key: String) -> Variant:
 	var value = effects[effect_key]
 	if relic.get("upgraded", false):
 		if value is float:
-			# For multipliers, double the bonus portion: 1.2 -> 1.4, 0.8 -> 0.6
+			# For multipliers, double the bonus/penalty portion:
+			# Buffs:   1.2 -> 1.4 (bonus 0.2 doubled to 0.4)
+			# Debuffs: 0.8 -> 0.6 (penalty 0.2 doubled to 0.4, subtracted)
 			if value > 1.0:
 				value = 1.0 + (value - 1.0) * 2.0
 			elif value < 1.0:
-				value = 1.0 - (1.0 - value) * 2.0
+				value = 1.0 + (value - 1.0) * 2.0
 		elif value is int:
 			value = value * 2
 		elif value is bool:

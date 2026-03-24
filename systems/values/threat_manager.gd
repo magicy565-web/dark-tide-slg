@@ -72,6 +72,7 @@ func tick_decay() -> void:
 	## -5 threat per turn (natural decay, per 03_战略设定.md).
 	if _threat > 0:
 		change_threat(-5)
+	# When threat is 0, skip decay entirely (no log spam)
 
 
 # ═══════════════ GARRISON BONUS ═══════════════

@@ -70,7 +70,10 @@ func _try_raid(player_id: int, source_tile: Dictionary, _faction_id: int) -> voi
 	if targets.is_empty():
 		return
 
-	var target: Dictionary = targets[randi() % targets.size()]
+	var target_count: int = targets.size()
+	if target_count <= 0:
+		return
+	var target: Dictionary = targets[randi() % target_count]
 	var raid_strength: int = maxi(BalanceConfig.EVIL_RAID_MIN_STRENGTH, source_tile.get("garrison", 0) / BalanceConfig.EVIL_RAID_STRENGTH_DIVISOR)
 	var target_garrison: int = target.get("garrison", 0)
 

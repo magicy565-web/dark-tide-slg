@@ -167,14 +167,15 @@ func _patrol_territory(nf_id: int, state: Dictionary) -> void:
 		var threat: int = 0
 		if GameManager.adjacency.has(t_idx):
 			for nb_idx in GameManager.adjacency[t_idx]:
-				if nb_idx < GameManager.tiles.size():
-					var nb: Dictionary = GameManager.tiles[nb_idx]
-					if nb["owner_id"] >= 0:
-						threat += 1
-					# Check for armies adjacent
-					for army_id in GameManager.armies:
-						if GameManager.armies[army_id]["tile_index"] == nb_idx:
-							threat += 2
+				if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+					continue
+				var nb: Dictionary = GameManager.tiles[nb_idx]
+				if nb["owner_id"] >= 0:
+					threat += 1
+				# Check for armies adjacent
+				for army_id in GameManager.armies:
+					if GameManager.armies[army_id]["tile_index"] == nb_idx:
+						threat += 2
 		threat_scores[t_idx] = threat
 
 	# Find most and least threatened tiles

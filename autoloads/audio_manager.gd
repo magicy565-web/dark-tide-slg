@@ -125,7 +125,7 @@ func _connect_signals() -> void:
 	EventBus.tile_captured.connect(_on_tile_captured)
 	EventBus.tile_lost.connect(_on_tile_lost)
 	EventBus.hero_captured.connect(_on_hero_captured)
-	EventBus.research_tree_loaded.connect(_on_research_complete)
+	EventBus.research_completed.connect(_on_research_complete)
 	EventBus.waaagh_changed.connect(_on_waaagh_changed)
 	EventBus.event_triggered.connect(_on_event_triggered)
 
@@ -141,6 +141,7 @@ func play_bgm(track: int, crossfade: float = 1.0) -> void:
 
 	var stream = load(_bgm_paths[track])
 	if stream == null:
+		push_warning("AudioManager: Failed to load BGM file: %s (track=%d)" % [_bgm_paths[track], track])
 		return
 
 	_current_bgm = track
@@ -193,6 +194,7 @@ func play_sfx(sfx_id: int) -> void:
 
 	var stream = load(_sfx_paths[sfx_id])
 	if stream == null:
+		push_warning("AudioManager: Failed to load SFX file: %s (sfx_id=%d)" % [_sfx_paths[sfx_id], sfx_id])
 		return
 
 	# Find available player

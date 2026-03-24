@@ -163,16 +163,17 @@ func start_research(player_id: int, tech_id: String) -> bool:
 		EventBus.message_log.emit("资源不足!")
 		return false
 
-	# Deduct cost
-	_deduct_tech_cost(player_id, cost)
-
 	var state: Dictionary = _research_state[player_id]
 	if state["current"] == "":
+		# Deduct cost only after confirming we can set it as current
+		_deduct_tech_cost(player_id, cost)
 		state["current"] = tech_id
 		state["progress"] = 0
 		research_started.emit(player_id, tech_id)
 		EventBus.message_log.emit("开始研究: %s" % data.get("name", tech_id))
 	else:
+		# Deduct cost only after confirming we can queue it
+		_deduct_tech_cost(player_id, cost)
 		# Queue it
 		state["queue"].append(tech_id)
 		EventBus.message_log.emit("已加入研究队列: %s" % data.get("name", tech_id))
@@ -472,8 +473,7 @@ func to_save_data() -> Dictionary:
 func from_save_data(data: Dictionary) -> void:
 	_research_state = data.get("research_state", {})
 	_speed_cache = data.get("speed_cache", {})
-	# Reload active tree from player's faction
+	# Reload active tree from each player's faction
 	for pid in _research_state:
 		var faction_id: int = GameManager.get_player_faction(pid)
 		_load_faction_tree(faction_id)
-		break  # Only one player

@@ -480,8 +480,8 @@ func get_hero_bound_troops_for_player() -> Array:
 func get_recruit_cost(troop_id: String) -> int:
 	var td: Dictionary = get_troop_def(troop_id)
 	if td.is_empty():
-		return 9999
-	return td.get("recruit_cost", 9999)
+		return -1  # Invalid troop — caller must check for -1 before using
+	return td.get("recruit_cost", -1)
 
 func get_class_name(tc: int) -> String:
 	return TROOP_CLASS_NAMES.get(tc, "未知")
@@ -560,6 +560,8 @@ func apply_army_losses(army: Array, total_losses: int) -> int:
 	# Convert soldier losses to HP damage using average hp_per_soldier across the army
 	var total_hp: int = get_army_total_hp(army)
 	var avg_hpp: float = float(total_hp) / float(total_soldiers) if total_soldiers > 0 else 5.0
+	if avg_hpp <= 0.0:
+		avg_hpp = 5.0  # Guard against zero/negative avg_hpp when total_hp is 0
 	var hp_damage: int = int(float(remaining_loss) * avg_hpp)
 	# Proportional HP distribution — compute shares first, then distribute remainder
 	var shares: Array = []
@@ -691,7 +693,7 @@ func get_recruitable_troops(faction_tag: String, tile_level: int) -> Array:
 func calculate_recruit_cost(troop_id: String, discount_pct: float = 0.0, cost_mult: float = 1.0) -> Dictionary:
 	var td: Dictionary = get_troop_def(troop_id)
 	if td.is_empty():
-		return {"gold": 9999}
+		return {"gold": -1}  # Invalid troop — caller must check for negative cost
 	var base_gold: int = td["recruit_cost"]
 	var faction: String = td.get("faction", "")
 	var tier: int = td.get("tier", 1)

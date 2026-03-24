@@ -314,6 +314,8 @@ func sync_player_army(player_id: int) -> void:
 func get_current_player() -> Dictionary:
 	if players.is_empty():
 		return {}
+	if current_player_index < 0 or current_player_index >= players.size():
+		return {}
 	return players[current_player_index]
 
 
@@ -1222,6 +1224,8 @@ func _spawn_initial_wanderers() -> void:
 func begin_turn() -> void:
 	if not game_active:
 		return
+	if players.is_empty() or current_player_index < 0 or current_player_index >= players.size():
+		return
 	var player: Dictionary = players[current_player_index]
 	var pid: int = player["id"]
 	var faction_id: int = get_player_faction(pid)
@@ -1399,6 +1403,8 @@ func end_turn() -> void:
 		if auto_save_on:
 			SaveManager.auto_save()
 
+	if players.is_empty():
+		return
 	current_player_index = (current_player_index + 1) % players.size()
 	begin_turn()
 
@@ -1681,7 +1687,9 @@ func get_army_deployable_tiles(army_id: int) -> Array:
 	if not adjacency.has(from_tile):
 		return result
 	for nb_idx in adjacency[from_tile]:
-		if nb_idx < tiles.size() and tiles[nb_idx]["owner_id"] == player_id:
+		if nb_idx < 0 or nb_idx >= tiles.size():
+			continue
+		if tiles[nb_idx]["owner_id"] == player_id:
 			# Check no army already there
 			if get_army_at_tile(nb_idx).is_empty():
 				result.append(nb_idx)
@@ -1699,7 +1707,9 @@ func get_army_attackable_tiles(army_id: int) -> Array:
 	if not adjacency.has(from_tile):
 		return result
 	for nb_idx in adjacency[from_tile]:
-		if nb_idx < tiles.size() and tiles[nb_idx]["owner_id"] != player_id:
+		if nb_idx < 0 or nb_idx >= tiles.size():
+			continue
+		if tiles[nb_idx]["owner_id"] != player_id:
 			result.append(nb_idx)
 	return result
 
@@ -1744,6 +1754,9 @@ func action_forced_march(army_id: int, target_tile: int) -> bool:
 
 	# Target must be 2 hops away through owned territory
 	var from_tile: int = army["tile_index"]
+	if target_tile < 0 or target_tile >= tiles.size():
+		EventBus.message_log.emit("强行军目标无效!")
+		return false
 	var path: Array = _find_owned_path(from_tile, target_tile, player_id, 2)
 	if path.is_empty():
 		EventBus.message_log.emit("强行军目标不可达!")
@@ -1912,7 +1925,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			var squads: int = clampi(ceili(float(gar) / 10.0), 1, 3)
 			var per_squad: int = gar / squads
 			for i in range(squads):
-				var s: int = per_squad if i < squads - 1 else gar - per_squad * (squads - 1)
+				var s: int = maxi(0, per_squad if i < squads - 1 else gar - per_squad * (squads - 1))
 				defender_units.append({
 					"id": "def_%d" % i,
 					"commander_id": "generic",
@@ -2190,14 +2203,14 @@ func _tick_supply_lines(player_id: int) -> void:
 		if supply_dist < 0:
 			# Disconnected — heavy attrition
 			for troop in army["troops"]:
-				var loss := maxi(1, int(float(troop["soldiers"]) * SUPPLY_LINE_CUT_ATTRITION_PCT))
+				var loss := clampi(maxi(1, int(float(troop["soldiers"]) * SUPPLY_LINE_CUT_ATTRITION_PCT)), 1, troop["soldiers"])
 				troop["soldiers"] = maxi(0, troop["soldiers"] - loss)
 			EventBus.message_log.emit("[color=red]%s 补给线被切断! 每回合损失%.0f%%兵[/color]" % [army["name"], SUPPLY_LINE_CUT_ATTRITION_PCT * 100.0])
 			_cleanup_army_troops(army)
 		elif supply_dist > SUPPLY_LINE_SAFE:
 			# Over-extended — light attrition
 			for troop in army["troops"]:
-				var loss := maxi(1, int(float(troop["soldiers"]) * SUPPLY_LINE_ATTRITION_PCT))
+				var loss := clampi(maxi(1, int(float(troop["soldiers"]) * SUPPLY_LINE_ATTRITION_PCT)), 1, troop["soldiers"])
 				troop["soldiers"] = maxi(0, troop["soldiers"] - loss)
 			EventBus.message_log.emit("[color=orange]%s 补给线过长(%d格)! 每回合损失%.0f%%兵[/color]" % [army["name"], supply_dist, SUPPLY_LINE_ATTRITION_PCT * 100.0])
 			_cleanup_army_troops(army)
@@ -2281,6 +2294,8 @@ func compute_reachable(from: int, max_steps: int) -> Array:
 		if not adjacency.has(current):
 			continue
 		for neighbor in adjacency[current]:
+			if neighbor < 0 or neighbor >= tiles.size():
+				continue
 			if not visited.has(neighbor):
 				visited[neighbor] = depth + 1
 				queue.append(neighbor)
@@ -2326,6 +2341,8 @@ func _find_path(from: int, to: int) -> Array:
 		if not adjacency.has(current):
 			continue
 		for neighbor in adjacency[current]:
+			if neighbor < 0 or neighbor >= tiles.size():
+				continue
 			if not parent_map.has(neighbor):
 				parent_map[neighbor] = current
 				queue.append(neighbor)
@@ -2555,7 +2572,7 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	var atk_units: Array = RecruitManager.get_combat_units(pid)
 	if atk_units.is_empty():
 		# Fallback: generic infantry if no specific composition
-		atk_units = [{"type": "orc_ashigaru", "atk": COMBAT_POWER_PER_UNIT + player.get("atk_bonus", 0), "def": 5, "spd": 4, "count": army, "special": ""}]
+		atk_units = [{"type": _get_faction_tag_for_player(pid) + "_ashigaru" if _get_faction_tag_for_player(pid) != "" else "orc_ashigaru", "atk": COMBAT_POWER_PER_UNIT + player.get("atk_bonus", 0), "def": 5, "spd": 4, "count": army, "special": ""}]
 	var attacker_data: Dictionary = {
 		"player_id": pid,
 		"faction_id": faction_id,
@@ -3123,12 +3140,15 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 					EventBus.message_log.emit("没有可失去的前哨")
 			"combat_enemy":
 				var enemy_strength: int = int(value)
-				var enemy_tile: Dictionary = tiles[player["position"]]
-				var saved_garrison: int = enemy_tile["garrison"]
-				enemy_tile["garrison"] = enemy_strength
-				_resolve_combat(player, enemy_tile, "敌军巡逻队")
-				enemy_tile["garrison"] = saved_garrison
-				EventBus.message_log.emit("战斗结束!")
+				if player["position"] < 0 or player["position"] >= tiles.size():
+					EventBus.message_log.emit("无效位置，跳过战斗")
+				else:
+					var enemy_tile: Dictionary = tiles[player["position"]]
+					var saved_garrison: int = enemy_tile["garrison"]
+					enemy_tile["garrison"] = enemy_strength
+					_resolve_combat(player, enemy_tile, "敌军巡逻队")
+					enemy_tile["garrison"] = saved_garrison
+					EventBus.message_log.emit("战斗结束!")
 			"reveal_fog":
 				var count: int = int(abs(value))
 				var unrevealed: Array = []

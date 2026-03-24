@@ -199,6 +199,10 @@ func _build_ui() -> void:
 
 	_popup.visible = false
 
+	# Add UI nodes to the scene tree so they are actually rendered
+	add_child(_overlay)
+	add_child(_popup)
+
 
 func _connect_signals() -> void:
 	EventBus.turn_started.connect(_on_turn_started)

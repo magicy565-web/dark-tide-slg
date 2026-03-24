@@ -187,6 +187,10 @@ func offer_ceasefire(player_id: int, faction_id: int, turns: int = 5) -> bool:
 	if not _ceasefire.has(player_id):
 		_ceasefire[player_id] = {}
 	_ceasefire[player_id][faction_id] = turns
+	if not _relations.has(player_id):
+		_relations[player_id] = {}
+	if not _relations[player_id].has(faction_id):
+		_relations[player_id][faction_id] = {"hostile": false, "recruited": false, "method": "", "rebellion_turns": 0}
 	_relations[player_id][faction_id]["hostile"] = false
 	EventBus.message_log.emit("[color=yellow]与%s达成停战协议! %d回合内不可互攻[/color]" % [_get_faction_name(faction_id), turns])
 	return true
