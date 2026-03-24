@@ -5,6 +5,7 @@ extends Node
 
 const TroopReg = preload("res://systems/combat/troop_registry.gd")
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const HeroLevelData = preload("res://systems/hero/hero_level_data.gd")
 
 # ═══════════════ POWER BUDGET RANGES ═══════════════
 # Acceptable (ATK+DEF)*soldiers ranges per tier. Troops outside these fail audit.
@@ -209,28 +210,40 @@ static func dps_estimate(troop: Dictionary) -> float:
 	var effective_atk: float = maxf(1.0, atk - 5.0)
 	return soldiers * effective_atk * mult / 10.0
 
-## Calculate EHP (effective hit points): soldiers × (1 + DEF/10) × passive_mult
+## Calculate EHP (effective hit points): soldiers × hp_per_soldier × (1 + DEF/10) × passive_mult
 static func ehp_estimate(troop: Dictionary) -> float:
 	var def_val: float = float(troop.get("base_def", 0))
 	var soldiers: int = troop.get("max_soldiers", 1)
+	var hpp: int = troop.get("hp_per_soldier", 5)
 	var passive: String = troop.get("passive", "")
-	# Tank passives
 	var tank_mult: float = 1.0
 	if passive in ["taunt", "holy_bulwark", "immovable"]:
 		tank_mult = 1.3
 	elif passive == "regen_2":
-		tank_mult = 1.5  # regen extends effective HP significantly
+		tank_mult = 1.5
 	elif passive == "counter_defend":
 		tank_mult = 1.15
-	return soldiers * (1.0 + def_val / 10.0) * tank_mult
+	return soldiers * hpp * (1.0 + def_val / 10.0) * tank_mult
 
 ## Calculate hero+troop combo power
-static func hero_combo_power(hero_id: String, troop: Dictionary) -> Dictionary:
+static func hero_combo_power(hero_id: String, troop: Dictionary, level: int = 1) -> Dictionary:
 	if not FactionData.HEROES.has(hero_id):
 		return {"atk": 0, "def": 0, "power": 0, "dps": 0}
-	var hero: Dictionary = FactionData.HEROES[hero_id]
-	var combined_atk: float = float(troop.get("base_atk", 0)) + float(hero.get("atk", 0))
-	var combined_def: float = float(troop.get("base_def", 0)) + float(hero.get("def", 0))
+	var hero_atk: float
+	var hero_def: float
+	var hero_name: String
+	if level > 1 and HeroLevelData.HERO_BASE_STATS.has(hero_id):
+		var leveled: Dictionary = HeroLevelData.get_hero_stats_at_level(hero_id, level)
+		hero_atk = float(leveled.get("atk", 0))
+		hero_def = float(leveled.get("def", 0))
+		hero_name = HeroLevelData.HERO_BASE_STATS[hero_id].get("name", hero_id)
+	else:
+		var hero: Dictionary = FactionData.HEROES[hero_id]
+		hero_atk = float(hero.get("atk", 0))
+		hero_def = float(hero.get("def", 0))
+		hero_name = hero.get("name", hero_id)
+	var combined_atk: float = float(troop.get("base_atk", 0)) + hero_atk
+	var combined_def: float = float(troop.get("base_def", 0)) + hero_def
 	var soldiers: int = troop.get("max_soldiers", 1)
 	var passive: String = troop.get("passive", "")
 	var mult: float = PASSIVE_POWER_MULT.get(passive, 1.0)
@@ -240,7 +253,7 @@ static func hero_combo_power(hero_id: String, troop: Dictionary) -> Dictionary:
 	return {
 		"atk": combined_atk, "def": combined_def,
 		"power": power, "dps": dps,
-		"hero": hero.get("name", hero_id),
+		"hero": hero_name,
 		"troop": troop.get("name", ""),
 	}
 
@@ -306,6 +319,7 @@ func run_full_audit() -> Array:
 	_audit_faction_parity()
 	_audit_tier_progression()
 	_audit_combat_formula_bounds()
+	_audit_hero_level_scaling()
 	# Print summary
 	var errors: int = 0
 	var warnings: int = 0
@@ -505,6 +519,45 @@ func _audit_combat_formula_bounds() -> void:
 			_log("ERROR", "CombatBounds", "Max DPS (%s) can kill Max EHP (%s) in %.1f rounds (too fast)" % [
 				max_dps_name, max_ehp_name, rounds_to_kill])
 		_log("INFO", "CombatBounds", "Rounds for max DPS to kill max EHP: %.1f" % rounds_to_kill)
+
+## Validate hero level scaling doesn't break combat math at Lv20
+func _audit_hero_level_scaling() -> void:
+	for hero_id in HeroLevelData.HERO_BASE_STATS:
+		var stats_lv1: Dictionary = HeroLevelData.get_hero_stats_at_level(hero_id, 1)
+		var stats_lv20: Dictionary = HeroLevelData.get_hero_stats_at_level(hero_id, 20)
+		var name: String = HeroLevelData.HERO_BASE_STATS[hero_id].get("name", hero_id)
+
+		# Check ATK growth doesn't exceed 3× base
+		if stats_lv20["atk"] > stats_lv1["atk"] * 3.5:
+			_log("WARN", "HeroGrowth", "%s ATK grows from %d to %d (>3.5× base)" % [
+				name, stats_lv1["atk"], stats_lv20["atk"]])
+
+		# Check no stat exceeds 30 at Lv20 (combat formula assumes 1-20 range)
+		for stat_key in ["atk", "def", "int_stat", "spd"]:
+			if stats_lv20[stat_key] > 30:
+				_log("WARN", "HeroGrowth", "%s %s=%d at Lv20 exceeds soft cap 30" % [
+					name, stat_key, stats_lv20[stat_key]])
+
+		# Check HP pool is reasonable (not > 60)
+		if stats_lv20["hp"] > 60:
+			_log("WARN", "HeroGrowth", "%s HP=%d at Lv20 (very tanky)" % [
+				name, stats_lv20["hp"]])
+
+		# Log info for each hero
+		_log("INFO", "HeroGrowth", "%s Lv20: ATK=%d DEF=%d INT=%d SPD=%d HP=%d MP=%d" % [
+			name, stats_lv20["atk"], stats_lv20["def"], stats_lv20["int_stat"],
+			stats_lv20["spd"], stats_lv20["hp"], stats_lv20["mp"]])
+
+	# Check EXP curve reaches Lv20 in ~50 turns
+	var total_exp: int = HeroLevelData.EXP_TABLE[HeroLevelData.MAX_LEVEL - 1]
+	var avg_exp_per_turn: float = 24.0  # 2 wins + kills
+	var est_turns: float = total_exp / avg_exp_per_turn
+	_log("INFO", "HeroGrowth", "EXP to Lv20: %d, est. turns at avg 24/turn: %.0f" % [
+		total_exp, est_turns])
+	if est_turns > 70:
+		_log("WARN", "HeroGrowth", "Lv20 takes ~%.0f turns (>70, may be too slow)" % est_turns)
+	elif est_turns < 30:
+		_log("WARN", "HeroGrowth", "Lv20 takes ~%.0f turns (<30, may be too fast)" % est_turns)
 
 # ═══════════════ SAVE/LOAD ═══════════════
 

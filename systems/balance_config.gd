@@ -307,3 +307,20 @@ const DEFENDER_ARMY_CONTRIBUTION: float = 0.5
 ## Academy tier multipliers
 const ACADEMY_SPEED_MULT := [1.0, 1.25, 1.5, 2.0]  # Lv0, Lv1, Lv2, Lv3
 const ACADEMY_QUEUE_SIZE := [1, 1, 2, 3]  # Lv0, Lv1, Lv2, Lv3
+
+# ═══════════════ HERO LEVELING (v3.1) ═══════════════
+
+## Hero level cap
+const HERO_MAX_LEVEL: int = 20
+
+## EXP awards per combat
+const HERO_EXP_COMBAT_WIN: int = 10
+const HERO_EXP_COMBAT_LOSS: int = 3
+const HERO_EXP_PER_KILL: int = 2
+const HERO_EXP_BOSS_BONUS: int = 15
+
+## Default HP per soldier (fallback if troop def missing)
+const HP_PER_SOLDIER_DEFAULT: int = 5
+
+## Hero knockout threshold (hero loses passives when HP <= 0)
+const HERO_KNOCKOUT_PASSIVE_LOSS: bool = true

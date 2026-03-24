@@ -157,7 +157,7 @@ func _build_title_panel() -> void:
 
 	# Version
 	version_label = Label.new()
-	version_label.text = "v3.0.1"
+	version_label.text = "v3.1.0"
 	_apply_font_to_label(version_label)
 	version_label.add_theme_font_size_override("font_size", 11)
 	version_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))

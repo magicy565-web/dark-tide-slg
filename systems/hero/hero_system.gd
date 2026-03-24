@@ -2,6 +2,7 @@
 ## Uses v0.8.1 API: ResourceManager, ThreatManager, GameManager.get_human_player_id()
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const HeroLevelData = preload("res://systems/hero/hero_level_data.gd")
 
 # ── State (per-session, will be serialized by save system) ──
 var captured_heroes: Array = []        # hero_id strings in prison
@@ -94,6 +95,7 @@ func attempt_recruit(hero_id: String) -> Dictionary:
 		recruited_heroes.append(hero_id)
 		hero_affection[hero_id] = 0
 		hero_corruption.erase(hero_id)
+		HeroLeveling.init_hero(hero_id)
 		EventBus.hero_recruited.emit(hero_id)
 		EventBus.message_log.emit("招募英雄: %s" % _get_hero_name(hero_id))
 		return {"ok": true, "reason": "招募成功"}
@@ -160,26 +162,34 @@ func get_hero_combat_stats(hero_id: String) -> Dictionary:
 	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
 	if hero_data.is_empty():
 		return {}
-	var affection: int = hero_affection.get(hero_id, 0)
+
+	# Get level-scaled base stats from HeroLeveling autoload
+	var leveled: Dictionary = HeroLeveling.get_hero_stats(hero_id)
+
 	# Affection bonuses
+	var affection: int = hero_affection.get(hero_id, 0)
 	var atk_bonus: int = 0
 	var def_bonus: int = 0
 	if affection >= 5: atk_bonus += 1
 	if affection >= 7: def_bonus += 1
 	if affection >= 10: atk_bonus += 1; def_bonus += 1
+
 	# Equipment stat bonuses (v0.8.7)
 	var equip_stats: Dictionary = get_equipment_stat_totals(hero_id)
-	atk_bonus += equip_stats.get("atk", 0)
-	def_bonus += equip_stats.get("def", 0)
+
 	return {
-		"name": hero_data["name"],
-		"troop": hero_data["troop"],
-		"atk": hero_data["atk"] + atk_bonus,
-		"def": hero_data["def"] + def_bonus,
-		"int": hero_data["int"],
-		"spd": hero_data["spd"] + equip_stats.get("spd", 0),
-		"active": hero_data["active"],
-		"passive": hero_data["passive"],
+		"name": hero_data.get("name", hero_id),
+		"troop": hero_data.get("troop", ""),
+		"atk": leveled.get("atk", hero_data.get("atk", 0)) + atk_bonus + equip_stats.get("atk", 0),
+		"def": leveled.get("def", hero_data.get("def", 0)) + def_bonus + equip_stats.get("def", 0),
+		"int_stat": leveled.get("int_stat", hero_data.get("int", 0)),
+		"spd": leveled.get("spd", hero_data.get("spd", 0)) + equip_stats.get("spd", 0),
+		"hp": leveled.get("hp", hero_data.get("base_hp", 20)),
+		"mp": leveled.get("mp", hero_data.get("base_mp", 10)),
+		"level": leveled.get("level", 1),
+		"active": hero_data.get("active", ""),
+		"passive": hero_data.get("passive", ""),
+		"level_passives": HeroLeveling.get_unlocked_passives(hero_id),
 		"equipment_passives": get_equipment_passives(hero_id),
 	}
 
@@ -549,7 +559,7 @@ func _count_pirate_building(building_id: String) -> int:
 # ═══════════════ SERIALIZATION ═══════════════
 
 func to_save_data() -> Dictionary:
-	return {
+	var data: Dictionary = {
 		"captured_heroes": captured_heroes.duplicate(),
 		"recruited_heroes": recruited_heroes.duplicate(),
 		"hero_corruption": hero_corruption.duplicate(),
@@ -559,6 +569,8 @@ func to_save_data() -> Dictionary:
 		"hero_submission": hero_submission.duplicate(),
 		"pirate_mode": _pirate_mode,
 	}
+	data["hero_leveling"] = HeroLeveling.serialize()
+	return data
 
 
 func from_save_data(data: Dictionary) -> void:
@@ -570,6 +582,8 @@ func from_save_data(data: Dictionary) -> void:
 	_skill_cooldowns = data.get("skill_cooldowns", {})
 	hero_submission = data.get("hero_submission", {})
 	_pirate_mode = data.get("pirate_mode", false)
+	if data.has("hero_leveling"):
+		HeroLeveling.deserialize(data["hero_leveling"])
 
 
 # ═══════════════ INTERNAL ═══════════════

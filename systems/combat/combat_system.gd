@@ -53,10 +53,19 @@ class BattleUnit:
 	var has_acted: bool
 	var first_attack: bool      ## True until the unit's first attack resolves
 	var mana: int
+	var hp: int = 0                  ## 当前总HP (soldiers × hp_per_soldier)
+	var max_hp: int = 0              ## 最大总HP
+	var hp_per_soldier: int = 5      ## 单兵HP (来自troop定义)
+	var hero_hp: int = 0             ## 英雄个人HP池
+	var hero_max_hp: int = 0
+	var hero_mp: int = 0             ## 英雄MP池
+	var hero_max_mp: int = 0
+	var hero_id: String = ""         ## 英雄ID (空=无英雄指挥)
+	var hero_knocked_out: bool = false  ## 英雄被击倒 (失去被动加成)
 
-	## Convenience: unit is alive if it has soldiers remaining.
+	## Convenience: unit is alive if it has HP remaining.
 	func is_alive() -> bool:
-		return soldiers > 0
+		return hp > 0
 
 	## Check whether the unit possesses a specific passive tag.
 	func has_passive(p: String) -> bool:
@@ -287,6 +296,20 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 				bu.atk += td.get("base_atk", 0)
 				bu.def_stat += td.get("base_def", 0)
 
+		# HP model: initialize per-soldier HP and total HP pool
+		bu.hp_per_soldier = d.get("hp_per_soldier", 5)
+		bu.max_hp = bu.soldiers * bu.hp_per_soldier
+		bu.hp = bu.max_hp
+
+		# Hero data (if present)
+		var hero_data: Dictionary = d.get("hero_data", {})
+		if not hero_data.is_empty():
+			bu.hero_id = hero_data.get("id", "")
+			bu.hero_hp = hero_data.get("hp", 0)
+			bu.hero_max_hp = bu.hero_hp
+			bu.hero_mp = hero_data.get("mp", 0)
+			bu.hero_max_mp = bu.hero_mp
+
 		units.append(bu)
 
 	return units
@@ -305,6 +328,12 @@ func _snapshot_units(units: Array[BattleUnit]) -> Array:
 			"spd": u.spd,
 			"soldiers": u.soldiers,
 			"max_soldiers": u.max_soldiers,
+			"hp": u.hp,
+			"max_hp": u.max_hp,
+			"hp_per_soldier": u.hp_per_soldier,
+			"hero_hp": u.hero_hp,
+			"hero_max_hp": u.hero_max_hp,
+			"hero_id": u.hero_id,
 			"row": u.row,
 			"slot": u.slot,
 			"passive": u.passive,
@@ -358,6 +387,7 @@ func _apply_terrain_modifiers(state: BattleState) -> void:
 				# (we set soldiers to 0 to represent being unable to fight)
 				if troop == "cavalry" and not ignore:
 					u.soldiers = 0
+					u.hp = 0
 
 			Terrain.SWAMP:
 				# All SPD-3
@@ -474,9 +504,10 @@ func _apply_round_start_passives(state: BattleState) -> void:
 		if not u.is_alive():
 			continue
 
-		# regen_1: restore 1 soldier at start of round (up to max)
+		# regen_1: restore 1 soldier worth of HP at start of round (up to max)
 		if u.has_passive("regen_1"):
-			u.soldiers = min(u.soldiers + 1, u.max_soldiers)
+			u.hp = mini(u.hp + u.hp_per_soldier, u.max_hp)
+			_recalc_soldiers(u)
 
 		# charge_mana_1: gain 1 mana per round
 		if u.has_passive("charge_mana_1"):
@@ -656,7 +687,7 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 ## Core damage formula (SR07-style percentage-based).
 ## base_damage = adjusted_soldiers * max(10, ATK - DEF) / 100.0
 ## final_damage = base_damage * skill_multiplier
-## soldiers_killed = floor(final_damage), minimum 1 if attacker has soldiers
+## Result is HP damage (soldiers_killed equivalent × target hp_per_soldier).
 ##
 ## SR07 diminishing returns on troop count:
 ##   0-8 troops: value = troops (1:1)
@@ -697,28 +728,34 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 	var base_damage: float = adjusted * float(raw_diff) / 100.0
 	var final_damage: float = base_damage * skill_mult
 
-	var soldiers_killed: int = int(floor(final_damage))
+	# Convert from "equivalent soldiers killed" to HP damage
+	var soldiers_killed_equiv: int = int(floor(final_damage))
+	if soldiers_killed_equiv < 1 and attacker.soldiers > 0:
+		soldiers_killed_equiv = 1
 
-	# Minimum 1 damage if the attacker is alive
-	if soldiers_killed < 1 and attacker.soldiers > 0:
-		soldiers_killed = 1
+	var hp_damage: int = soldiers_killed_equiv * defender.hp_per_soldier
 
-	return soldiers_killed
+	# Minimum 1 HP damage if the attacker is alive
+	if hp_damage < 1 and attacker.soldiers > 0:
+		hp_damage = 1
+
+	return hp_damage
 
 # ---------------------------------------------------------------------------
 # Damage Application
 # ---------------------------------------------------------------------------
 
-## Apply damage (soldier loss) to a unit, respecting escape_30 passive.
+## Apply damage (HP loss) to a unit, respecting escape_30 passive.
 func _apply_damage(target: BattleUnit, damage: int, state: BattleState) -> void:
 	if damage <= 0:
 		return
 
-	var new_soldiers: int = target.soldiers - damage
+	var new_hp: int = target.hp - damage
 
-	# escape_30: 30% chance to survive lethal damage (kept at 1 soldier)
-	if new_soldiers <= 0 and target.has_passive("escape_30"):
+	# escape_30: 30% chance to survive lethal damage (kept at 1 soldier / hp_per_soldier HP)
+	if new_hp <= 0 and target.has_passive("escape_30"):
 		if randf() < 0.30:
+			target.hp = target.hp_per_soldier
 			target.soldiers = 1
 			var _esc_side := "attacker" if target.is_attacker else "defender"
 			state.action_log.append({
@@ -729,23 +766,27 @@ func _apply_damage(target: BattleUnit, damage: int, state: BattleState) -> void:
 				"slot": target.slot,
 				"remaining_soldiers": 1,
 				"max_soldiers": target.max_soldiers,
+				"hp": target.hp,
+				"max_hp": target.max_hp,
 				"desc": "%s 触发逃脱被动，保留1兵" % target.troop_id,
 			})
 			return
 
-	target.soldiers = maxi(0, new_soldiers)
+	target.hp = maxi(0, new_hp)
+	_recalc_soldiers(target)
 
-	# death_burst: on death, deal ATK*2 to all living enemies on the attacker side
-	if target.soldiers <= 0 and target.has_passive("death_burst"):
+	# death_burst: on death, deal ATK*2 HP to all living enemies
+	if target.hp <= 0 and target.has_passive("death_burst"):
 		_trigger_death_burst(target, state)
 
-## death_burst: deal ATK*2 to every living enemy unit.
+## death_burst: deal ATK*2 HP damage to every living enemy unit.
 func _trigger_death_burst(dead_unit: BattleUnit, state: BattleState) -> void:
 	var burst_dmg: int = dead_unit.atk * 2
 	var enemies := _get_enemies(dead_unit, state)
 
 	for e in enemies:
-		e.soldiers = maxi(0, e.soldiers - burst_dmg)
+		e.hp = maxi(0, e.hp - burst_dmg)
+		_recalc_soldiers(e)
 
 	var _db_side := "attacker" if dead_unit.is_attacker else "defender"
 	state.action_log.append({
@@ -901,6 +942,13 @@ func _get_enemies(unit: BattleUnit, state: BattleState) -> Array[BattleUnit]:
 		return state.living_defenders()
 	else:
 		return state.living_attackers()
+
+## Recalculate soldier count from current HP.
+func _recalc_soldiers(unit: BattleUnit) -> void:
+	if unit.hp <= 0:
+		unit.soldiers = 0
+	else:
+		unit.soldiers = ceili(float(unit.hp) / float(unit.hp_per_soldier))
 
 ## Try to fetch an autoload node by name at runtime.
 func _has_autoload(aname: String) -> bool:

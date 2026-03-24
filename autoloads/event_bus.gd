@@ -194,3 +194,8 @@ signal story_event_triggered(hero_id: String, event_data: Dictionary)
 signal story_event_completed(hero_id: String, event_id: String)
 signal story_route_completed(hero_id: String, route: String)
 signal story_choice_made(hero_id: String, event_id: String, choice_index: int)
+
+# ── Hero Leveling (v3.1) ──
+signal hero_leveled_up(hero_id: String, new_level: int)
+signal hero_passive_unlocked(hero_id: String, passive_id: String)
+signal hero_exp_gained(hero_id: String, amount: int, new_total: int)

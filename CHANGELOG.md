@@ -2,6 +2,47 @@
 
 ---
 
+## v3.1.0 — 2026-03-24 (英雄等级成长系统 + 独立HP模型)
+
+### 新系统: 英雄等级成长 (hero_level_data.gd + hero_leveling.gd)
+
+- **等级系统**: 英雄 Lv1-20, 二次曲线EXP表 (总计1500 EXP满级, 约50回合)
+- **成长率**: 每位英雄独立成长率 (Fire Emblem风格确定性成长, 非RNG)
+  - 攻击型: 翠玲/焔/蒼 ATK成长 8-9/10
+  - 防御型: 冰华 DEF成长 9/10, HP成长 10/10
+  - 法术型: 月华/紫苑 INT成长 9-10/10
+  - 速度型: 叶隐 SPD成长 10/10
+- **英雄HP/MP池**: 每位英雄有独立HP/MP, 战斗中可被击倒 (失去被动加成)
+- **被动技能树**: 每位英雄4个等级解锁被动 (Lv3/Lv7/Lv12/Lv18)
+  - 共40个新被动技能 (光环/反击/治疗/闪避/DoT/时间操控等)
+- **EXP获取**: 战斗胜利+10, 失败+3, 每击杀+2, 击败英雄军+15
+- **难度缩放**: EXP受玩家经验倍率影响
+
+### 新系统: 独立HP模型 (troop_registry.gd + combat_system.gd)
+
+- **单兵HP**: 每个部队新增 `hp_per_soldier` 字段
+  - T0: 3HP, T1: 3-5HP, T2: 4-8HP, T3: 4-10HP, T4: 20-30HP
+  - 部队总HP = 兵数 × 单兵HP
+- **战斗伤害**: 伤害扣减HP, 兵数从剩余HP推算 (`ceili(hp/hpp)`)
+- **恢复机制**: regen类被动按单兵HP恢复
+
+### 文件变更清单
+
+- **新增** `systems/hero/hero_level_data.gd` — 静态数据 (EXP表/成长率/被动技能树)
+- **新增** `systems/hero/hero_leveling.gd` — 运行时等级管理 (Autoload)
+- **修改** `systems/combat/troop_registry.gd` — 全51个部队添加 hp_per_soldier
+- **修改** `systems/combat/combat_system.gd` — BattleUnit HP字段, 伤害→HP模型
+- **修改** `systems/faction/faction_data.gd` — 英雄添加 base_hp/base_mp
+- **修改** `systems/hero/hero_system.gd` — 使用等级化数值, 序列化支持
+- **修改** `autoloads/game_data.gd` — 部队实例HP字段, HP总量计算
+- **修改** `autoloads/game_manager.gd` — 战斗后英雄EXP发放
+- **修改** `autoloads/event_bus.gd` — 3个新信号 (升级/技能解锁/经验获取)
+- **修改** `systems/balance_config.gd` — 英雄升级常量
+- **修改** `systems/balance/balance_manager.gd` — 英雄成长审计, EHP公式更新
+- **修改** `project.godot` — 注册 HeroLeveling 自动加载
+
+---
+
 ## v3.0.1 — 2026-03-24 (海盗势力前期强化)
 
 ### 海盗经济调整 (faction_data.gd)

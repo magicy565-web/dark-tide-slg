@@ -1999,6 +1999,10 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		EventBus.message_log.emit("[color=red]%s 进攻 %s 失败! (军团撤回)[/color]" % [army["name"], defender_desc])
 
 	EventBus.combat_result.emit(pid, defender_desc, won)
+
+	# ── 英雄经验 (v3.1) ──
+	_grant_hero_combat_exp(pid, result, won)
+
 	_cleanup_army_troops(army)
 	return won
 
@@ -2032,6 +2036,50 @@ func _cleanup_army_troops(army: Dictionary) -> void:
 	if army["troops"].is_empty():
 		EventBus.message_log.emit("[color=red]%s 全军覆没![/color]" % army["name"])
 		disband_army(army["id"])
+
+
+# ── 英雄经验辅助 (v3.1) ──
+
+func _get_player_hero_ids(player_id: int) -> Array:
+	## Returns all hero IDs across all armies belonging to the player.
+	var hero_ids: Array = []
+	for army_id in armies:
+		var army: Dictionary = armies[army_id]
+		if army["player_id"] == player_id:
+			for hero_id in army.get("heroes", []):
+				if hero_id not in hero_ids:
+					hero_ids.append(hero_id)
+	return hero_ids
+
+
+func _grant_hero_combat_exp(pid: int, result: Dictionary, attacker_wins: bool) -> void:
+	## Grants hero EXP to all heroes in the player's armies after combat.
+	var hero_ids: Array = _get_player_hero_ids(pid)
+	if hero_ids.is_empty():
+		return
+
+	# Base EXP from win/loss
+	var hero_exp_base: int = BalanceConfig.HERO_EXP_COMBAT_WIN if attacker_wins else BalanceConfig.HERO_EXP_COMBAT_LOSS
+	# Bonus for kills (if available in result)
+	var enemy_killed: int = result.get("enemy_troops_killed", result.get("troops_killed", 0))
+	hero_exp_base += enemy_killed * BalanceConfig.HERO_EXP_PER_KILL
+	# Boss bonus if defeated a hero-led army
+	if result.get("defeated_hero", false) or result.get("enemy_hero_id", "") != "":
+		hero_exp_base += BalanceConfig.HERO_EXP_BOSS_BONUS
+	# Apply difficulty multiplier
+	hero_exp_base = int(float(hero_exp_base) * BalanceManager.get_player_xp_mult())
+
+	# Grant to all heroes in the participating armies
+	for hero_id in hero_ids:
+		var level_result: Dictionary = HeroLeveling.grant_hero_exp(hero_id, hero_exp_base)
+		if level_result.get("leveled_up", false):
+			EventBus.message_log.emit("[color=yellow][升级] %s 升至 Lv%d！[/color]" % [
+				FactionData.HEROES.get(hero_id, {}).get("name", hero_id),
+				level_result.get("new_level", 1)])
+			for p in level_result.get("unlocked_passives", []):
+				EventBus.message_log.emit("[color=cyan][技能] %s 解锁被动: %s[/color]" % [
+					FactionData.HEROES.get(hero_id, {}).get("name", hero_id),
+					p.get("name", p.get("passive_id", ""))])
 
 
 func _get_terrain_atk_modifier(terrain: String) -> float:
@@ -2519,6 +2567,9 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	var atk_exp: int = result.get("attacker_exp", BalanceConfig.COMBAT_XP_WIN if attacker_wins else BalanceConfig.COMBAT_XP_LOSS)
 	CombatResolver.grant_combat_experience(pid, atk_exp)
 
+	# ── 英雄经验 (v3.1) ──
+	_grant_hero_combat_exp(pid, result, attacker_wins)
+
 	# Dissolve slave_fodder troops (Dark Elf T0 consumable)
 	if result.get("slave_fodder_dissolved", 0) > 0:
 		CombatResolver.dissolve_slave_fodder(pid)
@@ -2613,6 +2664,9 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 	# Grant experience
 	var atk_exp: int = result.get("attacker_exp", BalanceConfig.COMBAT_XP_WIN if attacker_wins else BalanceConfig.COMBAT_XP_LOSS)
 	CombatResolver.grant_combat_experience(pid, atk_exp)
+
+	# ── 英雄经验 (v3.1) ──
+	_grant_hero_combat_exp(pid, result, attacker_wins)
 
 	# Dissolve slave_fodder
 	if result.get("slave_fodder_dissolved", 0) > 0:

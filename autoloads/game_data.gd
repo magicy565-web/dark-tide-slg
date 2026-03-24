@@ -493,10 +493,14 @@ func create_troop_instance(troop_id: String, soldiers_override: int = -1) -> Dic
 	if td.is_empty():
 		return {}
 	var soldiers: int = soldiers_override if soldiers_override > 0 else td["max_soldiers"]
+	var hpp: int = td.get("hp_per_soldier", 5)
 	return {
 		"troop_id": troop_id,
 		"soldiers": soldiers,
 		"max_soldiers": td["max_soldiers"],
+		"hp_per_soldier": hpp,
+		"total_hp": soldiers * hpp,
+		"max_hp": td["max_soldiers"] * hpp,
 		"commander_id": "",
 		"experience": 0,
 		"ability_used": false,  # Reset each battle for T3+ active abilities
@@ -523,6 +527,14 @@ func get_army_total_soldiers(army: Array) -> int:
 	return total
 
 
+## Returns total HP across an army (Array of troop instances).
+func get_army_total_hp(army: Array) -> int:
+	var total: int = 0
+	for troop in army:
+		total += troop.get("total_hp", troop.get("soldiers", 0) * troop.get("hp_per_soldier", 5))
+	return total
+
+
 ## Returns total combat power estimate for an army.
 func get_army_combat_power(army: Array) -> int:
 	var power: int = 0
@@ -534,7 +546,8 @@ func get_army_combat_power(army: Array) -> int:
 	return power
 
 
-## Apply casualties to an army. Distributes losses proportionally.
+## Apply casualties to an army. Distributes losses proportionally via HP.
+## total_losses is in soldier units for backward compatibility; converted to HP internally.
 ## Returns actual total soldiers lost.
 func apply_army_losses(army: Array, total_losses: int) -> int:
 	if army.is_empty() or total_losses <= 0:
@@ -543,37 +556,49 @@ func apply_army_losses(army: Array, total_losses: int) -> int:
 	if total_soldiers <= 0:
 		return 0
 	var remaining_loss: int = mini(total_losses, total_soldiers)
-	var actual_lost: int = 0
-	# Proportional distribution — compute shares first, then distribute remainder
+	var soldiers_before: int = total_soldiers
+	# Convert soldier losses to HP damage using average hp_per_soldier across the army
+	var total_hp: int = get_army_total_hp(army)
+	var avg_hpp: float = float(total_hp) / float(total_soldiers) if total_soldiers > 0 else 5.0
+	var hp_damage: int = int(float(remaining_loss) * avg_hpp)
+	# Proportional HP distribution — compute shares first, then distribute remainder
 	var shares: Array = []
 	var floor_total: int = 0
 	for troop in army:
-		var share_f: float = float(troop["soldiers"]) / float(total_soldiers) * float(remaining_loss)
+		var troop_hp: int = troop.get("total_hp", troop.get("soldiers", 0) * troop.get("hp_per_soldier", 5))
+		var share_f: float = float(troop_hp) / float(total_hp) * float(hp_damage) if total_hp > 0 else 0.0
 		var floored: int = int(share_f)
 		shares.append({"troop": troop, "floor": floored, "frac": share_f - float(floored)})
 		floor_total += floored
 	# Sort by fractional remainder descending to assign leftover
-	var leftover: int = remaining_loss - floor_total
+	var leftover: int = hp_damage - floor_total
 	shares.sort_custom(func(a, b): return a["frac"] > b["frac"])
 	for entry in shares:
-		var loss: int = entry["floor"]
+		var hp_loss: int = entry["floor"]
 		if leftover > 0:
-			loss += 1
+			hp_loss += 1
 			leftover -= 1
-		loss = mini(loss, entry["troop"]["soldiers"])
-		entry["troop"]["soldiers"] -= loss
-		actual_lost += loss
+		var troop: Dictionary = entry["troop"]
+		var troop_hp: int = troop.get("total_hp", troop.get("soldiers", 0) * troop.get("hp_per_soldier", 5))
+		hp_loss = mini(hp_loss, troop_hp)
+		var hpp: int = troop.get("hp_per_soldier", 5)
+		troop["total_hp"] = maxi(0, troop_hp - hp_loss)
+		if troop["total_hp"] > 0:
+			troop["soldiers"] = ceili(float(troop["total_hp"]) / float(hpp))
+		else:
+			troop["soldiers"] = 0
 	# Remove dead troops
 	var i: int = army.size() - 1
 	while i >= 0:
 		if army[i]["soldiers"] <= 0:
 			army.remove_at(i)
 		i -= 1
+	var actual_lost: int = soldiers_before - get_army_total_soldiers(army)
 	return actual_lost
 
 
 ## Merge reinforcements into an existing army. Same troop_id stacks soldiers up
-## to max_soldiers; excess creates new instances.
+## to max_soldiers; excess creates new instances. Updates total_hp accordingly.
 func merge_into_army(army: Array, reinforcements: Array) -> void:
 	for reinf in reinforcements:
 		var merged := false
@@ -582,12 +607,17 @@ func merge_into_army(army: Array, reinforcements: Array) -> void:
 				var space: int = troop["max_soldiers"] - troop["soldiers"]
 				var add: int = mini(reinf["soldiers"], space)
 				troop["soldiers"] += add
+				var hpp: int = troop.get("hp_per_soldier", 5)
+				troop["total_hp"] = troop["soldiers"] * hpp
 				reinf["soldiers"] -= add
 				if reinf["soldiers"] <= 0:
 					merged = true
 					break
 		if not merged and reinf["soldiers"] > 0:
-			army.append(reinf.duplicate())
+			var dup: Dictionary = reinf.duplicate()
+			var hpp: int = dup.get("hp_per_soldier", 5)
+			dup["total_hp"] = dup["soldiers"] * hpp
+			army.append(dup)
 
 
 ## Returns a display-friendly summary of an army.
@@ -610,6 +640,9 @@ func get_army_summary(army: Array) -> Array:
 			"class_name": get_class_name(td.get("troop_class", TroopClass.ASHIGARU)),
 			"soldiers": troop["soldiers"],
 			"max_soldiers": troop["max_soldiers"],
+			"hp_per_soldier": troop.get("hp_per_soldier", td.get("hp_per_soldier", 5)),
+			"total_hp": troop.get("total_hp", troop.get("soldiers", 0) * troop.get("hp_per_soldier", 5)),
+			"max_hp": troop.get("max_hp", troop.get("max_soldiers", td.get("max_soldiers", 1)) * troop.get("hp_per_soldier", 5)),
 			"row": "前排" if td.get("row", Row.FRONT) == Row.FRONT else "后排",
 			"passive": td.get("passive", ""),
 			"tier": tier,
