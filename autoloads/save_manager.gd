@@ -2,7 +2,7 @@
 ## Autoload singleton. Serializes full game state to JSON files.
 extends Node
 
-const SAVE_VERSION: String = "2.4.0"
+const SAVE_VERSION: String = "3.0.0"
 const SAVE_DIR: String = "user://saves/"
 const MAX_MANUAL_SLOTS: int = 5
 const AUTO_SLOT: int = 99
@@ -202,6 +202,7 @@ func _collect_save_data() -> Dictionary:
 		"audio": AudioManager.to_save_data(),
 		"tutorial": TutorialManager.to_save_data(),
 		"quest_journal": QuestJournal.to_save_data(),
+		"balance_manager": BalanceManager.serialize(),
 	}
 
 
@@ -289,6 +290,8 @@ func _apply_save_data(data: Dictionary) -> void:
 	# 4b. Restore quest journal (v2.4+)
 	if data.has("quest_journal"):
 		QuestJournal.from_save_data(data.get("quest_journal", {}))
+	if data.has("balance_manager"):
+		BalanceManager.deserialize(data.get("balance_manager", {}))
 
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()

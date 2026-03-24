@@ -117,11 +117,12 @@ const TIER_MOVE_RANGE: Dictionary = { 0: 1, 1: 2, 2: 2, 3: 3, 4: 4 }
 const TIER_EXP_CAP: Dictionary = { 0: 0, 1: 30, 2: 60, 3: 100, 4: 150 }
 
 ## Veterancy thresholds: at each exp milestone, troops gain permanent bonuses
+## v3.0: Increased bonuses to make veterancy meaningful vs hero stat additions
 const VETERANCY_THRESHOLDS: Array = [
-	{"exp": 10, "label": "历战", "atk_bonus": 1, "def_bonus": 0},
-	{"exp": 25, "label": "精锐", "atk_bonus": 1, "def_bonus": 1},
-	{"exp": 50, "label": "百战", "atk_bonus": 2, "def_bonus": 1},
-	{"exp": 80, "label": "无双", "atk_bonus": 2, "def_bonus": 2},
+	{"exp": 10, "label": "历战", "atk_bonus": 1, "def_bonus": 1},
+	{"exp": 25, "label": "精锐", "atk_bonus": 2, "def_bonus": 1, "soldiers_bonus": 1},
+	{"exp": 50, "label": "百战", "atk_bonus": 3, "def_bonus": 2, "soldiers_bonus": 1},
+	{"exp": 80, "label": "无双", "atk_bonus": 4, "def_bonus": 3, "soldiers_bonus": 2},
 ]
 
 # ─── Faction Passive Constants ─────────────────────────────────────────────

@@ -44,7 +44,11 @@ func get_tier_name() -> String:
 
 func change_threat(delta: int) -> void:
 	var old: int = _threat
-	_threat = clampi(_threat + delta, 0, 100)
+	# v3.0: Apply difficulty scaling to threat gains (not losses)
+	var scaled_delta: int = delta
+	if delta > 0:
+		scaled_delta = int(float(delta) * BalanceManager.get_threat_gain_mult())
+	_threat = clampi(_threat + scaled_delta, 0, 100)
 	if _threat != old:
 		var old_tier: int = _get_tier_for(old)
 		var new_tier: int = get_tier()

@@ -322,6 +322,9 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		if ai_key != "":
 			var ai_atk: float = AIScaling.get_atk_multiplier(ai_key)
 			var ai_def: float = AIScaling.get_def_multiplier(ai_key)
+			# Apply difficulty scaling on top of AI threat scaling
+			ai_atk *= BalanceManager.get_ai_atk_mult()
+			ai_def *= BalanceManager.get_ai_def_mult()
 			base_atk *= ai_atk
 			base_def *= ai_def
 

@@ -166,11 +166,14 @@ static func _register_light_faction(d: Dictionary) -> void:
 		"recruit_cost": 20, "passive": "aoe_mana", "category": CAT_FACTION,
 		"tier": 2, "desc": "AoE攻击, 消耗5法力",
 	}
+	# v3.0 rebalance: soldiers 15→12, cost 30→34 (raw 210→168, eff ×1.25→210→168)
+	# Old: 15 soldiers + DEF 10 + taunt = EHP ~30, nearly impenetrable wall
+	# New: 12 soldiers keeps tanky identity but leaves window to break through
 	d["elf_ashigaru"] = {
 		"name": "树人", "faction": "high_elf",
 		"troop_class": TC_ASHIGARU, "row": ROW_FRONT,
-		"base_atk": 4, "base_def": 10, "max_soldiers": 15,
-		"recruit_cost": 30, "passive": "taunt", "category": CAT_FACTION,
+		"base_atk": 4, "base_def": 10, "max_soldiers": 12,
+		"recruit_cost": 34, "passive": "taunt", "category": CAT_FACTION,
 		"tier": 3, "desc": "守护嘲讽, 强制吸引攻击",
 	}
 	# ── Mage 法师公会 ──
@@ -229,19 +232,25 @@ static func _register_neutral(d: Dictionary) -> void:
 		"recruit_cost": 20, "passive": "forest_stealth", "category": CAT_NEUTRAL,
 		"tier": 2, "desc": "首回合隐身, 森林地形双倍攻击",
 	}
+	# v3.0 rebalance: ATK 14→11, soldiers 6→5 (raw 90→60, eff ×1.45→87)
+	# Old: (14+1)×6=90 → ×3 at <30% = ATK 42, one-shots everything
+	# New: (11+1)×5=60 → ×3 at <30% = ATK 33, still strong but survivable
 	d["neutral_blood_berserker"] = {
 		"name": "血月狂战士", "faction": "neutral_blood",
 		"troop_class": TC_SAMURAI, "row": ROW_FRONT,
-		"base_atk": 14, "base_def": 1, "max_soldiers": 6,
+		"base_atk": 11, "base_def": 1, "max_soldiers": 5,
 		"recruit_cost": 22, "passive": "blood_triple", "category": CAT_NEUTRAL,
 		"tier": 2, "desc": "<30%HP时ATK×3, 不可撤退, 极端攻击型",
 	}
+	# v3.0 rebalance: ATK 16→12, cost 18→24 (raw 48→36, eff ×0.85→30.6)
+	# Old: ATK 16 at T2 exceeded T4 Orc Ultimate (16). Misfire 15% didn't compensate.
+	# New: ATK 12 + 20% misfire. Still unique niche (siege×3) without overshadowing T3+.
 	d["neutral_goblin_cannon"] = {
 		"name": "地精炮兵", "faction": "neutral_goblin",
 		"troop_class": TC_CANNON, "row": ROW_BACK,
-		"base_atk": 16, "base_def": 0, "max_soldiers": 3,
-		"recruit_cost": 18, "passive": "misfire", "category": CAT_NEUTRAL,
-		"tier": 2, "desc": "城防×3, 15%概率自伤, 高风险高回报",
+		"base_atk": 12, "base_def": 0, "max_soldiers": 3,
+		"recruit_cost": 24, "passive": "misfire", "category": CAT_NEUTRAL,
+		"tier": 2, "desc": "城防×3, 20%概率自伤, 高风险高回报",
 	}
 	d["neutral_caravan_guard"] = {
 		"name": "商队护卫", "faction": "neutral_caravan",

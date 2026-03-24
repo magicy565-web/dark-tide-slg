@@ -173,6 +173,9 @@ signal sfx_requested(sfx_id: int)
 signal tutorial_step(step_id: String)
 signal tutorial_completed()
 
+# ── Balance / Difficulty (v3.0) ──
+signal difficulty_changed(difficulty_key: String)
+
 # ── Combat View ──
 signal combat_view_requested(battle_result: Dictionary)
 signal combat_view_closed()

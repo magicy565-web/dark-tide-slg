@@ -1080,8 +1080,12 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	has_rolled = false
 	waiting_for_move = false
 
+	# v3.0: Run balance audit on game start (dev mode)
+	if OS.is_debug_build():
+		BalanceManager.run_full_audit()
+
 	EventBus.message_log.emit("═══ 暗潮 - %s 崛起! ═══" % FactionData.FACTION_NAMES[chosen_faction])
-	EventBus.message_log.emit("胜利条件: [征服]攻占全部光明要塞 / [支配]控制60%节点 / [暗影]威胁值100+终极兵器")
+	EventBus.message_log.emit("难度: %s" % BalanceManager.get_diff()["label"])
 	begin_turn()
 
 

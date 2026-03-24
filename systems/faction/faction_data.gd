@@ -26,8 +26,8 @@ const SUBMISSION_MAX: int = 10                  # 服从度上限
 # Hierarchy: Orc > Pirate > Dark Elf
 const ORC_TERRITORY: int = 5          # 碎骨王座 + 4 outposts (largest evil faction)
 const PIRATE_TERRITORY: int = 4       # 深渊港 + 3 outposts (medium evil faction)
-const DARK_ELF_TERRITORY: int = 2     # 永夜暗城 + 1 outpost (smallest, relies on intrigue)
-const EVIL_TERRITORY_TOTAL: int = 11  # 5+4+2 = 11 ≈ 20% of 55
+const DARK_ELF_TERRITORY: int = 3     # v3.0: 2→3 (永夜暗城 + 2 outpost, 缓解开局弱势)
+const EVIL_TERRITORY_TOTAL: int = 12  # v3.0: 5+4+3 = 12 ≈ 22% of 55
 
 # Evil fortress indices in CORE_FORTRESS_DEFS (game_manager.gd)
 const EVIL_FORTRESS_IDX: Dictionary = {
@@ -156,9 +156,9 @@ const FACTION_PARAMS: Dictionary = {
 		"recruit_cost_iron": 5,
 		"slave_capture_bonus": 1.0,
 		"base_production_mult": 0.6,       # v2.0: 基础产出大幅降低 (掠夺为主)
-		"gold_income_mult": 1.5,           # v2.0: 掠夺金币系数提升至1.5x
-		"iron_income_mult": 0.5,           # v2.0: 铁矿产出极低 (需要掠夺)
-		"food_production_mult": 0.7,       # v2.0: 粮食产出降低 (靠掠夺补充)
+		"gold_income_mult": 1.3,           # v3.0: 掠夺金币 1.5→1.3 (防止滚雪球)
+		"iron_income_mult": 0.65,          # v3.0: 铁矿产出 0.5→0.65 (缓解资源荒)
+		"food_production_mult": 0.75,      # v3.0: 粮食产出 0.7→0.75 (微调)
 		# 黑市
 		"slave_sell_price": 25,
 		"slave_buy_price": 40,

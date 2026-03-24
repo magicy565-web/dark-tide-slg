@@ -1,5 +1,5 @@
-## settings_panel.gd - Game settings UI for 暗潮 SLG (v2.1)
-## Provides audio volume controls, tutorial toggle, display options, and settings persistence.
+## settings_panel.gd - Game settings UI for 暗潮 SLG (v3.0)
+## Provides audio, display, gameplay, and difficulty settings with persistence.
 extends CanvasLayer
 
 signal settings_closed()
@@ -23,6 +23,9 @@ var show_grid_check: CheckButton
 var show_fog_check: CheckButton
 var combat_speed_slider: HSlider
 var auto_end_turn_check: CheckButton
+
+# ── Difficulty ──
+var difficulty_option: OptionButton
 
 # ── Defaults for reset ──
 const DEFAULTS: Dictionary = {
@@ -173,6 +176,43 @@ func _build_ui() -> void:
 	auto_end_turn_check.text = "自动结束回合 (无行动时)"
 	auto_end_turn_check.button_pressed = DEFAULTS["auto_end_turn"]
 	vbox.add_child(auto_end_turn_check)
+
+	vbox.add_child(HSeparator.new())
+
+	# ── Difficulty section (v3.0) ──
+	_add_section_header(vbox, "难度")
+
+	var diff_row := HBoxContainer.new()
+	diff_row.add_theme_constant_override("separation", 8)
+	vbox.add_child(diff_row)
+
+	var diff_lbl := Label.new()
+	diff_lbl.text = "游戏难度"
+	diff_lbl.custom_minimum_size = Vector2(80, 0)
+	diff_lbl.add_theme_font_size_override("font_size", 14)
+	diff_row.add_child(diff_lbl)
+
+	difficulty_option = OptionButton.new()
+	difficulty_option.custom_minimum_size = Vector2(160, 30)
+	var diff_keys: Array = ["easy", "normal", "hard", "nightmare"]
+	var diff_labels: Array = ["简单", "普通", "困难", "噩梦"]
+	for i in range(diff_keys.size()):
+		difficulty_option.add_item(diff_labels[i], i)
+	difficulty_option.selected = 1  # default: normal
+	difficulty_option.item_selected.connect(func(idx):
+		var key: String = diff_keys[idx]
+		BalanceManager.set_difficulty(key)
+		EventBus.message_log.emit("难度已设为: %s" % diff_labels[idx])
+	)
+	diff_row.add_child(difficulty_option)
+
+	# Difficulty description
+	var diff_desc := Label.new()
+	diff_desc.text = "影响AI强度、远征频率、威胁增长、玩家经济等"
+	diff_desc.add_theme_font_size_override("font_size", 11)
+	diff_desc.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	diff_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(diff_desc)
 
 	vbox.add_child(HSeparator.new())
 

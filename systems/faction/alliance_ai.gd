@@ -88,7 +88,9 @@ func _try_spawn_expedition() -> void:
 		return
 	# Spawn chance from BalanceConfig
 	var chance: int = BalanceConfig.EXPEDITION_CHANCE_MILITARY if _current_tier == AllianceTier.MILITARY else BalanceConfig.EXPEDITION_CHANCE_DESPERATE
-	if randi() % 100 >= chance:
+	# v3.0: Apply difficulty scaling to expedition spawn chance
+	var scaled_chance: float = float(chance) * BalanceManager.get_expedition_chance_mult()
+	if randi() % 100 >= int(scaled_chance):
 		return
 
 	# Find a player-owned tile adjacent to uncaptured light tiles (frontier)

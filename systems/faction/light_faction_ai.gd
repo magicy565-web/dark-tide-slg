@@ -80,12 +80,14 @@ func init_light_defenses() -> void:
 
 
 func _init_human_defense(tile: Dictionary) -> void:
-	var wall_hp: int = 10  # Default village
+	var wall_hp: int = BalanceConfig.WALL_HP_VILLAGE  # Default village
 	match tile["type"]:
 		GameManager.TileType.LIGHT_STRONGHOLD:
-			wall_hp = 25
+			wall_hp = BalanceConfig.WALL_HP_STRONGHOLD
 		GameManager.TileType.CORE_FORTRESS:
-			wall_hp = 50
+			wall_hp = BalanceConfig.WALL_HP_CORE_FORTRESS
+	# v3.0: Apply difficulty scaling to wall HP
+	wall_hp = int(float(wall_hp) * BalanceManager.get_wall_hp_mult())
 	_wall_hp[tile["index"]] = wall_hp
 
 
