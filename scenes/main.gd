@@ -61,7 +61,13 @@ func _on_game_started(faction_id: int) -> void:
 
 func _on_combat_view_closed() -> void:
 	# Resume normal gameplay after watching battle
-	pass
+	# Re-enable HUD interaction
+	hud.visible = true
+	# Notify EventBus so other systems can respond (e.g., board refresh)
+	EventBus.combat_view_closed.emit()
+	# Refresh board visuals to reflect combat outcome
+	if board.has_method("rebuild"):
+		board.rebuild()
 
 
 func _on_combat_view_requested(battle_result: Dictionary) -> void:

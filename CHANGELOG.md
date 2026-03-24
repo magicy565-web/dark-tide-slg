@@ -2,6 +2,30 @@
 
 ---
 
+## v2.2.1 — 2026-03-24 (关键Bug修复 + 数值外部化)
+
+### 严重Bug修复
+
+- **军队数据丢失**: 存档系统现在完整序列化/反序列化 `armies` 字典和 `_next_army_id` 计数器（之前存档后读档会丢失所有军队）
+- **枚举引用错误**: `FactionData.Faction.ORC` → `FactionData.FactionID.ORC`（修复get_max_armies()中兽人WAAAGH!加成不生效）
+
+### 版本号统一
+
+- SAVE_VERSION: `1.5.0` → `2.2.0`（与实际游戏版本对齐）
+- GAME_VERSION (mod_manager): `0.8.6` → `2.2.0`（MOD兼容性检查使用正确版本）
+
+### 数值外部化
+
+- `COMBAT_POWER_PER_UNIT` (10): 从game_manager硬编码移至BalanceConfig
+- `HERO_BASE_COMBAT_POWER` (5): 英雄战力加成移至BalanceConfig
+- `BASE_POPULATION_CAP` (3): 基础人口上限移至BalanceConfig
+
+### 战斗视图修复
+
+- **_on_combat_view_closed()**: 实现战斗结束回调（恢复HUD、发射信号、刷新地图），替代之前的空pass
+
+---
+
 ## v2.2.0 — 2026-03-24 (中立势力领地系统 + 附庸机制)
 
 ### 新系统: 中立势力领地 & AI

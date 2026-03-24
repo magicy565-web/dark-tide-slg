@@ -51,6 +51,12 @@ const UPGRADE_TURNS := [0, 1, 2, 3, 4]
 
 # ═══════════════ COMBAT (SR07 aligned) ═══════════════
 
+## Power calculation divisor for army strength estimates
+const COMBAT_POWER_PER_UNIT: int = 10
+
+## Base hero contribution to army combat power
+const HERO_BASE_COMBAT_POWER: int = 5
+
 ## Maximum battle rounds before defender wins
 const MAX_COMBAT_ROUNDS: int = 12
 
@@ -89,6 +95,9 @@ const MAX_HEROES_PER_ARMY: int = 2
 const BASE_AP: int = 2
 const AP_PER_5_TILES: int = 1
 const MAX_AP: int = 5
+
+## Base population cap before tile bonuses
+const BASE_POPULATION_CAP: int = 3
 
 ## Supply line thresholds (TW:W attrition)
 const SUPPLY_SAFE_RANGE: int = 4

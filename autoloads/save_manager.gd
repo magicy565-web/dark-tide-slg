@@ -2,7 +2,7 @@
 ## Autoload singleton. Serializes full game state to JSON files.
 extends Node
 
-const SAVE_VERSION: String = "1.5.0"
+const SAVE_VERSION: String = "2.2.0"
 const SAVE_DIR: String = "user://saves/"
 const MAX_MANUAL_SLOTS: int = 5
 const AUTO_SLOT: int = 99
@@ -214,6 +214,11 @@ func _save_game_state() -> Dictionary:
 	for t in GameManager.tiles:
 		tiles_data.append(t.duplicate(true))
 
+	# Serialize armies (JSON keys must be strings)
+	var armies_data: Dictionary = {}
+	for army_id in GameManager.armies:
+		armies_data[str(army_id)] = GameManager.armies[army_id].duplicate(true)
+
 	return {
 		"players": players_data,
 		"tiles": tiles_data,
@@ -222,6 +227,8 @@ func _save_game_state() -> Dictionary:
 		"turn_number": GameManager.turn_number,
 		"player_factions": GameManager._player_factions.duplicate(),
 		"game_active": GameManager.game_active,
+		"armies": armies_data,
+		"next_army_id": GameManager._next_army_id,
 	}
 
 
@@ -331,6 +338,27 @@ func _load_game_state(gs: Dictionary) -> void:
 	GameManager.reachable_tiles.clear()
 	GameManager._had_combat_this_turn = false
 	GameManager._prev_turn_had_combat = false
+
+	# Restore armies (JSON keys are strings, convert back to int)
+	GameManager.armies.clear()
+	var armies_raw: Dictionary = gs.get("armies", {})
+	for key in armies_raw:
+		var army: Dictionary = armies_raw[key]
+		if army is Dictionary:
+			var int_key: int = int(key)
+			# Ensure integer fields are properly typed after JSON round-trip
+			army["id"] = int(army.get("id", int_key))
+			army["player_id"] = int(army.get("player_id", 0))
+			army["tile_index"] = int(army.get("tile_index", -1))
+			GameManager.armies[int_key] = army
+	GameManager._next_army_id = int(gs.get("next_army_id", 1))
+	# If armies exist but next_army_id is too low, fix it
+	if not GameManager.armies.is_empty():
+		var max_id: int = 0
+		for aid in GameManager.armies:
+			max_id = maxi(max_id, aid)
+		GameManager._next_army_id = maxi(GameManager._next_army_id, max_id + 1)
+	GameManager.selected_army_id = -1
 
 
 # ═══════════════ VERSION COMPAT ═══════════════

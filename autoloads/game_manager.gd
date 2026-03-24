@@ -36,7 +36,7 @@ const MAP_NODE_COUNT: int = 55
 const BASE_AP: int = 2
 const AP_PER_TILES: int = 5  # +1 AP per 5 owned tiles
 const MAX_AP: int = 6
-const COMBAT_POWER_PER_UNIT: int = 10
+const COMBAT_POWER_PER_UNIT: int = BalanceConfig.COMBAT_POWER_PER_UNIT
 
 # ── Army system constants (v0.9.2 → v2.1 unified with BalanceConfig) ──
 # All values now delegate to BalanceConfig for single source of truth.
@@ -346,7 +346,7 @@ func get_stronghold_progress(player_id: int) -> String:
 
 
 func get_population_cap(player_id: int) -> int:
-	var total_pop: int = 3
+	var total_pop: int = BalanceConfig.BASE_POPULATION_CAP
 	for tile in tiles:
 		if tile["owner_id"] == player_id:
 			var prod: Dictionary = tile.get("base_production", {})
@@ -1522,7 +1522,7 @@ func get_max_armies(player_id: int) -> int:
 
 	# Check faction-specific bonuses
 	var faction_id: int = get_player_faction(player_id)
-	if faction_id == FactionData.Faction.ORC:
+	if faction_id == FactionData.FactionID.ORC:
 		# Orcs with WAAAGH! >= frenzy threshold get +1 temporary army
 		if OrcMechanic and OrcMechanic.has_method("get_waaagh"):
 			if OrcMechanic.get_waaagh(player_id) >= BalanceConfig.WAAAGH_FRENZY_THRESHOLD:
@@ -1636,7 +1636,7 @@ func get_army_combat_power(army_id: int) -> int:
 		power += soldiers * atk / 10
 	# Add hero combat bonus
 	for hero_id in army["heroes"]:
-		power += 5  # Base hero power contribution
+		power += BalanceConfig.HERO_BASE_COMBAT_POWER  # Base hero power contribution
 	return maxi(1, power)
 
 
