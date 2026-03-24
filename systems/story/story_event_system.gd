@@ -13,6 +13,10 @@ var _story_cache: Dictionary = {}  # hero_id -> story data dictionary
 # hero_id -> { "route": String, "current_event": int, "completed_events": Array, "flags": Dictionary }
 var story_progress: Dictionary = {}
 
+# ── Reentrant guard ──
+# Prevents chain-triggering when event effects change affection/corruption
+var _processing_effects: bool = false
+
 # ── Route constants ──
 const ROUTE_TRAINING := "training"       # 调教路线 (hostile capture)
 const ROUTE_PURE_LOVE := "pure_love"     # 纯爱路线 (post-defeat join)
@@ -174,6 +178,9 @@ func check_trigger(hero_id: String) -> bool:
 ## Attempt to trigger the next story event for a hero.
 ## Returns the event data if triggered, empty dict otherwise.
 func try_trigger_next(hero_id: String) -> Dictionary:
+	# Guard against reentrant calls from effect-triggered signals
+	if _processing_effects:
+		return {}
 	if not check_trigger(hero_id):
 		return {}
 	var event: Dictionary = get_next_event(hero_id)
@@ -256,6 +263,7 @@ func _apply_event_effects(hero_id: String, event: Dictionary) -> void:
 	var effects: Dictionary = event.get("effects", {})
 	if effects.is_empty():
 		return
+	_processing_effects = true  # Guard: prevent reentrant triggering from signal handlers
 	var pid: int = GameManager.get_human_player_id()
 	for key in effects:
 		match key:
@@ -289,11 +297,15 @@ func _apply_event_effects(hero_id: String, event: Dictionary) -> void:
 				var flag_dict: Dictionary = effects[key]
 				for f in flag_dict:
 					set_flag(hero_id, f, flag_dict[f])
+	_processing_effects = false  # Release guard
 
 
 # ═══════════════ SIGNAL HANDLERS ═══════════════
 
 func _on_hero_captured(hero_id: String) -> void:
+	# Skip heroes without story data (e.g. faction auto-join heroes like shion_pirate, youya)
+	if hero_id not in STORY_DATA_FILES:
+		return
 	# Determine if this is a main heroine (training route) or neutral (hostile route)
 	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
 	var faction: String = hero_data.get("faction", "")
@@ -306,6 +318,9 @@ func _on_hero_captured(hero_id: String) -> void:
 
 
 func _on_hero_recruited(hero_id: String) -> void:
+	# Skip heroes without story data
+	if hero_id not in STORY_DATA_FILES:
+		return
 	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
 	var faction: String = hero_data.get("faction", "")
 	# If no progress exists yet, this is a pure love / neutral join
