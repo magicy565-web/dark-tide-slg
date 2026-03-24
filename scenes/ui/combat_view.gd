@@ -1370,12 +1370,49 @@ func _spawn_damage_number(pos: Vector2, damage: int, max_soldiers: int, is_crit:
 		if is_instance_valid(lbl): lbl.queue_free()
 	)
 
-func _flash_passive(side: String, slot_idx: int) -> void:
-	_flash_card(side, slot_idx, Color(0.3, 0.55, 1.0, 0.35))
-	# Small sparkle burst
+func _flash_passive(side: String, slot_idx: int, desc: String = "") -> void:
 	var pos := _get_card_center(side, slot_idx)
-	for i in range(4):
-		_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-15, 15)), Color(0.5, 0.7, 1.0))
+	# Detect passive type from description keywords
+	if "反击" in desc or "背刺" in desc:
+		# Counter/backstab — red-orange flash + slash particles
+		_flash_card(side, slot_idx, Color(1.0, 0.4, 0.2, 0.4))
+		for i in range(3):
+			_spawn_sparkle(pos + Vector2(randf_range(-15, 15), randf_range(-10, 10)), Color(1.0, 0.5, 0.2))
+	elif "治" in desc or "复活" in desc or "回复" in desc:
+		# Healing — green glow
+		_flash_card(side, slot_idx, Color(0.2, 0.9, 0.4, 0.35))
+		for i in range(5):
+			_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-15, 15)), Color(0.3, 1.0, 0.5))
+	elif "防" in desc or "铁壁" in desc or "方阵" in desc or "结界" in desc:
+		# Defense — blue shield flash
+		_flash_card(side, slot_idx, Color(0.2, 0.4, 1.0, 0.4))
+		for i in range(4):
+			_spawn_sparkle(pos + Vector2(randf_range(-18, 18), randf_range(-12, 12)), Color(0.4, 0.6, 1.0))
+	elif "灼烧" in desc or "炼狱" in desc or "引爆" in desc or "火焰" in desc:
+		# Fire — orange-red burn
+		_flash_card(side, slot_idx, Color(1.0, 0.35, 0.1, 0.4))
+		for i in range(5):
+			_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-15, 15)), Color(1.0, 0.4, 0.15))
+	elif "闪避" in desc or "隐身" in desc or "幻影" in desc:
+		# Evasion — white fade
+		_flash_card(side, slot_idx, Color(1.0, 1.0, 1.0, 0.25))
+		for i in range(3):
+			_spawn_sparkle(pos + Vector2(randf_range(-24, 24), randf_range(-18, 18)), Color(0.9, 0.95, 1.0))
+	elif "暴击" in desc or "致命" in desc or "穿甲" in desc:
+		# Crit/pierce — gold burst
+		_flash_card(side, slot_idx, Color(1.0, 0.85, 0.2, 0.4))
+		for i in range(5):
+			_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-15, 15)), Color(1.0, 0.9, 0.3))
+	elif "法" in desc or "奥术" in desc or "魔导" in desc:
+		# Magic — purple glow
+		_flash_card(side, slot_idx, Color(0.6, 0.3, 1.0, 0.35))
+		for i in range(5):
+			_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-15, 15)), Color(0.7, 0.4, 1.0))
+	else:
+		# Default — blue
+		_flash_card(side, slot_idx, Color(0.3, 0.55, 1.0, 0.35))
+		for i in range(4):
+			_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-15, 15)), Color(0.5, 0.7, 1.0))
 
 func _show_passive_banner(text: String, side: String) -> void:
 	if not is_instance_valid(passive_banner):
@@ -1740,8 +1777,9 @@ func _apply_log_entry(entry: Dictionary) -> void:
 		"passive":
 			log_line = "[color=#8cf]〔被動〕[/color] %s" % desc
 			if slot_idx >= 0:
-				_flash_passive(side, slot_idx)
+				_flash_passive(side, slot_idx, desc)
 				_show_passive_banner(desc, side)
+				_detect_and_apply_buff(side, slot_idx, desc)
 				if remaining > 0:
 					_update_card_soldiers(side, slot_idx, remaining, max_s)
 
@@ -1802,8 +1840,21 @@ func _finish_playback() -> void:
 		result_label.text = "戦 闘 終 了"
 		result_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
 
-	# Stats summary
-	result_stats.text = "進攻傷害: %d  |  防御傷害: %d  |  回合数: %d" % [_total_atk_damage, _total_def_damage, _current_round]
+	# Stats summary with kill/survivor counts
+	var atk_survivors := 0
+	var def_survivors := 0
+	var atk_final_arr: Array = _battle_state.get("attacker_units_final", [])
+	var def_final_arr: Array = _battle_state.get("defender_units_final", [])
+	for u in atk_final_arr:
+		if u != null and u.get("soldiers", 0) > 0:
+			atk_survivors += 1
+	for u in def_final_arr:
+		if u != null and u.get("soldiers", 0) > 0:
+			def_survivors += 1
+	result_stats.text = "進攻傷害: %d  |  防御傷害: %d  |  回合: %d\n擊殺: 攻%d/防%d  |  存活: 攻%d/防%d" % [
+		_total_atk_damage, _total_def_damage, _current_round,
+		_kills_atk, _kills_def, atk_survivors, def_survivors
+	]
 
 	# Animated reveal
 	var tw := create_tween()
@@ -1924,6 +1975,151 @@ func _intro_animation() -> void:
 	# (VS label is already added; we animate it)
 	# Title flash
 	_screen_flash_effect(Color(0.9, 0.8, 0.5, 0.1), 0.5)
+# ═══════════════════════════════════════════════════════════
+#                 UTILITY & MISSING EFFECTS
+# ═══════════════════════════════════════════════════════════
+
+func _particle_density_mult() -> float:
+	if _speed_mult >= 3.0:
+		return 0.4
+	elif _speed_mult >= 2.0:
+		return 0.7
+	return 1.0
+
+func _spawn_dot_particle(pos: Vector2, color: Color) -> void:
+	var p := ColorRect.new()
+	p.size = Vector2(3, 3)
+	p.color = color
+	p.position = pos + Vector2(randf_range(-18, 18), randf_range(-12, 12))
+	p.z_index = 38
+	anim_layer.add_child(p)
+	var dur := randf_range(0.5, 0.9) / _speed_mult
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(p, "position:y", p.position.y - randf_range(15, 30), dur).set_ease(Tween.EASE_OUT)
+	tw.tween_property(p, "modulate:a", 0.0, dur)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(p): p.queue_free()
+	)
+
+func _spawn_capture_chains(side: String, slot_idx: int) -> void:
+	var center := _get_card_center(side, slot_idx)
+	var chain_color := Color(0.3, 0.5, 1.0, 0.6)
+	# Draw 4 diagonal chain lines converging on center
+	for i in range(4):
+		var angle := float(i) / 4.0 * TAU + PI * 0.25
+		var line := ColorRect.new()
+		line.size = Vector2(40, 2)
+		line.color = chain_color
+		line.pivot_offset = Vector2(0, 1)
+		line.rotation = angle
+		line.position = center + Vector2(cos(angle), sin(angle)) * 45.0
+		line.z_index = 46
+		line.modulate = Color(1, 1, 1, 0)
+		anim_layer.add_child(line)
+		var tw := create_tween()
+		tw.tween_property(line, "modulate:a", 1.0, 0.15 / _speed_mult).set_ease(Tween.EASE_OUT)
+		tw.tween_property(line, "position", center + Vector2(cos(angle), sin(angle)) * 10.0, 0.2 / _speed_mult).set_ease(Tween.EASE_IN)
+		tw.tween_interval(0.4 / _speed_mult)
+		tw.tween_property(line, "modulate:a", 0.0, 0.3 / _speed_mult)
+		tw.tween_callback(func():
+			if is_instance_valid(line): line.queue_free()
+		)
+	# Blue flash on card
+	_flash_card(side, slot_idx, Color(0.3, 0.5, 1.0, 0.3))
+
+func _spawn_siege_debris() -> void:
+	var density := _particle_density_mult()
+	var count := max(3, int(8 * density))
+	for i in range(count):
+		var debris := ColorRect.new()
+		var sz := randf_range(3.0, 7.0)
+		debris.size = Vector2(sz, sz)
+		debris.color = Color(
+			randf_range(0.35, 0.55),
+			randf_range(0.25, 0.4),
+			randf_range(0.15, 0.25),
+			0.8
+		)
+		debris.position = Vector2(randf_range(100, SCREEN_W - 100), -10)
+		debris.z_index = 39
+		anim_layer.add_child(debris)
+		var fall_dur := randf_range(0.6, 1.2) / _speed_mult
+		var target_y := randf_range(GRID_TOP + 50, GRID_TOP + 280)
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(debris, "position:y", target_y, fall_dur).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		tw.tween_property(debris, "position:x", debris.position.x + randf_range(-30, 30), fall_dur)
+		tw.tween_property(debris, "rotation", randf_range(-PI, PI), fall_dur)
+		tw.chain().tween_property(debris, "modulate:a", 0.0, 0.3 / _speed_mult)
+		tw.chain().tween_callback(func():
+			if is_instance_valid(debris): debris.queue_free()
+		)
+
+func _detect_and_apply_buff(side: String, slot_idx: int, desc: String) -> void:
+	if not _active_buffs.has(side) or not _active_buffs[side].has(slot_idx):
+		return
+	var buffs: Array = _active_buffs[side][slot_idx]
+	# Detect buff types from description text
+	if "灼烧" in desc or "炼狱" in desc:
+		if not buffs.has("burn"):
+			buffs.append("burn")
+	if "毒" in desc:
+		if not buffs.has("poison"):
+			buffs.append("poison")
+	if "ATK+" in desc or "攻击" in desc:
+		if not buffs.has("atk_up"):
+			buffs.append("atk_up")
+	if "DEF+" in desc or "防御" in desc or "铁壁" in desc:
+		if not buffs.has("def_up"):
+			buffs.append("def_up")
+	if "SPD+" in desc or "迅捷" in desc:
+		if not buffs.has("spd_up"):
+			buffs.append("spd_up")
+	if "SPD-" in desc or "减速" in desc:
+		if not buffs.has("slow"):
+			buffs.append("slow")
+	_update_buff_label(side, slot_idx)
+
+func _update_buff_label(side: String, slot_idx: int) -> void:
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	if not cards.has(slot_idx):
+		return
+	var card: PanelContainer = cards[slot_idx]
+	var vbox: VBoxContainer = card.get_child(0).get_child(0)
+	var top_row: HBoxContainer = vbox.get_child(0) as HBoxContainer
+	var buff_lbl: Label = top_row.get_node("BuffLabel") if top_row and top_row.has_node("BuffLabel") else null
+	if buff_lbl == null:
+		return
+	if not _active_buffs.has(side) or not _active_buffs[side].has(slot_idx):
+		buff_lbl.text = ""
+		return
+	var buffs: Array = _active_buffs[side][slot_idx]
+	if buffs.is_empty():
+		buff_lbl.text = ""
+		return
+	# Map buff keys to short indicators
+	var icons: Array[String] = []
+	for b in buffs:
+		match b:
+			"burn": icons.append("火")
+			"poison": icons.append("毒")
+			"atk_up": icons.append("攻↑")
+			"def_up": icons.append("防↑")
+			"spd_up": icons.append("速↑")
+			"slow": icons.append("速↓")
+			_: icons.append("✦")
+	buff_lbl.text = " ".join(icons)
+	# Color the label based on dominant buff type
+	if buffs.has("burn"):
+		buff_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.2))
+	elif buffs.has("poison"):
+		buff_lbl.add_theme_color_override("font_color", Color(0.3, 0.85, 0.3))
+	elif buffs.has("atk_up"):
+		buff_lbl.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3))
+	elif buffs.has("def_up"):
+		buff_lbl.add_theme_color_override("font_color", Color(0.4, 0.6, 1.0))
+	else:
+		buff_lbl.add_theme_color_override("font_color", Color(0.7, 0.8, 0.9))
+
 # ═══════════════════════════════════════════════════════════
 #                      SAVE / LOAD
 # ═══════════════════════════════════════════════════════════
