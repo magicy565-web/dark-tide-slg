@@ -211,6 +211,7 @@ func _patrol_territory(nf_id: int, state: Dictionary) -> void:
 func vassalize(player_id: int, neutral_faction_id: int) -> void:
 	## Convert a neutral faction to vassal of the player.
 	if not _faction_state.has(neutral_faction_id):
+		push_warning("NeutralFactionAI: vassalize called with unknown neutral_faction_id=%d" % neutral_faction_id)
 		return
 
 	var state: Dictionary = _faction_state[neutral_faction_id]

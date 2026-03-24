@@ -69,6 +69,7 @@ func add_slaves(player_id: int, count: int) -> void:
 func remove_slaves(player_id: int, count: int) -> void:
 	## Remove from idle first, then from roles if needed.
 	if not _allocations.has(player_id):
+		push_warning("SlaveManager: remove_slaves called for unknown player_id=%d" % player_id)
 		return
 	var alloc: Dictionary = _allocations[player_id]
 	var remaining: int = count

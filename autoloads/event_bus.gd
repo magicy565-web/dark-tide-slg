@@ -17,8 +17,8 @@ signal resources_changed(player_id: int)
 signal army_changed(player_id: int, new_count: int)
 
 # Legacy compat aliases (some board code may still emit these)
-signal gold_changed(player_id: int, new_amount: int)
-signal charm_changed(player_id: int, new_amount: int)
+signal gold_changed(player_id: int, new_amount: int)  # Potentially unused: no emit found in codebase
+signal charm_changed(player_id: int, new_amount: int)  # Potentially unused: no emit found in codebase
 
 # ── Territory ──
 signal tile_captured(player_id: int, tile_index: int)
@@ -53,7 +53,7 @@ signal fog_updated(player_id: int)
 signal waaagh_changed(player_id: int, new_value: int)
 signal frenzy_started(player_id: int)
 signal frenzy_ended(player_id: int)
-signal rebellion_occurred(tile_index: int)
+signal rebellion_occurred(tile_index: int)  # Potentially unused: no emit found in codebase
 signal expedition_spawned(tile_index: int)
 
 # ── Order / Threat ──
@@ -74,7 +74,7 @@ signal character_scene_unlocked(player_id: int, char_id: String, scene_id: Strin
 signal message_log(text: String)
 signal show_event_popup(title: String, description: String, choices: Array)
 signal event_choice_selected(choice_index: int)
-signal hide_event_popup()
+signal hide_event_popup()  # Potentially unused: no emit found in codebase
 signal faction_selected(faction_id: int)
 
 # ── Plunder & Slave allocation ──
@@ -96,12 +96,12 @@ signal black_market_refreshed(player_id: int, item_count: int)
 # ── Pirate Harem System (后宫收集) ──
 signal heroine_submission_changed(hero_id: String, new_value: int)
 signal harem_progress_updated(recruited: int, submitted: int, total: int)
-signal harem_victory_achieved()
+signal harem_victory_achieved()  # Potentially unused: no emit found in codebase
 
 # ── Light faction ──
-signal mana_pool_changed(new_value: int)
+signal mana_pool_changed(new_value: int)  # Potentially unused: no emit found in codebase
 signal alliance_formed(threat_level: int)
-signal city_wall_damaged(tile_index: int, remaining_hp: int)
+signal city_wall_damaged(tile_index: int, remaining_hp: int)  # Potentially unused: no emit found in codebase
 
 # ── Neutral quests ──
 signal neutral_quest_step_completed(player_id: int, faction_id: int, step: int)
@@ -166,15 +166,15 @@ signal army_selected(army_id: int)
 signal board_ready()
 
 # ── Audio ──
-signal bgm_changed(track_id: int)
-signal sfx_requested(sfx_id: int)
+signal bgm_changed(track_id: int)  # Potentially unused: no emit found in codebase
+signal sfx_requested(sfx_id: int)  # Potentially unused: no emit found in codebase
 
 # ── Tutorial ──
 signal tutorial_step(step_id: String)
-signal tutorial_completed()
+signal tutorial_completed()  # Potentially unused: only tutorial_step is emitted
 
 # ── Balance / Difficulty (v3.0) ──
-signal difficulty_changed(difficulty_key: String)
+signal difficulty_changed(difficulty_key: String)  # Potentially unused: no emit found in codebase
 
 # ── Combat View ──
 signal combat_view_requested(battle_result: Dictionary)

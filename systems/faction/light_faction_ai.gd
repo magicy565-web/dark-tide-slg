@@ -240,6 +240,7 @@ func cast_spell(spell_name: String) -> bool:
 	var data: Dictionary = FactionData.LIGHT_FACTION_DATA[FactionData.LightFaction.MAGE_TOWER]
 	var spells: Dictionary = data["spells"]
 	if not spells.has(spell_name):
+		push_warning("LightFactionAI: cast_spell unknown spell '%s'" % spell_name)
 		return false
 	var cost: int = spells[spell_name]["cost"]
 	if get_mana() < cost:

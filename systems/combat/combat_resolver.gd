@@ -99,7 +99,7 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 				wall_hp += bonus
 				log.append("装备: 城防+%.0f" % bonus)
 	# Blast barrel
-	var blast_barrel_dmg = BuffManager.get_buff_value(atk_pid, "wall_damage")
+	var blast_barrel_dmg: Variant = BuffManager.get_buff_value(atk_pid, "wall_damage")
 	if blast_barrel_dmg != null and blast_barrel_dmg > 0:
 		wall_hp = maxf(wall_hp - float(blast_barrel_dmg), 0.0)
 		log.append("爆破桶: 城防-%.0f" % float(blast_barrel_dmg))
@@ -368,7 +368,7 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 		if "siege_x2" in unit["passives"]:
 			siege_dmg *= 2.0
 		# Siege buff
-		var siege_buff = BuffManager.get_buff_value(state["atk_pid"], "siege_mult")
+		var siege_buff: Variant = BuffManager.get_buff_value(state["atk_pid"], "siege_mult")
 		if siege_buff != null and siege_buff > 1.0:
 			siege_dmg *= float(siege_buff)
 		remaining -= siege_dmg

@@ -43,6 +43,7 @@ func is_faction_alive(faction_id: int) -> bool:
 	for rival in _rival_factions:
 		if rival["faction_id"] == faction_id:
 			return rival["alive"]
+	push_warning("FactionManager: is_faction_alive called with unknown faction_id=%d" % faction_id)
 	return false
 
 

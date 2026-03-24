@@ -78,6 +78,7 @@ func apply_delta(player_id: int, delta: Dictionary) -> void:
 	## Apply a resource change dictionary. Negative values allowed.
 	## Clamps each resource at 0 minimum.
 	if not _ledgers.has(player_id):
+		push_warning("ResourceManager: apply_delta called for unknown player_id=%d" % player_id)
 		return
 	var ledger: Dictionary = _ledgers[player_id]
 	for key in delta:
@@ -88,6 +89,7 @@ func apply_delta(player_id: int, delta: Dictionary) -> void:
 
 func set_resource(player_id: int, res_key: String, value: int) -> void:
 	if not _ledgers.has(player_id):
+		push_warning("ResourceManager: set_resource called for unknown player_id=%d" % player_id)
 		return
 	_ledgers[player_id][res_key] = maxi(0, value)
 	EventBus.resources_changed.emit(player_id)

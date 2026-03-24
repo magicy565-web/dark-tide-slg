@@ -170,6 +170,7 @@ func get_affection_unlocks(hero_id: String) -> Array:
 func get_hero_combat_stats(hero_id: String) -> Dictionary:
 	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
 	if hero_data.is_empty():
+		push_warning("HeroSystem: get_hero_combat_stats called with unknown hero_id='%s'" % hero_id)
 		return {}
 
 	# Get level-scaled base stats from HeroLeveling autoload
@@ -344,6 +345,7 @@ func _slot_enum_to_key(slot_enum: int) -> String:
 		FactionData.EquipSlot.WEAPON: return "weapon"
 		FactionData.EquipSlot.ARMOR: return "armor"
 		FactionData.EquipSlot.ACCESSORY: return "accessory"
+	push_warning("HeroSystem: _slot_enum_to_key unknown slot_enum=%d, defaulting to accessory" % slot_enum)
 	return "accessory"
 
 
@@ -381,6 +383,7 @@ func get_hero_skill_data(hero_id: String) -> Dictionary:
 		return {}
 	var skill_def: Dictionary = FactionData.HERO_SKILL_DEFS.get(skill_name, {})
 	if skill_def.is_empty():
+		push_warning("HeroSystem: get_hero_skill_data unknown skill '%s' for hero '%s'" % [skill_name, hero_id])
 		return {}
 	var result: Dictionary = skill_def.duplicate()
 	result["name"] = skill_name
@@ -456,6 +459,7 @@ func apply_skill_in_combat(hero_id: String) -> Dictionary:
 			return {"type": "summon", "value": summon_count,
 				"desc": "%s 使用 [%s]: 召唤 %d 骷髅兵增援!" % [hero_name, skill_name, summon_count]}
 
+	push_warning("HeroSystem: apply_skill_in_combat unhandled skill_type='%s' for hero='%s'" % [skill_type, hero_id])
 	return {}
 
 

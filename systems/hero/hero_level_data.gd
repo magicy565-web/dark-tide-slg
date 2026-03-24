@@ -403,6 +403,11 @@ static func get_exp_for_level(level: int) -> int:
 	return EXP_TABLE[clamped - 1]
 
 
+## Alias for get_exp_for_level — used by hero_leveling.gd
+static func get_cumulative_exp_for_level(level: int) -> int:
+	return get_exp_for_level(level)
+
+
 ## 根据累计经验值返回当前等级
 static func get_level_for_exp(exp: int) -> int:
 	for i in range(MAX_LEVEL - 1, -1, -1):

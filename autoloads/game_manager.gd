@@ -299,6 +299,7 @@ func get_player_by_id(player_id: int) -> Dictionary:
 	for p in players:
 		if p["id"] == player_id:
 			return p
+	push_warning("GameManager: get_player_by_id found no player with id=%d" % player_id)
 	return {}
 
 
@@ -313,8 +314,10 @@ func sync_player_army(player_id: int) -> void:
 
 func get_current_player() -> Dictionary:
 	if players.is_empty():
+		push_warning("GameManager: get_current_player called but players array is empty")
 		return {}
 	if current_player_index < 0 or current_player_index >= players.size():
+		push_warning("GameManager: get_current_player invalid index %d (players size: %d)" % [current_player_index, players.size()])
 		return {}
 	return players[current_player_index]
 

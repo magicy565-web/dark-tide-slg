@@ -333,8 +333,6 @@ func process_turn_start() -> void:
 	# ── Expire temp soldiers ──
 	var remaining_batches: Array = []
 	for batch in _temp_soldier_batches:
-		if batch == null or not batch is Dictionary:
-			continue
 		batch["remaining"] -= 1
 		if batch["remaining"] <= 0:
 			# Temp soldiers leave — clamp to prevent negative army
@@ -352,12 +350,13 @@ func process_turn_start() -> void:
 
 ## Apply the chosen effect from an event
 func apply_choice(event_id: String, choice_index: int) -> Dictionary:
-	var event: Variant = null
+	var event: Dictionary = {}
 	for e in _events:
 		if e["id"] == event_id:
 			event = e
 			break
-	if not event or choice_index >= event["choices"].size():
+	if event.is_empty() or choice_index >= event["choices"].size():
+		push_warning("EventSystem: apply_choice failed for event_id='%s' choice_index=%d" % [event_id, choice_index])
 		return {"ok": false}
 
 	var effects: Dictionary = event["choices"][choice_index]["effects"]
@@ -439,7 +438,7 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 
 	# Item reward
 	if effects.has("item") and effects["item"] == "random":
-		var granted_id = ItemManager.grant_random_loot(pid)
+		var granted_id: String = ItemManager.grant_random_loot(pid)
 		if granted_id != null and granted_id != "":
 			EventBus.item_acquired.emit(pid, ItemManager._get_item_name(granted_id))
 			result["applied"].append("item: random")
@@ -461,7 +460,7 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 	if effects.has("buff"):
 		var buff: Dictionary = effects["buff"]
 		var buff_type: String = buff.get("type", "atk_pct")
-		var buff_val = buff.get("value", 0)
+		var buff_val: float = buff.get("value", 0)
 		var buff_dur: int = buff.get("duration", 1)
 		BuffManager.add_buff(pid, "event_%s" % event_id, buff_type, buff_val, buff_dur, "event")
 		result["applied"].append("buff: %s (%d turns)" % [buff_type, buff_dur])
@@ -470,7 +469,7 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 	if effects.has("debuff"):
 		var debuff: Dictionary = effects["debuff"]
 		var debuff_type: String = debuff.get("type", "income_pct")
-		var debuff_val = debuff.get("value", 0)
+		var debuff_val: float = debuff.get("value", 0)
 		var debuff_dur: int = debuff.get("duration", 1)
 		BuffManager.add_buff(pid, "event_debuff_%s" % event_id, debuff_type, debuff_val, debuff_dur, "event")
 		result["applied"].append("debuff: %s %+d%% (%d turns)" % [debuff_type, debuff_val, debuff_dur])
