@@ -607,8 +607,10 @@ func from_save_data(data: Dictionary) -> void:
 	hero_corruption = data.get("hero_corruption", {})
 	hero_affection = data.get("hero_affection", {})
 	hero_equipment = data.get("hero_equipment", {}).duplicate(true)
-	# Ensure all recruited heroes have properly initialized equipment slots
+	# 确保所有英雄（已招募+被俘）的装备槽都正确初始化
 	for hid in recruited_heroes:
+		_ensure_equip_slots(hid)
+	for hid in captured_heroes:
 		_ensure_equip_slots(hid)
 	_skill_cooldowns = data.get("skill_cooldowns", {})
 	hero_submission = data.get("hero_submission", {})

@@ -73,18 +73,28 @@ func use_item(player_id: int, item_id: String) -> bool:
 	# Immediate resource effects
 	if effect.has("gold"):
 		var val: int = int(effect["gold"])
+		# 防止负值道具效果消耗玩家资源
+		if val < 0:
+			push_warning("ItemManager: 道具 '%s' 的gold效果值为负(%d)，已拦截" % [item_id, val])
+			return false
 		if val == 0:
 			return false
 		ResourceManager.apply_delta(player_id, {"gold": val})
 		EventBus.message_log.emit("使用 %s: +%d金币" % [item_data["name"], val])
 	elif effect.has("food"):
 		var val: int = int(effect["food"])
+		if val < 0:
+			push_warning("ItemManager: 道具 '%s' 的food效果值为负(%d)，已拦截" % [item_id, val])
+			return false
 		if val == 0:
 			return false
 		ResourceManager.apply_delta(player_id, {"food": val})
 		EventBus.message_log.emit("使用 %s: +%d粮草" % [item_data["name"], val])
 	elif effect.has("iron"):
 		var val: int = int(effect["iron"])
+		if val < 0:
+			push_warning("ItemManager: 道具 '%s' 的iron效果值为负(%d)，已拦截" % [item_id, val])
+			return false
 		if val == 0:
 			return false
 		ResourceManager.apply_delta(player_id, {"iron": val})

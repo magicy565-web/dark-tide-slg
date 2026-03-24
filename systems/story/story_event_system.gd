@@ -166,13 +166,58 @@ func get_event_by_id(hero_id: String, event_id: String) -> Dictionary:
 
 # ═══════════════ EVENT TRIGGERING ═══════════════
 
+## 跳过事件：标记为完成但不播放（用于自动跳过中间事件）
+func skip_event(hero_id: String) -> void:
+	var prog: Dictionary = story_progress.get(hero_id, {})
+	if prog.is_empty():
+		return
+	var route: String = prog.get("route", "")
+	var current_idx: int = prog.get("current_event", 0)
+	var events: Array = get_route_events(hero_id, route)
+	if current_idx >= events.size():
+		return
+	var event: Dictionary = events[current_idx]
+	var event_id: String = event.get("id", "event_%d" % current_idx)
+	prog["completed_events"].append(event_id)
+	prog["current_event"] = current_idx + 1
+	# 不播放效果，仅标记完成
+	EventBus.story_event_completed.emit(hero_id, event_id)
+	if prog["current_event"] >= events.size():
+		EventBus.story_route_completed.emit(hero_id, route)
+
+
 ## Check if the next event for a hero should trigger.
 func check_trigger(hero_id: String) -> bool:
 	var event: Dictionary = get_next_event(hero_id)
 	if event.is_empty():
 		return false
 	var trigger: Dictionary = event.get("trigger", {})
-	return _evaluate_trigger(hero_id, trigger)
+	if _evaluate_trigger(hero_id, trigger):
+		return true
+	# 自动跳过卡住的中间事件：如果当前事件因 prev_event 未完成而阻塞，
+	# 但后续事件的其他条件（如好感度）已远超阈值，则静默完成当前事件
+	if trigger.has("prev_event") and not is_event_completed(hero_id, trigger["prev_event"]):
+		var prog: Dictionary = story_progress.get(hero_id, {})
+		var route: String = prog.get("route", "")
+		var current_idx: int = prog.get("current_event", 0)
+		var events: Array = get_route_events(hero_id, route)
+		# 检查后续事件(N+2)的条件是否已满足（排除 prev_event 检查）
+		if current_idx + 1 < events.size():
+			var next_event: Dictionary = events[current_idx + 1]
+			var next_trigger: Dictionary = next_event.get("trigger", {})
+			var next_conditions_met: bool = true
+			for key in next_trigger:
+				if key == "prev_event":
+					continue  # 跳过前置事件检查
+				var temp_trigger: Dictionary = {key: next_trigger[key]}
+				if not _evaluate_trigger(hero_id, temp_trigger):
+					next_conditions_met = false
+					break
+			if next_conditions_met and not next_trigger.is_empty():
+				push_warning("StoryEventSystem: 自动跳过卡住的事件 hero=%s idx=%d" % [hero_id, current_idx])
+				skip_event(hero_id)
+				return check_trigger(hero_id)
+	return false
 
 
 ## Attempt to trigger the next story event for a hero.
@@ -369,8 +414,18 @@ func _on_story_choice_made(hero_id: String, event_id: String, choice_index: int)
 
 ## Called each turn to check for auto-triggering story events.
 func process_story_turn() -> void:
+	# 清理pass：跳过无有效剧情数据的hero_id，防止孤立进度导致错误
+	var orphaned: Array = []
+	for hero_id in story_progress:
+		var data: Dictionary = _get_story_data(hero_id)
+		if data.is_empty():
+			orphaned.append(hero_id)
+	for hero_id in orphaned:
+		push_warning("StoryEventSystem: hero_id '%s' 无有效剧情数据，跳过处理" % hero_id)
 	# Check all heroes with active story progress
 	for hero_id in story_progress:
+		if hero_id in orphaned:
+			continue
 		try_trigger_next(hero_id)
 
 

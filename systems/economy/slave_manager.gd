@@ -196,6 +196,7 @@ func get_labor_income(player_id: int) -> Dictionary:
 
 
 # ── Slave Revolt Check (03_战略设定: 奴隶>驻军×3时 10%/回合) ──
+# 暴动优先移除空闲奴隶，不足时按 矿场→农场→祭坛 顺序移除分配奴隶
 func check_revolt(player_id: int) -> bool:
 	var total_slaves: int = get_total_slaves(player_id)
 	var total_garrison: int = 0
@@ -205,7 +206,21 @@ func check_revolt(player_id: int) -> bool:
 	if total_slaves > total_garrison * 3:
 		if randf() < 0.10:
 			var lost: int = maxi(1, total_slaves / 5)
-			remove_slaves(player_id, lost)
+			if not _allocations.has(player_id):
+				return false
+			var alloc: Dictionary = _allocations[player_id]
+			var remaining: int = lost
+			# 优先移除空闲奴隶
+			var from_idle: int = mini(alloc["idle"], remaining)
+			alloc["idle"] -= from_idle
+			remaining -= from_idle
+			# 不足时按优先级移除：矿场 > 农场 > 祭坛（祭坛最后）
+			for role in ["mine", "farm", "altar"]:
+				if remaining <= 0:
+					break
+				var from_role: int = mini(alloc.get(role, 0), remaining)
+				alloc[role] -= from_role
+				remaining -= from_role
 			ResourceManager.apply_delta(player_id, {"slaves": -lost})
 			# 暴动后同步奴隶计数
 			sync_slave_count(player_id)

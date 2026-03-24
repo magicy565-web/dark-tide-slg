@@ -131,6 +131,15 @@ const TIER_NAMES: Dictionary = {
 # { player_id: { npc_id: { "obedience": int, "last_trained_turn": int, "active": bool } } }
 var _npc_states: Dictionary = {}
 
+# 逃跑NPC的重新遭遇冷却 { player_id: { npc_id: turns_remaining } }
+var _escaped_npcs: Dictionary = {}
+# 逃跑NPC冷却回合数
+const ESCAPE_COOLDOWN_TURNS: int = 5
+
+# ── 跨捕获持久化的事件阈值记录（按NPC类型而非实例去重） ──
+# { player_id: { npc_type: Array of triggered threshold ints } }
+var _type_triggered_thresholds: Dictionary = {}
+
 
 func _ready() -> void:
 	pass
@@ -138,6 +147,8 @@ func _ready() -> void:
 
 func reset() -> void:
 	_npc_states.clear()
+	_type_triggered_thresholds.clear()
+	_escaped_npcs.clear()
 
 
 func init_player(player_id: int) -> void:
@@ -286,9 +297,15 @@ func tick_all(player_id: int, current_turn: int) -> void:
 		# Check event chain triggers after obedience changes
 		_check_event_chains(player_id, npc_id)
 
-	# Remove escaped/rebelled NPCs from active state
+	# 将逃跑/反叛NPC存入重新遭遇池，而非永久移除
 	for npc_id in npcs_to_remove:
+		if not _escaped_npcs.has(player_id):
+			_escaped_npcs[player_id] = {}
+		_escaped_npcs[player_id][npc_id] = ESCAPE_COOLDOWN_TURNS
 		_npc_states[player_id].erase(npc_id)
+
+	# 处理逃跑NPC冷却倒计时，冷却结束后可重新捕获
+	_tick_escaped_npcs(player_id)
 
 
 func on_combat_loss(player_id: int) -> void:
@@ -393,24 +410,55 @@ func boost_all_obedience(player_id: int, amount: int) -> void:
 		_check_event_chains(player_id, npc_id)
 
 
+func _tick_escaped_npcs(player_id: int) -> void:
+	## 递减逃跑NPC冷却，冷却结束后发出可重新捕获信号
+	if not _escaped_npcs.has(player_id):
+		return
+	var ready_npcs: Array = []
+	for npc_id in _escaped_npcs[player_id]:
+		_escaped_npcs[player_id][npc_id] -= 1
+		if _escaped_npcs[player_id][npc_id] <= 0:
+			ready_npcs.append(npc_id)
+	for npc_id in ready_npcs:
+		_escaped_npcs[player_id].erase(npc_id)
+		var esc_def: Dictionary = NPC_DEFS.get(npc_id, {})
+		var npc_name: String = esc_def.get("name", npc_id)
+		EventBus.message_log.emit("[color=cyan]%s 再次出现在附近，可以重新捕获![/color]" % npc_name)
+		EventBus.npc_available_for_recapture.emit(player_id, npc_id)
+
+
 # ═══════════════ INTERNAL ═══════════════
 
 func _check_event_chains(player_id: int, npc_id: String) -> void:
 	## Trigger event chains at obedience thresholds.
+	## 使用 _type_triggered_thresholds 按NPC类型去重，防止多次捕获同类型NPC重复触发
 	if not NPC_DEFS.has(npc_id):
 		return
 	var def: Dictionary = NPC_DEFS[npc_id]
+	var npc_type: String = def.get("type", npc_id)
 	var state: Dictionary = _npc_states[player_id][npc_id]
 	var ob: int = state["obedience"]
+	# 实例级别记录（向后兼容）
 	var triggered: Array = state.get("triggered_thresholds", [])
+	# 类型级别记录（跨捕获持久化）
+	if not _type_triggered_thresholds.has(player_id):
+		_type_triggered_thresholds[player_id] = {}
+	if not _type_triggered_thresholds[player_id].has(npc_type):
+		_type_triggered_thresholds[player_id][npc_type] = []
+	var type_triggered: Array = _type_triggered_thresholds[player_id][npc_type]
 	var chains: Dictionary = def.get("event_chains", {})
 	for threshold in chains:
 		if ob >= threshold and not triggered.has(threshold):
-			var quest_id: String = chains[threshold]
 			triggered.append(threshold)
+			# 按类型去重：同类型NPC跨捕获不重复触发同一阈值事件
+			if type_triggered.has(threshold):
+				continue
+			type_triggered.append(threshold)
+			var quest_id: String = chains[threshold]
 			EventBus.message_log.emit("[NPC事件] %s 信任度达到%d, 触发特殊事件!" % [def["name"], threshold])
 			EventBus.quest_triggered.emit(player_id, quest_id, {"npc_id": npc_id, "threshold": threshold})
 	state["triggered_thresholds"] = triggered
+	_type_triggered_thresholds[player_id][npc_type] = type_triggered
 
 
 # ═══════════════ SAVE / LOAD ═══════════════
@@ -418,11 +466,15 @@ func _check_event_chains(player_id: int, npc_id: String) -> void:
 func to_save_data() -> Dictionary:
 	return {
 		"npc_states": _npc_states.duplicate(true),
+		"type_triggered_thresholds": _type_triggered_thresholds.duplicate(true),
+		"escaped_npcs": _escaped_npcs.duplicate(true),
 	}
 
 
 func from_save_data(data: Dictionary) -> void:
 	_npc_states = data.get("npc_states", {}).duplicate(true)
+	_type_triggered_thresholds = data.get("type_triggered_thresholds", {}).duplicate(true)
+	_escaped_npcs = data.get("escaped_npcs", {}).duplicate(true)
 	# 验证triggered_thresholds类型，防止存档数据损坏
 	for pid in _npc_states:
 		for npc_id in _npc_states[pid]:

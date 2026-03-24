@@ -20,6 +20,11 @@ var _speed_cache: Dictionary = {}  # { player_id: float }
 # ── Active training tree (loaded based on player faction) ──
 var _active_tree: Dictionary = {}  # tech_id -> tech_data
 
+# 学院缺失连续回合计数 { player_id: int }
+var _academy_missing_turns: Dictionary = {}
+# 学院缺失超过此回合数后自动取消研究并退还50%资源
+const ACADEMY_MISSING_CANCEL_TURNS: int = 3
+
 
 func _ready() -> void:
 	pass
@@ -212,8 +217,29 @@ func process_turn(player_id: int) -> void:
 	if tech_id == "":
 		return
 	if not _has_academy(player_id):
-		EventBus.message_log.emit("无学院! 研究暂停。")
+		# 学院缺失计数递增
+		_academy_missing_turns[player_id] = _academy_missing_turns.get(player_id, 0) + 1
+		var missing: int = _academy_missing_turns[player_id]
+		if missing >= ACADEMY_MISSING_CANCEL_TURNS:
+			# 连续缺失3回合，自动取消研究并退还50%资源
+			var data: Dictionary = get_tech_data(tech_id)
+			var cost: Dictionary = data.get("cost", {})
+			var refund: Dictionary = {}
+			for key in cost:
+				refund[key] = int(cost[key] * 0.5)
+			_refund_tech_cost(player_id, refund)
+			state["current"] = ""
+			state["progress"] = 0
+			_academy_missing_turns[player_id] = 0
+			research_cancelled.emit(player_id, tech_id)
+			EventBus.message_log.emit("[color=red]学院连续缺失%d回合! 自动取消研究: %s (退还50%%资源)[/color]" % [ACADEMY_MISSING_CANCEL_TURNS, data.get("name", tech_id)])
+			_advance_queue(player_id)
+		else:
+			EventBus.message_log.emit("无学院! 研究暂停。(连续%d回合)" % missing)
 		return
+
+	# 学院存在时重置缺失计数
+	_academy_missing_turns[player_id] = 0
 
 	var speed: float = get_research_speed(player_id)
 	state["progress"] += int(speed)
@@ -467,12 +493,14 @@ func to_save_data() -> Dictionary:
 	return {
 		"research_state": _research_state.duplicate(true),
 		"speed_cache": _speed_cache.duplicate(),
+		"academy_missing_turns": _academy_missing_turns.duplicate(),
 	}
 
 
 func from_save_data(data: Dictionary) -> void:
 	_research_state = data.get("research_state", {})
 	_speed_cache = data.get("speed_cache", {})
+	_academy_missing_turns = data.get("academy_missing_turns", {})
 	# Reload active tree from each player's faction
 	for pid in _research_state:
 		var faction_id: int = GameManager.get_player_faction(pid)

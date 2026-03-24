@@ -32,6 +32,7 @@ signal strategic_resource_changed(player_id: int, resource_key: String, new_amou
 
 # ── NPC Obedience ──
 signal npc_obedience_changed(player_id: int, npc_id: String, new_value: int)
+signal npc_available_for_recapture(player_id: int, npc_id: String)  # NPC逃跑冷却结束，可重新捕获
 
 # ── Quests ──
 signal quest_triggered(player_id: int, quest_id: String, quest_data: Dictionary)

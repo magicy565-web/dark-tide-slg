@@ -12,13 +12,13 @@ const HeroLevelData = preload("res://systems/hero/hero_level_data.gd")
 # --------------------------------------------------------------------------- #
 # 常量
 # --------------------------------------------------------------------------- #
-const MAX_LEVEL: int = 20
+const MAX_LEVEL: int = 50  # 等级上限从20提升至50
 
 # --------------------------------------------------------------------------- #
 # 持久化状态（需要序列化）
 # --------------------------------------------------------------------------- #
 var hero_exp: Dictionary = {}                # hero_id -> int（累计经验值）
-var hero_level: Dictionary = {}              # hero_id -> int（当前等级 1-20）
+var hero_level: Dictionary = {}              # hero_id -> int（当前等级 1-50）
 var hero_unlocked_passives: Dictionary = {}  # hero_id -> Array[String]（已解锁被动ID）
 
 # --------------------------------------------------------------------------- #

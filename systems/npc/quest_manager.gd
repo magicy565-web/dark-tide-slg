@@ -356,6 +356,26 @@ func clear_pending_combat(player_id: int) -> void:
 	_pending_quest_combat.erase(player_id)
 
 
+func _cleanup_stale_pending_combat(player_id: int) -> void:
+	## 每回合检查：如果待处理任务战斗对应的地块已不属于玩家，则清除
+	var pending: Dictionary = get_pending_combat(player_id)
+	if pending.is_empty():
+		return
+	var nf: int = pending.get("neutral_faction", -1)
+	if nf < 0:
+		return
+	# 检查是否仍然拥有该中立势力所在的地块
+	var still_owns_tile: bool = false
+	for tile in GameManager.tiles:
+		if tile.get("neutral_faction_id", -1) == nf and tile.get("owner_id", -1) == player_id:
+			still_owns_tile = true
+			break
+	if not still_owns_tile:
+		var fname: String = FactionData.NEUTRAL_FACTION_NAMES.get(nf, "未知")
+		EventBus.message_log.emit("[color=orange]%s 任务战斗已取消（地块丢失）[/color]" % fname)
+		clear_pending_combat(player_id)
+
+
 func resolve_quest_combat_win(player_id: int) -> void:
 	## Called after player wins quest combat. Advances the quest step.
 	var pending: Dictionary = get_pending_combat(player_id)
@@ -390,9 +410,11 @@ func resolve_quest_combat_loss(player_id: int) -> void:
 
 func process_turn(player_id: int) -> void:
 	## Called each turn from begin_turn(). Handles:
-	## 1. Auto-advance quests whose resource conditions are now met
-	## 2. Caravan free item timer
-	## 3. Recruitment periodic effects
+	## 1. 清理因地块丢失而失效的待处理任务战斗
+	## 2. Auto-advance quests whose resource conditions are now met
+	## 3. Caravan free item timer
+	## 4. Recruitment periodic effects
+	_cleanup_stale_pending_combat(player_id)
 	_check_auto_advance(player_id)
 	_process_recruited_effects(player_id)
 
@@ -414,7 +436,10 @@ func _check_auto_advance(player_id: int) -> void:
 		if not check.get("can_advance", false):
 			continue
 		if check.get("requires_combat", false):
-			# Combat steps only advance when player visits the tile, not auto
+			# 战斗步骤不能自动推进，通知UI需要玩家手动处理战斗
+			var step: int = qdata.get("step", 0)
+			var step_data: Dictionary = _get_step_data(nf, step)
+			EventBus.quest_combat_required.emit(player_id, nf, step_data)
 			continue
 
 		# Auto-advance: deduct costs, apply rewards, advance

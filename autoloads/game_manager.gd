@@ -2085,6 +2085,9 @@ func _grant_hero_combat_exp(pid: int, result: Dictionary, attacker_wins: bool) -
 	# Boss bonus if defeated a hero-led army
 	if result.get("defeated_hero", false) or result.get("enemy_hero_id", "") != "":
 		hero_exp_base += BalanceConfig.HERO_EXP_BOSS_BONUS
+	# 败方经验减半（从失败中学习，但收益只有胜方的50%）
+	if not attacker_wins:
+		hero_exp_base = int(float(hero_exp_base) * 0.5)
 	# Apply difficulty multiplier
 	hero_exp_base = int(float(hero_exp_base) * BalanceManager.get_player_xp_mult())
 
@@ -2618,6 +2621,11 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 
 	# ── 英雄经验 (v3.1) ──
 	_grant_hero_combat_exp(pid, result, attacker_wins)
+
+	# 防守方英雄也获得经验：胜利获得全额，失败获得50%（从战斗中学习）
+	if def_player_id >= 0 and def_player_id != pid:
+		var defender_wins: bool = not attacker_wins
+		_grant_hero_combat_exp(def_player_id, result, defender_wins)
 
 	# Dissolve slave_fodder troops (Dark Elf T0 consumable)
 	if result.get("slave_fodder_dissolved", 0) > 0:

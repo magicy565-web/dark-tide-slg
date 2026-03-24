@@ -4,15 +4,25 @@ class_name HeroLevelData
 extends RefCounted
 
 # =============================================================================
-#  1. 经验值表 (累计经验, Lv1-20)
+#  1. 经验值表 (累计经验, Lv1-50)
+#     Lv1-20: 原始数据不变，保证存档向下兼容
+#     Lv21-50: 平滑递增的多项式增长曲线
 # =============================================================================
 
-const MAX_LEVEL: int = 20
+const MAX_LEVEL: int = 50
 
-## 索引 0 = Lv1 所需累计经验(0), 索引 19 = Lv20
+## 索引 0 = Lv1 所需累计经验(0), 索引 49 = Lv50
 const EXP_TABLE: Array[int] = [
+	# Lv 1-10
 	0, 15, 35, 60, 90, 125, 165, 210, 260, 315,
+	# Lv 11-20（原始数据，未修改）
 	380, 455, 540, 635, 740, 860, 995, 1145, 1310, 1500,
+	# Lv 21-30（新增：中期成长区间）
+	1708, 1935, 2182, 2450, 2740, 3053, 3390, 3752, 4140, 4555,
+	# Lv 31-40（新增：后期加速区间）
+	4998, 5471, 5976, 6515, 7090, 7703, 8356, 9051, 9790, 10575,
+	# Lv 41-50（新增：终末冲刺区间）
+	11408, 12292, 13230, 14225, 15280, 16398, 17582, 18835, 20160, 21560,
 ]
 
 # =============================================================================
@@ -101,11 +111,13 @@ const GROWTH_RATES: Dictionary = {
 }
 
 # =============================================================================
-#  5. 被动技能解锁树 (每个英雄4个被动, 分别在 Lv3 / 7 / 12 / 18 解锁)
+#  5. 被动技能解锁树
+#     Lv3 / 7 / 12 / 18: 原始4个被动（未修改，保证存档兼容）
+#     Lv25 / 30 / 35 / 40 / 45 / 50: 新增6个高阶被动
 # =============================================================================
 
 const PASSIVE_UNLOCK_TREE: Dictionary = {
-	# ── 凛 ──────────────────────────────────────────────
+	# ── 凛（圣剑骑士）─────────────────────────────────────
 	"rin": [
 		{
 			"level": 3, "passive_id": "rin_resolve",
@@ -132,9 +144,47 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"type": "first_attack",
 			"damage_mult": 2.0, "def_ignore_pct": 30,
 		},
+		# ── Lv25-50 新增被动 ──
+		{
+			"level": 25, "passive_id": "rin_oath_of_light",
+			"name": "光之誓约", "desc": "全军DEF+2, 受治疗效果+20%",
+			"type": "aura",
+			"stats": { "def": 2 }, "heal_received_bonus_pct": 20,
+		},
+		{
+			"level": 30, "passive_id": "rin_blade_aura",
+			"name": "剑气纵横", "desc": "普攻附带溅射(周围敌军受30%伤害)",
+			"type": "on_hit",
+			"splash_damage_pct": 30,
+		},
+		{
+			"level": 35, "passive_id": "rin_guardian_vow",
+			"name": "守护之誓", "desc": "友军被致命攻击时25%替其承受(每回合1次)",
+			"type": "special",
+			"intercept_chance_pct": 25, "uses_per_round": 1,
+		},
+		{
+			"level": 40, "passive_id": "rin_holy_shield",
+			"name": "圣盾", "desc": "每场战斗首次受致命伤害时保留1HP并免疫1回合",
+			"type": "on_death",
+			"survive_guaranteed": true, "immunity_rounds": 1, "uses_per_battle": 1,
+		},
+		{
+			"level": 45, "passive_id": "rin_radiant_edge",
+			"name": "辉光斩", "desc": "暴击时额外造成ATK×0.5圣属性伤害(无视DEF)",
+			"type": "on_crit",
+			"bonus_damage_atk_mult": 0.5, "ignore_def": true,
+		},
+		{
+			"level": 50, "passive_id": "rin_excalibur",
+			"name": "圣剑·终焉", "desc": "全军ATK+3, DEF+3; 首击×2.5无视50%DEF",
+			"type": "aura",
+			"stats": { "atk": 3, "def": 3 },
+			"first_attack_mult": 2.5, "def_ignore_pct": 50,
+		},
 	],
 
-	# ── 雪乃 ────────────────────────────────────────────
+	# ── 雪乃（治愈祭司）───────────────────────────────────
 	"yukino": [
 		{
 			"level": 3, "passive_id": "yukino_gentle_heal",
@@ -160,9 +210,47 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"type": "special",
 			"revive_hp_pct": 50, "uses_per_battle": 1,
 		},
+		# ── Lv25-50 新增被动 ──
+		{
+			"level": 25, "passive_id": "yukino_purify",
+			"name": "净化之光", "desc": "每2回合移除全军1个负面状态",
+			"type": "per_round",
+			"interval": 2, "effect": "remove_ally_debuff", "count": 1,
+		},
+		{
+			"level": 30, "passive_id": "yukino_healing_wave",
+			"name": "治愈波动", "desc": "治疗技能额外恢复相邻友军50%治疗量",
+			"type": "special",
+			"splash_heal_pct": 50, "range": "adjacent",
+		},
+		{
+			"level": 35, "passive_id": "yukino_divine_shield",
+			"name": "神圣护盾", "desc": "全军每场战斗可吸收一次等于INT×3的伤害",
+			"type": "special",
+			"shield_int_mult": 3, "uses_per_battle": 1,
+		},
+		{
+			"level": 40, "passive_id": "yukino_life_link",
+			"name": "生命链接", "desc": "全军受伤平摊(单个部队不会被集火秒杀)",
+			"type": "special",
+			"damage_distribution": true,
+		},
+		{
+			"level": 45, "passive_id": "yukino_miracle_bloom",
+			"name": "奇迹绽放", "desc": "+3法力/回合, 治疗技能法力消耗-2",
+			"type": "per_round",
+			"mp_regen": 3, "heal_mp_reduction": 2,
+		},
+		{
+			"level": 50, "passive_id": "yukino_eternal_grace",
+			"name": "永恒慈悲", "desc": "每回合恢复全军2兵HP; 复活次数+1(共2次/场)",
+			"type": "per_round",
+			"heal_target": "all_allies", "heal_amount": 2,
+			"revive_extra_uses": 1,
+		},
 	],
 
-	# ── 红叶 ────────────────────────────────────────────
+	# ── 红叶（枫将军）─────────────────────────────────────
 	"momiji": [
 		{
 			"level": 3, "passive_id": "momiji_swift_command",
@@ -189,9 +277,48 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"type": "aura",
 			"stats": { "atk": 2, "def": 2, "spd": 1 },
 		},
+		# ── Lv25-50 新增被动 ──
+		{
+			"level": 25, "passive_id": "momiji_war_drums",
+			"name": "战鼓激励", "desc": "全军暴击率+10%",
+			"type": "aura",
+			"crit_bonus_pct": 10,
+		},
+		{
+			"level": 30, "passive_id": "momiji_pincer_attack",
+			"name": "钳形攻势", "desc": "前后排同时有友军时全军ATK+3",
+			"type": "conditional_stat",
+			"condition": "both_rows_occupied",
+			"stat": "atk", "value": 3,
+		},
+		{
+			"level": 35, "passive_id": "momiji_iron_discipline",
+			"name": "铁血纪律", "desc": "全军DEF+3, 免疫士气崩溃",
+			"type": "aura",
+			"stat": "def", "value": 3, "morale_immune": true,
+		},
+		{
+			"level": 40, "passive_id": "momiji_decisive_strike",
+			"name": "决战号令", "desc": "每场战斗可发动1次: 全军本回合ATK×1.5",
+			"type": "active_passive",
+			"atk_mult": 1.5, "duration": 1, "uses_per_battle": 1,
+		},
+		{
+			"level": 45, "passive_id": "momiji_unyielding_banner",
+			"name": "不倒战旗", "desc": "友军被歼灭时全军ATK+3, DEF+1(本场永久)",
+			"type": "on_ally_death",
+			"stats": { "atk": 3, "def": 1 }, "permanent": true,
+		},
+		{
+			"level": 50, "passive_id": "momiji_conqueror",
+			"name": "天下布武", "desc": "全军ATK+4, DEF+3, SPD+2; 首回合全军额外行动1次",
+			"type": "aura",
+			"stats": { "atk": 4, "def": 3, "spd": 2 },
+			"first_round_extra_action": 1,
+		},
 	],
 
-	# ── 冰华 ────────────────────────────────────────────
+	# ── 冰华（圣殿守护）───────────────────────────────────
 	"hyouka": [
 		{
 			"level": 3, "passive_id": "hyouka_iron_wall",
@@ -218,9 +345,49 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"type": "on_death",
 			"survive_chance_pct": 50, "uses_per_battle": 1,
 		},
+		# ── Lv25-50 新增被动 ──
+		{
+			"level": 25, "passive_id": "hyouka_frost_armor",
+			"name": "霜甲", "desc": "受到物理攻击时20%冻结攻击者1回合",
+			"type": "on_hit",
+			"chance_pct": 20, "effect": "freeze_attacker", "duration": 1,
+		},
+		{
+			"level": 30, "passive_id": "hyouka_fortified_wall",
+			"name": "城墙坚守", "desc": "据点防守时全军DEF+4, 城防削减-30%",
+			"type": "conditional_stat",
+			"condition": "defending_stronghold",
+			"stat": "def", "value": 4, "siege_reduction_pct": 30,
+		},
+		{
+			"level": 35, "passive_id": "hyouka_taunt_aura",
+			"name": "挑衅光环", "desc": "强制敌方优先攻击冰华所在部队",
+			"type": "targeting",
+			"force_target": true,
+		},
+		{
+			"level": 40, "passive_id": "hyouka_damage_reflection",
+			"name": "伤害反射", "desc": "反弹受到伤害的20%给攻击者",
+			"type": "on_hit",
+			"reflect_damage_pct": 20,
+		},
+		{
+			"level": 45, "passive_id": "hyouka_unbreakable",
+			"name": "不破之盾", "desc": "HP<50%时DEF翻倍, 受治疗效果+30%",
+			"type": "conditional_stat",
+			"condition": "hp_below_pct", "threshold": 50,
+			"def_mult": 2.0, "heal_received_bonus_pct": 30,
+		},
+		{
+			"level": 50, "passive_id": "hyouka_absolute_defense",
+			"name": "绝对防御", "desc": "全军DEF+5; HP归零时100%保留1兵(每场2次)",
+			"type": "aura",
+			"stat": "def", "value": 5,
+			"on_death_survive_pct": 100, "uses_per_battle": 2,
+		},
 	],
 
-	# ── 翠玲 ────────────────────────────────────────────
+	# ── 翠玲（精灵射手）───────────────────────────────────
 	"suirei": [
 		{
 			"level": 3, "passive_id": "suirei_eagle_eye",
@@ -247,9 +414,48 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"type": "priority",
 			"target": "all_back_row", "damage_mult": 0.5,
 		},
+		# ── Lv25-50 新增被动 ──
+		{
+			"level": 25, "passive_id": "suirei_wind_arrow",
+			"name": "风之箭", "desc": "攻击后排ATK+4(替代鹰眼), 35%概率攻击两次",
+			"type": "conditional_stat",
+			"condition": "target_back_row",
+			"stat": "atk", "value": 4, "double_shot_pct": 35,
+		},
+		{
+			"level": 30, "passive_id": "suirei_heart_seeker",
+			"name": "追心箭", "desc": "暴击率+20%, 暴击伤害×2.0",
+			"type": "special",
+			"crit_bonus_pct": 20, "crit_mult": 2.0,
+		},
+		{
+			"level": 35, "passive_id": "suirei_suppressive_fire",
+			"name": "压制射击", "desc": "先制阶段被翠玲攻击的目标本回合ATK-3",
+			"type": "priority",
+			"debuff_stat": "atk", "debuff_value": -3, "duration": 1,
+		},
+		{
+			"level": 40, "passive_id": "suirei_phantom_arrow",
+			"name": "幻影箭", "desc": "无视目标50%DEF(替代穿甲箭)",
+			"type": "special",
+			"def_ignore_pct": 50,
+		},
+		{
+			"level": 45, "passive_id": "suirei_arrow_rain",
+			"name": "箭雨", "desc": "先制阶段额外攻击全体敌军(ATK×0.3)",
+			"type": "priority",
+			"target": "all_enemies", "damage_mult": 0.3,
+		},
+		{
+			"level": 50, "passive_id": "suirei_divine_marksman",
+			"name": "神射·极", "desc": "50%概率攻击三次; 先制AoE伤害(ATK×0.6)",
+			"type": "special",
+			"triple_shot_pct": 50,
+			"priority_aoe_mult": 0.6,
+		},
 	],
 
-	# ── 月华 ────────────────────────────────────────────
+	# ── 月华（月神巫女）───────────────────────────────────
 	"gekka": [
 		{
 			"level": 3, "passive_id": "gekka_mana_flow",
@@ -275,9 +481,48 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"type": "aura",
 			"stat": "int_stat", "value": 3, "cooldown_reduction": 1,
 		},
+		# ── Lv25-50 新增被动 ──
+		{
+			"level": 25, "passive_id": "gekka_crescent_ward",
+			"name": "新月结界", "desc": "全军每回合恢复2兵HP(替代月光治愈)",
+			"type": "per_round",
+			"heal_target": "all_allies", "heal_amount": 2,
+		},
+		{
+			"level": 30, "passive_id": "gekka_moonbeam",
+			"name": "月光束", "desc": "每2回合对HP最高敌军造成INT×2伤害",
+			"type": "per_round",
+			"interval": 2, "target": "enemy_max_hp", "damage_int_mult": 2,
+		},
+		{
+			"level": 35, "passive_id": "gekka_lunar_tide",
+			"name": "月潮", "desc": "+2法力/回合, 每2回合移除敌方2个增益",
+			"type": "per_round",
+			"mp_regen": 2, "interval": 2, "remove_buff_count": 2,
+		},
+		{
+			"level": 40, "passive_id": "gekka_astral_barrier",
+			"name": "星界屏障", "desc": "全军法术伤害减免30%",
+			"type": "aura",
+			"magic_damage_reduction_pct": 30,
+		},
+		{
+			"level": 45, "passive_id": "gekka_full_moon_grace",
+			"name": "满月恩赐", "desc": "友军INT+5, 技能冷却-2(替代月神祝福)",
+			"type": "aura",
+			"stat": "int_stat", "value": 5, "cooldown_reduction": 2,
+		},
+		{
+			"level": 50, "passive_id": "gekka_eternal_moonlight",
+			"name": "永夜月华", "desc": "全军每回合恢复3兵HP; 每回合驱散全部敌方增益; INT+6",
+			"type": "per_round",
+			"heal_target": "all_allies", "heal_amount": 3,
+			"dispel_all_enemy_buffs": true,
+			"aura_int": 6,
+		},
 	],
 
-	# ── 叶隐 ────────────────────────────────────────────
+	# ── 叶隐（影忍）───────────────────────────────────────
 	"hakagure": [
 		{
 			"level": 3, "passive_id": "hakagure_stealth",
@@ -304,9 +549,49 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"type": "on_hit",
 			"dodge_chance_pct": 30,
 		},
+		# ── Lv25-50 新增被动 ──
+		{
+			"level": 25, "passive_id": "hakagure_shadow_step",
+			"name": "影步", "desc": "隐身延长至2回合; SPD+3",
+			"type": "stealth",
+			"duration_rounds": 2, "stat_bonus": { "spd": 3 },
+		},
+		{
+			"level": 30, "passive_id": "hakagure_assassinate",
+			"name": "暗杀", "desc": "对HP<30%的目标伤害×2.5",
+			"type": "conditional_stat",
+			"condition": "target_hp_below_pct", "threshold": 30,
+			"damage_mult": 2.5,
+		},
+		{
+			"level": 35, "passive_id": "hakagure_smoke_bomb",
+			"name": "烟雾弹", "desc": "被攻击时20%使全队获得隐身1回合(每场2次)",
+			"type": "on_hit",
+			"chance_pct": 20, "effect": "team_stealth", "duration": 1,
+			"uses_per_battle": 2,
+		},
+		{
+			"level": 40, "passive_id": "hakagure_vital_strike",
+			"name": "要害一击", "desc": "暴击率+30%(替代致命打击); 暴击伤害×2.5",
+			"type": "special",
+			"crit_bonus_pct": 30, "crit_mult": 2.5,
+		},
+		{
+			"level": 45, "passive_id": "hakagure_vanish",
+			"name": "消失", "desc": "45%闪避率(替代幻影分身); 闪避后下次攻击ATK+5",
+			"type": "on_hit",
+			"dodge_chance_pct": 45, "post_dodge_atk_bonus": 5,
+		},
+		{
+			"level": 50, "passive_id": "hakagure_shadow_sovereign",
+			"name": "影之主宰", "desc": "3回合隐身; 暴击率+40%; 闪避50%; 首击×3.0",
+			"type": "special",
+			"stealth_rounds": 3, "crit_bonus_pct": 40,
+			"dodge_chance_pct": 50, "first_attack_mult": 3.0,
+		},
 	],
 
-	# ── 蒼 ──────────────────────────────────────────────
+	# ── 蒼（大贤者）───────────────────────────────────────
 	"sou": [
 		{
 			"level": 3, "passive_id": "sou_arcane_focus",
@@ -332,9 +617,47 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"type": "special",
 			"spell_damage_bonus_pct": 30, "aoe_mp_reduction": 3,
 		},
+		# ── Lv25-50 新增被动 ──
+		{
+			"level": 25, "passive_id": "sou_elemental_mastery",
+			"name": "元素精通", "desc": "法术伤害+20%(叠加); AoE额外命中2目标",
+			"type": "special",
+			"spell_damage_bonus_pct": 20, "aoe_extra_targets": 2,
+		},
+		{
+			"level": 30, "passive_id": "sou_mana_overflow",
+			"name": "魔力溢出", "desc": "+3法力/回合; MP满时法术伤害额外+15%",
+			"type": "per_round",
+			"mp_regen": 3, "full_mp_spell_bonus_pct": 15,
+		},
+		{
+			"level": 35, "passive_id": "sou_spell_penetration",
+			"name": "法术穿透", "desc": "法术攻击无视目标40%魔抗",
+			"type": "special",
+			"magic_resist_ignore_pct": 40,
+		},
+		{
+			"level": 40, "passive_id": "sou_arcane_explosion",
+			"name": "奥术爆发", "desc": "每5回合自动释放全体AoE(INT×3伤害)",
+			"type": "per_round",
+			"interval": 5, "aoe_damage_int_mult": 3,
+		},
+		{
+			"level": 45, "passive_id": "sou_sage_wisdom",
+			"name": "贤者慧眼", "desc": "全军INT+4; 法术冷却-2",
+			"type": "aura",
+			"stat": "int_stat", "value": 4, "cooldown_reduction": 2,
+		},
+		{
+			"level": 50, "passive_id": "sou_grand_archmage",
+			"name": "大魔导·极", "desc": "法术伤害+50%; AoE命中全体; 法力消耗-5; +4法力/回合",
+			"type": "special",
+			"spell_damage_bonus_pct": 50, "aoe_target_all": true,
+			"aoe_mp_reduction": 5, "mp_regen": 4,
+		},
 	],
 
-	# ── 紫苑 ────────────────────────────────────────────
+	# ── 紫苑（时空法师）───────────────────────────────────
 	"shion": [
 		{
 			"level": 3, "passive_id": "shion_time_sense",
@@ -360,9 +683,47 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"type": "special",
 			"interval": 3, "effect": "extra_team_action",
 		},
+		# ── Lv25-50 新增被动 ──
+		{
+			"level": 25, "passive_id": "shion_haste",
+			"name": "加速术", "desc": "全军SPD+2; 敌全军SPD-2",
+			"type": "aura",
+			"ally_spd": 2, "enemy_spd": -2,
+		},
+		{
+			"level": 30, "passive_id": "shion_time_rewind",
+			"name": "时光倒流", "desc": "每场战斗可撤销最近1次友军伤亡(每场1次)",
+			"type": "special",
+			"undo_last_casualty": true, "uses_per_battle": 1,
+		},
+		{
+			"level": 35, "passive_id": "shion_temporal_cage",
+			"name": "时空牢笼", "desc": "每4回合冻结1个敌方单位2回合",
+			"type": "per_round",
+			"interval": 4, "effect": "freeze_enemy", "duration": 2,
+		},
+		{
+			"level": 40, "passive_id": "shion_chrono_shift",
+			"name": "时空跃迁", "desc": "每2回合全军额外行动1次(替代时空之主)",
+			"type": "special",
+			"interval": 2, "effect": "extra_team_action",
+		},
+		{
+			"level": 45, "passive_id": "shion_parallel_timeline",
+			"name": "平行时间线", "desc": "40%免伤(替代时空闪避); SPD+4",
+			"type": "on_hit",
+			"first_hit_dodge_pct": 40, "stat_bonus": { "spd": 4 },
+		},
+		{
+			"level": 50, "passive_id": "shion_time_sovereign",
+			"name": "时空支配者", "desc": "全军SPD+4; 敌军SPD-3; 每回合全军额外行动1次",
+			"type": "aura",
+			"ally_spd": 4, "enemy_spd": -3,
+			"extra_team_action_per_round": 1,
+		},
 	],
 
-	# ── 焔 ──────────────────────────────────────────────
+	# ── 焔（炎舞法师）─────────────────────────────────────
 	"homura": [
 		{
 			"level": 3, "passive_id": "homura_burn",
@@ -388,6 +749,46 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"name": "炼狱", "desc": "AoE附加3回合灼烧+敌方治疗-50%",
 			"type": "special",
 			"dot_rounds": 3, "heal_reduction_pct": 50,
+		},
+		# ── Lv25-50 新增被动 ──
+		{
+			"level": 25, "passive_id": "homura_wildfire",
+			"name": "野火蔓延", "desc": "灼烧扩散至相邻敌军; DoT伤害提升至ATK×0.3",
+			"type": "on_hit",
+			"dot_spread": true, "dot_atk_mult": 0.3,
+		},
+		{
+			"level": 30, "passive_id": "homura_fire_storm",
+			"name": "火焰风暴", "desc": "全军ATK+3(替代火焰光环); 敌方受火属性伤害+25%",
+			"type": "aura",
+			"stat": "atk", "value": 3,
+			"fire_damage_taken_bonus_pct": 25,
+		},
+		{
+			"level": 35, "passive_id": "homura_melt_armor",
+			"name": "熔甲", "desc": "灼烧中敌人DEF-4; 受伤+30%(替代引爆)",
+			"type": "special",
+			"condition": "target_burning",
+			"def_reduction": 4, "damage_bonus_pct": 30,
+		},
+		{
+			"level": 40, "passive_id": "homura_phoenix_flame",
+			"name": "凤凰之焰", "desc": "被击倒时对全体敌军造成ATK×3伤害(每场1次)",
+			"type": "on_death",
+			"aoe_damage_atk_mult": 3, "uses_per_battle": 1,
+		},
+		{
+			"level": 45, "passive_id": "homura_eternal_flame",
+			"name": "永恒之焰", "desc": "灼烧DoT提升至ATK×0.5; 灼烧无法被驱散",
+			"type": "on_hit",
+			"dot_atk_mult": 0.5, "dot_undispellable": true,
+		},
+		{
+			"level": 50, "passive_id": "homura_hellfire_lord",
+			"name": "炎帝", "desc": "全军ATK+5; AoE附加5回合灼烧; 敌方治疗-80%; 火伤+50%",
+			"type": "special",
+			"aura_atk": 5, "dot_rounds": 5,
+			"heal_reduction_pct": 80, "fire_damage_bonus_pct": 50,
 		},
 	],
 }

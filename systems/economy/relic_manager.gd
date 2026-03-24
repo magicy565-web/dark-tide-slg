@@ -77,6 +77,8 @@ func get_relic_effect(player_id: int, effect_key: String) -> Variant:
 				value = 1.0 + (value - 1.0) * 2.0
 			elif value < 1.0:
 				value = 1.0 + (value - 1.0) * 2.0
+				# 负面乘数下限0.2，防止完全免疫（最多减少80%）
+				value = maxf(0.2, value)
 		elif value is int:
 			value = value * 2
 		elif value is bool:
