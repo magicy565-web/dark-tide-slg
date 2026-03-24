@@ -185,3 +185,9 @@ signal settings_closed()
 signal quest_journal_updated()
 signal challenge_battle_requested(challenge_id: String, battle_data: Dictionary)
 signal challenge_battle_resolved(challenge_id: String, won: bool)
+
+# ── Story Event System (v1.0) ──
+signal story_event_triggered(hero_id: String, event_data: Dictionary)
+signal story_event_completed(hero_id: String, event_id: String)
+signal story_route_completed(hero_id: String, route: String)
+signal story_choice_made(hero_id: String, event_id: String, choice_index: int)
