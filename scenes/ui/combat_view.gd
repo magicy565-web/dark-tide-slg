@@ -90,6 +90,10 @@ var _kills_atk: int = 0
 var _kills_def: int = 0
 var _is_finishing: bool = false
 
+# ── Buff/debuff tracking (side -> slot -> Array[String]) ──
+var _active_buffs: Dictionary = {}
+var _dot_timers: Dictionary = {}  # side -> slot -> float (accumulator for DoT particles)
+
 # ── Unit tracking (side -> slot -> dict with live data) ──
 var _live_units: Dictionary = {"attacker": {}, "defender": {}}
 
@@ -123,6 +127,7 @@ var vignette: ColorRect
 var screen_flash: ColorRect
 var side_label_atk: Label
 var side_label_def: Label
+var vs_label: Label
 
 # Card panels indexed: attacker_cards[slot] and defender_cards[slot]
 var attacker_cards: Dictionary = {}
@@ -159,6 +164,31 @@ func _process(delta: float) -> void:
 			_combo_count = 0
 			if combo_label:
 				combo_label.visible = false
+
+	# DoT persistent particles (poison/burn)
+	for side_key in _active_buffs.keys():
+		if not _active_buffs[side_key] is Dictionary:
+			continue
+		for slot_key in _active_buffs[side_key].keys():
+			var buffs: Array = _active_buffs[side_key][slot_key]
+			var has_dot := buffs.has("poison") or buffs.has("burn")
+			if not has_dot:
+				continue
+			if not _dot_timers.has(side_key):
+				_dot_timers[side_key] = {}
+			if not _dot_timers[side_key].has(slot_key):
+				_dot_timers[side_key][slot_key] = 0.0
+			_dot_timers[side_key][slot_key] += delta
+			if _dot_timers[side_key][slot_key] >= 0.8 / _speed_mult:
+				_dot_timers[side_key][slot_key] = 0.0
+				var pos := _get_card_center(side_key, slot_key)
+				var density := _particle_density_mult()
+				if buffs.has("poison"):
+					for i in range(max(1, int(2 * density))):
+						_spawn_dot_particle(pos, Color(0.2, 0.85, 0.3, 0.7))
+				if buffs.has("burn"):
+					for i in range(max(1, int(2 * density))):
+						_spawn_dot_particle(pos, Color(1.0, 0.3, 0.15, 0.7))
 # ═══════════════════════════════════════════════════════════
 #                       UI CONSTRUCTION
 # ═══════════════════════════════════════════════════════════
@@ -226,6 +256,10 @@ func _build_ui() -> void:
 	var vs_lbl := _make_label("V S", 36, Color(1, 0.35, 0.25, 0.9), Vector2(CENTER_X - 36, GRID_TOP + 130), Vector2(72, 44))
 	vs_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	shake_container.add_child(vs_lbl)
+	vs_label = vs_lbl
+	var vs_tw := create_tween().set_loops()
+	vs_tw.tween_property(vs_lbl, "modulate:a", 0.5, 1.2).set_trans(Tween.TRANS_SINE)
+	vs_tw.tween_property(vs_lbl, "modulate:a", 0.9, 1.2).set_trans(Tween.TRANS_SINE)
 
 	# Divider line with glow effect
 	var divider := ColorRect.new()
@@ -622,6 +656,8 @@ func show_battle(battle_result: Dictionary) -> void:
 
 	# Initialize live unit data
 	_live_units = {"attacker": {}, "defender": {}}
+	_active_buffs = {"attacker": {}, "defender": {}}
+	_dot_timers = {"attacker": {}, "defender": {}}
 	var atk_units: Array = battle_result.get("attacker_units_initial", [])
 	var def_units: Array = battle_result.get("defender_units_initial", [])
 	_populate_cards(attacker_cards, atk_units, "attacker")
@@ -671,8 +707,12 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 			var empty_s := _make_card_style(Color(0.06, 0.06, 0.09, 0.5), Color(0.15, 0.15, 0.18))
 			card.add_theme_stylebox_override("panel", empty_s)
 			_live_units[side].erase(slot_idx)
+			if _active_buffs.has(side):
+				_active_buffs[side][slot_idx] = []
 		else:
 			_live_units[side][slot_idx] = unit.duplicate()
+			if _active_buffs.has(side):
+				_active_buffs[side][slot_idx] = []
 			var uclass: String = unit.get("class", "ashigaru")
 			var cc: Color = CLASS_COLORS.get(uclass, Color(0.3, 0.3, 0.35))
 			class_tab.color = cc
@@ -753,6 +793,8 @@ func _apply_death_overlay(side: String, slot_idx: int) -> void:
 	if is_captured:
 		overlay.text = "俘 獲"
 		overlay.add_theme_color_override("font_color", Color(0.3, 0.5, 1.0))
+		# Blue chain flash effect for capture
+		_spawn_capture_chains(side, slot_idx)
 	else:
 		overlay.text = "殲 滅"
 		overlay.add_theme_color_override("font_color", Color(1.0, 0.25, 0.15))
@@ -1390,6 +1432,17 @@ func _show_round_splash(round_num: int) -> void:
 	# Subtle screen flash for round start
 	_screen_flash_effect(Color(0.8, 0.7, 0.5, 0.08), 0.4)
 
+	# Horizontal light sweep line
+	var sweep := ColorRect.new()
+	sweep.size = Vector2(SCREEN_W, 2)
+	sweep.position = Vector2(0, SCREEN_H * 0.5)
+	sweep.color = Color(1, 0.9, 0.7, 0.4)
+	sweep.z_index = 58
+	anim_layer.add_child(sweep)
+	var sweep_tw := create_tween()
+	sweep_tw.tween_property(sweep, "position:y", -10.0, 0.6 / _speed_mult).set_ease(Tween.EASE_IN)
+	sweep_tw.tween_callback(func(): if is_instance_valid(sweep): sweep.queue_free())
+
 func _play_kill_cutscene(side: String, slot_idx: int) -> void:
 	EventBus.sfx_unit_killed.emit(side)
 	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
@@ -1701,6 +1754,7 @@ func _apply_log_entry(entry: Dictionary) -> void:
 		"siege":
 			log_line = "[color=#f88]〔攻城〕[/color] %s" % desc
 			_screen_shake(SHAKE_MEDIUM, 8.0)
+			_spawn_siege_debris()
 
 		"death":
 			log_line = "[color=#f44]〔殲滅〕[/color] %s" % desc
