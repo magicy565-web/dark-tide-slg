@@ -52,11 +52,11 @@ func tick(threat_value: int) -> void:
 			_coordinate_defense_focus()
 
 func _evaluate_tier(threat: int) -> int:
-	if threat >= 80:
+	if threat >= BalanceConfig.THREAT_TIER_FULL_ALLIANCE:
 		return AllianceTier.DESPERATE
-	elif threat >= 60:
+	elif threat >= BalanceConfig.THREAT_TIER_MILITARY:
 		return AllianceTier.MILITARY
-	elif threat >= 30:
+	elif threat >= BalanceConfig.THREAT_TIER_DEFENSE:
 		return AllianceTier.DEFENSE
 	return AllianceTier.NONE
 
@@ -80,14 +80,14 @@ func _apply_defense_bonus() -> void:
 					if nb["owner_id"] < 0 and nb.get("light_faction", -1) >= 0:
 						adj_light += 1
 		if adj_light > 0:
-			tile["alliance_def_bonus"] = 30  # +30% defense
+			tile["alliance_def_bonus"] = BalanceConfig.ALLIANCE_DEF_BONUS_PCT
 
 func _try_spawn_expedition() -> void:
 	## Attempt to spawn a joint expedition army that attacks player's frontier.
 	if _expedition_cooldown > 0:
 		return
-	# 25% chance per turn at MILITARY, 40% at DESPERATE
-	var chance: int = 25 if _current_tier == AllianceTier.MILITARY else 40
+	# Spawn chance from BalanceConfig
+	var chance: int = BalanceConfig.EXPEDITION_CHANCE_MILITARY if _current_tier == AllianceTier.MILITARY else BalanceConfig.EXPEDITION_CHANCE_DESPERATE
 	if randi() % 100 >= chance:
 		return
 
@@ -110,8 +110,8 @@ func _try_spawn_expedition() -> void:
 	# Pick a random frontier tile to attack
 	var target: Dictionary = frontier_tiles[randi() % frontier_tiles.size()]
 
-	# Spawn expedition strength based on tier
-	var strength: int = 8 if _current_tier == AllianceTier.MILITARY else 15
+	# Spawn expedition strength based on tier (from BalanceConfig)
+	var strength: int = BalanceConfig.EXPEDITION_STRENGTH_MILITARY if _current_tier == AllianceTier.MILITARY else BalanceConfig.EXPEDITION_STRENGTH_DESPERATE
 
 	var exp_name: String = "联军远征军" if _current_tier == AllianceTier.MILITARY else "光明联军精锐"
 	EventBus.message_log.emit("[color=red]%s 向据点#%d 发起进攻! (兵力: %d)[/color]" % [exp_name, target["index"], strength])
@@ -119,8 +119,8 @@ func _try_spawn_expedition() -> void:
 	# Simulate attack: compare expedition strength vs tile garrison
 	var garrison: int = target.get("garrison", 0)
 	var random_coeff: float = randf_range(0.75, 1.25)
-	var exp_power: float = float(strength) * 10.0 * random_coeff
-	var def_power: float = float(garrison) * 8.0 * randf_range(0.75, 1.25)
+	var exp_power: float = float(strength) * BalanceConfig.EXPEDITION_ATK_PER_UNIT * random_coeff
+	var def_power: float = float(garrison) * BalanceConfig.EXPEDITION_DEF_PER_UNIT * randf_range(0.75, 1.25)
 
 	# Alliance defense bonus from adjacent tiles
 	var def_bonus: float = 1.0 + float(target.get("alliance_def_bonus", 0)) / 100.0
@@ -129,13 +129,13 @@ func _try_spawn_expedition() -> void:
 	if exp_power > def_power:
 		# Expedition wins - tile lost
 		target["owner_id"] = -1
-		target["garrison"] = maxi(1, strength - int(float(garrison) * 0.5))
+		target["garrison"] = maxi(1, strength - int(float(garrison) * BalanceConfig.EXPEDITION_CAPTURE_GARRISON_LOSS))
 		EventBus.message_log.emit("[color=red]据点#%d 被联军夺回![/color]" % target["index"])
 		EventBus.territory_changed.emit(target["index"], -1)
 		OrderManager.change_order(-3)
 	else:
 		# Defense holds
-		var losses: int = maxi(1, int(float(strength) * 0.3))
+		var losses: int = maxi(1, int(float(strength) * BalanceConfig.EXPEDITION_DEFENSE_LOSS))
 		target["garrison"] = maxi(1, garrison - losses)
 		EventBus.message_log.emit("击退联军进攻! 驻军损失 %d" % losses)
 
@@ -148,8 +148,8 @@ func _reinforce_final_outposts() -> void:
 			continue
 		if tile.get("light_faction", -1) < 0:
 			continue
-		# Add +2 garrison per turn to all remaining light tiles
-		tile["garrison"] = tile.get("garrison", 0) + 2
+		# Add reinforcement per turn from BalanceConfig
+		tile["garrison"] = tile.get("garrison", 0) + BalanceConfig.DESPERATE_REINFORCE_PER_TURN
 
 func _coordinate_defense_focus() -> void:
 	## At MILITARY+ tier, identify the most threatened light faction zone
@@ -196,7 +196,7 @@ func _coordinate_defense_focus() -> void:
 		tile["garrison"] += 1
 
 	for tile in zone_tiles[donor_zone]:
-		if tile["garrison"] > 3:
+		if tile["garrison"] > BalanceConfig.ZONE_TRANSFER_MIN_GARRISON:
 			tile["garrison"] -= 1
 
 	var zone_names: Dictionary = {0: "人类王国", 1: "精灵族", 2: "法师塔"}

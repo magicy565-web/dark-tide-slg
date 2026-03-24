@@ -38,24 +38,33 @@ const AP_PER_TILES: int = 5  # +1 AP per 5 owned tiles
 const MAX_AP: int = 6
 const COMBAT_POWER_PER_UNIT: int = 10
 
-# ── Army system constants (v0.9.2) ──
-const MAX_ARMIES_BASE: int = 3
-const MAX_ARMIES_UPGRADED: int = 5
-const MAX_TROOPS_PER_ARMY: int = 6  # 3 front + 3 back (SR07 formation)
-const MAX_HEROES_PER_ARMY: int = 2
-const SUPPLY_LINE_SAFE: int = 4  # BalanceConfig.SUPPLY_SAFE_RANGE
-const SUPPLY_LINE_ATTRITION_PCT: float = 0.03  # 3% soldiers/turn if > safe range
-const SUPPLY_LINE_CUT_ATTRITION_PCT: float = 0.08  # 8% soldiers/turn if disconnected
-const FORCED_MARCH_AP: int = 2
-const FORCED_MARCH_LOSS_PCT: float = 0.10
+# ── Army system constants (v0.9.2 → v2.1 unified with BalanceConfig) ──
+# All values now delegate to BalanceConfig for single source of truth.
+var MAX_ARMIES_BASE: int:
+	get: return BalanceConfig.MAX_ARMIES_BASE
+var MAX_ARMIES_UPGRADED: int:
+	get: return BalanceConfig.MAX_ARMIES_UPGRADED
+var MAX_TROOPS_PER_ARMY: int:
+	get: return BalanceConfig.MAX_TROOPS_PER_ARMY
+var MAX_HEROES_PER_ARMY: int:
+	get: return BalanceConfig.MAX_HEROES_PER_ARMY
+var SUPPLY_LINE_SAFE: int:
+	get: return BalanceConfig.SUPPLY_SAFE_RANGE
+var SUPPLY_LINE_ATTRITION_PCT: float:
+	get: return BalanceConfig.SUPPLY_ATTRITION_MILD_PCT
+var SUPPLY_LINE_CUT_ATTRITION_PCT: float:
+	get: return BalanceConfig.SUPPLY_ATTRITION_CUT_PCT
+var FORCED_MARCH_AP: int:
+	get: return BalanceConfig.FORCED_MARCH_AP
+var FORCED_MARCH_LOSS_PCT: float:
+	get: return BalanceConfig.FORCED_MARCH_LOSS_PCT
 
-const UPGRADE_COSTS: Array = [
-	[0, 0],
-	[80, 15],
-	[180, 40],
-]
-const UPGRADE_PROD_MULT: Array = [1.0, 1.6, 2.5]
-const MAX_TILE_LEVEL: int = 3
+var UPGRADE_COSTS: Array:
+	get: return BalanceConfig.UPGRADE_COSTS
+var UPGRADE_PROD_MULT: Array:
+	get: return BalanceConfig.UPGRADE_PROD_MULT
+var MAX_TILE_LEVEL: int:
+	get: return BalanceConfig.TILE_MAX_LEVEL
 
 const PROD_RANGES: Dictionary = {
 	TileType.LIGHT_STRONGHOLD: {"gold": [13, 17], "food": [2, 4], "iron": [4, 6], "pop": [3, 5]},
@@ -1224,6 +1233,9 @@ func begin_turn() -> void:
 	# ── Phase 1: Faction tick ──
 	FactionManager.tick_faction(pid, faction_id, _prev_turn_had_combat)
 
+	# ── Phase 1b: Process deferred effects ──
+	_process_deferred_effects(pid, player)
+
 	# ── Phase 2: Production ──
 	var income: Dictionary = ProductionCalculator.calculate_turn_income(pid)
 
@@ -1357,6 +1369,66 @@ func end_turn() -> void:
 	begin_turn()
 
 
+## Process deferred tile and turn effects (gold_next_visit, attacked_next_turn, etc.)
+func _process_deferred_effects(player_id: int, player: Dictionary) -> void:
+	# 1. Process deferred attacks scheduled for this turn
+	if player.has("deferred_attacks"):
+		var remaining: Array = []
+		for atk in player["deferred_attacks"]:
+			atk["turns_delay"] -= 1
+			if atk["turns_delay"] <= 0:
+				# Execute the deferred attack
+				var tile_idx: int = atk["tile_index"]
+				if tile_idx >= 0 and tile_idx < tiles.size():
+					var target_tile: Dictionary = tiles[tile_idx]
+					if target_tile["owner_id"] == player_id:
+						var saved_garrison: int = target_tile["garrison"]
+						target_tile["garrison"] = atk["strength"]
+						_resolve_combat(player, target_tile, "伏击部队")
+						target_tile["garrison"] = saved_garrison
+						EventBus.message_log.emit("[color=red]预定的袭击已发生! (兵力: %d)[/color]" % atk["strength"])
+					# else: tile no longer owned, attack fizzles
+			else:
+				remaining.append(atk)
+		if remaining.is_empty():
+			player.erase("deferred_attacks")
+		else:
+			player["deferred_attacks"] = remaining
+
+	# 2. Check gold_next_visit on the player's current position
+	var pos: int = player.get("position", -1)
+	if pos >= 0 and pos < tiles.size():
+		var tile: Dictionary = tiles[pos]
+		if tile.has("deferred_effects"):
+			var def_fx: Dictionary = tile["deferred_effects"]
+			if def_fx.has("gold_next_visit"):
+				var fx: Dictionary = def_fx["gold_next_visit"]
+				if fx["player_id"] == player_id:
+					var gold_val: int = fx["value"]
+					ResourceManager.apply_delta(player_id, {"gold": gold_val})
+					EventBus.message_log.emit("[color=yellow]触发延迟效果: 获得 %d 金币![/color]" % gold_val)
+					def_fx.erase("gold_next_visit")
+			# Clean up empty deferred_effects
+			if def_fx.is_empty():
+				tile.erase("deferred_effects")
+
+	# 3. Tick down duration-based deferred tile effects
+	for tile in tiles:
+		if not tile.has("deferred_effects"):
+			continue
+		var to_remove: Array = []
+		for key in tile["deferred_effects"]:
+			var fx: Dictionary = tile["deferred_effects"][key]
+			if fx.has("turns_remaining") and fx["turns_remaining"] > 0:
+				fx["turns_remaining"] -= 1
+				if fx["turns_remaining"] <= 0:
+					to_remove.append(key)
+		for key in to_remove:
+			tile["deferred_effects"].erase(key)
+		if tile["deferred_effects"].is_empty():
+			tile.erase("deferred_effects")
+
+
 ## Phase 4b: Apply per-turn passive effects to a player's troops.
 func _tick_troop_passives(player_id: int) -> void:
 	var tick_result: Dictionary = CombatAbilities.tick_per_round_passives(player_id)
@@ -1414,9 +1486,35 @@ func _spawn_expedition() -> void:
 # ═══════════════ ARMY SYSTEM (v0.9.2) ═══════════════
 
 func get_max_armies(player_id: int) -> int:
-	## Returns max army count for a player (base 3, can upgrade to 5).
-	# TODO: Check buildings/research for army cap upgrade
-	return MAX_ARMIES_BASE
+	## Returns max army count for a player. Base 3, upgradable via buildings and research.
+	var cap: int = BalanceConfig.MAX_ARMIES_BASE
+
+	# Check buildings: each Lv3 training_ground adds +1 army slot (max +1)
+	var training_lv3_count: int = 0
+	for tile in tiles:
+		if tile["owner_id"] == player_id:
+			var bld: String = tile.get("building", "")
+			var bld_lv: int = tile.get("building_level", 0)
+			if bld == "training_ground" and bld_lv >= 3:
+				training_lv3_count += 1
+
+	if training_lv3_count > 0:
+		cap += 1  # First Lv3 training ground unlocks +1 army slot
+
+	# Check research: completed "logistics_mastery" tech grants +1 army slot
+	if ResearchManager and ResearchManager.has_method("is_completed"):
+		if ResearchManager.is_completed(player_id, "logistics_mastery"):
+			cap += 1
+
+	# Check faction-specific bonuses
+	var faction_id: int = get_player_faction(player_id)
+	if faction_id == FactionData.Faction.ORC:
+		# Orcs with WAAAGH! >= frenzy threshold get +1 temporary army
+		if OrcMechanic and OrcMechanic.has_method("get_waaagh"):
+			if OrcMechanic.get_waaagh(player_id) >= BalanceConfig.WAAAGH_FRENZY_THRESHOLD:
+				cap += 1
+
+	return mini(cap, BalanceConfig.MAX_ARMIES_UPGRADED)
 
 
 func get_player_armies(player_id: int) -> Array:
@@ -2926,9 +3024,32 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 						EventBus.message_log.emit("NPC已在队伍中")
 				else:
 					EventBus.message_log.emit("没有可获得的NPC")
-			"gold_next_visit", "attacked_next_turn", "prep_turns":
-				# Implemented as buffs or deferred effects
-				pass  # TODO: implement deferred tile/turn effects
+			"gold_next_visit":
+				# Store a gold bonus that triggers on next visit to a specific tile
+				var tile_idx: int = player.get("position", 0)
+				if not tiles[tile_idx].has("deferred_effects"):
+					tiles[tile_idx]["deferred_effects"] = {}
+				tiles[tile_idx]["deferred_effects"]["gold_next_visit"] = {
+					"player_id": player["id"],
+					"value": int(value),
+					"turns_remaining": effects.get("duration", -1),
+				}
+				EventBus.message_log.emit("下次访问此据点时获得 %d 金币" % int(value))
+			"attacked_next_turn":
+				# Schedule an enemy attack at the start of next turn
+				if not player.has("deferred_attacks"):
+					player["deferred_attacks"] = []
+				player["deferred_attacks"].append({
+					"strength": int(abs(value)),
+					"turns_delay": 1,
+					"tile_index": player.get("position", 0),
+				})
+				EventBus.message_log.emit("[color=red]下回合将遭到 %d 兵力的袭击![/color]" % int(abs(value)))
+			"prep_turns":
+				# Grant a preparation buff for N turns (defense bonus)
+				var duration: int = int(abs(value))
+				BuffManager.add_buff(player["id"], "prep_defense", "def_mult", 1.3, duration, "event")
+				EventBus.message_log.emit("获得备战状态: 防御+30%% 持续 %d 回合" % duration)
 			"army_per_turn":
 				BuffManager.add_buff(player["id"], "army_per_turn", "army_per_turn", value, effects.get("duration", 3), "event")
 				EventBus.message_log.emit("每回合军队变化 %d, 持续 %d 回合" % [value, effects.get("duration", 3)])

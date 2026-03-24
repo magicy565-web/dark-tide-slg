@@ -401,7 +401,7 @@ func apply_skill_in_combat(hero_id: String) -> Dictionary:
 	var hero_int: int = hero_data.get("int", 5)
 	# Affection bonus: +10% skill power per 5 affection
 	var aff: int = hero_affection.get(hero_id, 0)
-	var aff_mult: float = 1.0 + float(aff / 5) * 0.1
+	var aff_mult: float = 1.0 + float(aff) / 5.0 * 0.1
 
 	var skill_type: String = skill_def.get("type", "damage")
 	var base_power: float = skill_def.get("power", 0)

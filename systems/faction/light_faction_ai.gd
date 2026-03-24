@@ -135,12 +135,12 @@ func regen_walls() -> void:
 			continue
 		var idx: int = tile["index"]
 		if _wall_hp.has(idx):
-			var cap: int = 10
+			var cap: int = BalanceConfig.WALL_HP_VILLAGE
 			match tile["type"]:
 				GameManager.TileType.LIGHT_STRONGHOLD:
-					cap = 25
+					cap = BalanceConfig.WALL_HP_STRONGHOLD
 				GameManager.TileType.CORE_FORTRESS:
-					cap = 50
+					cap = BalanceConfig.WALL_HP_CORE_FORTRESS
 			cap = int(float(cap) * (1.0 + wall_bonus))  # Apply wall bonus to cap
 			_wall_hp[idx] = mini(cap, _wall_hp[idx] + regen)
 
@@ -154,7 +154,7 @@ func is_barrier_active(tile_index: int) -> bool:
 func apply_barrier_absorption(tile_index: int, damage: float) -> float:
 	if not _barrier_active.get(tile_index, false):
 		return damage
-	var base_absorb: float = 0.30
+	var base_absorb: float = BalanceConfig.BARRIER_BASE_ABSORPTION
 	# Ley line bonus: +15% per adjacent uncaptured elf tile
 	var ley_bonus: int = 0
 	if GameManager.adjacency.has(tile_index):
@@ -163,8 +163,8 @@ func apply_barrier_absorption(tile_index: int, damage: float) -> float:
 				var nb_tile: Dictionary = GameManager.tiles[neighbor]
 				if nb_tile.get("light_faction", -1) == FactionData.LightFaction.HIGH_ELVES and nb_tile["owner_id"] < 0:
 					ley_bonus += 1
-	var total_absorb: float = base_absorb + (float(ley_bonus) * 0.15)
-	total_absorb = minf(total_absorb, 0.90)  # Cap at 90%
+	var total_absorb: float = base_absorb + (float(ley_bonus) * BalanceConfig.BARRIER_LEY_LINE_BONUS)
+	total_absorb = minf(total_absorb, BalanceConfig.BARRIER_MAX_ABSORPTION)  # Cap
 	var absorbed: float = damage * total_absorb
 	_barrier_active[tile_index] = false
 	EventBus.message_log.emit("魔法屏障吸收了 %.0f 伤害! (灵脉加成: +%d%%)" % [absorbed, ley_bonus * 15])

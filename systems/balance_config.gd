@@ -43,6 +43,9 @@ const UPGRADE_COSTS := [
 	[3000, 200],    # Lv5
 ]
 
+## Production multipliers per settlement level (TW:W scaling)
+const UPGRADE_PROD_MULT := [1.0, 1.3, 1.6, 2.0, 2.5]
+
 ## Construction time per level (turns)
 const UPGRADE_TURNS := [0, 1, 2, 3, 4]
 
@@ -182,6 +185,48 @@ const AFFINITY_PER_TURN_FRIENDLY: int = 1
 const HERO_STAT_ATK_MULT: int = 3   # SR07 commander ATK adds ATK×10, we scale to ×3
 const HERO_STAT_DEF_MULT: int = 2   # SR07 DEF adds DEF×8, we scale to ×2
 const HERO_STAT_SPD_MULT: int = 1   # SR07 SPD affects delay by SPD×2
+
+# ═══════════════ LIGHT FACTION DEFENSE ═══════════════
+
+## Wall HP caps by tile type
+const WALL_HP_VILLAGE: int = 10
+const WALL_HP_STRONGHOLD: int = 25
+const WALL_HP_CORE_FORTRESS: int = 50
+
+## Elf barrier mechanics
+const BARRIER_BASE_ABSORPTION: float = 0.30
+const BARRIER_LEY_LINE_BONUS: float = 0.15
+const BARRIER_MAX_ABSORPTION: float = 0.90
+
+## Mage tower spell damage multiplier (hardcoded 0.3 → configurable)
+const MAGE_SPELL_DAMAGE_MULT: float = 0.30
+
+# ═══════════════ ALLIANCE AI ═══════════════
+
+## Alliance defense bonus % applied to adjacent light tiles
+const ALLIANCE_DEF_BONUS_PCT: int = 30
+
+## Expedition spawn chance per turn (%)
+const EXPEDITION_CHANCE_MILITARY: int = 25
+const EXPEDITION_CHANCE_DESPERATE: int = 40
+
+## Expedition army strength
+const EXPEDITION_STRENGTH_MILITARY: int = 8
+const EXPEDITION_STRENGTH_DESPERATE: int = 15
+
+## Expedition combat multipliers
+const EXPEDITION_ATK_PER_UNIT: float = 10.0
+const EXPEDITION_DEF_PER_UNIT: float = 8.0
+
+## Post-expedition garrison calculations
+const EXPEDITION_CAPTURE_GARRISON_LOSS: float = 0.5  # % of defender garrison subtracted from attacker
+const EXPEDITION_DEFENSE_LOSS: float = 0.3  # % of expedition strength lost on failed attack
+
+## Desperate tier reinforcement per turn
+const DESPERATE_REINFORCE_PER_TURN: int = 2
+
+## Minimum garrison for zone transfer
+const ZONE_TRANSFER_MIN_GARRISON: int = 3
 
 # ═══════════════ RESEARCH ═══════════════
 

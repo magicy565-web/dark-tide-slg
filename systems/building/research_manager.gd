@@ -61,6 +61,11 @@ func has_tech(player_id: int, tech_id: String) -> bool:
 	return tech_id in get_completed_techs(player_id)
 
 
+func is_completed(player_id: int, tech_id: String) -> bool:
+	## Alias for has_tech() — used by game_manager army cap check.
+	return has_tech(player_id, tech_id)
+
+
 func get_current_research(player_id: int) -> String:
 	if not _research_state.has(player_id):
 		return ""

@@ -639,9 +639,84 @@ func _on_equip_slot(hero_id: String, slot: String) -> void:
 		EventBus.message_log.emit("[color=yellow]没有适合该栏位的装备[/color]")
 		return
 
-	# For simplicity, equip the first matching item
-	# TODO: Show selection popup for multiple items
-	var equip_id: String = matching[0].get("item_id", "")
+	if matching.size() == 1:
+		# Only one match, equip directly
+		_do_equip_item(hero_id, matching[0].get("item_id", ""))
+	else:
+		# Show selection popup for multiple items
+		_show_equip_selection_popup(hero_id, matching)
+
+
+func _show_equip_selection_popup(hero_id: String, items: Array) -> void:
+	## Display a popup allowing the player to choose which item to equip.
+	# Remove any existing popup
+	var existing = root.find_child("EquipPopup", false, false)
+	if existing:
+		existing.queue_free()
+
+	var popup_bg := PanelContainer.new()
+	popup_bg.name = "EquipPopup"
+	popup_bg.anchor_left = 0.5
+	popup_bg.anchor_top = 0.5
+	popup_bg.anchor_right = 0.5
+	popup_bg.anchor_bottom = 0.5
+	popup_bg.custom_minimum_size = Vector2(280, 0)
+	popup_bg.offset_left = -140
+	popup_bg.offset_top = -100
+	popup_bg.offset_right = 140
+	popup_bg.offset_bottom = 100
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.18, 0.98)
+	style.border_color = Color(0.6, 0.55, 0.35)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	popup_bg.add_theme_stylebox_override("panel", style)
+	root.add_child(popup_bg)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	popup_bg.add_child(vbox)
+
+	var title := Label.new()
+	title.text = "选择装备"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
+	vbox.add_child(title)
+
+	vbox.add_child(HSeparator.new())
+
+	for item in items:
+		var item_id: String = item.get("item_id", "")
+		var equip_def: Dictionary = {}
+		if "EQUIPMENT_DEFS" in FactionData:
+			equip_def = FactionData.EQUIPMENT_DEFS.get(item_id, {})
+		var item_name: String = equip_def.get("name", item_id)
+		var item_desc: String = equip_def.get("desc", "")
+
+		var btn := Button.new()
+		btn.text = item_name
+		btn.tooltip_text = item_desc
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var captured_id: String = item_id
+		btn.pressed.connect(func():
+			_do_equip_item(hero_id, captured_id)
+			popup_bg.queue_free()
+		)
+		vbox.add_child(btn)
+
+	var btn_cancel := Button.new()
+	btn_cancel.text = "取消"
+	btn_cancel.pressed.connect(func(): popup_bg.queue_free())
+	vbox.add_child(btn_cancel)
+
+
+func _do_equip_item(hero_id: String, equip_id: String) -> void:
 	if HeroSystem.has_method("equip_item"):
 		var result: Dictionary = HeroSystem.equip_item(hero_id, equip_id)
 		if result.get("ok", false):

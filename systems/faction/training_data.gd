@@ -87,6 +87,13 @@ static var FACTION_TRAINING_TREE: Dictionary = {
 			"desc": "[主动] 消耗20 WAAAGH!→全军ATK×1.5(1回合)+免士气下降 (CD:5)",
 			"effects": {"unit_active": {"type": "all_orc", "id": "waaagh_roar", "atk_mult": 1.5, "duration": 1, "morale_immune": true, "waaagh_cost": 20, "cooldown": 5}},
 		},
+		"logistics_mastery": {
+			"name": "兵站精通", "branch": TechBranch.VANGUARD, "tier": TechTier.ADVANCED,
+			"cost": {"gold": 400, "iron": 40}, "turns": 3,
+			"prereqs": ["orc_vanguard_basic"],
+			"desc": "军团上限+1, 补给线安全距离+1",
+			"effects": {"army_cap_bonus": 1, "supply_range_bonus": 1},
+		},
 	},
 
 	# ═══ 海盗训练树 — 掠夺机动路线 ═══
@@ -150,6 +157,13 @@ static var FACTION_TRAINING_TREE: Dictionary = {
 			"desc": "[主动] 敌方ATK-20%/DEF-10%(2回合)+25%逃兵 (CD:5)",
 			"effects": {"unit_active": {"type": "all_pirate", "id": "black_flag_terror", "enemy_atk_debuff": 0.20, "enemy_def_debuff": 0.10, "duration": 2, "desert_chance": 0.25, "cooldown": 5}},
 		},
+		"logistics_mastery": {
+			"name": "兵站精通", "branch": TechBranch.RANGED, "tier": TechTier.ADVANCED,
+			"cost": {"gold": 400, "iron": 35}, "turns": 3,
+			"prereqs": ["pirate_crew_basic"],
+			"desc": "军团上限+1, 补给线安全距离+1",
+			"effects": {"army_cap_bonus": 1, "supply_range_bonus": 1},
+		},
 	},
 
 	# ═══ 暗精灵训练树 — 暗影诡计路线 ═══
@@ -212,6 +226,13 @@ static var FACTION_TRAINING_TREE: Dictionary = {
 			"prereqs": ["delf_erosion", "delf_intel_net"],
 			"desc": "[主动] 控制1敌方单位1回合+全军隐匿(首击免伤) (CD:6)",
 			"effects": {"unit_active": {"type": "all_dark_elf", "id": "shadow_domination", "mind_control_targets": 1, "mind_control_turns": 1, "team_stealth": true, "cooldown": 6}},
+		},
+		"logistics_mastery": {
+			"name": "兵站精通", "branch": TechBranch.MOBILE, "tier": TechTier.ADVANCED,
+			"cost": {"gold": 400, "iron": 30, "shadow": 1}, "turns": 3,
+			"prereqs": ["delf_warrior_basic"],
+			"desc": "军团上限+1, 补给线安全距离+1",
+			"effects": {"army_cap_bonus": 1, "supply_range_bonus": 1},
 		},
 	},
 }

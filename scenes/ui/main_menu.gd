@@ -153,12 +153,11 @@ func _build_title_panel() -> void:
 
 	btn_settings = _make_menu_button("游戏设置")
 	btn_settings.pressed.connect(_on_settings)
-	btn_settings.disabled = true  # Not implemented yet
 	vbox.add_child(btn_settings)
 
 	# Version
 	version_label = Label.new()
-	version_label.text = "v0.9.1"
+	version_label.text = "v2.1.0"
 	_apply_font_to_label(version_label)
 	version_label.add_theme_font_size_override("font_size", 11)
 	version_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
@@ -342,7 +341,9 @@ func _on_continue() -> void:
 
 
 func _on_settings() -> void:
-	pass  # TODO: Settings panel
+	var sp = get_tree().root.find_child("SettingsPanel", true, false)
+	if sp and sp.has_method("toggle_settings"):
+		sp.toggle_settings()
 
 
 func _on_faction_button(faction_id: int) -> void:
