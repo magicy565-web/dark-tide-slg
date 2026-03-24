@@ -24,7 +24,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_02",
 			"name": "事件 Stage 02: 游击战的泥沼",
-			"trigger": {"prev_event": "kaede_hostile_01"},
+			"trigger": {"prev_event": "kaede_hostile_01", "turn_min": 4, "threat_min": 15},
 			"scene": "部队深入森林腹地第三天。损失报告堆满了指挥官的案头——夜间哨兵被无声击倒，补给车辆的车轮被割断，营地水源中被投放了催吐草药。没有一次能看到袭击者的正面。士兵们的士气正在崩溃。",
 			"dialogues": [
 				{"speaker": "副官", "text": "连续三天了……她像鬼魂一样。弟兄们晚上不敢合眼。"},
@@ -38,7 +38,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_03",
 			"name": "事件 Stage 03: 森林精灵的伏击圈",
-			"trigger": {"prev_event": "kaede_hostile_02"},
+			"trigger": {"prev_event": "kaede_hostile_02", "turn_min": 6, "threat_min": 20},
 			"scene": "指挥官决定以精锐小队深入追踪。在一处溪流旁的空地上，四名精灵游侠突然从灌木和树冠中现身，弓弦拉满。这是一个精心设计的伏击圈——前有堵截，后有陷阱，两侧是无法攀爬的荆棘壁。",
 			"dialogues": [
 				{"speaker": "精灵游侠甲", "text": "人类，你们被包围了。放下武器。"},
@@ -53,7 +53,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_04",
 			"name": "事件 Stage 04: 影步之间的一瞬",
-			"trigger": {"prev_event": "kaede_hostile_03"},
+			"trigger": {"prev_event": "kaede_hostile_03", "turn_min": 8, "threat_min": 25},
 			"scene": "部队抵达隐秘森林的核心区域——一片被巨大古树环绕的隐蔽营地。简陋但整洁的树屋、晾晒的草药、几名老弱精灵惊恐地躲在角落。这里不像军事据点，更像难民营。 枫站在最高的树屋前，双刀出鞘，面无表情。",
 			"dialogues": [
 				{"speaker": "枫", "text": "……你看到了。这里没有军队。只有被暗精灵驱赶的难民。"},
@@ -71,7 +71,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_05",
 			"name": "事件 Stage 05: 被缚的暗影",
-			"trigger": {"prev_event": "kaede_hostile_04"},
+			"trigger": {"prev_event": "kaede_hostile_04", "turn_min": 10, "threat_min": 30},
 			"scene": "漫长的战斗结束。枫浑身是伤，单膝跪地，一把短刀折断，另一把被击飞。她抬头看着指挥官，眼神中没有恐惧，只有不甘。营地中的精灵难民哭泣着，有人跪地求饶。",
 			"dialogues": [
 				{"speaker": "枫", "text": "……杀了我。"},
@@ -87,7 +87,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_06",
 			"name": "事件 Stage 06: 笼中之影",
-			"trigger": {"prev_event": "kaede_hostile_05"},
+			"trigger": {"prev_event": "kaede_hostile_05", "turn_min": 12, "threat_min": 35},
 			"scene": "枫被安置在据点的禁闭室中。房间不大但干净，有床铺和基本设施。她盘腿坐在角落，背靠墙壁，从被俘到现在没有说过一个字。送来的食物原封不动。第三天，指挥官亲自前来。",
 			"dialogues": [
 				{"speaker": "指挥官", "text": "三天没吃东西了。你打算饿死自己？"},
@@ -104,7 +104,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_07",
 			"name": "事件 Stage 07: 暗影的弱点",
-			"trigger": {"prev_event": "kaede_hostile_06"},
+			"trigger": {"prev_event": "kaede_hostile_06", "turn_min": 14, "threat_min": 40},
 			"scene": "指挥官审阅情报时发现一条关键信息——枫有一个姐姐，三年前被暗精灵俘虏，至今生死不明。这就是她留在森林附近的真正原因。不只是为了难民，也是为了等待救出姐姐的机会。 指挥官带着这份情报去见枫。",
 			"dialogues": [
 				{"speaker": "指挥官", "text": "你姐姐——叫什么名字？"},
@@ -122,7 +122,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_08",
 			"name": "事件 Stage 08: 第一次训练",
-			"trigger": {"prev_event": "kaede_hostile_07"},
+			"trigger": {"prev_event": "kaede_hostile_07", "turn_min": 16, "threat_min": 45},
 			"scene": "指挥官提出条件：枫参与据点的军事训练，换取派遣搜索队寻找她姐姐的承诺。训练场上，枫被安排与几名精锐士兵对练。她站在场中央，双手空空——短刀还没有归还给她。",
 			"dialogues": [
 				{"speaker": "士兵甲", "text": "就这？一个手无寸铁的小姑娘？"},
@@ -150,7 +150,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_09",
 			"name": "事件 Stage 09: 暗夜审讯",
-			"trigger": {"prev_event": "kaede_hostile_08"},
+			"trigger": {"prev_event": "kaede_hostile_08", "turn_min": 18, "threat_min": 50},
 			"scene": "据点遭到暗精灵斥候的渗透。一名暗精灵被活捉，但拒绝开口。指挥官决定让枫参与审讯——她懂暗精灵的语言和习性。审讯室灯光昏暗，暗精灵被绑在椅子上，枫站在阴影中。",
 			"dialogues": [
 				{"type": "narration", "text": "暗精灵：（暗精灵语）\"哦？人类养了一只小猫？\""},
@@ -170,7 +170,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_10",
 			"name": "事件 Stage 10: 月光下的刀痕",
-			"trigger": {"prev_event": "kaede_hostile_09"},
+			"trigger": {"prev_event": "kaede_hostile_09", "turn_min": 20, "threat_min": 55},
 			"scene": "深夜，指挥官巡视据点时听到训练场传来金属碰撞声。枫拿着归还不久的双短刀，在月光下反复练习同一个动作——斩击、转身、再斩击。汗水浸透了她的衣背。走近后才发现，她对面的木桩上刻满了暗精灵文字。",
 			"dialogues": [
 				{"speaker": "指挥官", "text": "这么晚还在练？"},
@@ -196,7 +196,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_11",
 			"name": "事件 Stage 11: 奴隶营的情报",
-			"trigger": {"prev_event": "kaede_hostile_10"},
+			"trigger": {"prev_event": "kaede_hostile_10", "turn_min": 22, "threat_min": 60},
 			"scene": "搜索队带回了确切情报——枫的姐姐被关押在暗精灵第三奴隶营，位于黑岩谷深处。但营地守卫森严，正面进攻需要付出巨大代价。枫提出另一个方案：由她潜入。 指挥官的房间里，枫摊开一张手绘地图——三年来靠记忆和零碎情报拼凑而成的奴隶营布局。",
 			"dialogues": [
 				{"speaker": "枫", "text": "这里、这里、还有这里……守卫的换班间隔是四十分钟。我只需要二十分钟。"},
@@ -215,7 +215,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_12",
 			"name": "事件 Stage 12: 黑岩谷之夜",
-			"trigger": {"prev_event": "kaede_hostile_11"},
+			"trigger": {"prev_event": "kaede_hostile_11", "turn_min": 24, "threat_min": 60},
 			"scene": "月黑风高。枫身穿黑色紧身装束，双短刀贴背而行，如同融入夜色本身的一道暗影。指挥官率接应小队在谷口待命。通讯水晶中只能听到枫偶尔的呼吸声。二十分钟后——沉默。然后是打斗声、惨叫声，还有枫压抑的低吼。",
 			"dialogues": [
 				{"type": "narration", "text": "通讯水晶中传来枫急促的声音——"},
@@ -243,7 +243,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_13",
 			"name": "事件 Stage 13: 影步入光",
-			"trigger": {"prev_event": "kaede_hostile_12"},
+			"trigger": {"prev_event": "kaede_hostile_12", "turn_min": 26, "threat_min": 60},
 			"scene": "三天后，枫醒来。阳光从窗口洒入病房，她姐姐坐在床边削着苹果。枫呆呆地看了许久，伸手触碰姐姐的脸颊，确认不是在做梦。指挥官站在门口，刚好看到这一幕。",
 			"dialogues": [
 				{"speaker": "枫的姐姐", "text": "小枫，你的指挥官守了你三天没合眼哦。"},
@@ -290,7 +290,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_02",
 			"name": "事件 Stage 02: 林间的试探",
-			"trigger": {"prev_event": "kaede_friendly_01"},
+			"trigger": {"prev_event": "kaede_friendly_01", "affection_min": 3, "turn_min": 4},
 			"scene": "此后数日，指挥官在森林附近巡视时总能感到那道目光。不是监视，更像是……观察。偶尔地上会出现一些记号——暗精灵斥候的行进路线被标注出来，危险的野兽巢穴被用树枝做了标记。有人在暗中帮忙。 第五天，指挥官独自走进森林深处。在一棵古老的枫树下放下了一壶水和一些干粮。",
 			"dialogues": [
 				{"type": "narration", "text": "指挥官：（对着空旷的树林说）\"我知道你在。谢谢你标注的那些情报。\""},
@@ -307,7 +307,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_03",
 			"name": "事件 Stage 03: 暗精灵的追杀",
-			"trigger": {"prev_event": "kaede_friendly_02"},
+			"trigger": {"prev_event": "kaede_friendly_02", "affection_min": 4, "turn_min": 6},
 			"scene": "一个风雨交加的夜晚，据点外传来急促的脚步声和金属碰撞声。哨兵报告：有人在外围与暗精灵战斗。指挥官带队冲出据点大门，看到枫被五名暗精灵追兵围攻。她右臂受伤，但依然凭借极快的身法在雨中周旋。",
 			"dialogues": [
 				{"speaker": "暗精灵队长", "text": "叛徒！你以为躲在人类身后就安全了？交出名册！"},
@@ -324,7 +324,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_04",
 			"name": "事件 Stage 04: 名册的真相",
-			"trigger": {"prev_event": "kaede_friendly_03"},
+			"trigger": {"prev_event": "kaede_friendly_03", "affection_min": 5, "turn_min": 8},
 			"scene": "枫在据点的临时房间中养伤。第二天清晨，她将一份卷轴交给了指挥官——暗精灵奴隶营的详细名册，包括关押地点、守卫配置、换班时间。这就是暗精灵追杀她的原因。她偷了他们的核心情报。",
 			"dialogues": [
 				{"speaker": "枫", "text": "……这是名册。里面有所有被抓的精灵和人类奴隶的位置。"},
@@ -341,7 +341,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_05",
 			"name": "事件 Stage 05: 留下的理由",
-			"trigger": {"prev_event": "kaede_friendly_04"},
+			"trigger": {"prev_event": "kaede_friendly_04", "affection_min": 6, "turn_min": 10},
 			"scene": "枫的伤已基本痊愈。清晨，她站在据点门口，背着行囊，像是准备离开。几名被她之前帮助过的精灵难民拦在门口，恳求她留下。据点的士兵们也不自觉地围了过来——这几天枫帮哨兵标注了十几处暗精灵暗哨，所有人都知道她的价值。",
 			"dialogues": [
 				{"speaker": "精灵难民", "text": "枫大人，留下来吧！这里很安全，指挥官是好人。"},
@@ -361,7 +361,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_06",
 			"name": "事件 Stage 06: 屋顶上的月亮",
-			"trigger": {"prev_event": "kaede_friendly_05"},
+			"trigger": {"prev_event": "kaede_friendly_05", "affection_min": 7, "turn_min": 12},
 			"scene": "枫加入据点后选择住在最高的瞭望塔里——理由是\"视野好，适合警戒\"。但指挥官每天傍晚路过时，总能看到她坐在塔顶的边缘，望着南方暗精灵领地的方向发呆。今天黄昏，指挥官爬上了瞭望塔。",
 			"dialogues": [
 				{"speaker": "指挥官", "text": "可以坐吗？"},
@@ -383,7 +383,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_07",
 			"name": "事件 Stage 07: 训练场的默契",
-			"trigger": {"prev_event": "kaede_friendly_06"},
+			"trigger": {"prev_event": "kaede_friendly_06", "affection_min": 8, "turn_min": 14},
 			"scene": "枫作为新成员参与据点的联合训练。她被安排与指挥官搭档演练配合战术。枫的战斗风格极端独立——她习惯一个人行动，不依赖任何人。第一轮演练，她直接甩开指挥官单独突进，结果被模拟\"敌军\"包围。",
 			"dialogues": [
 				{"type": "narration", "text": "枫：（从泥地上站起来，抹掉脸上的泥）\"……\""},
@@ -402,7 +402,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_08",
 			"name": "事件 Stage 08: 雨夜的敲门声",
-			"trigger": {"prev_event": "kaede_friendly_07"},
+			"trigger": {"prev_event": "kaede_friendly_07", "affection_min": 9, "turn_min": 16},
 			"scene": "暴雨之夜。指挥官在房间里处理公务，忽然听到门被轻轻敲了两下。打开门，枫站在走廊里，淋得湿透。她穿着单薄的黑色内衬，头发贴在脸上，表情一如既往地冷淡。但仔细看，她的手指在微微发抖。",
 			"dialogues": [
 				{"speaker": "指挥官", "text": "怎么了？下这么大的雨——"},
@@ -434,7 +434,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_09",
 			"name": "事件 Stage 09: 集市的意外",
-			"trigger": {"prev_event": "kaede_friendly_08"},
+			"trigger": {"prev_event": "kaede_friendly_08", "affection_min": 9, "turn_min": 18},
 			"scene": "据点附近的商队带来了集市。指挥官邀请枫同行采购物资。枫穿着朴素的灰色披风混在人群中，浑身不自在——她习惯了阴影，热闹的人群让她像一只警觉的猫。",
 			"dialogues": [
 				{"speaker": "指挥官", "text": "放松点，没人认识你。"},
@@ -456,7 +456,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_10",
 			"name": "事件 Stage 10: 星空下的真名",
-			"trigger": {"prev_event": "kaede_friendly_09"},
+			"trigger": {"prev_event": "kaede_friendly_09", "affection_min": 9, "turn_min": 20},
 			"scene": "枫破例邀请指挥官去森林深处的一个秘密地点——一个只有她知道的山顶空地，可以看到没有任何遮挡的完整星空。她说这是她在最孤独的时候会来的地方。今晚是她第一次带别人来。",
 			"dialogues": [
 				{"speaker": "枫", "text": "……这里。"},
@@ -478,7 +478,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_11",
 			"name": "事件 Stage 11: 营救作战",
-			"trigger": {"prev_event": "kaede_friendly_10"},
+			"trigger": {"prev_event": "kaede_friendly_10", "affection_min": 9, "turn_min": 22},
 			"scene": "准备了两周的奴隶营突袭行动正式开始。枫担任潜入先锋，指挥官率主力部队在三个方向设伏。月黑风高，枫换上全套暗影装备，双刀涂了消光涂层。出发前，她在指挥所前停留了一瞬。",
 			"dialogues": [
 				{"type": "narration", "text": "枫：（背对指挥官）\"……如果我没回来。\""},
@@ -497,7 +497,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_12",
 			"name": "事件 Stage 12: 樱花树下的告白",
-			"trigger": {"prev_event": "kaede_friendly_11"},
+			"trigger": {"prev_event": "kaede_friendly_11", "affection_min": 9, "turn_min": 24},
 			"scene": "姐姐恢复得很好。一个月后的春日，据点旁的野樱花盛开。枫站在樱花树下，穿着那天集市买的新衣裳——是姐姐硬逼她换上的，说\"整天穿黑色像参加葬礼\"。她头上别着那枚枫叶发簪。 指挥官路过时，几乎没认出她。",
 			"dialogues": [
 				{"speaker": "指挥官", "text": "……枫？"},
@@ -519,7 +519,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_friendly_13",
 			"name": "事件 Stage 13: 光与影的交汇",
-			"trigger": {"prev_event": "kaede_friendly_12"},
+			"trigger": {"prev_event": "kaede_friendly_12", "affection_min": 9, "turn_min": 26},
 			"scene": "当晚。枫来到指挥官的房间，站在门口犹豫了很久。她最终敲了门。门开后，她穿着日常的黑色内衬，头发散着，枫叶发簪别在鬓边。月光从窗口洒进来，照亮了她认真又紧张的脸。",
 			"dialogues": [
 				{"speaker": "枫", "text": "……我来了。"},
@@ -570,7 +570,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_02",
 			"name": "事件 Stage 02: 暗精灵据点攻略",
-			"trigger": {"prev_event": "kaede_neutral_01"},
+			"trigger": {"prev_event": "kaede_neutral_01", "affection_min": 2, "turn_min": 5},
 			"scene": "进入隐秘森林后，指挥官收到一份匿名情报——附近的暗精灵据点正在扩张，已经侵占了两处精灵聚落。情报上用简洁的线条标注了据点的弱点：北墙年久失修，守卫在午夜换班时有十五分钟空窗。笔迹犀利如刀刻。",
 			"dialogues": [
 				{"speaker": "副官", "text": "这份情报来历不明，但内容极其详细。会不会是陷阱？"},
@@ -585,7 +585,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_03",
 			"name": "事件 Stage 03: 第二座据点与释放",
-			"trigger": {"prev_event": "kaede_neutral_02"},
+			"trigger": {"prev_event": "kaede_neutral_02", "affection_min": 3, "turn_min": 7},
 			"scene": "第二份匿名情报在三天后出现在指挥官的桌上——又一座暗精灵据点的完整布防图。这一次，情报的角落多了一行小字：\"这里有两个重要的人。务必活着带出来。\"",
 			"dialogues": [
 				{"type": "narration", "text": "指挥官：（看着那行字）\"重要的人……对谁重要？\""},
@@ -601,7 +601,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_04",
 			"name": "事件 Stage 04: 秩序的衡量",
-			"trigger": {"prev_event": "kaede_neutral_03"},
+			"trigger": {"prev_event": "kaede_neutral_03", "affection_min": 4, "turn_min": 9},
 			"scene": "枫开始以不定期的方式出现在指挥官面前——有时在森林的小径上，有时在据点的围墙外。她不进入据点，但会远远地观察。据点的治理数据她看在眼里：释放的奴隶得到了安置，精灵聚落得到了保护，秩序值在稳步上升。",
 			"dialogues": [
 				{"type": "narration", "text": "这一天，枫主动出现在指挥官面前。"},
@@ -620,7 +620,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_05",
 			"name": "事件 Stage 05: 加入的条件",
-			"trigger": {"prev_event": "kaede_neutral_04"},
+			"trigger": {"prev_event": "kaede_neutral_04", "affection_min": 5, "turn_min": 11},
 			"scene": "一个月后，秩序值稳定在45以上。枫再次出现——这次直接走进了据点的大门，引起一阵骚动。士兵们认出了那个传说中的暗影游侠，纷纷让路。她径直走到指挥官面前。",
 			"dialogues": [
 				{"speaker": "枫", "text": "一个月了。你没有变。"},
@@ -640,7 +640,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_06",
 			"name": "事件 Stage 06: 并肩的黎明",
-			"trigger": {"prev_event": "kaede_neutral_05"},
+			"trigger": {"prev_event": "kaede_neutral_05", "affection_min": 6, "turn_min": 13},
 			"scene": "枫加入后的第一次联合作战——清剿森林边缘的暗精灵侦察营。战斗在黎明前打响。枫的影步在实战中展现了恐怖的效率——她无声地穿过前排防线，直接击倒了对方的指挥官和法师。战斗在十五分钟内结束。",
 			"dialogues": [
 				{"type": "narration", "text": "枫：（收刀，气息平稳）\"……结束了。\""},
@@ -659,7 +659,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_07",
 			"name": "事件 Stage 07: 伤疤的地图",
-			"trigger": {"prev_event": "kaede_neutral_06"},
+			"trigger": {"prev_event": "kaede_neutral_06", "affection_min": 7, "turn_min": 15},
 			"scene": "训练中枫的旧伤复发，肩部的刀疤裂开渗血。她试图自己处理但位置刁钻。指挥官经过训练场后方的水井时，恰好撞见枫单手试图给自己后肩缠绷带——拧成了一个不可能的姿势。",
 			"dialogues": [
 				{"speaker": "指挥官", "text": "需要帮忙。"},
@@ -679,7 +679,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_08",
 			"name": "事件 Stage 08: 一碗热汤",
-			"trigger": {"prev_event": "kaede_neutral_07"},
+			"trigger": {"prev_event": "kaede_neutral_07", "affection_min": 8, "turn_min": 17},
 			"scene": "入冬了。据点食堂热闹非凡，但枫从不在食堂吃饭——她总是拿了食物回自己房间独自解决。今天格外冷，指挥官端着两碗热汤爬上瞭望塔。枫正盘腿坐在窗台上，对着冷硬的干粮发呆。",
 			"dialogues": [
 				{"type": "narration", "text": "指挥官：（递出热汤）\"刚炖的。\""},
@@ -699,7 +699,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_09",
 			"name": "事件 Stage 09: 夜间巡逻的默契",
-			"trigger": {"prev_event": "kaede_neutral_08"},
+			"trigger": {"prev_event": "kaede_neutral_08", "affection_min": 8, "turn_min": 19},
 			"scene": "指挥官和枫搭档进行夜间巡逻。这已经成了不成文的惯例——枫负责高处侦察，指挥官走地面路线，两人用预设的信号灯交流。这是他们之间最自然的相处方式：不需要太多言语，高效、默契、安静。",
 			"dialogues": [
 				{"type": "narration", "text": "巡逻过半。枫从树上无声落地，出现在指挥官身旁。"},
@@ -720,7 +720,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_10",
 			"name": "事件 Stage 10: 暴风雨前的承诺",
-			"trigger": {"prev_event": "kaede_neutral_09"},
+			"trigger": {"prev_event": "kaede_neutral_09", "affection_min": 8, "turn_min": 21},
 			"scene": "营救枫姐姐的作战计划进入最终阶段。指挥官召集军事会议，枫破例出席——这是她第一次坐在会议桌前而非藏在房梁上旁听。她将三年来收集的所有情报铺在桌上，手指精准地点出每一个关键位置。",
 			"dialogues": [
 				{"speaker": "枫", "text": "第三奴隶营。守卫编制240人。三道防线。核心区域有暗精灵法师驻守。"},
@@ -743,7 +743,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_11",
 			"name": "事件 Stage 11: 黑岩谷突袭",
-			"trigger": {"prev_event": "kaede_neutral_10"},
+			"trigger": {"prev_event": "kaede_neutral_10", "affection_min": 8, "turn_min": 23},
 			"scene": "总攻之夜。枫作为突击先锋潜入营地解除警报，指挥官率主力从三个方向发起进攻。战斗比预期更惨烈——暗精灵法师的防御阵法超出情报范围。枫在核心区域遭遇伏击，被三名暗精灵精锐围困。",
 			"dialogues": [
 				{"type": "narration", "text": "通讯水晶中——"},
@@ -764,7 +764,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_12",
 			"name": "事件 Stage 12: 醒来之后",
-			"trigger": {"prev_event": "kaede_neutral_11"},
+			"trigger": {"prev_event": "kaede_neutral_11", "affection_min": 8, "turn_min": 25},
 			"scene": "枫昏迷了两天后醒来。医疗室的白色天花板映入眼帘，空气中有草药和花的味道。床边的小桌上摆着一瓶野花——姐姐放的，还有一碗已经凉了的蘑菇汤。另一侧的椅子上，指挥官靠着椅背睡着了，手里还握着批阅了一半的文件。",
 			"dialogues": [
 				{"type": "narration", "text": "枫安静地看了指挥官很久。然后伸出手——轻轻地、小心翼翼地，像触碰一件易碎品一样，拨开了指挥官额前的头发。"},
@@ -785,7 +785,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_neutral_13",
 			"name": "事件 Stage 13: 枫叶与承诺",
-			"trigger": {"prev_event": "kaede_neutral_12"},
+			"trigger": {"prev_event": "kaede_neutral_12", "affection_min": 8, "turn_min": 27},
 			"scene": "枫出院后的第一个黄昏。她来到据点后山的一棵枫树下——这棵树是她加入后亲手种的，说是\"留个标记\"。现在树已经长了不少，红叶在夕阳中灿若云霞。枫站在树下等着指挥官。这一次，是她主动约的。",
 			"dialogues": [
 				{"speaker": "枫", "text": "……来了。"},

@@ -23,7 +23,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_02",
 			"name": "事件 Stage 02: 骸骨之海",
-			"trigger": {"prev_event": "mei_hostile_01"},
+			"trigger": {"prev_event": "mei_hostile_01", "turn_min": 4, "threat_min": 15},
 			"scene": "大军推进至死域深处，地面开始震动。白骨从泥土中破土而出，一具、十具、百具——无穷无尽的骸骨战士从大地中爬起，空洞的眼眶中燃烧着紫色的灵火。它们没有战吼，没有任何声音，只是沉默地举起锈蚀的武器，如同潮水般涌来。整片战场陷入令人窒息的寂静——只有骨骼碰撞的咔嚓声。",
 			"dialogues": [
 				{"speaker": "士兵", "text": "它们……它们从地里爬出来了！砍倒一个又站起来两个！"},
@@ -40,7 +40,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_03",
 			"name": "事件 Stage 03: 冥途之门",
-			"trigger": {"prev_event": "mei_hostile_02"},
+			"trigger": {"prev_event": "mei_hostile_02", "turn_min": 6, "threat_min": 20},
 			"scene": "废墟神殿的巨门缓缓打开。殿内一片漆黑，唯有中央祭坛上燃烧着一团紫色的灵火。灵火之下，一个少女静静地漂浮在半空——极度消瘦的身躯裹在破烂的哥特式黑裙中，纯白的长发末梢渐变为幽蓝色，脸上有从双眼延伸至下颌的黑色泪痕纹身。她头顶悬浮着一顶骨冠，手持骨杖「冥途」，杖顶的骷髅中跳动着紫色的魂火。她的眼睛——苍白如牛奶般的瞳孔——似乎什么都看不见，又似乎看穿了一切。 她开口了。声音平淡得如同在朗读天气预报。",
 			"dialogues": [
 				{"speaker": "冥", "text": "……你们来了。"},
@@ -61,7 +61,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_04",
 			"name": "事件 Stage 04: 灵魂之战",
-			"trigger": {"prev_event": "mei_hostile_03"},
+			"trigger": {"prev_event": "mei_hostile_03", "turn_min": 8, "threat_min": 25},
 			"scene": "战斗惨烈至极。冥的魔力远超预期——她一挥骨杖，紫色的灵魂之火便吞噬整排士兵；她低语一声，地面便裂开释放出无数亡灵。但她始终面无表情，既不愤怒也不悲伤，只是机械地释放着毁灭性的魔法，如同一台精密而冷漠的杀戮机器。 牧师们拼尽全力施展圣光结界，封印术师们消耗了所有法力储备，才终于编织出一张足够强大的封印法阵。当金色的锁链缠上冥的身体时，她低头看了看，像是在看一件与自己无关的事情。",
 			"dialogues": [
 				{"speaker": "牧师长", "text": "封印阵启动！所有人后退！"},
@@ -82,7 +82,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_05",
 			"name": "事件 Stage 05: 封印之笼",
-			"trigger": {"prev_event": "mei_hostile_04"},
+			"trigger": {"prev_event": "mei_hostile_04", "turn_min": 10, "threat_min": 30},
 			"scene": "冥被关押在特制的封印牢笼中——由圣银打造的鸟笼状囚室，刻满了抑制亡灵力量的符文。她安静地坐在笼中，双手放在膝上，苍白的眼睛直直地望着前方。她没有挣扎，没有哭泣，没有愤怒，甚至没有疑问。就像一尊被放错了位置的雕像。 看守们报告说，她整夜不动、不眠、不食——当然，亡灵本来就不需要这些。偶尔，她会歪头看向窗外，说一句没有任何语境的话，然后继续沉默。",
 			"dialogues": [
 				{"speaker": "看守", "text": "报告殿下，囚犯……呃，她什么都没做。真的什么都没做。就坐在那里。"},
@@ -107,7 +107,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_06",
 			"name": "事件 Stage 06: 人偶",
-			"trigger": {"prev_event": "mei_hostile_05"},
+			"trigger": {"prev_event": "mei_hostile_05", "turn_min": 12, "threat_min": 35},
 			"scene": "领主尝试与冥建立基本的主从关系。命令她站起来——她站起来。命令她坐下——她坐下。命令她走到门口——她走到门口。每一个指令都被精确地执行，没有多余的动作，没有犹豫，也没有服从的意愿——她只是照做了，如同牵线木偶响应拉扯。 她不理解\"为什么要这样做\"。她不抗拒，但也不配合。她只是……存在着。",
 			"dialogues": [
 				{"speaker": "领主", "text": "从今天开始，你属于我。明白吗？"},
@@ -130,7 +130,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_07",
 			"name": "事件 Stage 07: 触碰（H事件）",
-			"trigger": {"prev_event": "mei_hostile_06"},
+			"trigger": {"prev_event": "mei_hostile_06", "turn_min": 14, "threat_min": 40},
 			"scene": "领主第一次触碰冥的身体。她的皮肤冰冷得如同触摸大理石——不，比大理石更冷，带着一种渗入骨髓的寒意。她没有任何反应。不退缩、不颤抖、不抗拒。领主的手放在她肩上，她低头看了一眼那只手，然后抬头看向领主，苍白的眼睛里没有任何情绪。 比起反抗，这种彻底的无反应更加令人不安。",
 			"dialogues": [
 				{"speaker": "冥", "text": "你在触碰我。"},
@@ -152,7 +152,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_08",
 			"name": "事件 Stage 08: 碎片",
-			"trigger": {"prev_event": "mei_hostile_07"},
+			"trigger": {"prev_event": "mei_hostile_07", "turn_min": 16, "threat_min": 45},
 			"scene": "深夜，看守紧急报告——冥在笼中突然开始说话。她仍然坐着不动，但嘴唇在翕动，声音和之前完全不同——柔软的、带着笑意的、属于一个十六岁少女的声音。她在说着不连贯的话，像是在回忆一场梦。 领主赶到时，冥的双眼中罕见地泛起了微弱的光——不是紫色的灵火，而是近乎人类的、温暖的光。但只持续了几秒钟。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：（少女般的声音）\"——然后我把花编成花环，戴在妈妈头上……妈妈笑了……\""},
@@ -174,7 +174,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_09",
 			"name": "事件 Stage 09: 温度（H事件）",
-			"trigger": {"prev_event": "mei_hostile_08"},
+			"trigger": {"prev_event": "mei_hostile_08", "turn_min": 18, "threat_min": 50},
 			"scene": "这一次不同了。当领主触碰冥时，她的身体产生了微弱的反应——指尖轻颤，苍白的嘴唇微微张开。她感受到了温度——不是作为物理数据，而是作为一种\"感觉\"。这对于一个冰冷了四百年的亡灵来说，是翻天覆地的变化。 她茫然地看着自己的手，然后看向领主，苍白的眼睛里第一次出现了困惑——那是一种活人才会有的、真实的困惑。",
 			"dialogues": [
 				{"speaker": "冥", "text": "…………奇怪。"},
@@ -196,7 +196,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_10",
 			"name": "事件 Stage 10: 名前",
-			"trigger": {"prev_event": "mei_hostile_09"},
+			"trigger": {"prev_event": "mei_hostile_09", "turn_min": 20, "threat_min": 55},
 			"scene": "午后，阳光透过窗户照进冥的房间——封印减弱后，她被允许住在一个普通房间里，虽然窗户上仍刻着封印符文。冥站在窗边，看着窗外的花坛。她的表情仍然极淡，但和最初的\"空白\"不同——这是一种\"安静\"，带着若有若无的思绪。 她突然转向领主，问了一个出乎意料的问题。",
 			"dialogues": [
 				{"speaker": "冥", "text": "……我有个问题。"},
@@ -224,7 +224,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_11",
 			"name": "事件 Stage 11: 执念（H事件）",
-			"trigger": {"prev_event": "mei_hostile_10"},
+			"trigger": {"prev_event": "mei_hostile_10", "turn_min": 22, "threat_min": 60},
 			"scene": "情感觉醒的副作用开始显现。冥变了——她开始会在领主离开房间时无声地注视着门口；开始会在领主与其他人交谈时微微偏头倾听；开始会在独处时反复念叨领主的名字。 她的眼神不再是空白的——取而代之的是一种幽深的、沉溺的注视，像是溺水者抓住了唯一的浮木。四百年的孤独在一瞬间找到了出口，所有被压抑的情感洪流般涌向唯一的对象。",
 			"dialogues": [
 				{"speaker": "冥", "text": "你回来了。"},
@@ -248,7 +248,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_12",
 			"name": "事件 Stage 12: 生与死",
-			"trigger": {"prev_event": "mei_hostile_11"},
+			"trigger": {"prev_event": "mei_hostile_11", "turn_min": 24, "threat_min": 60},
 			"scene": "凌晨。冥独自一人站在窗边，盯着自己映在玻璃上的倒影。外面下着雨，水珠沿着窗户滑落，和她脸上永恒的黑色泪痕重叠在一起。她抬起枯瘦的手，放在胸口——那里没有心跳，没有温暖，什么都没有。 她终于意识到了那个一直被她忽略的事实—— 她已经死了。 而一个死去的存在，拥有感情，意味着永恒的痛苦。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：（对着自己的倒影）\"……我是死人。\""},
@@ -275,7 +275,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_hostile_13",
 			"name": "事件 Stage 13: 永远（H事件）",
-			"trigger": {"prev_event": "mei_hostile_12"},
+			"trigger": {"prev_event": "mei_hostile_12", "turn_min": 26, "threat_min": 60},
 			"scene": "领主握住了冥的手。灵力灼烧着领主的掌心——烫得如同抓住燃烧的煤炭。但领主没有松手。紫色的灵力慢慢消散，冥的手在领主掌心中不停颤抖——不是因为冰冷，而是因为她生平第一次（死后第一次）感受到了一种名为\"被挽留\"的情感。 她看着领主被灼伤的手掌，枯瘦的手指一根一根地收拢，扣紧。 窗外的雨停了。月光穿透云层，照进房间。",
 			"dialogues": [
 				{"speaker": "冥", "text": "……你的手。烧伤了。"},
@@ -326,7 +326,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_02",
 			"name": "事件 Stage 02: 奴隶的价值",
-			"trigger": {"prev_event": "mei_neutral_01"},
+			"trigger": {"prev_event": "mei_neutral_01", "affection_min": 2, "turn_min": 5},
 			"scene": "神殿地下实验室，墙壁上刻满了古老的亡灵术法阵。三名奴隶被锁链固定在石台上，恐惧地颤抖。冥站在法阵中央，骨杖轻点地面，幽蓝灵火沿着刻痕蔓延开来。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：「放在那里。」"},
@@ -348,7 +348,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_03",
 			"name": "事件 Stage 03: 骸骨军团",
-			"trigger": {"prev_event": "mei_neutral_02"},
+			"trigger": {"prev_event": "mei_neutral_02", "affection_min": 3, "turn_min": 7},
 			"scene": "神殿前的广场上，数百具骸骨兵整齐列阵。它们的眼眶中燃烧着幽蓝色的灵火，手持锈蚀的武器，在月光下宛如一支幽灵大军。冥站在高台上，骨杖敲击地面，骸骨兵齐刷刷单膝跪地。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：「三百二十具。够你用一阵了。」"},
@@ -371,7 +371,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_04",
 			"name": "事件 Stage 04: 白塔之役",
-			"trigger": {"prev_event": "mei_neutral_03"},
+			"trigger": {"prev_event": "mei_neutral_03", "affection_min": 4, "turn_min": 9},
 			"scene": "白塔外围，魔法屏障闪烁着金色光芒。法师公会的守卫在城墙上布阵，火球与雷电交织成防御网。冥漂浮在骸骨军团上方，黑发在魔力风暴中飞舞，骨杖指向白塔——她的眼睛第一次亮起了光，那是纯粹的、冰冷的杀意。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：「屏障是四元素锚定型。需要同时破坏四个节点。」"},
@@ -394,7 +394,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_05",
 			"name": "事件 Stage 05: 契约",
-			"trigger": {"prev_event": "mei_neutral_04"},
+			"trigger": {"prev_event": "mei_neutral_04", "affection_min": 5, "turn_min": 11},
 			"scene": "废墟神殿最深处的祭坛，冥将两颗魔力结晶嵌入王座两侧的凹槽。结晶发出脉动的紫光，整座神殿随之震颤。冥闭上眼睛，灵魂之火在她周身剧烈燃烧，然后——归于平静。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：「……完成了。」"},
@@ -415,7 +415,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_06",
 			"name": "事件 Stage 06: 空洞",
-			"trigger": {"prev_event": "mei_neutral_05"},
+			"trigger": {"prev_event": "mei_neutral_05", "affection_min": 6, "turn_min": 13},
 			"scene": "据点的走廊上，冥像幽灵一样飘过。她不吃饭，不睡觉，不说话，只是在夜晚时分站在月光下一动不动。其他成员远远地绕开她——那种死亡的气息让所有活人本能地恐惧。",
 			"dialogues": [
 				{"speaker": "士兵A", "text": "那个亡灵又站在院子里了……一整夜都不动，跟个雕像似的。"},
@@ -439,7 +439,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_07",
 			"name": "事件 Stage 07: 第一滴光",
-			"trigger": {"prev_event": "mei_neutral_06"},
+			"trigger": {"prev_event": "mei_neutral_06", "affection_min": 7, "turn_min": 15},
 			"scene": "据点花园的角落，几朵不知名的白色小花顽强地开在碎石缝里。玩家摘了一朵，带到冥经常站立的枯树下。冥接过花时，她的动作比以往慢了半拍——仿佛有什么东西在她空洞的内部轻轻搅动。",
 			"dialogues": [
 				{"speaker": "玩家", "text": "送你的。"},
@@ -464,7 +464,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_08",
 			"name": "事件 Stage 08: 什么是温暖",
-			"trigger": {"prev_event": "mei_neutral_07"},
+			"trigger": {"prev_event": "mei_neutral_07", "affection_min": 8, "turn_min": 17},
 			"scene": "据点大厅的壁炉燃着旺火，屋外风雪交加。众人围坐取暖，唯独冥站在角落的阴影里。但今天不同——她在缓慢地、一步一步地向壁炉靠近，像一只谨慎的野猫。",
 			"dialogues": [
 				{"type": "action", "text": "冥在距离壁炉三步远的地方停了下来。火光映在她苍白的脸上，给她罩上一层暖橙色的光晕。"},
@@ -490,7 +490,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_09",
 			"name": "事件 Stage 09: 心跳",
-			"trigger": {"prev_event": "mei_neutral_08"},
+			"trigger": {"prev_event": "mei_neutral_08", "affection_min": 8, "turn_min": 19},
 			"scene": "深夜，玩家在房间里被一阵寒意惊醒。冥不知何时出现在床边，正用那双空洞又带着微弱灵光的眼睛注视着玩家。月光从窗户洒入，照亮她苍白的面容和微微前倾的身体。",
 			"dialogues": [
 				{"speaker": "玩家", "text": "冥？！你怎么——"},
@@ -518,7 +518,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_10",
 			"name": "事件 Stage 10: 我曾经是谁",
-			"trigger": {"prev_event": "mei_neutral_09"},
+			"trigger": {"prev_event": "mei_neutral_09", "affection_min": 8, "turn_min": 21},
 			"scene": "冥突然跪倒在据点的走廊上，双手抱头，全身的灵火疯狂闪烁。周围的骸骨兵失控般颤抖。她的嘴里发出断断续续的、不属于她平时的声音——那是一个小女孩的声音。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：「不——不要……娘、娘亲……」"},
@@ -543,7 +543,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_11",
 			"name": "事件 Stage 11: 活着的感觉",
-			"trigger": {"prev_event": "mei_neutral_10"},
+			"trigger": {"prev_event": "mei_neutral_10", "affection_min": 8, "turn_min": 23},
 			"scene": "自从恢复记忆后，冥开始了一系列奇怪的尝试。今天，据点的厨房里一片狼藉——冥坐在桌前，面前摆满了各种食物。她正机械地将食物送入口中，咀嚼，然后面露困惑。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：「味道。小雪记得味道。甜的、咸的、酸的……但我现在什么都尝不到。」"},
@@ -573,7 +573,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_12",
 			"name": "事件 Stage 12: 执念与爱",
-			"trigger": {"prev_event": "mei_neutral_11"},
+			"trigger": {"prev_event": "mei_neutral_11", "affection_min": 8, "turn_min": 25},
 			"scene": "玩家带着伤回到据点的那一刻，空气骤然变冷。冥站在大门口，灵火从幽蓝色变成了暗紫色——那是她暴怒时才有的颜色。她的表情不再是空洞，而是一种扭曲的、可怕的执着。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：「你受伤了。」"},
@@ -604,7 +604,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_13",
 			"name": "事件 Stage 13: 永恒的花",
-			"trigger": {"prev_event": "mei_neutral_12"},
+			"trigger": {"prev_event": "mei_neutral_12", "affection_min": 8, "turn_min": 27},
 			"scene": "春天来了。据点花园里百花盛开。冥站在花丛中，指尖轻触花瓣。她的灵火比以往任何时候都柔和——几乎看不出是亡灵的标志，更像是笼罩在一个普通少女周围的淡淡光晕。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：「你还记得吗？你给我的第一朵花。」"},
@@ -634,7 +634,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_14",
 			"name": "特殊 Stage 01: 小雪的日记",
-			"trigger": {"prev_event": "mei_neutral_13"},
+			"trigger": {"prev_event": "mei_neutral_13", "affection_min": 8, "turn_min": 29},
 			"scene": "废墟神殿的地下深处，一间被封印的小房间。推开石门，里面保存着一张小小的木床、一个破旧的木箱、墙上用炭笔画着歪歪扭扭的花和蝴蝶——这是三百年前一个小女孩的房间。冥站在门口，浑身颤抖。",
 			"dialogues": [
 				{"type": "narration", "text": "冥：「这里是……我的房间。小雪的房间。」"},
@@ -665,7 +665,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "mei_neutral_15",
 			"name": "特殊 Stage 02: 最后的选择",
-			"trigger": {"prev_event": "mei_neutral_14"},
+			"trigger": {"prev_event": "mei_neutral_14", "affection_min": 8, "turn_min": 31},
 			"scene": "一个月圆之夜，废墟神殿的祭坛突然亮起了从未见过的金色光芒。一个半透明的老者身影浮现在祭坛上方——那是三百年前将小雪变为亡灵的黑袍术士，如今只剩下一缕残魂。",
 			"dialogues": [
 				{"speaker": "黑袍残魂", "text": "……没想到你还在。三百年了。"},

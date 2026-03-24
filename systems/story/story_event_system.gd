@@ -235,7 +235,7 @@ func _evaluate_trigger(hero_id: String, trigger: Dictionary) -> bool:
 					if get_flag(hero_id, flag_key) != flag_data[flag_key]:
 						return false
 			"turn_min":
-				if GameManager.current_turn < trigger[key]:
+				if GameManager.turn_number < trigger[key]:
 					return false
 			"tiles_min":
 				var pid: int = GameManager.get_human_player_id()
@@ -357,6 +357,15 @@ func get_save_data() -> Dictionary:
 
 func load_save_data(data: Dictionary) -> void:
 	story_progress = data.get("story_progress", {}).duplicate(true)
+
+
+## Aliases for SaveManager compatibility
+func to_save_data() -> Dictionary:
+	return get_save_data()
+
+
+func from_save_data(data: Dictionary) -> void:
+	load_save_data(data)
 
 
 # ═══════════════ DEBUG / QUERY ═══════════════

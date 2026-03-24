@@ -22,7 +22,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_02",
 			"name": "事件 Stage 02: 狂信之壁",
-			"trigger": {"prev_event": "akane_hostile_01"},
+			"trigger": {"prev_event": "akane_hostile_01", "turn_min": 4, "threat_min": 15},
 			"scene": "第一道防线被攻破后，圣地内部的景象令人震惊。石墙上绘满了月亮与鲜血的图腾，走廊两侧摆放着骨制祭器。狂信徒们高喊着\"月光即救赎\"冲向进攻部队，毫无畏惧。",
 			"dialogues": [
 				{"speaker": "副官", "text": "这些人……完全不怕死！刚才那一队，明知必败还发动了冲锋。"},
@@ -39,7 +39,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_03",
 			"name": "事件 Stage 03: 血之祭坛",
-			"trigger": {"prev_event": "akane_hostile_02"},
+			"trigger": {"prev_event": "akane_hostile_02", "turn_min": 6, "threat_min": 20},
 			"scene": "推进至圣地核心——一座巨大的露天祭坛。月光从天窗直射而下，将祭坛上的暗红色液体照得发亮。朱音站在祭坛中央，短杖抵在胸前，周围环绕着最后一批精锐护卫。她的表情出奇地平静，甚至带着一丝微笑。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "你终于来了。我在月光中看到过你的影子。"},
@@ -55,7 +55,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_04",
 			"name": "事件 Stage 04: 信仰崩塌",
-			"trigger": {"prev_event": "akane_hostile_03"},
+			"trigger": {"prev_event": "akane_hostile_03", "turn_min": 8, "threat_min": 25},
 			"scene": "朱音跪倒在祭坛上，祭祀短杖从手中滑落。月光依然照耀着她，但血之魔法已经消散。她的信徒或死或降，圣地一片狼藉。她低着头，长发散落，呼吸急促却依然努力维持着平静。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "……结束了吗。"},
@@ -72,7 +72,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_05",
 			"name": "事件 Stage 05: 月落之后",
-			"trigger": {"prev_event": "akane_hostile_04"},
+			"trigger": {"prev_event": "akane_hostile_04", "turn_min": 10, "threat_min": 30},
 			"scene": "古代圣地被占领后的第三天夜晚。朱音被安置在主营帐篷旁的小房间里，双手被轻缚。月光从窗格透入，她面朝窗户跪坐，嘴唇无声地翕动——还在祈祷。",
 			"dialogues": [
 				{"speaker": "主角（推门进入）", "text": "还在祈祷？你的血月可没有来救你。"},
@@ -90,7 +90,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_06",
 			"name": "事件 Stage 06: 裂隙",
-			"trigger": {"prev_event": "akane_hostile_05"},
+			"trigger": {"prev_event": "akane_hostile_05", "turn_min": 12, "threat_min": 35},
 			"scene": "军营夜晚，朱音被带到主角的书房。她的手腕上还有束缚的痕迹，但举止依然从容，如同赴一场预约好的茶会。桌上摊开着缴获的血月教团典籍。",
 			"dialogues": [
 				{"speaker": "主角", "text": "我读了你们的经典。'血月降世，万灵归一。祭血者引路，饮血者得道。'——你从什么时候开始信这些的？"},
@@ -107,7 +107,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_07",
 			"name": "事件 Stage 07: 温度",
-			"trigger": {"prev_event": "akane_hostile_06"},
+			"trigger": {"prev_event": "akane_hostile_06", "turn_min": 14, "threat_min": 40},
 			"scene": "深夜，朱音的房间。主角以\"检查\"为由进入。朱音坐在窗边，手指无意识地抚摸着手腕上的束缚痕迹。月光将她的轮廓勾勒得如同一幅宗教画。",
 			"dialogues": [
 				{"speaker": "主角", "text": "睡不着？"},
@@ -132,7 +132,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_08",
 			"name": "事件 Stage 08: 经文与眼泪",
-			"trigger": {"prev_event": "akane_hostile_07"},
+			"trigger": {"prev_event": "akane_hostile_07", "turn_min": 16, "threat_min": 45},
 			"scene": "翌日清晨。朱音跪在房间角落，面前摆着用记忆默写出的血月经文。纸上有几处被泪水洇开的墨迹。她听到脚步声时迅速擦掉眼泪，恢复了惯常的平静微笑。",
 			"dialogues": [
 				{"speaker": "主角", "text": "在写什么？"},
@@ -151,7 +151,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_09",
 			"name": "事件 Stage 09: 空洞的月亮",
-			"trigger": {"prev_event": "akane_hostile_08"},
+			"trigger": {"prev_event": "akane_hostile_08", "turn_min": 18, "threat_min": 50},
 			"scene": "暴雨之夜，乌云遮蔽了月亮。朱音蜷缩在床角，双臂抱膝。没有月光的夜晚，她的平静完全消失了。主角推门进来时，看到的是一个瑟瑟发抖的普通女人。",
 			"dialogues": [
 				{"speaker": "朱音（声音发颤）", "text": "月亮……看不到月亮了。"},
@@ -176,7 +176,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_10",
 			"name": "事件 Stage 10: 废墟之上",
-			"trigger": {"prev_event": "akane_hostile_09"},
+			"trigger": {"prev_event": "akane_hostile_09", "turn_min": 20, "threat_min": 55},
 			"scene": "雨后清晨，阳光穿透残云。朱音靠在主角身边，神情疲惫但奇异地安详。她没有再去窗边祈祷，而是看着阳光在地面缓缓移动。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "……我做了一个梦。梦见那些被我献祭的人。"},
@@ -195,7 +195,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_11",
 			"name": "事件 Stage 11: 新的名字",
-			"trigger": {"prev_event": "akane_hostile_10"},
+			"trigger": {"prev_event": "akane_hostile_10", "turn_min": 22, "threat_min": 60},
 			"scene": "朱音开始帮助处理军务，展现出令人意外的管理才能。她不再穿血月教团的红袍，换上了普通的灰色长衣，但依然保留着祭祀短杖——\"它只是一根杖子了，\"她这样说。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "今天的伤员名单我整理好了。另外，南线的补给需要重新分配。"},
@@ -218,7 +218,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_12",
 			"name": "事件 Stage 12: 血与月光",
-			"trigger": {"prev_event": "akane_hostile_11"},
+			"trigger": {"prev_event": "akane_hostile_11", "turn_min": 24, "threat_min": 60},
 			"scene": "战场上，朱音第一次为主角的军队使用血月祝福。但这一次，她的表情不再是超然的平静，而是带着清晰可见的痛苦。仪式结束后，她躲在帐篷里双手发抖。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "我做到了。全军ATK提升了10%。"},
@@ -235,7 +235,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_13",
 			"name": "事件 Stage 13: 祭司的黄昏",
-			"trigger": {"prev_event": "akane_hostile_12"},
+			"trigger": {"prev_event": "akane_hostile_12", "turn_min": 26, "threat_min": 60},
 			"scene": "满月之夜，古代圣地废墟。朱音独自回到曾经的祭坛，主角跟随在后。月光依旧如血，但祭坛上只有风和灰烬。朱音站在她曾经主持过无数次献祭的地方，闭上了眼睛。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "我最后一次来这里。"},
@@ -279,7 +279,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_02",
 			"name": "事件 Stage 02: 血战之证",
-			"trigger": {"prev_event": "akane_neutral_01"},
+			"trigger": {"prev_event": "akane_neutral_01", "affection_min": 2, "turn_min": 5},
 			"scene": "试炼场上，两名血月战士已经倒下。主角的武器上沾着鲜血，周围的信徒发出低沉的赞叹声。朱音从高台走下，赤足踩在沾血的地面上，毫不在意。她蹲下身，用手指沾了一滴血，放在月光下端详。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "红色。很纯净的红色。你的战斗方式很直接——没有犹豫，没有多余的动作。"},
@@ -298,7 +298,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_03",
 			"name": "事件 Stage 03: 月下献祭",
-			"trigger": {"prev_event": "akane_neutral_02"},
+			"trigger": {"prev_event": "akane_neutral_02", "affection_min": 3, "turn_min": 7},
 			"scene": "满月之夜，圣地最深处的祭坛。三名奴隶被绑在月形石柱上，表情木然——像是被某种草药麻痹了意识。朱音身着全套祭司礼服，暗红长袍在夜风中飘动。她手持祭祀短杖，低声吟唱古老的祈祷文。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "月亮升至最高处时，仪式开始。你站在我身边——作为见证者。"},
@@ -317,7 +317,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_04",
 			"name": "事件 Stage 04: 月亮的回答",
-			"trigger": {"prev_event": "akane_neutral_03"},
+			"trigger": {"prev_event": "akane_neutral_03", "affection_min": 4, "turn_min": 9},
 			"scene": "献祭仪式后的深夜。圣地庭院中，朱音独自坐在石阶上，仰望月亮。她的祭司礼服上还残留着仪式的痕迹。听到脚步声，她没有回头。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "还没走？仪式已经结束了。"},
@@ -339,7 +339,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_05",
 			"name": "事件 Stage 05: 同行之路",
-			"trigger": {"prev_event": "akane_neutral_04"},
+			"trigger": {"prev_event": "akane_neutral_04", "affection_min": 5, "turn_min": 11},
 			"scene": "古代圣地大门前。朱音背着简单的行囊，祭祀短杖别在腰间。身后一群信徒跪地送行，眼中满是不舍与虔诚。朱音转身，最后一次面向圣地，双手合十。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "我会回来的。月亮走到哪里，都照着同一片大地。"},
@@ -358,7 +358,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_06",
 			"name": "事件 Stage 06: 不同的夜晚",
-			"trigger": {"prev_event": "akane_neutral_05"},
+			"trigger": {"prev_event": "akane_neutral_05", "affection_min": 6, "turn_min": 13},
 			"scene": "行军途中的营地。篝火旁，士兵们饮酒谈笑。朱音独自坐在稍远处，面朝月亮静坐。火光与月光在她身上交织，将她的影子拉成两个方向。主角端着两碗热汤走过来。",
 			"dialogues": [
 				{"speaker": "主角", "text": "吃点东西。你从早上就没吃了。"},
@@ -380,7 +380,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_07",
 			"name": "事件 Stage 07: 伤口与祈祷",
-			"trigger": {"prev_event": "akane_neutral_06"},
+			"trigger": {"prev_event": "akane_neutral_06", "affection_min": 7, "turn_min": 15},
 			"scene": "小规模遭遇战后，主角手臂负伤。朱音主动上前处理伤口。她的手法熟练——祭司对血液和人体的了解远超常人。但她的手指碰触到温热鲜血的那一刻，明显僵住了。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "伤口不深。我来处理。"},
@@ -401,7 +401,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_08",
 			"name": "事件 Stage 08: 星星的名字",
-			"trigger": {"prev_event": "akane_neutral_07"},
+			"trigger": {"prev_event": "akane_neutral_07", "affection_min": 8, "turn_min": 17},
 			"scene": "晴朗的夜晚，难得没有月亮的新月之夜。满天星斗清晰可见。朱音坐在山坡上，不安地绞着手指——没有月亮的夜晚让她焦虑。主角在她身边坐下。",
 			"dialogues": [
 				{"speaker": "主角", "text": "今晚没有月亮。你看起来不太舒服。"},
@@ -422,7 +422,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_09",
 			"name": "事件 Stage 09: 第一次笑",
-			"trigger": {"prev_event": "akane_neutral_08"},
+			"trigger": {"prev_event": "akane_neutral_08", "affection_min": 8, "turn_min": 19},
 			"scene": "军营厨房。朱音尝试做饭——结果把粥煮糊了，厨房烟雾缭绕。她站在锅前手足无措，平时超然的祭司气质完全消失，变成了一个普通的、笨手笨脚的女孩。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "我不明白。我严格按照步骤做的——先加水，再加米，然后点火……"},
@@ -444,7 +444,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_10",
 			"name": "事件 Stage 10: 信仰与爱",
-			"trigger": {"prev_event": "akane_neutral_09"},
+			"trigger": {"prev_event": "akane_neutral_09", "affection_min": 8, "turn_min": 21},
 			"scene": "深夜，朱音的帐篷。她坐在床沿，手中握着祭祀短杖，表情复杂。案几上摊着一封从圣地传来的信件——信徒们在询问她何时归来主持大祭。主角掀帘进入。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "圣地来信了。下个月是血月大祭。他们需要我回去主持献祭。"},
@@ -467,7 +467,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_11",
 			"name": "事件 Stage 11: 月亮的另一面",
-			"trigger": {"prev_event": "akane_neutral_10"},
+			"trigger": {"prev_event": "akane_neutral_10", "affection_min": 8, "turn_min": 23},
 			"scene": "朱音没有回去。她写了一封长信，将大祭的主持权交给了副祭司。信送出后的那个夜晚，她站在营地外的悬崖边，面朝月亮，沉默了很久。主角在她身后静静等待。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "我背叛了月亮。"},
@@ -487,7 +487,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_12",
 			"name": "事件 Stage 12: 不再献祭",
-			"trigger": {"prev_event": "akane_neutral_11"},
+			"trigger": {"prev_event": "akane_neutral_11", "affection_min": 8, "turn_min": 25},
 			"scene": "一场大战在即。副官建议让朱音使用血月祝福来强化全军——这需要献祭奴隶。朱音站在军帐中，手持祭祀短杖，面前跪着三名准备好的祭品。她望着他们的眼睛，那里面有恐惧。",
 			"dialogues": [
 				{"speaker": "副官", "text": "祭司大人，请开始吧。时间紧迫。"},
@@ -511,7 +511,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_neutral_13",
 			"name": "事件 Stage 13: 朝阳祭司",
-			"trigger": {"prev_event": "akane_neutral_12"},
+			"trigger": {"prev_event": "akane_neutral_12", "affection_min": 8, "turn_min": 27},
 			"scene": "战争结束后的清晨。古代圣地已经成为了一座开放的疗养院——朱音将它从献祭圣殿改造成了治愈伤兵和收容孤儿的地方。晨光穿过石柱上残留的月相图腾，照亮了庭院中嬉闹的孩子们。朱音站在曾经的祭坛前，短杖在手，但姿态与从前完全不同。",
 			"dialogues": [
 				{"speaker": "朱音", "text": "以前每个清晨，我都在等月亮升起。现在我在等太阳。"},

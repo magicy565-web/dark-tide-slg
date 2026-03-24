@@ -25,7 +25,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_02",
 			"name": "敌对 Stage 02: 试探之战",
-			"trigger": {"prev_event": "hibiki_hostile_01"},
+			"trigger": {"prev_event": "hibiki_hostile_01", "turn_min": 4, "threat_min": 15},
 			"scene": "主公派出先遣部队试探要塞外围防线。两百轻步兵沿山道推进，意图夺取要塞前哨的采矿营地。然而他们刚进入山谷隘口，便遭到伏击——滚石从两侧山壁倾泻而下，箭矢如蝗虫般从暗处射出。 混乱之中，一声震天的怒吼从前方传来。響亲率五十名重甲矮人战士从正面杀出，她冲在最前方，战锤「铁砧」划过弧线，每一击都带着足以粉碎岩石的力量。先遣部队的盾墙在她面前如同薄纸。 这不是指挥官的打法。她是个亲自冲进铁与血的战士，用身体和锤子说话。先遣部队在付出三十余人的伤亡后被迫撤退，而響的矮人战士仅有轻微损伤。",
 			"dialogues": [
 				{"type": "narration", "text": "【山谷隘口，战斗正酣】"},
@@ -44,7 +44,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_03",
 			"name": "敌对 Stage 03: 铁壁攻防",
-			"trigger": {"prev_event": "hibiki_hostile_02"},
+			"trigger": {"prev_event": "hibiki_hostile_02", "turn_min": 6, "threat_min": 20},
 			"scene": "主公集结主力部队，以攻城器械对山岳要塞发动正式进攻。投石车的巨石砸向城墙，却在矮人铁甲上弹开，只留下浅浅的凹痕。云梯架上城墙，却被滚烫的铁水浇下，惨叫声此起彼伏。 響站在城头指挥，她的声音穿透了战场的喧嚣。每当一段城墙告急，她便亲自带队增援，战锤横扫，将攀上城头的敌兵尽数扫落。她的铁壁战术名不虚传——整座要塞如同一个巨大的铁刺猬，从任何方向进攻都会付出惨痛代价。 激战持续了整整一天。日落时分，主公的部队被迫后撤，留下数百具尸体和残破的攻城器械。外墙虽有损伤，但核心防线纹丝不动。这是一场代价高昂的失败。",
 			"dialogues": [
 				{"type": "narration", "text": "【城墙之上，战斗间隙】"},
@@ -65,7 +65,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_04",
 			"name": "敌对 Stage 04: 山岳决战",
-			"trigger": {"prev_event": "hibiki_hostile_03"},
+			"trigger": {"prev_event": "hibiki_hostile_03", "turn_min": 8, "threat_min": 25},
 			"scene": "围城进入第四十天。山岳要塞的锻炉已经熄灭了大半，没有矿石和燃料，響引以为傲的铁壁防线正在一点点崩塌。城内的储粮也所剩无几，矮人战士们的脸上写满了疲惫与饥饿。 主公选择在一个风雪夜发动总攻。三路大军同时进击，投石车集中轰击已经失去铁甲保护的东墙薄弱处。轰隆一声巨响，城墙终于被砸出一个缺口。 響在缺口处孤身而立。她的铠甲已经残破不堪，左臂缠着渗血的绷带，但她仍然紧握战锤「铁砧」，面对潮水般涌入的敌军，毫无退意。她像一座燃烧的熔炉，在最后时刻爆发出惊人的战斗力。",
 			"dialogues": [
 				{"type": "narration", "text": "【城墙缺口，最后的防线】"},
@@ -85,7 +85,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_05",
 			"name": "敌对 Stage 05: 断锤之辱",
-			"trigger": {"prev_event": "hibiki_hostile_04"},
+			"trigger": {"prev_event": "hibiki_hostile_04", "turn_min": 10, "threat_min": 30},
 			"scene": "響被五花大绑押入主公的营帐。她的铠甲被剥去，只剩下一身被血污和战尘染透的粗布衣裳，手腕和脚踝上是沉重的铁镣。即便如此，她昂首挺胸，眼神中没有丝毫恐惧。 营帐中央的桌案上，放着她的战锤「铁砧」。主公命人将战锤抬起——在響的注视下，铁匠用大锤反复捶打，将「铁砧」的锤头从柄上卸下，锤柄折为两段。 那一刻，響的眼神终于出现了裂痕。「铁砧」不仅是武器，更是她父亲留给她的遗物，是她身为锻造女王的象征。看着它被拆毁，比肉体的伤痛更加难以承受。",
 			"dialogues": [
 				{"type": "narration", "text": "【主公营帐内】"},
@@ -107,7 +107,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_06",
 			"name": "敌对 Stage 06: 不屈之铁",
-			"trigger": {"prev_event": "hibiki_hostile_05"},
+			"trigger": {"prev_event": "hibiki_hostile_05", "turn_min": 12, "threat_min": 35},
 			"scene": "響被关押在营地地牢中，手脚戴着特制的矮人铁镣——讽刺的是，这正是用她自己的锻造技术打造的枷锁。狭小的牢房阴暗潮湿，唯一的光源是走廊尽头的一盏油灯。 三天来，她拒绝进食，拒绝饮水，拒绝与任何人交谈。每当看守试图接近，她就像一头困兽般咆哮。她的嘴唇已经干裂出血，眼窝深陷，但那双眼睛仍然燃烧着不屈的火焰。 主公亲自来到地牢。響蜷缩在角落，听到脚步声便猛地抬头，眼中满是戒备与仇恨。铁镣在她身上哗哗作响，像是某种野兽的威胁声。",
 			"dialogues": [
 				{"type": "narration", "text": "【地牢牢房内】"},
@@ -130,7 +130,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_07",
 			"name": "敌对 Stage 07: 熔炉之火",
-			"trigger": {"prev_event": "hibiki_hostile_06"},
+			"trigger": {"prev_event": "hibiki_hostile_06", "turn_min": 14, "threat_min": 40},
 			"scene": "主公改变了策略。響被从阴暗的地牢转移到一间温暖的房间——有柔软的床铺、干净的衣物和热水。这不是仁慈，而是另一种形式的进攻。 響对这些\"好意\"嗤之以鼻，却无法拒绝身体的本能需求。饥饿了五天的身体在食物面前背叛了她的意志。当她终于狼吞虎咽地吃完一整桌饭菜后，才意识到自己已经在不知不觉中接受了对方给予的东西。这个认知让她暴怒。 夜晚，主公再次出现。这一次没有谈判，没有条件。房间里只有昏黄的灯火和響急促的呼吸声。",
 			"dialogues": [
 				{"type": "narration", "text": "【温暖的房间内】"},
@@ -160,7 +160,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_08",
 			"name": "敌对 Stage 08: 裂痕",
-			"trigger": {"prev_event": "hibiki_hostile_07"},
+			"trigger": {"prev_event": "hibiki_hostile_07", "turn_min": 16, "threat_min": 45},
 			"scene": "事件之后的三天，響几乎没有抬起过头。她缩在床角，将自己裹在被褥里，像一只受伤的野兽舔舐自己的伤口。她不再咆哮，不再咒骂——这份沉默比任何反抗都更令人不安。 第四天，主公命人送来一套衣物。不是囚衣，也不是铠甲——而是一件精致的女式衣裙，浅蓝色的绸缎上绣着银色的花纹。还有一面铜镜，一把象牙梳子，以及一盒胭脂。 響盯着这些东西，像是看到了什么比战场上的敌人更可怕的存在。",
 			"dialogues": [
 				{"type": "narration", "text": "【房间内】"},
@@ -186,7 +186,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_09",
 			"name": "敌对 Stage 09: 淬火",
-			"trigger": {"prev_event": "hibiki_hostile_08"},
+			"trigger": {"prev_event": "hibiki_hostile_08", "turn_min": 18, "threat_min": 50},
 			"scene": "響穿上了那件衣裙。布料贴合着她壮实的身体，勾勒出与铠甲截然不同的轮廓。她站在镜子前，表情复杂得难以形容——有厌恶，有困惑，有恐惧，还有某种她不愿承认的东西。 她已经在这个房间里待了十天。没有战斗，没有锻炉，没有她熟悉的一切。剩下的只有柔软的床、精致的衣物，以及每天夜晚准时到来的主公。她的身体正在记住某些她的意志拼命想要遗忘的事情。 今夜，当主公推门而入时，響没有像往常一样弹起身来咒骂。她只是坐在床边，低着头，双手紧紧攥着裙摆的布料。",
 			"dialogues": [
 				{"type": "narration", "text": "【房间内，夜晚】"},
@@ -217,7 +217,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_10",
 			"name": "敌对 Stage 10: 重铸",
-			"trigger": {"prev_event": "hibiki_hostile_09"},
+			"trigger": {"prev_event": "hibiki_hostile_09", "turn_min": 20, "threat_min": 55},
 			"scene": "又过了数日。響的变化是微妙而缓慢的——她不再整日蜷缩在角落，开始愿意走到窗前看看外面的天空。她学会了穿裙子（虽然走路姿势仍然像个扛锤子的矮人），甚至尝试用那把象牙梳子梳了梳她短而杂乱的头发。 但她的骨子里仍然燃烧着不灭的火。每当主公的部下对她表现出轻蔑，她便像刺猬一样竖起所有的刺。她偷偷用床单搓成绳子练习力量训练，把房间里的铁烛台当作小型哑铃举。 主公注意到了她的这些小小反抗，非但没有制止，反而命人在她房间里放了一个小铁砧和一套简易锻造工具。",
 			"dialogues": [
 				{"type": "narration", "text": "【房间内，白天】"},
@@ -241,7 +241,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_11",
 			"name": "敌对 Stage 11: 新的模具",
-			"trigger": {"prev_event": "hibiki_hostile_10"},
+			"trigger": {"prev_event": "hibiki_hostile_10", "turn_min": 22, "threat_min": 60},
 			"scene": "響在营地锻炉工作了半个月。她打出的铁器质量远超营地原有的铁匠，士兵们开始对她另眼相看——从\"俘虏\"变成了\"響师傅\"。她嘴上不说，但每次有人夸奖她的手艺时，嘴角都会微微翘起。 夜晚的房间里，她开始主动和主公说话。不再只有咒骂和沉默，偶尔会说起矮人锻造的技术，说起她父亲教她打铁时的往事。她的声音在这些时刻会变得柔和，像被炉火烘暖的铁。 今夜月光从窗口倾泻而入，響坐在床边，穿着那件浅蓝色的衣裙。她已经习惯了这件衣服，虽然她绝不会承认。她的短发别了一枚自己打造的铁发簪——小巧朴拙，却带着不为人知的心意。",
 			"dialogues": [
 				{"type": "narration", "text": "【房间内，夜晚】"},
@@ -275,7 +275,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_12",
 			"name": "敌对 Stage 12: 铁与花",
-			"trigger": {"prev_event": "hibiki_hostile_11"},
+			"trigger": {"prev_event": "hibiki_hostile_11", "turn_min": 24, "threat_min": 60},
 			"scene": "营地的锻炉前，響正在打铁。火花四溅中，她的动作依然有力而精准——锻造的技艺已经融入她的血脉，无论发生什么都不会改变。但仔细观察便会发现不同：她的短发上别着两枚发簪，一枚是她自己打的粗犷铁簪，另一枚是主公不知何时放在她枕边的银质花簪。 她嘴上骂骂咧咧说\"这种娘们儿玩意谁要啊\"，却每天都戴着。营地里的士兵私下议论纷纷，但没人敢当面说什么——上次有个新兵嘲笑她的发簪，被她一拳打飞了两颗牙。 黄昏时分，響收工后坐在锻炉旁的石墩上，望着远处的山脉。那是她曾经的领地，山岳要塞的轮廓在夕阳中若隐若现。她的眼中不再只有仇恨——还有更多说不清道不明的情绪。",
 			"dialogues": [
 				{"type": "narration", "text": "【锻炉旁，黄昏】"},
@@ -300,7 +300,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_hostile_13",
 			"name": "敌对 Stage 13: 锻造完成",
-			"trigger": {"prev_event": "hibiki_hostile_12"},
+			"trigger": {"prev_event": "hibiki_hostile_12", "turn_min": 26, "threat_min": 60},
 			"scene": "主公命人将「铁砧」的碎片送到響面前。那些断裂的锤头碎片和折断的锤柄——她以为再也见不到的父亲遗物。它们被仔细收集保存着，一片不少。 響颤抖着手触碰那些碎片，眼泪夺眶而出。她什么也没说，只是将碎片抱在怀里，蹲下身来，无声地哭了很久。 然后她站起来，走向锻炉。火焰在她的操作下猛烈跃升，炉温攀升至极限。她将「铁砧」的碎片一一投入熔炉——不是修复，而是重铸。旧的「铁砧」已经碎了，就像旧的她一样。但碎片中的铁还在，父亲注入其中的精魂还在。 她锻造了整整一天一夜。当黎明的第一缕曙光照进锻炉时，一把崭新的战锤成形了——比旧的「铁砧」更精致，锤头上镌刻着矮人符文和花纹交织的图案。铁与花，力量与柔美，在这件武器上完美融合。",
 			"dialogues": [
 				{"type": "narration", "text": "【锻炉前，黎明】"},
@@ -367,7 +367,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_02",
 			"name": "中立 Stage 02: 铁矿之约",
-			"trigger": {"prev_event": "hibiki_neutral_01"},
+			"trigger": {"prev_event": "hibiki_neutral_01", "affection_min": 2, "turn_min": 5},
 			"scene": "玩家带着十五份精心挑选的铁矿石返回山岳要塞。矿石用粗布包裹，沉甸甸地装了两大筐。 響正在锻冶场里整理工具，看到玩家回来，放下手中的钳子走了过来。她的表情依旧是那副不耐烦的样子，但视线已经落在了矿石上。 她随手拿起一块，放在掌心掂了掂重量，又举到眼前对着炉火的光仔细查看断面。然后又拿起第二块、第三块……每一块都认真检查。 锻冶场里安静了片刻，只剩下炉火噼啪的声响。",
 			"dialogues": [
 				{"type": "narration", "text": "響：（检查完最后一块，沉默了几秒）\"……哼。\""},
@@ -396,7 +396,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_03",
 			"name": "中立 Stage 03: 护送之路",
-			"trigger": {"prev_event": "hibiki_neutral_02"},
+			"trigger": {"prev_event": "hibiki_neutral_02", "affection_min": 3, "turn_min": 7},
 			"scene": "清晨，山岳要塞的大门缓缓打开。两辆装满武器的牛车在矮人护卫的簇拥下驶出，響走在队伍最前方，巨锤扛在肩上，步伐稳健有力。 玩家按约定时间抵达，響瞥了一眼，什么也没说，只是微微点了下头。 队伍沿着山间小道前进，途经一段狭窄的峡谷地带。響走在前面开路，不时用锤柄敲击崖壁，听回声判断有没有埋伏。 行至半程，响起了异样的声音——树丛中传来金属碰撞声和压低的人声。",
 			"dialogues": [
 				{"type": "narration", "text": "響：（猛地停步，压低声音）\"有客人。左边岩壁上方，至少四个。右边灌木丛里还有。\""},
@@ -425,7 +425,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_04",
 			"name": "中立 Stage 04: 以铁为盟",
-			"trigger": {"prev_event": "hibiki_neutral_03"},
+			"trigger": {"prev_event": "hibiki_neutral_03", "affection_min": 4, "turn_min": 9},
 			"scene": "武器顺利交付后，玩家与響返回山岳要塞。響领着玩家走进要塞深处的主锻冶场——这里比外围的露天锻冶场大得多，四面墙壁上挂满了各式兵器和工具，正中央是一座巨大的熔炉，炉火昼夜不息。 響让玩家在一旁坐下，自己则从柜子里取出玩家之前承诺的五十枚金币和十份铁矿的最终款项清单。她仔细核对了数目，然后将清单推到玩家面前。 但在玩家准备付款时，響却从锻冶台下面取出了一个用油布包裹的长条形物件。",
 			"dialogues": [
 				{"type": "narration", "text": "響：（将金币和铁矿收好，点了点头）\"钱货两清。老娘的规矩，合作就是合作，一分不多一分不少。\""},
@@ -452,7 +452,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_05",
 			"name": "中立 Stage 05: 锤落誓起",
-			"trigger": {"prev_event": "hibiki_neutral_04"},
+			"trigger": {"prev_event": "hibiki_neutral_04", "affection_min": 5, "turn_min": 11},
 			"scene": "数日后，玩家收到響的口信，请玩家再赴山岳要塞一趟。来到主锻冶场时，场景与往日不同：炉火比平时更旺，场地被打扫得干干净净，几个矮人长老坐在一旁观礼。 響站在熔炉前，身上穿的不是平时的粗布围裙，而是一件带有铁锤矮人纹章的仪式铠甲。她的巨锤「铁砧」被擦得锃亮，竖立在身旁。 她的表情比平时更加严肃，但眼底有一种不常见的光亮。",
 			"dialogues": [
 				{"type": "narration", "text": "矮人长老：（对玩家点头）\"外来者，今日是铁锤一族的铸盟仪式。響向长老会提出申请——她要以个人名义追随你。\""},
@@ -475,7 +475,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_06",
 			"name": "中立 Stage 06: 共炉之日",
-			"trigger": {"prev_event": "hibiki_neutral_05"},
+			"trigger": {"prev_event": "hibiki_neutral_05", "affection_min": 6, "turn_min": 13},
 			"scene": "響加入后的第一个月，她几乎把全部精力都投入到改建据点锻冶场的工程中。她亲手设计了炉膛的结构，指挥工人搬运石材，自己也挽着袖子干得热火朝天。 今天是新锻冶场落成后的第一次正式开炉。響邀请玩家来一起完成\"开炉第一锤\"——这是铁锤矮人的传统，据说第一锤敲好了，这座炉子就会一直旺火。 锻冶场里热浪滚滚，炉火映得響的脸庞忽明忽暗。她递给玩家一把较小的锻锤，自己则握着「铁砧」。",
 			"dialogues": [
 				{"speaker": "響", "text": "来，第一锤你敲。别他妈的敲歪了，不然老娘的炉子一辈子不顺。"},
@@ -501,7 +501,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_07",
 			"name": "中立 Stage 07: 铁匠的秘密",
-			"trigger": {"prev_event": "hibiki_neutral_06"},
+			"trigger": {"prev_event": "hibiki_neutral_06", "affection_min": 7, "turn_min": 15},
 			"scene": "某日深夜，玩家因事路过锻冶场，发现里面还亮着微弱的灯光。推门进去，锻冶场内并没有在开炉——響坐在工作台前，背对着门口，正借着一盏小油灯做着什么。 她的动作异常轻柔，完全不像平时抡锤子时的粗犷。走近几步，玩家看清了——響的面前摆着一个精致的木匣，里面铺着柔软的绒布，上面整整齐齐地排列着十几支发簪。 有银制的、铜制的、镶嵌宝石的、雕刻花纹的……每一支都做工精美，显然出自響自己的手艺。她正拿着一支新做好的发簪，小心翼翼地用细砂纸打磨边角。",
 			"dialogues": [
 				{"speaker": "玩家", "text": "響？这么晚还——"},
@@ -534,7 +534,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_08",
 			"name": "中立 Stage 08: 不器用的心",
-			"trigger": {"prev_event": "hibiki_neutral_07"},
+			"trigger": {"prev_event": "hibiki_neutral_07", "affection_min": 8, "turn_min": 17},
 			"scene": "发簪事件后的几天，響的行为变得有些古怪。她会时不时偷偷打量玩家的表情，说话时偶尔会突然卡壳，原本抡锤时干脆利落的动作也偶有失误。 这天，据点里举办了一场小型宴会庆祝最近的胜利。響难得没有穿她的粗布围裙和工作服，而是换了一身干净的衣裳——看得出是矮人样式的便服，但她显然花了心思整理过。 头发从平时的马尾放了下来，别扭地披散着。脸上……似乎还抹了什么东西，但颜色涂得不太均匀，嘴唇上的口脂歪到了嘴角外面。",
 			"dialogues": [
 				{"type": "narration", "text": "響：（僵硬地站在宴会角落，一手端着酒杯，浑身不自在）"},
@@ -562,7 +562,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_09",
 			"name": "中立 Stage 09: 酒后真言",
-			"trigger": {"prev_event": "hibiki_neutral_08"},
+			"trigger": {"prev_event": "hibiki_neutral_08", "affection_min": 8, "turn_min": 19},
 			"scene": "宴会散场后，大多数人都已经回去休息了。響拉着玩家来到锻冶场，从柜子里翻出一坛矮人烈酒——那种能把普通人喝到直接昏过去的浓烈存在。 夜风从半开的窗户吹进来，炉火已经熄了，只剩余温让锻冶场暖烘烘的。響盘腿坐在地上，背靠着铁砧台，一杯接一杯地灌酒，脸颊越来越红。 月光透过窗户洒在她身上，她今天放下来的头发柔软地垂在肩侧，看起来和平时判若两人。",
 			"dialogues": [
 				{"type": "narration", "text": "響：（已经有些醉意，说话不再那么硬邦邦）\"你知道老娘为什么叫響吗？\""},
@@ -608,7 +608,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_10",
 			"name": "中立 Stage 10: 炉火正旺",
-			"trigger": {"prev_event": "hibiki_neutral_09"},
+			"trigger": {"prev_event": "hibiki_neutral_09", "affection_min": 8, "turn_min": 21},
 			"scene": "那一夜之后，響变了，又好像没变。 在人前她还是那个大嗓门、粗手粗脚的锻造女王，抡锤抡得虎虎生风，训斥学徒毫不留情。但细心的人能发现一些微小的不同—— 她的头发比以前整齐了，虽然还是扎马尾，但会用一根干净的发带而不是随便的皮绳。她偶尔会在锻冶围裙外面系一条颜色不那么灰暗的腰带。 而最明显的变化是——今天，她第一次在人前戴了一支发簪。 是那个秘密木匣里的一支，银质的，造型简洁，缀着一颗小小的蓝色矿石。她把它别在马尾的根部，位置不显眼，但只要注意到了就一定会看见。",
 			"dialogues": [
 				{"speaker": "据点士兵甲", "text": "響大姐今天头上那个是……发簪？"},
@@ -633,7 +633,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_11",
 			"name": "中立 Stage 11: 钢铁与温柔",
-			"trigger": {"prev_event": "hibiki_neutral_10"},
+			"trigger": {"prev_event": "hibiki_neutral_10", "affection_min": 8, "turn_min": 23},
 			"scene": "一场突然的暴风雨困住了据点，室外狂风大作，所有人都待在室内。锻冶场的炉火在风雨中显得格外温暖明亮。 響在整理库房时不小心划伤了手——不是什么大伤，但伤口正好在右手虎口，是握锤时受力最大的位置。玩家帮她包扎时，她罕见地安静，没有逞强说\"这点小伤算什么\"。 包扎完后，两人坐在锻冶场里听雨声。響看着自己被绷带缠起来的手，表情有些恍惚。",
 			"dialogues": [
 				{"speaker": "響", "text": "这双手啊……从五岁开始拿锤子，三十年了。"},
@@ -672,7 +672,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_12",
 			"name": "中立 Stage 12: 最好的作品",
-			"trigger": {"prev_event": "hibiki_neutral_11"},
+			"trigger": {"prev_event": "hibiki_neutral_11", "affection_min": 8, "turn_min": 25},
 			"scene": "连续好几天，響把自己关在锻冶场里不让任何人进去。她声称是在赶制一批军用订单，但从门缝里传出来的锤声节奏很特殊——不是打造武器或铠甲时的沉重节拍，而是细密、轻巧、带着小心翼翼的控制力的敲击声。 学徒们被赶出来，连饭都是放在门口由她自己拿的。 第四天傍晚，響终于打开了锻冶场的门。她的眼下有明显的黑眼圈，头发乱糟糟的，围裙上全是碳灰。但她的表情——那是一种混合了紧张、期待和罕见的害羞的复杂神情。 她让学徒去叫玩家过来。",
 			"dialogues": [
 				{"type": "narration", "text": "響：（坐在锻冶台前，双手攥着一个小小的铁盒，指关节因为用力而发白）"},
@@ -707,7 +707,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hibiki_neutral_13",
 			"name": "中立 Stage 13: 并肩的铁砧",
-			"trigger": {"prev_event": "hibiki_neutral_12"},
+			"trigger": {"prev_event": "hibiki_neutral_12", "affection_min": 8, "turn_min": 27},
 			"scene": "那之后的日子，据点上下都知道了響和玩家的关系。響起初还会对着起哄的士兵们挥舞锤子威胁，但渐渐地也不再遮掩了。她会在人前自然地戴着那枚戒指——虽然每次被人盯着看时耳朵还是会红。 今天是一个特别的日子。響在锻冶场举行了一个小小的仪式——铁锤矮人的\"合砧礼\"，意思是两个人共享一座铁砧，象征生命的合并。 她把锻冶场打扫得一尘不染，炉火烧得比任何时候都旺。主铁砧台上摆着两把锤子——她的「铁砧」和当初开炉仪式时玩家用的那把小锤。 響穿着那件仪式铠甲，但这次在铠甲的缝隙里别了一支发簪——就是那支蓝石头的银簪。铠甲与发簪，力量与柔美，终于并存在她身上。",
 			"dialogues": [
 				{"type": "narration", "text": "響：（站在铁砧台前，声音比平时正式，但带着暖意）"},

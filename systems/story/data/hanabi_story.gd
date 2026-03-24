@@ -23,7 +23,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_02",
 			"name": "事件 Stage 02: 矿道迷宫——连环爆破",
-			"trigger": {"prev_event": "hanabi_hostile_01"},
+			"trigger": {"prev_event": "hanabi_hostile_01", "turn_min": 4, "threat_min": 15},
 			"scene": "矿道内部被改造成复杂的迷宫，每个岔路口都可能藏着炸药包。墙壁上刻着潦草的箭头和涂鸦，有些画着笑脸炸弹，有些写着\"这边没有炸弹哦（骗你的）\"。空气闷热，粉尘飞扬，偶尔传来花火在深处哼歌的声音。",
 			"dialogues": [
 				{"speaker": "工兵长", "text": "领主，这些矿道被彻底改造了。每隔十步就有机关，而且……设计得极其精妙。不像是随便乱埋的。"},
@@ -39,7 +39,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_03",
 			"name": "事件 Stage 03: 核心矿洞——花火大筒的轰鸣",
-			"trigger": {"prev_event": "hanabi_hostile_02"},
+			"trigger": {"prev_event": "hanabi_hostile_02", "turn_min": 6, "threat_min": 20},
 			"scene": "突破迷宫后，部队进入矿山核心——一个巨大的天然溶洞。溶洞中央，一门经过疯狂改造的巨型火炮架在矿车轨道上，炮口对准入口。火炮旁站着一个矮小的身影：满身煤灰和烧痕，橙红色短发乱蓬蓬地支棱着，翠绿色的大眼睛在火光中闪闪发亮——花火，正拿着一根点燃的引信，咧嘴大笑。",
 			"dialogues": [
 				{"speaker": "花火", "text": "欢迎来到花火的大舞台！ドカーン的大舞台！"},
@@ -56,7 +56,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_04",
 			"name": "事件 Stage 04: 炮火之下——接近花火",
-			"trigger": {"prev_event": "hanabi_hostile_03"},
+			"trigger": {"prev_event": "hanabi_hostile_03", "turn_min": 8, "threat_min": 25},
 			"scene": "在花火大筒的反复轰击下，部队损失惨重但持续推进。花火一边装填炮弹一边手忙脚乱地投掷手雷，矮小的身体在矿车轨道上跑来跑去，速度出奇地快。溶洞顶部被炮火震落的钟乳石不断坠落，整个战场混乱不堪。",
 			"dialogues": [
 				{"speaker": "花火", "text": "不要过来不要过来！花火还有炸弹！好多好多炸弹！"},
@@ -74,7 +74,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_05",
 			"name": "事件 Stage 05: 俘获——笼中的爆裂雀",
-			"trigger": {"prev_event": "hanabi_hostile_04"},
+			"trigger": {"prev_event": "hanabi_hostile_04", "turn_min": 10, "threat_min": 30},
 			"scene": "花火被制服时还在拼命挣扎，嘴里叼着最后一颗手雷的引信环。士兵们小心翼翼地卸下她身上藏着的十七颗手雷、三包炸药、两瓶硝化甘油和一把袖珍手枪。矮小的身体被绳索紧紧捆绑，翠绿色的眼睛瞪得溜圆，满脸不甘。",
 			"dialogues": [
 				{"speaker": "花火", "text": "放开花火！放开！花火要炸了你们！全部炸飞！"},
@@ -92,7 +92,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_06",
 			"name": "事件 Stage 06: 调教开始——拆除引信",
-			"trigger": {"prev_event": "hanabi_hostile_05"},
+			"trigger": {"prev_event": "hanabi_hostile_05", "turn_min": 12, "threat_min": 35},
 			"scene": "花火被关在特制的牢房里——所有可燃物都被移走，墙壁加了隔热层。但花火还是在第一天就用床板碎片和自己头发里藏的火石制造了一次小型爆炸，炸坏了门锁。被抓回来后，领主决定亲自监管。",
 			"dialogues": [
 				{"speaker": "花火", "text": "花火说了不干就不干！你关花火一百年也没用！"},
@@ -113,7 +113,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_07",
 			"name": "事件 Stage 07: 烟花与炸弹——被看透的心",
-			"trigger": {"prev_event": "hanabi_hostile_06"},
+			"trigger": {"prev_event": "hanabi_hostile_06", "turn_min": 14, "threat_min": 40},
 			"scene": "领主将花火带到城堡的工坊中。工坊已经按花火的需求改造过——防爆墙、通风口、各种矿物颜料和火药原料整齐排列。花火站在门口，翠绿色的眼睛不可思议地睁大，嘴巴微微张开。",
 			"dialogues": [
 				{"speaker": "花火", "text": "这……这些都是……"},
@@ -133,7 +133,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_08",
 			"name": "事件 Stage 08: 第一场烟花——绽放的约定",
-			"trigger": {"prev_event": "hanabi_hostile_07"},
+			"trigger": {"prev_event": "hanabi_hostile_07", "turn_min": 16, "threat_min": 45},
 			"scene": "夜晚，城堡后方的空地上。花火花了三天制作的第一批烟花准备就绪。她蹲在发射筒旁，拿着引信，破天荒地紧张起来。领主站在一旁，安静地等待。",
 			"dialogues": [
 				{"speaker": "花火", "text": "那、那个……花火要点了哦？点了就会炸——不是，会绽放了哦？"},
@@ -155,7 +155,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_09",
 			"name": "事件 Stage 09: 失控——爆破技能的代价",
-			"trigger": {"prev_event": "hanabi_hostile_08"},
+			"trigger": {"prev_event": "hanabi_hostile_08", "turn_min": 18, "threat_min": 50},
 			"scene": "一次攻城战中，领主带花火上了前线。花火兴奋地操控花火大筒（修复版），对敌方要塞连续轰击。然而第四发炮击触发了自爆风险——炮管炸裂，花火被气浪掀飞，重重摔在地上。",
 			"dialogues": [
 				{"speaker": "花火", "text": "花火大筒——发射发射发射！ドカーン！ドカーンドカーン！哈哈哈……"},
@@ -180,7 +180,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_10",
 			"name": "事件 Stage 10: 火药与柔情——调教的深化",
-			"trigger": {"prev_event": "hanabi_hostile_09"},
+			"trigger": {"prev_event": "hanabi_hostile_09", "turn_min": 20, "threat_min": 55},
 			"scene": "花火伤愈后变得微妙起来。她不再动不动就想逃跑或炸东西，但也不肯承认自己的变化。工坊里，她一边制作烟花一边偷偷看领主，被发现就立刻低头假装在调配火药。",
 			"dialogues": [
 				{"speaker": "花火", "text": "花火才没有在看你！花火在看……在看你身后那面墙！那面墙的材质不够防爆！"},
@@ -206,7 +206,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_11",
 			"name": "事件 Stage 11: 嫉妒的火花——独占欲爆发",
-			"trigger": {"prev_event": "hanabi_hostile_10"},
+			"trigger": {"prev_event": "hanabi_hostile_10", "turn_min": 22, "threat_min": 60},
 			"scene": "领主与其他女性将领商讨军务时，花火端着一盘自制火药饼干（形状像炸弹）推门而入，看到领主身边围着人，脸色瞬间沉下来。她把饼干盘\"砰\"地放在桌上，转身就走。",
 			"dialogues": [
 				{"speaker": "领主", "text": "花火？你怎么——"},
@@ -227,7 +227,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_12",
 			"name": "事件 Stage 12: 最高杰作——只为你绽放的花火",
-			"trigger": {"prev_event": "hanabi_hostile_11"},
+			"trigger": {"prev_event": "hanabi_hostile_11", "turn_min": 24, "threat_min": 60},
 			"scene": "花火连续一个月把自己关在工坊里，不让任何人进入。领主只能听到里面叮叮当当的敲打声和偶尔的小型爆炸声。终于有一天，花火拿着一张请柬出现了——请柬是手工制作的，歪歪扭扭地画着烟花图案，上面写着：\"专属花火大会。观众限定一名。——花火\"",
 			"dialogues": [
 				{"speaker": "花火", "text": "今、今晚，请到矿山来。花火准备了……花火的最高杰作。"},
@@ -247,7 +247,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_13",
 			"name": "事件 Stage 13: 永远的引信——爆裂之誓",
-			"trigger": {"prev_event": "hanabi_hostile_12"},
+			"trigger": {"prev_event": "hanabi_hostile_12", "turn_min": 26, "threat_min": 60},
 			"scene": "清晨，领主在寝室中醒来。花火缩在他怀里，睡颜安详得不像平时那个到处乱炸的暴走少女。她的手紧紧攥着领主的衣角，像是怕松手就会失去什么。阳光照进来，映出她睫毛上残留的火药微粒，像细碎的金粉。",
 			"dialogues": [
 				{"type": "narration", "text": "花火迷迷糊糊地醒来，发现自己的姿势后，猛地弹开——然后因为太猛撞到了床头。"},
@@ -295,7 +295,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_02",
 			"name": "事件 Stage 02: 第一份委托——解放火药桶",
-			"trigger": {"prev_event": "hanabi_neutral_01"},
+			"trigger": {"prev_event": "hanabi_neutral_01", "affection_min": 2, "turn_min": 5},
 			"scene": "花火带领主参观她的矿山工坊——与其说是工坊，不如说是一个充满爆炸痕迹的洞穴实验室。到处是炸焦的墙壁、半成品的炮弹和散落的工具。花火蹦蹦跳跳地介绍每个区域，语速快得几乎听不清。",
 			"dialogues": [
 				{"speaker": "花火", "text": "这里是配药区！这里是组装区！这里是试射区——那个洞就是花火上次试射炸的！嘻嘻！"},
@@ -314,7 +314,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_03",
 			"name": "事件 Stage 03: 并肩战斗——花火的实力",
-			"trigger": {"prev_event": "hanabi_neutral_02"},
+			"trigger": {"prev_event": "hanabi_neutral_02", "affection_min": 3, "turn_min": 7},
 			"scene": "领主带兵攻打匪寨时，花火不请自来——背着花火大筒，口袋里塞满手雷，兴冲冲地出现在阵前。她的矮小身体扛着与她体型完全不成比例的巨型火炮，摇摇晃晃却兴致勃勃。",
 			"dialogues": [
 				{"speaker": "领主", "text": "你怎么来了？"},
@@ -334,7 +334,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_04",
 			"name": "事件 Stage 04: 火药与信任——深入合作",
-			"trigger": {"prev_event": "hanabi_neutral_03"},
+			"trigger": {"prev_event": "hanabi_neutral_03", "affection_min": 4, "turn_min": 9},
 			"scene": "将火药桶送回矿山后，花火激动得绕着火药桶转了三圈，拍了五下，闻了两下，然后宣布\"品质过关\"。她蹲在地上，用小刀撬开桶盖，眼睛里映着黑色火药粉末的光泽，像个孩子看到了糖果。",
 			"dialogues": [
 				{"speaker": "花火", "text": "好火药好火药！颗粒均匀，硝比足够！有了这个花火可以做好多东西！"},
@@ -354,7 +354,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_05",
 			"name": "事件 Stage 05: 完成任务链——花火加入",
-			"trigger": {"prev_event": "hanabi_neutral_04"},
+			"trigger": {"prev_event": "hanabi_neutral_04", "affection_min": 5, "turn_min": 11},
 			"scene": "领主陆续送来了全部材料——三份火药、三十枚金币、五份火药追加和五块铁锭。花火的工坊焕然一新，不再只是满地炸痕的洞穴，开始有了真正工坊的样子。花火指挥着几个被她热情（和高薪）吸引回来的地精工匠，叮叮当当地忙碌着。",
 			"dialogues": [
 				{"speaker": "花火", "text": "最后一批铁锭到了！花火大筒的改良版终于可以完成了！"},
@@ -375,7 +375,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_06",
 			"name": "事件 Stage 06: 新生活——工坊里的日常",
-			"trigger": {"prev_event": "hanabi_neutral_05"},
+			"trigger": {"prev_event": "hanabi_neutral_05", "affection_min": 6, "turn_min": 13},
 			"scene": "花火搬入领主城堡后，立刻将分配给她的房间改造成了小型实验室——第一天就炸了一面墙。城堡管家崩溃地写了报告，但花火毫无自觉，每天一大早就抱着花火大筒在城堡里跑来跑去，嘴里哼着自编的\"爆炸之歌\"。",
 			"dialogues": [
 				{"speaker": "管家", "text": "领主……花火小姐今天又炸坏了东墙。这个月第三次了。"},
@@ -395,7 +395,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_07",
 			"name": "事件 Stage 07: 月夜烟花——不一样的告白",
-			"trigger": {"prev_event": "hanabi_neutral_06"},
+			"trigger": {"prev_event": "hanabi_neutral_06", "affection_min": 7, "turn_min": 15},
 			"scene": "一个月夜，花火把领主拉到城堡最高的塔楼上。塔楼的围栏上摆满了小型发射筒，花火蹲在地上做最后的调试，手指灵活地连接着引信。月光照在她沾满火药粉的脸上，平时聒噪的她此刻异常安静。",
 			"dialogues": [
 				{"speaker": "花火", "text": "今晚的月亮很好。花火觉得……是放烟花的好日子。"},
@@ -415,7 +415,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_08",
 			"name": "事件 Stage 08: 手心温度——笨拙的亲密",
-			"trigger": {"prev_event": "hanabi_neutral_07"},
+			"trigger": {"prev_event": "hanabi_neutral_07", "affection_min": 8, "turn_min": 17},
 			"scene": "自从那晚的烟花之后，花火和领主的关系微妙地变化了。花火不再只是\"嘿嘿嘿\"地傻笑，偶尔会突然安静下来盯着领主看，然后被发现就\"哇啊\"一声跑开撞到桌角。她开始偷偷往领主桌上放小东西——用弹壳做的花，用火药粉画的画，用引信编的手环。",
 			"dialogues": [
 				{"speaker": "领主", "text": "花火，这个手环是你做的？"},
@@ -437,7 +437,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_09",
 			"name": "事件 Stage 09: 雨天的矿洞——脆弱的一面",
-			"trigger": {"prev_event": "hanabi_neutral_08"},
+			"trigger": {"prev_event": "hanabi_neutral_08", "affection_min": 8, "turn_min": 19},
 			"scene": "暴雨天。花火因为湿度太高无法进行火药实验，异常烦躁地在工坊里走来走去。领主来找她时，发现她蜷缩在工坊角落，抱着花火大筒，盯着雨幕发呆。她看起来很小很小，像一只淋湿的猫。",
 			"dialogues": [
 				{"speaker": "领主", "text": "花火？怎么坐在这里？"},
@@ -458,7 +458,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_10",
 			"name": "事件 Stage 10: 共同创造——双重烟花",
-			"trigger": {"prev_event": "hanabi_neutral_09"},
+			"trigger": {"prev_event": "hanabi_neutral_09", "affection_min": 8, "turn_min": 21},
 			"scene": "领主提出和花火一起设计一款新烟花。花火激动得差点把火药罐打翻，手忙脚乱地铺开图纸，拉着领主一起趴在工作台上讨论。两个人的脑袋凑在一起，花火乱蓬蓬的橙红短发偶尔蹭到领主的脸。",
 			"dialogues": [
 				{"speaker": "花火", "text": "真的？！你要和花火一起设计？！没有人跟花火一起做过东西！"},
@@ -478,7 +478,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_11",
 			"name": "事件 Stage 11: 绽放之夜——名花烟火",
-			"trigger": {"prev_event": "hanabi_neutral_10"},
+			"trigger": {"prev_event": "hanabi_neutral_10", "affection_min": 8, "turn_min": 23},
 			"scene": "「名花烟火」完成之夜。花火破例穿上了一件干净的——至少出门前是干净的，搬运途中又沾了些煤灰——连衣裙，头发也难得扎了个短马尾。她紧张得双手都在发抖，反复检查引信和角度。",
 			"dialogues": [
 				{"speaker": "花火", "text": "检查完毕。引信没问题。火药没受潮。角度……角度……"},
@@ -501,7 +501,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_12",
 			"name": "事件 Stage 12: 花火的誓言——用一生来燃烧",
-			"trigger": {"prev_event": "hanabi_neutral_11"},
+			"trigger": {"prev_event": "hanabi_neutral_11", "affection_min": 8, "turn_min": 25},
 			"scene": "深夜，工坊中。花火坐在工作台上晃着腿，面前摆着一排小型烟花弹——每一颗都刻着不同的日期。领主推门进来，她没有像往常一样大惊小怪地跳起来，而是安静地拍了拍身边的位置。",
 			"dialogues": [
 				{"speaker": "花火", "text": "你看这些。"},
@@ -522,7 +522,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_neutral_13",
 			"name": "事件 Stage 13: 永远的花火——轰鸣就是情歌",
-			"trigger": {"prev_event": "hanabi_neutral_12"},
+			"trigger": {"prev_event": "hanabi_neutral_12", "affection_min": 8, "turn_min": 27},
 			"scene": "春天。城堡的庭院里，花火在阳光下做着日常保养——给花火大筒Mk.III上油、整理弹药箱、检查引信库存。她嘴里哼着走调的歌，手上的动作却精准无比。风吹过来，把她橙红色的发丝和火药味一起送到领主身边。",
 			"dialogues": [
 				{"speaker": "领主", "text": "花火。"},

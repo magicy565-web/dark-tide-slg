@@ -970,6 +970,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	AllianceAI.reset()
 	EvilFactionAI.reset()
 	LightFactionAI.reset()
+	StoryEventSystem.reset()
 	# OrcMechanic/PirateMechanic/DarkElfMechanic reset via FactionManager.reset() above
 
 	# ── Create human player ──
@@ -1323,6 +1324,10 @@ func begin_turn() -> void:
 
 	# ── Phase 5c: NPC obedience decay/growth ──
 	NpcManager.tick_all(pid, turn_number)
+
+	# ── Phase 5c2: Story event progression check ──
+	if pid == get_human_player_id():
+		StoryEventSystem.process_story_turn()
 
 	# ── Phase 5d: Taming neglect / gift cooldown tick ──
 	QuestManager.tick_turn(pid)
