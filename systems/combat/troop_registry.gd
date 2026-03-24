@@ -386,49 +386,54 @@ static func _register_wanderer(d: Dictionary) -> void:
 # ═══════════════ HERO-BOUND EXCLUSIVE TROOPS (10) ═══════════════
 ## 正义方角色绑定专属兵种 — Each light faction hero has a unique regiment.
 ## Only recruitable when the bound hero is in the player's army.
-## Tier 3, moderate cost, strong passives that synergize with the hero's role.
+## Power budget: above faction T3 (power 48-70), below T4 ultimate (single + aura).
+## Target total power (ATK+DEF)*soldiers: 75-110, recruit_cost: 45-60.
 ## hero_bound field links to the hero_id in FactionData.HEROES.
 
 static func _register_hero_bound(d: Dictionary) -> void:
 	# ── Human Kingdom Heroes ──
 
 	# 凛 (rin) — 圣剑骑士, samurai → 凛的誓约骑士团
+	# 定位: 攻守均衡前排精锐, (9+9)*6=108
 	d["hero_rin_knights"] = {
 		"name": "誓约骑士团", "faction": "human",
 		"troop_class": TC_SAMURAI, "row": ROW_FRONT,
-		"base_atk": 8, "base_def": 9, "max_soldiers": 6,
-		"recruit_cost": 35, "passive": "oath_guard", "category": CAT_HERO_BOUND,
+		"base_atk": 9, "base_def": 9, "max_soldiers": 6,
+		"recruit_cost": 50, "passive": "oath_guard", "category": CAT_HERO_BOUND,
 		"tier": 3, "desc": "凛专属: 凛存活时全队DEF+2, 反击×1.3",
 		"hero_bound": "rin",
 	}
 
 	# 雪乃 (yukino) — 治愈祭司, priest → 雪乃的白百合巫女团
+	# 定位: 治疗辅助, 战力不高但被动极强, (4+6)*5=50 (辅助型允许偏低)
 	d["hero_yukino_maidens"] = {
 		"name": "白百合巫女团", "faction": "human",
 		"troop_class": TC_PRIEST, "row": ROW_BACK,
-		"base_atk": 3, "base_def": 5, "max_soldiers": 5,
-		"recruit_cost": 30, "passive": "divine_heal", "category": CAT_HERO_BOUND,
+		"base_atk": 4, "base_def": 6, "max_soldiers": 5,
+		"recruit_cost": 45, "passive": "divine_heal", "category": CAT_HERO_BOUND,
 		"tier": 3, "desc": "雪乃专属: 每回合治愈全军最伤部队2兵, 净化减益",
 		"hero_bound": "yukino",
 	}
 
 	# 红叶 (momiji) — 指挥官, cavalry → 红叶的枫骑兵
+	# 定位: 高机动冲锋骑兵, (9+7)*5=80
 	d["hero_momiji_cavalry"] = {
 		"name": "枫骑兵团", "faction": "human",
 		"troop_class": TC_CAVALRY, "row": ROW_FRONT,
-		"base_atk": 7, "base_def": 6, "max_soldiers": 5,
-		"recruit_cost": 38, "passive": "command_charge", "category": CAT_HERO_BOUND,
+		"base_atk": 9, "base_def": 7, "max_soldiers": 5,
+		"recruit_cost": 50, "passive": "command_charge", "category": CAT_HERO_BOUND,
 		"tier": 3, "desc": "红叶专属: 冲锋首击×1.8, 全军SPD+1",
 		"hero_bound": "momiji",
 		"strategic_cost": {"war_horse": 1},
 	}
 
 	# 冰华 (hyouka) — 圣殿守护, samurai → 冰华的圣殿卫士
+	# 定位: 极致肉盾坦克, (6+12)*7=126 (高DEF低ATK, 需要嘲讽吸伤)
 	d["hero_hyouka_templars"] = {
 		"name": "圣殿卫士", "faction": "human",
 		"troop_class": TC_SAMURAI, "row": ROW_FRONT,
-		"base_atk": 5, "base_def": 12, "max_soldiers": 8,
-		"recruit_cost": 32, "passive": "holy_bulwark", "category": CAT_HERO_BOUND,
+		"base_atk": 6, "base_def": 12, "max_soldiers": 7,
+		"recruit_cost": 48, "passive": "holy_bulwark", "category": CAT_HERO_BOUND,
 		"tier": 3, "desc": "冰华专属: 嘲讽+受伤-30%, 据点时DEF再+4",
 		"hero_bound": "hyouka",
 	}
@@ -436,31 +441,34 @@ static func _register_hero_bound(d: Dictionary) -> void:
 	# ── High Elf Heroes ──
 
 	# 翠玲 (suirei) — 精灵射手, archer → 翠玲的月光射手
+	# 定位: 高攻精准射手, (10+4)*5=70 (被动先制×1.5拉高实际输出)
 	d["hero_suirei_archers"] = {
 		"name": "月光射手队", "faction": "high_elf",
 		"troop_class": TC_ARCHER, "row": ROW_BACK,
-		"base_atk": 9, "base_def": 3, "max_soldiers": 5,
-		"recruit_cost": 35, "passive": "moonlight_volley", "category": CAT_HERO_BOUND,
+		"base_atk": 10, "base_def": 4, "max_soldiers": 5,
+		"recruit_cost": 48, "passive": "moonlight_volley", "category": CAT_HERO_BOUND,
 		"tier": 3, "desc": "翠玲专属: 先制×1.5, 夜间战斗ATK+3",
 		"hero_bound": "suirei",
 	}
 
 	# 月华 (gekka) — 月神巫女, priest → 月华的月神侍从
+	# 定位: 法力辅助+护盾, (6+5)*5=55 (辅助型, 法力回复是核心价值)
 	d["hero_gekka_acolytes"] = {
 		"name": "月神侍从团", "faction": "high_elf",
 		"troop_class": TC_PRIEST, "row": ROW_BACK,
-		"base_atk": 5, "base_def": 4, "max_soldiers": 4,
-		"recruit_cost": 30, "passive": "lunar_ward", "category": CAT_HERO_BOUND,
+		"base_atk": 6, "base_def": 5, "max_soldiers": 5,
+		"recruit_cost": 45, "passive": "lunar_ward", "category": CAT_HERO_BOUND,
 		"tier": 3, "desc": "月华专属: 法力护盾(吸收首次伤害40%), +2法力/回合",
 		"hero_bound": "gekka",
 	}
 
 	# 叶隐 (hakagure) — 影忍, ninja → 叶隐的暗叶忍众
+	# 定位: 极致暗杀, 脆皮高爆发, (10+3)*4=52 (暴击40%×2.5弥补纸面战力)
 	d["hero_hakagure_shinobi"] = {
 		"name": "暗叶忍众", "faction": "high_elf",
 		"troop_class": TC_NINJA, "row": ROW_BACK,
-		"base_atk": 8, "base_def": 3, "max_soldiers": 4,
-		"recruit_cost": 35, "passive": "shadow_assault", "category": CAT_HERO_BOUND,
+		"base_atk": 10, "base_def": 3, "max_soldiers": 4,
+		"recruit_cost": 48, "passive": "shadow_assault", "category": CAT_HERO_BOUND,
 		"tier": 3, "desc": "叶隐专属: 2回合隐身+暗杀后排, 暴击率40%×2.5",
 		"hero_bound": "hakagure",
 	}
@@ -468,33 +476,36 @@ static func _register_hero_bound(d: Dictionary) -> void:
 	# ── Mage Tower Heroes ──
 
 	# 蒼 (sou) — 大贤者, mage → 蒼的星辰弟子
+	# 定位: 最强AoE法师, (12+5)*4=68 (AoE×2.0+法术+25%实际伤害远超纸面)
 	d["hero_sou_disciples"] = {
 		"name": "星辰弟子团", "faction": "mage",
 		"troop_class": TC_MAGE_UNIT, "row": ROW_BACK,
-		"base_atk": 10, "base_def": 5, "max_soldiers": 4,
-		"recruit_cost": 40, "passive": "arcane_overload", "category": CAT_HERO_BOUND,
+		"base_atk": 12, "base_def": 5, "max_soldiers": 4,
+		"recruit_cost": 55, "passive": "arcane_overload", "category": CAT_HERO_BOUND,
 		"tier": 3, "desc": "蒼专属: AoE×2.0+法术伤害+25%, 消耗8法力",
 		"hero_bound": "sou",
 		"strategic_cost": {"magic_crystal": 1},
 	}
 
 	# 紫苑 (shion) — 时空法师, mage → 紫苑的时空卫士
+	# 定位: 控制型法师, (8+7)*4=60 (时停+额外行动的战术价值极高)
 	d["hero_shion_chrono"] = {
 		"name": "时空卫士团", "faction": "mage",
 		"troop_class": TC_MAGE_UNIT, "row": ROW_BACK,
-		"base_atk": 6, "base_def": 6, "max_soldiers": 4,
-		"recruit_cost": 38, "passive": "chrono_shift", "category": CAT_HERO_BOUND,
+		"base_atk": 8, "base_def": 7, "max_soldiers": 4,
+		"recruit_cost": 52, "passive": "chrono_shift", "category": CAT_HERO_BOUND,
 		"tier": 3, "desc": "紫苑专属: 每2回合令1敌跳过行动, 全军额外行动概率20%",
 		"hero_bound": "shion",
 		"strategic_cost": {"magic_crystal": 1},
 	}
 
 	# 焔 (homura) — 火焰法师, mage → 焔的炎舞军团
+	# 定位: 爆发AoE+持续DoT, (13+3)*4=64 (灼烧DoT叠加后伤害极高)
 	d["hero_homura_flame"] = {
 		"name": "炎舞军团", "faction": "mage",
 		"troop_class": TC_MAGE_UNIT, "row": ROW_BACK,
-		"base_atk": 11, "base_def": 2, "max_soldiers": 4,
-		"recruit_cost": 36, "passive": "inferno_rain", "category": CAT_HERO_BOUND,
+		"base_atk": 13, "base_def": 3, "max_soldiers": 4,
+		"recruit_cost": 50, "passive": "inferno_rain", "category": CAT_HERO_BOUND,
 		"tier": 3, "desc": "焔专属: AoE火焰攻击, 附带2回合灼烧DoT(ATK×0.3/回合)",
 		"hero_bound": "homura",
 		"strategic_cost": {"magic_crystal": 1},
