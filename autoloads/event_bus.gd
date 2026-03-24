@@ -46,6 +46,17 @@ signal choice_event_triggered(player_id: int, event_data: Dictionary)
 signal combat_started(attacker_id: int, tile_index: int)
 signal combat_result(attacker_id: int, defender_desc: String, won: bool)
 
+# ── Combat演出 SFX hooks (v3.0) ──
+signal sfx_attack(unit_class: String, is_crit: bool)
+signal sfx_impact(unit_class: String, damage: int)
+signal sfx_unit_killed(side: String)
+signal sfx_hero_knockout(hero_name: String)
+signal sfx_passive_trigger(passive_name: String)
+signal sfx_round_start(round_num: int)
+signal sfx_battle_result(winner: String)
+signal combat_view_requested(battle_result: Dictionary)
+signal combat_view_closed()
+
 # ── Fog of war ──
 signal fog_updated(player_id: int)
 
@@ -175,10 +186,6 @@ signal tutorial_completed()  # Potentially unused: only tutorial_step is emitted
 
 # ── Balance / Difficulty (v3.0) ──
 signal difficulty_changed(difficulty_key: String)  # Potentially unused: no emit found in codebase
-
-# ── Combat View ──
-signal combat_view_requested(battle_result: Dictionary)
-signal combat_view_closed()
 
 # ── Settings ──
 signal settings_opened()
