@@ -15,7 +15,7 @@ extends Node
 
 enum TroopClass { ASHIGARU, SAMURAI, ARCHER, CAVALRY, NINJA, PRIEST, MAGE_UNIT, CANNON }
 enum Row { FRONT, BACK }
-enum TroopCategory { FACTION, NEUTRAL, REBEL, WANDERER, ALLIANCE, ULTIMATE }
+enum TroopCategory { FACTION, NEUTRAL, REBEL, WANDERER, ALLIANCE, ULTIMATE, HERO_BOUND }
 
 const TROOP_CLASS_NAMES: Dictionary = {
 	TroopClass.ASHIGARU: "足轻", TroopClass.SAMURAI: "武士",
@@ -41,7 +41,7 @@ const CLASS_COST_MULT: Dictionary = {
 
 # ─── Passive Skill Definitions ────────────────────────────────────────────────
 
-const PASSIVE_DEFS: Dictionary = {
+var PASSIVE_DEFS: Dictionary = {
 	"regen_1":          {"name": "再生",     "desc": "每回合恢复1兵",            "type": "per_round"},
 	"bloodlust":        {"name": "嗜血",     "desc": "击杀后ATK+1(本场累积)",    "type": "on_kill"},
 	"charge_1_5":       {"name": "冲锋",     "desc": "首次攻击×1.5",             "type": "first_attack", "mult": 1.5},
@@ -210,7 +210,7 @@ const NEUTRAL_TROOP_UNLOCK: Dictionary = {
 # ─── Active Ability Definitions (T3+ unlock) ───────────────────────────────
 ## Once per battle, the commander can activate this ability.
 ## Trigger conditions vary; all have a cooldown of 1 battle.
-const ACTIVE_ABILITY_DEFS: Dictionary = {
+var ACTIVE_ABILITY_DEFS: Dictionary = {
 	# Orc T3: 战猪骑兵 — 猪突猛进: 全前排ATK+3持续1回合
 	"orc_cavalry": {
 		"name": "猪突猛进", "desc": "全前排友军ATK+3(1回合)",
@@ -423,337 +423,17 @@ func _ready() -> void:
 
 
 func _build_troop_registry() -> void:
-	TROOP_TYPES.clear()
-	_register_evil_faction_troops()
-	_register_light_faction_troops()
-	_register_neutral_troops()
-	_register_alliance_troops()
-	_register_ultimate_troops()
-	_register_rebel_troops()
-	_register_wanderer_troops()
+	TROOP_TYPES = TroopRegistry.get_all_troop_definitions()
+	# Merge hero-bound passives into main passive defs
+	for pid in TroopRegistry.HERO_BOUND_PASSIVES:
+		if not PASSIVE_DEFS.has(pid):
+			PASSIVE_DEFS[pid] = TroopRegistry.HERO_BOUND_PASSIVES[pid]
+	# Merge hero-bound active abilities into main ability defs
+	for tid in TroopRegistry.HERO_BOUND_ABILITIES:
+		if not ACTIVE_ABILITY_DEFS.has(tid):
+			ACTIVE_ABILITY_DEFS[tid] = TroopRegistry.HERO_BOUND_ABILITIES[tid]
 
 
-# ─── Registration (stubs) ────────────────────────────────────────────────────
-
-func _register_evil_faction_troops() -> void:
-	# ── Orc 兽人部落 ──
-	_reg("orc_ashigaru", {
-		"name": "兽人足軽", "faction": "orc",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 6, "base_def": 3, "max_soldiers": 8,
-		"recruit_cost": 16, "passive": "horde_bonus", "category": TroopCategory.FACTION,
-		"tier": 1, "desc": "廉价蛮兵, 同军3+兽人时ATK+2",
-	})
-	_reg("orc_samurai", {
-		"name": "巨魔", "faction": "orc",
-		"troop_class": TroopClass.SAMURAI, "row": Row.FRONT,
-		"base_atk": 9, "base_def": 6, "max_soldiers": 7,
-		"recruit_cost": 27, "passive": "berserker_rage", "category": TroopCategory.FACTION,
-		"tier": 2, "desc": "狂暴化: <50%HP时ATK翻倍失DEF",
-	})
-	_reg("orc_cavalry", {
-		"name": "战猪骑兵", "faction": "orc",
-		"troop_class": TroopClass.CAVALRY, "row": Row.FRONT,
-		"base_atk": 8, "base_def": 4, "max_soldiers": 5,
-		"recruit_cost": 40, "passive": "charge_stun", "category": TroopCategory.FACTION,
-		"tier": 3, "desc": "冲锋首击×1.5且30%眩晕, 需要战马",
-		"strategic_cost": {"war_horse": 2},
-	})
-	# ── Pirate 暗夜海盗 ──
-	_reg("pirate_ashigaru", {
-		"name": "海盗散兵", "faction": "pirate",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 5, "base_def": 4, "max_soldiers": 6,
-		"recruit_cost": 12, "passive": "pistol_shot", "category": TroopCategory.FACTION,
-		"tier": 1, "desc": "手枪散兵, 前排可攻击后排",
-	})
-	_reg("pirate_archer", {
-		"name": "火枪手", "faction": "pirate",
-		"troop_class": TroopClass.ARCHER, "row": Row.BACK,
-		"base_atk": 7, "base_def": 3, "max_soldiers": 6,
-		"recruit_cost": 14, "passive": "reload_shot", "category": TroopCategory.FACTION,
-		"tier": 2, "desc": "先手齐射后需1回合装填",
-	})
-	_reg("pirate_cannon", {
-		"name": "炮击手", "faction": "pirate",
-		"troop_class": TroopClass.CANNON, "row": Row.BACK,
-		"base_atk": 10, "base_def": 2, "max_soldiers": 4,
-		"recruit_cost": 40, "passive": "aoe_immobile", "category": TroopCategory.FACTION,
-		"tier": 3, "desc": "定点AoE炮击+攻城×2+不可移动, 需要火药",
-		"strategic_cost": {"gunpowder": 2},
-	})
-	# ── Dark Elf 暗精灵议会 ──
-	_reg("de_samurai", {
-		"name": "暗精灵战士", "faction": "dark_elf",
-		"troop_class": TroopClass.SAMURAI, "row": Row.FRONT,
-		"base_atk": 7, "base_def": 5, "max_soldiers": 5,
-		"recruit_cost": 22, "passive": "counter_defend", "category": TroopCategory.FACTION,
-		"tier": 1, "desc": "防御反击×1.2+防守时DEF+2",
-	})
-	_reg("de_ninja", {
-		"name": "暗影刺客", "faction": "dark_elf",
-		"troop_class": TroopClass.NINJA, "row": Row.BACK,
-		"base_atk": 7, "base_def": 2, "max_soldiers": 4,
-		"recruit_cost": 25, "passive": "assassin_crit", "category": TroopCategory.FACTION,
-		"tier": 2, "desc": "无视嘲讽攻后排+30%暴击×2",
-	})
-	_reg("de_cavalry", {
-		"name": "冷蜥骑兵", "faction": "dark_elf",
-		"troop_class": TroopClass.CAVALRY, "row": Row.FRONT,
-		"base_atk": 8, "base_def": 6, "max_soldiers": 5,
-		"recruit_cost": 40, "passive": "poison_slow", "category": TroopCategory.FACTION,
-		"tier": 3, "desc": "命中附毒DoT+降SPD, 需要战马",
-		"strategic_cost": {"war_horse": 2},
-	})
-
-func _register_light_faction_troops() -> void:
-	# ── Human 人类王国 ──
-	_reg("human_ashigaru", {
-		"name": "民兵", "faction": "human",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 4, "base_def": 6, "max_soldiers": 8,
-		"recruit_cost": 16, "passive": "fort_def_3", "category": TroopCategory.FACTION,
-		"tier": 1, "desc": "据点内DEF+3",
-	})
-	_reg("human_cavalry", {
-		"name": "骑士", "faction": "human",
-		"troop_class": TroopClass.CAVALRY, "row": Row.FRONT,
-		"base_atk": 7, "base_def": 7, "max_soldiers": 6,
-		"recruit_cost": 28, "passive": "counter_1_2", "category": TroopCategory.FACTION,
-		"tier": 2, "desc": "被攻击时反击×1.2",
-	})
-	_reg("human_samurai", {
-		"name": "圣殿女卫", "faction": "human",
-		"troop_class": TroopClass.SAMURAI, "row": Row.FRONT,
-		"base_atk": 6, "base_def": 9, "max_soldiers": 10,
-		"recruit_cost": 30, "passive": "immobile", "category": TroopCategory.FACTION,
-		"tier": 3, "desc": "不可移动但超高DEF",
-	})
-	# ── High Elf 高等精灵 ──
-	_reg("elf_archer", {
-		"name": "精灵游侠", "faction": "high_elf",
-		"troop_class": TroopClass.ARCHER, "row": Row.BACK,
-		"base_atk": 7, "base_def": 3, "max_soldiers": 5,
-		"recruit_cost": 14, "passive": "preemptive_1_3", "category": TroopCategory.FACTION,
-		"tier": 1, "desc": "先制攻击×1.3",
-	})
-	_reg("elf_mage", {
-		"name": "法师", "faction": "high_elf",
-		"troop_class": TroopClass.MAGE_UNIT, "row": Row.BACK,
-		"base_atk": 8, "base_def": 2, "max_soldiers": 4,
-		"recruit_cost": 20, "passive": "aoe_mana", "category": TroopCategory.FACTION,
-		"tier": 2, "desc": "AoE攻击, 消耗5法力",
-	})
-	_reg("elf_ashigaru", {
-		"name": "树人", "faction": "high_elf",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 4, "base_def": 10, "max_soldiers": 15,
-		"recruit_cost": 30, "passive": "taunt", "category": TroopCategory.FACTION,
-		"tier": 3, "desc": "守护嘲讽, 强制吸引攻击",
-	})
-	# ── Mage 法师公会 ──
-	_reg("mage_apprentice", {
-		"name": "学徒法师", "faction": "mage",
-		"troop_class": TroopClass.MAGE_UNIT, "row": Row.BACK,
-		"base_atk": 4, "base_def": 3, "max_soldiers": 4,
-		"recruit_cost": 16, "passive": "charge_mana_1", "category": TroopCategory.FACTION,
-		"tier": 1, "desc": "每回合+1法力",
-	})
-	_reg("mage_battle", {
-		"name": "战斗法师", "faction": "mage",
-		"troop_class": TroopClass.MAGE_UNIT, "row": Row.BACK,
-		"base_atk": 8, "base_def": 4, "max_soldiers": 5,
-		"recruit_cost": 25, "passive": "aoe_1_5_cost5", "category": TroopCategory.FACTION,
-		"tier": 2, "desc": "AoE×1.5, 消耗5法力",
-	})
-	_reg("mage_grand", {
-		"name": "大法师", "faction": "mage",
-		"troop_class": TroopClass.MAGE_UNIT, "row": Row.BACK,
-		"base_atk": 9, "base_def": 7, "max_soldiers": 8,
-		"recruit_cost": 36, "passive": "death_burst", "category": TroopCategory.FACTION,
-		"tier": 3, "desc": "死亡时对敌全体ATK×2伤害",
-	})
-
-func _register_neutral_troops() -> void:
-	# ── T0 Dark Elf Slave fodder (faction passive: 奴隶先锋) ──
-	_reg("slave_fodder", {
-		"name": "奴隶肉盾", "faction": "dark_elf",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 1, "base_def": 1, "max_soldiers": 4,
-		"recruit_cost": 0, "passive": "slave_fodder", "category": TroopCategory.FACTION,
-		"tier": 0, "desc": "0费消耗品, 吸收首轮伤害后溃散",
-	})
-	# ── 6 neutral factions: T2 base troops ──
-	_reg("neutral_dwarf_guard", {
-		"name": "矮人铁卫", "faction": "neutral_dwarf",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 5, "base_def": 12, "max_soldiers": 6,
-		"recruit_cost": 25, "passive": "immovable", "category": TroopCategory.NEUTRAL,
-		"tier": 2, "desc": "全游戏最高DEF, 不可被强制移至后排",
-	})
-	_reg("neutral_skeleton", {
-		"name": "骷髅军团", "faction": "neutral_necro",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 6, "base_def": 4, "max_soldiers": 8,
-		"recruit_cost": 15, "passive": "zero_food", "category": TroopCategory.NEUTRAL,
-		"tier": 2, "desc": "0粮耗, -1兵/回合, 胜利+2兵, 永不溃逃",
-	})
-	_reg("neutral_green_archer", {
-		"name": "绿影射手", "faction": "neutral_ranger",
-		"troop_class": TroopClass.ARCHER, "row": Row.BACK,
-		"base_atk": 8, "base_def": 3, "max_soldiers": 5,
-		"recruit_cost": 20, "passive": "forest_stealth", "category": TroopCategory.NEUTRAL,
-		"tier": 2, "desc": "首回合隐身, 森林地形双倍攻击",
-	})
-	_reg("neutral_blood_berserker", {
-		"name": "血月狂战士", "faction": "neutral_blood",
-		"troop_class": TroopClass.SAMURAI, "row": Row.FRONT,
-		"base_atk": 14, "base_def": 1, "max_soldiers": 6,
-		"recruit_cost": 22, "passive": "blood_triple", "category": TroopCategory.NEUTRAL,
-		"tier": 2, "desc": "<30%HP时ATK×3, 不可撤退, 极端攻击型",
-	})
-	_reg("neutral_goblin_cannon", {
-		"name": "地精炮兵", "faction": "neutral_goblin",
-		"troop_class": TroopClass.CANNON, "row": Row.BACK,
-		"base_atk": 16, "base_def": 0, "max_soldiers": 3,
-		"recruit_cost": 18, "passive": "misfire", "category": TroopCategory.NEUTRAL,
-		"tier": 2, "desc": "城防×3, 15%概率自伤, 高风险高回报",
-	})
-	_reg("neutral_caravan_guard", {
-		"name": "商队护卫", "faction": "neutral_caravan",
-		"troop_class": TroopClass.SAMURAI, "row": Row.FRONT,
-		"base_atk": 6, "base_def": 6, "max_soldiers": 5,
-		"recruit_cost": 20, "passive": "gold_on_hit", "category": TroopCategory.NEUTRAL,
-		"tier": 2, "desc": "均衡型, 每次攻击+2金",
-	})
-	# ── 6 neutral factions: T3 advanced troops (taming >= 7) ──
-	_reg("neutral_dwarf_cannon", {
-		"name": "矮人攻城炮", "faction": "neutral_dwarf",
-		"troop_class": TroopClass.CANNON, "row": Row.BACK,
-		"base_atk": 10, "base_def": 5, "max_soldiers": 4,
-		"recruit_cost": 40, "passive": "dwarf_siege_t3", "category": TroopCategory.NEUTRAL,
-		"tier": 3, "desc": "城防×3+AoE, 极慢但极强攻城",
-	})
-	_reg("neutral_necromancer", {
-		"name": "死灵法师", "faction": "neutral_necro",
-		"troop_class": TroopClass.MAGE_UNIT, "row": Row.BACK,
-		"base_atk": 7, "base_def": 3, "max_soldiers": 3,
-		"recruit_cost": 35, "passive": "necro_summon", "category": TroopCategory.NEUTRAL,
-		"tier": 3, "desc": "每回合召唤1骷髅小队, 法力吸取",
-	})
-	_reg("neutral_treant", {
-		"name": "树人守卫", "faction": "neutral_ranger",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 5, "base_def": 12, "max_soldiers": 12,
-		"recruit_cost": 35, "passive": "regen_2", "category": TroopCategory.NEUTRAL,
-		"tier": 3, "desc": "巨量HP+每回合回复2兵, 根缚定身敌人",
-	})
-	_reg("neutral_blood_shaman", {
-		"name": "血月萨满", "faction": "neutral_blood",
-		"troop_class": TroopClass.PRIEST, "row": Row.BACK,
-		"base_atk": 4, "base_def": 4, "max_soldiers": 4,
-		"recruit_cost": 30, "passive": "blood_ritual", "category": TroopCategory.NEUTRAL,
-		"tier": 3, "desc": "血祭(牺牲2兵治愈全军)+战吼(全军ATK+2, 3回合)",
-	})
-	_reg("neutral_goblin_mech", {
-		"name": "地精机甲", "faction": "neutral_goblin",
-		"troop_class": TroopClass.CAVALRY, "row": Row.FRONT,
-		"base_atk": 12, "base_def": 8, "max_soldiers": 3,
-		"recruit_cost": 45, "passive": "overload", "category": TroopCategory.NEUTRAL,
-		"tier": 3, "desc": "重甲DEF+5+蒸汽炮远程, 3次攻击后自爆",
-	})
-	_reg("neutral_merc_captain", {
-		"name": "佣兵团长", "faction": "neutral_caravan",
-		"troop_class": TroopClass.SAMURAI, "row": Row.FRONT,
-		"base_atk": 8, "base_def": 7, "max_soldiers": 5,
-		"recruit_cost": 40, "passive": "leadership", "category": TroopCategory.NEUTRAL,
-		"tier": 3, "desc": "统帅(邻近ATK+2)+战中可招募1随机佣兵",
-	})
-
-func _register_alliance_troops() -> void:
-	# ── Alliance troops (spawn at threat >= 60) from doc 11 §五 ──
-	_reg("alliance_vanguard", {
-		"name": "联军先锋", "faction": "alliance",
-		"troop_class": TroopClass.CAVALRY, "row": Row.FRONT,
-		"base_atk": 8, "base_def": 6, "max_soldiers": 7,
-		"recruit_cost": 0, "passive": "preemptive", "category": TroopCategory.ALLIANCE,
-		"tier": 0, "desc": "骑士+游侠混编, 先手+反击",
-	})
-	_reg("alliance_arcane_battery", {
-		"name": "奥术炮台", "faction": "alliance",
-		"troop_class": TroopClass.MAGE_UNIT, "row": Row.BACK,
-		"base_atk": 10, "base_def": 3, "max_soldiers": 6,
-		"recruit_cost": 0, "passive": "aoe_1_5_cost5", "category": TroopCategory.ALLIANCE,
-		"tier": 0, "desc": "法师集群, AoE×1.5+法力爆发",
-	})
-
-func _register_ultimate_troops() -> void:
-	# ── Ultimate troops (require shadow_essence × 8) from doc 11 §六 ──
-	_reg("orc_ultimate", {
-		"name": "蛮牛酋长", "faction": "orc",
-		"troop_class": TroopClass.SAMURAI, "row": Row.FRONT,
-		"base_atk": 16, "base_def": 8, "max_soldiers": 1,
-		"recruit_cost": 120, "passive": "waaagh_triple", "category": TroopCategory.ULTIMATE,
-		"tier": 4, "desc": "WAAAGH!光环(+15/回合), 战吼(首回合DEF+3)",
-		"strategic_cost": {"shadow_essence": 8},
-	})
-	_reg("pirate_ultimate", {
-		"name": "海盗船长", "faction": "pirate",
-		"troop_class": TroopClass.SAMURAI, "row": Row.FRONT,
-		"base_atk": 11, "base_def": 4, "max_soldiers": 1,
-		"recruit_cost": 100, "passive": "siege_ignore", "category": TroopCategory.ULTIMATE,
-		"tier": 4, "desc": "掠夺光环(+50%金币), 激励射击",
-		"strategic_cost": {"shadow_essence": 8},
-	})
-	_reg("de_ultimate", {
-		"name": "暗影女王", "faction": "dark_elf",
-		"troop_class": TroopClass.MAGE_UNIT, "row": Row.BACK,
-		"base_atk": 8, "base_def": 4, "max_soldiers": 1,
-		"recruit_cost": 130, "passive": "shadow_flight", "category": TroopCategory.ULTIMATE,
-		"tier": 4, "desc": "暗影光环(全体隐匿1回合), 支配",
-		"strategic_cost": {"shadow_essence": 8},
-	})
-
-func _register_rebel_troops() -> void:
-	# ── Rebel troops (spawn when order <= 25 on player tiles) ──
-	_reg("rebel_militia", {
-		"name": "叛军民兵", "faction": "rebel",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 4, "base_def": 4, "max_soldiers": 6,
-		"recruit_cost": 0, "passive": "desperate", "category": TroopCategory.REBEL,
-		"tier": 0, "desc": "低秩序叛乱产生, 被围时ATK+2",
-	})
-	_reg("rebel_archer", {
-		"name": "叛军弓手", "faction": "rebel",
-		"troop_class": TroopClass.ARCHER, "row": Row.BACK,
-		"base_atk": 5, "base_def": 2, "max_soldiers": 4,
-		"recruit_cost": 0, "passive": "scatter", "category": TroopCategory.REBEL,
-		"tier": 0, "desc": "兵力<30%自动溃散",
-	})
-
-func _register_wanderer_troops() -> void:
-	# ── Wanderer troops (roam unclaimed tiles, can be recruited or fought) ──
-	_reg("wanderer_deserter", {
-		"name": "逃兵", "faction": "wanderer",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 3, "base_def": 3, "max_soldiers": 5,
-		"recruit_cost": 0, "passive": "scatter", "category": TroopCategory.WANDERER,
-		"tier": 0, "desc": "战场逃兵聚集, 兵力低时溃散",
-	})
-	_reg("wanderer_bandit", {
-		"name": "山贼", "faction": "wanderer",
-		"troop_class": TroopClass.SAMURAI, "row": Row.FRONT,
-		"base_atk": 6, "base_def": 3, "max_soldiers": 4,
-		"recruit_cost": 0, "passive": "pillage", "category": TroopCategory.WANDERER,
-		"tier": 0, "desc": "劫掠者, 胜利后+10金",
-	})
-	_reg("wanderer_refugee", {
-		"name": "流民军团", "faction": "wanderer",
-		"troop_class": TroopClass.ASHIGARU, "row": Row.FRONT,
-		"base_atk": 2, "base_def": 2, "max_soldiers": 10,
-		"recruit_cost": 0, "passive": "conscript", "category": TroopCategory.WANDERER,
-		"tier": 0, "desc": "流民聚集, 经过友方据点时+1兵, 人多势众",
-	})
 
 # ─── Query API ────────────────────────────────────────────────────────────────
 
@@ -774,6 +454,25 @@ func get_troops_by_category(cat: int) -> Array:
 	var result: Array = []
 	for tid in TROOP_TYPES:
 		if TROOP_TYPES[tid]["category"] == cat:
+			result.append(tid)
+	return result
+
+func get_hero_bound_troop(hero_id: String) -> String:
+	## Returns the troop_id of the hero-bound exclusive troop for this hero, or "".
+	for tid in TROOP_TYPES:
+		if TROOP_TYPES[tid].get("hero_bound", "") == hero_id:
+			return tid
+	return ""
+
+func get_hero_bound_troops_for_player() -> Array:
+	## Returns all hero-bound troop_ids where the bound hero is recruited.
+	var result: Array = []
+	for tid in TROOP_TYPES:
+		var td: Dictionary = TROOP_TYPES[tid]
+		if td.get("category", -1) != TroopCategory.HERO_BOUND:
+			continue
+		var hero_id: String = td.get("hero_bound", "")
+		if hero_id != "" and HeroSystem.recruited_heroes.has(hero_id):
 			result.append(tid)
 	return result
 
@@ -932,7 +631,17 @@ func get_recruitable_troops(faction_tag: String, tile_level: int) -> Array:
 		var td: Dictionary = TROOP_TYPES[tid]
 		if td["faction"] != faction_tag:
 			continue
-		if td["category"] != TroopCategory.FACTION and td["category"] != TroopCategory.ULTIMATE:
+		var cat: int = td["category"]
+		# Hero-bound troops: only available if bound hero is recruited
+		if cat == TroopCategory.HERO_BOUND:
+			var hero_id: String = td.get("hero_bound", "")
+			if hero_id == "" or not HeroSystem.recruited_heroes.has(hero_id):
+				continue
+			if td.get("tier", 1) > tile_level:
+				continue
+			result.append(tid)
+			continue
+		if cat != TroopCategory.FACTION and cat != TroopCategory.ULTIMATE:
 			continue
 		if td.get("tier", 1) > tile_level and td["tier"] != 4:
 			continue
@@ -1156,6 +865,3 @@ func compute_aura_bonuses(army: Array) -> Dictionary:
 
 
 # ─── Internal ─────────────────────────────────────────────────────────────────
-
-func _reg(troop_id: String, data: Dictionary) -> void:
-	TROOP_TYPES[troop_id] = data
