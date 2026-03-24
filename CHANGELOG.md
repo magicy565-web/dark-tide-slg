@@ -14,11 +14,16 @@
 - SAVE_VERSION: `1.5.0` → `2.2.0`（与实际游戏版本对齐）
 - GAME_VERSION (mod_manager): `0.8.6` → `2.2.0`（MOD兼容性检查使用正确版本）
 
-### 数值外部化
+### 数值全面外部化
 
-- `COMBAT_POWER_PER_UNIT` (10): 从game_manager硬编码移至BalanceConfig
-- `HERO_BASE_COMBAT_POWER` (5): 英雄战力加成移至BalanceConfig
-- `BASE_POPULATION_CAP` (3): 基础人口上限移至BalanceConfig
+- **BalanceConfig新增常量组**:
+  - `EVIL_FACTION_AI`: 突袭概率(10%)/突袭强度/驻军上限(14/10/6)
+  - `LIGHT_SPELLS`: 传送增援(10-20)/屏障防御(10)/弹幕伤害(15-30)/法力容量(10/tile)
+  - `COMBAT`: 战斗经验(胜5/负2)/防御方军队贡献(50%)/起始驻军(10)/占领后最低驻军(5)
+  - `EXPEDITION`: 防御损耗(50%)/占领驻军(60%)
+- **game_manager.gd**: COMBAT_POWER_PER_UNIT/HERO_BASE_COMBAT_POWER/BASE_POPULATION_CAP + 8处硬编码值→BalanceConfig
+- **evil_faction_ai.gd**: 突袭系统5处硬编码值→BalanceConfig
+- **light_faction_ai.gd**: 法术效果6处硬编码值→BalanceConfig
 
 ### 战斗视图修复
 

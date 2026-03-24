@@ -56,7 +56,7 @@ func _tick_faction(player_id: int, faction_id: int) -> void:
 
 func _try_raid(player_id: int, source_tile: Dictionary, _faction_id: int) -> void:
 	## Hostile faction has 10% chance per turn to raid an adjacent player tile.
-	if randi() % 100 >= 10:
+	if randi() % 100 >= BalanceConfig.EVIL_RAID_CHANCE_PCT:
 		return
 
 	if not GameManager.adjacency.has(source_tile["index"]):
@@ -71,14 +71,14 @@ func _try_raid(player_id: int, source_tile: Dictionary, _faction_id: int) -> voi
 		return
 
 	var target: Dictionary = targets[randi() % targets.size()]
-	var raid_strength: int = maxi(3, source_tile.get("garrison", 0) / 2)
+	var raid_strength: int = maxi(BalanceConfig.EVIL_RAID_MIN_STRENGTH, source_tile.get("garrison", 0) / BalanceConfig.EVIL_RAID_STRENGTH_DIVISOR)
 	var target_garrison: int = target.get("garrison", 0)
 
 	EventBus.message_log.emit("[color=orange]敌对军团突袭据点#%d! (兵力: %d)[/color]" % [target["index"], raid_strength])
 
 	if raid_strength > target_garrison:
 		# Raid success - damage but don't capture (just reduce garrison)
-		target["garrison"] = maxi(0, target_garrison - raid_strength / 2)
+		target["garrison"] = maxi(0, target_garrison - raid_strength / BalanceConfig.EVIL_RAID_DAMAGE_DIVISOR)
 		EventBus.message_log.emit("[color=red]突袭成功! 驻军损失严重[/color]")
 	else:
 		target["garrison"] = maxi(0, target_garrison - 1)
@@ -88,10 +88,10 @@ func _get_base_garrison(tile: Dictionary) -> int:
 	## Returns the max garrison an AI faction tile should maintain.
 	match tile.get("type", -1):
 		GameManager.TileType.CORE_FORTRESS:
-			return 14
+			return BalanceConfig.EVIL_GARRISON_CORE_FORTRESS
 		GameManager.TileType.DARK_BASE:
-			return 10
-	return 6
+			return BalanceConfig.EVIL_GARRISON_DARK_BASE
+	return BalanceConfig.EVIL_GARRISON_DEFAULT
 
 func get_faction_total_strength(faction_id: int) -> int:
 	## Returns total garrison across all tiles of a faction (for difficulty display).

@@ -1005,7 +1005,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	var human_zone_key: String = _faction_zone_key(chosen_faction)
 	for idx in _zone_cache.get(human_zone_key, []):
 		tiles[idx]["owner_id"] = 0
-		tiles[idx]["garrison"] = 10
+		tiles[idx]["garrison"] = BalanceConfig.STARTING_GARRISON
 
 	# Create starting army for human player
 	_create_starting_army(0, chosen_faction, human_start_tile)
@@ -1046,7 +1046,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 		var zone_key: String = _faction_zone_key(fid)
 		for idx in _zone_cache.get(zone_key, []):
 			tiles[idx]["owner_id"] = rival_id
-			tiles[idx]["garrison"] = 10
+			tiles[idx]["garrison"] = BalanceConfig.STARTING_GARRISON
 
 		# Create starting army for rival
 		_create_starting_army(rival_id, fid, rival_start)
@@ -1487,11 +1487,11 @@ func _spawn_expedition() -> void:
 	EventBus.message_log.emit("[color=orange]光明联盟远征军(战力%d)进攻 %s![/color]" % [strength, target["name"]])
 	# Auto-resolve: compare garrison
 	if target["garrison"] >= strength:
-		target["garrison"] -= int(strength * 0.5)
+		target["garrison"] -= int(strength * BalanceConfig.EXPEDITION_DEFEND_LOSS_MULT)
 		EventBus.message_log.emit("驻军成功抵御进攻! (驻军剩余%d)" % target["garrison"])
 	else:
 		target["owner_id"] = -1
-		target["garrison"] = int(strength * 0.6)
+		target["garrison"] = int(strength * BalanceConfig.EXPEDITION_CAPTURE_GARRISON_MULT)
 		EventBus.message_log.emit("[color=red]%s 被光明联盟夺回![/color]" % target["name"])
 		EventBus.tile_lost.emit(human_id, target["index"])
 		OrderManager.on_tile_lost()
@@ -2477,7 +2477,7 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 		def_units.append({"type": "human_ashigaru", "atk": 4, "def": 6, "spd": 4, "count": tile["garrison"], "special": "fort_def_3"})
 	if def_player_id >= 0 and def_player_id != pid:
 		var defender_player: Dictionary = get_player_by_id(def_player_id)
-		var def_army: int = int(float(defender_player.get("army_count", 0)) * 0.5)
+		var def_army: int = int(float(defender_player.get("army_count", 0)) * BalanceConfig.DEFENDER_ARMY_CONTRIBUTION)
 		if def_army > 0:
 			def_units.append({"type": "human_ashigaru", "atk": COMBAT_POWER_PER_UNIT, "def": 5, "spd": 4, "count": def_army, "special": ""})
 
@@ -2497,7 +2497,7 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	var slaves_captured: int = result.get("slaves_captured", 0)
 
 	# Grant experience to surviving troops (dynamic based on enemy composition)
-	var atk_exp: int = result.get("attacker_exp", 5 if attacker_wins else 2)
+	var atk_exp: int = result.get("attacker_exp", BalanceConfig.COMBAT_XP_WIN if attacker_wins else BalanceConfig.COMBAT_XP_LOSS)
 	CombatResolver.grant_combat_experience(pid, atk_exp)
 
 	# Dissolve slave_fodder troops (Dark Elf T0 consumable)
@@ -2592,7 +2592,7 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 	var slaves_captured: int = result.get("slaves_captured", 0)
 
 	# Grant experience
-	var atk_exp: int = result.get("attacker_exp", 5 if attacker_wins else 2)
+	var atk_exp: int = result.get("attacker_exp", BalanceConfig.COMBAT_XP_WIN if attacker_wins else BalanceConfig.COMBAT_XP_LOSS)
 	CombatResolver.grant_combat_experience(pid, atk_exp)
 
 	# Dissolve slave_fodder
@@ -2657,7 +2657,7 @@ func _capture_tile(player: Dictionary, tile: Dictionary) -> void:
 		EventBus.tile_lost.emit(old_owner, tile["index"])
 		OrderManager.on_tile_lost()
 	tile["owner_id"] = player["id"]
-	tile["garrison"] = maxi(5, tile["garrison"] / 2)
+	tile["garrison"] = maxi(BalanceConfig.CAPTURE_MIN_GARRISON, tile["garrison"] / 2)
 	EventBus.tile_captured.emit(player["id"], tile["index"])
 	_reveal_around(tile["index"], player["id"])
 	OrderManager.on_tile_captured()

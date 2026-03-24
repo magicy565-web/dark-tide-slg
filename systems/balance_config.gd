@@ -233,6 +233,16 @@ const BARRIER_MAX_ABSORPTION: float = 0.90
 ## Mage tower spell damage multiplier (hardcoded 0.3 → configurable)
 const MAGE_SPELL_DAMAGE_MULT: float = 0.30
 
+## Light faction spell effects
+const SPELL_TELEPORT_GARRISON_MIN: int = 10
+const SPELL_TELEPORT_GARRISON_MAX: int = 20
+const SPELL_BARRIER_DEFENSE_BONUS: int = 10
+const SPELL_BARRAGE_DAMAGE_MIN: int = 15
+const SPELL_BARRAGE_DAMAGE_MAX: int = 30
+
+## Light mana capacity per mage tile
+const MANA_PER_MAGE_TILE: int = 10
+
 # ═══════════════ ALLIANCE AI ═══════════════
 
 ## Alliance defense bonus % applied to adjacent light tiles
@@ -259,6 +269,38 @@ const DESPERATE_REINFORCE_PER_TURN: int = 2
 
 ## Minimum garrison for zone transfer
 const ZONE_TRANSFER_MIN_GARRISON: int = 3
+
+# ═══════════════ EVIL FACTION AI ═══════════════
+
+## Raid mechanics
+const EVIL_RAID_CHANCE_PCT: int = 10
+const EVIL_RAID_MIN_STRENGTH: int = 3
+const EVIL_RAID_STRENGTH_DIVISOR: int = 2  # garrison / this = raid strength
+const EVIL_RAID_DAMAGE_DIVISOR: int = 2    # raid_strength / this = damage on success
+
+## Evil AI garrison caps by tile type
+const EVIL_GARRISON_CORE_FORTRESS: int = 14
+const EVIL_GARRISON_DARK_BASE: int = 10
+const EVIL_GARRISON_DEFAULT: int = 6
+
+# ═══════════════ GAME MANAGER COMBAT ═══════════════
+
+## Starting garrison for newly captured tiles
+const STARTING_GARRISON: int = 10
+
+## Minimum garrison after tile capture (maxi(this, garrison/2))
+const CAPTURE_MIN_GARRISON: int = 5
+
+## Expedition auto-resolve multipliers
+const EXPEDITION_DEFEND_LOSS_MULT: float = 0.5   # garrison -= strength × this (on defend win)
+const EXPEDITION_CAPTURE_GARRISON_MULT: float = 0.6  # new garrison = strength × this (on defend loss)
+
+## Combat experience values
+const COMBAT_XP_WIN: int = 5
+const COMBAT_XP_LOSS: int = 2
+
+## Defender army contribution
+const DEFENDER_ARMY_CONTRIBUTION: float = 0.5
 
 # ═══════════════ RESEARCH ═══════════════
 

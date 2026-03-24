@@ -75,7 +75,7 @@ func init_light_defenses() -> void:
 	for tile in GameManager.tiles:
 		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile["owner_id"] < 0:
 			mage_tile_count += 1
-	_mana_max = mage_tile_count * 10  # 10 mana capacity per tile
+	_mana_max = mage_tile_count * BalanceConfig.MANA_PER_MAGE_TILE  # mana capacity per tile
 	_mana_pool[MAGE_FACTION_ID] = _mana_max
 
 
@@ -211,7 +211,7 @@ func regen_mana() -> void:
 	for tile in GameManager.tiles:
 		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile["owner_id"] < 0:
 			uncaptured_count += 1
-	_mana_max = uncaptured_count * 10
+	_mana_max = uncaptured_count * BalanceConfig.MANA_PER_MAGE_TILE
 	# v0.9.0: mana_bonus equipment passive reduces enemy mana max & regen
 	var mana_reduction: int = 0
 	for hero in HeroSystem.get_available_heroes():
@@ -254,21 +254,21 @@ func apply_spell_effect(spell_name: String, target_tile_index: int) -> Dictionar
 		"teleport":
 			# Teleport defenders to a tile
 			result["success"] = true
-			result["garrison_add"] = randi_range(10, 20)
+			result["garrison_add"] = randi_range(BalanceConfig.SPELL_TELEPORT_GARRISON_MIN, BalanceConfig.SPELL_TELEPORT_GARRISON_MAX)
 			if target_tile_index >= 0 and target_tile_index < GameManager.tiles.size():
 				GameManager.tiles[target_tile_index]["garrison"] += result["garrison_add"]
 				EventBus.message_log.emit("传送增援 +%d 守军" % result["garrison_add"])
 		"barrier":
 			# Add temporary defense
 			result["success"] = true
-			result["defense_bonus"] = 10
+			result["defense_bonus"] = BalanceConfig.SPELL_BARRIER_DEFENSE_BONUS
 			if target_tile_index >= 0 and target_tile_index < GameManager.tiles.size():
 				GameManager.tiles[target_tile_index]["garrison"] += result["defense_bonus"]
 				EventBus.message_log.emit("魔法屏障: +%d 防御" % result["defense_bonus"])
 		"barrage":
 			# Damage attacking army
 			result["success"] = true
-			result["damage"] = randi_range(15, 30)
+			result["damage"] = randi_range(BalanceConfig.SPELL_BARRAGE_DAMAGE_MIN, BalanceConfig.SPELL_BARRAGE_DAMAGE_MAX)
 			EventBus.message_log.emit("魔法弹幕造成 %d 伤害!" % result["damage"])
 	return result
 
