@@ -2,6 +2,45 @@
 
 ---
 
+## v2.4.0 — 2026-03-24 (统一任务日志系统)
+
+### 新功能: 任务日志 (Quest Journal)
+
+- 新增统一任务管理器 `QuestJournal` (autoload)，支持4类任务:
+  - **主线任务** (6阶段): 崛起之始→第一滴血→扩张的野心→光暗对峙→黑暗崛起→终焉之战
+  - **支线任务** (10个): 建设者、经济大师、外交家、秩序守护者、闪电战等
+  - **挑战任务** (每阵营6阶段): 兽人/海盗/暗精灵各有独立挑战链，解锁传奇装备和特性
+  - **角色任务** (4英雄×3步): 凛/翠玲/蒼/焔的好感度驱动个人任务链
+- 挑战任务奖励: 9件传奇装备 + 6个被动特性 + 3个终极技能
+- 角色任务奖励: 4件传奇装备 + 4个英雄绑定特性
+
+### 新功能: 任务日志UI面板
+
+- 新增全屏模态面板 `QuestJournalPanel`，按 J 键或HUD按钮开启
+- 4个标签页分类显示: 主线/支线/挑战/角色
+- 每个任务卡片显示: 名称、状态徽章、描述、目标进度、奖励预览
+- 挑战战斗按钮: 待战斗状态的任务可直接发起Boss战
+- 实时刷新: 监听 `quest_journal_updated` 信号自动更新
+
+### 系统集成
+
+- `game_manager.gd`: 游戏开始时调用 `QuestJournal.init_journal(faction_id)`
+- `save_manager.gd`: 完整序列化/反序列化任务日志状态
+- `event_bus.gd`: 新增 `quest_journal_updated`、`challenge_battle_requested/resolved` 信号
+- `hud.gd`: 新增"任务日志 (J)"按钮
+- `main.gd`: 动态创建QuestJournalPanel，ESC处理集成
+- 挑战战斗解决: 通过 `challenge_battle_resolved` 信号自动回调
+
+### 文件变更
+
+- 新增 `systems/quest/quest_journal.gd` — 统一任务管理器
+- 新增 `systems/quest/quest_definitions.gd` — 主线/支线/角色任务数据
+- 新增 `systems/quest/challenge_quest_data.gd` — 挑战任务数据 (从npc目录迁移)
+- 新增 `scenes/ui/quest_journal_panel.gd` + `.tscn` — 任务日志UI面板
+- 版本号统一升级至 v2.4.0
+
+---
+
 ## v2.3.0 — 2026-03-24 (小地图 + 自动存档 + 附庸平衡修复)
 
 ### 新功能: 小地图

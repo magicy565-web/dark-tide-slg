@@ -180,3 +180,8 @@ signal combat_view_closed()
 # ── Settings ──
 signal settings_opened()
 signal settings_closed()
+
+# ── Quest Journal (v2.4) ──
+signal quest_journal_updated()
+signal challenge_battle_requested(challenge_id: String, battle_data: Dictionary)
+signal challenge_battle_resolved(challenge_id: String, won: bool)

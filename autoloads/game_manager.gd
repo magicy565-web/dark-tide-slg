@@ -994,6 +994,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	RelicManager.init_player(0)
 	NpcManager.init_player(0)
 	QuestManager.init_player(0)
+	QuestJournal.init_journal(chosen_faction)
 	RecruitManager.init_player(0)
 	_give_starting_army(0, chosen_faction)
 	DiplomacyManager.init_player(0)

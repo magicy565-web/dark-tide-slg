@@ -44,6 +44,7 @@ var btn_sell_slave: Button
 var btn_buy_slave: Button
 var btn_hero: Button
 var btn_research: Button
+var btn_quest_journal: Button
 
 # ── UI refs: center target selector ──
 var target_panel: PanelContainer
@@ -297,6 +298,10 @@ func _build_action_panel(parent: Control) -> void:
 	btn_research = _make_button("训练科技")
 	btn_research.pressed.connect(_on_research_pressed)
 	vbox.add_child(btn_research)
+
+	btn_quest_journal = _make_button("任务日志 (J)")
+	btn_quest_journal.pressed.connect(_on_quest_journal_pressed)
+	vbox.add_child(btn_quest_journal)
 
 	# Save/Load buttons (free actions)
 	var btn_save := _make_button("保存 (F5)")
@@ -1112,6 +1117,12 @@ func _on_hero_pressed() -> void:
 	var hero_panel = get_tree().get_root().find_child("HeroPanel", true, false)
 	if hero_panel and hero_panel.has_method("show_panel"):
 		hero_panel.show_panel()
+
+
+func _on_quest_journal_pressed() -> void:
+	var quest_panel = get_tree().get_root().find_child("QuestJournalPanel", true, false)
+	if quest_panel and quest_panel.has_method("show_panel"):
+		quest_panel.show_panel()
 
 
 func _on_research_pressed() -> void:

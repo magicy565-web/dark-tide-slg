@@ -16,6 +16,9 @@ extends Node3D
 # ── Hero panel (created at runtime) ──
 var hero_panel = null
 
+# ── Quest journal panel (created at runtime) ──
+var quest_journal_panel = null
+
 
 func _ready() -> void:
 	# Start with HUD hidden, menu visible (board stays visible - camera needs it)
@@ -28,6 +31,11 @@ func _ready() -> void:
 	var hero_panel_scene := preload("res://scenes/ui/hero_panel.tscn")
 	hero_panel = hero_panel_scene.instantiate()
 	add_child(hero_panel)
+
+	# Create quest journal panel dynamically
+	var quest_panel_scene := preload("res://scenes/ui/quest_journal_panel.tscn")
+	quest_journal_panel = quest_panel_scene.instantiate()
+	add_child(quest_journal_panel)
 
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)
@@ -81,6 +89,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.keycode == KEY_ESCAPE and GameManager.game_active:
 			if hero_panel and hero_panel.is_panel_visible():
 				return  # Let hero panel handle ESC first
+			if quest_journal_panel and quest_journal_panel.is_panel_visible():
+				return  # Let quest journal handle ESC first
 			if combat_view.visible:
 				return  # Let combat view handle ESC
 			settings_panel.toggle_settings()
