@@ -80,8 +80,8 @@ func remove_slaves(player_id: int, count: int) -> void:
 	for role in ["mine", "farm", "altar"]:
 		if remaining <= 0:
 			break
-		var from_role: int = mini(alloc[role], remaining)
-		alloc[role] -= from_role
+		var from_role: int = mini(alloc.get(role, 0), remaining)
+		alloc[role] = alloc.get(role, 0) - from_role
 		remaining -= from_role
 
 

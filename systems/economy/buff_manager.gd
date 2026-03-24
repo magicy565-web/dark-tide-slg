@@ -96,6 +96,10 @@ func tick_buffs(player_id: int) -> void:
 	var buffs: Array = _active_buffs[player_id]
 	var i := buffs.size() - 1
 	while i >= 0:
+		# 防止外部修改导致索引越界
+		if i >= buffs.size():
+			i = buffs.size() - 1
+			continue
 		# Per-turn effects
 		if buffs[i]["type"] == "army_per_turn":
 			var loss: int = int(buffs[i]["value"])
@@ -142,6 +146,9 @@ func get_buff_value(player_id: int, buff_type: String, default_value = null) -> 
 			# Additive percentage: sum all values (e.g. -20 + -10 = -30%)
 			var total := 0.0
 			for b in buffs:
+				# 跳过空值，避免类型转换错误
+				if b["value"] == null:
+					continue
 				total += float(b["value"])
 			return total
 		"dice_bonus", "temp_army", "wall_damage", "army_per_turn":

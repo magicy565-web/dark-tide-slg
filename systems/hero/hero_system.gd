@@ -52,6 +52,7 @@ func attempt_capture(hero_id: String, capture_chance: float = -1.0) -> bool:
 	if _capture_in_progress.get(hero_id, false):
 		return false
 	if hero_id in captured_heroes or hero_id in recruited_heroes:
+		_capture_in_progress.erase(hero_id)
 		return false
 	_capture_in_progress[hero_id] = true
 	var max_prison: int = FactionData.PIRATE_PRISON_CAPACITY if _pirate_mode else FactionData.PRISON_CAPACITY

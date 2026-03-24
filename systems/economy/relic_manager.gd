@@ -35,7 +35,10 @@ func get_relic(player_id: int) -> Dictionary:
 	if not _player_relics.has(player_id) or _player_relics[player_id]["relic_id"] == "":
 		return {}
 	var relic_id: String = _player_relics[player_id]["relic_id"]
-	var base: Dictionary = FactionData.RELIC_DEFS[relic_id].duplicate()
+	var relic_def = FactionData.RELIC_DEFS.get(relic_id, null)
+	if relic_def == null:
+		return {}
+	var base: Dictionary = relic_def.duplicate()
 	base["upgraded"] = _player_relics[player_id]["upgraded"]
 	return base
 

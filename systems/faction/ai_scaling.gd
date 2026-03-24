@@ -50,12 +50,15 @@ func init_for_game(player_faction_id: int) -> void:
 	if player_key == "":
 		push_warning("ai_scaling: invalid player_faction_id %d — no matching AI key, skipping removal" % player_faction_id)
 		return
-	# Remove player's faction from AI tracking if it's an evil faction
+	# 收集需要删除的key，避免迭代中修改字典
+	var keys_to_erase: Array = []
 	if _faction_threat.has(player_key):
-		_faction_threat.erase(player_key)
-		_faction_tier.erase(player_key)
-		_expedition_cd.erase(player_key)
-		_boss_cd.erase(player_key)
+		keys_to_erase.append(player_key)
+	for key in keys_to_erase:
+		_faction_threat.erase(key)
+		_faction_tier.erase(key)
+		_expedition_cd.erase(key)
+		_boss_cd.erase(key)
 
 
 # ═══════════════ THREAT MANAGEMENT ═══════════════

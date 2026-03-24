@@ -423,3 +423,9 @@ func to_save_data() -> Dictionary:
 
 func from_save_data(data: Dictionary) -> void:
 	_npc_states = data.get("npc_states", {}).duplicate(true)
+	# 验证triggered_thresholds类型，防止存档数据损坏
+	for pid in _npc_states:
+		for npc_id in _npc_states[pid]:
+			var state: Dictionary = _npc_states[pid][npc_id]
+			if not (state.get("triggered_thresholds") is Array):
+				state["triggered_thresholds"] = []

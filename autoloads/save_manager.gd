@@ -28,6 +28,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func save_game(slot: int) -> bool:
 	## Save current game state to the given slot. Returns true on success.
+	# 校验槽位索引范围，仅允许手动槽位(0..MAX_MANUAL_SLOTS-1)和自动存档槽位
+	if slot != AUTO_SLOT and (slot < 0 or slot >= MAX_MANUAL_SLOTS):
+		push_warning("SaveManager: 无效的存档槽位 %d (有效范围: 0-%d 或 %d)" % [slot, MAX_MANUAL_SLOTS - 1, AUTO_SLOT])
+		return false
 	if not GameManager.game_active:
 		EventBus.message_log.emit("[color=red]无法保存: 游戏未运行[/color]")
 		return false
@@ -57,6 +61,10 @@ func save_game(slot: int) -> bool:
 
 func load_game(slot: int) -> bool:
 	## Load game state from the given slot. Returns true on success.
+	# 校验槽位索引范围
+	if slot != AUTO_SLOT and (slot < 0 or slot >= MAX_MANUAL_SLOTS):
+		push_warning("SaveManager: 无效的存档槽位 %d" % slot)
+		return false
 	var path: String = _slot_path(slot)
 	if not FileAccess.file_exists(path):
 		EventBus.message_log.emit("[color=red]存档不存在 (槽位%d)[/color]" % slot)
@@ -328,6 +336,8 @@ func _load_game_state(gs: Dictionary) -> void:
 	GameManager.adjacency.clear()
 	var adj_raw: Dictionary = gs.get("adjacency", {})
 	for key in adj_raw:
+		if not str(key).is_valid_int():
+			continue
 		var int_key: int = int(key)
 		var neighbors: Array = []
 		for v in adj_raw[key]:
@@ -376,6 +386,8 @@ func _load_game_state(gs: Dictionary) -> void:
 		for aid in GameManager.armies:
 			max_id = maxi(max_id, aid)
 		GameManager._next_army_id = maxi(GameManager._next_army_id, max_id + 1)
+	# 防止ID为零或负数
+	GameManager._next_army_id = maxi(GameManager._next_army_id, 1)
 	GameManager.selected_army_id = -1
 
 

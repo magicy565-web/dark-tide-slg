@@ -59,7 +59,10 @@ func use_item(player_id: int, item_id: String) -> bool:
 	if is_equipment(item_id):
 		EventBus.message_log.emit("[color=yellow]装备需要通过英雄界面装备, 不能直接使用[/color]")
 		return false
-	var item_data: Dictionary = FactionData.ITEM_DEFS[item_id]
+	var item_data: Dictionary = FactionData.ITEM_DEFS.get(item_id, {})
+	if item_data.is_empty():
+		EventBus.message_log.emit("[color=red]未知道具: %s[/color]" % item_id)
+		return false
 	var effect: Dictionary = item_data.get("effect", {})
 
 	# Validate effect values before applying

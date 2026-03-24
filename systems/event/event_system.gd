@@ -275,8 +275,12 @@ func roll_events(max_events: int = 2) -> Array:
 		# Skip non-repeatable events already triggered this game
 		if not event.get("repeatable", false) and _triggered_ids.has(event["id"]):
 			continue
-		if check_condition(event):
-			eligible.append(event)
+		if not check_condition(event):
+			# 不满足条件的非重复事件也标记为已触发，防止后续回合重复判定
+			if not event.get("repeatable", false):
+				_triggered_ids[event["id"]] = true
+			continue
+		eligible.append(event)
 	eligible.shuffle()
 	var triggered := []
 	for i in range(mini(max_events, eligible.size())):
@@ -329,6 +333,8 @@ func process_turn_start() -> void:
 	# ── Expire temp soldiers ──
 	var remaining_batches: Array = []
 	for batch in _temp_soldier_batches:
+		if batch == null or not batch is Dictionary:
+			continue
 		batch["remaining"] -= 1
 		if batch["remaining"] <= 0:
 			# Temp soldiers leave — clamp to prevent negative army
@@ -433,10 +439,10 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 
 	# Item reward
 	if effects.has("item") and effects["item"] == "random":
-		var granted_id: String = ItemManager.grant_random_loot(pid)
-		if granted_id != "":
+		var granted_id = ItemManager.grant_random_loot(pid)
+		if granted_id != null and granted_id != "":
 			EventBus.item_acquired.emit(pid, ItemManager._get_item_name(granted_id))
-		result["applied"].append("item: random")
+			result["applied"].append("item: random")
 
 	# Relic reward - emit signal; if player has no relic, trigger relic selection
 	if effects.has("relic") and effects["relic"]:
@@ -565,7 +571,7 @@ func _apply_reveal(player_id: int, count: int) -> void:
 	## Reveal unrevealed tiles for the player.
 	var unrevealed: Array = []
 	for t in GameManager.tiles:
-		if not t["revealed"].get(player_id, false):
+		if not t.get("revealed", {}).get(player_id, false):
 			unrevealed.append(t["index"])
 	unrevealed.shuffle()
 	var revealed_count: int = 0

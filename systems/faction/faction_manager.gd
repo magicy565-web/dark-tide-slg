@@ -47,6 +47,10 @@ func is_faction_alive(faction_id: int) -> bool:
 
 
 func mark_faction_dead(faction_id: int) -> void:
+	# 校验阵营ID是否存在于名称表中，避免空引用
+	if not FactionData.FACTION_NAMES.has(faction_id):
+		push_warning("FactionManager: mark_faction_dead 无效的 faction_id=%d" % faction_id)
+		return
 	for rival in _rival_factions:
 		if rival["faction_id"] == faction_id:
 			rival["alive"] = false

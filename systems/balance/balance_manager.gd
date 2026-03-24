@@ -190,6 +190,9 @@ static func effective_power(troop: Dictionary) -> float:
 	var rp: float = raw_power(troop)
 	var passive: String = troop.get("passive", "")
 	var mult: float = PASSIVE_POWER_MULT.get(passive, 1.0)
+	# 未定义的被动技能默认使用1.0，输出警告以便排查
+	if passive != "" and not PASSIVE_POWER_MULT.has(passive):
+		push_warning("BalanceManager: 兵种 '%s' 的被动 '%s' 未在PASSIVE_POWER_MULT中定义，使用默认值1.0" % [troop.get("name", "unknown"), passive])
 	return rp * mult
 
 ## Calculate cost efficiency: effective_power / recruit_cost

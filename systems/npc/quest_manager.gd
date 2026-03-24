@@ -92,9 +92,10 @@ func get_quest_step(player_id: int, neutral_faction: int) -> int:
 	## Returns current step (0 = not started, 1-3 = in progress/completed steps)
 	if not _quest_progress.has(player_id):
 		return 0
-	if not _quest_progress[player_id].has(neutral_faction):
+	var player_quests: Dictionary = _quest_progress.get(player_id, {})
+	if not player_quests.has(neutral_faction):
 		return 0
-	return _quest_progress[player_id][neutral_faction].get("step", 0)
+	return player_quests.get(neutral_faction, {}).get("step", 0)
 
 
 func start_quest(player_id: int, neutral_faction: int) -> bool:
@@ -188,7 +189,7 @@ func check_quest_triggers(player_id: int, neutral_faction: int) -> Dictionary:
 
 	var faction_data: Dictionary = FactionData.NEUTRAL_FACTION_DATA[neutral_faction]
 	var quest_chain: Array = faction_data.get("quest_chain", [])
-	if step > quest_chain.size():
+	if step < 1 or step > quest_chain.size():
 		return {"can_advance": false, "missing": "无此步骤"}
 
 	var step_data: Dictionary = quest_chain[step - 1]

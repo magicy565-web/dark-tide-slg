@@ -110,7 +110,10 @@ func tick_rebellion(player_id: int) -> void:
 			continue
 		rel["rebellion_turns"] -= 1
 		# 15% rebellion chance per conquered outpost
-		for tile in GameManager.tiles:
+		for n_idx in range(GameManager.tiles.size()):
+			if n_idx < 0 or n_idx >= GameManager.tiles.size():
+				continue
+			var tile: Dictionary = GameManager.tiles[n_idx]
 			if tile["owner_id"] != player_id:
 				continue
 			if tile.get("original_faction", -1) != faction_id:

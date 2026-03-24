@@ -102,7 +102,8 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		income["iron"] = int(float(income["iron"]) * buff_prod_mult)
 
 	# v0.8.7: income_pct debuff (e.g. elf_curse: -20% for 3 turns)
-	var income_pct_mod: float = BuffManager.get_buff_value(player_id, "income_pct") as float
+	var _raw_income_pct = BuffManager.get_buff_value(player_id, "income_pct")
+	var income_pct_mod: float = float(_raw_income_pct) if _raw_income_pct != null else 0.0
 	if income_pct_mod != 0.0:
 		var mult: float = 1.0 + income_pct_mod / 100.0  # e.g. -20 -> 0.8
 		income["gold"] = int(float(income["gold"]) * mult)

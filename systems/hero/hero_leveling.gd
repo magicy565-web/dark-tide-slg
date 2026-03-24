@@ -94,6 +94,8 @@ func get_exp_to_next_level(hero_id: String) -> Dictionary:
 	var exp_for_current: int = HeroLevelData.get_cumulative_exp_for_level(current_level)
 	var exp_for_next: int = HeroLevelData.get_cumulative_exp_for_level(current_level + 1)
 	var exp_in_level: int = current_exp - exp_for_current
+	# 防止经验值为负（例如累计经验低于当前等级所需时）
+	exp_in_level = maxi(0, exp_in_level)
 	var exp_needed_in_level: int = exp_for_next - exp_for_current
 
 	var progress: float = 0.0
