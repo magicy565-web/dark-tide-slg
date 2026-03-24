@@ -186,6 +186,29 @@ const HERO_STAT_ATK_MULT: int = 3   # SR07 commander ATK adds ATK×10, we scale 
 const HERO_STAT_DEF_MULT: int = 2   # SR07 DEF adds DEF×8, we scale to ×2
 const HERO_STAT_SPD_MULT: int = 1   # SR07 SPD affects delay by SPD×2
 
+# ═══════════════ NEUTRAL FACTIONS ═══════════════
+
+## Territory nodes per neutral faction (surrounding their base)
+const NEUTRAL_TERRITORY_NODES: int = 2
+
+## Neutral garrison strength range
+const NEUTRAL_BASE_GARRISON_MIN: int = 15
+const NEUTRAL_BASE_GARRISON_MAX: int = 30
+const NEUTRAL_TERRITORY_GARRISON_MIN: int = 8
+const NEUTRAL_TERRITORY_GARRISON_MAX: int = 15
+
+## Neutral AI patrol range (max tiles from base to patrol)
+const NEUTRAL_PATROL_RANGE: int = 2
+
+## Neutral reinforcement rate per turn
+const NEUTRAL_REINFORCE_PER_TURN: int = 1
+const NEUTRAL_REINFORCE_CAP_MULT: float = 1.5  # garrison cap = initial × this
+
+## Vassal production share (% of vassal node production sent to player)
+const VASSAL_PRODUCTION_SHARE: float = 0.60
+## Vassal garrison is independent but benefits from player tech
+const VASSAL_DEFENSE_BONUS: float = 0.20  # +20% DEF for vassal garrisons
+
 # ═══════════════ LIGHT FACTION DEFENSE ═══════════════
 
 ## Wall HP caps by tile type

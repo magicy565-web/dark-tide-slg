@@ -198,6 +198,7 @@ func _collect_save_data() -> Dictionary:
 		"light_faction_ai": LightFactionAI.to_save_data(),
 		"alliance_ai": AllianceAI.to_save_data(),
 		"evil_faction_ai": EvilFactionAI.to_save_data(),
+		"neutral_faction_ai": NeutralFactionAI.to_save_data(),
 		"audio": AudioManager.to_save_data(),
 		"tutorial": TutorialManager.to_save_data(),
 	}
@@ -262,6 +263,14 @@ func _apply_save_data(data: Dictionary) -> void:
 		LightFactionAI.init_light_defenses()
 	AllianceAI.from_save_data(data.get("alliance_ai", {}))
 	EvilFactionAI.from_save_data(data.get("evil_faction_ai", {}))
+
+	# 3b. Restore neutral faction AI (v2.1+)
+	if data.has("neutral_faction_ai"):
+		NeutralFactionAI.from_save_data(data.get("neutral_faction_ai", {}))
+	else:
+		# Legacy save: re-init from tile state
+		NeutralFactionAI.reset()
+		NeutralFactionAI.init_neutral_territories()
 
 	# 4. Restore new systems (v1.5+)
 	if data.has("audio"):

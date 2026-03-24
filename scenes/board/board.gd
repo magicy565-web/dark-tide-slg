@@ -41,13 +41,15 @@ const FACTION_COLORS := {
 	"orc": Color(0.75, 0.22, 0.18), "pirate": Color(0.18, 0.32, 0.62),
 	"dark_elf": Color(0.45, 0.15, 0.62), "human": Color(0.75, 0.62, 0.22),
 	"high_elf": Color(0.18, 0.58, 0.28), "mage": Color(0.18, 0.32, 0.72),
-	"neutral": Color(0.45, 0.45, 0.38), "none": Color(0.28, 0.28, 0.25),
+	"neutral": Color(0.45, 0.45, 0.38), "vassal": Color(0.35, 0.55, 0.40),
+	"none": Color(0.28, 0.28, 0.25),
 }
 const FLAG_COLORS := {
 	"orc": Color(1.0, 0.3, 0.2), "pirate": Color(0.3, 0.55, 0.85),
 	"dark_elf": Color(0.55, 0.25, 0.8), "human": Color(1.0, 0.85, 0.15),
 	"high_elf": Color(0.3, 0.85, 0.4), "mage": Color(0.3, 0.4, 1.0),
-	"neutral": Color(0.6, 0.6, 0.55), "none": Color(0.35, 0.35, 0.3),
+	"neutral": Color(0.6, 0.6, 0.55), "vassal": Color(0.45, 0.75, 0.50),
+	"none": Color(0.35, 0.35, 0.3),
 }
 const TERRAIN_COLORS := {
 	FactionData.TerrainType.PLAINS: Color(0.45, 0.6, 0.3),
@@ -432,7 +434,13 @@ func _update_territory_visual(idx: int) -> void:
 func _get_tile_faction_key(tile: Dictionary) -> String:
 	var oid: int = tile.get("owner_id", -1)
 	if oid < 0:
-		return "neutral" if tile.get("neutral_faction_id", -1) >= 0 else "none"
+		var nf_id: int = tile.get("neutral_faction_id", -1)
+		if nf_id >= 0:
+			# Check if this neutral faction is vassalized
+			if NeutralFactionAI.is_vassal(nf_id):
+				return "vassal"
+			return "neutral"
+		return "none"
 	if oid >= GameManager.players.size(): return "none"
 	var fid: int = GameManager.get_player_faction(oid)
 	match fid:

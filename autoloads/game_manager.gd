@@ -1064,6 +1064,10 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	# Initialize light faction defenses (walls, barriers, garrisons)
 	LightFactionAI.init_light_defenses()
 
+	# Initialize neutral faction territories and AI
+	NeutralFactionAI.reset()
+	NeutralFactionAI.init_neutral_territories()
+
 	# Initialize garrison compositions for all non-player tiles (Phase 3)
 	_init_light_garrisons()
 
@@ -1335,6 +1339,16 @@ func begin_turn() -> void:
 
 	# ── Phase 5g: Light faction passive regen (wall, barrier, mana) ──
 	LightFactionAI.tick_light_factions()
+
+	# ── Phase 5g3: Neutral faction AI (territory patrol & vassal production) ──
+	if pid == get_human_player_id():
+		NeutralFactionAI.tick()
+		# Add vassal production income
+		var vassal_income: Dictionary = NeutralFactionAI.get_vassal_production(pid)
+		if vassal_income["gold"] > 0 or vassal_income["food"] > 0 or vassal_income["iron"] > 0:
+			ResourceManager.apply_delta(pid, vassal_income)
+			EventBus.message_log.emit("[color=cyan]附庸贡献: 金%d 粮%d 铁%d[/color]" % [
+				vassal_income["gold"], vassal_income["food"], vassal_income["iron"]])
 
 	# ── Phase 5h: Supply line attrition (v0.9.2) ──
 	_tick_supply_lines(pid)
@@ -2366,6 +2380,8 @@ func _handle_neutral_quest(player: Dictionary, neutral_faction_id: int) -> void:
 	var new_step: int = QuestManager.get_quest_step(pid, neutral_faction_id)
 	if new_step >= 3:
 		QuestManager.complete_quest(pid, neutral_faction_id)
+		# Vassalize the neutral faction — their territory stays independent but production goes to player
+		NeutralFactionAI.vassalize(pid, neutral_faction_id)
 
 
 func _handle_village(player: Dictionary, tile: Dictionary) -> void:
@@ -2433,6 +2449,11 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	var pid: int = player["id"]
 	var faction_id: int = get_player_faction(pid)
 	var army: int = ResourceManager.get_army(pid)
+
+	# Neutral territory reinforcement: adjacent neutral tiles send aid before battle
+	var nf_id: int = tile.get("neutral_faction_id", -1)
+	if nf_id >= 0 and tile["owner_id"] < 0:
+		NeutralFactionAI.reinforce_on_attack(tile["index"])
 
 	# Build attacker data for CombatResolver
 	var atk_units: Array = RecruitManager.get_combat_units(pid)
@@ -2641,6 +2662,8 @@ func _capture_tile(player: Dictionary, tile: Dictionary) -> void:
 	_reveal_around(tile["index"], player["id"])
 	OrderManager.on_tile_captured()
 	ThreatManager.on_tile_captured()
+	# Notify neutral faction AI of territory loss
+	NeutralFactionAI.on_tile_captured(tile["index"], player["id"])
 
 
 func _check_elimination(player: Dictionary) -> void:

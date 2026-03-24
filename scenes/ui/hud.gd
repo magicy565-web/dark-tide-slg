@@ -1346,7 +1346,15 @@ func _update_tile_info() -> void:
 		info += "光明陣営: %s\n" % FactionData.LIGHT_FACTION_NAMES.get(tile["light_faction"], "未知")
 
 	if tile.get("neutral_faction_id", -1) >= 0:
-		info += "中立勢力: %s\n" % FactionData.NEUTRAL_FACTION_NAMES.get(tile["neutral_faction_id"], "未知")
+		var nf_id: int = tile["neutral_faction_id"]
+		var nf_name: String = FactionData.NEUTRAL_FACTION_NAMES.get(nf_id, "未知")
+		if NeutralFactionAI.is_vassal(nf_id):
+			info += "[color=lime]附庸: %s[/color]\n" % nf_name
+		else:
+			info += "中立勢力: %s\n" % nf_name
+		# Show territory info
+		var territory: Array = NeutralFactionAI.get_faction_territory(nf_id)
+		info += "领地节点: %d\n" % territory.size()
 
 	if tile["owner_id"] == pid and tile["level"] < GameManager.MAX_TILE_LEVEL:
 		var cost: Array = GameManager.UPGRADE_COSTS[tile["level"]]
@@ -1530,7 +1538,12 @@ func _update_tile_info_for(tile_index: int) -> void:
 
 	# Neutral faction
 	if tile.get("neutral_faction_id", -1) >= 0:
-		info += "中立势力: %s\n" % FactionData.NEUTRAL_FACTION_NAMES.get(tile["neutral_faction_id"], "未知")
+		var nf_id2: int = tile["neutral_faction_id"]
+		var nf_name2: String = FactionData.NEUTRAL_FACTION_NAMES.get(nf_id2, "未知")
+		if NeutralFactionAI.is_vassal(nf_id2):
+			info += "[color=lime]附庸: %s[/color]\n" % nf_name2
+		else:
+			info += "中立势力: %s\n" % nf_name2
 
 	# Light faction
 	if tile.get("light_faction", -1) >= 0:

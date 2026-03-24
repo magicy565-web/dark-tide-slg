@@ -109,6 +109,11 @@ signal quest_combat_requested(player_id: int, neutral_faction: int, enemy_soldie
 signal quest_combat_resolved(player_id: int, neutral_faction: int, won: bool)
 signal neutral_faction_free_item(player_id: int, faction_id: int, item_id: String)
 
+# ── Neutral territory & vassal ──
+signal neutral_territory_attacked(neutral_faction_id: int, tile_index: int, attacker_id: int)
+signal neutral_faction_vassalized(player_id: int, neutral_faction_id: int)
+signal vassal_territory_changed(player_id: int, neutral_faction_id: int, tile_index: int)
+
 # ── Relics ──
 signal relic_selected(player_id: int, relic_id: String)
 
