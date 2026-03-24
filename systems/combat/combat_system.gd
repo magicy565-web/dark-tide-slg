@@ -1,6 +1,8 @@
 class_name CombatSystem
 ## Core battle resolution engine for a Sengoku Rance-style tactical strategy game.
 ## v2.0 — SR07+TW:W数值对齐
+
+const FactionData = preload("res://systems/faction/faction_data.gd")
 ##
 ## Usage:
 ##   var combat = CombatSystem.new()
@@ -25,11 +27,16 @@ const MAX_SLOTS := 6  # front(3) + back(3), SR07 formation
 # Terrain enum mirrors GameData.Terrain.  We reference GameData at runtime but
 # keep local copies so the file is self-documenting.
 enum Terrain {
-	PLAINS   = 0,
-	FOREST   = 1,
-	MOUNTAIN = 2,
-	SWAMP    = 3,
-	FORTRESS = 4,
+	PLAINS    = 0,
+	FOREST    = 1,
+	MOUNTAIN  = 2,
+	SWAMP     = 3,
+	COASTAL   = 4,
+	FORTRESS  = 5,
+	RIVER     = 6,
+	RUINS     = 7,
+	WASTELAND = 8,
+	VOLCANIC  = 9,
 }
 
 # ---------------------------------------------------------------------------
@@ -359,44 +366,44 @@ func _infer_unit_class(troop_id: String) -> String:
 
 ## Apply permanent terrain modifiers to all units at battle start.
 func _apply_terrain_modifiers(state: BattleState) -> void:
-	var all_units: Array[BattleUnit] = []
+	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(state.terrain, {})
+	var unit_mods_map: Dictionary = terrain_data.get("unit_mods", {})
+	var all_units: Array = []
 	all_units.append_array(state.attacker_units)
 	all_units.append_array(state.defender_units)
-
 	for u in all_units:
-		# ignore_terrain passive skips penalties (but we still grant bonuses
-		# to keep it fair – "immune to penalties" not "immune to all effects").
-		var ignore := u.has_passive("ignore_terrain")
-		var troop := u.troop_id.to_lower()
+		var ignore: bool = u.has_passive("ignore_terrain")
+		# Determine troop class from troop_id field
+		var tclass: String = _get_unit_terrain_class(u)
+		var mods: Dictionary = unit_mods_map.get(tclass, {})
+		if mods.get("ban", false) and not ignore:
+			u.soldiers = 0
+			u.hp = 0
+			_recalc_soldiers(u)
+			continue
+		if not ignore:
+			u.atk += mods.get("atk", 0)
+			u.def_stat += mods.get("def", 0)
+			u.spd += mods.get("spd", 0)
+		else:
+			# ignore_terrain: only apply positive mods
+			if mods.get("atk", 0) > 0: u.atk += mods["atk"]
+			if mods.get("def", 0) > 0: u.def_stat += mods["def"]
+			if mods.get("spd", 0) > 0: u.spd += mods["spd"]
 
-		match state.terrain:
-			Terrain.PLAINS:
-				# Cavalry ATK+3
-				if troop == "cavalry":
-					u.atk += 3
 
-			Terrain.FOREST:
-				# Archer ATK+3, cavalry ATK-3
-				if troop == "archer":
-					u.atk += 3
-				if troop == "cavalry" and not ignore:
-					u.atk -= 3
-
-			Terrain.MOUNTAIN:
-				# DEF mod x1.2 handled in damage calc; cavalry blocked
-				# (we set soldiers to 0 to represent being unable to fight)
-				if troop == "cavalry" and not ignore:
-					u.soldiers = 0
-					u.hp = 0
-
-			Terrain.SWAMP:
-				# All SPD-3
-				if not ignore:
-					u.spd -= 3
-
-			Terrain.FORTRESS:
-				# DEF mod x1.5 for defender only – applied in damage calc
-				pass
+## Map a BattleUnit's troop_id to a terrain modifier class key.
+func _get_unit_terrain_class(u: BattleUnit) -> String:
+	var troop := u.troop_id.to_lower()
+	if troop.find("cavalry") != -1 or troop.find("rider") != -1: return "cavalry"
+	if troop.find("archer") != -1 or troop.find("ranger") != -1: return "archer"
+	if troop.find("ninja") != -1 or troop.find("assassin") != -1: return "ninja"
+	if troop.find("cannon") != -1 or troop.find("bombardier") != -1: return "cannon"
+	if troop.find("mage") != -1 or troop.find("apprentice") != -1: return "mage_unit"
+	if troop.find("priest") != -1: return "priest"
+	if troop.find("samurai") != -1: return "samurai"
+	if troop.find("ashigaru") != -1: return "ashigaru"
+	return "ashigaru"
 
 # ---------------------------------------------------------------------------
 # Siege Phase
@@ -703,13 +710,9 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 
 	# Terrain defense multiplier
 	var terrain_def_mult := 1.0
-	match state.terrain:
-		Terrain.MOUNTAIN:
-			terrain_def_mult = 1.2
-		Terrain.FORTRESS:
-			if not defender.is_attacker:
-				terrain_def_mult = 1.5
-
+	var tdata_dmg: Dictionary = FactionData.TERRAIN_DATA.get(state.terrain, {})
+	if not defender.is_attacker:
+		terrain_def_mult = tdata_dmg.get("def_mult", 1.0)
 	def_val = int(float(def_val) * terrain_def_mult)
 
 	# SR07-style: max(10, ATK - DEF) percentage-based damage

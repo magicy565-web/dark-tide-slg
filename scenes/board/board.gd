@@ -58,11 +58,17 @@ const TERRAIN_COLORS := {
 	FactionData.TerrainType.SWAMP: Color(0.35, 0.4, 0.28),
 	FactionData.TerrainType.COASTAL: Color(0.3, 0.45, 0.6),
 	FactionData.TerrainType.FORTRESS_WALL: Color(0.65, 0.6, 0.55),
+	FactionData.TerrainType.RIVER: Color(0.25, 0.4, 0.65),
+	FactionData.TerrainType.RUINS: Color(0.5, 0.45, 0.55),
+	FactionData.TerrainType.WASTELAND: Color(0.65, 0.55, 0.35),
+	FactionData.TerrainType.VOLCANIC: Color(0.55, 0.25, 0.15),
 }
 const TERRAIN_ELEVATION := {
 	FactionData.TerrainType.PLAINS: 0.0, FactionData.TerrainType.FOREST: 0.05,
 	FactionData.TerrainType.MOUNTAIN: 0.3, FactionData.TerrainType.SWAMP: -0.05,
 	FactionData.TerrainType.COASTAL: 0.0, FactionData.TerrainType.FORTRESS_WALL: 0.2,
+	FactionData.TerrainType.RIVER: -0.03, FactionData.TerrainType.RUINS: 0.08,
+	FactionData.TerrainType.WASTELAND: 0.02, FactionData.TerrainType.VOLCANIC: 0.25,
 }
 const COL_FOG := Color(0.08, 0.08, 0.12, 0.6)
 const COL_FOG_EDGE := Color(0.08, 0.08, 0.12, 0.3)

@@ -39,9 +39,11 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 
 		var iron_mult: float = params.get("iron_income_mult", 1.0)
 
-		var g: int = int(float(base.get("gold", 0)) * level_mult * params["gold_income_mult"] * params["base_production_mult"] * order_mult * (1.0 + building_prod_bonus))
-		var f: int = int(float(base.get("food", 0)) * level_mult * params["food_production_mult"] * params["base_production_mult"] * order_mult * (1.0 + building_prod_bonus))
-		var ir: int = int(float(base.get("iron", 0)) * level_mult * iron_mult * params["base_production_mult"] * order_mult * (1.0 + building_prod_bonus))
+		var terrain_prod_mult: float = FactionData.TERRAIN_DATA.get(tile.get("terrain", FactionData.TerrainType.PLAINS), {}).get("production_mult", 1.0)
+
+		var g: int = int(float(base.get("gold", 0)) * level_mult * params["gold_income_mult"] * params["base_production_mult"] * order_mult * (1.0 + building_prod_bonus) * terrain_prod_mult)
+		var f: int = int(float(base.get("food", 0)) * level_mult * params["food_production_mult"] * params["base_production_mult"] * order_mult * (1.0 + building_prod_bonus) * terrain_prod_mult)
+		var ir: int = int(float(base.get("iron", 0)) * level_mult * iron_mult * params["base_production_mult"] * order_mult * (1.0 + building_prod_bonus) * terrain_prod_mult)
 
 		income["gold"] += g
 		income["food"] += f

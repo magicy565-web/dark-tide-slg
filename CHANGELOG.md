@@ -2,6 +2,53 @@
 
 ---
 
+## v3.2.0 — 2026-03-24 (地形系统全面重构)
+
+### 地形系统重构 (faction_data.gd TERRAIN_DATA)
+
+- **新增地形**: 河流 (RIVER)、遗迹 (RUINS)、荒原 (WASTELAND)、火山 (VOLCANIC), 共10种地形
+- **统一数据源**: 所有地形数据合并至 `TERRAIN_DATA` 字典, 消除三处硬编码不一致
+  - 每种地形包含: atk_mult, def_mult, move_cost, visibility_range, prod_mult, attrition_pct
+  - 每种地形包含 `unit_mods`: 8种兵种 × (atk/def/spd/ban) 修正值
+- **移动消耗**: 地形移动AP从固定1改为数据驱动 (平原1, 森林2, 山地3, 河流3, 火山4等)
+- **视野系统**: BFS迷雾战争, 视野范围受地形影响 (平原3, 山地4, 森林1, 火山2等)
+- **生产修正**: 地形影响据点产出倍率 (平原1.0, 森林0.8, 遗迹1.3, 火山0.5等)
+- **损耗系统**: 新增地形损耗 (荒原2%/回合, 火山5%/回合, 沼泽3%/回合)
+
+### 战斗系统数据驱动化 (combat_system.gd + combat_resolver.gd)
+
+- **地形修正**: combat_system 和 combat_resolver 的硬编码 match 块替换为 TERRAIN_DATA 查询
+- **兵种地形适性**: 8种兵种类别 (infantry/cavalry/archer/mage/tank/assassin/artillery/support) 各有独立地形修正
+- **Terrain enum对齐**: 修复 COASTAL 缺失导致的枚举偏移问题
+
+### 地图与UI更新
+
+- **地图生成**: map_generator 新增4种地形权重, 地形字符串映射更新
+- **棋盘渲染**: board.gd 新增4种地形颜色和高度值
+- **战斗UI**: combat_view 地形名称改为数据驱动查询
+- **HUD**: 地形提示框显示移动消耗和损耗信息
+- **命名据点**: 新增8个命名据点 (河流/遗迹/荒原/火山各2)
+
+### 文件变更清单
+
+| 文件 | 变更类型 |
+|------|----------|
+| systems/faction/faction_data.gd | 重构 (TerrainType enum + TERRAIN_DATA + TERRAIN_ZONE_WEIGHTS + NAMED_OUTPOSTS) |
+| systems/combat/combat_system.gd | 重构 (Terrain enum + 数据驱动地形修正) |
+| systems/combat/combat_resolver.gd | 重构 (数据驱动地形修正) |
+| systems/balance_config.gd | 修改 (旧地形常量标记DEPRECATED) |
+| systems/economy/production_calculator.gd | 修改 (地形产出倍率) |
+| autoloads/game_manager.gd | 修改 (移动消耗 + BFS视野 + 损耗系统) |
+| systems/map/map_generator.gd | 修改 (新地形权重和映射) |
+| scenes/board/board.gd | 修改 (新地形颜色和高度) |
+| scenes/ui/combat_view.gd | 修改 (数据驱动地形名称) |
+| scenes/ui/hud.gd | 修改 (地形信息提示框) |
+| scenes/ui/main_menu.gd | 修改 (版本号 → v3.2.0) |
+| autoloads/save_manager.gd | 修改 (SAVE_VERSION → 3.2.0) |
+| systems/mod/mod_manager.gd | 修改 (GAME_VERSION → 3.2.0) |
+
+---
+
 ## v3.1.0 — 2026-03-24 (英雄等级成长系统 + 独立HP模型)
 
 ### 新系统: 英雄等级成长 (hero_level_data.gd + hero_leveling.gd)

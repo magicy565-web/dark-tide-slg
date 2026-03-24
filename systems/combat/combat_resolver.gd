@@ -248,51 +248,31 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		if hero_passive != "" and hero_passive not in passives:
 			passives.append(hero_passive)
 
-	# Terrain modifiers
+	# ── Terrain modifiers (data-driven from TERRAIN_DATA) ──
 	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
 	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
-	var terrain_flags: Array = terrain_data.get("special_flags", [])
 	var is_attacker: bool = (side == "attacker")
 
 	var has_ignore_terrain: bool = "ignore_terrain" in passives
 	if not has_ignore_terrain:
-		# Per design doc 05:
-		# 平原: 骑兵ATK+1
-		# 森林: ATK×0.9, DEF×1.1, 弓兵ATK+1, 骑兵ATK-1
-		# 山地: ATK×0.8, DEF×1.2, 骑兵不可进入(冷蜥除外)
-		# 沼泽: ATK×0.9, DEF×0.9, 全体SPD-2
-		# 城墙: ATK×0.7, DEF×1.5
+		if is_attacker:
+			base_atk *= terrain_data.get("atk_mult", 1.0)
+		else:
+			base_def *= terrain_data.get("def_mult", 1.0)
 		var troop_base: String = _get_troop_base_type(unit_type)
-		match terrain_type:
-			FactionData.TerrainType.PLAINS:
-				if troop_base == "cavalry":
-					base_atk += 1
-			FactionData.TerrainType.FOREST:
-				if is_attacker:
-					base_atk *= 0.9
-				else:
-					base_def *= 1.1
-				if troop_base == "archer":
-					base_atk += 1
-				if troop_base == "cavalry":
-					base_atk -= 1
-			FactionData.TerrainType.MOUNTAIN:
-				if is_attacker:
-					base_atk *= 0.8
-				else:
-					base_def *= 1.2
-				if troop_base == "cavalry":
-					base_atk *= 0.85  # Additional cavalry penalty
-			FactionData.TerrainType.SWAMP:
-				base_atk *= 0.9
-				base_def *= 0.9
-				if "ninja_immune" not in terrain_flags or troop_base != "ninja":
-					spd -= 2
-			FactionData.TerrainType.FORTRESS_WALL:
-				if is_attacker:
-					base_atk *= 0.7
-				else:
-					base_def *= 1.5
+		var um: Dictionary = terrain_data.get("unit_mods", {}).get(troop_base, {})
+		if um.get("ban", false):
+			base_atk = 0
+		else:
+			base_atk += um.get("atk", 0)
+			base_def += um.get("def", 0)
+			spd += um.get("spd", 0)
+	else:
+		var troop_base: String = _get_troop_base_type(unit_type)
+		var um: Dictionary = terrain_data.get("unit_mods", {}).get(troop_base, {})
+		if um.get("atk", 0) > 0: base_atk += um["atk"]
+		if um.get("def", 0) > 0: base_def += um["def"]
+		if um.get("spd", 0) > 0: spd += um["spd"]
 
 	# Fort defense passive: DEF+3 when defending own node
 	if "fort_def_3" in passives and not is_attacker:

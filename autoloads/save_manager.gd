@@ -2,7 +2,7 @@
 ## Autoload singleton. Serializes full game state to JSON files.
 extends Node
 
-const SAVE_VERSION: String = "3.1.0"
+const SAVE_VERSION: String = "3.2.0"
 const SAVE_DIR: String = "user://saves/"
 const MAX_MANUAL_SLOTS: int = 5
 const AUTO_SLOT: int = 99

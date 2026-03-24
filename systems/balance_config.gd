@@ -74,14 +74,15 @@ const DAMAGE_MIN_RATE: float = 0.10
 const UNIT_MOVES_BASE: int = 3
 const UNIT_MOVES_MAX: int = 5
 
-## Terrain modifiers (additive ATK bonus, more impactful like TW:W)
-const TERRAIN_CAV_PLAINS_ATK: int = 3
-const TERRAIN_ARCHER_FOREST_ATK: int = 3
-const TERRAIN_CAV_FOREST_ATK: int = -3
-const TERRAIN_SWAMP_SPD: int = -3
-const TERRAIN_FORTRESS_DEF_MULT: float = 1.5
-const TERRAIN_MOUNTAIN_DEF_MULT: float = 1.2
-const TERRAIN_DEFENDER_BONUS: float = 0.10  # SR07 town +10% defender advantage
+## DEPRECATED (v3.2): 地形修正已统一至 FactionData.TERRAIN_DATA
+## 保留仅供参考，新代码请勿使用
+#const TERRAIN_CAV_PLAINS_ATK: int = 3
+#const TERRAIN_ARCHER_FOREST_ATK: int = 3
+#const TERRAIN_CAV_FOREST_ATK: int = -3
+#const TERRAIN_SWAMP_SPD: int = -3
+#const TERRAIN_FORTRESS_DEF_MULT: float = 1.5
+#const TERRAIN_MOUNTAIN_DEF_MULT: float = 1.2
+const TERRAIN_DEFENDER_BONUS: float = 0.10  # SR07 town +10% 防御方优势 (独立于地形)
 
 # ═══════════════ ARMY (TW:W aligned) ═══════════════
 

@@ -1527,17 +1527,11 @@ func _update_tile_info_for(tile_index: int) -> void:
 	var type_name: String = GameManager.TILE_NAMES.get(tile["type"], "未知")
 	var terrain: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
 
-	var terrain_names: Dictionary = {
-		FactionData.TerrainType.PLAINS: "平原",
-		FactionData.TerrainType.FOREST: "森林",
-		FactionData.TerrainType.MOUNTAIN: "山地",
-		FactionData.TerrainType.SWAMP: "沼泽",
-		FactionData.TerrainType.COASTAL: "沿海",
-		FactionData.TerrainType.FORTRESS_WALL: "城墙",
-	}
+	var tdata: Dictionary = FactionData.TERRAIN_DATA.get(terrain, {})
+	var terrain_name: String = tdata.get("name", "未知")
 
 	var info: String = "[b]%s[/b] (Lv%d)\n" % [tile["name"], tile["level"]]
-	info += "类型: %s | 地形: %s\n" % [type_name, terrain_names.get(terrain, str(terrain))]
+	info += "类型: %s | 地形: %s\n" % [type_name, terrain_name]
 
 	# Terrain combat modifiers
 	var t_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain, {}) if "TERRAIN_DATA" in FactionData else {}
@@ -1546,6 +1540,16 @@ func _update_tile_info_for(tile_index: int) -> void:
 		var def_m: float = t_data.get("def_mult", 1.0)
 		if atk_m != 1.0 or def_m != 1.0:
 			info += "[color=gray]战斗修正: ATK×%.2f DEF×%.2f[/color]\n" % [atk_m, def_m]
+
+	# Terrain move cost & attrition tooltip
+	var move_cost: int = tdata.get("move_cost", 1)
+	var attrition_pct: float = tdata.get("attrition_pct", 0.0)
+	if move_cost > 1 or attrition_pct > 0.0:
+		var extra_info: String = "[color=gray]移动消耗: %dAP" % move_cost
+		if attrition_pct > 0.0:
+			extra_info += " | 减员: %.0f%%/回合" % (attrition_pct * 100.0)
+		extra_info += "[/color]\n"
+		info += extra_info
 
 	# Chokepoint
 	if tile.get("is_chokepoint", false):

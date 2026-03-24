@@ -1362,6 +1362,7 @@ func begin_turn() -> void:
 
 	# ── Phase 5h: Supply line attrition (v0.9.2) ──
 	_tick_supply_lines(pid)
+	_tick_terrain_attrition(pid)
 
 	# ── Phase 6: Threat events (expedition / boss) ──
 	if pid == get_human_player_id():
@@ -1710,7 +1711,8 @@ func action_deploy_army(army_id: int, target_tile: int) -> bool:
 	var army: Dictionary = armies[army_id]
 	var player_id: int = army["player_id"]
 	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
+	var required_ap: int = tiles[target_tile].get("terrain_move_cost", 1)
+	if player.is_empty() or player["ap"] < required_ap:
 		EventBus.message_log.emit("行动点不足!")
 		return false
 	var deployable: Array = get_army_deployable_tiles(army_id)
@@ -1720,7 +1722,8 @@ func action_deploy_army(army_id: int, target_tile: int) -> bool:
 
 	var from_tile: int = army["tile_index"]
 	army["tile_index"] = target_tile
-	player["ap"] -= 1
+	var move_ap: int = tiles[target_tile].get("terrain_move_cost", 1)
+	player["ap"] -= move_ap
 
 	_reveal_around(target_tile, player_id)
 	EventBus.message_log.emit("%s 部署到 %s" % [army["name"], tiles[target_tile]["name"]])
@@ -2198,6 +2201,32 @@ func _tick_supply_lines(player_id: int) -> void:
 				troop["soldiers"] = maxi(0, troop["soldiers"] - loss)
 			EventBus.message_log.emit("[color=orange]%s 补给线过长(%d格)! 每回合损失%.0f%%兵[/color]" % [army["name"], supply_dist, SUPPLY_LINE_ATTRITION_PCT * 100.0])
 			_cleanup_army_troops(army)
+
+
+func _tick_terrain_attrition(player_id: int) -> void:
+	var player_armies: Array = get_player_armies(player_id)
+	for army in player_armies:
+		if army.is_empty():
+			continue
+		var tile_idx: int = army.get("tile_index", -1)
+		if tile_idx < 0 or tile_idx >= tiles.size():
+			continue
+		var terrain_type: int = tiles[tile_idx].get("terrain", FactionData.TerrainType.PLAINS)
+		var tdata: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
+		var attrition: float = tdata.get("attrition_pct", 0.0)
+		if attrition <= 0.0:
+			continue
+		var tname: String = tdata.get("name", "未知")
+		for troop in army.get("troops", []):
+			var soldiers: int = troop.get("soldiers", 0)
+			if soldiers <= 0:
+				continue
+			var loss: int = maxi(1, int(float(soldiers) * attrition))
+			troop["soldiers"] = maxi(1, soldiers - loss)
+			# Update HP if it exists
+			var hpp: int = troop.get("hp_per_soldier", 5)
+			troop["total_hp"] = troop["soldiers"] * hpp
+		EventBus.message_log.emit("[color=orange]军队在%s中损失兵力 (%.0f%%减员/回合)[/color]" % [tname, attrition * 100.0])
 
 
 func select_army(army_id: int) -> void:
@@ -3182,10 +3211,22 @@ func use_item(item_id: String) -> void:
 func _reveal_around(tile_index: int, player_id: int) -> void:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return
-	tiles[tile_index]["revealed"][player_id] = true
-	if adjacency.has(tile_index):
-		for neighbor in adjacency[tile_index]:
-			tiles[neighbor]["revealed"][player_id] = true
+	var tdata: Dictionary = FactionData.TERRAIN_DATA.get(tiles[tile_index].get("terrain", FactionData.TerrainType.PLAINS), {})
+	var vis_range: int = tdata.get("visibility_range", 2)
+	var visited: Dictionary = {tile_index: 0}
+	var queue: Array = [tile_index]
+	while queue.size() > 0:
+		var current: int = queue.pop_front()
+		var depth: int = visited[current]
+		if not tiles[current].has("revealed"):
+			tiles[current]["revealed"] = {}
+		tiles[current]["revealed"][player_id] = true
+		if depth < vis_range:
+			var neighbors: Array = adjacency.get(current, [])
+			for neighbor in neighbors:
+				if not visited.has(neighbor) and neighbor >= 0 and neighbor < tiles.size():
+					visited[neighbor] = depth + 1
+					queue.append(neighbor)
 	EventBus.fog_updated.emit(player_id)
 
 

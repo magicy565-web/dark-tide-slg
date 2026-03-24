@@ -947,14 +947,8 @@ func _hp_color(ratio: float) -> Color:
 
 
 func _get_terrain_name(terrain) -> String:
-	match terrain:
-		0: return "平原"
-		1: return "森林"
-		2: return "山地"
-		3: return "沼泽"
-		4: return "海岸"
-		5: return "要塞"
-	return "平原"
+	var tdata: Dictionary = FactionData.TERRAIN_DATA.get(terrain, {})
+	return tdata.get("name", "平原")
 
 
 func _get_troop_display_name(troop_id: String) -> String:

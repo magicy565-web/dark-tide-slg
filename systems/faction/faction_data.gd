@@ -845,68 +845,179 @@ const OUTPOST_UPGRADE_REQUIREMENTS: Dictionary = {
 # Every tile has both. Terrain affects combat, movement, production, visibility.
 # ══════════════════════════════════════════════════════════════════════════════
 
-enum TerrainType { PLAINS, FOREST, MOUNTAIN, SWAMP, COASTAL, FORTRESS_WALL }
+enum TerrainType { PLAINS, FOREST, MOUNTAIN, SWAMP, COASTAL, FORTRESS_WALL, RIVER, RUINS, WASTELAND, VOLCANIC }
 
 const TERRAIN_DATA: Dictionary = {
 	TerrainType.PLAINS: {
 		"name": "平原", "icon": "🌾",
-		"move_cost": 1,
-		"atk_mult": 1.0,        # no modifier
-		"def_mult": 1.0,
-		"production_mult": 1.0,
-		"visibility_range": 2,
 		"desc": "标准地形，无特殊加成，适合大规模正面交战",
+		"move_cost": 1, "atk_mult": 1.0, "def_mult": 1.0,
+		"production_mult": 1.0, "visibility_range": 2, "attrition_pct": 0.0,
+		"special_flags": [],
+		"unit_mods": {
+			"cavalry": {"atk": 2, "def": 0, "spd": 0, "ban": false},
+			"archer": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"ninja": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"mage_unit": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"ashigaru": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"samurai": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"cannon": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"priest": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+		},
 	},
 	TerrainType.FOREST: {
 		"name": "森林", "icon": "🌲",
-		"move_cost": 2,
-		"atk_mult": 0.85,       # attacker -15% (difficult to coordinate assault)
-		"def_mult": 1.25,       # defender +25% (tree cover, ambush advantage)
-		"production_mult": 0.9,
-		"visibility_range": 1,  # low visibility
 		"desc": "防御方+25%防御，攻击方-15%攻击，视野缩减",
-		"special_flags": ["ambush_terrain"],  # ninja/ranger units get bonus here
+		"move_cost": 2, "atk_mult": 0.85, "def_mult": 1.25,
+		"production_mult": 0.9, "visibility_range": 1, "attrition_pct": 0.0,
+		"special_flags": ["ambush_terrain"],
+		"unit_mods": {
+			"cavalry": {"atk": -3, "def": -1, "spd": -2, "ban": false},
+			"archer": {"atk": 3, "def": 1, "spd": 0, "ban": false},
+			"ninja": {"atk": 2, "def": 2, "spd": 1, "ban": false},
+			"mage_unit": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"ashigaru": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"samurai": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"cannon": {"atk": -1, "def": 0, "spd": -1, "ban": false},
+			"priest": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+		},
 	},
 	TerrainType.MOUNTAIN: {
 		"name": "山地", "icon": "⛰️",
-		"move_cost": 3,
-		"atk_mult": 0.75,       # very hard to assault uphill
-		"def_mult": 1.40,       # high ground advantage
-		"production_mult": 0.7,
-		"visibility_range": 3,  # high ground = far sight
-		"desc": "防御方+40%防御，攻击方-25%攻击，视野增加，骑兵减效",
-		"special_flags": ["cavalry_penalty"],  # cavalry charge reduced
+		"desc": "防御方+40%防御，攻击方-25%攻击，视野增加，骑兵禁入",
+		"move_cost": 3, "atk_mult": 0.75, "def_mult": 1.40,
+		"production_mult": 0.7, "visibility_range": 3, "attrition_pct": 0.0,
+		"special_flags": ["cavalry_penalty", "high_ground"],
+		"unit_mods": {
+			"cavalry": {"atk": 0, "def": 0, "spd": 0, "ban": true},
+			"archer": {"atk": 2, "def": 1, "spd": 0, "ban": false},
+			"ninja": {"atk": 0, "def": 1, "spd": -1, "ban": false},
+			"mage_unit": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"ashigaru": {"atk": 0, "def": 0, "spd": -1, "ban": false},
+			"samurai": {"atk": 0, "def": 0, "spd": -1, "ban": false},
+			"cannon": {"atk": -2, "def": 0, "spd": -2, "ban": false},
+			"priest": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+		},
 	},
 	TerrainType.SWAMP: {
 		"name": "沼泽", "icon": "🏚️",
-		"move_cost": 3,
-		"atk_mult": 0.80,       # both sides suffer
-		"def_mult": 0.90,       # defenders also hampered
-		"production_mult": 0.6,
-		"visibility_range": 1,
 		"desc": "双方战斗力下降，骑兵无法冲锋，忍者不受影响",
+		"move_cost": 3, "atk_mult": 0.80, "def_mult": 0.90,
+		"production_mult": 0.6, "visibility_range": 1, "attrition_pct": 0.02,
 		"special_flags": ["disable_charge", "ninja_immune"],
+		"unit_mods": {
+			"cavalry": {"atk": -2, "def": -1, "spd": -3, "ban": false},
+			"archer": {"atk": -1, "def": 0, "spd": -2, "ban": false},
+			"ninja": {"atk": 1, "def": 1, "spd": 0, "ban": false},
+			"mage_unit": {"atk": 0, "def": 0, "spd": -2, "ban": false},
+			"ashigaru": {"atk": 0, "def": 0, "spd": -2, "ban": false},
+			"samurai": {"atk": 0, "def": 0, "spd": -2, "ban": false},
+			"cannon": {"atk": -2, "def": 0, "spd": -3, "ban": false},
+			"priest": {"atk": 0, "def": 0, "spd": -1, "ban": false},
+		},
 	},
 	TerrainType.COASTAL: {
 		"name": "沿海", "icon": "🌊",
-		"move_cost": 1,
-		"atk_mult": 1.0,
-		"def_mult": 1.0,
-		"production_mult": 1.1,  # trade bonus
-		"visibility_range": 2,
 		"desc": "产出+10%，海盗单位ATK+15%，可建港口",
+		"move_cost": 1, "atk_mult": 1.0, "def_mult": 1.0,
+		"production_mult": 1.1, "visibility_range": 2, "attrition_pct": 0.0,
 		"special_flags": ["pirate_bonus", "harbor_eligible"],
+		"unit_mods": {
+			"cavalry": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"archer": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"ninja": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"mage_unit": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"ashigaru": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"samurai": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"cannon": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"priest": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+		},
 	},
 	TerrainType.FORTRESS_WALL: {
 		"name": "城墙", "icon": "🏰",
-		"move_cost": 2,
-		"atk_mult": 0.70,       # attackers heavily penalized
-		"def_mult": 1.50,       # massive defense bonus
-		"production_mult": 0.8,
-		"visibility_range": 3,
 		"desc": "防御方+50%防御，攻击方-30%攻击，城防HP+20",
+		"move_cost": 2, "atk_mult": 0.70, "def_mult": 1.50,
+		"production_mult": 0.8, "visibility_range": 3, "attrition_pct": 0.0,
 		"special_flags": ["wall_hp_bonus"],
 		"wall_hp_bonus": 20,
+		"unit_mods": {
+			"cavalry": {"atk": -2, "def": 0, "spd": -2, "ban": false},
+			"archer": {"atk": 1, "def": 2, "spd": 0, "ban": false},
+			"ninja": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"mage_unit": {"atk": 0, "def": 1, "spd": 0, "ban": false},
+			"ashigaru": {"atk": 0, "def": 1, "spd": 0, "ban": false},
+			"samurai": {"atk": 0, "def": 1, "spd": 0, "ban": false},
+			"cannon": {"atk": 3, "def": 0, "spd": 0, "ban": false},
+			"priest": {"atk": 0, "def": 1, "spd": 0, "ban": false},
+		},
+	},
+	TerrainType.RIVER: {
+		"name": "河川", "icon": "🏞️",
+		"desc": "横渡惩罚：攻击方ATK-20%，骑兵严重受阻，弓兵隔河射击有利",
+		"move_cost": 2, "atk_mult": 0.80, "def_mult": 1.15,
+		"production_mult": 1.05, "visibility_range": 2, "attrition_pct": 0.0,
+		"special_flags": ["crossing_penalty"],
+		"unit_mods": {
+			"cavalry": {"atk": -3, "def": -1, "spd": -2, "ban": false},
+			"archer": {"atk": 2, "def": 0, "spd": 0, "ban": false},
+			"ninja": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"mage_unit": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"ashigaru": {"atk": -1, "def": 0, "spd": -1, "ban": false},
+			"samurai": {"atk": -1, "def": 0, "spd": -1, "ban": false},
+			"cannon": {"atk": -2, "def": 0, "spd": -2, "ban": false},
+			"priest": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+		},
+	},
+	TerrainType.RUINS: {
+		"name": "遗迹", "icon": "🏛️",
+		"desc": "法师ATK+3，掩体DEF+10%，有概率触发遗物事件",
+		"move_cost": 2, "atk_mult": 0.95, "def_mult": 1.10,
+		"production_mult": 0.5, "visibility_range": 1, "attrition_pct": 0.0,
+		"special_flags": ["relic_event", "cover_terrain"],
+		"unit_mods": {
+			"cavalry": {"atk": -1, "def": 0, "spd": -1, "ban": false},
+			"archer": {"atk": 1, "def": 1, "spd": 0, "ban": false},
+			"ninja": {"atk": 1, "def": 1, "spd": 0, "ban": false},
+			"mage_unit": {"atk": 3, "def": 1, "spd": 0, "ban": false},
+			"ashigaru": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"samurai": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"cannon": {"atk": 0, "def": 0, "spd": -1, "ban": false},
+			"priest": {"atk": 0, "def": 2, "spd": 0, "ban": false},
+		},
+	},
+	TerrainType.WASTELAND: {
+		"name": "荒原", "icon": "🏜️",
+		"desc": "贫瘠之地：产出-40%，每回合2%减员，法师受限，骑兵自由驰骋",
+		"move_cost": 1, "atk_mult": 1.0, "def_mult": 0.85,
+		"production_mult": 0.6, "visibility_range": 3, "attrition_pct": 0.02,
+		"special_flags": ["barren", "open_field"],
+		"unit_mods": {
+			"cavalry": {"atk": 2, "def": 0, "spd": 1, "ban": false},
+			"archer": {"atk": 0, "def": -1, "spd": 0, "ban": false},
+			"ninja": {"atk": -1, "def": -1, "spd": 0, "ban": false},
+			"mage_unit": {"atk": -2, "def": -1, "spd": 0, "ban": false},
+			"ashigaru": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"samurai": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"cannon": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+			"priest": {"atk": 0, "def": 0, "spd": 0, "ban": false},
+		},
+	},
+	TerrainType.VOLCANIC: {
+		"name": "火山", "icon": "🌋",
+		"desc": "极端地形：每回合5%减员，ATK+10%攻守双方，视野极低",
+		"move_cost": 3, "atk_mult": 1.10, "def_mult": 0.90,
+		"production_mult": 0.4, "visibility_range": 1, "attrition_pct": 0.05,
+		"special_flags": ["hazardous", "fire_terrain"],
+		"unit_mods": {
+			"cavalry": {"atk": -2, "def": -2, "spd": -2, "ban": false},
+			"archer": {"atk": -1, "def": -1, "spd": -1, "ban": false},
+			"ninja": {"atk": 0, "def": -1, "spd": -1, "ban": false},
+			"mage_unit": {"atk": 2, "def": 0, "spd": 0, "ban": false},
+			"ashigaru": {"atk": 0, "def": -1, "spd": -1, "ban": false},
+			"samurai": {"atk": 0, "def": -1, "spd": -1, "ban": false},
+			"cannon": {"atk": -1, "def": -1, "spd": -2, "ban": false},
+			"priest": {"atk": 0, "def": -1, "spd": 0, "ban": false},
+		},
 	},
 }
 
@@ -925,15 +1036,15 @@ const CHOKEPOINT_DATA: Dictionary = {
 }
 
 # ── Terrain Zone Distribution Weights ──
-# [PLAINS, FOREST, MOUNTAIN, SWAMP, COASTAL, FORTRESS_WALL]
+# [PLAINS, FOREST, MOUNTAIN, SWAMP, COASTAL, FORTRESS_WALL, RIVER, RUINS, WASTELAND, VOLCANIC]
 const TERRAIN_ZONE_WEIGHTS: Dictionary = {
-	"human":    [0.30, 0.15, 0.10, 0.05, 0.10, 0.30],  # fortified kingdom, plains + walls
-	"elf":      [0.10, 0.55, 0.20, 0.10, 0.05, 0.00],  # ancient forests + highlands
-	"mage":     [0.35, 0.10, 0.30, 0.05, 0.10, 0.10],  # arcane mountain towers
-	"orc":      [0.45, 0.10, 0.25, 0.10, 0.00, 0.10],  # wasteland plains + crags
-	"pirate":   [0.15, 0.05, 0.05, 0.20, 0.40, 0.15],  # coastal + swamp coves
-	"dark_elf": [0.15, 0.40, 0.15, 0.20, 0.00, 0.10],  # shadowy forests + swamps
-	"neutral":  [0.40, 0.25, 0.15, 0.10, 0.05, 0.05],  # follows design doc global ratios
+	"human":    [0.22, 0.12, 0.08, 0.03, 0.08, 0.25, 0.08, 0.05, 0.05, 0.04],
+	"elf":      [0.08, 0.40, 0.15, 0.08, 0.04, 0.00, 0.10, 0.08, 0.02, 0.05],
+	"mage":     [0.20, 0.08, 0.20, 0.03, 0.08, 0.08, 0.05, 0.15, 0.05, 0.08],
+	"orc":      [0.25, 0.08, 0.15, 0.08, 0.00, 0.08, 0.04, 0.04, 0.20, 0.08],
+	"pirate":   [0.10, 0.04, 0.03, 0.15, 0.30, 0.10, 0.12, 0.06, 0.05, 0.05],
+	"dark_elf": [0.10, 0.30, 0.10, 0.15, 0.00, 0.08, 0.05, 0.08, 0.04, 0.10],
+	"neutral":  [0.28, 0.18, 0.10, 0.07, 0.04, 0.04, 0.08, 0.08, 0.07, 0.06],
 }
 
 # ── Named Outpost Definitions (v0.8.3) ──
@@ -997,6 +1108,18 @@ const NAMED_OUTPOSTS: Array = [
 		"terrain": TerrainType.FOREST, "garrison": 9,
 		"is_chokepoint": true, "desc": "幽暗密林中的狭窄小道",
 		"prod": {"gold": 2, "food": 2, "iron": 2, "pop": 1}},
+	# ── 河川据点 (v3.2) ──
+	{"id": "dragon_ford", "name": "龙涎渡", "tile_type": "CHOKEPOINT", "terrain": TerrainType.RIVER, "garrison": 9, "is_chokepoint": true, "desc": "传说中神龙饮水的浅滩渡口", "prod": {"gold": 4, "food": 3, "iron": 1, "pop": 2}},
+	{"id": "broken_bridge", "name": "断桥关", "tile_type": "CHOKEPOINT", "terrain": TerrainType.RIVER, "garrison": 11, "is_chokepoint": true, "desc": "残破石桥横跨激流，一夫当关", "prod": {"gold": 2, "food": 1, "iron": 2, "pop": 1}},
+	# ── 遗迹据点 (v3.2) ──
+	{"id": "crystal_spire", "name": "水晶尖塔", "tile_type": "RUINS", "terrain": TerrainType.RUINS, "garrison": 7, "desc": "残存的上古法师塔，魔力充盈", "prod": {"gold": 4, "food": 0, "iron": 2, "pop": 1}},
+	{"id": "void_altar", "name": "虚空祭坛", "tile_type": "RUINS", "terrain": TerrainType.RUINS, "garrison": 12, "desc": "通往虚空的裂隙，蕴含禁忌之力", "prod": {"gold": 6, "food": 0, "iron": 0, "pop": 1}},
+	# ── 荒原据点 (v3.2) ──
+	{"id": "bone_fortress", "name": "白骨堡", "tile_type": "WATCHTOWER", "terrain": TerrainType.WASTELAND, "garrison": 8, "desc": "用巨兽骨骸搭建的荒原瞭望塔", "prod": {"gold": 2, "food": 1, "iron": 3, "pop": 1}},
+	{"id": "dust_bazaar", "name": "风沙集市", "tile_type": "TRADING_POST", "terrain": TerrainType.WASTELAND, "garrison": 5, "desc": "沙漠商队的歇脚补给点", "prod": {"gold": 8, "food": 2, "iron": 2, "pop": 2}},
+	# ── 火山据点 (v3.2) ──
+	{"id": "forge_of_flames", "name": "烈焰锻炉", "tile_type": "MINE_TILE", "terrain": TerrainType.VOLCANIC, "garrison": 10, "desc": "利用地热的天然锻造炉，铁矿产出极高", "prod": {"gold": 2, "food": 0, "iron": 8, "pop": 1}},
+	{"id": "obsidian_gate", "name": "黑曜石门", "tile_type": "CHOKEPOINT", "terrain": TerrainType.VOLCANIC, "garrison": 14, "is_chokepoint": true, "desc": "火山口旁的狭窄通道，寸步难行", "prod": {"gold": 1, "food": 0, "iron": 4, "pop": 1}},
 ]
 
 # ── Training System (v0.8.5 - Per-Faction Training) ──

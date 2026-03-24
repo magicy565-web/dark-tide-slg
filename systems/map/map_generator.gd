@@ -75,11 +75,15 @@ const EVENT_NAMES: Array = [
 
 # Terrain distribution weights (must sum to 100).
 const TERRAIN_WEIGHTS: Dictionary = {
-	"PLAINS": 40,
-	"FOREST": 25,
-	"MOUNTAIN": 15,
-	"SWAMP": 10,
-	"WALL": 10,
+	"PLAINS": 28,
+	"FOREST": 18,
+	"MOUNTAIN": 10,
+	"SWAMP": 7,
+	"WALL": 7,
+	"RIVER": 10,
+	"RUINS": 7,
+	"WASTELAND": 8,
+	"VOLCANIC": 5,
 }
 
 # ---------------------------------------------------------------------------
@@ -550,6 +554,14 @@ func _terrain_string_to_enum(s: String) -> int:
 			return GameData.Terrain.SWAMP
 		"WALL":
 			return GameData.Terrain.WALL
+		"RIVER":
+			return GameData.Terrain.RIVER
+		"RUINS":
+			return GameData.Terrain.RUINS
+		"WASTELAND":
+			return GameData.Terrain.WASTELAND
+		"VOLCANIC":
+			return GameData.Terrain.VOLCANIC
 		_:
 			return GameData.Terrain.PLAINS
 
