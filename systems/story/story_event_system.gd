@@ -239,13 +239,13 @@ func _evaluate_trigger(hero_id: String, trigger: Dictionary) -> bool:
 					return false
 			"tiles_min":
 				var pid: int = GameManager.get_human_player_id()
-				if ResourceManager.get_tiles(pid) < trigger[key]:
+				if GameManager.count_tiles_owned(pid) < trigger[key]:
 					return false
 			"threat_min":
-				if ThreatManager.threat < trigger[key]:
+				if ThreatManager.get_threat() < trigger[key]:
 					return false
 			"order_min":
-				if OrderManager.order < trigger[key]:
+				if OrderManager.get_order() < trigger[key]:
 					return false
 	return true
 
@@ -270,19 +270,19 @@ func _apply_event_effects(hero_id: String, event: Dictionary) -> void:
 				set_flag(hero_id, "loyalty",
 					get_flag(hero_id, "loyalty", 0) + effects[key])
 			"gold":
-				ResourceManager.add_gold(pid, effects[key])
+				ResourceManager.apply_delta(pid, {"gold": effects[key]})
 			"soldiers":
-				ResourceManager.add_soldiers(pid, effects[key])
+				ResourceManager.add_army(pid, effects[key])
 			"iron":
-				ResourceManager.add_iron(pid, effects[key])
+				ResourceManager.apply_delta(pid, {"iron": effects[key]})
 			"food":
-				ResourceManager.add_food(pid, effects[key])
+				ResourceManager.apply_delta(pid, {"food": effects[key]})
 			"slaves":
-				ResourceManager.add_slaves(pid, effects[key])
+				ResourceManager.apply_delta(pid, {"slaves": effects[key]})
 			"order":
-				OrderManager.add_order(effects[key])
+				OrderManager.change_order(effects[key])
 			"threat":
-				ThreatManager.add_threat(effects[key])
+				ThreatManager.change_threat(effects[key])
 			"unlock_skill":
 				set_flag(hero_id, "skill_unlocked_" + effects[key], true)
 			"set_flag":
