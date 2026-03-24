@@ -142,6 +142,7 @@ func _reinforce_garrisons(nf_id: int, state: Dictionary) -> void:
 
 		var initial: int = state["initial_garrisons"].get(t_idx, 10)
 		var cap: int = int(float(initial) * cap_mult)
+		# BUG修复: 每回合仅恢复regen数量的驻军，不再直接跳到上限
 		if tile["garrison"] < cap:
 			tile["garrison"] = mini(cap, tile["garrison"] + regen)
 

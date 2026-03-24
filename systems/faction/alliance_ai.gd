@@ -35,9 +35,6 @@ func tick(threat_value: int) -> void:
 		EventBus.alliance_formed.emit(threat_value)
 		EventBus.message_log.emit("[color=cyan]光明联盟状态变更: %s[/color]" % get_tier_name())
 
-	if _expedition_cooldown > 0:
-		_expedition_cooldown -= 1
-
 	match _current_tier:
 		AllianceTier.DEFENSE:
 			_apply_defense_bonus()
@@ -50,6 +47,9 @@ func tick(threat_value: int) -> void:
 			_try_spawn_expedition()
 			_reinforce_final_outposts()
 			_coordinate_defense_focus()
+
+	# BUG修复: 冷却在生成尝试之后递减，修正off-by-one问题
+	_decrement_expedition_cooldown()
 
 func _evaluate_tier(threat: int) -> int:
 	if threat >= BalanceConfig.THREAT_TIER_FULL_ALLIANCE:
@@ -141,7 +141,12 @@ func _try_spawn_expedition() -> void:
 		target["garrison"] = maxi(1, garrison - losses)
 		EventBus.message_log.emit("击退联军进攻! 驻军损失 %d" % losses)
 
+	# BUG修复: 冷却在生成尝试之后递减，修正off-by-one问题
 	_expedition_cooldown = EXPEDITION_COOLDOWN
+
+func _decrement_expedition_cooldown() -> void:
+	if _expedition_cooldown > 0:
+		_expedition_cooldown -= 1
 
 func _reinforce_final_outposts() -> void:
 	## At DESPERATE tier, reinforce remaining uncaptured light outposts.
@@ -194,12 +199,29 @@ func _coordinate_defense_focus() -> void:
 	if donor_zone < 0:
 		return
 
-	for tile in zone_tiles[focus_zone]:
-		tile["garrison"] += 1
-
+	# BUG修复: 驻军转移必须平衡，先计算捐赠区可用驻军数量
+	var donor_garrison_total: int = 0
 	for tile in zone_tiles[donor_zone]:
 		if tile["garrison"] > BalanceConfig.ZONE_TRANSFER_MIN_GARRISON:
+			donor_garrison_total += 1
+
+	var focus_tile_count: int = zone_tiles[focus_zone].size()
+	var available: int = mini(donor_garrison_total, focus_tile_count)
+
+	var transferred: int = 0
+	for tile in zone_tiles[focus_zone]:
+		if transferred >= available:
+			break
+		tile["garrison"] += 1
+		transferred += 1
+
+	var donated: int = 0
+	for tile in zone_tiles[donor_zone]:
+		if donated >= transferred:
+			break
+		if tile["garrison"] > BalanceConfig.ZONE_TRANSFER_MIN_GARRISON:
 			tile["garrison"] -= 1
+			donated += 1
 
 	var zone_names: Dictionary = {0: "人类王国", 1: "精灵族", 2: "法师塔"}
 	EventBus.message_log.emit("[color=cyan]联盟重点防御: %s 区域[/color]" % zone_names.get(focus_zone, "未知"))

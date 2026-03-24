@@ -31,7 +31,8 @@ func tick(player_id: int) -> void:
 	if altar_result["atk_bonus"] > 0:
 		EventBus.message_log.emit("[color=purple]祭坛效果: 全军攻击+%d (本回合)[/color]" % altar_result["atk_bonus"])
 	if altar_result["sacrificed"]:
-		_altar_atk_bonus[player_id] = _altar_atk_bonus.get(player_id, 0) + 1
+		# BUG修复: 祭坛攻击加成上限为+10，防止无限叠加
+		_altar_atk_bonus[player_id] = mini(_altar_atk_bonus.get(player_id, 0) + 1, 10)
 		EventBus.message_log.emit("[color=purple]永久祭坛加成: +%d 全局攻击[/color]" % _altar_atk_bonus[player_id])
 		# Sync slave count after sacrifice
 		var current_slaves: int = SlaveManager.get_total_slaves(player_id)

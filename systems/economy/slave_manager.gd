@@ -8,6 +8,8 @@ var _allocations: Dictionary = {}
 var _efficiency: Dictionary = {}
 # ── Altar sacrifice counter (Dark Elf) ──
 var _altar_counters: Dictionary = {}   # player_id -> turns since last sacrifice
+# ── 防止sync_slave_count递归调用 ──
+var _syncing: bool = false
 
 
 func _ready() -> void:
@@ -64,6 +66,9 @@ func add_slaves(player_id: int, count: int) -> void:
 		init_player(player_id, count)
 		return
 	_allocations[player_id]["idle"] += count
+	# 每次增加奴隶后同步ResourceManager（防止递归）
+	if not _syncing:
+		sync_slave_count(player_id)
 
 
 func remove_slaves(player_id: int, count: int) -> void:
@@ -84,6 +89,9 @@ func remove_slaves(player_id: int, count: int) -> void:
 		var from_role: int = mini(alloc.get(role, 0), remaining)
 		alloc[role] = alloc.get(role, 0) - from_role
 		remaining -= from_role
+	# 每次移除奴隶后同步ResourceManager（防止递归）
+	if not _syncing:
+		sync_slave_count(player_id)
 
 
 func get_total_slaves(player_id: int) -> int:
@@ -128,6 +136,8 @@ func tick_altar(player_id: int) -> Dictionary:
 		if altar_count > 0:
 			alloc["altar"] -= 1
 			result["sacrificed"] = true
+			# 献祭后同步奴隶计数
+			sync_slave_count(player_id)
 			EventBus.message_log.emit("[color=purple]祭坛献祭! 1名奴隶被献祭，获得2暗影精华[/color]")
 
 	return result
@@ -197,6 +207,8 @@ func check_revolt(player_id: int) -> bool:
 			var lost: int = maxi(1, total_slaves / 5)
 			remove_slaves(player_id, lost)
 			ResourceManager.apply_delta(player_id, {"slaves": -lost})
+			# 暴动后同步奴隶计数
+			sync_slave_count(player_id)
 			EventBus.message_log.emit("[color=red]奴隶暴动! 损失 %d 名奴隶![/color]" % lost)
 			return true
 	return false
@@ -211,6 +223,9 @@ func _role_name(role: String) -> String:
 
 func sync_slave_count(player_id: int) -> void:
 	## Sync allocation total with ResourceManager slave count.
+	if _syncing:
+		return
+	_syncing = true
 	var rm_slaves: int = ResourceManager.get_slaves(player_id)
 	var current_total: int = get_total_slaves(player_id)
 	var diff: int = rm_slaves - current_total
@@ -218,6 +233,7 @@ func sync_slave_count(player_id: int) -> void:
 		add_slaves(player_id, diff)
 	elif diff < 0:
 		remove_slaves(player_id, -diff)
+	_syncing = false
 
 
 # ═══════════════ SAVE / LOAD ═══════════════

@@ -312,8 +312,9 @@ func _mage_ai_cast() -> void:
 						if effect.get("success", false):
 							var target_tile: Dictionary = GameManager.tiles[nb]
 							var dmg: int = effect.get("damage", 0)
-							target_tile["garrison"] = maxi(0, target_tile.get("garrison", 0) - int(dmg * 0.3))
-							EventBus.message_log.emit("[法师塔] 魔法弹幕命中据点#%d! 驻军-%.0f" % [nb, dmg * 0.3])
+							# BUG修复: 弹幕伤害系数从0.3提升到0.6，使法师弹幕具有实际威胁
+							target_tile["garrison"] = maxi(0, target_tile.get("garrison", 0) - int(dmg * 0.6))
+							EventBus.message_log.emit("[法师塔] 魔法弹幕命中据点#%d! 驻军-%.0f" % [nb, dmg * 0.6])
 						return  # One spell per turn
 
 	# Priority 2: Teleport to reinforce most threatened light tile

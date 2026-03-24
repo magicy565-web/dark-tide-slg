@@ -50,6 +50,10 @@ func reset() -> void:
 ##   add_buff(player_id, buff_id, value)
 ##   When called with 3 args the buff_type is set to buff_id, duration to -1
 ##   (permanent), and source to "research".
+
+## 每种类型最多允许的乘算buff数量上限
+const MAX_MULT_BUFFS_PER_TYPE: int = 5
+
 func add_buff(player_id: int, buff_id: String, buff_type_or_value = null, value = null, duration: int = -1, source: String = "") -> void:
 	# Detect short-form call: add_buff(player_id, buff_id, value)
 	# In the short form, buff_type_or_value IS the value and the remaining
@@ -74,6 +78,39 @@ func add_buff(player_id: int, buff_id: String, buff_type_or_value = null, value 
 
 	if not _active_buffs.has(player_id):
 		_active_buffs[player_id] = []
+
+	# ── 去重：相同 source+type 的buff更新而非叠加 ──
+	var existing_idx: int = -1
+	for idx in _active_buffs[player_id].size():
+		var b: Dictionary = _active_buffs[player_id][idx]
+		if b["source"] == actual_source and b["type"] == actual_type:
+			# 永久buff(duration=-1)每个source只允许一个
+			if actual_duration == -1 and b["turns_remaining"] == -1:
+				existing_idx = idx
+				break
+			# 相同source+type的有时限buff也更新已有条目
+			if b["turns_remaining"] != -1 and actual_duration != -1:
+				existing_idx = idx
+				break
+
+	if existing_idx >= 0:
+		# 更新已有buff而非新增
+		var existing_buff: Dictionary = _active_buffs[player_id][existing_idx]
+		existing_buff["id"] = buff_id
+		existing_buff["value"] = actual_value
+		existing_buff["turns_remaining"] = actual_duration
+		EventBus.temporary_buff_applied.emit(player_id, buff_id, actual_duration)
+		return
+
+	# ── 乘算buff数量上限检查 ──
+	if actual_type in ["atk_mult", "def_mult", "production_mult", "siege_mult"]:
+		var count: int = 0
+		for b in _active_buffs[player_id]:
+			if b["type"] == actual_type:
+				count += 1
+		if count >= MAX_MULT_BUFFS_PER_TYPE:
+			push_warning("BuffManager: 类型 %s 的乘算buff已达上限(%d)，跳过添加" % [actual_type, MAX_MULT_BUFFS_PER_TYPE])
+			return
 
 	var buff := {
 		"id": buff_id,
@@ -107,8 +144,14 @@ func tick_buffs(player_id: int) -> void:
 				ResourceManager.remove_army(player_id, loss)
 				EventBus.message_log.emit("[color=red]军队受debuff影响,损失%d兵力[/color]" % loss)
 
+		# 永久buff(turns_remaining=-1)不递减、不过期
+		if buffs[i]["turns_remaining"] == -1:
+			i -= 1
+			continue
+
 		buffs[i]["turns_remaining"] -= 1
-		if buffs[i]["turns_remaining"] == 0:
+		# 修复off-by-one：用 <= 0 而非 == 0，确保duration=1只持续1回合
+		if buffs[i]["turns_remaining"] <= 0:
 			_on_buff_expired(player_id, buffs[i])
 			buffs.remove_at(i)
 		i -= 1
@@ -141,6 +184,8 @@ func get_buff_value(player_id: int, buff_type: String, default_value = null) -> 
 			var product := 1.0
 			for b in buffs:
 				product *= float(b["value"])
+			# 防止乘积溢出或变为负数/零：下限0.1(10%)，上限5.0(500%)
+			product = clampf(product, 0.1, 5.0)
 			return product
 		"income_pct", "atk_pct":
 			# Additive percentage: sum all values (e.g. -20 + -10 = -30%)

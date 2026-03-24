@@ -194,7 +194,10 @@ func offer_ceasefire(player_id: int, faction_id: int, turns: int = 5) -> bool:
 		_relations[player_id] = {}
 	if not _relations[player_id].has(faction_id):
 		_relations[player_id][faction_id] = {"hostile": false, "recruited": false, "method": "", "rebellion_turns": 0}
-	_relations[player_id][faction_id]["hostile"] = false
+	# BUG修复: 停战不再重置hostile标记，改用ceasefire_active抑制敌对检查
+	if not _relations[player_id][faction_id].has("was_hostile"):
+		_relations[player_id][faction_id]["was_hostile"] = _relations[player_id][faction_id]["hostile"]
+	_relations[player_id][faction_id]["ceasefire_active"] = true
 	EventBus.message_log.emit("[color=yellow]与%s达成停战协议! %d回合内不可互攻[/color]" % [_get_faction_name(faction_id), turns])
 	return true
 
@@ -211,6 +214,11 @@ func tick_ceasefire(player_id: int) -> void:
 		if _ceasefire[player_id][fid] > 0:
 			_ceasefire[player_id][fid] -= 1
 			if _ceasefire[player_id][fid] <= 0:
+				# BUG修复: 停战到期后恢复原始hostile状态
+				if _relations.has(player_id) and _relations[player_id].has(fid):
+					_relations[player_id][fid]["ceasefire_active"] = false
+					if _relations[player_id][fid].get("was_hostile", false):
+						_relations[player_id][fid]["hostile"] = true
 				EventBus.message_log.emit("[color=red]与%s的停战协议已到期![/color]" % _get_faction_name(fid))
 
 # ═══════════════ DIPLOMACY UI ACTIONS ═══════════════

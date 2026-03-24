@@ -21,18 +21,9 @@ func tick_per_round_passives(player_id: int) -> Dictionary:
 		var td: Dictionary = GameData.get_troop_def(troop["troop_id"])
 		var passive: String = td.get("passive", "")
 
-		if passive == "regen_1":
-			if troop["soldiers"] < troop["max_soldiers"]:
-				troop["soldiers"] += 1
-				details.append("%s 再生 +1兵" % td.get("name", troop["troop_id"]))
-
-		elif passive == "regen_2":
-			var heal: int = mini(2, troop["max_soldiers"] - troop["soldiers"])
-			if heal > 0:
-				troop["soldiers"] += heal
-				details.append("%s 深根再生 +%d兵" % [td.get("name", troop["troop_id"]), heal])
-
-		elif passive == "zero_food":
+		# FIX(MAJOR): zero_food优先于regen处理，防止regen+zero_food净值为零导致软锁
+		# zero_food先扣兵，之后regen仅在兵力>0时才生效
+		if passive == "zero_food":
 			troop["soldiers"] -= 1
 			food_saved += GameData.TIER_UPKEEP.get(td.get("tier", 1), 0)
 			if troop["soldiers"] <= 0:
@@ -42,6 +33,18 @@ func tick_per_round_passives(player_id: int) -> Dictionary:
 				continue
 			else:
 				details.append("%s 不死之军 -1兵 (剩余%d)" % [td.get("name", troop["troop_id"]), troop["soldiers"]])
+
+		elif passive == "regen_1":
+			if troop["soldiers"] > 0 and troop["soldiers"] < troop["max_soldiers"]:
+				troop["soldiers"] += 1
+				details.append("%s 再生 +1兵" % td.get("name", troop["troop_id"]))
+
+		elif passive == "regen_2":
+			if troop["soldiers"] > 0:
+				var heal: int = mini(2, troop["max_soldiers"] - troop["soldiers"])
+				if heal > 0:
+					troop["soldiers"] += heal
+					details.append("%s 深根再生 +%d兵" % [td.get("name", troop["troop_id"]), heal])
 
 		elif passive == "necro_summon":
 			var skel_inst: Dictionary = GameData.create_troop_instance("neutral_skeleton", 4)

@@ -689,7 +689,8 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 		"突击号令":  # 己方全体骑兵ATK+2, 1回合
 			for ally in allies:
 				if ally["is_alive"] and _get_troop_base_type(ally["unit_type"]) == "cavalry":
-					ally["atk"] += 2
+					# FIX(MAJOR): 移除直接修改atk的代码，ATK加成由buff系统通过charge_cmd处理
+					# 原代码 ally["atk"] += 2 会永久叠加，buff过期后ATK不会恢复
 					ally["buffs"].append({"id": "charge_cmd", "duration": 1, "value": 2.0})
 			log.append("【%s】突击号令!" % unit["hero_id"])
 
@@ -823,9 +824,9 @@ func _select_target(state: Dictionary, unit: Dictionary) -> Dictionary:
 	if candidates.is_empty():
 		candidates = targetable
 
-	# FIX(CRITICAL): 候选数组为空时直接返回null，防止越界崩溃
+	# FIX(CRITICAL): 候选数组为空时返回空字典，调用方可安全使用 target.is_empty() 判定
 	if candidates.is_empty():
-		return null
+		return {}
 
 	# Pick lowest-soldiers target (focus fire)
 	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -844,6 +845,11 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 	var def_val: float = defender_unit["def"]
 	var soldiers: int = attacker_unit["soldiers"]
 
+	# FIX(MAJOR): charge_cmd buff加成ATK（配合突击号令修复，不再直接修改atk字段）
+	for b in attacker_unit["buffs"]:
+		if b["id"] == "charge_cmd":
+			atk += b["value"]
+
 	# Apply debuffs to attacker/defender
 	for d in defender_unit["debuffs"]:
 		if d["id"] == "sandstorm":
@@ -851,17 +857,36 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 			if randf() < d["value"]:
 				return 0  # Miss!
 
+	# FIX(GAME-BREAKING): 兽人阵营被动"蛮力碾压"——无视敌方30%DEF
+	var attacker_pid: int = attacker_unit.get("player_id", -1)
+	var is_orc_faction: bool = attacker_unit["unit_type"].begins_with("orc_")
+	if not is_orc_faction and attacker_pid >= 0:
+		is_orc_faction = GameManager._get_faction_tag_for_player(attacker_pid) == "orc"
+	if is_orc_faction:
+		def_val *= (1.0 - GameData.FACTION_PASSIVES["orc"]["def_ignore_pct"])
+
 	# Core formula from design doc
 	var base_damage: float = float(soldiers) * maxf(1.0, atk - def_val) / 10.0
 
-	# Shield buff: reduce damage taken
-	for b in defender_unit["buffs"]:
-		if b["id"] == "shield":
-			base_damage *= (1.0 - b["value"])
+	# FIX(MAJOR): 护盾buff改为取最强护盾生效，不再乘法叠加；使用后标记移除
+	var best_shield_idx: int = -1
+	var best_shield_val: float = 0.0
+	for idx in range(defender_unit["buffs"].size()):
+		var b: Dictionary = defender_unit["buffs"][idx]
+		if b["id"] == "shield" and b["value"] > best_shield_val:
+			best_shield_val = b["value"]
+			best_shield_idx = idx
 		if b["id"] == "invulnerable":
 			return 0  # Immune
+	if best_shield_idx >= 0:
+		base_damage *= (1.0 - best_shield_val)
+		# 护盾使用后消耗，标记duration为0使其在回合结束时移除
+		defender_unit["buffs"][best_shield_idx]["duration"] = 0
 
-	var soldiers_killed: int = maxi(1, int(base_damage))
+	# FIX(MAJOR): 基础伤害最低为0；仅在实际命中时保证至少1点伤害
+	var soldiers_killed: int = maxi(0, int(base_damage))
+	if base_damage > 0.0 and soldiers_killed == 0:
+		soldiers_killed = 1
 	return soldiers_killed
 
 

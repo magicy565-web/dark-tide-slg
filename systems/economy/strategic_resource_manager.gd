@@ -67,15 +67,13 @@ func execute_action(player_id: int, action_id: String) -> bool:
 		EventBus.message_log.emit("该升级已完成!")
 		return false
 
-	# Deduct resource and verify the deduction succeeded (rollback protection)
+	# 扣除前再次验证余额充足（防止并发/竞态导致资源不足）
 	var pre_balance: int = ResourceManager.get_resource(player_id, res_key)
-	ResourceManager.apply_delta(player_id, {res_key: -cost})
-	var post_balance: int = ResourceManager.get_resource(player_id, res_key)
-	if post_balance > pre_balance - cost:
-		# Deduction did not fully apply — rollback and abort to prevent duplication
-		ResourceManager.apply_delta(player_id, {res_key: pre_balance - post_balance})
-		EventBus.message_log.emit("[color=red]资源扣除异常，操作已取消[/color]")
+	if pre_balance < cost:
+		EventBus.message_log.emit("[color=red]资源不足，操作已取消[/color]")
 		return false
+
+	ResourceManager.apply_delta(player_id, {res_key: -cost})
 	EventBus.strategic_resource_consumed.emit(player_id, res_key, cost)
 
 	# Apply effect

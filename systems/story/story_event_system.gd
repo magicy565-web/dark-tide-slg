@@ -298,6 +298,13 @@ func _apply_event_effects(hero_id: String, event: Dictionary) -> void:
 				for f in flag_dict:
 					set_flag(hero_id, f, flag_dict[f])
 	_processing_effects = false  # Release guard
+	# 延迟检查：效果处理期间被跳过的事件触发，在效果完成后重新检查
+	call_deferred("_check_deferred_triggers", hero_id)
+
+
+## 延迟触发检查：在效果处理完毕后重新尝试触发下一个事件
+func _check_deferred_triggers(hero_id: String) -> void:
+	try_trigger_next(hero_id)
 
 
 # ═══════════════ SIGNAL HANDLERS ═══════════════
@@ -323,8 +330,13 @@ func _on_hero_recruited(hero_id: String) -> void:
 		return
 	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
 	var faction: String = hero_data.get("faction", "")
-	# If no progress exists yet, this is a pure love / neutral join
-	if not story_progress.has(hero_id):
+	# 如果已有进度且当前为调教路线，切换到纯爱路线（俘虏后招募的路线转换）
+	if story_progress.has(hero_id):
+		if story_progress[hero_id]["route"] == ROUTE_TRAINING:
+			story_progress[hero_id]["route"] = ROUTE_PURE_LOVE
+			story_progress[hero_id]["current_event"] = 0
+	else:
+		# 首次招募，无俘虏记录：根据阵营初始化路线
 		if faction == "neutral":
 			_init_progress(hero_id, ROUTE_NEUTRAL)
 		else:

@@ -36,6 +36,8 @@ func _tick_faction(player_id: int, faction_id: int) -> void:
 		var ai_key: String = _faction_to_ai_key(faction_id)
 		var regen_bonus: int = AIScaling.get_garrison_regen_bonus(ai_key) if ai_key != "" else 0
 		var regen_rate: int = 1 + regen_bonus
+		# BUG修复: 限制每回合最大驻军恢复量，防止无限制增长
+		regen_rate = mini(regen_rate, 5)
 		if tile.get("garrison", 0) < base_garrison:
 			tile["garrison"] = mini(base_garrison, tile.get("garrison", 0) + regen_rate)
 

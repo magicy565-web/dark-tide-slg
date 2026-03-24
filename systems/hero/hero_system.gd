@@ -23,6 +23,11 @@ var hero_submission: Dictionary = {}       # hero_id -> int (0-10, 服从度/调
 var _pirate_mode: bool = false             # true if player is pirate faction
 
 
+# ── Unlocked second active skills (好感度7解锁) ──
+# hero_id -> skill_name string
+var _second_skills: Dictionary = {}
+
+
 func reset() -> void:
 	captured_heroes.clear()
 	recruited_heroes.clear()
@@ -33,6 +38,7 @@ func reset() -> void:
 	hero_submission.clear()
 	_pirate_mode = false
 	_capture_in_progress.clear()
+	_second_skills.clear()
 
 
 ## Called when pirate faction is selected. Enables harem mechanics.
@@ -96,7 +102,14 @@ func attempt_recruit(hero_id: String) -> Dictionary:
 		return {"ok": false, "reason": "未被俘虏"}
 	var corruption: int = hero_corruption.get(hero_id, 0)
 	if corruption < FactionData.CORRUPTION_TO_RECRUIT:
-		return {"ok": false, "reason": "腐化不足 (%d/%d)" % [corruption, FactionData.CORRUPTION_TO_RECRUIT]}
+		# 提供明确的招募条件提示，包含当前进度和所需值
+		var remaining: int = FactionData.CORRUPTION_TO_RECRUIT - corruption
+		return {
+			"ok": false,
+			"reason": "腐化不足 (%d/%d)" % [corruption, FactionData.CORRUPTION_TO_RECRUIT],
+			"hint": "需要继续关押 %d 回合以达到腐化要求 (%d/%d)。腐化每回合+1，当前还差 %d 点。" % [
+				remaining, corruption, FactionData.CORRUPTION_TO_RECRUIT, remaining],
+		}
 	# 50% base success, +10% per corruption above threshold
 	var success_chance: float = 0.5 + (corruption - FactionData.CORRUPTION_TO_RECRUIT) * 0.1
 	if randf() <= success_chance:
@@ -108,7 +121,7 @@ func attempt_recruit(hero_id: String) -> Dictionary:
 		EventBus.hero_recruited.emit(hero_id)
 		EventBus.message_log.emit("招募英雄: %s" % _get_hero_name(hero_id))
 		return {"ok": true, "reason": "招募成功"}
-	return {"ok": false, "reason": "招募失败（抵抗）"}
+	return {"ok": false, "reason": "招募失败（抵抗）", "hint": "招募被抵抗，可继续关押提高腐化值以增加成功率。当前成功率约 %d%%。" % int(success_chance * 100)}
 
 
 ## Release a captured hero (reduces threat, gains prestige)
@@ -198,6 +211,7 @@ func get_hero_combat_stats(hero_id: String) -> Dictionary:
 		"mp": leveled.get("mp", hero_data.get("base_mp", 10)),
 		"level": leveled.get("level", 1),
 		"active": hero_data.get("active", ""),
+		"active_2": _second_skills.get(hero_id, ""),  # 好感度7解锁的第二主动技能
 		"passive": hero_data.get("passive", ""),
 		"level_passives": HeroLeveling.get_unlocked_passives(hero_id),
 		"equipment_passives": get_equipment_passives(hero_id),
@@ -581,6 +595,7 @@ func to_save_data() -> Dictionary:
 		"skill_cooldowns": _skill_cooldowns.duplicate(),
 		"hero_submission": hero_submission.duplicate(),
 		"pirate_mode": _pirate_mode,
+		"second_skills": _second_skills.duplicate(),
 	}
 	data["hero_leveling"] = HeroLeveling.serialize()
 	return data
@@ -598,6 +613,7 @@ func from_save_data(data: Dictionary) -> void:
 	_skill_cooldowns = data.get("skill_cooldowns", {})
 	hero_submission = data.get("hero_submission", {})
 	_pirate_mode = data.get("pirate_mode", false)
+	_second_skills = data.get("second_skills", {})
 	if data.has("hero_leveling"):
 		HeroLeveling.deserialize(data["hero_leveling"])
 
@@ -605,11 +621,21 @@ func from_save_data(data: Dictionary) -> void:
 # ═══════════════ INTERNAL ═══════════════
 
 func _unlock_second_skill(hero_id: String) -> void:
-	## At affection 7, unlock the hero's second active skill.
+	## 好感度达到7时，解锁英雄的第二主动技能并加入可用技能列表
 	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
 	var second_skill: String = hero_data.get("active_2", "")
-	if second_skill != "":
-		EventBus.message_log.emit("[技能] %s 解锁技能: %s" % [_get_hero_name(hero_id), second_skill])
+	if second_skill == "":
+		return
+	# 避免重复解锁
+	if _second_skills.has(hero_id):
+		return
+	# 验证技能定义存在
+	if not FactionData.HERO_SKILL_DEFS.has(second_skill):
+		push_warning("HeroSystem: 第二技能 '%s' 在 HERO_SKILL_DEFS 中未定义 (hero='%s')" % [second_skill, hero_id])
+		return
+	# 存储已解锁的第二技能
+	_second_skills[hero_id] = second_skill
+	EventBus.message_log.emit("[技能] %s 解锁第二主动技能: %s" % [_get_hero_name(hero_id), second_skill])
 
 
 func _get_hero_name(hero_id: String) -> String:

@@ -119,7 +119,11 @@ func advance_quest(player_id: int, neutral_faction: int) -> bool:
 	if not _quest_progress.has(player_id) or not _quest_progress[player_id].has(neutral_faction):
 		return false
 	var current_step: int = _quest_progress[player_id][neutral_faction]["step"]
-	if current_step >= 3:
+	# 边界检查：根据实际任务链长度判断是否已到最大步骤
+	var fd: Dictionary = FactionData.NEUTRAL_FACTION_DATA.get(neutral_faction, {})
+	var quest_chain: Array = fd.get("quest_chain", [])
+	var max_steps: int = quest_chain.size() if not quest_chain.is_empty() else 3
+	if current_step >= max_steps:
 		return false
 	_quest_progress[player_id][neutral_faction]["step"] = current_step + 1
 	# Increase taming by +3 per step advancement

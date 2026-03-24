@@ -2,6 +2,9 @@
 extends Node
 
 var _order: int = 50
+# 叛乱冷却计数器：防止叛乱死亡螺旋，每次叛乱后需等待N回合
+var _rebellion_cooldown: int = 0
+const REBELLION_COOLDOWN_TURNS: int = 3  # 叛乱冷却回合数
 
 func _ready() -> void:
 	pass
@@ -9,6 +12,7 @@ func _ready() -> void:
 
 func reset() -> void:
 	_order = 50
+	_rebellion_cooldown = 0
 
 
 func get_order() -> int:
@@ -49,6 +53,9 @@ func get_rebellion_chance() -> float:
 func try_rebellion() -> Dictionary:
 	if _order > BalanceConfig.ORDER_REBELLION_THRESHOLD:
 		return {"rebelled": false}
+	# 叛乱冷却检查：防止连续叛乱造成死亡螺旋
+	if _rebellion_cooldown > 0:
+		return {"rebelled": false}
 	var strength := int(BalanceConfig.REBELLION_GARRISON_STRENGTH * abs(_order) / 100.0)
 
 	# Pick a random player-owned tile to rebel
@@ -68,13 +75,22 @@ func try_rebellion() -> Dictionary:
 
 	EventBus.message_log.emit("[color=red]叛乱爆发! %s 脱离控制，叛军驻守%d![/color]" % [rebel_tile["name"], garrison])
 	EventBus.tile_lost.emit(player_id, rebel_tile["index"])
-	change_order(-3)  # slave revolt penalty
+	# 秩序惩罚，但限制最低值为-20防止无限螺旋
+	var new_order: int = maxi(_order - 3, -20)
+	var penalty: int = new_order - _order
+	if penalty != 0:
+		change_order(penalty)
+	# 设置叛乱冷却
+	_rebellion_cooldown = REBELLION_COOLDOWN_TURNS
 	return {"rebelled": true, "strength": maxi(1, strength), "tile_index": rebel_tile["index"], "garrison": garrison}
 
 
 # ═══════════════ TURN TICK (self-correcting drift) ═══════════════
 
 func tick_turn() -> void:
+	# 每回合递减叛乱冷却
+	if _rebellion_cooldown > 0:
+		_rebellion_cooldown -= 1
 	if _order > 50:
 		change_order(BalanceConfig.ORDER_DRIFT_HIGH)
 	elif _order < -25:
@@ -107,8 +123,10 @@ func on_slave_revolt() -> void:
 func to_save_data() -> Dictionary:
 	return {
 		"order": _order,
+		"rebellion_cooldown": _rebellion_cooldown,
 	}
 
 
 func from_save_data(data: Dictionary) -> void:
 	_order = data.get("order", 50)
+	_rebellion_cooldown = data.get("rebellion_cooldown", 0)
