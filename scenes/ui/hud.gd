@@ -77,6 +77,9 @@ var message_log_label: RichTextLabel
 # ── UI refs: game over overlay ──
 var game_over_panel: PanelContainer
 var game_over_label: Label
+var game_over_victory_type_label: Label
+var game_over_stats_vbox: VBoxContainer
+var game_over_style: StyleBoxFlat
 
 var messages: Array = []
 const MAX_MESSAGES: int = 12
@@ -500,31 +503,61 @@ func _build_game_over(parent: Control) -> void:
 	game_over_panel.anchor_right = 0.5
 	game_over_panel.anchor_top = 0.5
 	game_over_panel.anchor_bottom = 0.5
-	game_over_panel.offset_left = -220
-	game_over_panel.offset_right = 220
-	game_over_panel.offset_top = -70
-	game_over_panel.offset_bottom = 70
+	game_over_panel.offset_left = -250
+	game_over_panel.offset_right = 250
+	game_over_panel.offset_top = -200
+	game_over_panel.offset_bottom = 200
 	game_over_panel.visible = false
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.06, 0.15, 0.95)
-	style.border_color = Color.GOLD
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(20)
-	game_over_panel.add_theme_stylebox_override("panel", style)
+	game_over_style = StyleBoxFlat.new()
+	game_over_style.bg_color = Color(0.1, 0.06, 0.15, 0.95)
+	game_over_style.border_color = Color.GOLD
+	game_over_style.set_border_width_all(3)
+	game_over_style.set_corner_radius_all(10)
+	game_over_style.set_content_margin_all(20)
+	game_over_panel.add_theme_stylebox_override("panel", game_over_style)
 	parent.add_child(game_over_panel)
 
 	var vbox := VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 8)
 	game_over_panel.add_child(vbox)
 
 	game_over_label = _make_label("游戏结束!", 26, Color.GOLD)
 	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(game_over_label)
 
+	game_over_victory_type_label = _make_label("", 18, Color.GOLD)
+	game_over_victory_type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(game_over_victory_type_label)
+
+	var sep := HSeparator.new()
+	sep.add_theme_constant_override("separation", 8)
+	vbox.add_child(sep)
+
+	var stats_title := _make_label("— 战绩统计 —", 14, Color(0.7, 0.7, 0.8))
+	stats_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(stats_title)
+
+	game_over_stats_vbox = VBoxContainer.new()
+	game_over_stats_vbox.add_theme_constant_override("separation", 4)
+	vbox.add_child(game_over_stats_vbox)
+
+	var sep2 := HSeparator.new()
+	sep2.add_theme_constant_override("separation", 8)
+	vbox.add_child(sep2)
+
+	var btn_hbox := HBoxContainer.new()
+	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_hbox.add_theme_constant_override("separation", 16)
+	vbox.add_child(btn_hbox)
+
 	var restart := _make_button("重新开始")
 	restart.pressed.connect(_on_restart_pressed)
-	vbox.add_child(restart)
+	btn_hbox.add_child(restart)
+
+	var main_menu_btn := _make_button("返回主菜单")
+	main_menu_btn.pressed.connect(_on_return_main_menu_pressed)
+	btn_hbox.add_child(main_menu_btn)
 
 
 var minimap_anchor: Control
@@ -1217,6 +1250,85 @@ func _on_restart_pressed() -> void:
 	get_tree().reload_current_scene()
 
 
+func _on_return_main_menu_pressed() -> void:
+	game_over_panel.visible = false
+	messages.clear()
+	message_log_label.text = ""
+	get_tree().change_scene_to_file("res://scenes/main.tscn")
+
+
+func _detect_victory_type(human_id: int) -> String:
+	# Check conquest: all light strongholds / core fortresses owned
+	var total_sh: int = 0
+	var human_sh: int = 0
+	for tile in GameManager.tiles:
+		if tile["type"] == GameManager.TileType.LIGHT_STRONGHOLD or tile["type"] == GameManager.TileType.CORE_FORTRESS:
+			if tile.get("original_faction", -1) != -1 or tile["type"] == GameManager.TileType.LIGHT_STRONGHOLD:
+				total_sh += 1
+				if tile["owner_id"] == human_id:
+					human_sh += 1
+	if total_sh > 0 and human_sh >= total_sh:
+		return "征服胜利"
+
+	# Check domination: >= 60% tiles
+	var total_tiles: int = GameManager.tiles.size()
+	var human_tiles: int = GameManager.count_tiles_owned(human_id)
+	if total_tiles > 0 and float(human_tiles) / float(total_tiles) >= 0.60:
+		return "支配胜利"
+
+	# Check shadow dominion: threat >= 100 + ultimate unit
+	var threat: int = ThreatManager.get_threat()
+	var has_ultimate: bool = false
+	for army_id in GameManager.armies:
+		var army: Dictionary = GameManager.armies[army_id]
+		if army["player_id"] != human_id:
+			continue
+		for troop in army["troops"]:
+			var tid: String = troop.get("troop_id", "")
+			if tid in ["beast_ultimate", "leviathan_ultimate", "shadow_dragon_ultimate"]:
+				has_ultimate = true
+				break
+			if GameData.TROOP_TYPES.has(tid):
+				var td: Dictionary = GameData.TROOP_TYPES[tid]
+				if td.get("category", -1) == GameData.TroopCategory.ULTIMATE:
+					has_ultimate = true
+					break
+		if has_ultimate:
+			break
+	if threat >= 100 and has_ultimate:
+		return "暗影统治"
+
+	# Check harem victory
+	var human_faction: int = GameManager.get_player_faction(human_id)
+	if human_faction == FactionData.FactionID.PIRATE and HeroSystem.check_harem_victory():
+		return "后宫胜利"
+
+	return "胜利"
+
+
+func _get_victory_stats(player_id: int) -> Array:
+	var stats: Array = []
+	stats.append("回合数: %d" % GameManager.turn_number)
+
+	var owned: int = GameManager.count_tiles_owned(player_id)
+	var total: int = GameManager.tiles.size()
+	stats.append("领地: %d/%d" % [owned, total])
+
+	var total_soldiers: int = 0
+	for army_id in GameManager.armies:
+		var army: Dictionary = GameManager.armies[army_id]
+		if army["player_id"] == player_id:
+			total_soldiers += GameManager.get_army_soldier_count(army_id)
+	stats.append("军队: %d" % total_soldiers)
+
+	var recruited: int = HeroSystem.recruited_heroes.size()
+	var total_heroines: int = FactionData.HEROES.size()
+	stats.append("女武将: %d/%d" % [recruited, total_heroines])
+
+	var player_gold: int = ResourceManager.get_resource(player_id, "gold")
+	stats.append("金币: %d" % player_gold)
+
+	return stats
 # ═══════════════════════════════════════════════════════════════
 #                  POST-ACTION REFRESH
 # ═══════════════════════════════════════════════════════════════
@@ -1626,11 +1738,38 @@ func _on_message_log(text: String) -> void:
 
 
 func _on_game_over(winner_id: int) -> void:
-	game_over_panel.visible = true
-	if winner_id >= 0 and winner_id < GameManager.players.size():
-		game_over_label.text = "%s 獲得最終勝利!" % GameManager.players[winner_id]["name"]
+	var human_id: int = GameManager.get_human_player_id()
+	var is_victory: bool = (winner_id == human_id)
+
+	# ── Determine victory type ──
+	var victory_type: String = ""
+	if is_victory:
+		victory_type = _detect_victory_type(human_id)
+		game_over_label.text = "%s 获得最终胜利!" % GameManager.players[human_id]["name"]
+		game_over_label.add_theme_color_override("font_color", Color.GOLD)
+		game_over_victory_type_label.text = victory_type
+		game_over_victory_type_label.add_theme_color_override("font_color", Color.GOLD)
+		game_over_style.border_color = Color.GOLD
+		game_over_style.bg_color = Color(0.12, 0.1, 0.02, 0.95)
 	else:
-		game_over_label.text = "游戏結束!"
+		victory_type = "战败"
+		game_over_label.text = "游戏结束..."
+		game_over_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		game_over_victory_type_label.text = victory_type
+		game_over_victory_type_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		game_over_style.border_color = Color(0.8, 0.15, 0.15)
+		game_over_style.bg_color = Color(0.15, 0.04, 0.04, 0.95)
+
+	# ── Populate stats ──
+	for child in game_over_stats_vbox.get_children():
+		child.queue_free()
+	var stats: Array = _get_victory_stats(human_id)
+	for stat_text in stats:
+		var lbl := _make_label(stat_text, 13, Color(0.85, 0.85, 0.9))
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		game_over_stats_vbox.add_child(lbl)
+
+	game_over_panel.visible = true
 	_update_buttons()
 
 

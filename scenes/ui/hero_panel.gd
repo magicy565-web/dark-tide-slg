@@ -194,6 +194,7 @@ func show_panel() -> void:
 
 
 func hide_panel() -> void:
+	AudioManager.play_ui_cancel()
 	_visible = false
 	root.visible = false
 	_selected_hero_id = ""
@@ -208,6 +209,7 @@ func is_panel_visible() -> bool:
 # ═══════════════════════════════════════════════════════════════
 
 func _on_tab_roster() -> void:
+	AudioManager.play_ui_click()
 	_current_tab = "roster"
 	_selected_hero_id = ""
 	detail_panel.visible = false
@@ -216,6 +218,7 @@ func _on_tab_roster() -> void:
 
 
 func _on_tab_prison() -> void:
+	AudioManager.play_ui_click()
 	_current_tab = "prison"
 	_selected_hero_id = ""
 	detail_panel.visible = false
@@ -430,6 +433,7 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 # ═══════════════════════════════════════════════════════════════
 
 func _on_hero_detail(hero_id: String) -> void:
+	AudioManager.play_ui_click()
 	_selected_hero_id = hero_id
 	detail_panel.visible = true
 	_refresh_detail()
@@ -583,6 +587,7 @@ func _build_equipment_slots() -> void:
 # ═══════════════════════════════════════════════════════════════
 
 func _on_recruit_hero(hero_id: String) -> void:
+	AudioManager.play_ui_confirm()
 	var pid: int = GameManager.get_human_player_id()
 	if HeroSystem.has_method("recruit_hero"):
 		var result: Dictionary = HeroSystem.recruit_hero(hero_id)
@@ -595,6 +600,7 @@ func _on_recruit_hero(hero_id: String) -> void:
 
 
 func _on_release_hero(hero_id: String) -> void:
+	AudioManager.play_ui_click()
 	if HeroSystem.has_method("release_hero"):
 		HeroSystem.release_hero(hero_id)
 		EventBus.message_log.emit("%s 已被释放" % FactionData.HEROES.get(hero_id, {}).get("name", hero_id))
@@ -603,6 +609,7 @@ func _on_release_hero(hero_id: String) -> void:
 
 
 func _on_gift_hero(hero_id: String) -> void:
+	AudioManager.play_ui_click()
 	var pid: int = GameManager.get_human_player_id()
 	# Gift costs 10 gold
 	if ResourceManager.can_afford(pid, {"gold": 10}):
@@ -618,6 +625,7 @@ func _on_gift_hero(hero_id: String) -> void:
 
 
 func _on_equip_slot(hero_id: String, slot: String) -> void:
+	AudioManager.play_ui_click()
 	# Show available equipment for this slot from inventory
 	var pid: int = GameManager.get_human_player_id()
 	var inventory: Array = ItemManager.get_equipment_items(pid) if ItemManager.has_method("get_equipment_items") else []
@@ -728,6 +736,7 @@ func _do_equip_item(hero_id: String, equip_id: String) -> void:
 
 
 func _on_unequip(hero_id: String, slot: String) -> void:
+	AudioManager.play_ui_click()
 	if HeroSystem.has_method("unequip_item"):
 		var result: Dictionary = HeroSystem.unequip_item(hero_id, slot)
 		if result.get("ok", false):

@@ -23,6 +23,10 @@ var show_grid_check: CheckButton
 var show_fog_check: CheckButton
 var combat_speed_slider: HSlider
 var auto_end_turn_check: CheckButton
+var auto_save_check: CheckButton
+
+# ── Display settings (extra) ──
+var fullscreen_check: CheckButton
 
 # ── Difficulty ──
 var difficulty_option: OptionButton
@@ -39,6 +43,8 @@ const DEFAULTS: Dictionary = {
 	"show_fog": true,
 	"combat_speed": 1.0,
 	"auto_end_turn": false,
+	"auto_save": true,
+	"fullscreen": false,
 }
 
 
@@ -151,6 +157,18 @@ func _build_ui() -> void:
 	show_fog_check.toggled.connect(func(on): EventBus.message_log.emit("迷雾显示: %s" % ("开" if on else "关")))
 	vbox.add_child(show_fog_check)
 
+	fullscreen_check = CheckButton.new()
+	fullscreen_check.text = "全屏"
+	fullscreen_check.button_pressed = DEFAULTS["fullscreen"]
+	fullscreen_check.toggled.connect(func(on):
+		if on:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		else:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		EventBus.message_log.emit("全屏: %s" % ("开" if on else "关"))
+	)
+	vbox.add_child(fullscreen_check)
+
 	combat_speed_slider = _add_slider(vbox, "战斗速度", DEFAULTS["combat_speed"] / 3.0)
 	combat_speed_slider.value_changed.connect(func(v):
 		var speed: float = v * 3.0
@@ -176,6 +194,11 @@ func _build_ui() -> void:
 	auto_end_turn_check.text = "自动结束回合 (无行动时)"
 	auto_end_turn_check.button_pressed = DEFAULTS["auto_end_turn"]
 	vbox.add_child(auto_end_turn_check)
+
+	auto_save_check = CheckButton.new()
+	auto_save_check.text = "自动存档"
+	auto_save_check.button_pressed = DEFAULTS["auto_save"]
+	vbox.add_child(auto_save_check)
 
 	vbox.add_child(HSeparator.new())
 
@@ -273,6 +296,7 @@ func _add_slider(parent: VBoxContainer, label_text: String, default_val: float) 
 
 
 func toggle_settings() -> void:
+	AudioManager.play_ui_click()
 	_visible = not _visible
 	visible = _visible
 	if _visible:
@@ -287,6 +311,7 @@ func toggle_settings() -> void:
 
 
 func _reset_to_defaults() -> void:
+	AudioManager.play_ui_click()
 	bgm_slider.value = DEFAULTS["bgm_volume"]
 	sfx_slider.value = DEFAULTS["sfx_volume"]
 	ambient_slider.value = DEFAULTS["ambient_volume"]
@@ -297,6 +322,8 @@ func _reset_to_defaults() -> void:
 	show_fog_check.button_pressed = DEFAULTS["show_fog"]
 	combat_speed_slider.value = DEFAULTS["combat_speed"] / 3.0
 	auto_end_turn_check.button_pressed = DEFAULTS["auto_end_turn"]
+	auto_save_check.button_pressed = DEFAULTS["auto_save"]
+	fullscreen_check.button_pressed = DEFAULTS["fullscreen"]
 	# Apply audio defaults immediately
 	AudioManager.set_bgm_volume(DEFAULTS["bgm_volume"])
 	AudioManager.set_sfx_volume(DEFAULTS["sfx_volume"])
@@ -314,9 +341,11 @@ func _save_settings() -> void:
 	config.set_value("gameplay", "tutorial_enabled", tutorial_check.button_pressed)
 	config.set_value("gameplay", "edge_scroll", edge_scroll_check.button_pressed)
 	config.set_value("gameplay", "auto_end_turn", auto_end_turn_check.button_pressed)
+	config.set_value("gameplay", "auto_save", auto_save_check.button_pressed)
 	config.set_value("display", "show_grid", show_grid_check.button_pressed)
 	config.set_value("display", "show_fog", show_fog_check.button_pressed)
 	config.set_value("display", "combat_speed", combat_speed_slider.value * 3.0)
+	config.set_value("display", "fullscreen", fullscreen_check.button_pressed)
 	var err := config.save(SETTINGS_PATH)
 	if err != OK:
 		push_warning("SettingsPanel: Failed to save settings (error %d)" % err)
@@ -335,9 +364,11 @@ func _load_settings() -> void:
 	tutorial_check.button_pressed = config.get_value("gameplay", "tutorial_enabled", DEFAULTS["tutorial_enabled"])
 	edge_scroll_check.button_pressed = config.get_value("gameplay", "edge_scroll", DEFAULTS["edge_scroll"])
 	auto_end_turn_check.button_pressed = config.get_value("gameplay", "auto_end_turn", DEFAULTS["auto_end_turn"])
+	auto_save_check.button_pressed = config.get_value("gameplay", "auto_save", DEFAULTS["auto_save"])
 	show_grid_check.button_pressed = config.get_value("display", "show_grid", DEFAULTS["show_grid"])
 	show_fog_check.button_pressed = config.get_value("display", "show_fog", DEFAULTS["show_fog"])
 	combat_speed_slider.value = config.get_value("display", "combat_speed", DEFAULTS["combat_speed"]) / 3.0
+	fullscreen_check.button_pressed = config.get_value("display", "fullscreen", DEFAULTS["fullscreen"])
 
 	# Apply loaded audio settings
 	AudioManager.set_bgm_volume(bgm_slider.value)
@@ -345,6 +376,12 @@ func _load_settings() -> void:
 	AudioManager.set_ambient_volume(ambient_slider.value)
 	if mute_check.button_pressed != AudioManager.master_muted:
 		AudioManager.toggle_mute()
+
+	# Apply loaded fullscreen setting
+	if fullscreen_check.button_pressed:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 
 
 ## Get a setting value (for other systems to query)
@@ -355,6 +392,8 @@ func get_setting(key: String):
 		"show_fog": return show_fog_check.button_pressed if show_fog_check else DEFAULTS["show_fog"]
 		"combat_speed": return combat_speed_slider.value * 3.0 if combat_speed_slider else DEFAULTS["combat_speed"]
 		"auto_end_turn": return auto_end_turn_check.button_pressed if auto_end_turn_check else DEFAULTS["auto_end_turn"]
+		"auto_save": return auto_save_check.button_pressed if auto_save_check else DEFAULTS["auto_save"]
+		"fullscreen": return fullscreen_check.button_pressed if fullscreen_check else DEFAULTS["fullscreen"]
 		"tutorial_enabled": return tutorial_check.button_pressed if tutorial_check else DEFAULTS["tutorial_enabled"]
 	return null
 

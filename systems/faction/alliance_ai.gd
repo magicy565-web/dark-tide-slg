@@ -301,6 +301,9 @@ func _coordinate_defense_focus() -> void:
 		var lf: int = tile.get("light_faction", -1)
 		if lf < 0 or tile["owner_id"] >= 0:
 			continue
+		if not zone_tiles.has(lf):
+			zone_tiles[lf] = []
+			zone_threat[lf] = 0
 		zone_tiles[lf].append(tile)
 		if GameManager.adjacency.has(tile["index"]):
 			for nb_idx in GameManager.adjacency[tile["index"]]:

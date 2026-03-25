@@ -150,6 +150,7 @@ func show_panel() -> void:
 	_selected_item_index = -1; detail_panel.visible = false; _refresh()
 
 func hide_panel() -> void:
+	AudioManager.play_ui_cancel()
 	_visible = false; root.visible = false
 
 func is_panel_visible() -> bool:
@@ -158,6 +159,7 @@ func is_panel_visible() -> bool:
 # ═══════════════ TABS ═══════════════
 
 func _switch_tab(tab: String) -> void:
+	AudioManager.play_ui_click()
 	_current_tab = tab; _selected_item_index = -1; detail_panel.visible = false; _refresh()
 
 func _update_tab_highlight() -> void:
@@ -277,6 +279,7 @@ func _build_relic_display() -> void:
 # ═══════════════ DETAIL VIEW ═══════════════
 
 func _on_select_item(index: int, item: Dictionary) -> void:
+	AudioManager.play_ui_click()
 	_selected_item_index = index; detail_panel.visible = true; _refresh_detail(item)
 
 func _refresh_detail(item: Dictionary) -> void:
@@ -349,10 +352,12 @@ func _refresh_detail(item: Dictionary) -> void:
 # ═══════════════ CALLBACKS ═══════════════
 
 func _on_use_item(item_id: String) -> void:
+	AudioManager.play_ui_confirm()
 	ItemManager.use_item(GameManager.get_human_player_id(), item_id)
 	_selected_item_index = -1; detail_panel.visible = false; _refresh()
 
 func _on_discard_item(item_id: String) -> void:
+	AudioManager.play_ui_click()
 	var pid: int = GameManager.get_human_player_id()
 	ItemManager.remove_item(pid, item_id)
 	var defs: Dictionary = FactionData.ITEM_DEFS.get(item_id, FactionData.EQUIPMENT_DEFS.get(item_id, {}))
@@ -360,6 +365,7 @@ func _on_discard_item(item_id: String) -> void:
 	_selected_item_index = -1; detail_panel.visible = false; _refresh()
 
 func _on_upgrade_relic() -> void:
+	AudioManager.play_ui_confirm()
 	RelicManager.upgrade_relic(GameManager.get_human_player_id()); _refresh()
 
 func _on_item_changed(_pid: int, _item_name: String) -> void:

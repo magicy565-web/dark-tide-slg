@@ -126,6 +126,7 @@ func show_panel() -> void:
 	_visible = true; root.visible = true; _refresh()
 
 func hide_panel() -> void:
+	AudioManager.play_ui_cancel()
 	_visible = false; root.visible = false
 
 func is_panel_visible() -> bool:
@@ -134,6 +135,7 @@ func is_panel_visible() -> bool:
 # ═══════════════ TABS ═══════════════
 
 func _switch_tab(tab: String) -> void:
+	AudioManager.play_ui_click()
 	_current_tab = tab; _refresh()
 
 func _update_tab_highlight() -> void:
@@ -396,6 +398,7 @@ func _build_faction_card(fname: String, status_text: String, status_color: Color
 # ═══════════════ ACTION CALLBACKS ═══════════════
 
 func _on_evil_action(faction_id: int, action_id: String) -> void:
+	AudioManager.play_ui_confirm()
 	var pid: int = GameManager.get_human_player_id()
 	match action_id:
 		"recruit_diplomacy":
@@ -426,6 +429,7 @@ func _on_evil_action(faction_id: int, action_id: String) -> void:
 
 
 func _on_light_action(action_id: String) -> void:
+	AudioManager.play_ui_confirm()
 	var pid: int = GameManager.get_human_player_id()
 	match action_id:
 		"light_ceasefire": DiplomacyManager.buy_light_ceasefire(pid)
@@ -436,11 +440,13 @@ func _on_light_action(action_id: String) -> void:
 
 
 func _on_break_treaty(faction_id: int, treaty_type: String) -> void:
+	AudioManager.play_ui_click()
 	var pid: int = GameManager.get_human_player_id()
 	DiplomacyManager.break_treaty(pid, treaty_type, faction_id)
 	_refresh()
 
 func _on_send_gift(faction_id: int) -> void:
+	AudioManager.play_ui_click()
 	var pid: int = GameManager.get_human_player_id()
 	if not ResourceManager.can_afford(pid, {"gold": 50}):
 		EventBus.message_log.emit("[color=red]金币不足 (需要50金)[/color]"); return

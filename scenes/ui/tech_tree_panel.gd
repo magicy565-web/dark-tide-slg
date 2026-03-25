@@ -129,6 +129,7 @@ func show_panel() -> void:
 	_selected_tech_id = ""; detail_panel.visible = false; _refresh()
 
 func hide_panel() -> void:
+	AudioManager.play_ui_cancel()
 	_visible = false; root.visible = false
 
 func is_panel_visible() -> bool:
@@ -330,12 +331,15 @@ func _refresh_detail() -> void:
 # ═══════════════ CALLBACKS ═══════════════
 
 func _on_select_tech(tech_id: String) -> void:
+	AudioManager.play_ui_click()
 	_selected_tech_id = tech_id; detail_panel.visible = true; _refresh_detail()
 
 func _on_start_research(tech_id: String) -> void:
+	AudioManager.play_ui_confirm()
 	ResearchManager.start_research(GameManager.get_human_player_id(), tech_id); _refresh()
 
 func _on_cancel_research() -> void:
+	AudioManager.play_ui_click()
 	ResearchManager.cancel_research(GameManager.get_human_player_id()); _refresh()
 
 func _on_research_changed(_pid: int, _tech_id: String) -> void:

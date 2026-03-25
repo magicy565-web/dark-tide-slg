@@ -1311,6 +1311,15 @@ func begin_turn() -> void:
 	# ── Phase 0: Build per-turn cache ──
 	_build_turn_cache()
 
+	# Auto-save at turn start
+	if pid == get_human_player_id():
+		var _settings_node = get_tree().get_root().find_child("SettingsPanel", true, false)
+		var _auto_save_on: bool = true
+		if _settings_node and _settings_node.has_method("get_setting"):
+			_auto_save_on = _settings_node.get_setting("auto_save") != false
+		if _auto_save_on:
+			SaveManager.auto_save()
+
 	player["ap"] = calculate_action_points(pid)
 	player["atk_bonus"] = 0
 	player["def_bonus"] = 0
@@ -2044,6 +2053,16 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	## Returns true if army wins.
 	var player: Dictionary = get_player_by_id(army["player_id"])
 	var pid: int = army["player_id"]
+
+	# Auto-save before combat
+	var def_owner_id: int = tile.get("owner_id", -1)
+	if pid == get_human_player_id() or def_owner_id == get_human_player_id():
+		var _settings_node = get_tree().get_root().find_child("SettingsPanel", true, false)
+		var _auto_save_on: bool = true
+		if _settings_node and _settings_node.has_method("get_setting"):
+			_auto_save_on = _settings_node.get_setting("auto_save") != false
+		if _auto_save_on:
+			SaveManager.auto_save()
 
 	# Build attacker army dict for CombatSystem
 	var attacker_units: Array = []
@@ -2842,6 +2861,16 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	var pid: int = player["id"]
 	var faction_id: int = get_player_faction(pid)
 	var army: int = ResourceManager.get_army(pid)
+
+	# Auto-save before combat
+	var def_player_id_check: int = tile.get("owner_id", -1)
+	if pid == get_human_player_id() or def_player_id_check == get_human_player_id():
+		var _settings_node = get_tree().get_root().find_child("SettingsPanel", true, false)
+		var _auto_save_on: bool = true
+		if _settings_node and _settings_node.has_method("get_setting"):
+			_auto_save_on = _settings_node.get_setting("auto_save") != false
+		if _auto_save_on:
+			SaveManager.auto_save()
 
 	# Neutral territory reinforcement: adjacent neutral tiles send aid before battle
 	var nf_id: int = tile.get("neutral_faction_id", -1)

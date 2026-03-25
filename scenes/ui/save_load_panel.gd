@@ -125,6 +125,7 @@ func show_load() -> void:
 
 
 func hide_panel() -> void:
+	AudioManager.play_ui_cancel()
 	_visible = false
 	root.visible = false
 
@@ -224,6 +225,7 @@ func _add_slot_row(slot_index: int, label: String) -> void:
 # ═══════════════════════════════════════════════════════════════
 
 func _on_save_slot(slot: int) -> void:
+	AudioManager.play_ui_confirm()
 	if SaveManager.has_method("save_game"):
 		var success: bool = SaveManager.save_game(slot)
 		if success:
@@ -234,6 +236,7 @@ func _on_save_slot(slot: int) -> void:
 
 
 func _on_load_slot(slot: int) -> void:
+	AudioManager.play_ui_confirm()
 	if SaveManager.has_method("load_game"):
 		var success: bool = SaveManager.load_game(slot)
 		if success:
@@ -244,6 +247,7 @@ func _on_load_slot(slot: int) -> void:
 
 
 func _on_delete_slot(slot: int) -> void:
+	AudioManager.play_ui_click()
 	if SaveManager.has_method("delete_save"):
 		SaveManager.delete_save(slot)
 		EventBus.message_log.emit("存档 %d 已删除" % (slot + 1))

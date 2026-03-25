@@ -170,6 +170,7 @@ func show_panel() -> void:
 	_visible = true; root.visible = true; _refresh()
 
 func hide_panel() -> void:
+	AudioManager.play_ui_cancel()
 	_visible = false; root.visible = false
 
 func is_panel_visible() -> bool:
@@ -178,6 +179,7 @@ func is_panel_visible() -> bool:
 # ═══════════════ TABS ═══════════════
 
 func _switch_tab(tab: String) -> void:
+	AudioManager.play_ui_click()
 	_current_tab = tab; _refresh()
 
 func _update_tab_highlight() -> void:
@@ -340,7 +342,7 @@ func _build_market() -> void:
 		var btn_row := HBoxContainer.new()
 		btn_row.alignment = BoxContainer.ALIGNMENT_END
 		vbox.add_child(btn_row)
-		var final_price: int = maxi(int(float(item.get("price", 0)) / trade_mult), 1)
+		var final_price: int = maxi(int(float(item.get("price", 0)) / maxf(trade_mult, 0.01)), 1)
 		var btn := Button.new()
 		btn.text = "购买 (%d金)" % final_price
 		btn.custom_minimum_size = Vector2(130, 30)
@@ -565,6 +567,10 @@ func _build_smuggle() -> void:
 		var vbox := VBoxContainer.new()
 		vbox.add_theme_constant_override("separation", 3)
 		card.add_child(vbox)
+
+		if route.size() < 2:
+			card.queue_free()
+			continue
 
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
@@ -1001,11 +1007,14 @@ func _build_harem() -> void:
 func _on_buy_market(item_index: int) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var ok: bool = PirateMechanic.buy_market_item(pid, item_index)
+	if ok:
+		AudioManager.play_ui_confirm()
 	if not ok:
 		EventBus.message_log.emit("[color=red]金币不足或商品已售罄[/color]")
 	_refresh()
 
 func _on_explore_treasure(map_index: int) -> void:
+	AudioManager.play_ui_confirm()
 	var pid: int = GameManager.get_human_player_id()
 	var result: Dictionary = PirateMechanic.explore_treasure(pid, map_index)
 	if result.is_empty():
@@ -1013,6 +1022,7 @@ func _on_explore_treasure(map_index: int) -> void:
 	_refresh()
 
 func _on_destroy_route(route_index: int) -> void:
+	AudioManager.play_ui_click()
 	var pid: int = GameManager.get_human_player_id()
 	PirateMechanic.destroy_smuggle_route(pid, route_index)
 	EventBus.message_log.emit("走私航线已废除")
@@ -1021,6 +1031,7 @@ func _on_destroy_route(route_index: int) -> void:
 func _on_hire_merc(pid: int, merc_id: String, cost: int) -> void:
 	if not ResourceManager.can_afford(pid, {"gold": cost}):
 		EventBus.message_log.emit("[color=red]金币不足 (需要%d金)[/color]" % cost); return
+	AudioManager.play_ui_confirm()
 	ResourceManager.spend(pid, {"gold": cost})
 	# Add soldiers from mercenary
 	for merc in PirateMechanic.MERCENARY_TYPES:
@@ -1031,18 +1042,21 @@ func _on_hire_merc(pid: int, merc_id: String, cost: int) -> void:
 	_refresh()
 
 func _on_train_heroine(hero_id: String) -> void:
+	AudioManager.play_ui_click()
 	var result: Dictionary = HeroSystem.train_heroine(hero_id)
 	if not result.get("success", false):
 		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "调教失败"))
 	_refresh()
 
 func _on_bed_heroine(hero_id: String) -> void:
+	AudioManager.play_ui_click()
 	var result: Dictionary = HeroSystem.bed_heroine(hero_id)
 	if not result.get("success", false):
 		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "侍寝失败"))
 	_refresh()
 
 func _on_final_story(hero_id: String) -> void:
+	AudioManager.play_ui_confirm()
 	var result: Dictionary = HeroSystem.trigger_final_story(hero_id)
 	if not result.get("success", false):
 		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "剧情触发失败"))
