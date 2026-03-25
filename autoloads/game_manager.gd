@@ -2974,17 +2974,28 @@ func _show_conquest_choice(player: Dictionary, tile: Dictionary) -> void:
 	_pending_conquest_tile_index = tile["index"]
 
 	# Calculate base loot for display
-	var base_loot: int = _calculate_conquest_loot(tile)
-	var occupy_gold: int = int(float(base_loot) * BalanceConfig.CONQUEST_OCCUPY_GOLD_MULT)
-	var pillage_gold: int = int(float(base_loot) * BalanceConfig.CONQUEST_PILLAGE_GOLD_MULT)
-	var plunder_gold: int = int(float(base_loot) * BalanceConfig.CONQUEST_PLUNDER_GOLD_MULT)
+	var base_loot: Dictionary = _calculate_conquest_loot(tile, player["id"])
+	var is_pirate: bool = _get_faction_tag_for_player(player["id"]) == "pirate"
+	var pirate_tag: String = " [color=#ffcc44](海盗+25%%)[/color]" if is_pirate else ""
+
+	var occ_g: int = int(float(base_loot["gold"]) * BalanceConfig.CONQUEST_OCCUPY_GOLD_MULT)
+	var occ_f: int = int(float(base_loot["food"]) * BalanceConfig.CONQUEST_OCCUPY_GOLD_MULT)
+	var occ_i: int = int(float(base_loot["iron"]) * BalanceConfig.CONQUEST_OCCUPY_GOLD_MULT)
+
+	var pil_g: int = int(float(base_loot["gold"]) * BalanceConfig.CONQUEST_PILLAGE_GOLD_MULT)
+	var pil_f: int = int(float(base_loot["food"]) * BalanceConfig.CONQUEST_PILLAGE_GOLD_MULT)
+	var pil_i: int = int(float(base_loot["iron"]) * BalanceConfig.CONQUEST_PILLAGE_GOLD_MULT)
+
+	var plu_g: int = int(float(base_loot["gold"]) * BalanceConfig.CONQUEST_PLUNDER_GOLD_MULT)
+	var plu_f: int = int(float(base_loot["food"]) * BalanceConfig.CONQUEST_PLUNDER_GOLD_MULT)
+	var plu_i: int = int(float(base_loot["iron"]) * BalanceConfig.CONQUEST_PLUNDER_GOLD_MULT)
 
 	var title: String = "占领 %s" % tile["name"]
-	var desc: String = "[color=#aaaacc]你的军队已经攻下了此地。如何处置？[/color]"
+	var desc: String = "[color=#aaaacc]你的军队已经攻下了此地。如何处置？[/color]%s" % pirate_tag
 	var choices: Array = [
-		{"text": "占领 — 恢复秩序 (治安+20%%, 获得 %d 金币)" % occupy_gold},
-		{"text": "洗劫 — 搜刮财物 (治安-40%%, 获得 %d 金币)" % pillage_gold},
-		{"text": "掳掠 — 纵兵劫掠 (治安-70%%, 获得 %d 金币, 士兵回复25%%HP, H事件)" % plunder_gold},
+		{"text": "占领 — 恢复秩序 (治安+20%%, %d金/%d粮/%d铁)" % [occ_g, occ_f, occ_i]},
+		{"text": "洗劫 — 搜刮财物 (治安-40%%, %d金/%d粮/%d铁)" % [pil_g, pil_f, pil_i]},
+		{"text": "掳掠 — 纵兵劫掠 (治安-70%%, %d金/%d粮/%d铁, +25%%HP, H事件)" % [plu_g, plu_f, plu_i]},
 	]
 
 	if not _conquest_choice_connected:
@@ -3013,45 +3024,69 @@ func _on_conquest_choice(choice_index: int) -> void:
 
 
 func _apply_conquest_choice(tile: Dictionary, choice: String) -> void:
-	var base_loot: int = _calculate_conquest_loot(tile)
 	var pid: int = tile["owner_id"]
-	var gold: int = 0
+	var base_loot: Dictionary = _calculate_conquest_loot(tile, pid)
+	var mult: float = 1.0
+	var delta := {"gold": 0, "food": 0, "iron": 0}
 
 	match choice:
 		"occupy":
 			tile["public_order"] = clampf(BalanceConfig.TILE_ORDER_DEFAULT + BalanceConfig.CONQUEST_OCCUPY_ORDER_BONUS, 0.0, 1.0)
-			gold = int(float(base_loot) * BalanceConfig.CONQUEST_OCCUPY_GOLD_MULT)
-			EventBus.message_log.emit("[color=green]占领 %s — 秩序恢复，获得 %d 金币[/color]" % [tile["name"], gold])
+			mult = BalanceConfig.CONQUEST_OCCUPY_GOLD_MULT
+			delta["gold"] = int(float(base_loot["gold"]) * mult)
+			delta["food"] = int(float(base_loot["food"]) * mult)
+			delta["iron"] = int(float(base_loot["iron"]) * mult)
+			EventBus.message_log.emit("[color=green]占领 %s — 秩序恢复，获得 %d金/%d粮/%d铁[/color]" % [tile["name"], delta["gold"], delta["food"], delta["iron"]])
 		"pillage":
 			tile["public_order"] = clampf(BalanceConfig.TILE_ORDER_DEFAULT - BalanceConfig.CONQUEST_PILLAGE_ORDER_PENALTY, 0.0, 1.0)
-			gold = int(float(base_loot) * BalanceConfig.CONQUEST_PILLAGE_GOLD_MULT)
-			EventBus.message_log.emit("[color=yellow]洗劫 %s — 大肆搜刮，获得 %d 金币，治安骤降[/color]" % [tile["name"], gold])
+			mult = BalanceConfig.CONQUEST_PILLAGE_GOLD_MULT
+			delta["gold"] = int(float(base_loot["gold"]) * mult)
+			delta["food"] = int(float(base_loot["food"]) * mult)
+			delta["iron"] = int(float(base_loot["iron"]) * mult)
+			EventBus.message_log.emit("[color=yellow]洗劫 %s — 大肆搜刮，获得 %d金/%d粮/%d铁，治安骤降[/color]" % [tile["name"], delta["gold"], delta["food"], delta["iron"]])
 		"plunder":
 			tile["public_order"] = clampf(BalanceConfig.TILE_ORDER_DEFAULT - BalanceConfig.CONQUEST_PLUNDER_ORDER_PENALTY, 0.0, 1.0)
-			gold = int(float(base_loot) * BalanceConfig.CONQUEST_PLUNDER_GOLD_MULT)
+			mult = BalanceConfig.CONQUEST_PLUNDER_GOLD_MULT
+			delta["gold"] = int(float(base_loot["gold"]) * mult)
+			delta["food"] = int(float(base_loot["food"]) * mult)
+			delta["iron"] = int(float(base_loot["iron"]) * mult)
 			# 25% HP recovery for all soldiers
 			var army: int = ResourceManager.get_army(pid)
 			var heal: int = maxi(1, int(float(army) * BalanceConfig.CONQUEST_PLUNDER_HP_RECOVERY))
 			ResourceManager.add_army(pid, heal)
 			sync_player_army(pid)
-			EventBus.message_log.emit("[color=red]掳掠 %s — 纵兵劫掠，获得 %d 金币，回复 %d 兵力[/color]" % [tile["name"], gold, heal])
+			EventBus.message_log.emit("[color=red]掳掠 %s — 纵兵劫掠，获得 %d金/%d粮/%d铁，回复 %d 兵力[/color]" % [tile["name"], delta["gold"], delta["food"], delta["iron"], heal])
 			# Trigger random H CG event
 			EventBus.message_log.emit("[color=#ff69b4]掳掠中发生了特殊事件...[/color]")
 			EventBus.event_triggered.emit(pid, "plunder_h_event", "掳掠中的特殊遭遇")
 
-	if gold > 0:
-		ResourceManager.apply_delta(pid, {"gold": gold})
-
+	ResourceManager.apply_delta(pid, delta)
 	EventBus.conquest_choice_made.emit(tile["index"], choice)
 	EventBus.resources_changed.emit(pid)
 
 
-func _calculate_conquest_loot(tile: Dictionary) -> int:
-	## Base loot = sum of tile base_production gold x 3 (represents looting 3 turns of income)
-	var base: Dictionary = tile.get("base_production", {})
-	var base_gold: int = base.get("gold", 5)
+func _calculate_conquest_loot(tile: Dictionary, pid: int) -> Dictionary:
+	## Returns base loot dict {gold, food, iron} from CONQUEST_LOOT_TABLE.
+	## Applies tile level scaling and pirate faction +25% bonus.
+	var tile_type: int = tile.get("type", 5)  # default WILDERNESS
+	var entry: Dictionary = BalanceConfig.CONQUEST_LOOT_TABLE.get(tile_type, {"gold": 5, "food": 2, "iron": 2})
 	var level: int = maxi(tile.get("level", 1), 1)
-	return base_gold * level * 3
+	var level_mult: float = 1.0 + (level - 1) * 0.25  # Lv1=1.0, Lv2=1.25, Lv3=1.5 ...
+
+	var loot := {
+		"gold": int(float(entry.get("gold", 5)) * level_mult),
+		"food": int(float(entry.get("food", 2)) * level_mult),
+		"iron": int(float(entry.get("iron", 2)) * level_mult),
+	}
+
+	# Pirate faction: +25% conquest loot
+	if _get_faction_tag_for_player(pid) == "pirate":
+		var bonus: float = 1.0 + BalanceConfig.PIRATE_CONQUEST_LOOT_BONUS
+		loot["gold"] = int(float(loot["gold"]) * bonus)
+		loot["food"] = int(float(loot["food"]) * bonus)
+		loot["iron"] = int(float(loot["iron"]) * bonus)
+
+	return loot
 
 
 func tick_tile_public_order() -> void:

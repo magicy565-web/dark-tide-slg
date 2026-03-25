@@ -197,6 +197,31 @@ const CONQUEST_PLUNDER_GOLD_MULT: float = 1.00  # 掳掠: normal gold
 ## Plunder HP recovery for soldiers
 const CONQUEST_PLUNDER_HP_RECOVERY: float = 0.25  # 25% soldier HP restored
 
+## Pirate faction conquest loot bonus
+const PIRATE_CONQUEST_LOOT_BONUS: float = 0.25  # 海盗+25% loot
+
+## Base conquest loot per tile type (gold, food, iron)
+## Applied BEFORE conquest choice multiplier. Level multiplier applied on top.
+## TileType enum → {gold, food, iron}
+const CONQUEST_LOOT_TABLE: Dictionary = {
+	0:  {"gold": 40, "food": 8,  "iron": 15, "name": "光明要塞"},    # LIGHT_STRONGHOLD
+	1:  {"gold": 25, "food": 12, "iron": 5,  "name": "光明村庄"},    # LIGHT_VILLAGE
+	2:  {"gold": 20, "food": 6,  "iron": 10, "name": "暗黑据点"},    # DARK_BASE
+	3:  {"gold": 8,  "food": 2,  "iron": 20, "name": "矿场"},        # MINE_TILE
+	4:  {"gold": 8,  "food": 18, "iron": 2,  "name": "农场"},        # FARM_TILE
+	5:  {"gold": 5,  "food": 3,  "iron": 3,  "name": "荒野"},        # WILDERNESS
+	6:  {"gold": 20, "food": 8,  "iron": 5,  "name": "事件点"},      # EVENT_TILE
+	7:  {"gold": 15, "food": 6,  "iron": 5,  "name": "起点"},        # START
+	8:  {"gold": 10, "food": 2,  "iron": 5,  "name": "资源站"},      # RESOURCE_STATION
+	9:  {"gold": 50, "food": 10, "iron": 20, "name": "核心要塞"},    # CORE_FORTRESS
+	10: {"gold": 18, "food": 6,  "iron": 8,  "name": "中立势力"},    # NEUTRAL_BASE
+	11: {"gold": 30, "food": 6,  "iron": 5,  "name": "交易站"},      # TRADING_POST
+	12: {"gold": 8,  "food": 3,  "iron": 5,  "name": "瞭望塔"},      # WATCHTOWER
+	13: {"gold": 12, "food": 2,  "iron": 5,  "name": "遗迹"},        # RUINS
+	14: {"gold": 25, "food": 15, "iron": 3,  "name": "港口"},        # HARBOR
+	15: {"gold": 10, "food": 4,  "iron": 10, "name": "关隘"},        # CHOKEPOINT
+}
+
 ## Public order → production multiplier breakpoints
 ## Keys are upper bounds of order ranges (0.0-1.0), values are production multipliers
 const TILE_ORDER_PROD_TABLE: Array = [
