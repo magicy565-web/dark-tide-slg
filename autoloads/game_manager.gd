@@ -2389,6 +2389,121 @@ func _find_path(from: int, to: int) -> Array:
 	return path
 
 
+func calculate_attack_route(from: int, to: int) -> Array:
+	## A* weighted pathfinding using terrain move costs.
+	## Returns array of tile indices from start to goal (excluding start).
+	if from < 0 or to < 0 or from >= tiles.size() or to >= tiles.size():
+		return []
+	if from == to:
+		return []
+	# Open set: Array of [tile_index, f_score]
+	var open_set: Array = [[from, 0.0]]
+	var came_from: Dictionary = {}
+	var g_score: Dictionary = {from: 0.0}
+	var closed: Dictionary = {}
+	while open_set.size() > 0:
+		# Find lowest f_score (linear scan — fine for 55-tile maps)
+		var best_idx: int = 0
+		for i in range(1, open_set.size()):
+			if open_set[i][1] < open_set[best_idx][1]:
+				best_idx = i
+		var current: int = open_set[best_idx][0]
+		open_set.remove_at(best_idx)
+		if current == to:
+			break
+		if closed.has(current):
+			continue
+		closed[current] = true
+		if not adjacency.has(current):
+			continue
+		for neighbor in adjacency[current]:
+			if neighbor < 0 or neighbor >= tiles.size():
+				continue
+			if closed.has(neighbor):
+				continue
+			var n_tile: Dictionary = tiles[neighbor]
+			var terrain_type: int = n_tile.get("terrain", FactionData.TerrainType.PLAINS)
+			var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
+			var move_cost: float = float(terrain_data.get("move_cost", 1))
+			# Chokepoints add extra cost for route planning
+			if n_tile.get("is_chokepoint", false):
+				move_cost += 1.0
+			var tentative_g: float = g_score[current] + move_cost
+			if tentative_g < g_score.get(neighbor, INF):
+				came_from[neighbor] = current
+				g_score[neighbor] = tentative_g
+				var h: float = _heuristic_cost(neighbor, to)
+				open_set.append([neighbor, tentative_g + h])
+	# Reconstruct path
+	if not came_from.has(to):
+		return []
+	var path: Array = []
+	var cur: int = to
+	while came_from.has(cur):
+		path.push_front(cur)
+		cur = came_from[cur]
+	return path
+
+func _heuristic_cost(from: int, to: int) -> float:
+	## Euclidean distance heuristic for A*.
+	if from < 0 or from >= tiles.size() or to < 0 or to >= tiles.size():
+		return 0.0
+	var fp: Vector3 = tiles[from]["position_3d"]
+	var tp: Vector3 = tiles[to]["position_3d"]
+	return Vector3(fp.x - tp.x, 0, fp.z - tp.z).length() * 0.5
+
+func get_route_to_target(army_id: int, target_tile: int) -> Array:
+	## Convenience: get attack route from army's current tile to target.
+	var army: Dictionary = get_army(army_id)
+	if army.is_empty():
+		return []
+	return calculate_attack_route(army["tile_index"], target_tile)
+
+func get_chokepoints_between(from: int, to: int) -> Array:
+	## Returns chokepoint tiles along the optimal route.
+	var route: Array = calculate_attack_route(from, to)
+	var cps: Array = []
+	for idx in route:
+		if tiles[idx].get("is_chokepoint", false):
+			cps.append(idx)
+	return cps
+
+func get_all_chokepoint_tiles() -> Array:
+	## Returns indices of all chokepoint tiles on the map.
+	var result: Array = []
+	for tile in tiles:
+		if tile.get("is_chokepoint", false):
+			result.append(tile["index"])
+	return result
+
+func get_chokepoint_strategic_value(tile_idx: int) -> float:
+	## Score how strategically important a chokepoint is.
+	if tile_idx < 0 or tile_idx >= tiles.size():
+		return 0.0
+	var tile: Dictionary = tiles[tile_idx]
+	if not tile.get("is_chokepoint", false):
+		return 0.0
+	var score: float = 0.0
+	# Low degree = more bottleneck-like
+	var degree: int = adjacency.get(tile_idx, []).size()
+	score += (4.0 - clampf(float(degree), 1.0, 4.0)) * 3.0
+	# Defensive terrain bonus
+	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
+	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
+	score += terrain_data.get("def_mult", 1.0) * 2.0
+	# Faction separation: borders between different owners are more valuable
+	var owner_ids: Array = []
+	for nb in adjacency.get(tile_idx, []):
+		var noid: int = tiles[nb].get("owner_id", -1)
+		if noid not in owner_ids:
+			owner_ids.append(noid)
+	if owner_ids.size() >= 2:
+		score += 3.0  # Contested border
+	# Garrison strength
+	score += float(tile.get("garrison", 0)) * 0.1
+	return score
+
+
 # ═══════════════ ARRIVAL RESOLUTION ═══════════════
 
 func _resolve_arrival(player: Dictionary, tile: Dictionary) -> void:
@@ -3866,6 +3981,16 @@ func _ai_score_attack(player: Dictionary, tile: Dictionary, army: Dictionary = {
 			if nb < tiles.size() and tiles[nb]["owner_id"] == pid:
 				friendly_neighbors += 1
 		score += friendly_neighbors * 1.5  # Connecting territory is valuable
+
+	# Chokepoint strategic awareness
+	if tile.get("is_chokepoint", false):
+		# Inflate perceived defense at chokepoints
+		def_power *= 1.3
+		# Add strategic value bonus
+		score += get_chokepoint_strategic_value(tile_idx) * 0.5
+		# If on contested border, even more valuable
+		if tile["owner_id"] != pid and tile["owner_id"] >= 0:
+			score += 2.0
 
 	return score
 

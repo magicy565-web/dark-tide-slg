@@ -290,6 +290,14 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 	if "fort_def_3" in passives and not is_attacker:
 		base_def += 3
 
+	# Chokepoint combat modifier
+	if tile.get("is_chokepoint", false):
+		var cp_data: Dictionary = FactionData.CHOKEPOINT_DATA
+		if is_attacker:
+			base_atk *= (1.0 - cp_data.get("atk_penalty", 0.10))  # -10% ATK
+		else:
+			base_def *= (1.0 + cp_data.get("def_mult_bonus", 0.20))  # +20% DEF
+
 	# Strategic resource bonuses
 	if player_id >= 0:
 		base_atk += StrategicResourceManager.get_permanent_atk_bonus(player_id)

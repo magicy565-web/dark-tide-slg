@@ -11,6 +11,8 @@ var army_visuals: Dictionary = {}
 var highlight_rings: Dictionary = {}
 var faction_border_meshes: Array = []
 var path_preview_meshes: Array = []
+var water_anim_nodes: Array = []  # [{node, type}]
+var attack_route_meshes: Array = []
 var settlement_nodes: Dictionary = {}
 # ── Selection state ──
 var selected_tile: int = -1
@@ -142,7 +144,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	camera_pivot.position = camera_pivot.position.lerp(camera_target_pos, CAM_LERP_SPEED * delta)
-	_process_camera_input(delta); _process_edge_scroll(delta); _process_hover_path()
+	_process_camera_input(delta); _process_edge_scroll(delta); _process_hover_path(); _process_water_animation(delta)
 
 func _process_camera_input(delta: float) -> void:
 	var mv := Vector3.ZERO
@@ -190,6 +192,10 @@ func _clear_board() -> void:
 		if is_instance_valid(b): b.queue_free()
 	faction_border_meshes.clear()
 	settlement_nodes.clear()
+	water_anim_nodes.clear()
+	for m in attack_route_meshes:
+		if is_instance_valid(m): m.queue_free()
+	attack_route_meshes.clear()
 	_clear_highlights(); _clear_path_preview(); _clear_pulse_ring()
 
 func _build_board() -> void:
@@ -223,6 +229,9 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 	border_mi.material_override = _make_mat(Color(0.3, 0.3, 0.28)); root.add_child(border_mi)
 	# Terrain decor
 	_build_terrain_decor(root, tile)
+	# Chokepoint gate marker
+	if tile.get("is_chokepoint", false):
+		_build_chokepoint_marker(root, TILE_HEIGHT)
 	# Settlement
 	var sett := Node3D.new(); sett.name = "Settlement"; root.add_child(sett)
 	settlement_nodes[idx] = sett; _build_settlement(sett, tile)
@@ -337,6 +346,10 @@ func _build_terrain_decor(parent: Node3D, tile: Dictionary) -> void:
 		FactionData.TerrainType.COASTAL: _add_water_edge(parent, y)
 		FactionData.TerrainType.FORTRESS_WALL: pass
 		FactionData.TerrainType.PLAINS: _add_grass_tufts(parent, y)
+		FactionData.TerrainType.RUINS: _add_ruins_decor(parent, y)
+		FactionData.TerrainType.VOLCANIC: _add_volcanic_decor(parent, y)
+		FactionData.TerrainType.RIVER: _add_river_flow(parent, y)
+		FactionData.TerrainType.WASTELAND: _add_wasteland_decor(parent, y)
 
 func _add_trees(parent: Node3D, y: float, count: int) -> void:
 	for i in range(count):
@@ -371,11 +384,22 @@ func _add_swamp_pools(parent: Node3D, y: float) -> void:
 		pm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; pool.material_override = pm
 		var a := float(i) * TAU / 3.0
 		pool.position = Vector3(cos(a) * 0.45, y + 0.01, sin(a) * 0.4); parent.add_child(pool)
+		# Bubble marker
+		var bubble := MeshInstance3D.new(); var bs := SphereMesh.new()
+		bs.radius = 0.03; bs.height = 0.06; bubble.mesh = bs
+		var bm := _make_mat(Color(0.2, 0.35, 0.15, 0.5))
+		bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; bubble.material_override = bm
+		bubble.position = Vector3(pool.position.x, y + 0.05, pool.position.z)
+		bubble.name = "SwampBubble_%d" % i
+		parent.add_child(bubble)
+		_register_water_node(bubble, "bubble")
 
 func _add_water_edge(parent: Node3D, y: float) -> void:
 	var w := _make_box_mesh(Vector3(2.2, 0.02, 0.7), Color(0.12, 0.28, 0.5, 0.55))
 	w.material_override.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	w.position = Vector3(0, y + 0.01, 0.95); parent.add_child(w)
+	w.name = "CoastalWater"
+	_register_water_node(w, "wave")
 
 func _add_grass_tufts(parent: Node3D, y: float) -> void:
 	for i in range(4):
@@ -385,6 +409,134 @@ func _add_grass_tufts(parent: Node3D, y: float) -> void:
 		t.scale = Vector3(1, 0.35, 1)
 		var a := float(i) * 1.7 + 0.4
 		t.position = Vector3(cos(a) * 0.75, y + 0.02, sin(a) * 0.55); parent.add_child(t)
+
+func _add_ruins_decor(parent: Node3D, y: float) -> void:
+	# Broken pillars
+	for i in range(3):
+		var a: float = float(i) * TAU / 3.0 + 0.2
+		var d: float = 0.5 + randf() * 0.3
+		var pillar := _make_cyl_mesh(0.06, 0.08, 0.3 + randf() * 0.25, Color(0.55, 0.5, 0.58))
+		pillar.position = Vector3(cos(a) * d, y + 0.15, sin(a) * d)
+		pillar.rotation_degrees.z = randf_range(-12, 12)
+		parent.add_child(pillar)
+	# Stone arch (tilted)
+	var arch := _make_box_mesh(Vector3(0.6, 0.08, 0.08), Color(0.5, 0.48, 0.52))
+	arch.position = Vector3(0, y + 0.35, 0)
+	arch.rotation_degrees = Vector3(0, 25, 8)
+	parent.add_child(arch)
+	# Rubble
+	for i in range(4):
+		var rb := MeshInstance3D.new(); var sm := SphereMesh.new()
+		sm.radius = 0.04 + randf() * 0.03; sm.height = sm.radius * 1.5; rb.mesh = sm
+		rb.material_override = _make_mat(Color(0.42 + randf() * 0.08, 0.4, 0.44))
+		rb.position = Vector3(randf_range(-0.6, 0.6), y + 0.02, randf_range(-0.5, 0.5))
+		parent.add_child(rb)
+
+func _add_volcanic_decor(parent: Node3D, y: float) -> void:
+	# Volcanic cone
+	var cone := _make_cyl_mesh(0.08, 0.35, 0.45, Color(0.35, 0.2, 0.15))
+	cone.position = Vector3(0, y + 0.22, 0)
+	parent.add_child(cone)
+	# Lava crater (emissive)
+	var crater := MeshInstance3D.new(); var cm := CylinderMesh.new()
+	cm.top_radius = 0.12; cm.bottom_radius = 0.1; cm.height = 0.06; crater.mesh = cm
+	var lm := _make_mat(Color(1.0, 0.35, 0.05))
+	lm.emission_enabled = true; lm.emission = Color(1.0, 0.4, 0.1)
+	lm.emission_energy_multiplier = 2.5; crater.material_override = lm
+	crater.position = Vector3(0, y + 0.46, 0)
+	parent.add_child(crater)
+	# Lava streams
+	for i in range(2):
+		var a: float = float(i) * PI + randf() * 0.5
+		var stream := _make_box_mesh(Vector3(0.04, 0.02, 0.4), Color(0.9, 0.3, 0.05))
+		stream.material_override.emission_enabled = true
+		stream.material_override.emission = Color(1.0, 0.35, 0.05)
+		stream.material_override.emission_energy_multiplier = 1.8
+		stream.position = Vector3(cos(a) * 0.3, y + 0.1, sin(a) * 0.3)
+		stream.rotation.y = a; parent.add_child(stream)
+	# Dark rocks
+	for i in range(3):
+		var rock := MeshInstance3D.new(); var rs := SphereMesh.new()
+		rs.radius = 0.06 + randf() * 0.04; rs.height = rs.radius * 1.4; rock.mesh = rs
+		rock.material_override = _make_mat(Color(0.18, 0.15, 0.12))
+		var ra: float = float(i) * TAU / 3.0 + 1.0
+		rock.position = Vector3(cos(ra) * 0.7, y + 0.03, sin(ra) * 0.6)
+		parent.add_child(rock)
+
+func _add_river_flow(parent: Node3D, y: float) -> void:
+	# Water strip
+	var water := _make_box_mesh(Vector3(0.5, 0.02, 2.8), Color(0.15, 0.32, 0.55, 0.65))
+	water.material_override.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	water.position = Vector3(0, y + 0.01, 0)
+	water.name = "RiverWater"
+	parent.add_child(water)
+	# Banks
+	for side in [-1, 1]:
+		var bank := _make_box_mesh(Vector3(0.12, 0.04, 2.5), Color(0.35, 0.3, 0.2))
+		bank.position = Vector3(0.35 * side, y + 0.02, 0)
+		parent.add_child(bank)
+	# Flow markers (small spheres that will animate)
+	for i in range(3):
+		var marker := MeshInstance3D.new(); var sm := SphereMesh.new()
+		sm.radius = 0.03; sm.height = 0.06; marker.mesh = sm
+		var mm := _make_mat(Color(0.3, 0.55, 0.8, 0.6))
+		mm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		marker.material_override = mm
+		marker.position = Vector3(randf_range(-0.15, 0.15), y + 0.04, randf_range(-1.0, 1.0))
+		marker.name = "FlowMarker_%d" % i
+		parent.add_child(marker)
+		_register_water_node(marker, "flow")
+
+func _add_wasteland_decor(parent: Node3D, y: float) -> void:
+	# Dead trees (bare trunks)
+	for i in range(2):
+		var a: float = float(i) * PI + 0.5
+		var d: float = 0.5 + randf() * 0.3
+		var trunk := _make_cyl_mesh(0.03, 0.05, 0.4 + randf() * 0.2, Color(0.35, 0.28, 0.2))
+		trunk.position = Vector3(cos(a) * d, y + 0.2, sin(a) * d)
+		trunk.rotation_degrees.z = randf_range(-15, 15)
+		parent.add_child(trunk)
+		# Bare branch
+		var branch := _make_cyl_mesh(0.01, 0.02, 0.18, Color(0.32, 0.26, 0.18))
+		branch.position = Vector3(cos(a) * d + 0.08, y + 0.35, sin(a) * d)
+		branch.rotation_degrees.z = 45
+		parent.add_child(branch)
+	# Bone/skull markers
+	for i in range(2):
+		var bone := MeshInstance3D.new(); var sm := SphereMesh.new()
+		sm.radius = 0.035; sm.height = 0.05; bone.mesh = sm
+		bone.material_override = _make_mat(Color(0.82, 0.78, 0.7))
+		bone.position = Vector3(randf_range(-0.5, 0.5), y + 0.015, randf_range(-0.4, 0.4))
+		bone.scale = Vector3(1.3, 0.6, 1.0)
+		parent.add_child(bone)
+	# Cracked earth patches
+	for i in range(3):
+		var crack := _make_box_mesh(Vector3(0.3 + randf() * 0.2, 0.01, 0.02), Color(0.5, 0.42, 0.3))
+		crack.position = Vector3(randf_range(-0.5, 0.5), y + 0.005, randf_range(-0.5, 0.5))
+		crack.rotation.y = randf() * PI
+		parent.add_child(crack)
+
+func _register_water_node(node: MeshInstance3D, type: String) -> void:
+	water_anim_nodes.append({"node": node, "type": type})
+
+func _build_chokepoint_marker(parent: Node3D, y: float) -> void:
+	# Gate pillars
+	for side in [-1, 1]:
+		var pillar := _make_cyl_mesh(0.06, 0.08, 0.6, Color(0.5, 0.45, 0.4))
+		pillar.position = Vector3(0.4 * side, y + 0.3, 0)
+		parent.add_child(pillar)
+	# Arch connecting pillars
+	var arch := _make_box_mesh(Vector3(0.9, 0.06, 0.06), Color(0.48, 0.42, 0.38))
+	arch.position = Vector3(0, y + 0.62, 0)
+	parent.add_child(arch)
+	# Emissive gem on top of arch
+	var gem := MeshInstance3D.new(); var gs := SphereMesh.new()
+	gs.radius = 0.05; gs.height = 0.1; gem.mesh = gs
+	var gm := _make_mat(Color(0.9, 0.2, 0.15))
+	gm.emission_enabled = true; gm.emission = Color(1.0, 0.3, 0.1)
+	gm.emission_energy_multiplier = 2.0; gem.material_override = gm
+	gem.position = Vector3(0, y + 0.68, 0)
+	parent.add_child(gem)
 
 # ═══════════════ TERRITORY UPDATES ═══════════════
 func _update_all_territories() -> void:
@@ -640,6 +792,10 @@ func _on_tile_input(_cn: Node, event: InputEvent, _p: Vector3, _n: Vector3, _si:
 		if tile_index == _last_click_tile and (now - _last_click_time) < DOUBLE_CLICK_TIME:
 			focus_on_tile(tile_index); _last_click_tile = -1; return
 		_last_click_tile = tile_index; _last_click_time = now
+		# Shift+click: show attack route preview
+		if mb.shift_pressed and selected_tile >= 0 and tile_index != selected_tile:
+			show_attack_route(selected_tile, tile_index)
+			return
 		_on_tile_clicked(tile_index)
 
 func _on_tile_hover_enter(tile_index: int) -> void:
@@ -702,12 +858,89 @@ func _on_tile_clicked(tile_index: int) -> void:
 func _deselect_tile() -> void:
 	var old: int = selected_tile; selected_tile = -1
 	_clear_highlights(); _clear_pulse_ring(); _clear_path_preview()
+	clear_attack_route()
 	GameManager.deselect_army()
 	if old >= 0: _update_territory_visual(old)
 	if EventBus.has_signal("territory_deselected"): EventBus.territory_deselected.emit()
 
 func get_selected_tile() -> int:
 	return selected_tile
+
+# ═══════════════ ATTACK ROUTE PREVIEW ═══════════════
+func show_attack_route(from_idx: int, to_idx: int) -> void:
+	clear_attack_route()
+	var route: Array = GameManager.calculate_attack_route(from_idx, to_idx)
+	if route.is_empty():
+		return
+	var full_path: Array = [from_idx] + route
+	var total_cost: float = 0.0
+	var chokepoint_count: int = 0
+	# Draw route segments
+	for i in range(full_path.size() - 1):
+		var fi: int = full_path[i]; var ti: int = full_path[i + 1]
+		if fi >= GameManager.tiles.size() or ti >= GameManager.tiles.size():
+			continue
+		var ft: Dictionary = GameManager.tiles[fi]; var tt: Dictionary = GameManager.tiles[ti]
+		var fp: Vector3 = ft["position_3d"]; var tp: Vector3 = tt["position_3d"]
+		var fe: float = _get_elev(ft); var te: float = _get_elev(tt)
+		# Color based on ownership
+		var color: Color = Color(0.2, 0.9, 0.3, 0.6)  # Green = own territory
+		if tt.get("owner_id", -1) >= 0 and tt["owner_id"] != GameManager.get_human_player_id():
+			color = Color(0.9, 0.2, 0.15, 0.6)  # Red = enemy
+		elif tt.get("owner_id", -1) < 0:
+			color = Color(0.9, 0.8, 0.2, 0.6)  # Gold = neutral
+		# Dotted path segments
+		var dist := Vector3(tp.x - fp.x, 0, tp.z - fp.z).length()
+		var dots: int = maxi(int(dist / 0.4), 2)
+		for d in range(dots):
+			var t: float = float(d + 1) / float(dots + 1)
+			var dot := MeshInstance3D.new(); var sm := SphereMesh.new()
+			sm.radius = 0.05; sm.height = 0.1; dot.mesh = sm
+			var dm := _make_mat(color)
+			dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			dm.emission_enabled = true; dm.emission = color
+			dm.emission_energy_multiplier = 1.0
+			dot.material_override = dm
+			dot.position = Vector3(
+				lerpf(fp.x, tp.x, t),
+				lerpf(fe, te, t) + TILE_HEIGHT + 0.2,
+				lerpf(fp.z, tp.z, t))
+			add_child(dot); attack_route_meshes.append(dot)
+		# Waypoint ring at destination tile
+		var ring_color: Color = Color(0.9, 0.6, 0.1, 0.5)
+		if tt.get("is_chokepoint", false):
+			ring_color = Color(1.0, 0.4, 0.1, 0.7)
+			chokepoint_count += 1
+		if i == full_path.size() - 2:  # Final target
+			ring_color = Color(0.9, 0.15, 0.1, 0.7)
+		var ring := MeshInstance3D.new(); var rc := CylinderMesh.new()
+		rc.top_radius = TILE_RADIUS * 0.5; rc.bottom_radius = TILE_RADIUS * 0.5
+		rc.height = 0.03; rc.radial_segments = 6; ring.mesh = rc
+		var rm := _make_mat(ring_color)
+		rm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		rm.emission_enabled = true; rm.emission = ring_color
+		rm.emission_energy_multiplier = 1.2
+		ring.material_override = rm
+		ring.position = Vector3(tp.x, te + TILE_HEIGHT + 0.06, tp.z)
+		add_child(ring); attack_route_meshes.append(ring)
+		# Track costs
+		var terrain_type: int = tt.get("terrain", FactionData.TerrainType.PLAINS)
+		var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
+		total_cost += float(terrain_data.get("move_cost", 1))
+	# Summary label at start
+	var start_tile: Dictionary = GameManager.tiles[from_idx]
+	var sp: Vector3 = start_tile["position_3d"]; var se: float = _get_elev(start_tile)
+	var summary_text: String = "路线: %d步 | AP%.0f" % [route.size(), total_cost]
+	if chokepoint_count > 0:
+		summary_text += " | 关隘×%d" % chokepoint_count
+	var slabel := _make_label3d(summary_text, 24, Vector3(0, 0, 0), Color(1.0, 0.9, 0.3, 1.0))
+	slabel.position = Vector3(sp.x, se + TILE_HEIGHT + 2.5, sp.z)
+	add_child(slabel); attack_route_meshes.append(slabel)
+
+func clear_attack_route() -> void:
+	for m in attack_route_meshes:
+		if is_instance_valid(m): m.queue_free()
+	attack_route_meshes.clear()
 
 # ═══════════════ FOG OF WAR ═══════════════
 func _update_fog() -> void:
@@ -769,6 +1002,21 @@ func focus_on_tile(tile_index: int) -> void:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size(): return
 	var p: Vector3 = GameManager.tiles[tile_index]["position_3d"]
 	camera_target_pos = Vector3(p.x, 0.0, p.z)
+
+func _process_water_animation(_delta: float) -> void:
+	var t: float = Time.get_ticks_msec() / 1000.0
+	for entry in water_anim_nodes:
+		var node: MeshInstance3D = entry["node"]
+		if not is_instance_valid(node): continue
+		match entry["type"]:
+			"wave":  # Coastal bob
+				node.position.y += sin(t * 1.8) * 0.0003
+			"bubble":  # Swamp bubble rise
+				var cycle: float = fmod(t, 3.5) / 3.5
+				node.position.y = node.position.y + sin(cycle * PI) * 0.0005
+				node.scale = Vector3.ONE * (1.0 - cycle * 0.3)
+			"flow":  # River flow drift
+				node.position.z = fmod(node.position.z + 0.002, 1.2) - 0.6
 
 # ═══════════════ UTILITY ═══════════════
 func _make_mat(color: Color) -> StandardMaterial3D:
