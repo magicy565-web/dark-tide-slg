@@ -1417,6 +1417,12 @@ func begin_turn() -> void:
 	# ── Phase 5e2: Ceasefire timer tick ──
 	DiplomacyManager.tick_ceasefire(pid)
 
+	# ── Phase 5e3: Treaty system tick (tribute, trade, NAP, alliance) ──
+	DiplomacyManager.tick_treaties(pid)
+
+	# ── Phase 5e4: Light faction diplomacy tick (ceasefire, peace offers) ──
+	DiplomacyManager.tick_light_diplomacy()
+
 	# ── Phase 5f: Alliance AI actions ──
 	AllianceAI.tick(ThreatManager.get_threat())
 
@@ -1472,10 +1478,12 @@ func begin_turn() -> void:
 
 	# ── Phase 6: Threat events (expedition / boss) ──
 	if pid == get_human_player_id():
-		if ThreatManager.should_spawn_expedition():
-			_spawn_expedition()
-		if ThreatManager.should_spawn_boss():
-			EventBus.message_log.emit("[color=red]光明联盟发动绝望反击! 强力boss出现![/color]")
+		# Light ceasefire suppresses expeditions
+		if not DiplomacyManager.is_light_ceasefire_active():
+			if ThreatManager.should_spawn_expedition():
+				_spawn_expedition()
+			if ThreatManager.should_spawn_boss():
+				EventBus.message_log.emit("[color=red]光明联盟发动绝望反击! 强力boss出现![/color]")
 
 	# ── Sync army count from ResourceManager ──
 	sync_player_army(pid)

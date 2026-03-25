@@ -423,7 +423,60 @@ const EVIL_GARRISON_CORE_FORTRESS: int = 14
 const EVIL_GARRISON_DARK_BASE: int = 10
 const EVIL_GARRISON_DEFAULT: int = 6
 
-# ═══════════════ GAME MANAGER COMBAT ═══════════════
+# ═══════════════ DIPLOMACY & TREATIES (v3.4) ═══════════════
+
+## ── Evil faction tribute (朝贡体系) ──
+## 强势方可向弱势方索取朝贡，或弱势方主动纳贡求和
+const TRIBUTE_MIN_STRENGTH_RATIO: float = 1.5  # 实力 ≥ 对方1.5倍才能索取朝贡
+const TRIBUTE_GOLD_PER_TURN_BASE: int = 15     # 基础朝贡金/回合
+const TRIBUTE_GOLD_PER_TILE_DIFF: int = 3      # 每多1个地块差距+3金/回合
+const TRIBUTE_DURATION: int = 5                 # 朝贡协议持续5回合
+const TRIBUTE_BREAK_PRESTIGE_COST: int = 10     # 单方面撕毁朝贡-10威望
+const TRIBUTE_BREAK_THREAT_GAIN: int = 8        # 撕毁朝贡+8威胁值
+const TRIBUTE_OFFER_PRESTIGE_COST: int = 5      # 主动纳贡需花5威望
+
+## ── Evil faction non-aggression pact (互不侵犯) ──
+const NAP_DURATION: int = 8                     # 互不侵犯持续8回合
+const NAP_COST_GOLD: int = 80                   # 签约费80金
+const NAP_COST_PRESTIGE: int = 8                # 签约费8威望
+const NAP_BREAK_PRESTIGE_PENALTY: int = 15      # 背盟-15威望
+const NAP_BREAK_ORDER_PENALTY: int = -10        # 背盟-10秩序
+
+## ── Evil faction military alliance (军事同盟) ──
+const ALLIANCE_EVIL_DURATION: int = 10          # 军事同盟持续10回合
+const ALLIANCE_EVIL_COST_GOLD: int = 150        # 签约费150金
+const ALLIANCE_EVIL_COST_PRESTIGE: int = 15     # 签约费15威望
+const ALLIANCE_EVIL_ATK_BONUS: float = 0.10     # 同盟双方+10%ATK
+const ALLIANCE_EVIL_DEF_BONUS: float = 0.05     # 同盟双方+5%DEF
+const ALLIANCE_EVIL_BREAK_PENALTY: int = 20     # 背盟-20威望
+
+## ── Light faction diplomacy (对光明外交) ──
+## 停战协议: 花金币换取N回合内不被远征军攻击
+const LIGHT_CEASEFIRE_BASE_COST: int = 100      # 基础停战费
+const LIGHT_CEASEFIRE_PER_THREAT: int = 3       # 每点威胁值+3金
+const LIGHT_CEASEFIRE_DURATION: int = 5         # 停战持续5回合
+const LIGHT_CEASEFIRE_THREAT_REDUCTION: int = 15 # 停战降低15威胁值
+const LIGHT_CEASEFIRE_MAX_THREAT: int = 70      # 威胁>70不可停战(已进入绝望级)
+
+## 光明求和: 威胁值低时光明阵营可能主动求和(给玩家金币)
+const LIGHT_PEACE_OFFER_THRESHOLD: int = 25     # 威胁≤25时光明可能求和
+const LIGHT_PEACE_OFFER_GOLD: int = 60          # 光明求和支付60金
+const LIGHT_PEACE_OFFER_CHANCE: int = 20        # 每回合20%概率提出
+
+## 勒索光明: 高威胁时可勒索光明势力(用武力威慑换取金币)
+const LIGHT_EXTORT_MIN_THREAT: int = 50         # 威胁≥50才能勒索
+const LIGHT_EXTORT_GOLD_BASE: int = 40          # 基础勒索金
+const LIGHT_EXTORT_GOLD_PER_THREAT: int = 2     # 每点威胁+2金(一次性)
+const LIGHT_EXTORT_THREAT_COST: int = -10       # 勒索后威胁-10(消耗威慑)
+const LIGHT_EXTORT_COOLDOWN: int = 5            # 勒索冷却5回合
+
+## ── Trade agreements (通商协定) ──
+const TRADE_COST_GOLD: int = 60                 # 签约费60金
+const TRADE_DURATION: int = 8                   # 通商持续8回合
+const TRADE_INCOME_SELF: int = 10               # 自己每回合+10金
+const TRADE_INCOME_TARGET: int = 8              # 对方每回合+8金(AI不实际获得)
+const TRADE_FOOD_BONUS: int = 5                 # 额外+5粮/回合
+const TRADE_MAX_AGREEMENTS: int = 2             # 同时最多2个通商协定
 
 ## Starting garrison for newly captured tiles
 const STARTING_GARRISON: int = 10

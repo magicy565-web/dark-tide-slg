@@ -33,6 +33,10 @@ func _connect_signals() -> void:
 	EventBus.faction_recruited.connect(_on_diplomacy_changed)
 	EventBus.taming_changed.connect(_on_taming_changed)
 	EventBus.resources_changed.connect(_on_resources_changed)
+	EventBus.treaty_signed.connect(_on_treaty_changed)
+	EventBus.treaty_broken.connect(_on_treaty_changed)
+	EventBus.treaty_expired.connect(_on_treaty_changed)
+	EventBus.threat_changed.connect(_on_threat_changed)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
@@ -185,43 +189,134 @@ func _build_evil_factions() -> void:
 			status_text = "中立"; status_color = Color(0.7, 0.7, 0.75)
 
 		var card := _build_faction_card(fname, status_text, status_color, _get_evil_faction_color(fid))
-		# Action buttons for non-recruited factions
+
+		# Show active treaties
+		var active_treaties: Array = DiplomacyManager.get_active_treaties(pid)
+		for treaty in active_treaties:
+			if treaty["target"] == fid:
+				var treaty_lbl := Label.new()
+				var type_name: String = DiplomacyManager._get_treaty_type_name(treaty["type"])
+				var extra: String = ""
+				if treaty.has("gold_per_turn"):
+					extra = " (%d金/回合)" % treaty["gold_per_turn"]
+				treaty_lbl.text = "  [%s] %d回合剩余%s" % [type_name, treaty["turns_left"], extra]
+				treaty_lbl.add_theme_font_size_override("font_size", 11)
+				treaty_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.9))
+				card.get_child(0).add_child(treaty_lbl)
+
+		# Action buttons
 		if not recruited:
 			var actions: Array = DiplomacyManager.get_available_actions(pid, fid)
-			var btn_row := HBoxContainer.new()
-			btn_row.add_theme_constant_override("separation", 6)
-			card.get_child(0).add_child(btn_row)
-			for action in actions:
-				var btn := Button.new()
-				btn.text = "%s (%s)" % [action["name"], action["cost"]]
-				btn.tooltip_text = action.get("desc", "")
-				btn.custom_minimum_size = Vector2(160, 30)
-				btn.add_theme_font_size_override("font_size", 12)
-				var aid: String = action["id"]; var cfid: int = fid
-				btn.pressed.connect(_on_evil_action.bind(cfid, aid))
-				btn_row.add_child(btn)
+			if actions.size() > 0:
+				var btn_row := HBoxContainer.new()
+				btn_row.add_theme_constant_override("separation", 4)
+				card.get_child(0).add_child(btn_row)
+				for action in actions:
+					var btn := Button.new()
+					btn.text = "%s (%s)" % [action["name"], action["cost"]]
+					btn.tooltip_text = action.get("desc", "")
+					btn.custom_minimum_size = Vector2(140, 28)
+					btn.add_theme_font_size_override("font_size", 11)
+					var aid: String = action["id"]; var cfid: int = fid
+					btn.pressed.connect(_on_evil_action.bind(cfid, aid))
+					btn_row.add_child(btn)
 			# Send gift (non-orc, non-hostile only)
 			if not DiplomacyManager.is_orc_player(pid) and not hostile:
+				var btn_row2 := HBoxContainer.new()
+				btn_row2.add_theme_constant_override("separation", 4)
+				card.get_child(0).add_child(btn_row2)
 				var btn_gift := Button.new()
 				btn_gift.text = "赠礼 (50金)"
-				btn_gift.custom_minimum_size = Vector2(120, 30)
-				btn_gift.add_theme_font_size_override("font_size", 12)
+				btn_gift.custom_minimum_size = Vector2(120, 28)
+				btn_gift.add_theme_font_size_override("font_size", 11)
 				btn_gift.pressed.connect(_on_send_gift.bind(fid))
-				btn_row.add_child(btn_gift)
+				btn_row2.add_child(btn_gift)
+			# Break treaty buttons
+			for treaty in active_treaties:
+				if treaty["target"] == fid:
+					var btn_break := Button.new()
+					btn_break.text = "撕毁: %s" % DiplomacyManager._get_treaty_type_name(treaty["type"])
+					btn_break.custom_minimum_size = Vector2(140, 28)
+					btn_break.add_theme_font_size_override("font_size", 11)
+					btn_break.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
+					var ttype: String = treaty["type"]; var tfid: int = fid
+					btn_break.pressed.connect(_on_break_treaty.bind(tfid, ttype))
+					card.get_child(0).add_child(btn_break)
 		content_container.add_child(card); _faction_nodes.append(card)
 
 func _build_light_factions() -> void:
-	## 光明阵营: HUMAN_KINGDOM, HIGH_ELVES, MAGE_TOWER — 始终敌对
+	## 光明阵营: HUMAN_KINGDOM, HIGH_ELVES, MAGE_TOWER — 可外交互动
+	var pid: int = GameManager.get_human_player_id()
+	var threat: int = ThreatManager.get_threat()
+	var ceasefire_active: bool = DiplomacyManager.is_light_ceasefire_active()
+
+	# Overall status card
+	var status_text: String
+	var status_color: Color
+	if ceasefire_active:
+		status_text = "停战中 (%d回合)" % DiplomacyManager.get_light_ceasefire_turns()
+		status_color = Color(0.4, 0.8, 1.0)
+	elif threat >= 80:
+		status_text = "绝望反击 (威胁%d)" % threat
+		status_color = Color(1.0, 0.2, 0.2)
+	elif threat >= 60:
+		status_text = "全面战争 (威胁%d)" % threat
+		status_color = Color(1.0, 0.5, 0.2)
+	elif threat >= 30:
+		status_text = "警戒防御 (威胁%d)" % threat
+		status_color = Color(1.0, 0.7, 0.3)
+	else:
+		status_text = "戒备 (威胁%d)" % threat
+		status_color = Color(0.7, 0.7, 0.75)
+
+	var card := _build_faction_card("光明联盟", status_text, status_color, Color(0.4, 0.6, 1.0))
+
+	# Threat bar
+	var threat_row := HBoxContainer.new()
+	threat_row.add_theme_constant_override("separation", 8)
+	card.get_child(0).add_child(threat_row)
+	var threat_lbl := Label.new()
+	threat_lbl.text = "威胁值: %d/100" % threat
+	threat_lbl.custom_minimum_size = Vector2(100, 0)
+	threat_lbl.add_theme_font_size_override("font_size", 12)
+	threat_lbl.add_theme_color_override("font_color", Color(0.8, 0.5, 0.3))
+	threat_row.add_child(threat_lbl)
+	var bar := ProgressBar.new()
+	bar.min_value = 0; bar.max_value = 100; bar.value = threat
+	bar.custom_minimum_size = Vector2(200, 16); bar.show_percentage = false
+	threat_row.add_child(bar)
+
+	# Description
+	var desc_lbl := Label.new()
+	desc_lbl.text = "光明阵营与暗势力天然敌对, 但可通过外交手段暂时停战或勒索"
+	desc_lbl.add_theme_font_size_override("font_size", 11)
+	desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	card.get_child(0).add_child(desc_lbl)
+
+	# Action buttons
+	var actions: Array = DiplomacyManager.get_light_actions(pid)
+	if actions.size() > 0:
+		var btn_row := HBoxContainer.new()
+		btn_row.add_theme_constant_override("separation", 4)
+		card.get_child(0).add_child(btn_row)
+		for action in actions:
+			var btn := Button.new()
+			btn.text = "%s (%s)" % [action["name"], action["cost"]]
+			btn.tooltip_text = action.get("desc", "")
+			btn.custom_minimum_size = Vector2(160, 28)
+			btn.add_theme_font_size_override("font_size", 11)
+			var aid: String = action["id"]
+			btn.pressed.connect(_on_light_action.bind(aid))
+			btn_row.add_child(btn)
+
+	content_container.add_child(card); _faction_nodes.append(card)
+
+	# Individual light factions (info cards)
 	for lfid in FactionData.LIGHT_FACTION_NAMES:
 		var fname: String = FactionData.LIGHT_FACTION_NAMES[lfid]
-		var card := _build_faction_card(fname, "敌对 (光明阵营)", Color(1.0, 0.5, 0.3), Color(0.4, 0.6, 1.0))
-		var note := Label.new()
-		note.text = "光明阵营与暗势力天然敌对, 只能通过战争征服"
-		note.add_theme_font_size_override("font_size", 11)
-		note.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
-		note.autowrap_mode = TextServer.AUTOWRAP_WORD
-		card.get_child(0).add_child(note)
-		content_container.add_child(card); _faction_nodes.append(card)
+		var sub_card := _build_faction_card(fname, "敌对", Color(1.0, 0.5, 0.3), Color(0.4, 0.6, 1.0))
+		content_container.add_child(sub_card); _faction_nodes.append(sub_card)
 
 func _build_neutral_factions() -> void:
 	## 中立势力: 6 neutral factions with taming system (0-10)
@@ -310,6 +405,39 @@ func _on_evil_action(faction_id: int, action_id: String) -> void:
 					EventBus.message_log.emit("[color=red]%s[/color]" % msg)
 		"ceasefire": DiplomacyManager.offer_ceasefire(pid, faction_id)
 		"declare_war": DiplomacyManager.mark_hostile(pid, faction_id)
+		"demand_tribute": DiplomacyManager.demand_tribute(pid, faction_id)
+		"offer_tribute": DiplomacyManager.offer_tribute(pid, faction_id)
+		"nap":
+			var ok: bool = DiplomacyManager.sign_nap(pid, faction_id)
+			if not ok:
+				for msg in DiplomacyManager.can_sign_nap(pid, faction_id).get("missing", []):
+					EventBus.message_log.emit("[color=red]%s[/color]" % msg)
+		"alliance":
+			var ok: bool = DiplomacyManager.sign_alliance(pid, faction_id)
+			if not ok:
+				for msg in DiplomacyManager.can_sign_alliance(pid, faction_id).get("missing", []):
+					EventBus.message_log.emit("[color=red]%s[/color]" % msg)
+		"trade":
+			var ok: bool = DiplomacyManager.sign_trade(pid, faction_id)
+			if not ok:
+				for msg in DiplomacyManager.can_sign_trade(pid, faction_id).get("missing", []):
+					EventBus.message_log.emit("[color=red]%s[/color]" % msg)
+	_refresh()
+
+
+func _on_light_action(action_id: String) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	match action_id:
+		"light_ceasefire": DiplomacyManager.buy_light_ceasefire(pid)
+		"light_extort": DiplomacyManager.extort_light(pid)
+		"accept_peace": DiplomacyManager.accept_light_peace()
+		"reject_peace": DiplomacyManager.reject_light_peace()
+	_refresh()
+
+
+func _on_break_treaty(faction_id: int, treaty_type: String) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	DiplomacyManager.break_treaty(pid, treaty_type, faction_id)
 	_refresh()
 
 func _on_send_gift(faction_id: int) -> void:
@@ -332,6 +460,12 @@ func _on_taming_changed(_pid: int, _tag: String, _val: int) -> void:
 	if _visible: _refresh()
 
 func _on_resources_changed(_pid: int) -> void:
+	if _visible: _refresh()
+
+func _on_treaty_changed(_pid: int, _type: String, _fid: int) -> void:
+	if _visible: _refresh()
+
+func _on_threat_changed(_val: int) -> void:
 	if _visible: _refresh()
 
 # ═══════════════ HELPERS ═══════════════

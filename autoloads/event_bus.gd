@@ -250,3 +250,11 @@ signal hero_exp_gained(hero_id: String, amount: int, new_total: int)
 
 # ── UI Panel Requests ──
 signal open_hero_detail_requested(hero_id: String)
+
+# ── Diplomacy & Treaties (v3.4) ──
+signal treaty_signed(player_id: int, treaty_type: String, target_faction: int)
+signal treaty_broken(player_id: int, treaty_type: String, target_faction: int)
+signal treaty_expired(player_id: int, treaty_type: String, target_faction: int)
+signal tribute_received(player_id: int, from_faction: int, gold: int)
+signal light_peace_offered(gold_offered: int)
+signal light_extorted(player_id: int, gold: int)
