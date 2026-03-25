@@ -33,14 +33,14 @@ const FOOD_PER_SOLDIER: float = 0.5
 
 ## Gold maintenance per troop tier per turn (军饷)
 ## T1 troops are conscripts (cheap), T3+ are elite professionals (expensive)
-## 平衡基准: 10地块玩家~80金/回合收入, 6编制军队军饷约20-35金≈25-40%收入
-const TIER_GOLD_UPKEEP: Dictionary = { 0: 0, 1: 1, 2: 3, 3: 5, 4: 8 }
+## 平衡基准: 10地块~70金/回合净收入, 6编制T3军队满编军饷≈24金≈34%收入
+const TIER_GOLD_UPKEEP: Dictionary = { 0: 0, 1: 1, 2: 2, 3: 4, 4: 6 }
 
 ## Per-soldier base gold upkeep (faction-specific, applied to raw soldier count)
 ## Stacks with tier upkeep: total = base_per_soldier × soldiers + tier_upkeep × squads
-const GOLD_UPKEEP_PER_SOLDIER_ORC: float = 0.2       # 蛮兵便宜 — 40兵=8金
-const GOLD_UPKEEP_PER_SOLDIER_PIRATE: float = 0.4    # 雇佣兵贵 — 40兵=16金
-const GOLD_UPKEEP_PER_SOLDIER_DARK_ELF: float = 0.3  # 精灵适中 — 40兵=12金
+const GOLD_UPKEEP_PER_SOLDIER_ORC: float = 0.15       # 蛮兵便宜 — 40兵=6金
+const GOLD_UPKEEP_PER_SOLDIER_PIRATE: float = 0.30    # 雇佣兵贵 — 40兵=12金
+const GOLD_UPKEEP_PER_SOLDIER_DARK_ELF: float = 0.20  # 精灵适中 — 40兵=8金
 
 ## Gold deficit combat penalty: ATK/DEF debuff when can't pay
 const GOLD_DEFICIT_COMBAT_PENALTY: float = 0.15  # -15% ATK/DEF
@@ -242,18 +242,19 @@ const CONQUEST_LOOT_TABLE: Dictionary = {
 }
 
 ## Public order → production multiplier breakpoints
-## Keys are upper bounds of order ranges (0.0-1.0), values are production multipliers
+## 设计核心: 默认治安50% = 1.0×产出; 低于50%减产, 高于50%增产
+## 占领(70%) = 1.15x, 洗劫(10%) = 0.30x, 掳掠(0%) = 0.10x
 const TILE_ORDER_PROD_TABLE: Array = [
-	{"threshold": 0.10, "mult": 0.10, "label": "民不聊生"},
-	{"threshold": 0.20, "mult": 0.30, "label": "动荡不安"},
-	{"threshold": 0.30, "mult": 0.50, "label": "人心惶惶"},
-	{"threshold": 0.40, "mult": 0.70, "label": "秩序初定"},
-	{"threshold": 0.50, "mult": 0.85, "label": "渐趋稳定"},
-	{"threshold": 0.60, "mult": 1.00, "label": "正常运转"},
-	{"threshold": 0.70, "mult": 1.10, "label": "安居乐业"},
-	{"threshold": 0.80, "mult": 1.20, "label": "繁荣发展"},
-	{"threshold": 0.90, "mult": 1.30, "label": "歌舞升平"},
-	{"threshold": 1.01, "mult": 1.40, "label": "太平盛世"},
+	{"threshold": 0.05, "mult": 0.10, "label": "民不聊生"},   # 0-5%   极端破坏
+	{"threshold": 0.15, "mult": 0.30, "label": "动荡不安"},   # 5-15%  洗劫后
+	{"threshold": 0.25, "mult": 0.55, "label": "人心惶惶"},   # 15-25%
+	{"threshold": 0.35, "mult": 0.75, "label": "秩序初定"},   # 25-35%
+	{"threshold": 0.50, "mult": 1.00, "label": "正常运转"},   # 35-50% ← 默认50%
+	{"threshold": 0.60, "mult": 1.10, "label": "安居乐业"},   # 50-60%
+	{"threshold": 0.70, "mult": 1.15, "label": "繁荣发展"},   # 60-70% ← 自然上限/占领
+	{"threshold": 0.80, "mult": 1.25, "label": "歌舞升平"},   # 70-80% 需特殊加成
+	{"threshold": 0.90, "mult": 1.35, "label": "国泰民安"},   # 80-90%
+	{"threshold": 1.01, "mult": 1.50, "label": "太平盛世"},   # 90-100% 极端繁荣
 ]
 
 # ═══════════════ VICTORY (TW:W aligned) ═══════════════
