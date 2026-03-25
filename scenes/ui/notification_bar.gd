@@ -131,6 +131,8 @@ func _on_tech_complete(_pid: int) -> void:
 func _on_tile_captured(pid: int, tile_index: int) -> void:
 	if pid != GameManager.get_human_player_id():
 		return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	show_notification("占领: %s" % tile.get("name", "???"), Color(0.4, 1.0, 0.4))
 
@@ -140,6 +142,8 @@ func _on_expedition(tile_index: int) -> void:
 
 
 func _on_rebellion(tile_index: int) -> void:
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	show_notification("叛乱! %s" % tile.get("name", "???"), Color(1.0, 0.5, 0.2))
 

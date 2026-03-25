@@ -451,7 +451,10 @@ func _on_send_gift(faction_id: int) -> void:
 	if not ResourceManager.can_afford(pid, {"gold": 50}):
 		EventBus.message_log.emit("[color=red]金币不足 (需要50金)[/color]"); return
 	ResourceManager.spend(pid, {"gold": 50})
-	EventBus.message_log.emit("向 %s 赠送贡品 (-50金)" % FactionData.FACTION_NAMES.get(faction_id, "未知"))
+	# BUG修复: 赠礼需要实际改善外交关系，否则只扣金币无效果
+	if DiplomacyManager.has_method("improve_relation"):
+		DiplomacyManager.improve_relation(pid, faction_id, 5)
+	EventBus.message_log.emit("向 %s 赠送贡品 (-50金, 好感+5)" % FactionData.FACTION_NAMES.get(faction_id, "未知"))
 	_refresh()
 
 func _on_dim_bg_input(event: InputEvent) -> void:

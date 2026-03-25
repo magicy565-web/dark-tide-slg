@@ -245,6 +245,11 @@ func tick(player_id: int, had_combat: bool) -> void:
 		_start_frenzy(player_id)
 	elif _waaagh[player_id] <= 0:
 		_trigger_infighting(player_id)
+	elif _waaagh[player_id] <= params.get("waaagh_infighting_threshold", 20):
+		# BUG修复: WAAAGH!<=20时有概率内讧(faction_data定义了阈值20和10%概率)
+		var infight_chance: float = params.get("waaagh_infighting_chance", 0.10)
+		if randf() < infight_chance:
+			_trigger_infighting(player_id)
 
 	# ── Report graduated bonus ──
 	var atk_bonus: int = get_waaagh_atk_bonus(player_id)
@@ -648,7 +653,7 @@ func _trigger_infighting(player_id: int) -> void:
 	if loss > 0:
 		ResourceManager.remove_army(player_id, loss)
 		EventBus.message_log.emit("[color=red]WAAAGH! 耗尽! 内讧导致%d军队损失![/color]" % loss)
-	_waaagh[player_id] = 10  # Reset to small value to prevent infinite loop
+	_waaagh[player_id] = 25  # Reset above infighting threshold to prevent repeat triggers
 
 
 # ══════════════════════════════════════════════════════════════════════════════

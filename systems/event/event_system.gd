@@ -280,9 +280,8 @@ func roll_events(max_events: int = 2) -> Array:
 		if not event.get("repeatable", false) and _triggered_ids.has(event["id"]):
 			continue
 		if not check_condition(event):
-			# 不满足条件的非重复事件也标记为已触发，防止后续回合重复判定
-			if not event.get("repeatable", false):
-				_triggered_ids[event["id"]] = true
+			# BUG修复: 不满足条件的非重复事件不应标记为已触发，否则条件
+			# 后续满足时也无法触发（如faction_orc事件在选择兽人后永远无法触发）
 			continue
 		eligible.append(event)
 	eligible.shuffle()
@@ -562,14 +561,20 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 		result["soldier_change"] = effects["soldiers"]
 		result["applied"].append("soldiers: %+d" % effects["soldiers"])
 
-	# WAAAGH! changes
+	# WAAAGH! changes — delegate to OrcMechanic so the value is actually applied
 	if effects.has("waaagh"):
-		EventBus.waaagh_changed.emit(pid, effects["waaagh"])
+		if OrcMechanic != null and OrcMechanic.has_method("add_waaagh"):
+			OrcMechanic.add_waaagh(pid, effects["waaagh"])
+		else:
+			EventBus.waaagh_changed.emit(pid, effects["waaagh"])
 		result["applied"].append("waaagh: %+d" % effects["waaagh"])
 
-	# Plunder changes
+	# Plunder changes — delegate to PirateMechanic so the value is actually applied
 	if effects.has("plunder"):
-		EventBus.plunder_changed.emit(pid, effects["plunder"])
+		if PirateMechanic != null and PirateMechanic.has_method("add_plunder_bonus"):
+			PirateMechanic.add_plunder_bonus(pid, effects["plunder"])
+		else:
+			EventBus.plunder_changed.emit(pid, effects["plunder"])
 		result["applied"].append("plunder: %+d" % effects["plunder"])
 
 	# Item reward
