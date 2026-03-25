@@ -1388,7 +1388,8 @@ func _update_tile_info() -> void:
 		if stype != "":
 			info += "[color=cyan]資源産出: %s[/color]\n" % stype
 	elif tile["owner_id"] >= 0:
-		var oname: String = GameManager.get_player_by_id(tile["owner_id"]).get("name", "敵軍")
+		var _owner = GameManager.get_player_by_id(tile["owner_id"])
+		var oname: String = _owner.get("name", "敵軍") if _owner else "敵軍"
 		info += "[color=red]%s 占領[/color]\n" % oname
 	else:
 		if tile["garrison"] > 0:
@@ -1565,7 +1566,8 @@ func _update_tile_info_for(tile_index: int) -> void:
 		if bld != "":
 			info += "建筑: [color=orchid]%s[/color] Lv%d\n" % [BuildingRegistry.get_building_name(bld), tile.get("building_level", 1)]
 	elif tile["owner_id"] >= 0:
-		var oname: String = GameManager.get_player_by_id(tile["owner_id"]).get("name", "敌军")
+		var _owner = GameManager.get_player_by_id(tile["owner_id"])
+		var oname: String = _owner.get("name", "敌军") if _owner else "敌军"
 		info += "[color=red]%s 占领[/color]\n" % oname
 	else:
 		info += "[color=gray]无主之地[/color]\n"

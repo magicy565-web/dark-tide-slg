@@ -1888,7 +1888,8 @@ func _get_defender_desc(tile: Dictionary) -> String:
 			return nf_name + "守军"
 		_:
 			if tile["owner_id"] >= 0:
-				return get_player_by_id(tile["owner_id"]).get("name", "敌军") + "据点"
+				var _p = get_player_by_id(tile["owner_id"])
+				return (_p.get("name", "敌军") if _p else "敌军") + "据点"
 	return "守军"
 
 
@@ -2547,7 +2548,8 @@ func _handle_village(player: Dictionary, tile: Dictionary) -> void:
 func _handle_stronghold(player: Dictionary, tile: Dictionary) -> void:
 	var defender_name: String
 	if tile["owner_id"] >= 0:
-		defender_name = get_player_by_id(tile["owner_id"]).get("name", "敌军") + "的要塞守军"
+		var _p = get_player_by_id(tile["owner_id"])
+		defender_name = (_p.get("name", "敌军") if _p else "敌军") + "的要塞守军"
 	else:
 		defender_name = "光明联盟要塞守军"
 
@@ -3408,7 +3410,8 @@ func action_attack(player_id: int, target_tile_index: int) -> bool:
 			defender_desc = nf_name + "守军"
 		_:
 			if tile["owner_id"] >= 0:
-				defender_desc = get_player_by_id(tile["owner_id"]).get("name", "敌军") + "据点"
+				var _p3 = get_player_by_id(tile["owner_id"])
+				defender_desc = (_p3.get("name", "敌军") if _p3 else "敌军") + "据点"
 
 	# Apply threat garrison bonus for light faction tiles
 	var original_garrison: int = tile["garrison"]
