@@ -155,6 +155,8 @@ func init_combat_pools(hero_id: String) -> void:
 
 ## 对英雄施加伤害，返回剩余HP和是否被击倒。
 func apply_hero_damage(hero_id: String, damage: int) -> Dictionary:
+	if damage <= 0:
+		return {"hp_remaining": hero_current_hp.get(hero_id, 0), "knocked_out": false}
 	var current_hp: int = hero_current_hp.get(hero_id, 0)
 	current_hp = maxi(current_hp - damage, 0)
 	hero_current_hp[hero_id] = current_hp
@@ -166,6 +168,8 @@ func apply_hero_damage(hero_id: String, damage: int) -> Dictionary:
 
 ## 消耗MP。成功返回true，MP不足返回false。
 func spend_hero_mp(hero_id: String, cost: int) -> bool:
+	if cost <= 0:
+		return true  # Free skill
 	var current_mp: int = hero_current_mp.get(hero_id, 0)
 	if current_mp < cost:
 		return false
@@ -265,7 +269,7 @@ func _unlock_passives_for_level(hero_id: String, level: int) -> Array:
 	var newly_unlocked: Array = []
 
 	for passive_data in passives_at_level:
-		var passive_id: String = passive_data.get("id", "")
+		var passive_id: String = passive_data.get("passive_id", passive_data.get("id", ""))
 		if passive_id.is_empty():
 			continue
 		if passive_id in hero_unlocked_passives[hero_id]:

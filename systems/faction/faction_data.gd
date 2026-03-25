@@ -61,21 +61,29 @@ const HEROES: Dictionary = {
 		"capture_chance": 0.4, "active": "爆裂火球", "passive": "火焰亲和"},
 	# --- Pirate / Dark Elf Heroes ---
 	"shion_pirate": {"name": "潮音", "faction": "pirate", "troop": "archer", "atk": 7, "def": 4, "int": 5, "spd": 7,
+		"base_hp": 24, "base_mp": 8,
 		"capture_chance": 0.0, "join_condition": "turn_gte_15", "active": "连射", "passive": "海风", "pirate_native": true},
 	"youya": {"name": "妖夜", "faction": "dark_elf", "troop": "ninja", "atk": 6, "def": 3, "int": 4, "spd": 9,
+		"base_hp": 20, "base_mp": 8,
 		"capture_chance": 0.0, "join_condition": "turn_gte_10", "active": "致命一击", "passive": "夜行者"},
 	# --- Neutral Leaders (6, guard neutral bases) ---
 	"hibiki": {"name": "響", "faction": "neutral", "troop": "ashigaru", "atk": 5, "def": 7, "int": 4, "spd": 5,
+		"base_hp": 28, "base_mp": 8,
 		"capture_chance": 1.0, "location": "山岳要塞", "active": "铁壁", "passive": ""},
 	"sara": {"name": "沙罗", "faction": "neutral", "troop": "archer", "atk": 7, "def": 3, "int": 6, "spd": 6,
+		"base_hp": 22, "base_mp": 10,
 		"capture_chance": 1.0, "location": "沙漠绿洲", "active": "沙暴", "passive": ""},
 	"mei": {"name": "冥", "faction": "neutral", "troop": "mage_unit", "atk": 8, "def": 2, "int": 8, "spd": 4,
+		"base_hp": 18, "base_mp": 12,
 		"capture_chance": 1.0, "location": "废墟神殿", "active": "亡灵召唤", "passive": ""},
 	"kaede": {"name": "枫", "faction": "neutral", "troop": "ninja", "atk": 6, "def": 4, "int": 5, "spd": 9,
+		"base_hp": 20, "base_mp": 8,
 		"capture_chance": 1.0, "location": "隐秘森林", "active": "分身", "passive": ""},
 	"akane": {"name": "朱音", "faction": "neutral", "troop": "priest", "atk": 3, "def": 5, "int": 7, "spd": 5,
+		"base_hp": 20, "base_mp": 14,
 		"capture_chance": 1.0, "location": "古代圣地", "active": "净化", "passive": ""},
 	"hanabi": {"name": "花火", "faction": "neutral", "troop": "cannon", "atk": 9, "def": 2, "int": 5, "spd": 3,
+		"base_hp": 18, "base_mp": 8,
 		"capture_chance": 1.0, "location": "废弃矿山", "active": "集中轰炸", "passive": ""},
 }
 
@@ -673,14 +681,14 @@ const PRESTIGE_SOURCES: Dictionary = {
 
 # ── Item Definitions (consumables) ──
 const ITEM_DEFS: Dictionary = {
-	"attack_totem": {"name": "攻击图腾", "desc": "下次战斗攻击+30%", "type": "consumable", "effect": {"atk_mult": 1.3}},
-	"iron_shield": {"name": "铁壁盾牌", "desc": "下次战斗防御+30%", "type": "consumable", "effect": {"def_mult": 1.3}},
-	"march_order": {"name": "急行军令", "desc": "本回合骰子+2", "type": "consumable", "effect": {"dice_bonus": 2}},
-	"gold_pouch": {"name": "金币袋", "desc": "立即+50金币", "type": "consumable", "effect": {"gold": 50}},
-	"ration_pack": {"name": "军粮包", "desc": "立即+10粮草", "type": "consumable", "effect": {"food": 10}},
-	"iron_ore": {"name": "铁矿石", "desc": "立即+8铁矿", "type": "consumable", "effect": {"iron": 8}},
-	"heal_potion": {"name": "治愈药剂", "desc": "恢复3兵力", "type": "consumable", "effect": {"heal": 3}},
-	"slave_shackle": {"name": "奴隶枷锁", "desc": "下次战斗必定俘获1奴隶", "type": "consumable", "effect": {"guaranteed_slave": 1}},
+	"attack_totem": {"name": "攻击图腾", "desc": "下次战斗攻击+30%", "type": "consumable", "effect": {"atk_mult": 1.3}, "weight": 5},
+	"iron_shield": {"name": "铁壁盾牌", "desc": "下次战斗防御+30%", "type": "consumable", "effect": {"def_mult": 1.3}, "weight": 5},
+	"march_order": {"name": "急行军令", "desc": "本回合骰子+2", "type": "consumable", "effect": {"dice_bonus": 2}, "weight": 10},
+	"gold_pouch": {"name": "金币袋", "desc": "立即+50金币", "type": "consumable", "effect": {"gold": 50}, "weight": 15},
+	"ration_pack": {"name": "军粮包", "desc": "立即+10粮草", "type": "consumable", "effect": {"food": 10}, "weight": 15},
+	"iron_ore": {"name": "铁矿石", "desc": "立即+8铁矿", "type": "consumable", "effect": {"iron": 8}, "weight": 10},
+	"heal_potion": {"name": "治愈药剂", "desc": "恢复3兵力", "type": "consumable", "effect": {"heal": 3}, "weight": 10},
+	"slave_shackle": {"name": "奴隶枷锁", "desc": "下次战斗必定俘获1奴隶", "type": "consumable", "effect": {"guaranteed_slave": 1}, "weight": 5},
 	"mana_jammer_crafted": {"name": "法力干扰器", "desc": "魔法师屏障/法术效果减半(5回合)", "type": "consumable", "effect": {"mage_weaken": 0.5}, "weight": 0},
 	"blast_barrel_crafted": {"name": "爆破桶", "desc": "攻城时直接削减15城防", "type": "consumable", "effect": {"wall_damage": 15}, "weight": 0},
 	# v0.8.9: Quest reward items

@@ -716,8 +716,9 @@ func apply_building_effects(player_id: int, building_id: String, tile: Dictionar
 
 	# Faction unique on-build
 	if building_id == "slave_pit":
-		SlaveManager.set_efficiency_mult(player_id, 1.5)
-		EventBus.message_log.emit("奴隶工作效率提升至150%!")
+		var eff: float = effects.get("slave_efficiency", 1.5)
+		SlaveManager.set_efficiency_mult(player_id, eff)
+		EventBus.message_log.emit("奴隶工作效率提升至%d%%!" % int(eff * 100))
 
 	if building_id == "temple_of_agony":
 		EventBus.message_log.emit("痛苦神殿 Lv%d 已建成!" % level)

@@ -177,6 +177,11 @@ func start_research(player_id: int, tech_id: String) -> bool:
 		research_started.emit(player_id, tech_id)
 		EventBus.message_log.emit("开始研究: %s" % data.get("name", tech_id))
 	else:
+		# Check queue size limit from academy building effects
+		var max_queue: int = _get_max_queue_size(player_id)
+		if state["queue"].size() >= max_queue:
+			EventBus.message_log.emit("研究队列已满! (最大%d项)" % max_queue)
+			return false
 		# Deduct cost only after confirming we can queue it
 		_deduct_tech_cost(player_id, cost)
 		# Queue it
@@ -284,13 +289,25 @@ func _complete_research(player_id: int, tech_id: String) -> void:
 
 func _advance_queue(player_id: int) -> void:
 	var state: Dictionary = _research_state[player_id]
-	if state["queue"].size() > 0:
+	while state["queue"].size() > 0:
 		var next_id: String = state["queue"].pop_front()
+		var tech_data: Dictionary = get_tech_data(next_id)
+		# Verify prereqs are still met (may have changed since queuing)
+		if not _prereqs_met(player_id, next_id):
+			# Refund 50% of cost since prereqs no longer valid
+			var cost: Dictionary = tech_data.get("cost", {})
+			var refund: Dictionary = {}
+			for key in cost:
+				refund[key] = int(cost[key] * 0.5)
+			_refund_tech_cost(player_id, refund)
+			EventBus.message_log.emit("[color=red]队列中的研究 %s 前置条件不再满足, 已取消(退还50%%资源)[/color]" % tech_data.get("name", next_id))
+			research_cancelled.emit(player_id, next_id)
+			continue
 		state["current"] = next_id
 		state["progress"] = 0
-		var data: Dictionary = get_tech_data(next_id)
 		research_started.emit(player_id, next_id)
-		EventBus.message_log.emit("自动开始研究: %s" % data.get("name", next_id))
+		EventBus.message_log.emit("自动开始研究: %s" % tech_data.get("name", next_id))
+		return
 
 
 func _has_academy(player_id: int) -> bool:
@@ -302,6 +319,21 @@ func _has_academy(player_id: int) -> bool:
 		if bld in ["academy", "war_college", "arcane_institute"]:
 			return true
 	return false
+
+
+func _get_max_queue_size(player_id: int) -> int:
+	## Returns max research queue size based on academy building level. Default 1.
+	var max_queue: int = 1
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) != player_id:
+			continue
+		var bld: String = tile.get("building_id", "")
+		if bld == "academy":
+			var bld_level: int = tile.get("building_level", 1)
+			var effects: Dictionary = BuildingRegistry.get_building_effects("academy", bld_level)
+			var qs: int = effects.get("queue_size", 1)
+			max_queue = maxi(max_queue, qs)
+	return max_queue
 
 
 func _prereqs_met(player_id: int, tech_id: String) -> bool:
@@ -511,6 +543,15 @@ func from_save_data(data: Dictionary) -> void:
 	_research_state = data.get("research_state", {})
 	_speed_cache = data.get("speed_cache", {})
 	_academy_missing_turns = data.get("academy_missing_turns", {})
+	# Fix int keys after JSON round-trip
+	for dict_ref in [_research_state, _speed_cache, _academy_missing_turns]:
+		var keys_to_fix: Array = []
+		for k in dict_ref:
+			if k is String and k.is_valid_int():
+				keys_to_fix.append(k)
+		for k in keys_to_fix:
+			dict_ref[int(k)] = dict_ref[k]
+			dict_ref.erase(k)
 	# Reload active tree from each player's faction
 	for pid in _research_state:
 		var faction_id: int = GameManager.get_player_faction(pid)

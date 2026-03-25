@@ -231,11 +231,12 @@ func tick_ceasefire(player_id: int) -> void:
 		if _ceasefire[player_id][fid] > 0:
 			_ceasefire[player_id][fid] -= 1
 			if _ceasefire[player_id][fid] <= 0:
-				# BUG修复: 停战到期后恢复原始hostile状态
+				# BUG修复: 停战到期后恢复原始hostile状态（但已收编则跳过）
 				if _relations.has(player_id) and _relations[player_id].has(fid):
 					_relations[player_id][fid]["ceasefire_active"] = false
-					if _relations[player_id][fid].get("was_hostile", false):
-						_relations[player_id][fid]["hostile"] = true
+					if not _relations[player_id][fid].get("recruited", false):
+						if _relations[player_id][fid].get("was_hostile", false):
+							_relations[player_id][fid]["hostile"] = true
 				EventBus.message_log.emit("[color=red]与%s的停战协议已到期![/color]" % _get_faction_name(fid))
 
 
@@ -334,6 +335,8 @@ func offer_tribute(player_id: int, target_faction: int) -> bool:
 	# Tribute payment reduces hostility
 	if _relations.has(player_id) and _relations[player_id].has(target_faction):
 		_relations[player_id][target_faction]["hostile"] = false
+		# Clear was_hostile so ceasefire expiry won't re-hostile
+		_relations[player_id][target_faction]["was_hostile"] = false
 	var fname: String = _get_faction_name(target_faction)
 	EventBus.message_log.emit("[color=yellow]向%s纳贡求和! 每回合-%d金, 持续%d回合, 双方停止敌对[/color]" % [
 		fname, gold_per_turn, BalanceConfig.TRIBUTE_DURATION])

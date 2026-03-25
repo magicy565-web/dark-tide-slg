@@ -825,8 +825,24 @@ static func calc_stat(base: int, growth_rate: int, level: int) -> int:
 
 ## 返回英雄在指定等级的完整属性字典
 static func get_hero_stats_at_level(hero_id: String, level: int) -> Dictionary:
-	assert(HERO_BASE_STATS.has(hero_id), "未知的英雄ID: " + hero_id)
-	assert(GROWTH_RATES.has(hero_id), "缺少成长率数据: " + hero_id)
+	if not HERO_BASE_STATS.has(hero_id) or not GROWTH_RATES.has(hero_id):
+		# Fallback for heroes without leveling data (pirate/dark_elf/neutral heroes):
+		# Pull base stats from FactionData.HEROES and return them without growth.
+		var fd_hero: Dictionary = preload("res://systems/faction/faction_data.gd").HEROES.get(hero_id, {})
+		if fd_hero.is_empty():
+			push_warning("HeroLevelData: 未知的英雄ID且无FactionData条目: " + hero_id)
+			return {"name": hero_id, "role": "", "level": 1, "hp": 20, "mp": 8, "atk": 5, "def": 5, "int_stat": 5, "spd": 5}
+		return {
+			"name": fd_hero.get("name", hero_id),
+			"role": "",
+			"level": clampi(level, 1, MAX_LEVEL),
+			"hp": fd_hero.get("base_hp", 20),
+			"mp": fd_hero.get("base_mp", 8),
+			"atk": fd_hero.get("atk", 5),
+			"def": fd_hero.get("def", 5),
+			"int_stat": fd_hero.get("int", 5),
+			"spd": fd_hero.get("spd", 5),
+		}
 
 	var base: Dictionary = HERO_BASE_STATS[hero_id]
 	var growth: Dictionary = GROWTH_RATES[hero_id]

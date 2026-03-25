@@ -90,9 +90,15 @@ func get_garrison_bonus() -> float:
 # ═══════════════ EXPEDITION CHECK (16_训练系统: interval-based) ═══════════════
 
 func tick_timers() -> void:
-	## Called once per turn. Increments expedition/boss timers.
-	_expedition_timer += 1
-	_boss_timer += 1
+	## Called once per turn. Increments expedition/boss timers only when at correct tier.
+	if get_tier() >= ThreatTier.MILITARY:
+		_expedition_timer += 1
+	else:
+		_expedition_timer = 0  # Reset timer when not at military+ tier
+	if get_tier() >= ThreatTier.DESPERATE:
+		_boss_timer += 1
+	else:
+		_boss_timer = 0  # Reset timer when not at desperate tier
 
 func should_spawn_expedition() -> bool:
 	## At MILITARY tier+, spawn expedition every 3 turns (per 16_训练系统.md §3.5).

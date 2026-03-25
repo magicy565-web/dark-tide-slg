@@ -65,6 +65,8 @@ func deallocate_slave(player_id: int, role: String) -> bool:
 
 
 func add_slaves(player_id: int, count: int) -> void:
+	if count <= 0:
+		return
 	if not _allocations.has(player_id):
 		init_player(player_id, count)
 		return
@@ -76,11 +78,18 @@ func add_slaves(player_id: int, count: int) -> void:
 
 func remove_slaves(player_id: int, count: int) -> void:
 	## Remove from idle first, then from roles if needed.
+	if count <= 0:
+		return
 	if not _allocations.has(player_id):
 		push_warning("SlaveManager: remove_slaves called for unknown player_id=%d" % player_id)
 		return
 	var alloc: Dictionary = _allocations[player_id]
-	var remaining: int = count
+	# Clamp to total available slaves to prevent negative counts
+	var total: int = alloc["idle"] + alloc["mine"] + alloc["farm"] + alloc["altar"]
+	var actual_remove: int = mini(count, total)
+	if actual_remove <= 0:
+		return
+	var remaining: int = actual_remove
 	# Remove idle first
 	var from_idle: int = mini(alloc["idle"], remaining)
 	alloc["idle"] -= from_idle

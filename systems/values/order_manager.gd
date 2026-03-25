@@ -76,8 +76,8 @@ func try_rebellion() -> Dictionary:
 	EventBus.message_log.emit("[color=red]叛乱爆发! %s 脱离控制，叛军驻守%d![/color]" % [rebel_tile["name"], garrison])
 	EventBus.tile_lost.emit(player_id, rebel_tile["index"])
 	EventBus.rebellion_occurred.emit(rebel_tile["index"])
-	# 秩序惩罚，但限制最低值为-20防止无限螺旋
-	var new_order: int = maxi(_order - 3, -50)
+	# 秩序惩罚，但限制最低值为ORDER_MIN防止无限螺旋
+	var new_order: int = maxi(_order - 3, BalanceConfig.ORDER_MIN)
 	var penalty: int = new_order - _order
 	if penalty != 0:
 		change_order(penalty)
