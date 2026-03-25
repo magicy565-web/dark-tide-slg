@@ -248,6 +248,7 @@ var turn_number: int = 0
 var _had_combat_this_turn: bool = false
 var _prev_turn_had_combat: bool = false
 var _ap_purchases_this_turn: int = 0
+var _turn_cache: Dictionary = {}
 
 # ── Army system state (v0.9.2) ──
 # armies: { army_id: int -> { id, player_id, tile_index, name, troops: Array, heroes: Array } }
@@ -1220,6 +1221,82 @@ func _spawn_initial_wanderers() -> void:
 		EventBus.wanderer_spawned.emit(unclaimed[j])
 
 
+# ═══════════════ TURN CACHE ═══════════════
+
+## Pre-compute frequently accessed per-turn data to avoid redundant iteration.
+func _build_turn_cache() -> void:
+	_turn_cache.clear()
+	# ── owned_tiles: player_id -> Array of tile indices ──
+	var owned: Dictionary = {}
+	for i in range(tiles.size()):
+		var t: Dictionary = tiles[i]
+		if t == null:
+			continue
+		var oid: int = t.get("owner_id", -1)
+		if oid < 0:
+			continue
+		if not owned.has(oid):
+			owned[oid] = []
+		owned[oid].append(i)
+	_turn_cache["owned_tiles"] = owned
+
+	# ── frontier_tiles: player_id -> Array of tile indices adjacent to enemy tiles ──
+	var frontier: Dictionary = {}
+	for pid_key in owned:
+		frontier[pid_key] = []
+		for tidx in owned[pid_key]:
+			var neighbors: Array = adjacency.get(tidx, [])
+			var is_frontier: bool = false
+			for nb in neighbors:
+				if nb >= 0 and nb < tiles.size() and tiles[nb] != null:
+					var nb_owner: int = tiles[nb].get("owner_id", -1)
+					if nb_owner >= 0 and nb_owner != pid_key:
+						is_frontier = true
+						break
+			if is_frontier:
+				frontier[pid_key].append(tidx)
+	_turn_cache["frontier_tiles"] = frontier
+
+	# ── building_effects: player_id -> Dictionary of aggregated building effects ──
+	var bld_eff: Dictionary = {}
+	for p in players:
+		var p_id: int = p["id"]
+		bld_eff[p_id] = BuildingRegistry.get_all_player_building_effects(p_id)
+	_turn_cache["building_effects"] = bld_eff
+
+	# ── army_counts: player_id -> total soldiers ──
+	var army_cts: Dictionary = {}
+	for p in players:
+		var p_id: int = p["id"]
+		army_cts[p_id] = ResourceManager.get_army(p_id)
+	_turn_cache["army_counts"] = army_cts
+
+
+## Return owned tile indices for a player from the turn cache, or compute on demand.
+func get_cached_owned_tiles(pid: int) -> Array:
+	if _turn_cache.has("owned_tiles"):
+		var owned: Dictionary = _turn_cache["owned_tiles"]
+		if owned.has(pid):
+			return owned[pid]
+	# Fallback: compute without cache
+	var result: Array = []
+	for i in range(tiles.size()):
+		var t: Dictionary = tiles[i]
+		if t != null and t.get("owner_id", -1) == pid:
+			result.append(i)
+	return result
+
+
+## Return aggregated building effects for a player from the turn cache, or compute on demand.
+func get_cached_building_effects(pid: int) -> Dictionary:
+	if _turn_cache.has("building_effects"):
+		var bld: Dictionary = _turn_cache["building_effects"]
+		if bld.has(pid):
+			return bld[pid]
+	# Fallback: compute without cache
+	return BuildingRegistry.get_all_player_building_effects(pid)
+
+
 # ═══════════════ TURN MANAGEMENT ═══════════════
 
 func begin_turn() -> void:
@@ -1230,6 +1307,9 @@ func begin_turn() -> void:
 	var player: Dictionary = players[current_player_index]
 	var pid: int = player["id"]
 	var faction_id: int = get_player_faction(pid)
+
+	# ── Phase 0: Build per-turn cache ──
+	_build_turn_cache()
 
 	player["ap"] = calculate_action_points(pid)
 	player["atk_bonus"] = 0
@@ -1331,10 +1411,9 @@ func begin_turn() -> void:
 
 	# ── Phase 4b2: Building-based wall repair (fortification) ──
 	# Only buildings that can repair walls: fortification, watchtower, etc.
-	for tile in tiles:
+	for tidx in get_cached_owned_tiles(pid):
+		var tile: Dictionary = tiles[tidx]
 		if tile == null:
-			continue
-		if tile.get("owner_id", -1) != pid:
 			continue
 		var _bld: String = tile.get("building_id", "")
 		if _bld == "":
@@ -1370,7 +1449,7 @@ func begin_turn() -> void:
 	BuffManager.tick_buffs(pid)
 
 	# ── Phase 5b1: Mana regeneration from buildings (Arcane Institute Lv3) ──
-	var bld_effects: Dictionary = BuildingRegistry.get_all_player_building_effects(pid)
+	var bld_effects: Dictionary = get_cached_building_effects(pid)
 	var mana_regen_amt: int = int(bld_effects.get("mana_regen", 0))
 	if mana_regen_amt > 0:
 		var current_mana: int = ResourceManager.get_resource(pid, "mana")
@@ -1474,6 +1553,9 @@ func begin_turn() -> void:
 
 	# ── Sync army count from ResourceManager ──
 	sync_player_army(pid)
+
+	# ── Clear per-turn cache ──
+	_turn_cache.clear()
 
 	# Force-close any lingering event popup before starting the new turn
 	EventBus.hide_event_popup.emit()

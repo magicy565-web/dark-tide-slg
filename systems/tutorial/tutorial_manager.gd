@@ -115,6 +115,11 @@ var _text_label: RichTextLabel
 var _btn_next: Button
 var _btn_skip: Button
 var _overlay: ColorRect
+var _step_label: Label
+
+# ── Highlight ──
+var _highlight_node: Control = null
+var _highlight_tween: Tween = null
 
 
 func _ready() -> void:
@@ -197,6 +202,12 @@ func _build_ui() -> void:
 	_btn_next.pressed.connect(_advance_step)
 	btn_row.add_child(_btn_next)
 
+	_step_label = Label.new()
+	_step_label.add_theme_font_size_override("font_size", 13)
+	_step_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5, 0.7))
+	_step_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(_step_label)
+
 	_popup.visible = false
 
 	# Add UI nodes to the scene tree so they are actually rendered
@@ -237,6 +248,7 @@ func _show_step(step: Dictionary) -> void:
 	_title_label.text = step["title"]
 	_text_label.clear()
 	_text_label.append_text(step["text"])
+	_step_label.text = "步骤 %d/%d" % [_current_step_index + 1, STEPS.size()]
 	_popup.visible = true
 	_overlay.visible = true
 
@@ -245,12 +257,15 @@ func _show_step(step: Dictionary) -> void:
 	var tween := _popup.create_tween()
 	tween.tween_property(_popup, "modulate:a", 1.0, 0.3)
 
+	_apply_highlight(step["highlight"])
+
 	tutorial_step_changed.emit(step["id"])
 
 
 func _advance_step() -> void:
 	_completed_steps.append(STEPS[_current_step_index]["id"])
 	_current_step_index += 1
+	_remove_highlight()
 	_popup.visible = false
 	_overlay.visible = false
 
@@ -268,6 +283,7 @@ func _advance_step() -> void:
 
 func _skip_tutorial() -> void:
 	_active = false
+	_remove_highlight()
 	_popup.visible = false
 	_overlay.visible = false
 	_tutorial_enabled = false
@@ -276,10 +292,89 @@ func _skip_tutorial() -> void:
 
 func _end_tutorial() -> void:
 	_active = false
+	_remove_highlight()
 	_popup.visible = false
 	_overlay.visible = false
 	tutorial_completed.emit()
 	EventBus.message_log.emit("[color=gold]教程完成! 祝征途顺利![/color]")
+
+
+func _apply_highlight(target_name: String) -> void:
+	_remove_highlight()
+	if target_name.is_empty():
+		return
+
+	# Try finding the target by group first, then by name in the tree
+	var target: Control = null
+	var group_nodes := get_tree().get_nodes_in_group(target_name)
+	if group_nodes.size() > 0 and group_nodes[0] is Control:
+		target = group_nodes[0] as Control
+	else:
+		# Walk the scene tree to find by node name
+		target = _find_control_by_name(get_tree().root, target_name)
+
+	if target == null or not is_instance_valid(target):
+		return
+
+	# Create a highlight overlay Control
+	_highlight_node = Control.new()
+	_highlight_node.name = "TutorialHighlight"
+	_highlight_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_highlight_node.z_index = 100
+
+	var hl_style := StyleBoxFlat.new()
+	hl_style.bg_color = Color(0, 0, 0, 0)  # No fill
+	hl_style.border_color = Color(1.0, 0.84, 0.0, 0.9)  # Gold border
+	hl_style.border_width_top = 3
+	hl_style.border_width_bottom = 3
+	hl_style.border_width_left = 3
+	hl_style.border_width_right = 3
+	hl_style.corner_radius_top_left = 6
+	hl_style.corner_radius_top_right = 6
+	hl_style.corner_radius_bottom_left = 6
+	hl_style.corner_radius_bottom_right = 6
+
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", hl_style)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_highlight_node.add_child(panel)
+
+	# Position over the target
+	var target_rect := target.get_global_rect()
+	var margin := 4.0
+	_highlight_node.global_position = target_rect.position - Vector2(margin, margin)
+	_highlight_node.size = target_rect.size + Vector2(margin * 2, margin * 2)
+	panel.position = Vector2.ZERO
+	panel.size = _highlight_node.size
+
+	# Add to the tree above the overlay
+	get_tree().root.add_child(_highlight_node)
+
+	# Pulse animation via tween
+	_highlight_node.modulate = Color(1, 1, 1, 0.9)
+	_highlight_tween = _highlight_node.create_tween()
+	_highlight_tween.set_loops()
+	_highlight_tween.tween_property(_highlight_node, "modulate:a", 0.35, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_highlight_tween.tween_property(_highlight_node, "modulate:a", 0.9, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _remove_highlight() -> void:
+	if _highlight_tween and _highlight_tween.is_valid():
+		_highlight_tween.kill()
+	_highlight_tween = null
+	if _highlight_node and is_instance_valid(_highlight_node):
+		_highlight_node.queue_free()
+	_highlight_node = null
+
+
+func _find_control_by_name(node: Node, node_name: String) -> Control:
+	if node.name == node_name and node is Control:
+		return node as Control
+	for child in node.get_children():
+		var result := _find_control_by_name(child, node_name)
+		if result != null:
+			return result
+	return null
 
 
 func _on_turn_started(_pid: int) -> void:

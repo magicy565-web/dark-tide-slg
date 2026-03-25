@@ -374,44 +374,34 @@ func _ready() -> void:
 	pass
 
 
+## Get level data for a building definition, with fallback to level 1.
+func _get_level_data(bld: Dictionary, level: int) -> Dictionary:
+	var levels: Dictionary = bld.get("levels", {})
+	if levels.has(level):
+		return levels[level]
+	if levels.has(1):
+		return levels[1]
+	return {}
+
+
+## Look up a building definition across all registries (without duplicating).
+func _find_building_def(building_id: String) -> Dictionary:
+	if COMMON_BUILDINGS.has(building_id): return COMMON_BUILDINGS[building_id]
+	for fid in FACTION_BUILDINGS:
+		if FACTION_BUILDINGS[fid].has(building_id): return FACTION_BUILDINGS[fid][building_id]
+	if TERRAIN_BUILDINGS.has(building_id): return TERRAIN_BUILDINGS[building_id]
+	if TILE_TYPE_BUILDINGS.has(building_id): return TILE_TYPE_BUILDINGS[building_id]
+	if NEUTRAL_BUILDINGS.has(building_id): return NEUTRAL_BUILDINGS[building_id]
+	if RESOURCE_STATION_BUILDINGS.has(building_id): return RESOURCE_STATION_BUILDINGS[building_id]
+	return {}
+
+
 func get_building_data(building_id: String, level: int = 1) -> Dictionary:
 	## Look up building in common list first, then faction-specific, then terrain/tile-type.
-	if COMMON_BUILDINGS.has(building_id):
-		var bld: Dictionary = COMMON_BUILDINGS[building_id].duplicate(true)
-		var lvl_data: Dictionary = bld.get("levels", {}).get(level, bld.get("levels", {}).get(1, {}))
-		bld["current_level_data"] = lvl_data
-		return bld
-	# Check faction buildings
-	for faction_id in FACTION_BUILDINGS:
-		var faction_blds: Dictionary = FACTION_BUILDINGS[faction_id]
-		if faction_blds.has(building_id):
-			var bld: Dictionary = faction_blds[building_id].duplicate(true)
-			var lvl_data: Dictionary = bld.get("levels", {}).get(level, bld.get("levels", {}).get(1, {}))
-			bld["current_level_data"] = lvl_data
-			return bld
-	# Check terrain-specific buildings
-	if TERRAIN_BUILDINGS.has(building_id):
-		var bld: Dictionary = TERRAIN_BUILDINGS[building_id].duplicate(true)
-		var lvl_data: Dictionary = bld.get("levels", {}).get(level, bld.get("levels", {}).get(1, {}))
-		bld["current_level_data"] = lvl_data
-		return bld
-	# Check tile-type-specific buildings
-	if TILE_TYPE_BUILDINGS.has(building_id):
-		var bld: Dictionary = TILE_TYPE_BUILDINGS[building_id].duplicate(true)
-		var lvl_data: Dictionary = bld.get("levels", {}).get(level, bld.get("levels", {}).get(1, {}))
-		bld["current_level_data"] = lvl_data
-		return bld
-	# Check neutral faction buildings
-	if NEUTRAL_BUILDINGS.has(building_id):
-		var bld: Dictionary = NEUTRAL_BUILDINGS[building_id].duplicate(true)
-		var lvl_data: Dictionary = bld.get("levels", {}).get(level, bld.get("levels", {}).get(1, {}))
-		bld["current_level_data"] = lvl_data
-		return bld
-	# Check resource station buildings
-	if RESOURCE_STATION_BUILDINGS.has(building_id):
-		var bld: Dictionary = RESOURCE_STATION_BUILDINGS[building_id].duplicate(true)
-		var lvl_data: Dictionary = bld.get("levels", {}).get(level, bld.get("levels", {}).get(1, {}))
-		bld["current_level_data"] = lvl_data
+	var def: Dictionary = _find_building_def(building_id)
+	if not def.is_empty():
+		var bld: Dictionary = def.duplicate(true)
+		bld["current_level_data"] = _get_level_data(bld, level)
 		return bld
 	# Fallback to legacy unique buildings in FactionData
 	for faction_id in FactionData.UNIQUE_BUILDINGS:
@@ -446,20 +436,8 @@ func get_building_cost(building_id: String, level: int = 1) -> Dictionary:
 
 
 func get_building_max_level(building_id: String) -> int:
-	if COMMON_BUILDINGS.has(building_id):
-		return COMMON_BUILDINGS[building_id].get("max_level", 1)
-	for faction_id in FACTION_BUILDINGS:
-		if FACTION_BUILDINGS[faction_id].has(building_id):
-			return FACTION_BUILDINGS[faction_id][building_id].get("max_level", 1)
-	if TERRAIN_BUILDINGS.has(building_id):
-		return TERRAIN_BUILDINGS[building_id].get("max_level", 1)
-	if TILE_TYPE_BUILDINGS.has(building_id):
-		return TILE_TYPE_BUILDINGS[building_id].get("max_level", 1)
-	if NEUTRAL_BUILDINGS.has(building_id):
-		return NEUTRAL_BUILDINGS[building_id].get("max_level", 1)
-	if RESOURCE_STATION_BUILDINGS.has(building_id):
-		return RESOURCE_STATION_BUILDINGS[building_id].get("max_level", 1)
-	return 1
+	var def: Dictionary = _find_building_def(building_id)
+	return def.get("max_level", 1)
 
 
 func get_building_effects(building_id: String, level: int = 1) -> Dictionary:
@@ -591,7 +569,7 @@ func get_available_buildings_for(player_id: int, tile: Dictionary) -> Array:
 	# Common buildings
 	for bid in COMMON_BUILDINGS:
 		var bdata: Dictionary = COMMON_BUILDINGS[bid]
-		var lvl1: Dictionary = bdata.get("levels", {}).get(1, {})
+		var lvl1: Dictionary = _get_level_data(bdata, 1)
 		var cost: Dictionary = lvl1.get("cost", {})
 		result.append({
 			"id": bid,
@@ -609,7 +587,7 @@ func get_available_buildings_for(player_id: int, tile: Dictionary) -> Array:
 		var faction_blds: Dictionary = FACTION_BUILDINGS[faction_id]
 		for bid in faction_blds:
 			var bdata: Dictionary = faction_blds[bid]
-			var lvl1: Dictionary = bdata.get("levels", {}).get(1, {})
+			var lvl1: Dictionary = _get_level_data(bdata, 1)
 			var cost: Dictionary = lvl1.get("cost", {})
 			result.append({
 				"id": bid,
@@ -649,7 +627,7 @@ func get_available_buildings_for(player_id: int, tile: Dictionary) -> Array:
 		if not _meets_terrain_requirement(tile, bid):
 			continue
 		var bdata: Dictionary = TERRAIN_BUILDINGS[bid]
-		var lvl1: Dictionary = bdata.get("levels", {}).get(1, {})
+		var lvl1: Dictionary = _get_level_data(bdata, 1)
 		var cost: Dictionary = lvl1.get("cost", {})
 		result.append({
 			"id": bid,
@@ -667,7 +645,7 @@ func get_available_buildings_for(player_id: int, tile: Dictionary) -> Array:
 		if not _meets_tile_type_requirement(tile, bid):
 			continue
 		var bdata: Dictionary = TILE_TYPE_BUILDINGS[bid]
-		var lvl1: Dictionary = bdata.get("levels", {}).get(1, {})
+		var lvl1: Dictionary = _get_level_data(bdata, 1)
 		var cost: Dictionary = lvl1.get("cost", {})
 		result.append({
 			"id": bid,
@@ -685,7 +663,7 @@ func get_available_buildings_for(player_id: int, tile: Dictionary) -> Array:
 		if not _meets_neutral_requirement(player_id, bid):
 			continue
 		var bdata: Dictionary = NEUTRAL_BUILDINGS[bid]
-		var lvl1: Dictionary = bdata.get("levels", {}).get(1, {})
+		var lvl1: Dictionary = _get_level_data(bdata, 1)
 		var cost: Dictionary = lvl1.get("cost", {})
 		result.append({
 			"id": bid,
@@ -703,7 +681,7 @@ func get_available_buildings_for(player_id: int, tile: Dictionary) -> Array:
 		if not _meets_station_requirement(tile, bid):
 			continue
 		var bdata: Dictionary = RESOURCE_STATION_BUILDINGS[bid]
-		var lvl1: Dictionary = bdata.get("levels", {}).get(1, {})
+		var lvl1: Dictionary = _get_level_data(bdata, 1)
 		var cost: Dictionary = lvl1.get("cost", {})
 		result.append({
 			"id": bid,

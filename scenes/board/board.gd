@@ -14,6 +14,12 @@ var path_preview_meshes: Array = []
 var water_anim_nodes: Array = []  # [{node, type}]
 var attack_route_meshes: Array = []
 var settlement_nodes: Dictionary = {}
+# ── Material cache ──
+var _material_cache: Dictionary = {}
+var _fog_mat: StandardMaterial3D = null
+var _fog_edge_mat: StandardMaterial3D = null
+# ── Dirty fog tracking ──
+var _fog_dirty_tiles: Array = []
 # ── Selection state ──
 var selected_tile: int = -1
 var hovered_tile: int = -1
@@ -200,6 +206,17 @@ func _clear_board() -> void:
 
 func _build_board() -> void:
 	tile_visuals.clear()
+	_material_cache.clear()
+	_fog_dirty_tiles.clear()
+	# Pre-build fog materials
+	_fog_mat = StandardMaterial3D.new()
+	_fog_mat.albedo_color = COL_FOG
+	_fog_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_fog_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_fog_edge_mat = StandardMaterial3D.new()
+	_fog_edge_mat.albedo_color = COL_FOG_EDGE
+	_fog_edge_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_fog_edge_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	for tile in GameManager.tiles:
 		_build_territory(tile["index"], tile, tile["position_3d"])
 	_draw_edges(); _draw_faction_borders()
@@ -257,8 +274,7 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 	var fog := MeshInstance3D.new(); var fm := CylinderMesh.new()
 	fm.top_radius = TILE_RADIUS * 1.15; fm.bottom_radius = TILE_RADIUS * 1.15
 	fm.height = 0.5; fm.radial_segments = 6; fog.mesh = fm
-	var fmat := _make_mat(COL_FOG); fmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	fog.material_override = fmat; fog.position.y = 0.35; fog.name = "FogOverlay"
+	fog.material_override = _fog_mat; fog.position.y = 0.35; fog.name = "FogOverlay"
 	root.add_child(fog)
 	# Click area
 	var area := Area3D.new(); area.input_ray_pickable = true
@@ -380,14 +396,16 @@ func _add_swamp_pools(parent: Node3D, y: float) -> void:
 		var pool := MeshInstance3D.new(); var pc := CylinderMesh.new()
 		pc.top_radius = 0.25 + randf() * 0.2; pc.bottom_radius = pc.top_radius
 		pc.height = 0.02; pc.radial_segments = 8; pool.mesh = pc
-		var pm := _make_mat(Color(0.12, 0.22, 0.1, 0.7))
+		var pm := StandardMaterial3D.new(); pm.albedo_color = Color(0.12, 0.22, 0.1, 0.7)
+		pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		pm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; pool.material_override = pm
 		var a := float(i) * TAU / 3.0
 		pool.position = Vector3(cos(a) * 0.45, y + 0.01, sin(a) * 0.4); parent.add_child(pool)
 		# Bubble marker
 		var bubble := MeshInstance3D.new(); var bs := SphereMesh.new()
 		bs.radius = 0.03; bs.height = 0.06; bubble.mesh = bs
-		var bm := _make_mat(Color(0.2, 0.35, 0.15, 0.5))
+		var bm := StandardMaterial3D.new(); bm.albedo_color = Color(0.2, 0.35, 0.15, 0.5)
+		bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; bubble.material_override = bm
 		bubble.position = Vector3(pool.position.x, y + 0.05, pool.position.z)
 		bubble.name = "SwampBubble_%d" % i
@@ -440,7 +458,8 @@ func _add_volcanic_decor(parent: Node3D, y: float) -> void:
 	# Lava crater (emissive)
 	var crater := MeshInstance3D.new(); var cm := CylinderMesh.new()
 	cm.top_radius = 0.12; cm.bottom_radius = 0.1; cm.height = 0.06; crater.mesh = cm
-	var lm := _make_mat(Color(1.0, 0.35, 0.05))
+	var lm := StandardMaterial3D.new(); lm.albedo_color = Color(1.0, 0.35, 0.05)
+	lm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	lm.emission_enabled = true; lm.emission = Color(1.0, 0.4, 0.1)
 	lm.emission_energy_multiplier = 2.5; crater.material_override = lm
 	crater.position = Vector3(0, y + 0.46, 0)
@@ -449,9 +468,7 @@ func _add_volcanic_decor(parent: Node3D, y: float) -> void:
 	for i in range(2):
 		var a: float = float(i) * PI + randf() * 0.5
 		var stream := _make_box_mesh(Vector3(0.04, 0.02, 0.4), Color(0.9, 0.3, 0.05))
-		stream.material_override.emission_enabled = true
-		stream.material_override.emission = Color(1.0, 0.35, 0.05)
-		stream.material_override.emission_energy_multiplier = 1.8
+		stream.material_override = _make_emissive_mat(Color(0.9, 0.3, 0.05), Color(1.0, 0.35, 0.05), 1.8)
 		stream.position = Vector3(cos(a) * 0.3, y + 0.1, sin(a) * 0.3)
 		stream.rotation.y = a; parent.add_child(stream)
 	# Dark rocks
@@ -479,7 +496,8 @@ func _add_river_flow(parent: Node3D, y: float) -> void:
 	for i in range(3):
 		var marker := MeshInstance3D.new(); var sm := SphereMesh.new()
 		sm.radius = 0.03; sm.height = 0.06; marker.mesh = sm
-		var mm := _make_mat(Color(0.3, 0.55, 0.8, 0.6))
+		var mm := StandardMaterial3D.new(); mm.albedo_color = Color(0.3, 0.55, 0.8, 0.6)
+		mm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		marker.material_override = mm
 		marker.position = Vector3(randf_range(-0.15, 0.15), y + 0.04, randf_range(-1.0, 1.0))
@@ -532,9 +550,8 @@ func _build_chokepoint_marker(parent: Node3D, y: float) -> void:
 	# Emissive gem on top of arch
 	var gem := MeshInstance3D.new(); var gs := SphereMesh.new()
 	gs.radius = 0.05; gs.height = 0.1; gem.mesh = gs
-	var gm := _make_mat(Color(0.9, 0.2, 0.15))
-	gm.emission_enabled = true; gm.emission = Color(1.0, 0.3, 0.1)
-	gm.emission_energy_multiplier = 2.0; gem.material_override = gm
+	var gm := _make_emissive_mat(Color(0.9, 0.2, 0.15), Color(1.0, 0.3, 0.1), 2.0)
+	gem.material_override = gm
 	gem.position = Vector3(0, y + 0.68, 0)
 	parent.add_child(gem)
 
@@ -558,14 +575,10 @@ func _update_territory_visual(idx: int) -> void:
 	var brc: Color = FLAG_COLORS.get(fk, Color(0.3, 0.3, 0.28))
 	if idx == selected_tile: brc = Color(1.0, 1.0, 0.8)
 	elif idx == hovered_tile: brc = brc.lightened(0.35)
-	var bm := _make_mat(brc); bm.emission_enabled = true
-	bm.emission = brc * 0.4; bm.emission_energy_multiplier = 0.5
-	vis["border"].material_override = bm
+	vis["border"].material_override = _make_emissive_mat(brc, brc * 0.4, 0.5)
 	# Flag
 	var flc: Color = FLAG_COLORS.get(fk, Color(0.4, 0.4, 0.4))
-	var fm := _make_mat(flc); fm.emission_enabled = true
-	fm.emission = flc * 0.35; fm.emission_energy_multiplier = 0.35
-	vis["banner"].material_override = fm
+	vis["banner"].material_override = _make_emissive_mat(flc, flc * 0.35, 0.35)
 	vis["flag_root"].visible = tile["owner_id"] >= 0
 	# Garrison
 	var garrison: int = tile.get("garrison", 0)
@@ -666,7 +679,9 @@ func _draw_faction_borders() -> void:
 			lm.size = Vector3(TILE_RADIUS * 0.8, 0.06, 0.06); line.mesh = lm
 			var fk: String = _get_tile_faction_key(ta)
 			var bc: Color = FLAG_COLORS.get(fk, Color(0.5, 0.5, 0.5))
-			var bmat := _make_mat(Color(bc.r, bc.g, bc.b, 0.7))
+			var bmat := StandardMaterial3D.new()
+			bmat.albedo_color = Color(bc.r, bc.g, bc.b, 0.7)
+			bmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			bmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			bmat.emission_enabled = true; bmat.emission = bc * 0.6
 			bmat.emission_energy_multiplier = 0.8; line.material_override = bmat
@@ -700,7 +715,9 @@ func _add_highlight_fill(idx: int, color: Color) -> void:
 	var fill := MeshInstance3D.new(); var fm := CylinderMesh.new()
 	fm.top_radius = TILE_RADIUS * 0.95; fm.bottom_radius = TILE_RADIUS * 0.95
 	fm.height = 0.03; fm.radial_segments = 6; fill.mesh = fm
-	var fmat := _make_mat(color); fmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var fmat := StandardMaterial3D.new(); fmat.albedo_color = color
+	fmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	fill.material_override = fmat
 	fill.position = Vector3(pos.x, el + TILE_HEIGHT + 0.04, pos.z)
 	add_child(fill); highlight_rings[-1000 - idx] = fill
@@ -712,7 +729,9 @@ func _add_highlight_ring(idx: int, color: Color) -> void:
 	var ring := MeshInstance3D.new(); var tc := CylinderMesh.new()
 	tc.top_radius = TILE_RADIUS * 1.08; tc.bottom_radius = TILE_RADIUS * 1.08
 	tc.height = 0.05; tc.radial_segments = 6; ring.mesh = tc
-	var rm := _make_mat(color); rm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var rm := StandardMaterial3D.new(); rm.albedo_color = color
+	rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	rm.emission_enabled = true; rm.emission = color; rm.emission_energy_multiplier = 1.3
 	ring.material_override = rm
 	ring.position = Vector3(pos.x, el + TILE_HEIGHT + 0.035, pos.z)
@@ -732,7 +751,8 @@ func _start_pulse_ring(idx: int) -> void:
 	_pulse_ring = MeshInstance3D.new(); var tc := CylinderMesh.new()
 	tc.top_radius = TILE_RADIUS * 1.1; tc.bottom_radius = TILE_RADIUS * 1.1
 	tc.height = 0.04; tc.radial_segments = 6; _pulse_ring.mesh = tc
-	var pm := _make_mat(Color(1.0, 1.0, 0.8, 0.5))
+	var pm := StandardMaterial3D.new(); pm.albedo_color = Color(1.0, 1.0, 0.8, 0.5)
+	pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	pm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; pm.emission_enabled = true
 	pm.emission = Color(1.0, 0.95, 0.7); pm.emission_energy_multiplier = 1.0
 	_pulse_ring.material_override = pm
@@ -771,7 +791,8 @@ func _draw_path_preview(fi: int, ti: int) -> void:
 		var t: float = float(i + 1) / float(dn + 1)
 		var dot := MeshInstance3D.new(); var sm := SphereMesh.new()
 		sm.radius = 0.06; sm.height = 0.12; dot.mesh = sm
-		var dm := _make_mat(Color(1.0, 0.9, 0.3, 0.7))
+		var dm := StandardMaterial3D.new(); dm.albedo_color = Color(1.0, 0.9, 0.3, 0.7)
+		dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; dm.emission_enabled = true
 		dm.emission = Color(1.0, 0.85, 0.2); dm.emission_energy_multiplier = 0.8
 		dot.material_override = dm
@@ -896,7 +917,8 @@ func show_attack_route(from_idx: int, to_idx: int) -> void:
 			var t: float = float(d + 1) / float(dots + 1)
 			var dot := MeshInstance3D.new(); var sm := SphereMesh.new()
 			sm.radius = 0.05; sm.height = 0.1; dot.mesh = sm
-			var dm := _make_mat(color)
+			var dm := StandardMaterial3D.new(); dm.albedo_color = color
+			dm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			dm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			dm.emission_enabled = true; dm.emission = color
 			dm.emission_energy_multiplier = 1.0
@@ -916,7 +938,8 @@ func show_attack_route(from_idx: int, to_idx: int) -> void:
 		var ring := MeshInstance3D.new(); var rc := CylinderMesh.new()
 		rc.top_radius = TILE_RADIUS * 0.5; rc.bottom_radius = TILE_RADIUS * 0.5
 		rc.height = 0.03; rc.radial_segments = 6; ring.mesh = rc
-		var rm := _make_mat(ring_color)
+		var rm := StandardMaterial3D.new(); rm.albedo_color = ring_color
+		rm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		rm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		rm.emission_enabled = true; rm.emission = ring_color
 		rm.emission_energy_multiplier = 1.2
@@ -943,18 +966,34 @@ func clear_attack_route() -> void:
 	attack_route_meshes.clear()
 
 # ═══════════════ FOG OF WAR ═══════════════
+func _mark_fog_dirty(tile_indices: Array) -> void:
+	for idx in tile_indices:
+		if idx not in _fog_dirty_tiles:
+			_fog_dirty_tiles.append(idx)
+		# Also mark neighbors dirty
+		if GameManager.adjacency.has(idx):
+			for n in GameManager.adjacency[idx]:
+				if n not in _fog_dirty_tiles:
+					_fog_dirty_tiles.append(n)
+
 func _update_fog() -> void:
 	var pid: int = 0
 	if not GameManager.players.is_empty(): pid = GameManager.get_human_player_id()
-	for idx in tile_visuals:
+	var tiles_to_update: Array
+	if _fog_dirty_tiles.is_empty():
+		# Full update: all tiles
+		tiles_to_update = tile_visuals.keys()
+	else:
+		tiles_to_update = _fog_dirty_tiles
+		_fog_dirty_tiles = []
+	for idx in tiles_to_update:
+		if not tile_visuals.has(idx): continue
 		var vis: Dictionary = tile_visuals[idx]
 		var rev: bool = GameManager.is_revealed_for(idx, pid)
 		vis["fog"].visible = not rev
 		if not rev:
 			var edge: bool = _has_revealed_neighbor(idx, pid)
-			var fc := COL_FOG_EDGE if edge else COL_FOG
-			var fm := _make_mat(fc); fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			vis["fog"].material_override = fm
+			vis["fog"].material_override = _fog_edge_mat if edge else _fog_mat
 		vis["label"].visible = rev; vis["garrison_label"].visible = rev
 		vis["flag_root"].visible = rev and GameManager.tiles[idx].get("owner_id", -1) >= 0
 
@@ -966,13 +1005,22 @@ func _has_revealed_neighbor(idx: int, pid: int) -> bool:
 
 # ═══════════════ SIGNAL HANDLERS ═══════════════
 func _on_tile_captured(_pid: int, ti: int) -> void:
-	_update_territory_visual(ti); _update_fog(); _draw_faction_borders()
+	_update_territory_visual(ti)
+	# Update neighbors for border visuals
+	if GameManager.adjacency.has(ti):
+		for n in GameManager.adjacency[ti]:
+			_update_territory_visual(n)
+	_mark_fog_dirty([ti]); _update_fog(); _draw_faction_borders()
 func _on_fog_updated(_pid: int) -> void:
+	_fog_dirty_tiles.clear()  # Full fog rebuild
 	_update_fog()
 func _on_turn_started(_pid: int) -> void:
 	_clear_highlights(); _deselect_tile()
 	if tile_visuals.is_empty() and not GameManager.tiles.is_empty(): _build_board()
-	else: _update_all_territories()
+	else:
+		_update_all_territories()
+		_fog_dirty_tiles.clear()  # Force full fog rebuild on turn start
+		_update_fog()
 func _on_game_over(_wid: int) -> void:
 	_clear_highlights()
 func _on_army_changed(_pid: int, _cnt: int) -> void:
@@ -1020,8 +1068,20 @@ func _process_water_animation(_delta: float) -> void:
 
 # ═══════════════ UTILITY ═══════════════
 func _make_mat(color: Color) -> StandardMaterial3D:
+	var key := "%s" % color
+	if _material_cache.has(key): return _material_cache[key]
 	var m := StandardMaterial3D.new(); m.albedo_color = color
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; return m
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_material_cache[key] = m; return m
+
+func _make_emissive_mat(color: Color, emission: Color, energy: float) -> StandardMaterial3D:
+	var key := "e_%s_%s_%.2f" % [color, emission, energy]
+	if _material_cache.has(key): return _material_cache[key]
+	var m := StandardMaterial3D.new(); m.albedo_color = color
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.emission_enabled = true; m.emission = emission
+	m.emission_energy_multiplier = energy
+	_material_cache[key] = m; return m
 
 func _make_label3d(text: String, size: int, pos: Vector3, col: Color = Color(1,1,1,0.95)) -> Label3D:
 	var l := Label3D.new(); l.text = text; l.font_size = size; l.pixel_size = 0.005
@@ -1043,7 +1103,8 @@ func _setup_ambient_particles() -> void:
 	for i in range(25):
 		var p := MeshInstance3D.new(); var sm := SphereMesh.new()
 		sm.radius = 0.025 + randf() * 0.02; sm.height = sm.radius * 2; p.mesh = sm
-		var pm := _make_mat(Color(0.85, 0.6, 0.25, 0.35))
+		var pm := StandardMaterial3D.new(); pm.albedo_color = Color(0.85, 0.6, 0.25, 0.35)
+		pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		pm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; p.material_override = pm
 		p.position = Vector3(randf_range(-5, 25), randf_range(0.5, 4), randf_range(-25, 5))
 		p.name = "AmbientParticle_%d" % i; add_child(p)
@@ -1086,8 +1147,7 @@ func pulse_tile(idx: int, color: Color, duration: float = 0.6) -> void:
 	if not tile_visuals.has(idx): return
 	var bmi: MeshInstance3D = tile_visuals[idx]["base"]
 	var orig: StandardMaterial3D = bmi.material_override
-	var pm := _make_mat(color); pm.emission_enabled = true
-	pm.emission = color; pm.emission_energy_multiplier = 2.0
+	var pm := _make_emissive_mat(color, color, 2.0)
 	bmi.material_override = pm
 	var tw := create_tween()
 	tw.tween_callback(func(): bmi.material_override = orig).set_delay(duration)

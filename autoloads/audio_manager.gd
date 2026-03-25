@@ -54,16 +54,13 @@ enum SFX {
 	LEVEL_UP,
 	TURN_START,
 	TURN_END,
+	VICTORY,
+	DEFEAT,
 }
 
-# ── Audio file paths (to be filled when assets are available) ──
-var _bgm_paths: Dictionary = {
-	# BGMTrack.TITLE: "res://assets/audio/bgm/title.ogg",
-}
-
-var _sfx_paths: Dictionary = {
-	# SFX.UI_CLICK: "res://assets/audio/sfx/ui_click.wav",
-}
+# ── Audio file paths (populated by _init_audio_paths) ──
+var _bgm_paths: Dictionary = {}
+var _sfx_paths: Dictionary = {}
 
 # ── Players ──
 var _bgm_player: AudioStreamPlayer
@@ -78,41 +75,94 @@ var _crossfading: bool = false
 
 
 func _ready() -> void:
+	_init_audio_paths()
 	_setup_audio_buses()
 	_setup_players()
 	_connect_signals()
 
 
+func _init_audio_paths() -> void:
+	_bgm_paths = {
+		BGMTrack.TITLE: "res://assets/audio/bgm/title.ogg",
+		BGMTrack.FACTION_SELECT: "res://assets/audio/bgm/faction_select.ogg",
+		BGMTrack.OVERWORLD_CALM: "res://assets/audio/bgm/overworld_calm.ogg",
+		BGMTrack.OVERWORLD_TENSE: "res://assets/audio/bgm/overworld_tense.ogg",
+		BGMTrack.COMBAT_NORMAL: "res://assets/audio/bgm/combat_normal.ogg",
+		BGMTrack.COMBAT_BOSS: "res://assets/audio/bgm/combat_boss.ogg",
+		BGMTrack.VICTORY: "res://assets/audio/bgm/victory.ogg",
+		BGMTrack.DEFEAT: "res://assets/audio/bgm/defeat.ogg",
+		BGMTrack.EVENT: "res://assets/audio/bgm/event.ogg",
+	}
+	_sfx_paths = {
+		SFX.UI_CLICK: "res://assets/audio/sfx/ui_click.ogg",
+		SFX.UI_CONFIRM: "res://assets/audio/sfx/ui_confirm.ogg",
+		SFX.UI_CANCEL: "res://assets/audio/sfx/ui_cancel.ogg",
+		SFX.UI_HOVER: "res://assets/audio/sfx/ui_hover.ogg",
+		SFX.COMBAT_ATTACK: "res://assets/audio/sfx/combat_attack.ogg",
+		SFX.COMBAT_DEFEND: "res://assets/audio/sfx/combat_defend.ogg",
+		SFX.COMBAT_CRITICAL: "res://assets/audio/sfx/combat_critical.ogg",
+		SFX.COMBAT_DEATH: "res://assets/audio/sfx/combat_death.ogg",
+		SFX.COMBAT_SIEGE: "res://assets/audio/sfx/combat_siege.ogg",
+		SFX.COMBAT_ABILITY: "res://assets/audio/sfx/combat_ability.ogg",
+		SFX.MAP_CAPTURE: "res://assets/audio/sfx/map_capture.ogg",
+		SFX.MAP_LOST: "res://assets/audio/sfx/map_lost.ogg",
+		SFX.MAP_DEPLOY: "res://assets/audio/sfx/map_deploy.ogg",
+		SFX.RESOURCE_GAIN: "res://assets/audio/sfx/resource_gain.ogg",
+		SFX.RESOURCE_SPEND: "res://assets/audio/sfx/resource_spend.ogg",
+		SFX.RESEARCH_COMPLETE: "res://assets/audio/sfx/research_complete.ogg",
+		SFX.BUILD_COMPLETE: "res://assets/audio/sfx/building_complete.ogg",
+		SFX.HERO_CAPTURE: "res://assets/audio/sfx/hero_capture.ogg",
+		SFX.HERO_RECRUIT: "res://assets/audio/sfx/hero_recruit.ogg",
+		SFX.EVENT_TRIGGER: "res://assets/audio/sfx/event_trigger.ogg",
+		SFX.WAAAGH: "res://assets/audio/sfx/waaagh.ogg",
+		SFX.LEVEL_UP: "res://assets/audio/sfx/level_up.ogg",
+		SFX.TURN_START: "res://assets/audio/sfx/turn_start.ogg",
+		SFX.TURN_END: "res://assets/audio/sfx/turn_end.ogg",
+		SFX.VICTORY: "res://assets/audio/sfx/victory.ogg",
+		SFX.DEFEAT: "res://assets/audio/sfx/defeat.ogg",
+	}
+
+
 func _setup_audio_buses() -> void:
-	# In a real Godot project, audio buses are set up in the Audio Bus Layout.
-	# This creates them programmatically as fallback.
-	pass
+	# Check if buses already exist (from .tres), if not create them
+	if AudioServer.get_bus_index("BGM") == -1:
+		AudioServer.add_bus()
+		AudioServer.set_bus_name(AudioServer.bus_count - 1, "BGM")
+		AudioServer.set_bus_send(AudioServer.get_bus_index("BGM"), "Master")
+	if AudioServer.get_bus_index("SFX") == -1:
+		AudioServer.add_bus()
+		AudioServer.set_bus_name(AudioServer.bus_count - 1, "SFX")
+		AudioServer.set_bus_send(AudioServer.get_bus_index("SFX"), "Master")
+	if AudioServer.get_bus_index("Ambient") == -1:
+		AudioServer.add_bus()
+		AudioServer.set_bus_name(AudioServer.bus_count - 1, "Ambient")
+		AudioServer.set_bus_send(AudioServer.get_bus_index("Ambient"), "Master")
 
 
 func _setup_players() -> void:
 	_bgm_player = AudioStreamPlayer.new()
 	_bgm_player.name = "BGMPlayer"
-	_bgm_player.bus = BUS_MASTER
+	_bgm_player.bus = BUS_BGM
 	_bgm_player.volume_db = linear_to_db(bgm_volume)
 	add_child(_bgm_player)
 
 	_bgm_player_next = AudioStreamPlayer.new()
 	_bgm_player_next.name = "BGMPlayerNext"
-	_bgm_player_next.bus = BUS_MASTER
+	_bgm_player_next.bus = BUS_BGM
 	_bgm_player_next.volume_db = -80.0
 	add_child(_bgm_player_next)
 
 	for i in range(MAX_SFX_PLAYERS):
 		var player := AudioStreamPlayer.new()
 		player.name = "SFXPlayer_%d" % i
-		player.bus = BUS_MASTER
+		player.bus = BUS_SFX
 		player.volume_db = linear_to_db(sfx_volume)
 		add_child(player)
 		_sfx_players.append(player)
 
 	_ambient_player = AudioStreamPlayer.new()
 	_ambient_player.name = "AmbientPlayer"
-	_ambient_player.bus = BUS_MASTER
+	_ambient_player.bus = BUS_AMBIENT
 	_ambient_player.volume_db = linear_to_db(ambient_volume)
 	add_child(_ambient_player)
 
@@ -128,6 +178,12 @@ func _connect_signals() -> void:
 	EventBus.tech_effects_applied.connect(_on_research_complete)
 	EventBus.waaagh_changed.connect(_on_waaagh_changed)
 	EventBus.event_triggered.connect(_on_event_triggered)
+	# Combat SFX signals
+	EventBus.sfx_attack.connect(_on_sfx_attack)
+	EventBus.sfx_unit_killed.connect(_on_sfx_unit_killed)
+	EventBus.sfx_hero_knockout.connect(_on_sfx_hero_knockout)
+	EventBus.sfx_round_start.connect(_on_sfx_round_start)
+	EventBus.sfx_battle_result.connect(_on_sfx_battle_result)
 
 
 # ═══════════════ BGM ═══════════════
@@ -137,11 +193,17 @@ func play_bgm(track: int, crossfade: float = 1.0) -> void:
 		return
 	if not _bgm_paths.has(track):
 		_current_bgm = track
-		return  # No audio file yet, just track state
+		return  # No audio file path registered
 
-	var stream = load(_bgm_paths[track])
+	var path: String = _bgm_paths[track]
+	if not ResourceLoader.exists(path):
+		push_warning("AudioManager: BGM file not found: %s (track=%d)" % [path, track])
+		_current_bgm = track
+		return
+
+	var stream = load(path)
 	if stream == null:
-		push_warning("AudioManager: Failed to load BGM file: %s (track=%d)" % [_bgm_paths[track], track])
+		push_warning("AudioManager: Failed to load BGM file: %s (track=%d)" % [path, track])
 		return
 
 	_current_bgm = track
@@ -190,11 +252,16 @@ func play_sfx(sfx_id: int) -> void:
 	if master_muted:
 		return
 	if not _sfx_paths.has(sfx_id):
-		return  # No audio file yet
+		return  # No audio file path registered
 
-	var stream = load(_sfx_paths[sfx_id])
+	var path: String = _sfx_paths[sfx_id]
+	if not ResourceLoader.exists(path):
+		push_warning("AudioManager: SFX file not found: %s (sfx_id=%d)" % [path, sfx_id])
+		return
+
+	var stream = load(path)
 	if stream == null:
-		push_warning("AudioManager: Failed to load SFX file: %s (sfx_id=%d)" % [_sfx_paths[sfx_id], sfx_id])
+		push_warning("AudioManager: Failed to load SFX file: %s (sfx_id=%d)" % [path, sfx_id])
 		return
 
 	# Find available player
@@ -208,6 +275,20 @@ func play_sfx(sfx_id: int) -> void:
 	# All busy, override oldest
 	_sfx_players[0].stream = stream
 	_sfx_players[0].play()
+
+
+# ═══════════════ UI AUDIO HELPERS ═══════════════
+
+func play_ui_click() -> void:
+	play_sfx(SFX.UI_CLICK)
+
+
+func play_ui_confirm() -> void:
+	play_sfx(SFX.UI_CONFIRM)
+
+
+func play_ui_cancel() -> void:
+	play_sfx(SFX.UI_CANCEL)
 
 
 # ═══════════════ VOLUME CONTROL ═══════════════
@@ -272,6 +353,30 @@ func _on_waaagh_changed(_pid: int, value: int) -> void:
 
 func _on_event_triggered(_pid: int, _name: String, _desc: String) -> void:
 	play_sfx(SFX.EVENT_TRIGGER)
+
+
+# ═══════════════ COMBAT SFX SIGNAL HANDLERS ═══════════════
+
+func _on_sfx_attack(_unit_class: String, is_crit: bool) -> void:
+	if is_crit:
+		play_sfx(SFX.COMBAT_CRITICAL)
+	else:
+		play_sfx(SFX.COMBAT_ATTACK)
+
+func _on_sfx_unit_killed(_side: String) -> void:
+	play_sfx(SFX.COMBAT_DEATH)
+
+func _on_sfx_hero_knockout(_hero_name: String) -> void:
+	play_sfx(SFX.COMBAT_DEATH)
+
+func _on_sfx_round_start(_round_num: int) -> void:
+	play_sfx(SFX.TURN_START)
+
+func _on_sfx_battle_result(winner: String) -> void:
+	if winner == "player":
+		play_sfx(SFX.VICTORY)
+	else:
+		play_sfx(SFX.DEFEAT)
 
 
 # ═══════════════ SAVE / LOAD ═══════════════
