@@ -1351,6 +1351,14 @@ func begin_turn() -> void:
 	# ── Phase 5b: Buff expiry ──
 	BuffManager.tick_buffs(pid)
 
+	# ── Phase 5b1: Mana regeneration from buildings (Arcane Institute Lv3) ──
+	var bld_effects: Dictionary = BuildingRegistry.get_all_player_building_effects(pid)
+	var mana_regen_amt: int = int(bld_effects.get("mana_regen", 0))
+	if mana_regen_amt > 0:
+		var current_mana: int = ResourceManager.get_resource(pid, "mana")
+		ResourceManager.set_resource(pid, "mana", current_mana + mana_regen_amt)
+		EventBus.message_log.emit("[color=blue]魔导研究院: 法力回复 +%d[/color]" % mana_regen_amt)
+
 	# ── Phase 5b2: Research progress ──
 	if pid == get_human_player_id():
 		ResearchManager.process_turn(pid)

@@ -339,6 +339,13 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		var troop_base: String = _get_troop_base_type(unit_type)
 		if troop_base in ["mage_unit", "priest"]:
 			base_atk += float(bld.get("mage_atk_bonus", 0))
+		# Elite training (War College Lv3): +1 ATK and +1 DEF to all units
+		if bld.get("elite_training", false):
+			base_atk += 1.0
+			base_def += 1.0
+		# Tactical simulation (War College Lv2): +1 SPD to all units
+		if bld.get("tactical_sim", false):
+			spd += 1.0
 
 	# Determine max actions
 	var max_actions: int = 1

@@ -479,6 +479,8 @@ func get_all_player_building_effects(player_id: int) -> Dictionary:
 		"mage_atk_bonus": 0, "reanimate_chance": 0.0, "shadow_per_turn": 0,
 		"supply_penalty_reduction": 0, "food_storage": 0,
 		"free_troop_interval": 0,
+		"elite_training": false, "tactical_sim": false,
+		"crystal_efficiency": 1.0, "mana_regen": 0,
 	}
 	for tile in GameManager.tiles:
 		if tile["owner_id"] != player_id:
@@ -490,7 +492,12 @@ func get_all_player_building_effects(player_id: int) -> Dictionary:
 		var effects: Dictionary = get_building_effects(bld, bld_level)
 		for key in effects:
 			if totals.has(key):
-				if totals[key] is float:
+				if totals[key] is bool:
+					totals[key] = totals[key] or bool(effects[key])
+				elif key == "crystal_efficiency":
+					# Take the highest crystal_efficiency multiplier
+					totals[key] = maxf(totals[key], float(effects[key]))
+				elif totals[key] is float:
 					totals[key] += float(effects[key])
 				elif totals[key] is int:
 					totals[key] += int(effects[key])

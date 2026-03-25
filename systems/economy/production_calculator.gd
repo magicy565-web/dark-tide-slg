@@ -111,6 +111,11 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		income["shadow_essence"] = int(float(income["shadow_essence"]) * faction_res_mult)
 		income["magic_crystal"] = int(float(income["magic_crystal"]) * faction_res_mult)
 
+	# ── Crystal efficiency bonus (Arcane Institute Lv2): multiply magic_crystal income ──
+	var crystal_eff: float = float(global_bld.get("crystal_efficiency", 1.0))
+	if crystal_eff > 1.0 and income["magic_crystal"] > 0:
+		income["magic_crystal"] = int(float(income["magic_crystal"]) * crystal_eff)
+
 	# ── Buff production multiplier ──
 	var buff_prod_mult: float = BuffManager.get_production_multiplier(player_id)
 	if buff_prod_mult != 1.0:
