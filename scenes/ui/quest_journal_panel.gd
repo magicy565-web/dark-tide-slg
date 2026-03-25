@@ -3,6 +3,7 @@
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const QuestDefs = preload("res://systems/quest/quest_definitions.gd")
+const SideQuestData = preload("res://systems/quest/side_quest_data.gd")
 
 # ── State ──
 var _visible: bool = false
@@ -244,6 +245,36 @@ func _refresh() -> void:
 
 	if filtered.is_empty():
 		_add_empty_notice(target_cat)
+	elif _current_tab == "side":
+		# Group side quests by sub-category with headers
+		var no_sub: Array = []
+		var story: Array = []
+		var bonus: Array = []
+		var intel: Array = []
+		for quest in filtered:
+			match quest.get("sub_category", ""):
+				"story": story.append(quest)
+				"bonus": bonus.append(quest)
+				"intel": intel.append(quest)
+				_: no_sub.append(quest)
+		# Original side quests (no sub-category)
+		for quest in no_sub:
+			_add_quest_card(quest)
+		# Story sub-header
+		if not story.is_empty():
+			_add_sub_header("剧情")
+			for quest in story:
+				_add_quest_card(quest)
+		# Bonus sub-header
+		if not bonus.is_empty():
+			_add_sub_header("奖励")
+			for quest in bonus:
+				_add_quest_card(quest)
+		# Intel sub-header
+		if not intel.is_empty():
+			_add_sub_header("情报")
+			for quest in intel:
+				_add_quest_card(quest)
 	else:
 		for quest in filtered:
 			_add_quest_card(quest)
@@ -262,6 +293,18 @@ func _add_empty_notice(category: String) -> void:
 	lbl.text = "暂无%s任务" % names.get(category, "")
 	lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 	lbl.add_theme_font_size_override("font_size", 15)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content_container.add_child(lbl)
+
+
+func _add_sub_header(title: String) -> void:
+	## Add a sub-category header label within the side quest tab.
+	var sep := HSeparator.new()
+	content_container.add_child(sep)
+	var lbl := Label.new()
+	lbl.text = "— %s —" % title
+	lbl.add_theme_font_size_override("font_size", 15)
+	lbl.add_theme_color_override("font_color", Color(0.7, 0.8, 0.5))
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content_container.add_child(lbl)
 

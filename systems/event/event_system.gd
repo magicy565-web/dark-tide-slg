@@ -3,6 +3,7 @@
 ## immobile, temp_soldiers, debuff, gold_delayed, special_npc effects.
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const SideQuestData = preload("res://systems/quest/side_quest_data.gd")
 
 # Event structure: { id, name, desc, condition, repeatable, choices: [{text, effects}] }
 var _events := []
@@ -31,6 +32,7 @@ var _pending_events: Array = []
 
 func _ready() -> void:
 	_register_events()
+	register_world_events()
 
 
 func reset() -> void:
@@ -41,6 +43,8 @@ func reset() -> void:
 	_immobile_this_turn = false
 	_temp_soldier_batches.clear()
 	_pending_events.clear()
+	_world_events.clear()
+	_world_event_triggered_ids.clear()
 
 
 # ═══════════════ EVENT REGISTRATION ═══════════════
@@ -298,6 +302,135 @@ func is_immobile() -> bool:
 	return _immobile_this_turn
 
 
+# ═══════════════ WORLD EVENTS (from SideQuestData) ═══════════════
+
+## World events registered from SideQuestData.WORLD_EVENTS.
+## These are non-repeatable narrative events checked each turn.
+var _world_events: Array = []
+var _world_event_triggered_ids: Dictionary = {}  # event_id -> true
+
+
+func register_world_events() -> void:
+	## Load world events from SideQuestData and register them for per-turn checking.
+	_world_events.clear()
+	_world_event_triggered_ids.clear()
+	if SideQuestData.WORLD_EVENTS.is_empty():
+		return
+	for we in SideQuestData.WORLD_EVENTS:
+		_world_events.append(we)
+
+
+func check_world_events() -> Array:
+	## Check and trigger world events this turn. Returns triggered events.
+	var triggered: Array = []
+	var pid: int = GameManager.get_human_player_id()
+	for we in _world_events:
+		var eid: String = we.get("id", "")
+		if _world_event_triggered_ids.has(eid):
+			continue
+		# Evaluate trigger conditions
+		var trigger: Dictionary = we.get("trigger", {})
+		if not _check_world_event_trigger(trigger, pid):
+			continue
+		# Trigger the event
+		_world_event_triggered_ids[eid] = true
+		triggered.append(we)
+		# Show event popup
+		var popup_data: Dictionary = {
+			"title": we.get("name", ""),
+			"desc": we.get("desc", ""),
+		}
+		if EventBus.has_signal("show_event_popup"):
+			EventBus.show_event_popup.emit(popup_data)
+		# Apply player effects
+		var effects: Dictionary = we.get("effects", {})
+		if not effects.is_empty():
+			_apply_world_event_effects(effects, pid)
+		# Apply AI effects to AI factions
+		var ai_effects: Dictionary = we.get("ai_effects", {})
+		if not ai_effects.is_empty():
+			_apply_ai_effects(ai_effects)
+		EventBus.message_log.emit("[color=cyan][世界事件] %s[/color]" % we.get("name", ""))
+	return triggered
+
+
+func _check_world_event_trigger(trigger: Dictionary, player_id: int) -> bool:
+	for key in trigger:
+		match key:
+			"turn_min":
+				if GameManager.turn_number < trigger[key]:
+					return false
+			"tiles_min":
+				var c: int = 0
+				for tile in GameManager.tiles:
+					if tile.get("owner_id", -1) == player_id:
+						c += 1
+				if c < trigger[key]:
+					return false
+			"threat_min":
+				if ThreatManager.get_threat() < trigger[key]:
+					return false
+			"battles_won_min":
+				var stats: Dictionary = QuestJournal.get_stats() if QuestJournal.has_method("get_stats") else {}
+				if stats.get("battles_won", 0) < trigger[key]:
+					return false
+			"side_quest_completed":
+				if not QuestJournal.has_method("_is_completed"):
+					return false
+				if not QuestJournal._is_completed(QuestJournal._side_progress, trigger[key]):
+					return false
+	return true
+
+
+func _apply_world_event_effects(effects: Dictionary, player_id: int) -> void:
+	for key in effects:
+		match key:
+			"gold":
+				ResourceManager.apply_delta(player_id, {"gold": effects[key]})
+			"food":
+				ResourceManager.apply_delta(player_id, {"food": effects[key]})
+			"iron":
+				ResourceManager.apply_delta(player_id, {"iron": effects[key]})
+			"prestige":
+				ResourceManager.apply_delta(player_id, {"prestige": effects[key]})
+			"order":
+				OrderManager.change_order(effects[key])
+			"threat":
+				ThreatManager.change_threat(effects[key])
+			"soldiers":
+				if effects[key] > 0:
+					ResourceManager.add_army(player_id, effects[key])
+				else:
+					ResourceManager.remove_army(player_id, -effects[key])
+			"reveal":
+				_apply_reveal(player_id, effects[key])
+			"buff":
+				var buff: Dictionary = effects[key]
+				BuffManager.add_buff(player_id, "world_%s" % buff.get("type", ""), buff.get("type", ""), buff.get("value", 0), buff.get("duration", 1), "world_event")
+
+
+func _apply_ai_effects(ai_effects: Dictionary) -> void:
+	## Apply effects to all AI factions.
+	var ai_ids: Array = GameManager.get_ai_player_ids() if GameManager.has_method("get_ai_player_ids") else []
+	for ai_id in ai_ids:
+		for key in ai_effects:
+			match key:
+				"soldiers":
+					if ai_effects[key] > 0:
+						ResourceManager.add_army(ai_id, ai_effects[key])
+					else:
+						ResourceManager.remove_army(ai_id, -ai_effects[key])
+				"gold":
+					ResourceManager.apply_delta(ai_id, {"gold": ai_effects[key]})
+				"threat":
+					ThreatManager.change_threat(ai_effects[key])
+				"order":
+					OrderManager.change_order(ai_effects[key])
+				"buff":
+					var buff: Dictionary = ai_effects[key]
+					BuffManager.add_buff(ai_id, "world_ai_%s" % buff.get("type", ""), buff.get("type", ""), buff.get("value", 0), buff.get("duration", 1), "world_event")
+
+
 ## Called by GameManager at the start of the event phase each turn.
 ## Processes DOTs, delayed gold, temp soldier expiry, then rolls new events.
 func process_turn_start() -> void:
@@ -344,6 +477,9 @@ func process_turn_start() -> void:
 		else:
 			remaining_batches.append(batch)
 	_temp_soldier_batches = remaining_batches
+
+	# ── Check world events ──
+	check_world_events()
 
 
 # ═══════════════ CHOICE APPLICATION ═══════════════
@@ -597,6 +733,7 @@ func to_save_data() -> Dictionary:
 		"pending_gold": _pending_gold,
 		"immobile_this_turn": _immobile_this_turn,
 		"temp_soldier_batches": _temp_soldier_batches.duplicate(true),
+		"world_event_triggered_ids": _world_event_triggered_ids.duplicate(true),
 	}
 
 
@@ -607,3 +744,6 @@ func from_save_data(data: Dictionary) -> void:
 	_pending_gold = data.get("pending_gold", 0)
 	_immobile_this_turn = data.get("immobile_this_turn", false)
 	_temp_soldier_batches = data.get("temp_soldier_batches", [])
+	_world_event_triggered_ids = data.get("world_event_triggered_ids", {})
+	# Re-register world events from data file so check_world_events() works
+	register_world_events()

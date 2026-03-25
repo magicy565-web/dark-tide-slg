@@ -6,6 +6,7 @@ extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const QuestDefs = preload("res://systems/quest/quest_definitions.gd")
 const ChallengeData = preload("res://systems/quest/challenge_quest_data.gd")
+const SideQuestData = preload("res://systems/quest/side_quest_data.gd")
 
 # ═══════════════ STATE ═══════════════
 
@@ -27,6 +28,10 @@ var _stats: Dictionary = {
 	"waaagh_battle_wins": 0,
 	"expeditions_defended": 0,
 	"tiles_captured_log": [],  # [{turn, count}] for time-window checks
+	"total_kills": 0,
+	"ap_purchased": 0,
+	"tiles_not_lost_streak": 0,
+	"tiles_lost_this_turn": false,
 }
 
 var _initialized: bool = false
@@ -44,6 +49,8 @@ func _ready() -> void:
 		EventBus.turn_started.connect(_on_turn_started)
 	if EventBus.has_signal("challenge_battle_resolved"):
 		EventBus.challenge_battle_resolved.connect(_on_challenge_battle_resolved)
+	if EventBus.has_signal("tile_lost"):
+		EventBus.tile_lost.connect(_on_tile_lost)
 
 
 # ═══════════════ INITIALIZATION ═══════════════
@@ -58,7 +65,8 @@ func init_journal(player_faction: int) -> void:
 	_unlocked_titles.clear()
 	_active_title = ""
 	_stats = {"battles_won": 0, "heroes_captured_total": 0,
-		"waaagh_battle_wins": 0, "expeditions_defended": 0, "tiles_captured_log": []}
+		"waaagh_battle_wins": 0, "expeditions_defended": 0, "tiles_captured_log": [],
+		"total_kills": 0, "ap_purchased": 0, "tiles_not_lost_streak": 0, "tiles_lost_this_turn": false}
 
 	# Init main quests (first one starts as AVAILABLE)
 	for i in range(QuestDefs.MAIN_QUESTS.size()):
@@ -70,6 +78,14 @@ func init_journal(player_faction: int) -> void:
 
 	# Init side quests (all start LOCKED, unlocked by triggers)
 	for q in QuestDefs.SIDE_QUESTS:
+		_side_progress[q["id"]] = {"status": QuestDefs.QuestStatus.LOCKED, "completed_at": -1}
+
+	# Init expanded side quests (story/bonus/intel)
+	for q in SideQuestData.STORY_QUESTS:
+		_side_progress[q["id"]] = {"status": QuestDefs.QuestStatus.LOCKED, "completed_at": -1}
+	for q in SideQuestData.BONUS_QUESTS:
+		_side_progress[q["id"]] = {"status": QuestDefs.QuestStatus.LOCKED, "completed_at": -1}
+	for q in SideQuestData.INTEL_QUESTS:
 		_side_progress[q["id"]] = {"status": QuestDefs.QuestStatus.LOCKED, "completed_at": -1}
 
 	# Init challenge quests (only for player's faction)
@@ -101,7 +117,8 @@ func reset() -> void:
 	_unlocked_titles.clear()
 	_active_title = ""
 	_stats = {"battles_won": 0, "heroes_captured_total": 0,
-		"waaagh_battle_wins": 0, "expeditions_defended": 0, "tiles_captured_log": []}
+		"waaagh_battle_wins": 0, "expeditions_defended": 0, "tiles_captured_log": [],
+		"total_kills": 0, "ap_purchased": 0, "tiles_not_lost_streak": 0, "tiles_lost_this_turn": false}
 	_initialized = false
 
 
@@ -111,6 +128,13 @@ func tick(player_id: int) -> void:
 	## Called each turn from GameManager. Checks all quest triggers.
 	if not _initialized:
 		return
+	# Update tiles_not_lost_streak
+	if not _stats.get("tiles_lost_this_turn", false):
+		_stats["tiles_not_lost_streak"] = _stats.get("tiles_not_lost_streak", 0) + 1
+	else:
+		_stats["tiles_not_lost_streak"] = 0
+	_stats["tiles_lost_this_turn"] = false
+
 	_check_main_quests(player_id)
 	_check_side_quests(player_id)
 	_check_challenge_quests(player_id)
@@ -168,6 +192,28 @@ func _evaluate_objective(obj: Dictionary, player_id: int) -> bool:
 			return _stats["expeditions_defended"] >= 1
 		"tiles_gained_in_turns":
 			return _check_tiles_in_window(obj.get("turns", 3), value)
+		"total_kills_min":
+			return _stats.get("total_kills", 0) >= value
+		"tiles_not_lost_turns":
+			return _stats.get("tiles_not_lost_streak", 0) >= value
+		"ap_purchased_min":
+			return _stats.get("ap_purchased", 0) >= value
+		"hero_level_min":
+			return _get_max_hero_level() >= value
+		"relics_min":
+			return RelicManager.get_relic_count(player_id) >= value
+		"researches_min":
+			return ResearchManager.get_completed_count(player_id) >= value
+		"public_order_all_min":
+			return _all_tiles_public_order_min(player_id, value / 100.0)
+		"fog_revealed_pct":
+			return _get_fog_revealed_pct(player_id) >= value
+		"watchtowers_min":
+			return _count_tiles_with_building(player_id, "watchtower") >= value
+		"treaties_signed_min":
+			return DiplomacyManager.get_treaty_count(player_id) >= value
+		"total_soldiers_min":
+			return _get_total_soldiers(player_id) >= value
 	return false
 
 
@@ -217,6 +263,27 @@ func _evaluate_trigger(trigger: Dictionary, player_id: int) -> bool:
 			"faction":
 				if GameManager.get_player_faction(player_id) != trigger[key]:
 					return false
+			"total_kills_min":
+				if _stats.get("total_kills", 0) < trigger[key]:
+					return false
+			"ap_purchased_min":
+				if _stats.get("ap_purchased", 0) < trigger[key]:
+					return false
+			"hero_level_min":
+				if _get_max_hero_level() < trigger[key]:
+					return false
+			"relics_min":
+				if RelicManager.get_relic_count(player_id) < trigger[key]:
+					return false
+			"researches_min":
+				if ResearchManager.get_completed_count(player_id) < trigger[key]:
+					return false
+			"treaties_signed_min":
+				if DiplomacyManager.get_treaty_count(player_id) < trigger[key]:
+					return false
+			"side_quest_completed":
+				if not _is_completed(_side_progress, trigger[key]):
+					return false
 	return true
 
 
@@ -244,6 +311,22 @@ func _check_main_quests(player_id: int) -> void:
 
 func _check_side_quests(player_id: int) -> void:
 	for q in QuestDefs.SIDE_QUESTS:
+		var state: Dictionary = _side_progress.get(q["id"], {})
+		if state.get("status", -1) == QuestDefs.QuestStatus.LOCKED:
+			if _evaluate_trigger(q.get("trigger", {}), player_id):
+				_side_progress[q["id"]]["status"] = QuestDefs.QuestStatus.ACTIVE
+				_notify_quest_available("支线", q["name"])
+		elif state.get("status", -1) == QuestDefs.QuestStatus.ACTIVE:
+			var all_done: bool = true
+			for obj in q.get("objectives", []):
+				if not _evaluate_objective(obj, player_id):
+					all_done = false
+					break
+			if all_done:
+				_complete_quest_entry(_side_progress, q["id"], q.get("reward", {}), player_id, "支线", q["name"])
+
+	# Check expanded side quests (story/bonus/intel)
+	for q in SideQuestData.STORY_QUESTS + SideQuestData.BONUS_QUESTS + SideQuestData.INTEL_QUESTS:
 		var state: Dictionary = _side_progress.get(q["id"], {})
 		if state.get("status", -1) == QuestDefs.QuestStatus.LOCKED:
 			if _evaluate_trigger(q.get("trigger", {}), player_id):
@@ -484,6 +567,25 @@ func get_all_quests(player_id: int) -> Array:
 		var state: Dictionary = _side_progress.get(q["id"], {})
 		if state.get("status", -1) != QuestDefs.QuestStatus.LOCKED:
 			result.append(_format_quest(q, state, "side", player_id))
+	# Expanded side quests (story/bonus/intel)
+	for q in SideQuestData.STORY_QUESTS:
+		var state: Dictionary = _side_progress.get(q["id"], {})
+		if state.get("status", -1) != QuestDefs.QuestStatus.LOCKED:
+			var entry: Dictionary = _format_quest(q, state, "side", player_id)
+			entry["sub_category"] = "story"
+			result.append(entry)
+	for q in SideQuestData.BONUS_QUESTS:
+		var state: Dictionary = _side_progress.get(q["id"], {})
+		if state.get("status", -1) != QuestDefs.QuestStatus.LOCKED:
+			var entry: Dictionary = _format_quest(q, state, "side", player_id)
+			entry["sub_category"] = "bonus"
+			result.append(entry)
+	for q in SideQuestData.INTEL_QUESTS:
+		var state: Dictionary = _side_progress.get(q["id"], {})
+		if state.get("status", -1) != QuestDefs.QuestStatus.LOCKED:
+			var entry: Dictionary = _format_quest(q, state, "side", player_id)
+			entry["sub_category"] = "intel"
+			result.append(entry)
 	# Challenge
 	var faction_id: int = GameManager.get_player_faction(player_id)
 	if ChallengeData.CHALLENGES.has(faction_id):
@@ -601,6 +703,7 @@ func _on_combat_result(attacker_id: int, _defender_desc: String, won: bool) -> v
 	var pid: int = GameManager.get_human_player_id()
 	if attacker_id == pid and won:
 		_stats["battles_won"] += 1
+		_stats["total_kills"] = _stats.get("total_kills", 0) + 1
 		# Check WAAAGH! state for orc challenge
 		if OrcMechanic and OrcMechanic.has_method("get_waaagh"):
 			if OrcMechanic.get_waaagh(pid) >= BalanceConfig.WAAAGH_FRENZY_THRESHOLD:
@@ -629,6 +732,12 @@ func _on_turn_started(player_id: int) -> void:
 func notify_expedition_defended() -> void:
 	## Call from GameManager when player successfully defends against expedition.
 	_stats["expeditions_defended"] += 1
+
+
+func _on_tile_lost(_player_id: int, _tile_index: int) -> void:
+	if not _initialized:
+		return
+	_stats["tiles_lost_this_turn"] = true
 
 
 func _on_challenge_battle_resolved(challenge_id: String, won: bool) -> void:
@@ -667,6 +776,49 @@ func _check_tiles_in_window(turns: int, required: int) -> bool:
 			count += entry["count"]
 	return count >= required
 
+
+func _get_max_hero_level() -> int:
+	var max_lvl: int = 0
+	for hero_id in HeroSystem.recruited_heroes:
+		var lvl: int = HeroSystem.get_hero_level(hero_id)
+		if lvl > max_lvl:
+			max_lvl = lvl
+	return max_lvl
+
+
+func _all_tiles_public_order_min(player_id: int, threshold: float) -> bool:
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) == player_id:
+			if tile.get("public_order", 0.0) < threshold:
+				return false
+	return true
+
+
+func _get_fog_revealed_pct(player_id: int) -> float:
+	var total: int = GameManager.tiles.size()
+	if total == 0:
+		return 0.0
+	var revealed: int = 0
+	for t in GameManager.tiles:
+		if t.get("revealed", {}).get(player_id, false):
+			revealed += 1
+	return (float(revealed) / float(total)) * 100.0
+
+
+func _count_tiles_with_building(player_id: int, building_id: String) -> int:
+	var c: int = 0
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) == player_id and tile.get("building_id", "") == building_id:
+			c += 1
+	return c
+
+
+func _get_total_soldiers(player_id: int) -> int:
+	var total: int = 0
+	for army in GameManager.get_player_armies(player_id):
+		total += army.get("soldiers", 0)
+	return total
+
 func _is_completed(progress_dict: Dictionary, quest_id: String) -> bool:
 	return progress_dict.get(quest_id, {}).get("status", -1) == QuestDefs.QuestStatus.COMPLETED
 
@@ -700,5 +852,6 @@ func from_save_data(data: Dictionary) -> void:
 	_unlocked_titles = data.get("titles", [])
 	_active_title = data.get("active_title", "")
 	_stats = data.get("stats", {"battles_won": 0, "heroes_captured_total": 0,
-		"waaagh_battle_wins": 0, "expeditions_defended": 0, "tiles_captured_log": []})
+		"waaagh_battle_wins": 0, "expeditions_defended": 0, "tiles_captured_log": [],
+		"total_kills": 0, "ap_purchased": 0, "tiles_not_lost_streak": 0, "tiles_lost_this_turn": false})
 	_initialized = data.get("initialized", false)
