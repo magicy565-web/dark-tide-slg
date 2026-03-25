@@ -93,7 +93,7 @@ func process_prison_turn() -> void:
 		var increment: int = 1
 		if _pirate_mode:
 			increment = ceili(float(increment) * FactionData.PIRATE_CORRUPTION_SPEED)
-		hero_corruption[hero_id] = hero_corruption.get(hero_id, 0) + increment
+		hero_corruption[hero_id] = mini(hero_corruption.get(hero_id, 0) + increment, 100)
 
 
 ## Attempt to recruit a captured hero

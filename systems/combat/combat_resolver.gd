@@ -126,6 +126,12 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		state["barrier_tile_index"] = tile.get("index", -1)
 		log.append("精灵屏障激活!")
 
+	# Reset per-battle state
+	for u in state["atk_units"]:
+		u["bloodlust_bonus"] = 0
+	for u in state["def_units"]:
+		u["bloodlust_bonus"] = 0
+
 	# -- Phase 3: Main battle loop (up to 12 rounds) --
 	var winner: String = ""
 	for round_num in range(1, MAX_ROUNDS + 1):
@@ -1153,6 +1159,7 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 			return 0  # Immune
 	if best_shield_idx >= 0:
 		base_damage *= (1.0 - best_shield_val)
+		base_damage = maxf(0.0, base_damage)
 		# 护盾使用后消耗，标记duration为0使其在回合结束时移除
 		defender_unit["buffs"][best_shield_idx]["duration"] = 0
 
@@ -1203,7 +1210,7 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 			var gold_per_kill: int = GameData.FACTION_PASSIVES.get("pirate", {}).get("gold_per_kill", 0)
 			if gold_per_kill > 0:
 				# Actual soldiers killed: damage, but no more than target had before
-				var soldiers_killed: int = mini(damage, target["soldiers"] + damage)
+				var soldiers_killed: int = mini(damage, maxi(target["soldiers"], 0))
 				var gold_gain: int = soldiers_killed * gold_per_kill
 				# Synergy special: gold_income_bonus multiplier
 				var syn_specials: Dictionary = state.get("atk_synergy_specials", {}) if source["side"] == "attacker" else state.get("def_synergy_specials", {})

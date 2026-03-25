@@ -221,12 +221,13 @@ func get_atk_multiplier(player_id: int) -> float:
 	var atk_pct: float = raw_pct as float if raw_pct != null else 0.0
 	if atk_pct != 0.0:
 		mult *= (1.0 + atk_pct / 100.0)
-	return mult
+	return clampf(mult, 0.1, 5.0)
 
 
 func get_def_multiplier(player_id: int) -> float:
 	var raw = get_buff_value(player_id, "def_mult")
-	return raw as float if raw != null else 1.0
+	var result: float = raw as float if raw != null else 1.0
+	return clampf(result, 0.1, 5.0)
 
 
 func get_dice_bonus(player_id: int) -> int:
@@ -234,7 +235,8 @@ func get_dice_bonus(player_id: int) -> int:
 
 
 func get_production_multiplier(player_id: int) -> float:
-	return get_buff_value(player_id, "production_mult") as float
+	var result: float = get_buff_value(player_id, "production_mult") as float
+	return clampf(result, 0.1, 5.0)
 
 
 func is_move_blocked(player_id: int) -> bool:

@@ -4031,6 +4031,7 @@ func _run_orc_ai(player_id: int) -> void:
 			ai_armies = get_player_armies(player_id)
 
 	# ── Main action loop ──
+	var idle_count: int = 0
 	while player["ap"] > 0 and game_active:
 		await get_tree().create_timer(0.35).timeout
 		if not game_active:
@@ -4175,6 +4176,9 @@ func _run_orc_ai(player_id: int) -> void:
 		if ResourceManager.get_slaves(player_id) > 0:
 			OrcMechanic.convert_slave_to_army(player_id)
 			# Slave conversion doesn't cost AP, but keep looping
+			idle_count += 1
+			if idle_count > 3:
+				break
 			continue
 
 		# ── Phase 6: Explore only if nothing else to do (Orcs dislike idle turns) ──
