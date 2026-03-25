@@ -104,6 +104,7 @@ func _connect_signals() -> void:
 	EventBus.item_acquired.connect(_on_item_changed)
 	EventBus.item_used.connect(_on_item_changed)
 	EventBus.building_constructed.connect(_on_building_constructed)
+	# LEGACY: gold_changed/charm_changed are never emitted — kept for backward compat
 	EventBus.gold_changed.connect(_on_legacy_changed)
 	EventBus.charm_changed.connect(_on_legacy_changed)
 	if EventBus.has_signal("territory_selected"):

@@ -139,6 +139,7 @@ func tick_rebellion(player_id: int) -> void:
 				tile["garrison"] = randi_range(10, 15)
 				var fname: String = _get_faction_name(faction_id)
 				EventBus.message_log.emit("[color=red]%s 的据点发生叛乱! 据点#%d 失守[/color]" % [fname, tile["index"]])
+				EventBus.rebellion_occurred.emit(tile["index"])
 				OrderManager.change_order(-3)
 
 func is_recruited(player_id: int, faction_id: int) -> bool:

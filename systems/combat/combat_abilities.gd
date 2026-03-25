@@ -189,3 +189,28 @@ func post_combat_morale(units: Array, won: bool, losses_pct: float) -> void:
 		delta = -15 - int(losses_pct * 20)  # Loss = -15 to -35
 	for unit in units:
 		apply_morale_change(unit, delta)
+
+
+# ---------------------------------------------------------------------------
+# Movement Passives
+# ---------------------------------------------------------------------------
+
+## Conscript passive: when passing through a friendly-owned tile, +1 soldier to troops with conscript.
+## Called from movement system when a troop enters a new tile.
+func apply_conscript_bonus(player_id: int, tile_index: int) -> Array:
+	var details: Array = []
+	var army: Array = RecruitManager._get_army_ref(player_id)
+	# Check if tile is owned by the player
+	var tile_owner: int = LightFactionAI.get_tile_owner(tile_index)
+	if tile_owner != player_id:
+		return details
+	for troop in army:
+		var td: Dictionary = GameData.get_troop_def(troop["troop_id"])
+		var passive: String = td.get("passive", "")
+		if passive == "conscript":
+			if troop["soldiers"] < troop["max_soldiers"]:
+				troop["soldiers"] += 1
+				details.append("%s 征召 +1兵 (剩余%d)" % [td.get("name", troop["troop_id"]), troop["soldiers"]])
+	if not details.is_empty():
+		RecruitManager._sync_army_count(player_id)
+	return details

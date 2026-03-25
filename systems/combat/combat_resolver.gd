@@ -104,7 +104,16 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		wall_hp = maxf(wall_hp - float(blast_barrel_dmg), 0.0)
 		log.append("爆破桶: 城防-%.0f" % float(blast_barrel_dmg))
 
-	if wall_hp > 0.0 and StrategicResourceManager.ignores_walls(atk_pid):
+	# Passive: siege_ignore — if ANY attacker unit has siege_ignore, skip wall phase entirely
+	var _has_siege_ignore: bool = false
+	for _si_unit in state["atk_units"]:
+		if "siege_ignore" in _si_unit["passives"]:
+			_has_siege_ignore = true
+			break
+
+	if wall_hp > 0.0 and _has_siege_ignore:
+		log.append("无视城防! 攻城部队直接突入!")
+	elif wall_hp > 0.0 and StrategicResourceManager.ignores_walls(atk_pid):
 		log.append("火药攻势! 无视城防!")
 	elif wall_hp > 0.0:
 		var siege_result: Dictionary = _resolve_siege_phase(state, wall_hp, tile)
@@ -276,7 +285,7 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
 	var is_attacker: bool = (side == "attacker")
 
-	var has_ignore_terrain: bool = "ignore_terrain" in passives
+	var has_ignore_terrain: bool = "ignore_terrain" in passives or "shadow_flight" in passives
 	if not has_ignore_terrain:
 		if is_attacker:
 			base_atk *= terrain_data.get("atk_mult", 1.0)
@@ -300,6 +309,10 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 	# Fort defense passive: DEF+3 when defending own node
 	if "fort_def_3" in passives and not is_attacker:
 		base_def += 3
+
+	# Passive: counter_defend — DEF+2 when on defender side
+	if "counter_defend" in passives and not is_attacker:
+		base_def += 2
 
 	# Chokepoint combat modifier
 	if tile.get("is_chokepoint", false):
@@ -363,6 +376,9 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 	if "extra_action" in passives:
 		max_actions = 2
 
+	# Passive: immovable / aoe_immobile — flag to prevent row-swap effects
+	var is_immovable: bool = "immovable" in passives or "aoe_immobile" in passives
+
 	# Determine default row
 	var row: String = raw.get("row", TROOP_DEFAULT_ROW.get(unit_type, "front"))
 
@@ -394,6 +410,7 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		"root_bind_used": false,
 		"trade_hire_used": false,
 		"blood_ritual_used": false,
+		"immovable": is_immovable,
 	}
 
 
@@ -419,11 +436,30 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 			siege_dmg *= CANNON_SIEGE_MULT
 		if "siege_x2" in unit["passives"]:
 			siege_dmg *= 2.0
+		# Passive: siege_x3 — siege damage ×3
+		if "siege_x3" in unit["passives"]:
+			siege_dmg *= 3.0
+		# Passive: dwarf_siege_t3 — siege damage ×3 (AoE splash handled after loop)
+		if "dwarf_siege_t3" in unit["passives"]:
+			siege_dmg *= 3.0
 		# Siege buff (cached)
 		if _siege_mult > 1.0:
 			siege_dmg *= _siege_mult
 		remaining -= siege_dmg
 		log.append("%s 攻城伤害 %.0f" % [unit["unit_type"], siege_dmg])
+
+	# Passive: dwarf_siege_t3 — after siege phase, deal ATK×0.5 splash to all defenders
+	for unit in state["atk_units"]:
+		if not unit["is_alive"]:
+			continue
+		if "dwarf_siege_t3" in unit["passives"]:
+			var splash_dmg: int = maxi(1, int(unit["atk"] * 0.5))
+			for def_unit in state["def_units"]:
+				if def_unit["is_alive"]:
+					def_unit["soldiers"] = maxi(0, def_unit["soldiers"] - splash_dmg)
+					if def_unit["soldiers"] <= 0:
+						def_unit["is_alive"] = false
+					log.append("%s 矮人炮术溅射! %s -%d兵" % [unit["unit_type"], def_unit["unit_type"], splash_dmg])
 
 	var wall_damage_total: int = int(wall_hp - maxf(remaining, 0.0))
 	LightFactionAI.damage_wall(tile.get("index", -1), wall_damage_total)
@@ -574,6 +610,44 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			var max_key: String = "atk_mana_max" if unit["side"] == "attacker" else "def_mana_max"
 			state[mana_key] = mini(state[mana_key] + 1, state[max_key])
 
+		# Passive: scatter — if soldiers < 30% of max, unit retreats (survives but leaves battle)
+		if "scatter" in unit["passives"]:
+			if float(unit["soldiers"]) < float(unit["max_soldiers"]) * 0.3:
+				unit["is_alive"] = false
+				log.append("%s [%s] 溃散撤退!" % [unit["unit_type"], unit["side"]])
+				continue
+
+		# Passive: reload_shot — on even rounds (2,4,6...), unit skips action (reloading)
+		if "reload_shot" in unit["passives"]:
+			if state["round"] % 2 == 0:
+				unit["actions_this_round"] = unit["max_actions"]  # Skip action this round
+				log.append("%s [%s] 装填中..." % [unit["unit_type"], unit["side"]])
+
+		# BUG FIX: zero_food — undead units lose 1 soldier per combat round
+		if "zero_food" in unit["passives"]:
+			unit["soldiers"] -= 1
+			if unit["soldiers"] <= 0:
+				unit["soldiers"] = 0
+				unit["is_alive"] = false
+				log.append("%s [%s] 不死之军 兵力归零!" % [unit["unit_type"], unit["side"]])
+				continue
+			else:
+				log.append("%s [%s] 不死之军 -1兵 (剩余%d)" % [unit["unit_type"], unit["side"], unit["soldiers"]])
+
+		# BUG FIX: DoT debuff processing — apply poison_dot damage
+		var dot_damage: int = 0
+		for d in unit["debuffs"]:
+			if d["id"] == "poison_dot" and d["duration"] > 0:
+				dot_damage += 1
+		if dot_damage > 0:
+			unit["soldiers"] -= dot_damage
+			log.append("%s [%s] 中毒! -%d兵" % [unit["unit_type"], unit["side"], dot_damage])
+			if unit["soldiers"] <= 0:
+				unit["soldiers"] = 0
+				unit["is_alive"] = false
+				log.append("%s [%s] 中毒身亡!" % [unit["unit_type"], unit["side"]])
+				continue
+
 		# Tick down skill cooldown
 		if unit["skill_cooldown"] > 0:
 			unit["skill_cooldown"] -= 1
@@ -606,6 +680,8 @@ func _build_action_queue(state: Dictionary) -> Array:
 	for unit in all_units:
 		if "preemptive" in unit["passives"] or "preemptive_1_3" in unit["passives"]:
 			preemptive.append(unit)
+		elif "reload_shot" in unit["passives"] and state["round"] == 1:
+			preemptive.append(unit)  # reload_shot gets preemptive priority round 1
 		else:
 			normal.append(unit)
 
@@ -667,6 +743,11 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 			_execute_aoe_attack(state, unit, log)
 			return
 
+	# Passive: aoe_immobile — free AoE attack at 0.5x damage (no mana cost)
+	if "aoe_immobile" in unit["passives"]:
+		_execute_aoe_attack_half(state, unit, log)
+		return
+
 	# Check hero active skill (if ready and has mana)
 	if unit["hero_id"] != "" and unit["skill_cooldown"] <= 0:
 		var skill: Dictionary = unit["active_skill"]
@@ -687,6 +768,15 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		damage = int(float(damage) * 1.5)
 		unit["has_charged"] = true
 		log.append("%s [%s] 冲锋! 伤害×1.5" % [unit["unit_type"], unit["side"]])
+
+	# Passive: charge_stun — first attack ×1.5 + 30% chance to stun for 1 round
+	if "charge_stun" in unit["passives"] and not unit["has_charged"]:
+		damage = int(float(damage) * 1.5)
+		unit["has_charged"] = true
+		log.append("%s [%s] 冲锋! 伤害×1.5" % [unit["unit_type"], unit["side"]])
+		if randf() < 0.3:
+			target["debuffs"].append({"id": "stun", "duration": 1, "value": 1})
+			log.append("%s [%s] 被冲锋眩晕1回合!" % [target["unit_type"], target["side"]])
 
 	# Preemptive ×1.3 multiplier (round 1 only for preemptive_1_3)
 	if "preemptive_1_3" in unit["passives"] and state["round"] == 1:
@@ -726,6 +816,13 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		if drained > 0:
 			log.append("%s [%s] 法力吸取! 吸取%d法力" % [unit["unit_type"], unit["side"], drained])
 
+	# Passive: poison_slow — on hit, apply DoT (1 dmg/round for 2 rounds) + SPD-2 for 2 rounds
+	if "poison_slow" in unit["passives"] and damage > 0 and target["is_alive"]:
+		target["debuffs"].append({"id": "poison_dot", "duration": 2, "value": 1})
+		target["debuffs"].append({"id": "slow", "duration": 2, "value": 2.0})
+		target["spd"] = maxf(target["spd"] - 2, 1.0)
+		log.append("%s [%s] 寒霜毒液! %s 中毒+减速2回合" % [unit["unit_type"], unit["side"], target["unit_type"]])
+
 	# Passive: gold_on_hit — on hit, player gains 2 gold
 	if "gold_on_hit" in unit["passives"] and damage > 0:
 		if unit["player_id"] >= 0:
@@ -757,12 +854,22 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 			unit["is_alive"] = false
 			log.append("%s [%s] 过载自毁!" % [unit["unit_type"], unit["side"]])
 
-	# Counter-attack: counter_1_2 passive
-	if target["is_alive"] and "counter_1_2" in target["passives"]:
+	# Counter-attack: counter_1_2 or counter_defend passive
+	if target["is_alive"] and ("counter_1_2" in target["passives"] or "counter_defend" in target["passives"]):
 		var counter_dmg: int = _calculate_damage(target, unit, state)
 		counter_dmg = int(float(counter_dmg) * 1.2)
 		log.append("%s [%s] 反击! 伤害 %d" % [target["unit_type"], target["side"], counter_dmg])
 		_apply_damage_to_unit(state, unit, counter_dmg, target, log)
+
+	# Passive: double_forest — in forest terrain, attack a second random target
+	if "double_forest" in unit["passives"] and unit["is_alive"]:
+		var terrain_type: int = state.get("terrain", FactionData.TerrainType.PLAINS)
+		if terrain_type == FactionData.TerrainType.FOREST:
+			var second_target: Dictionary = _select_target(state, unit)
+			if not second_target.is_empty():
+				var second_dmg: int = _calculate_damage(unit, second_target, state)
+				log.append("%s [%s] 森林双击! 追加攻击 %s" % [unit["unit_type"], unit["side"], second_target["unit_type"]])
+				_apply_damage_to_unit(state, second_target, second_dmg, unit, log)
 
 
 func _execute_heal(state: Dictionary, healer: Dictionary, log: Array) -> void:
@@ -817,6 +924,26 @@ func _execute_aoe_attack(state: Dictionary, unit: Dictionary, log: Array) -> voi
 
 	log.append("%s [%s] AoE攻击! 命中 %d 个目标 (×%.1f)" % [
 		unit["unit_type"], unit["side"], hit_count, mult])
+
+
+## AoE attack at half damage (aoe_immobile passive, no mana cost)
+func _execute_aoe_attack_half(state: Dictionary, unit: Dictionary, log: Array) -> void:
+	var enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
+	var hit_count: int = 0
+	for enemy in enemies:
+		if not enemy["is_alive"]:
+			continue
+		var damage: int = _calculate_damage(unit, enemy, state)
+		if damage == 0:
+			continue
+		# 0.5x damage to compensate for free AoE
+		damage = maxi(1, int(float(damage) * 0.5))
+		# AoE per-target reduction
+		damage = maxi(1, int(float(damage) * 0.6))
+		_apply_damage_to_unit(state, enemy, damage, unit, log)
+		hit_count += 1
+	log.append("%s [%s] AoE攻击(固定)! 命中 %d 个目标 (×0.5)" % [
+		unit["unit_type"], unit["side"], hit_count])
 
 
 # ---------------------------------------------------------------------------
@@ -1106,6 +1233,16 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 		if float(attacker_unit["soldiers"]) < float(attacker_unit["max_soldiers"]) * 0.5:
 			atk *= 2.0
 
+	# Passive: berserker_rage — when <50% soldiers, ATK×2 and DEF becomes 0
+	if "berserker_rage" in attacker_unit["passives"]:
+		if float(attacker_unit["soldiers"]) < float(attacker_unit["max_soldiers"]) * 0.5:
+			atk *= 2.0
+
+	# Passive: berserker_rage (defender) — when <50% soldiers, DEF becomes 0
+	if "berserker_rage" in defender_unit["passives"]:
+		if float(defender_unit["soldiers"]) < float(defender_unit["max_soldiers"]) * 0.5:
+			def_val = 0.0
+
 	# Passive: blood_triple — when unit is <30% soldiers, ATK is tripled
 	if "blood_triple" in attacker_unit["passives"]:
 		if float(attacker_unit["soldiers"]) < float(attacker_unit["max_soldiers"]) * 0.3:
@@ -1119,6 +1256,22 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 			if u["is_alive"]:
 				alive_count += 1
 		if alive_count <= 1:
+			atk += 2.0
+
+	# Passive: waaagh_triple — if WAAAGH >= 80, ATK×3
+	if "waaagh_triple" in attacker_unit["passives"]:
+		var _waaagh_pid: int = attacker_unit.get("player_id", -1)
+		if _waaagh_pid >= 0 and OrcMechanic.get_waaagh(_waaagh_pid) >= 80:
+			atk *= 3.0
+
+	# Passive: horde_bonus — if 3+ orc units on same side, ATK+2
+	if "horde_bonus" in attacker_unit["passives"]:
+		var own_units: Array = state["atk_units"] if attacker_unit["side"] == "attacker" else state["def_units"]
+		var orc_count: int = 0
+		for u in own_units:
+			if u["is_alive"] and u["unit_type"].begins_with("orc_"):
+				orc_count += 1
+		if orc_count >= 3:
 			atk += 2.0
 
 	# Passive: guerrilla — in forest/swamp terrain, ATK+2 DEF+1
@@ -1172,6 +1325,12 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 	var soldiers_killed: int = maxi(0, int(base_damage))
 	if base_damage > 0.0 and soldiers_killed == 0:
 		soldiers_killed = 1
+
+	# Passive: shadow_flight — 30% chance to double final damage
+	if "shadow_flight" in attacker_unit["passives"]:
+		if randf() < 0.3:
+			soldiers_killed *= 2
+
 	return soldiers_killed
 
 
@@ -1325,6 +1484,16 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 	log.append("=== 战斗结束 === %s胜 | 攻方损失 %d | 守方损失 %d | 俘获奴隶 %d" % [
 		"进攻方" if winner == "attacker" else "防守方",
 		attacker_losses, defender_losses, slaves_captured])
+
+	# Passive: pillage — winning side gains +10 gold per unit with pillage
+	var winner_units: Array = state["atk_units"] if winner == "attacker" else state["def_units"]
+	var pillage_gold: int = 0
+	for unit in winner_units:
+		if unit["is_alive"] and "pillage" in unit["passives"]:
+			pillage_gold += 10
+	if pillage_gold > 0 and winner_pid >= 0:
+		ResourceManager.apply_delta(winner_pid, {"gold": pillage_gold})
+		log.append("劫掠! 胜利方获得 +%d 金" % pillage_gold)
 
 	var combat_result := {
 		"winner": winner,

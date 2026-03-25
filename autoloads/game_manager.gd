@@ -48,19 +48,6 @@ var MAX_TROOPS_PER_ARMY: int:
 	get: return BalanceConfig.MAX_TROOPS_PER_ARMY
 var MAX_HEROES_PER_ARMY: int:
 	get: return BalanceConfig.MAX_HEROES_PER_ARMY
-## DEPRECATED (v3.3): Supply line getters kept for backward compatibility.
-## New code should use BalanceConfig.SUPPLY_ENEMY_TERRITORY_ATTRITION etc.
-var SUPPLY_LINE_SAFE: int:
-	get: return BalanceConfig.SUPPLY_SAFE_RANGE
-var SUPPLY_LINE_ATTRITION_PCT: float:
-	get: return BalanceConfig.SUPPLY_ATTRITION_MILD_PCT
-var SUPPLY_LINE_CUT_ATTRITION_PCT: float:
-	get: return BalanceConfig.SUPPLY_ATTRITION_CUT_PCT
-## DEPRECATED: Forced march getters (AP purchase system replaces forced march)
-#var FORCED_MARCH_AP: int:
-#	get: return BalanceConfig.FORCED_MARCH_AP
-#var FORCED_MARCH_LOSS_PCT: float:
-#	get: return BalanceConfig.FORCED_MARCH_LOSS_PCT
 
 var UPGRADE_COSTS: Array:
 	get: return BalanceConfig.UPGRADE_COSTS
@@ -1488,6 +1475,8 @@ func begin_turn() -> void:
 	# ── Sync army count from ResourceManager ──
 	sync_player_army(pid)
 
+	# Force-close any lingering event popup before starting the new turn
+	EventBus.hide_event_popup.emit()
 	EventBus.turn_started.emit(pid)
 	EventBus.message_log.emit("══ %s 的回合 (第%d回合, AP:%d) ══" % [player["name"], turn_number, player["ap"]])
 

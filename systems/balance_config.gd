@@ -91,14 +91,6 @@ const DAMAGE_MIN_RATE: float = 0.10
 const UNIT_MOVES_BASE: int = 3
 const UNIT_MOVES_MAX: int = 5
 
-## DEPRECATED (v3.2): 地形修正已统一至 FactionData.TERRAIN_DATA
-## 保留仅供参考，新代码请勿使用
-#const TERRAIN_CAV_PLAINS_ATK: int = 3
-#const TERRAIN_ARCHER_FOREST_ATK: int = 3
-#const TERRAIN_CAV_FOREST_ATK: int = -3
-#const TERRAIN_SWAMP_SPD: int = -3
-#const TERRAIN_FORTRESS_DEF_MULT: float = 1.5
-#const TERRAIN_MOUNTAIN_DEF_MULT: float = 1.2
 const TERRAIN_DEFENDER_BONUS: float = 0.10  # SR07 town +10% 防御方优势 (独立于地形)
 
 # ═══════════════ ARMY (TW:W aligned) ═══════════════
@@ -117,19 +109,10 @@ const MAX_AP: int = 5
 ## Base population cap before tile bonuses
 const BASE_POPULATION_CAP: int = 3
 
-## DEPRECATED (v3.3): Supply line constants replaced by territory-based check.
-## Kept for backward compatibility — new code should use SUPPLY_ENEMY_TERRITORY_ATTRITION etc.
-const SUPPLY_SAFE_RANGE: int = 4
-const SUPPLY_ATTRITION_MILD_PCT: float = 0.03
-const SUPPLY_ATTRITION_CUT_PCT: float = 0.08
-
 ## Forced march → replaced by AP purchase system
 const AP_BUY_BASE_COST: int = 20      # First extra AP costs 20 gold
 const AP_BUY_COST_SCALE: int = 20     # Each subsequent AP costs +20 more
 const AP_BUY_MAX_PER_TURN: int = 3    # Max 3 extra AP per turn
-## DEPRECATED: Forced march constants (kept for reference, unused)
-#const FORCED_MARCH_AP: int = 2
-#const FORCED_MARCH_LOSS_PCT: float = 0.05
 
 # ═══════════════ ORDER & THREAT (TW:W public order aligned) ═══════════════
 
