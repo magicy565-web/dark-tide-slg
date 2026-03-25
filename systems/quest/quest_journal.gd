@@ -835,7 +835,12 @@ func _on_combat_result(attacker_id: int, _defender_desc: String, won: bool) -> v
 	var pid: int = GameManager.get_human_player_id()
 	if attacker_id == pid and won:
 		_stats["battles_won"] += 1
-		_stats["total_kills"] = _stats.get("total_kills", 0) + 1
+		# Bug fix Round 3: total_kills was incrementing by 1 per battle.
+		# Use CombatTracker for actual kill counts if available; fallback to
+		# estimated kills (avg garrison size) to avoid quest objectives being
+		# nearly impossible to complete.
+		var last_kills: int = CombatTracker.get_last_battle_kills() if CombatTracker and CombatTracker.has_method("get_last_battle_kills") else 5
+		_stats["total_kills"] = _stats.get("total_kills", 0) + last_kills
 		# Check WAAAGH! state for orc challenge
 		if OrcMechanic and OrcMechanic.has_method("get_waaagh"):
 			if OrcMechanic.get_waaagh(pid) >= BalanceConfig.WAAAGH_FRENZY_THRESHOLD:
@@ -976,14 +981,15 @@ func to_save_data() -> Dictionary:
 	}
 
 func from_save_data(data: Dictionary) -> void:
-	_main_progress = data.get("main", {})
-	_side_progress = data.get("side", {})
-	_challenge_progress = data.get("challenge", {})
-	_character_progress = data.get("character", {})
-	_unlocked_traits = data.get("traits", [])
-	_unlocked_titles = data.get("titles", [])
+	# Deep-duplicate all loaded data to avoid mutating the save source (Bug fix Round 3)
+	_main_progress = data.get("main", {}).duplicate(true)
+	_side_progress = data.get("side", {}).duplicate(true)
+	_challenge_progress = data.get("challenge", {}).duplicate(true)
+	_character_progress = data.get("character", {}).duplicate(true)
+	_unlocked_traits = data.get("traits", []).duplicate()
+	_unlocked_titles = data.get("titles", []).duplicate()
 	_active_title = data.get("active_title", "")
 	_stats = data.get("stats", {"battles_won": 0, "heroes_captured_total": 0,
 		"waaagh_battle_wins": 0, "expeditions_defended": 0, "tiles_captured_log": [],
-		"total_kills": 0, "ap_purchased": 0, "tiles_not_lost_streak": 0, "tiles_lost_this_turn": false})
+		"total_kills": 0, "ap_purchased": 0, "tiles_not_lost_streak": 0, "tiles_lost_this_turn": false}).duplicate(true)
 	_initialized = data.get("initialized", false)

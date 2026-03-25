@@ -102,6 +102,9 @@ func can_afford(player_id: int, cost: Dictionary) -> bool:
 		return false
 	var ledger: Dictionary = _ledgers[player_id]
 	for key in cost:
+		# Reject negative costs to prevent exploits (Bug fix Round 3)
+		if cost[key] < 0:
+			return false
 		if ledger.get(key, 0) < cost[key]:
 			return false
 	return true
@@ -113,7 +116,11 @@ func spend(player_id: int, cost: Dictionary) -> bool:
 		return false
 	var neg: Dictionary = {}
 	for key in cost:
-		neg[key] = -cost[key]
+		# Skip zero-value costs to avoid needless delta entries (Bug fix Round 3)
+		if cost[key] > 0:
+			neg[key] = -cost[key]
+	if neg.is_empty():
+		return true
 	apply_delta(player_id, neg)
 	return true
 

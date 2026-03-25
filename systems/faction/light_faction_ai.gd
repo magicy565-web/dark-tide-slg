@@ -45,9 +45,10 @@ func to_save_data() -> Dictionary:
 
 
 func from_save_data(data: Dictionary) -> void:
-	_wall_hp = data.get("wall_hp", {})
-	_barrier_active = data.get("barrier_active", {})
-	_mana_pool = data.get("mana_pool", {})
+	# Deep-duplicate to avoid mutating the save source (Bug fix Round 3)
+	_wall_hp = data.get("wall_hp", {}).duplicate(true)
+	_barrier_active = data.get("barrier_active", {}).duplicate(true)
+	_mana_pool = data.get("mana_pool", {}).duplicate(true)
 	_mana_max = data.get("mana_max", 0)
 	_human_reinforcement_disabled = data.get("human_reinforcement_disabled", false)
 	_teleport_disabled = data.get("teleport_disabled", false)

@@ -380,7 +380,9 @@ func _find_control_by_name(node: Node, node_name: String) -> Control:
 func _on_turn_started(_pid: int) -> void:
 	_turn_count += 1
 	if _active:
-		_trigger("first_turn")
+		# Only trigger "first_turn" on turn 1, not every turn (Bug fix Round 3)
+		if _turn_count == 1:
+			_trigger("first_turn")
 		_trigger("turn_%d" % _turn_count)
 
 

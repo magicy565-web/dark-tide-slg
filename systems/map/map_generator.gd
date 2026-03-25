@@ -235,6 +235,25 @@ func _build_edges(positions: Array, n: int) -> Dictionary:
 		else:
 			non_mst_edges.append(e)
 
+	# Verify full connectivity: if graph is disconnected (e.g. very few nodes placed
+	# far apart), force-connect remaining components via nearest edges (Bug fix Round 3).
+	var root_set: Dictionary = {}
+	for i in range(n):
+		root_set[uf.find(i)] = true
+	if root_set.size() > 1:
+		# There are disconnected components — force-connect them.
+		# Re-scan all_edges (sorted by distance) and union any cross-component edges.
+		for e in all_edges:
+			if uf.find(e["a"]) != uf.find(e["b"]):
+				uf.union(e["a"], e["b"])
+				mst_edges.append(e)
+				# Check if now fully connected
+				root_set.clear()
+				for i2 in range(n):
+					root_set[uf.find(i2)] = true
+				if root_set.size() == 1:
+					break
+
 	# --- Add 15-20% extra edges for alternate paths ---
 	var extra_ratio: float = randf_range(EXTRA_EDGE_RATIO_MIN, EXTRA_EDGE_RATIO_MAX)
 	var extra_count: int = int(ceil(mst_edges.size() * extra_ratio))
@@ -297,7 +316,9 @@ func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int) -> 
 			resource_nodes.append({"resource_type": rp["resource_type"], "name_prefix": rp["name_prefix"]})
 
 	var resource_ids: Array = _pick_unassigned_scattered(positions, assigned, resource_nodes.size())
-	for idx in range(resource_ids.size()):
+	# Guard: only assign as many as we actually found positions for (Bug fix Round 3)
+	var resource_assign_count: int = mini(resource_ids.size(), resource_nodes.size())
+	for idx in range(resource_assign_count):
 		var rid: int = resource_ids[idx]
 		var rdata: Dictionary = resource_nodes[idx]
 		var node_name: String = rdata["name_prefix"] + "采集站" + str(idx + 1)

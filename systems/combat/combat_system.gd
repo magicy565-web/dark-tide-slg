@@ -455,11 +455,16 @@ func _resolve_preemptive_phase(state: BattleState) -> void:
 		if u.is_alive() and (u.has_passive("preemptive") or u.has_passive("preemptive_1_3")):
 			pre_units.append(u)
 
-	# Sort preemptive units by SPD descending, random tiebreak.
+	# Sort preemptive units by SPD descending; assign random tiebreak keys first
+	# so the comparator is consistent (randi() inside sort_custom is non-deterministic
+	# and can cause infinite loops or incorrect ordering — Bug fix Round 3).
+	var _pre_tiebreak: Dictionary = {}
+	for u in pre_units:
+		_pre_tiebreak[u.id] = randi()
 	pre_units.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
 		if a.spd != b.spd:
 			return a.spd > b.spd
-		return randi() % 2 == 0
+		return _pre_tiebreak[a.id] > _pre_tiebreak[b.id]
 	)
 
 	for u in pre_units:
@@ -540,11 +545,16 @@ func _get_action_queue(state: BattleState) -> Array[BattleUnit]:
 		if u.is_alive():
 			queue.append(u)
 
-	# Sort by SPD descending; ties broken randomly.
+	# Sort by SPD descending; assign random tiebreak keys before sorting so the
+	# comparator is consistent (randi() inside sort_custom is non-deterministic
+	# and can cause infinite loops or incorrect ordering — Bug fix Round 3).
+	var _tiebreak: Dictionary = {}
+	for u in queue:
+		_tiebreak[u.id] = randi()
 	queue.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
 		if a.spd != b.spd:
 			return a.spd > b.spd
-		return randi() % 2 == 0
+		return _tiebreak[a.id] > _tiebreak[b.id]
 	)
 
 	return queue
@@ -715,8 +725,9 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 		terrain_def_mult = tdata_dmg.get("def_mult", 1.0)
 	def_val = int(float(def_val) * terrain_def_mult)
 
-	# SR07-style: max(10, ATK - DEF) percentage-based damage
-	var raw_diff: int = maxi(10, atk_val - def_val)
+	# Design doc formula: max(1, ATK - DEF) — was incorrectly max(10, ...) which
+	# made heavily-armored units take far too much damage (Bug fix Round 3).
+	var raw_diff: int = maxi(1, atk_val - def_val)
 
 	# SR07-style diminishing returns on troop count
 	var troops := float(attacker.soldiers)
@@ -831,11 +842,12 @@ func _select_target(attacker: BattleUnit, enemies: Array[BattleUnit]) -> BattleU
 	var can_hit_back_directly := false
 	var troop := attacker.troop_id.to_lower()
 
-	# Back-row ranged types can hit any row
-	if troop in ["archer", "mage", "cannon"]:
+	# Back-row ranged types can hit any row (use .find() to match partial troop_ids
+	# like "archer_elite", "mage_apprentice", "cannon_heavy" — Bug fix Round 3)
+	if troop.find("archer") != -1 or troop.find("ranger") != -1 or troop.find("mage") != -1 or troop.find("cannon") != -1 or troop.find("bombardier") != -1:
 		can_hit_back_directly = true
 	# Ninja or assassinate_back passive bypasses front
-	if troop == "ninja" or attacker.has_passive("assassinate_back"):
+	if troop.find("ninja") != -1 or troop.find("assassin") != -1 or attacker.has_passive("assassinate_back"):
 		can_hit_back_directly = true
 
 	# Separate enemies into front and back
@@ -850,7 +862,7 @@ func _select_target(attacker: BattleUnit, enemies: Array[BattleUnit]) -> BattleU
 			back.append(e)
 
 	# --- 2. Ninja / assassinate: prefer back row --------------------------
-	if (troop == "ninja" or attacker.has_passive("assassinate_back")) and not back.is_empty():
+	if (troop.find("ninja") != -1 or troop.find("assassin") != -1 or attacker.has_passive("assassinate_back")) and not back.is_empty():
 		return back[randi() % back.size()]
 
 	# --- 3. Front-row attacker: target enemy front first ------------------
@@ -888,8 +900,10 @@ func _pick_aoe_target_row(attacker: BattleUnit, enemies: Array[BattleUnit]) -> i
 		else:
 			has_back = true
 
-	# Ninja / assassinate_back prefers back row for AoE too
-	if (attacker.troop_id.to_lower() == "ninja" or attacker.has_passive("assassinate_back")) and has_back:
+	# Ninja / assassinate_back prefers back row for AoE too (use .find() for partial
+	# troop_id matching, consistent with targeting — Bug fix Round 3)
+	var _aoe_troop := attacker.troop_id.to_lower()
+	if (_aoe_troop.find("ninja") != -1 or _aoe_troop.find("assassin") != -1 or attacker.has_passive("assassinate_back")) and has_back:
 		return 1
 
 	return 0 if has_front else 1
