@@ -3858,6 +3858,7 @@ func run_ai_turn() -> void:
 					best_tile_idx = nb_idx
 			if best_score > 0.0 and best_tile_idx >= 0:
 				action_attack_with_army(army["id"], best_tile_idx)
+				ai_armies = get_player_armies(pid)  # Refresh after combat
 				did_action = true
 				break  # Re-evaluate after attack
 
@@ -4075,6 +4076,7 @@ func _run_orc_ai(player_id: int) -> void:
 
 			if best_tile_idx >= 0:
 				action_attack_with_army(army["id"], best_tile_idx)
+				ai_armies = get_player_armies(pid)  # Refresh after combat
 				did_action = true
 				break  # Re-evaluate after attack
 

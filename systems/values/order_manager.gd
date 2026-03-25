@@ -93,7 +93,7 @@ func tick_turn() -> void:
 		_rebellion_cooldown -= 1
 	if _order > 50:
 		change_order(BalanceConfig.ORDER_DRIFT_HIGH)
-	elif _order < -25:
+	elif _order < -10:
 		change_order(BalanceConfig.ORDER_DRIFT_LOW)
 
 

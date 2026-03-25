@@ -48,6 +48,7 @@ func change_threat(delta: int) -> void:
 	var scaled_delta: int = delta
 	if delta > 0:
 		scaled_delta = int(float(delta) * BalanceManager.get_threat_gain_mult())
+		scaled_delta = mini(scaled_delta, delta * 2)  # Cap at 2x original
 	_threat = clampi(_threat + scaled_delta, 0, 100)
 	if _threat != old:
 		var old_tier: int = _get_tier_for(old)
