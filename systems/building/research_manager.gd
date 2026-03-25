@@ -314,37 +314,38 @@ func _prereqs_met(player_id: int, tech_id: String) -> bool:
 	return true
 
 
+# ── Strategic resource short-key → full ResourceManager key mapping ──
+const _STRATEGIC_KEY_MAP: Dictionary = {
+	"crystal": "magic_crystal",
+	"horse": "war_horse",
+	"shadow": "shadow_essence",
+	"gunpowder": "gunpowder",
+}
+
 func _can_afford_tech(player_id: int, cost: Dictionary) -> bool:
 	for key in cost:
-		if key in ["gold", "food", "iron", "slaves", "prestige"]:
-			if not ResourceManager.can_afford(player_id, {key: cost[key]}):
-				return false
-		elif key in ["crystal", "horse", "gunpowder", "shadow"]:
-			if StrategicResourceManager.get_amount(player_id, key) < cost[key]:
-				return false
+		var res_key: String = _STRATEGIC_KEY_MAP.get(key, key)
+		if ResourceManager.get_resource(player_id, res_key) < cost[key]:
+			return false
 	return true
 
 
 func _deduct_tech_cost(player_id: int, cost: Dictionary) -> void:
-	var econ_cost: Dictionary = {}
+	var delta: Dictionary = {}
 	for key in cost:
-		if key in ["gold", "food", "iron", "slaves", "prestige"]:
-			econ_cost[key] = -cost[key]
-		elif key in ["crystal", "horse", "gunpowder", "shadow"]:
-			StrategicResourceManager.consume(player_id, key, cost[key])
-	if not econ_cost.is_empty():
-		ResourceManager.apply_delta(player_id, econ_cost)
+		var res_key: String = _STRATEGIC_KEY_MAP.get(key, key)
+		delta[res_key] = -cost[key]
+	if not delta.is_empty():
+		ResourceManager.apply_delta(player_id, delta)
 
 
 func _refund_tech_cost(player_id: int, refund: Dictionary) -> void:
-	var econ_refund: Dictionary = {}
+	var delta: Dictionary = {}
 	for key in refund:
-		if key in ["gold", "food", "iron", "slaves", "prestige"]:
-			econ_refund[key] = refund[key]
-		elif key in ["crystal", "horse", "gunpowder", "shadow"]:
-			StrategicResourceManager.add(player_id, key, refund[key])
-	if not econ_refund.is_empty():
-		ResourceManager.apply_delta(player_id, econ_refund)
+		var res_key: String = _STRATEGIC_KEY_MAP.get(key, key)
+		delta[res_key] = refund[key]
+	if not delta.is_empty():
+		ResourceManager.apply_delta(player_id, delta)
 
 
 func _apply_tech_effects(player_id: int, effects: Dictionary) -> void:

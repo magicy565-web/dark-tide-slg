@@ -92,9 +92,9 @@ const COMMON_BUILDINGS: Dictionary = {
 		"name": "魔导研究院",
 		"max_level": 3,
 		"levels": {
-			1: {"cost": {"gold": 200, "iron": 15, "crystal": 1}, "desc": "奥术科技速度+15%, 术师ATK+2", "effects": {"arcane_research_speed": 0.15, "mage_atk_bonus": 2}},
-			2: {"cost": {"gold": 350, "iron": 25, "crystal": 2}, "desc": "奥术速度+30%, 术师ATK+4, 魔晶效率+20%", "effects": {"arcane_research_speed": 0.30, "mage_atk_bonus": 4, "crystal_efficiency": 1.20}, "upgrade_req": {"tile_level": 2}},
-			3: {"cost": {"gold": 500, "iron": 35, "crystal": 3}, "desc": "奥术速度+50%, 术师ATK+6, 法力再生+2/回合", "effects": {"arcane_research_speed": 0.50, "mage_atk_bonus": 6, "mana_regen": 2}, "upgrade_req": {"tile_level": 3}},
+			1: {"cost": {"gold": 200, "iron": 15, "magic_crystal": 1}, "desc": "奥术科技速度+15%, 术师ATK+2", "effects": {"arcane_research_speed": 0.15, "mage_atk_bonus": 2}},
+			2: {"cost": {"gold": 350, "iron": 25, "magic_crystal": 2}, "desc": "奥术速度+30%, 术师ATK+4, 魔晶效率+20%", "effects": {"arcane_research_speed": 0.30, "mage_atk_bonus": 4, "crystal_efficiency": 1.20}, "upgrade_req": {"tile_level": 2}},
+			3: {"cost": {"gold": 500, "iron": 35, "magic_crystal": 3}, "desc": "奥术速度+50%, 术师ATK+6, 法力再生+2/回合", "effects": {"arcane_research_speed": 0.50, "mage_atk_bonus": 6, "mana_regen": 2}, "upgrade_req": {"tile_level": 3}},
 		},
 	},
 }

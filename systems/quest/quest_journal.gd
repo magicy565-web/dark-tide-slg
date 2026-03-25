@@ -157,7 +157,7 @@ func _evaluate_objective(obj: Dictionary, player_id: int) -> bool:
 		"slaves_min":
 			return ResourceManager.get_resource(player_id, "slaves") >= value
 		"shadow_essence_min":
-			return StrategicResourceManager.get_amount(player_id, "shadow_essence") >= value
+			return ResourceManager.get_resource(player_id, "shadow_essence") >= value
 		"waaagh_frenzy_triggered":
 			return _stats["waaagh_battle_wins"] >= 1
 		"waaagh_battle_win":
@@ -206,7 +206,7 @@ func _evaluate_trigger(trigger: Dictionary, player_id: int) -> bool:
 				if QuestManager.get_recruited_factions(player_id).size() < trigger[key]:
 					return false
 			"shadow_essence_min":
-				if StrategicResourceManager.get_amount(player_id, "shadow_essence") < trigger[key]:
+				if ResourceManager.get_resource(player_id, "shadow_essence") < trigger[key]:
 					return false
 			"waaagh_battle_win":
 				if _stats["waaagh_battle_wins"] < 1:
