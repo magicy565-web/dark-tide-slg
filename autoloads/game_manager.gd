@@ -325,7 +325,7 @@ func get_current_player() -> Dictionary:
 func count_tiles_owned(player_id: int) -> int:
 	var c: int = 0
 	for tile in tiles:
-		if tile["owner_id"] == player_id:
+		if tile.get("owner_id", -1) == player_id:
 			c += 1
 	return c
 
@@ -333,7 +333,7 @@ func count_tiles_owned(player_id: int) -> int:
 func count_strongholds_owned(player_id: int) -> int:
 	var c: int = 0
 	for tile in tiles:
-		if tile["owner_id"] == player_id and tile["type"] == TileType.LIGHT_STRONGHOLD:
+		if tile.get("owner_id", -1) == player_id and tile.get("type", -1) == TileType.LIGHT_STRONGHOLD:
 			c += 1
 	return c
 
@@ -341,7 +341,7 @@ func count_strongholds_owned(player_id: int) -> int:
 func get_total_strongholds() -> int:
 	var c: int = 0
 	for tile in tiles:
-		if tile["type"] == TileType.LIGHT_STRONGHOLD:
+		if tile.get("type", -1) == TileType.LIGHT_STRONGHOLD:
 			c += 1
 	return c
 
@@ -353,7 +353,7 @@ func get_stronghold_progress(player_id: int) -> String:
 func get_population_cap(player_id: int) -> int:
 	var total_pop: int = BalanceConfig.BASE_POPULATION_CAP
 	for tile in tiles:
-		if tile["owner_id"] == player_id:
+		if tile.get("owner_id", -1) == player_id:
 			var prod: Dictionary = tile.get("base_production", {})
 			total_pop += prod.get("pop", 0)
 			# Training ground bonus
@@ -1516,7 +1516,7 @@ func _check_rebel_spawns(player_id: int) -> void:
 		return  # No rebels when order is acceptable
 	for i in range(tiles.size()):
 		var tile: Dictionary = tiles[i]
-		if tile["owner_id"] != player_id:
+		if tile.get("owner_id", -1) != player_id:
 			continue
 		# Only spawn on tiles without existing rebels
 		if RecruitManager.get_rebel(i).size() > 0:
@@ -1533,7 +1533,7 @@ func _spawn_expedition() -> void:
 	var human_id: int = get_human_player_id()
 	var owned: Array = []
 	for tile in tiles:
-		if tile["owner_id"] == human_id and tile["type"] != TileType.DARK_BASE:
+		if tile.get("owner_id", -1) == human_id and tile.get("type", -1) != TileType.DARK_BASE:
 			owned.append(tile)
 	if owned.is_empty():
 		return

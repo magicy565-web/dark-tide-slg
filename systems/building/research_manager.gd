@@ -411,6 +411,15 @@ func get_unit_stat_bonus(player_id: int, unit_type: String, stat: String) -> int
 	return int(BuffManager.get_buff_value(player_id, key, 0))
 
 
+func get_unit_stat_bonuses(player_id: int, unit_type: String) -> Dictionary:
+	## Batch lookup: returns {"atk":X, "def":X, "hp":X} in one call.
+	return {
+		"atk": int(BuffManager.get_buff_value(player_id, "train_%s_atk" % unit_type, 0)),
+		"def": int(BuffManager.get_buff_value(player_id, "train_%s_def" % unit_type, 0)),
+		"hp": int(BuffManager.get_buff_value(player_id, "train_%s_hp" % unit_type, 0)),
+	}
+
+
 func has_passive(player_id: int, unit_type: String, passive_id: String) -> bool:
 	var key: String = "passive_%s_%s" % [unit_type, passive_id]
 	return BuffManager.has_buff(player_id, key)

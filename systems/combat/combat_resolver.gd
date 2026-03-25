@@ -294,12 +294,12 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 	if player_id >= 0:
 		base_atk += StrategicResourceManager.get_permanent_atk_bonus(player_id)
 
-	# Training system bonuses
+	# Training system bonuses (batched lookup)
 	if player_id >= 0:
-		base_atk += ResearchManager.get_unit_stat_bonus(player_id, unit_type, "atk")
-		base_def += ResearchManager.get_unit_stat_bonus(player_id, unit_type, "def")
-		var train_hp: int = ResearchManager.get_unit_stat_bonus(player_id, unit_type, "hp")
-		soldiers += train_hp  # Training HP bonus → extra soldiers
+		var train_bonus: Dictionary = ResearchManager.get_unit_stat_bonuses(player_id, unit_type)
+		base_atk += train_bonus["atk"]
+		base_def += train_bonus["def"]
+		soldiers += train_bonus["hp"]  # Training HP bonus → extra soldiers
 
 	# Buff multipliers
 	if player_id >= 0:

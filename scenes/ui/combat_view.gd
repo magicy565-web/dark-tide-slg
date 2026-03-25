@@ -144,6 +144,8 @@ func _ready() -> void:
 	EventBus.combat_started.connect(_on_combat_started)
 	set_process(true)
 func _process(delta: float) -> void:
+	if not visible:
+		return
 	# Screen shake decay
 	if _shake_intensity > 0.1:
 		_shake_intensity = lerp(_shake_intensity, 0.0, _shake_decay * delta)

@@ -641,21 +641,21 @@ func _on_challenge_battle_resolved(challenge_id: String, won: bool) -> void:
 func _count_player_tiles(player_id: int) -> int:
 	var c: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id:
+		if tile.get("owner_id", -1) == player_id:
 			c += 1
 	return c
 
 func _count_player_buildings(player_id: int) -> int:
 	var c: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id and tile.get("building", "") != "":
+		if tile.get("owner_id", -1) == player_id and tile.get("building_id", "") != "":
 			c += 1
 	return c
 
 func _count_tile_type(player_id: int, tile_type: int) -> int:
 	var c: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id and tile.get("type", -1) == tile_type:
+		if tile.get("owner_id", -1) == player_id and tile.get("type", -1) == tile_type:
 			c += 1
 	return c
 
