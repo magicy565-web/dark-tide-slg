@@ -1311,6 +1311,25 @@ func begin_turn() -> void:
 				EventBus.message_log.emit("[color=red]%s 粮草不足! %d名士兵逃亡[/color]" % [
 					player["name"], deserters])
 
+	# ── Phase 3b: Gold upkeep — 军饷 (army gold maintenance) ──
+	var gold_upkeep: int = ProductionCalculator.calculate_gold_upkeep(pid)
+	if gold_upkeep > 0:
+		var current_gold: int = ResourceManager.get_resource(pid, "gold")
+		if current_gold >= gold_upkeep:
+			ResourceManager.apply_delta(pid, {"gold": -gold_upkeep})
+			EventBus.message_log.emit("%s 军饷支出: %d金 (剩余%d)" % [
+				player["name"], gold_upkeep, ResourceManager.get_resource(pid, "gold")])
+		else:
+			# Can't pay full salary — drain all gold + apply combat debuff
+			var deficit: int = gold_upkeep - current_gold
+			ResourceManager.set_resource(pid, "gold", 0)
+			# Apply "unpaid" debuff: -15% ATK/DEF for 1 turn
+			var penalty_mult: float = 1.0 - BalanceConfig.GOLD_DEFICIT_COMBAT_PENALTY
+			BuffManager.add_buff(pid, "unpaid_atk", "atk_mult", penalty_mult, 1, "unpaid_troops")
+			BuffManager.add_buff(pid, "unpaid_def", "def_mult", penalty_mult, 1, "unpaid_troops")
+			EventBus.message_log.emit("[color=red]%s 军饷不足! 欠饷%d金，士气低落(ATK/DEF-%.0f%%)[/color]" % [
+				player["name"], deficit, BalanceConfig.GOLD_DEFICIT_COMBAT_PENALTY * 100.0])
+
 	# ── Phase 4: Threat decay ──
 	if pid == get_human_player_id():
 		ThreatManager.tick_decay()

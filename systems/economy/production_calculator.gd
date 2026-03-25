@@ -253,6 +253,40 @@ func calculate_food_upkeep(player_id: int) -> int:
 	return int(float(food_army) * food_rate)
 
 
+func calculate_gold_upkeep(player_id: int) -> int:
+	## Returns total gold upkeep (军饷) for army maintenance this turn.
+	## Two components: per-soldier base cost + per-squad tier cost.
+	var faction_id: int = GameManager.get_player_faction(player_id)
+	var army: int = ResourceManager.get_army(player_id)
+	if army <= 0:
+		return 0
+
+	# 1. Per-soldier base gold upkeep (faction-specific)
+	var gold_per_soldier: float = 0.3  # default
+	match faction_id:
+		FactionData.FactionID.ORC:
+			gold_per_soldier = BalanceConfig.GOLD_UPKEEP_PER_SOLDIER_ORC
+		FactionData.FactionID.PIRATE:
+			gold_per_soldier = BalanceConfig.GOLD_UPKEEP_PER_SOLDIER_PIRATE
+		FactionData.FactionID.DARK_ELF:
+			gold_per_soldier = BalanceConfig.GOLD_UPKEEP_PER_SOLDIER_DARK_ELF
+
+	# Skeleton legion: undead don't need pay
+	var skeleton_count: int = RecruitManager.get_army_composition(player_id).get("skeleton_legion", 0)
+	var paid_army: int = maxi(0, army - skeleton_count)
+	var base_cost: int = ceili(float(paid_army) * gold_per_soldier)
+
+	# 2. Per-squad tier-based gold upkeep
+	var tier_cost: int = 0
+	var army_ref: Array = RecruitManager._get_army_ref(player_id)
+	for troop in army_ref:
+		var td: Dictionary = GameData.get_troop_def(troop.get("troop_id", ""))
+		var tier: int = td.get("tier", 1)
+		tier_cost += BalanceConfig.TIER_GOLD_UPKEEP.get(tier, 0)
+
+	return base_cost + tier_cost
+
+
 func calculate_plunder_value(player_id: int) -> int:
 	## Pirate: Plunder Value = 2 * owned_tiles
 	var faction_id: int = GameManager.get_player_faction(player_id)

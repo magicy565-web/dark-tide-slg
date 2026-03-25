@@ -31,6 +31,20 @@ const ORDER_PROD_MULT := {
 ## Food maintenance per soldier per turn (TW:W meaningful upkeep)
 const FOOD_PER_SOLDIER: float = 0.5
 
+## Gold maintenance per troop tier per turn (军饷)
+## T1 troops are conscripts (cheap), T3+ are elite professionals (expensive)
+## 平衡基准: 10地块玩家~80金/回合收入, 6编制军队军饷约20-35金≈25-40%收入
+const TIER_GOLD_UPKEEP: Dictionary = { 0: 0, 1: 1, 2: 3, 3: 5, 4: 8 }
+
+## Per-soldier base gold upkeep (faction-specific, applied to raw soldier count)
+## Stacks with tier upkeep: total = base_per_soldier × soldiers + tier_upkeep × squads
+const GOLD_UPKEEP_PER_SOLDIER_ORC: float = 0.2       # 蛮兵便宜 — 40兵=8金
+const GOLD_UPKEEP_PER_SOLDIER_PIRATE: float = 0.4    # 雇佣兵贵 — 40兵=16金
+const GOLD_UPKEEP_PER_SOLDIER_DARK_ELF: float = 0.3  # 精灵适中 — 40兵=12金
+
+## Gold deficit combat penalty: ATK/DEF debuff when can't pay
+const GOLD_DEFICIT_COMBAT_PENALTY: float = 0.15  # -15% ATK/DEF
+
 ## Supply line penalty: 3% global upkeep increase per additional army (TW:W hard difficulty)
 const SUPPLY_LINE_PENALTY_PCT: float = 0.03
 
