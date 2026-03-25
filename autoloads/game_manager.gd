@@ -1370,6 +1370,10 @@ func begin_turn() -> void:
 	if pid == get_human_player_id():
 		StoryEventSystem.process_story_turn()
 
+	# ── Phase 5c3: Harem cooldown tick ──
+	if pid == get_human_player_id():
+		HeroSystem.tick_harem_cooldowns()
+
 	# ── Phase 5d: Taming neglect / gift cooldown tick ──
 	QuestManager.tick_turn(pid)
 

@@ -18,9 +18,11 @@ var hero_equipment: Dictionary = {}
 # hero_id -> int (remaining cooldown turns, 0 = ready)
 var _skill_cooldowns: Dictionary = {}
 
-# ── Pirate Harem System (v2.0) ──
-var hero_submission: Dictionary = {}       # hero_id -> int (0-10, 服从度/调教度)
+# ── Pirate Harem System (v2.0 → Lance 07 rework) ──
+var hero_submission: Dictionary = {}       # hero_id -> int (服从度, uncapped)
 var _pirate_mode: bool = false             # true if player is pirate faction
+var _harem_cooldowns: Dictionary = {}      # hero_id -> {train: int, bed: int}
+var _harem_unlocked: Dictionary = {}       # hero_id -> bool (final story completed)
 
 
 # ── Unlocked second active skills (好感度7解锁) ──
@@ -37,6 +39,8 @@ func reset() -> void:
 	_skill_cooldowns.clear()
 	hero_submission.clear()
 	_pirate_mode = false
+	_harem_cooldowns.clear()
+	_harem_unlocked.clear()
 	_capture_in_progress.clear()
 	_second_skills.clear()
 
@@ -418,7 +422,23 @@ func tick_cooldowns() -> void:
 	for hero_id in _skill_cooldowns:
 		if _skill_cooldowns[hero_id] > 0:
 			_skill_cooldowns[hero_id] -= 1
+	# Harem action cooldowns
+	for hero_id in _harem_cooldowns:
+		var cd: Dictionary = _harem_cooldowns[hero_id]
+		if cd.get("train", 0) > 0:
+			cd["train"] -= 1
+		if cd.get("bed", 0) > 0:
+			cd["bed"] -= 1
 
+
+func tick_harem_cooldowns() -> void:
+	## Called each turn for the human player. Decrements harem action cooldowns.
+	for hero_id in _harem_cooldowns:
+		var cd: Dictionary = _harem_cooldowns[hero_id]
+		if cd.get("train", 0) > 0:
+			cd["train"] -= 1
+		if cd.get("bed", 0) > 0:
+			cd["bed"] -= 1
 
 func get_skill_cooldown(hero_id: String) -> int:
 	return _skill_cooldowns.get(hero_id, 0)
@@ -527,47 +547,42 @@ func apply_skill_in_combat(hero_id: String) -> Dictionary:
 
 # ═══════════════ PIRATE HAREM SYSTEM (海盗后宫) ═══════════════
 
-## 获取角色服从度 (0-10)
+## 获取角色服从度 (uncapped — train caps at 5, bed pushes beyond)
 func get_submission(hero_id: String) -> int:
 	return hero_submission.get(hero_id, 0)
 
 
-## 调教角色 (需要已招募). 消耗性奴隶资源提升服从度.
-## Returns { "ok": bool, "submission": int, "desc": String }
+## 调教 — costs 1 AP, 3-turn cooldown, caps submission at 5.
 func train_heroine(hero_id: String) -> Dictionary:
-	if hero_id not in recruited_heroes:
-		return {"ok": false, "submission": 0, "desc": "角色未招募"}
-	var current: int = hero_submission.get(hero_id, 0)
-	if current >= FactionData.SUBMISSION_MAX:
-		return {"ok": false, "submission": current, "desc": "服从度已满"}
-	# 消耗1性奴隶作为调教辅助
 	var pid: int = GameManager.get_human_player_id()
-	if not PirateMechanic.consume_sex_slaves(pid, 1):
-		return {"ok": false, "submission": current, "desc": "性奴隶不足 (需要1名辅助调教)"}
-	var gain: int = FactionData.SUBMISSION_PER_TRAINING
-	# 调教所建筑加成
-	var training_pens: int = _count_pirate_building("slave_training_pen")
-	if training_pens > 0:
-		gain += 1
-	hero_submission[hero_id] = mini(current + gain, FactionData.SUBMISSION_MAX)
-	var hero_name: String = _get_hero_name(hero_id)
-	var new_sub: int = hero_submission[hero_id]
+	var player: Dictionary = GameManager.get_player_by_id(pid)
+	if player.is_empty():
+		return {"success": false, "reason": "无效玩家"}
+	if hero_id not in recruited_heroes:
+		return {"success": false, "reason": "英雄未招募"}
+	# Check AP
+	if player.get("ap", 0) < 1:
+		return {"success": false, "reason": "行动力不足"}
+	# Check cooldown
+	var cd: Dictionary = _harem_cooldowns.get(hero_id, {"train": 0, "bed": 0})
+	if cd["train"] > 0:
+		return {"success": false, "reason": "冷却中 (剩余%d回合)" % cd["train"]}
+	# Check submission cap for training
+	var current_sub: int = hero_submission.get(hero_id, 0)
+	if current_sub >= 5:
+		return {"success": false, "reason": "调教无法再提升服从度 (需要侍寝)"}
+	# Execute
+	player["ap"] -= 1
+	hero_submission[hero_id] = mini(current_sub + 1, 5)
+	cd["train"] = 3  # 3-turn cooldown
+	_harem_cooldowns[hero_id] = cd
 	EventBus.heroine_submission_changed.emit(hero_id, hero_submission[hero_id])
-	EventBus.message_log.emit("[color=pink]调教 %s! 服从度 %d -> %d[/color]" % [hero_name, current, new_sub])
-	# 服从度阈值事件
-	if current < 3 and new_sub >= 3:
-		EventBus.message_log.emit("[color=pink]%s 开始顺从... 解锁: 特殊对话[/color]" % hero_name)
-	if current < 5 and new_sub >= 5:
-		EventBus.message_log.emit("[color=pink]%s 已被驯服! 解锁: 专属H场景[/color]" % hero_name)
-	if current < 7 and new_sub >= 7:
-		EventBus.message_log.emit("[color=pink]%s 完全臣服! 解锁: 后宫成员确认[/color]" % hero_name)
-	if current < 10 and new_sub >= 10:
-		EventBus.message_log.emit("[color=gold]%s 彻底堕落! 成为你的专属奴隶![/color]" % hero_name)
+	EventBus.message_log.emit("[color=pink]%s 的调教完成，服从度 %d/10+[/color]" % [_get_hero_name(hero_id), hero_submission[hero_id]])
 	_check_harem_progress()
-	return {"ok": true, "submission": new_sub, "desc": "调教成功"}
+	return {"success": true, "submission": hero_submission[hero_id]}
 
 
-## 赠礼提升服从度 (花费金币, 更温和的方式)
+## [LEGACY] 赠礼提升服从度 — kept for backward compatibility, no longer part of core loop.
 func gift_heroine(hero_id: String, gold_cost: int = 30) -> Dictionary:
 	if hero_id not in recruited_heroes:
 		return {"ok": false, "desc": "角色未招募"}
@@ -575,10 +590,8 @@ func gift_heroine(hero_id: String, gold_cost: int = 30) -> Dictionary:
 	if not ResourceManager.can_afford(pid, {"gold": gold_cost}):
 		return {"ok": false, "desc": "金币不足 (需要%d金)" % gold_cost}
 	var current: int = hero_submission.get(hero_id, 0)
-	if current >= FactionData.SUBMISSION_MAX:
-		return {"ok": false, "desc": "服从度已满"}
 	ResourceManager.spend(pid, {"gold": gold_cost})
-	hero_submission[hero_id] = mini(current + FactionData.SUBMISSION_PER_GIFT, FactionData.SUBMISSION_MAX)
+	hero_submission[hero_id] = current + FactionData.SUBMISSION_PER_GIFT
 	var hero_name: String = _get_hero_name(hero_id)
 	EventBus.heroine_submission_changed.emit(hero_id, hero_submission[hero_id])
 	EventBus.message_log.emit("[color=pink]赠礼 %s! 服从度 +%d (当前: %d)[/color]" % [
@@ -587,19 +600,85 @@ func gift_heroine(hero_id: String, gold_cost: int = 30) -> Dictionary:
 	return {"ok": true, "desc": "赠礼成功", "submission": hero_submission[hero_id]}
 
 
-## 获取后宫收集进度 { "total": int, "recruited": int, "submitted": int, "complete": bool }
+## 侍寝 — unlocks at submission >= 5, costs 1 AP, 2-turn cooldown, heals player HP.
+func bed_heroine(hero_id: String) -> Dictionary:
+	var pid: int = GameManager.get_human_player_id()
+	var player: Dictionary = GameManager.get_player_by_id(pid)
+	if player.is_empty():
+		return {"success": false, "reason": "无效玩家"}
+	if hero_id not in recruited_heroes:
+		return {"success": false, "reason": "英雄未招募"}
+	var current_sub: int = hero_submission.get(hero_id, 0)
+	if current_sub < 5:
+		return {"success": false, "reason": "服从度不足 (需要≥5)"}
+	if player.get("ap", 0) < 1:
+		return {"success": false, "reason": "行动力不足"}
+	var cd: Dictionary = _harem_cooldowns.get(hero_id, {"train": 0, "bed": 0})
+	if cd["bed"] > 0:
+		return {"success": false, "reason": "冷却中 (剩余%d回合)" % cd["bed"]}
+	# Execute
+	player["ap"] -= 1
+	hero_submission[hero_id] = current_sub + 1
+	cd["bed"] = 2  # 2-turn cooldown
+	_harem_cooldowns[hero_id] = cd
+	# Heal player HP
+	var heal_amount: int = 5
+	ResourceManager.apply_delta(pid, {"hp": heal_amount})
+	EventBus.heroine_submission_changed.emit(hero_id, hero_submission[hero_id])
+	EventBus.message_log.emit("[color=pink]与%s侍寝，服从度 %d，HP回复 +%d[/color]" % [_get_hero_name(hero_id), hero_submission[hero_id], heal_amount])
+	_check_harem_progress()
+	return {"success": true, "submission": hero_submission[hero_id], "healed": heal_amount}
+
+
+## 最終剧情 — submission >= 10, costs 1 AP, unlocks heroine permanently.
+func trigger_final_story(hero_id: String) -> Dictionary:
+	var pid: int = GameManager.get_human_player_id()
+	var player: Dictionary = GameManager.get_player_by_id(pid)
+	if player.is_empty():
+		return {"success": false, "reason": "无效玩家"}
+	if hero_id not in recruited_heroes:
+		return {"success": false, "reason": "英雄未招募"}
+	if _harem_unlocked.get(hero_id, false):
+		return {"success": false, "reason": "已解锁"}
+	var current_sub: int = hero_submission.get(hero_id, 0)
+	if current_sub < 10:
+		return {"success": false, "reason": "服从度不足 (需要≥10)"}
+	if player.get("ap", 0) < 1:
+		return {"success": false, "reason": "行动力不足"}
+	# Execute
+	player["ap"] -= 1
+	_harem_unlocked[hero_id] = true
+	EventBus.heroine_submission_changed.emit(hero_id, hero_submission[hero_id])
+	EventBus.message_log.emit("[color=gold]═══ %s 最终剧情完成! 角色已解锁! ═══[/color]" % _get_hero_name(hero_id))
+	_check_harem_progress()
+	return {"success": true}
+
+
+func is_heroine_unlocked(hero_id: String) -> bool:
+	return _harem_unlocked.get(hero_id, false)
+
+
+func get_harem_cooldowns(hero_id: String) -> Dictionary:
+	return _harem_cooldowns.get(hero_id, {"train": 0, "bed": 0})
+
+
+func get_unlocked_count() -> int:
+	var count: int = 0
+	for hid in _harem_unlocked:
+		if _harem_unlocked[hid]: count += 1
+	return count
+
+
+## 获取后宫收集进度 { "total": int, "recruited": int, "unlocked": int, "complete": bool }
 func get_harem_progress() -> Dictionary:
-	var total_heroes: int = FactionData.HEROES.size()
-	var recruited_count: int = recruited_heroes.size()
-	var submitted_count: int = 0
-	for hero_id in recruited_heroes:
-		if hero_submission.get(hero_id, 0) >= FactionData.HAREM_VICTORY_SUBMISSION_MIN:
-			submitted_count += 1
+	var total: int = FactionData.HEROES.size()
+	var recruited: int = recruited_heroes.size()
+	var unlocked: int = get_unlocked_count()
 	return {
-		"total": total_heroes,
-		"recruited": recruited_count,
-		"submitted": submitted_count,
-		"complete": submitted_count >= total_heroes,
+		"total": total,
+		"recruited": recruited,
+		"unlocked": unlocked,
+		"complete": unlocked >= recruited and recruited > 0,
 	}
 
 
@@ -609,20 +688,22 @@ func _check_harem_progress() -> void:
 		return
 	var progress: Dictionary = get_harem_progress()
 	var total: int = progress["total"]
-	var submitted: int = progress["submitted"]
-	EventBus.harem_progress_updated.emit(progress["recruited"], progress["submitted"], progress["total"])
-	if submitted > 0 and submitted % 3 == 0 and submitted < total:
-		EventBus.message_log.emit("[color=gold]后宫进度: %d/%d 角色已臣服! 继续收集...[/color]" % [submitted, total])
+	var unlocked: int = progress["unlocked"]
+	EventBus.harem_progress_updated.emit(progress["recruited"], unlocked, total)
+	if unlocked > 0 and unlocked % 3 == 0 and unlocked < total:
+		EventBus.message_log.emit("[color=gold]后宫进度: %d/%d 角色已解锁! 继续收集...[/color]" % [unlocked, total])
 	if progress["complete"]:
-		EventBus.message_log.emit("[color=gold]═══ 所有角色已完全臣服! 后宫胜利条件达成! ═══[/color]")
+		EventBus.message_log.emit("[color=gold]═══ 所有角色已完全解锁! 后宫胜利条件达成! ═══[/color]")
 		EventBus.harem_victory_achieved.emit()
 
 
-## 检查是否达成后宫胜利条件
+## 检查是否达成后宫胜利条件 (all recruited heroes must have final story unlocked)
 func check_harem_victory() -> bool:
-	if not _pirate_mode:
-		return false
-	return get_harem_progress()["complete"]
+	if not _pirate_mode: return false
+	for hid in recruited_heroes:
+		if not _harem_unlocked.get(hid, false):
+			return false
+	return recruited_heroes.size() > 0
 
 
 ## 内部: 计算海盗建筑数量
@@ -648,6 +729,8 @@ func to_save_data() -> Dictionary:
 		"hero_submission": hero_submission.duplicate(),
 		"pirate_mode": _pirate_mode,
 		"second_skills": _second_skills.duplicate(),
+		"harem_cooldowns": _harem_cooldowns.duplicate(true),
+		"harem_unlocked": _harem_unlocked.duplicate(),
 	}
 	data["hero_leveling"] = HeroLeveling.serialize()
 	return data
@@ -668,6 +751,8 @@ func from_save_data(data: Dictionary) -> void:
 	hero_submission = data.get("hero_submission", {})
 	_pirate_mode = data.get("pirate_mode", false)
 	_second_skills = data.get("second_skills", {})
+	_harem_cooldowns = data.get("harem_cooldowns", {}).duplicate(true)
+	_harem_unlocked = data.get("harem_unlocked", {})
 	if data.has("hero_leveling"):
 		HeroLeveling.deserialize(data["hero_leveling"])
 

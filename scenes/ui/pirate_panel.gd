@@ -321,89 +321,218 @@ func _build_raids() -> void:
 		vbox.add_child(note)
 		content_container.add_child(card); _content_nodes.append(card)
 
-# ═══════════════ HAREM (后宫) ═══════════════
+# ═══════════════ HAREM (后宫) — Lance 07 Style Gallery ═══════════════
+
+# ── Silhouette color scheme ──
+const COL_LOCKED := Color(0.15, 0.15, 0.18)
+const COL_CAPTURED := Color(0.3, 0.12, 0.12)
+const COL_HUMAN := Color(0.85, 0.7, 0.35)
+const COL_HIGH_ELF := Color(0.3, 0.7, 0.35)
+const COL_MAGE := Color(0.3, 0.4, 0.8)
+const COL_PIRATE_HERO := Color(0.2, 0.35, 0.65)
+const COL_DARK_ELF_HERO := Color(0.45, 0.15, 0.55)
+const COL_NEUTRAL_HERO := Color(0.5, 0.5, 0.45)
+const COL_GOLD_BORDER := Color(1.0, 0.85, 0.2)
+
+func _get_faction_color(faction: String) -> Color:
+	match faction:
+		"human": return COL_HUMAN
+		"high_elf": return COL_HIGH_ELF
+		"mage": return COL_MAGE
+		"pirate": return COL_PIRATE_HERO
+		"dark_elf": return COL_DARK_ELF_HERO
+		"neutral": return COL_NEUTRAL_HERO
+	return COL_LOCKED
+
+## Determine the visual state of a hero for the gallery.
+## Returns: "locked", "captured", "recruited", "bedding", "unlocked"
+func _get_hero_state(hero_id: String) -> String:
+	if HeroSystem.is_heroine_unlocked(hero_id):
+		return "unlocked"
+	var sub: int = HeroSystem.get_submission(hero_id)
+	if hero_id in HeroSystem.recruited_heroes:
+		if sub >= 5:
+			return "bedding"
+		return "recruited"
+	if hero_id in HeroSystem.captured_heroes:
+		return "captured"
+	return "locked"
 
 func _build_harem() -> void:
 	var pid: int = GameManager.get_human_player_id()
-	var progress: Dictionary = HeroSystem.get_harem_progress()
-	var total: int = progress.get("total", 0)
-	var recruited: int = progress.get("recruited", 0)
-	var submitted: int = progress.get("submitted", 0)
 
-	# ── Harem progress bar ──
-	var progress_card := _make_card()
-	var pv: VBoxContainer = progress_card.get_child(0)
+	# ── Count unlocked for progress header ──
+	var all_hero_ids: Array = FactionData.HEROES.keys()
+	var total_count: int = all_hero_ids.size()
+	var unlocked_count: int = 0
+	for hid in all_hero_ids:
+		if HeroSystem.is_heroine_unlocked(hid):
+			unlocked_count += 1
+
+	# ── Progress header card ──
+	var header_card := _make_card()
+	var hv: VBoxContainer = header_card.get_child(0)
 	var progress_label := Label.new()
-	progress_label.text = "%d/%d 英雄已臣服" % [submitted, total]
+	progress_label.text = "后宫收集 %d/%d 已解锁" % [unlocked_count, total_count]
 	progress_label.add_theme_font_size_override("font_size", 16)
 	progress_label.add_theme_color_override("font_color", COL_GOLD)
-	pv.add_child(progress_label)
-	var bar := ProgressBar.new()
-	bar.min_value = 0; bar.max_value = maxi(total, 1)
-	bar.value = submitted
-	bar.custom_minimum_size = Vector2(0, 22)
-	bar.show_percentage = false
-	pv.add_child(bar)
-	content_container.add_child(progress_card); _content_nodes.append(progress_card)
+	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hv.add_child(progress_label)
+	var progress_bar := ProgressBar.new()
+	progress_bar.min_value = 0; progress_bar.max_value = maxi(total_count, 1)
+	progress_bar.value = unlocked_count
+	progress_bar.custom_minimum_size = Vector2(0, 20)
+	progress_bar.show_percentage = false
+	hv.add_child(progress_bar)
+	content_container.add_child(header_card); _content_nodes.append(header_card)
 
-	# ── Hero list ──
-	var heroes: Array = HeroSystem.get_recruited_heroes(pid)
-	if heroes.is_empty():
-		_add_empty_label("暂无已招募英雄"); return
-	for hero_id in heroes:
+	# ── Character gallery grid (3 per row) ──
+	var columns: int = 3
+	var current_row: HBoxContainer = null
+	var col_index: int = 0
+
+	for i in range(all_hero_ids.size()):
+		var hero_id: String = all_hero_ids[i]
 		var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+		var state: String = _get_hero_state(hero_id)
+		var faction: String = hero_data.get("faction", "")
 		var hero_name: String = hero_data.get("name", hero_id)
 		var submission: int = HeroSystem.get_submission(hero_id)
-		var card := _make_card()
-		var vbox: VBoxContainer = card.get_child(0)
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		vbox.add_child(row)
-		# Hero name
-		var name_lbl := Label.new()
-		name_lbl.text = hero_name
-		name_lbl.add_theme_font_size_override("font_size", 15)
-		name_lbl.add_theme_color_override("font_color", COL_GOLD)
-		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(name_lbl)
-		# Submission level with color coding
-		var sub_lbl := Label.new()
-		sub_lbl.text = "服从度: %d/10" % submission
-		sub_lbl.add_theme_font_size_override("font_size", 14)
-		var sub_color: Color
-		if submission < 3:
-			sub_color = Color(1.0, 0.3, 0.3)  # red
-		elif submission <= 6:
-			sub_color = Color(1.0, 0.85, 0.3)  # yellow
-		else:
-			sub_color = Color(0.3, 0.9, 0.4)  # green
-		sub_lbl.add_theme_color_override("font_color", sub_color)
-		row.add_child(sub_lbl)
-		# Train button
-		var btn_train := Button.new()
-		btn_train.text = "调教 (1性奴隶)"
-		btn_train.custom_minimum_size = Vector2(130, 28)
-		btn_train.add_theme_font_size_override("font_size", 12)
-		btn_train.pressed.connect(_on_train_heroine.bind(hero_id))
-		row.add_child(btn_train)
-		# Gift button
-		var btn_gift := Button.new()
-		btn_gift.text = "赠礼 (30金)"
-		btn_gift.custom_minimum_size = Vector2(110, 28)
-		btn_gift.add_theme_font_size_override("font_size", 12)
-		btn_gift.pressed.connect(_on_gift_heroine.bind(hero_id))
-		row.add_child(btn_gift)
-		content_container.add_child(card); _content_nodes.append(card)
+		var cooldowns: Dictionary = HeroSystem.get_harem_cooldowns(hero_id)
 
-	# ── Victory status ──
-	var victory_card := _make_card()
-	var vv: VBoxContainer = victory_card.get_child(0)
-	var victory_lbl := Label.new()
-	victory_lbl.text = "后宫胜利条件: 全部英雄服从度≥7"
-	victory_lbl.add_theme_font_size_override("font_size", 14)
-	victory_lbl.add_theme_color_override("font_color", COL_GOOD if progress.get("complete", false) else COL_DIM)
-	vv.add_child(victory_lbl)
-	content_container.add_child(victory_card); _content_nodes.append(victory_card)
+		# Create new row if needed
+		if col_index % columns == 0:
+			current_row = HBoxContainer.new()
+			current_row.add_theme_constant_override("separation", 8)
+			current_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			content_container.add_child(current_row)
+			_content_nodes.append(current_row)
+
+		# ── Build character card ──
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(120, 0)
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var card_style := StyleBoxFlat.new()
+		card_style.bg_color = COL_CARD_BG
+		card_style.set_corner_radius_all(6)
+		card_style.set_content_margin_all(6)
+		# Gold border for unlocked heroes
+		if state == "unlocked":
+			card_style.border_color = COL_GOLD_BORDER
+			card_style.set_border_width_all(2)
+		else:
+			card_style.border_color = COL_CARD_BORDER
+			card_style.set_border_width_all(1)
+		card.add_theme_stylebox_override("panel", card_style)
+
+		var card_vbox := VBoxContainer.new()
+		card_vbox.add_theme_constant_override("separation", 4)
+		card.add_child(card_vbox)
+
+		# ── Silhouette rectangle ──
+		var silhouette := ColorRect.new()
+		silhouette.custom_minimum_size = Vector2(100, 140)
+		silhouette.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		var sil_color: Color
+		match state:
+			"locked":
+				sil_color = COL_LOCKED
+			"captured":
+				sil_color = COL_CAPTURED
+			"recruited":
+				var fc: Color = _get_faction_color(faction)
+				sil_color = fc.darkened(0.5)
+			"bedding":
+				var fc: Color = _get_faction_color(faction)
+				sil_color = fc.darkened(0.2)
+			"unlocked":
+				sil_color = _get_faction_color(faction)
+		silhouette.color = sil_color
+		card_vbox.add_child(silhouette)
+
+		# ── Name label ──
+		var name_lbl := Label.new()
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_lbl.add_theme_font_size_override("font_size", 13)
+		if state == "locked":
+			name_lbl.text = "???"
+			name_lbl.add_theme_color_override("font_color", COL_DIM)
+		elif state == "unlocked":
+			name_lbl.text = hero_name + " \u2605\u89e3\u9501"
+			name_lbl.add_theme_color_override("font_color", COL_GOLD)
+		else:
+			name_lbl.text = hero_name
+			name_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9))
+		card_vbox.add_child(name_lbl)
+
+		# ── Submission bar (recruited, bedding, unlocked only) ──
+		if state in ["recruited", "bedding", "unlocked"]:
+			var sub_bar := ProgressBar.new()
+			sub_bar.min_value = 0; sub_bar.max_value = 10
+			sub_bar.value = submission
+			sub_bar.custom_minimum_size = Vector2(0, 14)
+			sub_bar.show_percentage = false
+			card_vbox.add_child(sub_bar)
+			var sub_lbl := Label.new()
+			sub_lbl.text = "服从 %d/10" % submission
+			sub_lbl.add_theme_font_size_override("font_size", 10)
+			sub_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			if submission < 5:
+				sub_lbl.add_theme_color_override("font_color", Color(1.0, 0.5, 0.3))
+			elif submission < 10:
+				sub_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+			else:
+				sub_lbl.add_theme_color_override("font_color", COL_GOOD)
+			card_vbox.add_child(sub_lbl)
+
+		# ── Action buttons ──
+		if state == "recruited" and submission < 5:
+			# 调教 button
+			var btn_train := Button.new()
+			if cooldowns.get("train", 0) > 0:
+				btn_train.text = "调教 (CD:%d)" % cooldowns["train"]
+				btn_train.disabled = true
+			else:
+				btn_train.text = "调教"
+			btn_train.custom_minimum_size = Vector2(0, 26)
+			btn_train.add_theme_font_size_override("font_size", 11)
+			btn_train.pressed.connect(_on_train_heroine.bind(hero_id))
+			card_vbox.add_child(btn_train)
+
+		if state == "bedding" and submission >= 5 and submission < 10:
+			# 侍寝 button
+			var btn_bed := Button.new()
+			if cooldowns.get("bed", 0) > 0:
+				btn_bed.text = "侍寝 (CD:%d)" % cooldowns["bed"]
+				btn_bed.disabled = true
+			else:
+				btn_bed.text = "侍寝"
+			btn_bed.custom_minimum_size = Vector2(0, 26)
+			btn_bed.add_theme_font_size_override("font_size", 11)
+			btn_bed.pressed.connect(_on_bed_heroine.bind(hero_id))
+			card_vbox.add_child(btn_bed)
+
+		if (state == "bedding" or state == "recruited") and submission >= 10 and not HeroSystem.is_heroine_unlocked(hero_id):
+			# 最终剧情 button
+			var btn_final := Button.new()
+			btn_final.text = "最终剧情"
+			btn_final.custom_minimum_size = Vector2(0, 26)
+			btn_final.add_theme_font_size_override("font_size", 11)
+			btn_final.add_theme_color_override("font_color", COL_GOLD)
+			btn_final.pressed.connect(_on_final_story.bind(hero_id))
+			card_vbox.add_child(btn_final)
+
+		current_row.add_child(card)
+		col_index += 1
+
+	# Pad last row with spacers if needed
+	if current_row != null:
+		var remaining: int = columns - (col_index % columns)
+		if remaining > 0 and remaining < columns:
+			for _j in range(remaining):
+				var spacer := Control.new()
+				spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				current_row.add_child(spacer)
 
 # ═══════════════ ACTION CALLBACKS ═══════════════
 
@@ -434,14 +563,20 @@ func _on_hire_merc(pid: int, merc_id: String, cost: int) -> void:
 
 func _on_train_heroine(hero_id: String) -> void:
 	var result: Dictionary = HeroSystem.train_heroine(hero_id)
-	if not result.get("ok", false):
-		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("desc", "调教失败"))
+	if not result.get("success", false):
+		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "调教失败"))
 	_refresh()
 
-func _on_gift_heroine(hero_id: String) -> void:
-	var result: Dictionary = HeroSystem.gift_heroine(hero_id)
-	if not result.get("ok", false):
-		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("desc", "赠礼失败"))
+func _on_bed_heroine(hero_id: String) -> void:
+	var result: Dictionary = HeroSystem.bed_heroine(hero_id)
+	if not result.get("success", false):
+		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "侍寝失败"))
+	_refresh()
+
+func _on_final_story(hero_id: String) -> void:
+	var result: Dictionary = HeroSystem.trigger_final_story(hero_id)
+	if not result.get("success", false):
+		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "剧情触发失败"))
 	_refresh()
 
 func _on_dim_bg_input(event: InputEvent) -> void:
