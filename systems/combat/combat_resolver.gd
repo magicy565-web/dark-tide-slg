@@ -173,6 +173,16 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 	var atk_max_int: int = _get_highest_int(atk_units)
 	var def_max_int: int = _get_highest_int(def_units)
 
+	# Compute synergy special effects from troop composition
+	var atk_fake_army: Array = []
+	for raw in raw_atk:
+		atk_fake_army.append({"troop_id": raw.get("type", "")})
+	var def_fake_army: Array = []
+	for raw in raw_def:
+		def_fake_army.append({"troop_id": raw.get("type", "")})
+	var atk_synergy_specials: Dictionary = GameData.compute_synergy_specials(atk_fake_army)
+	var def_synergy_specials: Dictionary = GameData.compute_synergy_specials(def_fake_army)
+
 	return {
 		"atk_units": atk_units,
 		"def_units": def_units,
@@ -188,6 +198,8 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 		"barrier_active": false,
 		"barrier_tile_index": -1,
 		"barrier_used_this_round": false,
+		"atk_synergy_specials": atk_synergy_specials,
+		"def_synergy_specials": def_synergy_specials,
 	}
 
 
@@ -399,6 +411,15 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 func _start_of_round(state: Dictionary, log: Array) -> void:
 	state["barrier_used_this_round"] = false
 
+	# Slave fodder dissolution: after round 1, dissolve all slave_fodder units
+	if state["round"] >= 2:
+		for units_key in ["atk_units", "def_units"]:
+			for unit in state[units_key]:
+				if unit["is_alive"] and "slave_fodder" in unit["passives"]:
+					unit["soldiers"] = 0
+					unit["is_alive"] = false
+					log.append("%s [%s] 奴隶肉盾溃散! (首轮消耗品)" % [unit["unit_type"], unit["side"]])
+
 	# Mana regen: +1 per side per round
 	state["atk_mana"] = mini(state["atk_mana"] + 1, state["atk_mana_max"])
 	state["def_mana"] = mini(state["def_mana"] + 1, state["def_mana_max"])
@@ -445,8 +466,11 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 
 		# Passive: forest_stealth — round 1 only: unit is invisible (can't be targeted)
 		if "forest_stealth" in unit["passives"] and state["round"] == 1:
-			unit["buffs"].append({"id": "stealth", "duration": 1, "value": 1})
-			log.append("%s [%s] 林间潜行! 首回合隐身" % [unit["unit_type"], unit["side"]])
+			var stealth_dur: int = 1
+			var syn_specials: Dictionary = state.get("atk_synergy_specials", {}) if unit["side"] == "attacker" else state.get("def_synergy_specials", {})
+			stealth_dur += syn_specials.get("stealth_extra_round", 0)
+			unit["buffs"].append({"id": "stealth", "duration": stealth_dur, "value": 1})
+			log.append("%s [%s] 林间潜行! 隐身%d回合" % [unit["unit_type"], unit["side"], stealth_dur])
 
 		# Passive: leadership — all adjacent friendly units get ATK+2 (aura)
 		if "leadership" in unit["passives"]:
@@ -676,8 +700,14 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 	# Passive: gold_on_hit — on hit, player gains 2 gold
 	if "gold_on_hit" in unit["passives"] and damage > 0:
 		if unit["player_id"] >= 0:
-			ResourceManager.add_gold(unit["player_id"], 2)
-			log.append("%s [%s] 生财有道! +2金" % [unit["unit_type"], unit["side"]])
+			var gold_hit_amount: int = 2
+			# Synergy special: gold_income_bonus multiplier
+			var syn_sp: Dictionary = state.get("atk_synergy_specials", {}) if unit["side"] == "attacker" else state.get("def_synergy_specials", {})
+			var gold_bonus: float = syn_sp.get("gold_income_bonus", 0.0)
+			if gold_bonus > 0.0:
+				gold_hit_amount = int(float(gold_hit_amount) * (1.0 + gold_bonus))
+			ResourceManager.apply_delta(unit["player_id"], {"gold": gold_hit_amount})
+			log.append("%s [%s] 生财有道! +%d金" % [unit["unit_type"], unit["side"], gold_hit_amount])
 
 	# Passive: overload — track usage count; after 3 attacks, self-destruct dealing ATK×2 AoE
 	if "overload" in unit["passives"]:
@@ -1144,6 +1174,26 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 	target["soldiers"] -= damage
 	log.append("%s [%s] 受到 %d 伤害 (剩余 %d 兵)" % [
 		target["unit_type"], target["side"], damage, maxi(target["soldiers"], 0)])
+
+	# Pirate faction passive: gold_per_kill — +1 gold per soldier killed
+	var source_pid: int = source.get("player_id", -1)
+	if source_pid >= 0 and damage > 0:
+		var _is_pirate: bool = source["unit_type"].begins_with("pirate_")
+		if not _is_pirate:
+			_is_pirate = GameManager._get_faction_tag_for_player(source_pid) == "pirate"
+		if _is_pirate:
+			var gold_per_kill: int = GameData.FACTION_PASSIVES.get("pirate", {}).get("gold_per_kill", 0)
+			if gold_per_kill > 0:
+				# Actual soldiers killed: damage, but no more than target had before
+				var soldiers_killed: int = mini(damage, target["soldiers"] + damage)
+				var gold_gain: int = soldiers_killed * gold_per_kill
+				# Synergy special: gold_income_bonus multiplier
+				var syn_specials: Dictionary = state.get("atk_synergy_specials", {}) if source["side"] == "attacker" else state.get("def_synergy_specials", {})
+				var gold_bonus_pct: float = syn_specials.get("gold_income_bonus", 0.0)
+				if gold_bonus_pct > 0.0:
+					gold_gain = int(float(gold_gain) * (1.0 + gold_bonus_pct))
+				ResourceManager.apply_delta(source_pid, {"gold": gold_gain})
+				log.append("%s [%s] 掠夺经济! 击杀%d兵 +%d金" % [source["unit_type"], source["side"], soldiers_killed, gold_gain])
 
 	if target["soldiers"] <= 0:
 		target["soldiers"] = 0

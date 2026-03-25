@@ -855,7 +855,30 @@ func compute_synergy_bonuses(army: Array) -> Dictionary:
 	return result
 
 
-# ─── Active Ability Queries (T3+) ───────────────────────────────────────────
+## Returns all active synergy "special" effects for an army.
+## Checks if both synergy partners are present; if so, collects the "special" dict.
+## Returns a merged Dictionary of all active special effects.
+func compute_synergy_specials(army: Array) -> Dictionary:
+	var result: Dictionary = {}
+	var present_ids: Dictionary = {}
+	for troop in army:
+		var tid: String = troop["troop_id"]
+		present_ids[tid] = true
+	for tid in present_ids:
+		if not SYNERGY_DEFS.has(tid):
+			continue
+		var syn: Dictionary = SYNERGY_DEFS[tid]
+		var partner_id: String = syn["partner"]
+		if not present_ids.has(partner_id):
+			continue
+		var special: Dictionary = syn.get("special", {})
+		for key in special:
+			if key == "desc":
+				continue
+			result[key] = special[key]
+	return result
+
+
 
 ## Returns the active ability definition for a troop (empty if none).
 func get_active_ability(troop_id: String) -> Dictionary:

@@ -116,6 +116,11 @@ func spend(player_id: int, cost: Dictionary) -> bool:
 	return true
 
 
+## Alias for spend() — atomic check-and-deduct to prevent race conditions.
+func try_spend(player_id: int, cost: Dictionary) -> bool:
+	return spend(player_id, cost)
+
+
 # ═══════════════ ARMY ═══════════════
 
 func set_army(player_id: int, count: int) -> void:
