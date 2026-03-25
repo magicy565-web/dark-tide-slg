@@ -1264,6 +1264,9 @@ func begin_turn() -> void:
 
 	# ── Taming synergy: Goblin build discount (建造-20%) applied elsewhere ──
 
+	# ── Phase 2b: Recalculate research speed (building effects may have changed) ──
+	ResearchManager.update_research_speed(pid)
+
 	if income["gold"] > 0 or income["food"] > 0 or income["iron"] > 0:
 		ResourceManager.apply_delta(pid, income)
 		var msg: String = "%s 产出: 金%d 粮%d 铁%d" % [
@@ -1308,6 +1311,21 @@ func begin_turn() -> void:
 	# ── Phase 4b: Troop per-turn passive effects (regen, self_destruct, etc.) ──
 	_tick_troop_passives(pid)
 
+	# ── Phase 4b2: Building-based wall repair (fortification) ──
+	for tile in tiles:
+		if tile == null:
+			continue
+		if tile.get("owner_id", -1) != pid:
+			continue
+		var _bld: String = tile.get("building_id", "")
+		if _bld == "":
+			continue
+		var _bld_lvl: int = tile.get("building_level", 1)
+		var _bld_eff: Dictionary = BuildingRegistry.get_building_effects(_bld, _bld_lvl)
+		var repair_amt: int = int(_bld_eff.get("wall_repair_per_turn", 0))
+		if repair_amt > 0:
+			LightFactionAI.repair_wall(tile["index"], repair_amt)
+
 	# ── Phase 4c: Dark Elf slave conversion tick ──
 	var _de_ftag: String = _get_faction_tag_for_player(pid)
 	if _de_ftag == "dark_elf":
@@ -1328,6 +1346,10 @@ func begin_turn() -> void:
 
 	# ── Phase 5b: Buff expiry ──
 	BuffManager.tick_buffs(pid)
+
+	# ── Phase 5b2: Research progress ──
+	if pid == get_human_player_id():
+		ResearchManager.process_turn(pid)
 
 	# ── Phase 5c: NPC obedience decay/growth ──
 	NpcManager.tick_all(pid, turn_number)

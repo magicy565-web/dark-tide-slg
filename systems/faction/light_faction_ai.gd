@@ -123,6 +123,30 @@ func damage_wall(tile_index: int, damage: int) -> int:
 	return remaining
 
 
+func repair_wall(tile_index: int, amount: int) -> void:
+	## Repair wall HP on a player-owned tile (from fortification building effect).
+	if not _wall_hp.has(tile_index):
+		_wall_hp[tile_index] = 0
+	var cap: int = BalanceConfig.WALL_HP_VILLAGE
+	if tile_index < GameManager.tiles.size():
+		var tile: Dictionary = GameManager.tiles[tile_index]
+		match tile.get("type", -1):
+			GameManager.TileType.LIGHT_STRONGHOLD:
+				cap = BalanceConfig.WALL_HP_STRONGHOLD
+			GameManager.TileType.CORE_FORTRESS:
+				cap = BalanceConfig.WALL_HP_CORE_FORTRESS
+		# Add wall_hp_bonus from building
+		var bld: String = tile.get("building_id", "")
+		var bld_level: int = tile.get("building_level", 1)
+		if bld != "":
+			var effects: Dictionary = BuildingRegistry.get_building_effects(bld, bld_level)
+			cap += int(effects.get("wall_hp_bonus", 0))
+	var old_hp: int = _wall_hp[tile_index]
+	_wall_hp[tile_index] = mini(cap, _wall_hp[tile_index] + amount)
+	if _wall_hp[tile_index] > old_hp:
+		EventBus.message_log.emit("城墙修复 +%d (HP: %d/%d)" % [_wall_hp[tile_index] - old_hp, _wall_hp[tile_index], cap])
+
+
 func regen_walls() -> void:
 	if _human_reinforcement_disabled:
 		return

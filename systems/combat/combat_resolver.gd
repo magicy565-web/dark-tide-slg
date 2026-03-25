@@ -315,6 +315,10 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 			base_atk += float(bld.get("atk_bonus", 0))
 		else:
 			base_def += float(bld.get("def_bonus", 0))
+		# Mage building ATK bonus (arcane_institute)
+		var troop_base: String = _get_troop_base_type(unit_type)
+		if troop_base in ["mage_unit", "priest"]:
+			base_atk += float(bld.get("mage_atk_bonus", 0))
 
 	# Determine max actions
 	var max_actions: int = 1
@@ -346,6 +350,12 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		"player_id": player_id,
 		"buffs": [],
 		"debuffs": [],
+		"overload_count": 0,
+		"bloodlust_bonus": 0,
+		"war_cry_used": false,
+		"root_bind_used": false,
+		"trade_hire_used": false,
+		"blood_ritual_used": false,
 	}
 
 
@@ -403,6 +413,107 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			if unit["soldiers"] < unit["max_soldiers"]:
 				unit["soldiers"] += 1
 				log.append("%s [%s] 再生+1兵" % [unit["unit_type"], unit["side"]])
+
+		# Passive: regen_2 — restore 2 soldiers per round
+		if "regen_2" in unit["passives"]:
+			if unit["soldiers"] < unit["max_soldiers"]:
+				var heal_amt: int = mini(2, unit["max_soldiers"] - unit["soldiers"])
+				unit["soldiers"] += heal_amt
+				log.append("%s [%s] 深根再生+%d兵" % [unit["unit_type"], unit["side"], heal_amt])
+
+		# Passive: necro_summon — spawn a skeleton squad each round
+		if "necro_summon" in unit["passives"]:
+			var skeleton: Dictionary = {
+				"slot": -1, "row": "front", "side": unit["side"],
+				"hero_id": "", "unit_type": "skeleton_legion",
+				"soldiers": 2, "max_soldiers": 2,
+				"atk": 5.0, "def": 3.0, "spd": 3.0, "int_stat": 0.0,
+				"passives": [], "active_skill": {},
+				"skill_cooldown": 0, "has_charged": false,
+				"actions_this_round": 1, "max_actions": 1,
+				"is_alive": true, "player_id": unit["player_id"],
+				"buffs": [], "debuffs": [],
+				"overload_count": 0, "bloodlust_bonus": 0,
+				"war_cry_used": false, "root_bind_used": false,
+				"trade_hire_used": false, "blood_ritual_used": false,
+			}
+			if unit["side"] == "attacker":
+				state["atk_units"].append(skeleton)
+			else:
+				state["def_units"].append(skeleton)
+			log.append("%s [%s] 亡灵召唤! 召唤骷髅小队(2兵)" % [unit["unit_type"], unit["side"]])
+
+		# Passive: forest_stealth — round 1 only: unit is invisible (can't be targeted)
+		if "forest_stealth" in unit["passives"] and state["round"] == 1:
+			unit["buffs"].append({"id": "stealth", "duration": 1, "value": 1})
+			log.append("%s [%s] 林间潜行! 首回合隐身" % [unit["unit_type"], unit["side"]])
+
+		# Passive: leadership — all adjacent friendly units get ATK+2 (aura)
+		if "leadership" in unit["passives"]:
+			var allies: Array = state["atk_units"] if unit["side"] == "attacker" else state["def_units"]
+			for ally in allies:
+				if ally == unit or not ally["is_alive"]:
+					continue
+				# Adjacent = same row or neighboring slot
+				if abs(ally["slot"] - unit["slot"]) <= 1:
+					ally["buffs"].append({"id": "leadership_aura", "duration": 1, "value": 2})
+					log.append("%s [%s] 统帅光环: %s ATK+2" % [unit["unit_type"], unit["side"], ally["unit_type"]])
+
+		# Passive: war_cry — all friendly units ATK+2 for 3 rounds (activate once, round 1)
+		if "war_cry" in unit["passives"] and state["round"] == 1 and not unit.get("war_cry_used", false):
+			unit["war_cry_used"] = true
+			var allies: Array = state["atk_units"] if unit["side"] == "attacker" else state["def_units"]
+			for ally in allies:
+				if ally["is_alive"]:
+					ally["buffs"].append({"id": "war_cry", "duration": 3, "value": 2})
+			log.append("%s [%s] 战吼! 全友军ATK+2(3回合)" % [unit["unit_type"], unit["side"]])
+
+		# Passive: root_bind — stun 1 enemy for 2 rounds (activate round 1 or 2)
+		if "root_bind" in unit["passives"] and state["round"] <= 2 and not unit.get("root_bind_used", false):
+			unit["root_bind_used"] = true
+			var enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
+			var alive_enemies: Array = _get_all_alive(enemies)
+			if not alive_enemies.is_empty():
+				var stun_target: Dictionary = alive_enemies[randi() % alive_enemies.size()]
+				stun_target["debuffs"].append({"id": "stun", "duration": 2, "value": 1})
+				log.append("%s [%s] 根缚! %s 被定身2回合" % [unit["unit_type"], unit["side"], stun_target["unit_type"]])
+
+		# Passive: blood_ritual — sacrifice 2 soldiers from self, heal all friendly units +2 soldiers each
+		if "blood_ritual" in unit["passives"] and not unit.get("blood_ritual_used", false):
+			if unit["soldiers"] > 2:
+				unit["blood_ritual_used"] = true
+				unit["soldiers"] -= 2
+				var allies: Array = state["atk_units"] if unit["side"] == "attacker" else state["def_units"]
+				for ally in allies:
+					if ally["is_alive"] and ally != unit:
+						var heal_amt: int = mini(2, ally["max_soldiers"] - ally["soldiers"])
+						ally["soldiers"] += heal_amt
+				log.append("%s [%s] 血祭! 牺牲2兵，治愈全军+2兵" % [unit["unit_type"], unit["side"]])
+
+		# Passive: trade_hire — summon 1 random T2 mercenary unit mid-battle (once per battle)
+		if "trade_hire" in unit["passives"] and not unit.get("trade_hire_used", false):
+			unit["trade_hire_used"] = true
+			var merc_types: Array = ["pirate_ashigaru", "human_ashigaru", "orc_ashigaru"]
+			var merc_type: String = merc_types[randi() % merc_types.size()]
+			var merc: Dictionary = {
+				"slot": -1, "row": "front", "side": unit["side"],
+				"hero_id": "", "unit_type": merc_type,
+				"soldiers": 4, "max_soldiers": 4,
+				"atk": 6.0, "def": 4.0, "spd": 5.0, "int_stat": 0.0,
+				"passives": [], "active_skill": {},
+				"skill_cooldown": 0, "has_charged": false,
+				"actions_this_round": 1, "max_actions": 1,
+				"is_alive": true, "player_id": unit["player_id"],
+				"buffs": [], "debuffs": [],
+				"overload_count": 0, "bloodlust_bonus": 0,
+				"war_cry_used": false, "root_bind_used": false,
+				"trade_hire_used": false, "blood_ritual_used": false,
+			}
+			if unit["side"] == "attacker":
+				state["atk_units"].append(merc)
+			else:
+				state["def_units"].append(merc)
+			log.append("%s [%s] 佣兵雇佣! 召唤 %s(4兵)" % [unit["unit_type"], unit["side"], merc_type])
 
 		# Passive: charge_mana_1 — +1 mana
 		if "charge_mana_1" in unit["passives"]:
@@ -478,6 +589,14 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		return
 	if unit["actions_this_round"] >= unit["max_actions"]:
 		return
+
+	# Check stun debuff: stunned units cannot act
+	for d in unit["debuffs"]:
+		if d["id"] == "stun" and d["duration"] > 0:
+			log.append("%s [%s] 被定身，无法行动" % [unit["unit_type"], unit["side"]])
+			unit["actions_this_round"] += 1
+			return
+
 	unit["actions_this_round"] += 1
 
 	var troop_base: String = _get_troop_base_type(unit["unit_type"])
@@ -520,6 +639,12 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 	if "preemptive_1_3" in unit["passives"] and state["round"] == 1:
 		damage = int(float(damage) * 1.3)
 
+	# Passive: assassin_crit — 30% chance for ×2 damage
+	if "assassin_crit" in unit["passives"]:
+		if randf() < 0.3:
+			damage = int(float(damage) * 2.0)
+			log.append("%s [%s] 暴击! 伤害×2" % [unit["unit_type"], unit["side"]])
+
 	# Barrier absorption (defender side, first use per round)
 	if state.get("barrier_active", false) and not state.get("barrier_used_this_round", false):
 		if unit["side"] == "attacker":  # Attacker hitting defender
@@ -529,8 +654,49 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 			state["barrier_used_this_round"] = true
 			log.append("精灵屏障吸收! 伤害降至 %d" % damage)
 
+	# Store target soldiers before damage for kill detection
+	var target_soldiers_before: int = target["soldiers"]
+
 	# Apply damage
 	_apply_damage_to_unit(state, target, damage, unit, log)
+
+	# Passive: bloodlust — on kill, gain ATK+1 permanently for this battle
+	if "bloodlust" in unit["passives"] and target_soldiers_before > 0 and not target["is_alive"]:
+		unit["bloodlust_bonus"] = unit.get("bloodlust_bonus", 0) + 1
+		log.append("%s [%s] 嗜血! 击杀后ATK+1(累积:%d)" % [unit["unit_type"], unit["side"], unit["bloodlust_bonus"]])
+
+	# Passive: mana_drain — on hit, drain 2 mana from enemy side
+	if "mana_drain" in unit["passives"] and damage > 0:
+		var enemy_mana_key: String = "def_mana" if unit["side"] == "attacker" else "atk_mana"
+		var drained: int = mini(2, state[enemy_mana_key])
+		state[enemy_mana_key] -= drained
+		if drained > 0:
+			log.append("%s [%s] 法力吸取! 吸取%d法力" % [unit["unit_type"], unit["side"], drained])
+
+	# Passive: gold_on_hit — on hit, player gains 2 gold
+	if "gold_on_hit" in unit["passives"] and damage > 0:
+		if unit["player_id"] >= 0:
+			ResourceManager.add_gold(unit["player_id"], 2)
+			log.append("%s [%s] 生财有道! +2金" % [unit["unit_type"], unit["side"]])
+
+	# Passive: overload — track usage count; after 3 attacks, self-destruct dealing ATK×2 AoE
+	if "overload" in unit["passives"]:
+		unit["overload_count"] = unit.get("overload_count", 0) + 1
+		if unit["overload_count"] >= 3:
+			var burst_dmg: int = int(unit["atk"] * 2.0)
+			var burst_enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
+			log.append("%s [%s] 过载自爆! 对敌全体造成%d伤害!" % [unit["unit_type"], unit["side"], burst_dmg])
+			for enemy in burst_enemies:
+				if enemy["is_alive"]:
+					enemy["soldiers"] -= burst_dmg
+					if enemy["soldiers"] <= 0:
+						enemy["soldiers"] = 0
+						enemy["is_alive"] = false
+						log.append("  → %s [%s] 被过载爆发消灭!" % [enemy["unit_type"], enemy["side"]])
+			# Self-destruct
+			unit["soldiers"] = 0
+			unit["is_alive"] = false
+			log.append("%s [%s] 过载自毁!" % [unit["unit_type"], unit["side"]])
 
 	# Counter-attack: counter_1_2 passive
 	if target["is_alive"] and "counter_1_2" in target["passives"]:
@@ -778,15 +944,24 @@ func _select_target(state: Dictionary, unit: Dictionary) -> Dictionary:
 	if alive_enemies.is_empty():
 		return {}
 
-	# 1. Taunt check: must target taunter
-	for enemy in alive_enemies:
-		if "taunt" in enemy["passives"]:
-			return enemy
+	# 1. Taunt check: must target taunter (unless unit has assassin_crit)
+	if "assassin_crit" not in unit["passives"]:
+		for enemy in alive_enemies:
+			if "taunt" in enemy["passives"]:
+				return enemy
 
-	# 2. Stealth check: round 1, units with 隐匿 can't be targeted
+	# 2. Stealth check: round 1, units with 隐匿 can't be targeted; also check stealth buff
 	var targetable: Array = []
 	for enemy in alive_enemies:
 		if state["round"] == 1 and "隐匿" in enemy["passives"]:
+			continue
+		# forest_stealth stealth buff: unit cannot be targeted
+		var is_stealthed: bool = false
+		for b in enemy["buffs"]:
+			if b["id"] == "stealth" and b["duration"] > 0:
+				is_stealthed = true
+				break
+		if is_stealthed:
 			continue
 		# dodge_next: skip this unit as target (consume buff)
 		var has_dodge: bool = false
@@ -808,6 +983,14 @@ func _select_target(state: Dictionary, unit: Dictionary) -> Dictionary:
 	# Assassinate_back passive overrides to back priority
 	if "assassinate_back" in unit["passives"]:
 		target_mode = TargetMode.BACK_PRIORITY
+
+	# Assassin_crit: ignore taunt, can target back row directly
+	if "assassin_crit" in unit["passives"]:
+		target_mode = TargetMode.BACK_PRIORITY
+
+	# Pistol_shot: front row unit can attack back row
+	if "pistol_shot" in unit["passives"] and unit["row"] == "front":
+		target_mode = TargetMode.ANY
 
 	var front_targets: Array = _filter_by_row(targetable, "front")
 	var back_targets: Array = _filter_by_row(targetable, "back")
@@ -849,6 +1032,48 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 	for b in attacker_unit["buffs"]:
 		if b["id"] == "charge_cmd":
 			atk += b["value"]
+		# war_cry buff: ATK+value
+		if b["id"] == "war_cry":
+			atk += b["value"]
+		# leadership_aura buff: ATK+value
+		if b["id"] == "leadership_aura":
+			atk += b["value"]
+
+	# Passive: bloodlust — accumulated ATK bonus from kills
+	atk += float(attacker_unit.get("bloodlust_bonus", 0))
+
+	# Passive: low_hp_double — when unit is <50% soldiers, ATK is doubled
+	if "low_hp_double" in attacker_unit["passives"]:
+		if float(attacker_unit["soldiers"]) < float(attacker_unit["max_soldiers"]) * 0.5:
+			atk *= 2.0
+
+	# Passive: blood_triple — when unit is <30% soldiers, ATK is tripled
+	if "blood_triple" in attacker_unit["passives"]:
+		if float(attacker_unit["soldiers"]) < float(attacker_unit["max_soldiers"]) * 0.3:
+			atk *= 3.0
+
+	# Passive: desperate — when surrounded (only unit alive on its side), ATK+2
+	if "desperate" in attacker_unit["passives"]:
+		var own_units: Array = state["atk_units"] if attacker_unit["side"] == "attacker" else state["def_units"]
+		var alive_count: int = 0
+		for u in own_units:
+			if u["is_alive"]:
+				alive_count += 1
+		if alive_count <= 1:
+			atk += 2.0
+
+	# Passive: guerrilla — in forest/swamp terrain, ATK+2 DEF+1
+	if "guerrilla" in attacker_unit["passives"]:
+		var terrain_type: int = state.get("terrain", FactionData.TerrainType.PLAINS)
+		if terrain_type == FactionData.TerrainType.FOREST or terrain_type == FactionData.TerrainType.SWAMP:
+			atk += 2.0
+			# DEF bonus applied to defender side handled separately below
+
+	# Passive: guerrilla — DEF bonus when being attacked in forest/swamp
+	if "guerrilla" in defender_unit["passives"]:
+		var terrain_type: int = state.get("terrain", FactionData.TerrainType.PLAINS)
+		if terrain_type == FactionData.TerrainType.FOREST or terrain_type == FactionData.TerrainType.SWAMP:
+			def_val += 1.0
 
 	# Apply debuffs to attacker/defender
 	for d in defender_unit["debuffs"]:

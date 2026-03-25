@@ -3,6 +3,10 @@
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
 
+# ── Cached global building effects (updated each turn) ──
+var cached_recruit_discount: int = 0
+var cached_supply_penalty_reduction: int = 0
+
 # ── Base production by tile type (v0.7 values) ──
 const BASE_PRODUCTION: Dictionary = {
 	"Village": {"gold": 10, "food": 5, "iron": 1},
@@ -63,6 +67,11 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 			var station_output: int = _get_station_output(station_type, level)
 			if income.has(station_type):
 				income[station_type] += station_output
+
+	# ── Global building effects (recruit_discount, supply_penalty_reduction) ──
+	var global_bld: Dictionary = BuildingRegistry.get_all_player_building_effects(player_id)
+	cached_recruit_discount = int(global_bld.get("recruit_discount", 0))
+	cached_supply_penalty_reduction = int(global_bld.get("supply_penalty_reduction", 0))
 
 	# ── Prestige from strongholds ──
 	var strongholds_owned: int = GameManager.count_strongholds_owned(player_id)
@@ -164,6 +173,24 @@ func _apply_building_income(bld: String, bld_level: int, income: Dictionary, fac
 	# Shadow essence per turn (bone_tower / necromancer building)
 	if effects.has("shadow_per_turn"):
 		income["shadow_essence"] += effects["shadow_per_turn"]
+	# Food per turn (port_facility, harbor_market)
+	if effects.has("food_per_turn"):
+		income["food"] += int(effects["food_per_turn"])
+	# Iron per turn (dwarven_forge)
+	if effects.has("iron_per_turn"):
+		income["iron"] += int(effects["iron_per_turn"])
+	# Gunpowder per turn (gear_workshop)
+	if effects.has("gunpowder_per_turn"):
+		income["gunpowder"] += int(effects["gunpowder_per_turn"])
+	# War horse per turn (horse_breeder)
+	if effects.has("horse_bonus"):
+		income["war_horse"] += int(effects["horse_bonus"])
+	# Magic crystal per turn (crystal_amplifier)
+	if effects.has("crystal_bonus"):
+		income["magic_crystal"] += int(effects["crystal_bonus"])
+	# Shadow essence per turn (shadow_conduit)
+	if effects.has("shadow_bonus"):
+		income["shadow_essence"] += int(effects["shadow_bonus"])
 	# Smuggler's den (pirate faction bonus)
 	if bld == "smugglers_den" and faction_id == FactionData.FactionID.PIRATE:
 		income["gold"] += 5
