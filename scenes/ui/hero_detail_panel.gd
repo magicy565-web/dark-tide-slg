@@ -29,6 +29,7 @@ func _connect_signals() -> void:
 	EventBus.hero_leveled_up.connect(_on_hero_leveled_up)
 	EventBus.hero_exp_gained.connect(_on_hero_exp_changed)
 	EventBus.open_hero_detail_requested.connect(_on_open_hero_detail_requested)
+	EventBus.heroine_submission_changed.connect(_on_hero_submission_changed)
 
 func _on_open_hero_detail_requested(hero_id: String) -> void:
 	show_panel(hero_id)
@@ -202,6 +203,29 @@ func _refresh() -> void:
 	rl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 	_add(rl)
 
+	# ── Submission (pirate faction only) ──
+	var _pid: int = GameManager.get_human_player_id()
+	var _faction_id: int = GameManager.get_player_faction(_pid)
+	if _faction_id == FactionData.FactionID.PIRATE:
+		_add(HSeparator.new())
+		_add(_make_section("服从度"))
+		var submission: int = HeroSystem.get_submission(_hero_id)
+		var sub_color: Color
+		if submission < 3:
+			sub_color = Color(1.0, 0.3, 0.3)   # red
+		elif submission <= 6:
+			sub_color = Color(1.0, 0.85, 0.3)   # yellow
+		else:
+			sub_color = Color(0.3, 1.0, 0.4)    # green
+		var sub_text: String = "服从度: %d/10" % submission
+		if submission >= 7:
+			sub_text += "  ✓ 已臣服"
+		var sub_label := Label.new()
+		sub_label.text = sub_text
+		sub_label.add_theme_font_size_override("font_size", 13)
+		sub_label.add_theme_color_override("font_color", sub_color)
+		_add(sub_label)
+
 	# ── Equipment Slots ──
 	_add(HSeparator.new())
 	_add(_make_section("装备"))
@@ -364,6 +388,9 @@ func _on_hero_leveled_up(hero_id: String, _new_level: int) -> void:
 	if _visible and _hero_id == hero_id: _refresh()
 
 func _on_hero_exp_changed(hero_id: String, _amount: int, _new_total: int) -> void:
+	if _visible and _hero_id == hero_id: _refresh()
+
+func _on_hero_submission_changed(hero_id: String, _new_value: int) -> void:
 	if _visible and _hero_id == hero_id: _refresh()
 
 func _on_dim_bg_input(event: InputEvent) -> void:

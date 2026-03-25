@@ -127,11 +127,8 @@ signal sex_slave_ransomed(player_id: int, gold_earned: int)
 signal black_market_refreshed(player_id: int, item_count: int)
 
 # ── Pirate Harem System (后宫收集) ──
-# UNUSED: never emitted or connected
 signal heroine_submission_changed(hero_id: String, new_value: int)
-# UNUSED: never emitted or connected
 signal harem_progress_updated(recruited: int, submitted: int, total: int)
-# UNUSED: never emitted or connected
 signal harem_victory_achieved()
 
 # ── Light faction ──

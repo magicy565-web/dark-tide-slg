@@ -177,6 +177,54 @@ func get_affection_unlocks(hero_id: String) -> Array:
 	return unlocks
 
 
+# ═══════════════ PUBLIC API (hero_panel.gd) ═══════════════
+
+func get_recruited_heroes(player_id: int) -> Array:
+	## Returns array of hero_id strings recruited by this player.
+	var result: Array = []
+	for hid in recruited_heroes:
+		var hero: Dictionary = FactionData.HEROES.get(hid, {})
+		if not hero.is_empty():
+			result.append(hid)
+	return result
+
+
+func get_prison_heroes(player_id: int) -> Array:
+	## Returns array of hero_id strings currently in prison.
+	var result: Array = []
+	for hid in captured_heroes:
+		if not hid in recruited_heroes:
+			result.append(hid)
+	return result
+
+
+func get_affection(hero_id: String) -> int:
+	return hero_affection.get(hero_id, 0)
+
+
+func get_corruption(hero_id: String) -> int:
+	return hero_corruption.get(hero_id, 0)
+
+
+func can_recruit(hero_id: String) -> bool:
+	## Check if hero meets recruitment criteria.
+	if hero_id in recruited_heroes:
+		return false
+	if hero_id not in captured_heroes:
+		return false
+	var corruption: int = hero_corruption.get(hero_id, 0)
+	return corruption >= FactionData.CORRUPTION_TO_RECRUIT
+
+
+func increase_affection(hero_id: String, amount: int) -> void:
+	add_affection(hero_id, amount)
+
+
+func recruit_hero(hero_id: String) -> bool:
+	var result: Dictionary = attempt_recruit(hero_id)
+	return result.get("ok", false)
+
+
 # ═══════════════ COMBAT STATS ═══════════════
 
 ## Get hero battle stats (commander stats for combat system)
@@ -504,6 +552,7 @@ func train_heroine(hero_id: String) -> Dictionary:
 	hero_submission[hero_id] = mini(current + gain, FactionData.SUBMISSION_MAX)
 	var hero_name: String = _get_hero_name(hero_id)
 	var new_sub: int = hero_submission[hero_id]
+	EventBus.heroine_submission_changed.emit(hero_id, hero_submission[hero_id])
 	EventBus.message_log.emit("[color=pink]调教 %s! 服从度 %d -> %d[/color]" % [hero_name, current, new_sub])
 	# 服从度阈值事件
 	if current < 3 and new_sub >= 3:
@@ -531,6 +580,7 @@ func gift_heroine(hero_id: String, gold_cost: int = 30) -> Dictionary:
 	ResourceManager.spend(pid, {"gold": gold_cost})
 	hero_submission[hero_id] = mini(current + FactionData.SUBMISSION_PER_GIFT, FactionData.SUBMISSION_MAX)
 	var hero_name: String = _get_hero_name(hero_id)
+	EventBus.heroine_submission_changed.emit(hero_id, hero_submission[hero_id])
 	EventBus.message_log.emit("[color=pink]赠礼 %s! 服从度 +%d (当前: %d)[/color]" % [
 		hero_name, FactionData.SUBMISSION_PER_GIFT, hero_submission[hero_id]])
 	_check_harem_progress()
@@ -560,10 +610,12 @@ func _check_harem_progress() -> void:
 	var progress: Dictionary = get_harem_progress()
 	var total: int = progress["total"]
 	var submitted: int = progress["submitted"]
+	EventBus.harem_progress_updated.emit(progress["recruited"], progress["submitted"], progress["total"])
 	if submitted > 0 and submitted % 3 == 0 and submitted < total:
 		EventBus.message_log.emit("[color=gold]后宫进度: %d/%d 角色已臣服! 继续收集...[/color]" % [submitted, total])
 	if progress["complete"]:
 		EventBus.message_log.emit("[color=gold]═══ 所有角色已完全臣服! 后宫胜利条件达成! ═══[/color]")
+		EventBus.harem_victory_achieved.emit()
 
 
 ## 检查是否达成后宫胜利条件

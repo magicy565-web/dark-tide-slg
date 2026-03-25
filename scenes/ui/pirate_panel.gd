@@ -1,10 +1,10 @@
 ## pirate_panel.gd - 海盗势力面板 UI for 暗潮 SLG (v2.0)
-## Shows pirate stats, black market, smuggling routes, mercenaries, and active raids.
+## Shows pirate stats, black market, smuggling routes, mercenaries, active raids, and harem.
 extends CanvasLayer
 
 # ── State ──
 var _visible: bool = false
-var _current_tab: String = "market"  # "market", "smuggle", "mercs", "raids"
+var _current_tab: String = "market"  # "market", "smuggle", "mercs", "raids", "harem"
 
 # ── UI refs ──
 var root: Control
@@ -20,6 +20,7 @@ var btn_tab_market: Button
 var btn_tab_smuggle: Button
 var btn_tab_mercs: Button
 var btn_tab_raids: Button
+var btn_tab_harem: Button
 var content_scroll: ScrollContainer
 var content_container: VBoxContainer
 var _content_nodes: Array = []
@@ -44,6 +45,8 @@ func _connect_signals() -> void:
 	EventBus.rum_morale_changed.connect(func(_p, _v): _refresh_stats())
 	EventBus.black_market_refreshed.connect(func(_p, _c): if _visible: _refresh())
 	EventBus.resources_changed.connect(func(_p): if _visible: _refresh())
+	EventBus.heroine_submission_changed.connect(func(_hid, _val): if _visible: _refresh())
+	EventBus.harem_progress_updated.connect(func(_r, _s, _t): if _visible: _refresh())
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
@@ -127,6 +130,9 @@ func _build_ui() -> void:
 	btn_tab_raids = _make_tab_button("突袭")
 	btn_tab_raids.pressed.connect(func(): _switch_tab("raids"))
 	tab_container.add_child(btn_tab_raids)
+	btn_tab_harem = _make_tab_button("后宫")
+	btn_tab_harem.pressed.connect(func(): _switch_tab("harem"))
+	tab_container.add_child(btn_tab_harem)
 
 	outer_vbox.add_child(HSeparator.new())
 
@@ -157,7 +163,7 @@ func _switch_tab(tab: String) -> void:
 	_current_tab = tab; _refresh()
 
 func _update_tab_highlight() -> void:
-	var tabs_map := {"market": btn_tab_market, "smuggle": btn_tab_smuggle, "mercs": btn_tab_mercs, "raids": btn_tab_raids}
+	var tabs_map := {"market": btn_tab_market, "smuggle": btn_tab_smuggle, "mercs": btn_tab_mercs, "raids": btn_tab_raids, "harem": btn_tab_harem}
 	for key in tabs_map:
 		if key == _current_tab:
 			tabs_map[key].add_theme_color_override("font_color", COL_GOLD)
@@ -173,6 +179,7 @@ func _refresh() -> void:
 		"smuggle": _build_smuggle()
 		"mercs": _build_mercs()
 		"raids": _build_raids()
+		"harem": _build_harem()
 
 func _refresh_stats() -> void:
 	var pid: int = GameManager.get_human_player_id()
@@ -314,6 +321,90 @@ func _build_raids() -> void:
 		vbox.add_child(note)
 		content_container.add_child(card); _content_nodes.append(card)
 
+# ═══════════════ HAREM (后宫) ═══════════════
+
+func _build_harem() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	var progress: Dictionary = HeroSystem.get_harem_progress()
+	var total: int = progress.get("total", 0)
+	var recruited: int = progress.get("recruited", 0)
+	var submitted: int = progress.get("submitted", 0)
+
+	# ── Harem progress bar ──
+	var progress_card := _make_card()
+	var pv: VBoxContainer = progress_card.get_child(0)
+	var progress_label := Label.new()
+	progress_label.text = "%d/%d 英雄已臣服" % [submitted, total]
+	progress_label.add_theme_font_size_override("font_size", 16)
+	progress_label.add_theme_color_override("font_color", COL_GOLD)
+	pv.add_child(progress_label)
+	var bar := ProgressBar.new()
+	bar.min_value = 0; bar.max_value = maxi(total, 1)
+	bar.value = submitted
+	bar.custom_minimum_size = Vector2(0, 22)
+	bar.show_percentage = false
+	pv.add_child(bar)
+	content_container.add_child(progress_card); _content_nodes.append(progress_card)
+
+	# ── Hero list ──
+	var heroes: Array = HeroSystem.get_recruited_heroes(pid)
+	if heroes.is_empty():
+		_add_empty_label("暂无已招募英雄"); return
+	for hero_id in heroes:
+		var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+		var hero_name: String = hero_data.get("name", hero_id)
+		var submission: int = HeroSystem.get_submission(hero_id)
+		var card := _make_card()
+		var vbox: VBoxContainer = card.get_child(0)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		vbox.add_child(row)
+		# Hero name
+		var name_lbl := Label.new()
+		name_lbl.text = hero_name
+		name_lbl.add_theme_font_size_override("font_size", 15)
+		name_lbl.add_theme_color_override("font_color", COL_GOLD)
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_lbl)
+		# Submission level with color coding
+		var sub_lbl := Label.new()
+		sub_lbl.text = "服从度: %d/10" % submission
+		sub_lbl.add_theme_font_size_override("font_size", 14)
+		var sub_color: Color
+		if submission < 3:
+			sub_color = Color(1.0, 0.3, 0.3)  # red
+		elif submission <= 6:
+			sub_color = Color(1.0, 0.85, 0.3)  # yellow
+		else:
+			sub_color = Color(0.3, 0.9, 0.4)  # green
+		sub_lbl.add_theme_color_override("font_color", sub_color)
+		row.add_child(sub_lbl)
+		# Train button
+		var btn_train := Button.new()
+		btn_train.text = "调教 (1性奴隶)"
+		btn_train.custom_minimum_size = Vector2(130, 28)
+		btn_train.add_theme_font_size_override("font_size", 12)
+		btn_train.pressed.connect(_on_train_heroine.bind(hero_id))
+		row.add_child(btn_train)
+		# Gift button
+		var btn_gift := Button.new()
+		btn_gift.text = "赠礼 (30金)"
+		btn_gift.custom_minimum_size = Vector2(110, 28)
+		btn_gift.add_theme_font_size_override("font_size", 12)
+		btn_gift.pressed.connect(_on_gift_heroine.bind(hero_id))
+		row.add_child(btn_gift)
+		content_container.add_child(card); _content_nodes.append(card)
+
+	# ── Victory status ──
+	var victory_card := _make_card()
+	var vv: VBoxContainer = victory_card.get_child(0)
+	var victory_lbl := Label.new()
+	victory_lbl.text = "后宫胜利条件: 全部英雄服从度≥7"
+	victory_lbl.add_theme_font_size_override("font_size", 14)
+	victory_lbl.add_theme_color_override("font_color", COL_GOOD if progress.get("complete", false) else COL_DIM)
+	vv.add_child(victory_lbl)
+	content_container.add_child(victory_card); _content_nodes.append(victory_card)
+
 # ═══════════════ ACTION CALLBACKS ═══════════════
 
 func _on_buy_market(item_index: int) -> void:
@@ -339,6 +430,18 @@ func _on_hire_merc(pid: int, merc_id: String, cost: int) -> void:
 			ResourceManager.add(pid, {"soldiers": merc["count"]})
 			EventBus.message_log.emit("雇佣了 %s x%d (-%d金)" % [merc["name"], merc["count"], cost])
 			break
+	_refresh()
+
+func _on_train_heroine(hero_id: String) -> void:
+	var result: Dictionary = HeroSystem.train_heroine(hero_id)
+	if not result.get("ok", false):
+		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("desc", "调教失败"))
+	_refresh()
+
+func _on_gift_heroine(hero_id: String) -> void:
+	var result: Dictionary = HeroSystem.gift_heroine(hero_id)
+	if not result.get("ok", false):
+		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("desc", "赠礼失败"))
 	_refresh()
 
 func _on_dim_bg_input(event: InputEvent) -> void:
