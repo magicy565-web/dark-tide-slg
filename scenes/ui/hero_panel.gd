@@ -590,8 +590,8 @@ func _on_recruit_hero(hero_id: String) -> void:
 	AudioManager.play_ui_confirm()
 	var pid: int = GameManager.get_human_player_id()
 	if HeroSystem.has_method("recruit_hero"):
-		var result: Dictionary = HeroSystem.recruit_hero(hero_id)
-		if result.get("ok", false):
+		var result: bool = HeroSystem.recruit_hero(hero_id)
+		if result:
 			EventBus.message_log.emit("[color=lime]%s 已加入你的阵营![/color]" % FactionData.HEROES.get(hero_id, {}).get("name", hero_id))
 			_refresh_list()
 			detail_panel.visible = false

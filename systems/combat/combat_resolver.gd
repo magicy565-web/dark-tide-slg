@@ -655,21 +655,6 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 		if unit["skill_cooldown"] > 0:
 			unit["skill_cooldown"] -= 1
 
-		# Tick down buffs/debuffs
-		var remaining_buffs: Array = []
-		for b in unit["buffs"]:
-			b["duration"] -= 1
-			if b["duration"] > 0:
-				remaining_buffs.append(b)
-		unit["buffs"] = remaining_buffs
-
-		var remaining_debuffs: Array = []
-		for d in unit["debuffs"]:
-			d["duration"] -= 1
-			if d["duration"] > 0:
-				remaining_debuffs.append(d)
-		unit["debuffs"] = remaining_debuffs
-
 
 func _build_action_queue(state: Dictionary) -> Array:
 	var all_units: Array = []
@@ -1428,6 +1413,24 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 # ---------------------------------------------------------------------------
 
 func _end_of_round(state: Dictionary, log: Array) -> String:
+	# Tick down buffs/debuffs at end of round so duration=1 buffs last the full round
+	for unit in state["atk_units"] + state["def_units"]:
+		if not unit["is_alive"]:
+			continue
+		var remaining_buffs: Array = []
+		for b in unit["buffs"]:
+			b["duration"] -= 1
+			if b["duration"] > 0:
+				remaining_buffs.append(b)
+		unit["buffs"] = remaining_buffs
+
+		var remaining_debuffs: Array = []
+		for d in unit["debuffs"]:
+			d["duration"] -= 1
+			if d["duration"] > 0:
+				remaining_debuffs.append(d)
+		unit["debuffs"] = remaining_debuffs
+
 	# Remove summon-decay units that expired
 	for units_key in ["atk_units", "def_units"]:
 		for unit in state[units_key]:

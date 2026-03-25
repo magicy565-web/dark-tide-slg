@@ -189,11 +189,15 @@ func _on_hide_event_popup() -> void:
 
 func _on_dismiss() -> void:
 	EventBus.event_choice_selected.emit(0)
+	if _is_conquest_popup():
+		EventBus.conquest_choice_selected.emit(0)
 	_hide_animated()
 
 
 func _on_choice(index: int) -> void:
 	EventBus.event_choice_selected.emit(index)
+	if _is_conquest_popup():
+		EventBus.conquest_choice_selected.emit(index)
 	if _current_event_id != "":
 		EventBus.event_choice_made.emit(_current_event_id, index)
 	_hide_animated()
@@ -258,3 +262,7 @@ func _set_event_icon(event_id: String) -> void:
 	else:
 		icon_label.text = "!"
 		icon_label.add_theme_color_override("font_color", Color(1.0, 0.7, 0.2))
+
+
+func _is_conquest_popup() -> bool:
+	return title_label.text.begins_with("占领")

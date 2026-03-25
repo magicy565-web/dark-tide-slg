@@ -185,7 +185,7 @@ func _on_combat_result(attacker_id: int, defender_desc: String, won: bool) -> vo
 	# Build basic data from signal
 	var data := {
 		"won": won,
-		"attacker_name": (GameManager.get_player_by_id(attacker_id) or {"name": "玩家"}).get("name", "玩家"),
+		"attacker_name": GameManager.get_player_by_id(attacker_id).get("name", "玩家") if GameManager.get_player_by_id(attacker_id) else "玩家",
 		"defender_name": defender_desc,
 	}
 	if _visible:

@@ -3136,7 +3136,7 @@ func _show_conquest_choice(player: Dictionary, tile: Dictionary) -> void:
 	]
 
 	if not _conquest_choice_connected:
-		EventBus.event_choice_selected.connect(_on_conquest_choice)
+		EventBus.conquest_choice_selected.connect(_on_conquest_choice)
 		_conquest_choice_connected = true
 
 	EventBus.show_event_popup.emit(title, desc, choices)

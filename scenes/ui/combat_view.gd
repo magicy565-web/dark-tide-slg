@@ -730,7 +730,7 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 			var soldiers: int = unit.get("soldiers", 0)
 			var max_soldiers: int = unit.get("max_soldiers", soldiers)
 			count_lbl.text = "兵力: %d/%d" % [soldiers, max_soldiers]
-			var ratio := float(soldiers) / max(1, max_soldiers)
+			var ratio: float = float(soldiers) / max(1, max_soldiers)
 			bar_fill.size.x = BAR_W * ratio
 			bar_ghost.size.x = BAR_W * ratio
 			bar_fill.color = _hp_color(ratio)
@@ -751,7 +751,7 @@ func _update_card_soldiers(side: String, slot_idx: int, soldiers: int, max_soldi
 	var bar_fill: ColorRect = bar_container.get_node("BarFill")
 
 	count_lbl.text = "兵力: %d/%d" % [soldiers, max_soldiers]
-	var ratio := float(soldiers) / max(1, max_soldiers)
+	var ratio: float = float(soldiers) / max(1, max_soldiers)
 	var spd := ANIM_BASE_SPEED / _speed_mult
 
 	# Ghost bar stays at old width, then drains after delay (SR07-style damage flash)
@@ -884,7 +884,7 @@ func _update_clock(round_num: int) -> void:
 		if seg == null:
 			continue
 		if i < round_num:
-			var t := float(i) / max(1, MAX_ROUNDS - 1)
+			var t: float = float(i) / max(1, MAX_ROUNDS - 1)
 			var target_color: Color
 			if t < 0.4:
 				target_color = Color(0.2, 0.7, 0.3)
@@ -1695,7 +1695,7 @@ func _update_card_soldiers_instant(side: String, slot_idx: int, soldiers: int, m
 	var bar_fill: ColorRect = bar_container.get_node("BarFill")
 
 	count_lbl.text = "兵力: %d/%d" % [soldiers, max_soldiers]
-	var ratio := float(soldiers) / max(1, max_soldiers)
+	var ratio: float = float(soldiers) / max(1, max_soldiers)
 	bar_fill.size.x = BAR_W * ratio
 	bar_ghost.size.x = BAR_W * ratio
 	bar_fill.color = _hp_color(ratio)
@@ -2031,7 +2031,7 @@ func _spawn_capture_chains(side: String, slot_idx: int) -> void:
 
 func _spawn_siege_debris() -> void:
 	var density := _particle_density_mult()
-	var count := max(3, int(8 * density))
+	var count: int = maxi(3, int(8 * density))
 	for i in range(count):
 		var debris := ColorRect.new()
 		var sz := randf_range(3.0, 7.0)

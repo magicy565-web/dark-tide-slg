@@ -380,6 +380,8 @@ func _on_hero_recruited(hero_id: String) -> void:
 		if story_progress[hero_id]["route"] == ROUTE_TRAINING:
 			story_progress[hero_id]["route"] = ROUTE_PURE_LOVE
 			story_progress[hero_id]["current_event"] = 0
+			story_progress[hero_id]["completed_events"] = []
+			story_progress[hero_id]["flags"] = {}
 	else:
 		# 首次招募，无俘虏记录：根据阵营初始化路线
 		if faction == "neutral":
