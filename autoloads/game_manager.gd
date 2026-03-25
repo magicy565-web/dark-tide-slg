@@ -268,6 +268,10 @@ var selected_army_id: int = -1
 # Player faction mapping
 var _player_factions: Dictionary = {}   # player_id -> FactionData.FactionID
 
+# ── Conquest choice state ──
+var _pending_conquest_tile_index: int = -1
+var _conquest_choice_connected: bool = false
+
 
 func _ready() -> void:
 	pass
@@ -757,6 +761,7 @@ func _assign_tile_types(positions: Array) -> void:
 			"is_chokepoint": tile_type == TileType.CHOKEPOINT,
 			"terrain_move_cost": 1,
 			"named_outpost_id": "",
+		"public_order": BalanceConfig.TILE_ORDER_DEFAULT,
 		})
 
 	# Mark light faction ownership on tiles
@@ -1013,6 +1018,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	for idx in _zone_cache.get(human_zone_key, []):
 		tiles[idx]["owner_id"] = 0
 		tiles[idx]["garrison"] = BalanceConfig.STARTING_GARRISON
+		tiles[idx]["public_order"] = BalanceConfig.TILE_ORDER_DEFAULT
 
 	# Create starting army for human player
 	_create_starting_army(0, chosen_faction, human_start_tile)
@@ -1054,6 +1060,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 		for idx in _zone_cache.get(zone_key, []):
 			tiles[idx]["owner_id"] = rival_id
 			tiles[idx]["garrison"] = BalanceConfig.STARTING_GARRISON
+			tiles[idx]["public_order"] = BalanceConfig.TILE_ORDER_DEFAULT
 
 		# Create starting army for rival
 		_create_starting_army(rival_id, fid, rival_start)
@@ -1373,6 +1380,9 @@ func begin_turn() -> void:
 	# ── Phase 5c3: Harem cooldown tick ──
 	if pid == get_human_player_id():
 		HeroSystem.tick_harem_cooldowns()
+
+	# ── Phase 5c4: Per-tile public order drift ──
+	tick_tile_public_order()
 
 	# ── Phase 5d: Taming neglect / gift cooldown tick ──
 	QuestManager.tick_turn(pid)
@@ -2943,12 +2953,126 @@ func _capture_tile(player: Dictionary, tile: Dictionary) -> void:
 		OrderManager.on_tile_lost()
 	tile["owner_id"] = player["id"]
 	tile["garrison"] = maxi(BalanceConfig.CAPTURE_MIN_GARRISON, tile["garrison"] / 2)
+	tile["public_order"] = BalanceConfig.TILE_ORDER_DEFAULT
 	EventBus.tile_captured.emit(player["id"], tile["index"])
 	_reveal_around(tile["index"], player["id"])
 	OrderManager.on_tile_captured()
 	ThreatManager.on_tile_captured()
 	# Notify neutral faction AI of territory loss
 	NeutralFactionAI.on_tile_captured(tile["index"], player["id"])
+	# Post-conquest choice (occupy / pillage / plunder)
+	_show_conquest_choice(player, tile)
+
+
+func _show_conquest_choice(player: Dictionary, tile: Dictionary) -> void:
+	## Shows the post-conquest choice popup for human players.
+	if player["id"] != get_human_player_id():
+		# AI auto-occupies
+		_apply_conquest_choice(tile, "occupy")
+		return
+
+	_pending_conquest_tile_index = tile["index"]
+
+	# Calculate base loot for display
+	var base_loot: int = _calculate_conquest_loot(tile)
+	var occupy_gold: int = int(float(base_loot) * BalanceConfig.CONQUEST_OCCUPY_GOLD_MULT)
+	var pillage_gold: int = int(float(base_loot) * BalanceConfig.CONQUEST_PILLAGE_GOLD_MULT)
+	var plunder_gold: int = int(float(base_loot) * BalanceConfig.CONQUEST_PLUNDER_GOLD_MULT)
+
+	var title: String = "占领 %s" % tile["name"]
+	var desc: String = "[color=#aaaacc]你的军队已经攻下了此地。如何处置？[/color]"
+	var choices: Array = [
+		{"text": "占领 — 恢复秩序 (治安+20%%, 获得 %d 金币)" % occupy_gold},
+		{"text": "洗劫 — 搜刮财物 (治安-40%%, 获得 %d 金币)" % pillage_gold},
+		{"text": "掳掠 — 纵兵劫掠 (治安-70%%, 获得 %d 金币, 士兵回复25%%HP, H事件)" % plunder_gold},
+	]
+
+	if not _conquest_choice_connected:
+		EventBus.event_choice_selected.connect(_on_conquest_choice)
+		_conquest_choice_connected = true
+
+	EventBus.show_event_popup.emit(title, desc, choices)
+
+
+func _on_conquest_choice(choice_index: int) -> void:
+	if _pending_conquest_tile_index < 0:
+		return
+	var tile_idx: int = _pending_conquest_tile_index
+	_pending_conquest_tile_index = -1
+
+	var tile: Dictionary = tiles[tile_idx]
+	match choice_index:
+		0:
+			_apply_conquest_choice(tile, "occupy")
+		1:
+			_apply_conquest_choice(tile, "pillage")
+		2:
+			_apply_conquest_choice(tile, "plunder")
+		_:
+			_apply_conquest_choice(tile, "occupy")
+
+
+func _apply_conquest_choice(tile: Dictionary, choice: String) -> void:
+	var base_loot: int = _calculate_conquest_loot(tile)
+	var pid: int = tile["owner_id"]
+	var gold: int = 0
+
+	match choice:
+		"occupy":
+			tile["public_order"] = clampf(BalanceConfig.TILE_ORDER_DEFAULT + BalanceConfig.CONQUEST_OCCUPY_ORDER_BONUS, 0.0, 1.0)
+			gold = int(float(base_loot) * BalanceConfig.CONQUEST_OCCUPY_GOLD_MULT)
+			EventBus.message_log.emit("[color=green]占领 %s — 秩序恢复，获得 %d 金币[/color]" % [tile["name"], gold])
+		"pillage":
+			tile["public_order"] = clampf(BalanceConfig.TILE_ORDER_DEFAULT - BalanceConfig.CONQUEST_PILLAGE_ORDER_PENALTY, 0.0, 1.0)
+			gold = int(float(base_loot) * BalanceConfig.CONQUEST_PILLAGE_GOLD_MULT)
+			EventBus.message_log.emit("[color=yellow]洗劫 %s — 大肆搜刮，获得 %d 金币，治安骤降[/color]" % [tile["name"], gold])
+		"plunder":
+			tile["public_order"] = clampf(BalanceConfig.TILE_ORDER_DEFAULT - BalanceConfig.CONQUEST_PLUNDER_ORDER_PENALTY, 0.0, 1.0)
+			gold = int(float(base_loot) * BalanceConfig.CONQUEST_PLUNDER_GOLD_MULT)
+			# 25% HP recovery for all soldiers
+			var army: int = ResourceManager.get_army(pid)
+			var heal: int = maxi(1, int(float(army) * BalanceConfig.CONQUEST_PLUNDER_HP_RECOVERY))
+			ResourceManager.add_army(pid, heal)
+			sync_player_army(pid)
+			EventBus.message_log.emit("[color=red]掳掠 %s — 纵兵劫掠，获得 %d 金币，回复 %d 兵力[/color]" % [tile["name"], gold, heal])
+			# Trigger random H CG event
+			EventBus.message_log.emit("[color=#ff69b4]掳掠中发生了特殊事件...[/color]")
+			EventBus.event_triggered.emit(pid, "plunder_h_event", "掳掠中的特殊遭遇")
+
+	if gold > 0:
+		ResourceManager.apply_delta(pid, {"gold": gold})
+
+	EventBus.conquest_choice_made.emit(tile["index"], choice)
+	EventBus.resources_changed.emit(pid)
+
+
+func _calculate_conquest_loot(tile: Dictionary) -> int:
+	## Base loot = sum of tile base_production gold x 3 (represents looting 3 turns of income)
+	var base: Dictionary = tile.get("base_production", {})
+	var base_gold: int = base.get("gold", 5)
+	var level: int = maxi(tile.get("level", 1), 1)
+	return base_gold * level * 3
+
+
+func tick_tile_public_order() -> void:
+	## Called each turn. Drifts tile public_order toward natural cap.
+	for tile in tiles:
+		if tile == null:
+			continue
+		if tile.get("owner_id", -1) < 0:
+			continue
+		var order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+		if order >= BalanceConfig.TILE_ORDER_NATURAL_CAP:
+			continue  # Already at or above natural cap, no drift
+		var drift: float = BalanceConfig.TILE_ORDER_DRIFT_PER_TURN
+		# Garrison bonus
+		if tile.get("garrison", 0) > 5:
+			drift += BalanceConfig.TILE_ORDER_GARRISON_DRIFT
+		# Building bonus
+		var bld_level: int = tile.get("building_level", 0)
+		drift += bld_level * BalanceConfig.TILE_ORDER_BUILDING_DRIFT
+		order = minf(order + drift, BalanceConfig.TILE_ORDER_NATURAL_CAP)
+		tile["public_order"] = clampf(order, 0.0, 1.0)
 
 
 func _check_elimination(player: Dictionary) -> void:

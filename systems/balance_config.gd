@@ -170,6 +170,48 @@ const SLAVE_ALTAR_ESSENCE: int = 2      # shadow essence per sacrifice
 const SLAVE_REVOLT_THRESHOLD_MULT: int = 3  # revolt if slaves > garrison × this
 const SLAVE_REVOLT_CHANCE: float = 0.10
 
+# ═══════════════ TILE PUBLIC ORDER (治安度) ═══════════════
+
+## Default public order for owned tiles (50%)
+const TILE_ORDER_DEFAULT: float = 0.50
+
+## Per-turn natural drift toward equilibrium
+const TILE_ORDER_DRIFT_PER_TURN: float = 0.03  # +3% per turn
+## Garrison bonus: if garrison > 5, extra drift
+const TILE_ORDER_GARRISON_DRIFT: float = 0.02
+## Building bonus: per building level
+const TILE_ORDER_BUILDING_DRIFT: float = 0.01
+## Natural cap (order drifts toward this without player action)
+const TILE_ORDER_NATURAL_CAP: float = 0.70
+
+## Conquest choice modifiers
+const CONQUEST_OCCUPY_ORDER_BONUS: float = 0.20   # 占领: +20%
+const CONQUEST_PILLAGE_ORDER_PENALTY: float = 0.40 # 洗劫: -40%
+const CONQUEST_PLUNDER_ORDER_PENALTY: float = 0.70 # 掳掠: -70%
+
+## Conquest gold multipliers (applied to base loot)
+const CONQUEST_OCCUPY_GOLD_MULT: float = 0.50   # 占领: 50% gold
+const CONQUEST_PILLAGE_GOLD_MULT: float = 1.50  # 洗劫: 150% gold
+const CONQUEST_PLUNDER_GOLD_MULT: float = 1.00  # 掳掠: normal gold
+
+## Plunder HP recovery for soldiers
+const CONQUEST_PLUNDER_HP_RECOVERY: float = 0.25  # 25% soldier HP restored
+
+## Public order → production multiplier breakpoints
+## Keys are upper bounds of order ranges (0.0-1.0), values are production multipliers
+const TILE_ORDER_PROD_TABLE: Array = [
+	{"threshold": 0.10, "mult": 0.10, "label": "民不聊生"},
+	{"threshold": 0.20, "mult": 0.30, "label": "动荡不安"},
+	{"threshold": 0.30, "mult": 0.50, "label": "人心惶惶"},
+	{"threshold": 0.40, "mult": 0.70, "label": "秩序初定"},
+	{"threshold": 0.50, "mult": 0.85, "label": "渐趋稳定"},
+	{"threshold": 0.60, "mult": 1.00, "label": "正常运转"},
+	{"threshold": 0.70, "mult": 1.10, "label": "安居乐业"},
+	{"threshold": 0.80, "mult": 1.20, "label": "繁荣发展"},
+	{"threshold": 0.90, "mult": 1.30, "label": "歌舞升平"},
+	{"threshold": 1.01, "mult": 1.40, "label": "太平盛世"},
+]
+
 # ═══════════════ VICTORY (TW:W aligned) ═══════════════
 
 ## Victory conditions

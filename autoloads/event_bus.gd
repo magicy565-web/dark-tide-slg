@@ -28,6 +28,7 @@ signal tile_lost(player_id: int, tile_index: int)
 signal building_constructed(player_id: int, tile_index: int, building_id: String)
 signal building_upgraded(player_id: int, tile_index: int, building_id: String, new_level: int)
 signal territory_changed(tile_index: int, new_owner_id: int)
+signal conquest_choice_made(tile_index: int, choice_type: String)
 
 # ── Strategic Resources ──
 signal strategic_resource_changed(player_id: int, resource_key: String, new_amount: int)

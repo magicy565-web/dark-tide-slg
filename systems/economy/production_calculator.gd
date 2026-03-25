@@ -28,16 +28,15 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 
 	var faction_id: int = GameManager.get_player_faction(player_id)
 	var params: Dictionary = FactionData.FACTION_PARAMS[faction_id]
-	var order_mult: float = OrderManager.get_production_multiplier()
-
+	# NOTE: order_mult is now per-tile, not global
 	# Cache faction multipliers (constant across all tiles)
 	var gold_income_mult: float = params["gold_income_mult"]
 	var food_production_mult: float = params["food_production_mult"]
 	var base_production_mult: float = params["base_production_mult"]
 	var iron_mult: float = params.get("iron_income_mult", 1.0)
-	var gold_base_mult: float = gold_income_mult * base_production_mult * order_mult
-	var food_base_mult: float = food_production_mult * base_production_mult * order_mult
-	var iron_base_mult: float = iron_mult * base_production_mult * order_mult
+	var gold_base_mult: float = gold_income_mult * base_production_mult
+	var food_base_mult: float = food_production_mult * base_production_mult
+	var iron_base_mult: float = iron_mult * base_production_mult
 
 	# ── Tile production ──
 	for tile in GameManager.tiles:
@@ -56,9 +55,14 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		var terrain_prod_mult: float = FactionData.TERRAIN_DATA.get(tile.get("terrain", FactionData.TerrainType.PLAINS), {}).get("production_mult", 1.0)
 
 		var tile_mult: float = level_mult * (1.0 + building_prod_bonus) * terrain_prod_mult
-		var g: int = int(roundf(float(base.get("gold", 0)) * tile_mult * gold_base_mult))
-		var f: int = int(roundf(float(base.get("food", 0)) * tile_mult * food_base_mult))
-		var ir: int = int(roundf(float(base.get("iron", 0)) * tile_mult * iron_base_mult))
+
+		# Per-tile public order multiplier
+		var tile_order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+		var tile_order_mult: float = get_tile_order_multiplier(tile_order)
+
+		var g: int = int(roundf(float(base.get("gold", 0)) * tile_mult * gold_base_mult * tile_order_mult))
+		var f: int = int(roundf(float(base.get("food", 0)) * tile_mult * food_base_mult * tile_order_mult))
+		var ir: int = int(roundf(float(base.get("iron", 0)) * tile_mult * iron_base_mult * tile_order_mult))
 
 		income["gold"] += g
 		income["food"] += f
@@ -145,6 +149,22 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		income["iron"] = int(float(income["iron"]) * (1.0 + iron_bonus_pct))
 
 	return income
+
+
+func get_tile_order_multiplier(order: float) -> float:
+	## Returns production multiplier based on tile's public order (0.0-1.0).
+	for entry in BalanceConfig.TILE_ORDER_PROD_TABLE:
+		if order <= entry["threshold"]:
+			return entry["mult"]
+	return 1.0  # fallback
+
+
+func get_tile_order_label(order: float) -> String:
+	## Returns the descriptive label for a tile's public order level.
+	for entry in BalanceConfig.TILE_ORDER_PROD_TABLE:
+		if order <= entry["threshold"]:
+			return entry["label"]
+	return "正常运转"
 
 
 func _get_building_level_bonus(tile: Dictionary) -> float:
