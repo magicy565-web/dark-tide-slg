@@ -28,6 +28,10 @@ func _connect_signals() -> void:
 	EventBus.hero_affection_changed.connect(_on_hero_affection_changed)
 	EventBus.hero_leveled_up.connect(_on_hero_leveled_up)
 	EventBus.hero_exp_gained.connect(_on_hero_exp_changed)
+	EventBus.open_hero_detail_requested.connect(_on_open_hero_detail_requested)
+
+func _on_open_hero_detail_requested(hero_id: String) -> void:
+	show_panel(hero_id)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:

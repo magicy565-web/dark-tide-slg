@@ -249,3 +249,6 @@ signal story_choice_made(hero_id: String, event_id: String, choice_index: int)
 signal hero_leveled_up(hero_id: String, new_level: int)
 signal hero_passive_unlocked(hero_id: String, passive_id: String)
 signal hero_exp_gained(hero_id: String, amount: int, new_total: int)
+
+# ── UI Panel Requests ──
+signal open_hero_detail_requested(hero_id: String)

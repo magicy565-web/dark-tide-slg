@@ -19,6 +19,12 @@ var hero_panel = null
 # ── Quest journal panel (created at runtime) ──
 var quest_journal_panel = null
 
+# ── Additional UI panels (created at runtime, code-only) ──
+var diplomacy_panel = null
+var tech_tree_panel = null
+var inventory_panel = null
+var hero_detail_panel_node = null
+
 
 func _ready() -> void:
 	# Start with HUD hidden, menu visible (board stays visible - camera needs it)
@@ -36,6 +42,27 @@ func _ready() -> void:
 	var quest_panel_scene := preload("res://scenes/ui/quest_journal_panel.tscn")
 	quest_journal_panel = quest_panel_scene.instantiate()
 	add_child(quest_journal_panel)
+
+	# Create code-only UI panels (no .tscn needed — they build UI in _ready)
+	var DiplomacyPanelScript = preload("res://scenes/ui/diplomacy_panel.gd")
+	diplomacy_panel = CanvasLayer.new()
+	diplomacy_panel.set_script(DiplomacyPanelScript)
+	add_child(diplomacy_panel)
+
+	var TechTreePanelScript = preload("res://scenes/ui/tech_tree_panel.gd")
+	tech_tree_panel = CanvasLayer.new()
+	tech_tree_panel.set_script(TechTreePanelScript)
+	add_child(tech_tree_panel)
+
+	var InventoryPanelScript = preload("res://scenes/ui/inventory_panel.gd")
+	inventory_panel = CanvasLayer.new()
+	inventory_panel.set_script(InventoryPanelScript)
+	add_child(inventory_panel)
+
+	var HeroDetailPanelScript = preload("res://scenes/ui/hero_detail_panel.gd")
+	hero_detail_panel_node = CanvasLayer.new()
+	hero_detail_panel_node.set_script(HeroDetailPanelScript)
+	add_child(hero_detail_panel_node)
 
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)
@@ -91,6 +118,14 @@ func _unhandled_input(event: InputEvent) -> void:
 				return  # Let hero panel handle ESC first
 			if quest_journal_panel and quest_journal_panel.is_panel_visible():
 				return  # Let quest journal handle ESC first
+			if diplomacy_panel and diplomacy_panel.is_panel_visible():
+				return
+			if tech_tree_panel and tech_tree_panel.is_panel_visible():
+				return
+			if inventory_panel and inventory_panel.is_panel_visible():
+				return
+			if hero_detail_panel_node and hero_detail_panel_node.is_panel_visible():
+				return
 			if combat_view.visible:
 				return  # Let combat view handle ESC
 			settings_panel.toggle_settings()
