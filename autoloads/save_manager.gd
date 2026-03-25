@@ -212,6 +212,7 @@ func _collect_save_data() -> Dictionary:
 		"quest_journal": QuestJournal.to_save_data(),
 		"balance_manager": BalanceManager.serialize(),
 		"story": StoryEventSystem.to_save_data(),
+		"hero_leveling": HeroLeveling.serialize(),
 	}
 
 
@@ -305,6 +306,10 @@ func _apply_save_data(data: Dictionary) -> void:
 	# 4c. Restore story event progress (v3.1+)
 	if data.has("story"):
 		StoryEventSystem.from_save_data(data.get("story", {}))
+
+	# 4d. Restore hero leveling state (v3.2+)
+	if data.has("hero_leveling"):
+		HeroLeveling.deserialize(data.get("hero_leveling", {}))
 
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
