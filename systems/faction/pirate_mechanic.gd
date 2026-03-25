@@ -479,6 +479,7 @@ func get_infamy(player_id: int) -> int:
 func add_infamy(player_id: int, amount: int) -> void:
 	var current: int = _infamy.get(player_id, 0)
 	_infamy[player_id] = clampi(current + amount, 0, 100)
+	EventBus.infamy_changed.emit(player_id, _infamy[player_id])
 	if amount > 0:
 		EventBus.message_log.emit("[color=red]恶名上升 +%d (当前: %d)[/color]" % [amount, _infamy[player_id]])
 	elif amount < 0:
@@ -510,6 +511,7 @@ func _tick_infamy_decay(player_id: int) -> void:
 	if current > 0:
 		var decay: int = mini(current, INFAMY_DECAY_PER_TURN)
 		_infamy[player_id] = current - decay
+		EventBus.infamy_changed.emit(player_id, _infamy[player_id])
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -525,6 +527,7 @@ func get_rum_morale(player_id: int) -> int:
 func use_rum(player_id: int) -> void:
 	var current: int = _rum_morale.get(player_id, 0)
 	_rum_morale[player_id] = mini(current + RUM_MORALE_PER_BARREL, 100)
+	EventBus.rum_morale_changed.emit(player_id, _rum_morale[player_id])
 	EventBus.message_log.emit("[color=orange]开了一桶朗姆酒! 船员士气 +%d (当前: %d)[/color]" % [
 		RUM_MORALE_PER_BARREL, _rum_morale[player_id]])
 
@@ -564,6 +567,7 @@ func _tick_rum_decay(player_id: int) -> void:
 	if current > 0:
 		var decay: int = mini(current, RUM_DECAY_PER_TURN)
 		_rum_morale[player_id] = current - decay
+		EventBus.rum_morale_changed.emit(player_id, _rum_morale[player_id])
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -701,6 +705,7 @@ func _apply_market_effect(player_id: int, item: Dictionary) -> void:
 			# 直接增加朗姆酒士气
 			var current: int = _rum_morale.get(player_id, 0)
 			_rum_morale[player_id] = mini(current + value, 100)
+			EventBus.rum_morale_changed.emit(player_id, _rum_morale[player_id])
 		"treasure_map":
 			# 添加一张随机藏宝图
 			_generate_treasure_map(player_id)
@@ -887,9 +892,20 @@ func _resolve_treasure_reward(player_id: int, treasure_map: Dictionary) -> Dicti
 			ResourceManager.apply_delta(player_id, {"gold": reward_value})
 			EventBus.message_log.emit("[color=gold]藏宝图: 发现宝箱! 获得%d金![/color]" % reward_value)
 		"mercenary":
-			# 直接添加佣兵到军队
+			# 直接添加佣兵到军队 (使用默认佣兵剑士)
+			var merc_def: Dictionary = {}
+			for m in MERCENARY_TYPES:
+				if m["id"] == "merc_swordsman":
+					merc_def = m
+					break
+			if not merc_def.is_empty():
+				var merc_inst: Dictionary = _create_mercenary_instance(merc_def, reward_value)
+				var army_ref: Array = RecruitManager._get_army_ref(player_id)
+				army_ref.append(merc_inst)
+				RecruitManager._sync_army_count(player_id)
+				EventBus.army_changed.emit(player_id, RecruitManager.get_total_soldiers(player_id))
 			result["unit_id"] = "merc_swordsman"
-			EventBus.message_log.emit("[color=gold]藏宝图: 发现流浪佣兵%d名![/color]" % reward_value)
+			EventBus.message_log.emit("[color=gold]藏宝图: 发现流浪佣兵%d名! 已加入军队[/color]" % reward_value)
 		"sex_slave":
 			var added: int = add_sex_slaves(player_id, reward_value)
 			result["actual_added"] = added
@@ -897,6 +913,7 @@ func _resolve_treasure_reward(player_id: int, treasure_map: Dictionary) -> Dicti
 		"rum":
 			var current: int = _rum_morale.get(player_id, 0)
 			_rum_morale[player_id] = mini(current + reward_value, 100)
+			EventBus.rum_morale_changed.emit(player_id, _rum_morale[player_id])
 			EventBus.message_log.emit("[color=orange]藏宝图: 发现陈年朗姆酒! 士气 +%d[/color]" % reward_value)
 		"item":
 			var item_id: String = treasure_map.get("item_id", "rare_weapon")
@@ -1081,6 +1098,66 @@ func get_available_mercenaries(player_id: int) -> Array:
 		entry["adjusted_cost"] = maxi(int(float(merc["cost"]) * cost_mult), 1)
 		result.append(entry)
 	return result
+
+
+## 雇佣佣兵到指定格子的军队中 (或创建新军队).
+## 返回 true 表示成功, false 表示无法负担或无效类型.
+func hire_mercenary(player_id: int, merc_type: String, tile_index: int) -> bool:
+	# 1. 验证佣兵类型存在
+	var available: Array = get_available_mercenaries(player_id)
+	var merc_entry: Dictionary = {}
+	for entry in available:
+		if entry["id"] == merc_type:
+			merc_entry = entry
+			break
+	if merc_entry.is_empty():
+		EventBus.message_log.emit("[color=red]无效的佣兵类型: %s[/color]" % merc_type)
+		return false
+
+	# 2. 检查金币是否足够
+	var gold_cost: int = merc_entry["adjusted_cost"]
+	if not ResourceManager.can_afford(player_id, {"gold": gold_cost}):
+		EventBus.message_log.emit("[color=red]金币不足! 雇佣%s需要%d金[/color]" % [merc_entry["name"], gold_cost])
+		return false
+
+	# 3. 扣除金币
+	ResourceManager.try_spend(player_id, {"gold": gold_cost})
+
+	# 4. 创建佣兵部队实例并加入军队
+	var soldier_count: int = merc_entry.get("count", 5)
+	var merc_instance: Dictionary = _create_mercenary_instance(merc_entry, soldier_count)
+	var army_ref: Array = RecruitManager._get_army_ref(player_id)
+	army_ref.append(merc_instance)
+	RecruitManager._sync_army_count(player_id)
+
+	# 5. 发出信号
+	EventBus.message_log.emit("[color=gold]雇佣了 %s (%d兵)! 花费%d金[/color]" % [
+		merc_entry["name"], soldier_count, gold_cost])
+	EventBus.resources_changed.emit(player_id)
+	EventBus.army_changed.emit(player_id, RecruitManager.get_total_soldiers(player_id))
+
+	return true
+
+
+## 内部: 从佣兵定义创建部队实例 (佣兵不在 TroopRegistry 中, 需自建).
+func _create_mercenary_instance(merc_def: Dictionary, soldiers: int = -1) -> Dictionary:
+	var count: int = soldiers if soldiers > 0 else merc_def.get("count", 5)
+	var hp: int = merc_def.get("hp", 25)
+	var hp_per_soldier: int = maxi(hp / maxi(merc_def.get("count", 5), 1), 3)
+	return {
+		"troop_id": merc_def["id"],
+		"soldiers": count,
+		"max_soldiers": merc_def.get("count", 5),
+		"hp_per_soldier": hp_per_soldier,
+		"total_hp": count * hp_per_soldier,
+		"max_hp": merc_def.get("count", 5) * hp_per_soldier,
+		"commander_id": "",
+		"experience": 0,
+		"ability_used": false,
+		"is_mercenary": true,
+		"name": merc_def.get("name", "佣兵"),
+		"atk": merc_def.get("atk", 4),
+	}
 
 
 # ══════════════════════════════════════════════════════════════════════════════

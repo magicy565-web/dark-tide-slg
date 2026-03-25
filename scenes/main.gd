@@ -24,6 +24,7 @@ var diplomacy_panel = null
 var tech_tree_panel = null
 var inventory_panel = null
 var hero_detail_panel_node = null
+var pirate_panel = null
 
 
 func _ready() -> void:
@@ -63,6 +64,11 @@ func _ready() -> void:
 	hero_detail_panel_node = CanvasLayer.new()
 	hero_detail_panel_node.set_script(HeroDetailPanelScript)
 	add_child(hero_detail_panel_node)
+
+	var PiratePanelScript = preload("res://scenes/ui/pirate_panel.gd")
+	pirate_panel = CanvasLayer.new()
+	pirate_panel.set_script(PiratePanelScript)
+	add_child(pirate_panel)
 
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)
@@ -125,6 +131,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if inventory_panel and inventory_panel.is_panel_visible():
 				return
 			if hero_detail_panel_node and hero_detail_panel_node.is_panel_visible():
+				return
+			if pirate_panel and pirate_panel.is_panel_visible():
 				return
 			if combat_view.visible:
 				return  # Let combat view handle ESC

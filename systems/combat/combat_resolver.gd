@@ -254,6 +254,11 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 	if passives.is_empty() and special != "":
 		passives = [special]
 
+	# Troop registry uses singular "passive" key — merge it in
+	var troop_passive: String = raw.get("passive", "")
+	if troop_passive != "" and troop_passive not in passives:
+		passives.append(troop_passive)
+
 	# Hero commander stat bonuses
 	if hero_id != "" and FactionData.HEROES.has(hero_id):
 		var hdata: Dictionary = FactionData.HEROES[hero_id]

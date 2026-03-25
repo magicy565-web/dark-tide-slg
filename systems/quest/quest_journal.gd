@@ -369,7 +369,7 @@ func _apply_reward(reward: Dictionary, player_id: int) -> void:
 	if reward.has("waaagh"):
 		OrcMechanic.add_waaagh(player_id, reward["waaagh"])
 	if reward.has("plunder"):
-		PirateMechanic.add_plunder(player_id, reward["plunder"])
+		PirateMechanic.add_plunder_bonus(player_id, reward["plunder"])
 	if reward.has("title"):
 		_unlocked_titles.append(reward["title"])
 		_active_title = reward["title"]
