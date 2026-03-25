@@ -267,7 +267,13 @@ func _refresh() -> void:
 			var eml := Label.new()
 			eml.text = "-- 空 --"; eml.add_theme_font_size_override("font_size", 13)
 			eml.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
+			eml.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			sr.add_child(eml)
+			var be := Button.new()
+			be.text = "装备"; be.custom_minimum_size = Vector2(56, 24)
+			be.add_theme_font_size_override("font_size", 11)
+			be.pressed.connect(_show_equip_picker.bind(_hero_id, sk))
+			sr.add_child(be)
 
 	# ── Active Skills ──
 	_add(HSeparator.new())
@@ -380,6 +386,114 @@ func _on_unequip(hero_id: String, slot_key: String) -> void:
 		EventBus.message_log.emit("已卸下装备"); _refresh()
 	else:
 		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "卸下失败"))
+
+func _show_equip_picker(hero_id: String, slot_key: String) -> void:
+	## Show a popup listing available equipment from inventory that matches the given slot.
+	var pid: int = GameManager.get_human_player_id()
+	var all_equip: Array = ItemManager.get_equipment_items(pid)
+	var slot_key_to_enum: Dictionary = {
+		"weapon": FactionData.EquipSlot.WEAPON,
+		"armor": FactionData.EquipSlot.ARMOR,
+		"accessory": FactionData.EquipSlot.ACCESSORY,
+	}
+	var target_enum: int = slot_key_to_enum.get(slot_key, -1)
+	var matching: Array = []
+	for eq in all_equip:
+		var eq_id: String = eq.get("item_id", "")
+		var eq_def: Dictionary = FactionData.EQUIPMENT_DEFS.get(eq_id, {})
+		if eq_def.get("slot", -1) == target_enum:
+			matching.append(eq)
+	if matching.is_empty():
+		EventBus.message_log.emit("[color=yellow]背包中没有可用的%s装备[/color]" % {"weapon": "武器", "armor": "防具", "accessory": "饰品"}.get(slot_key, slot_key))
+		return
+	# Build popup overlay
+	var overlay := Control.new()
+	overlay.name = "EquipPickerOverlay"
+	overlay.anchor_right = 1.0; overlay.anchor_bottom = 1.0
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_child(overlay)
+	var popup_dim := ColorRect.new()
+	popup_dim.anchor_right = 1.0; popup_dim.anchor_bottom = 1.0
+	popup_dim.color = Color(0, 0, 0, 0.4)
+	popup_dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	popup_dim.gui_input.connect(func(ev: InputEvent):
+		if ev is InputEventMouseButton and ev.pressed:
+			overlay.queue_free()
+	)
+	overlay.add_child(popup_dim)
+	var popup_panel := PanelContainer.new()
+	popup_panel.anchor_left = 0.25; popup_panel.anchor_right = 0.75
+	popup_panel.anchor_top = 0.2; popup_panel.anchor_bottom = 0.8
+	var ps := StyleBoxFlat.new()
+	ps.bg_color = Color(0.08, 0.07, 0.13, 0.98)
+	ps.border_color = Color(0.6, 0.45, 0.25)
+	ps.set_border_width_all(2); ps.set_corner_radius_all(8); ps.set_content_margin_all(12)
+	popup_panel.add_theme_stylebox_override("panel", ps)
+	overlay.add_child(popup_panel)
+	var pvbox := VBoxContainer.new()
+	pvbox.add_theme_constant_override("separation", 6)
+	popup_panel.add_child(pvbox)
+	var title_row := HBoxContainer.new()
+	pvbox.add_child(title_row)
+	var title_lbl := Label.new()
+	title_lbl.text = "选择装备 (%s)" % {"weapon": "武器", "armor": "防具", "accessory": "饰品"}.get(slot_key, slot_key)
+	title_lbl.add_theme_font_size_override("font_size", 16)
+	title_lbl.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
+	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_row.add_child(title_lbl)
+	var btn_popup_close := Button.new()
+	btn_popup_close.text = "X"; btn_popup_close.custom_minimum_size = Vector2(30, 30)
+	btn_popup_close.add_theme_font_size_override("font_size", 14)
+	btn_popup_close.pressed.connect(func(): overlay.queue_free())
+	title_row.add_child(btn_popup_close)
+	pvbox.add_child(HSeparator.new())
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	pvbox.add_child(scroll)
+	var list_vbox := VBoxContainer.new()
+	list_vbox.add_theme_constant_override("separation", 4)
+	list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list_vbox)
+	for eq in matching:
+		var eq_id: String = eq.get("item_id", "")
+		var eq_def: Dictionary = FactionData.EQUIPMENT_DEFS.get(eq_id, {})
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		list_vbox.add_child(row)
+		var name_lbl := Label.new()
+		name_lbl.text = eq.get("name", eq_id)
+		name_lbl.add_theme_font_size_override("font_size", 13)
+		name_lbl.add_theme_color_override("font_color", _get_rarity_color(eq.get("rarity", "common")))
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(name_lbl)
+		var eq_stats: Dictionary = eq_def.get("stats", {})
+		if not eq_stats.is_empty():
+			var sp: Array = []
+			for k in eq_stats: sp.append("+%d%s" % [eq_stats[k], k.to_upper()])
+			var stat_lbl := Label.new()
+			stat_lbl.text = " ".join(sp); stat_lbl.add_theme_font_size_override("font_size", 11)
+			stat_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.9))
+			row.add_child(stat_lbl)
+		var passive: String = eq_def.get("passive", "none")
+		if passive != "none":
+			var pas_lbl := Label.new()
+			pas_lbl.text = "[%s]" % passive; pas_lbl.add_theme_font_size_override("font_size", 10)
+			pas_lbl.add_theme_color_override("font_color", Color(0.7, 0.5, 0.9))
+			row.add_child(pas_lbl)
+		var equip_btn := Button.new()
+		equip_btn.text = "装备"; equip_btn.custom_minimum_size = Vector2(56, 24)
+		equip_btn.add_theme_font_size_override("font_size", 11)
+		equip_btn.pressed.connect(func():
+			var result: Dictionary = HeroSystem.equip_item(hero_id, eq_id)
+			if result.get("ok", false):
+				EventBus.message_log.emit("装备成功")
+			else:
+				EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "装备失败"))
+			overlay.queue_free()
+			_refresh()
+		)
+		row.add_child(equip_btn)
 
 func _on_hero_affection_changed(hero_id: String, _val: int) -> void:
 	if _visible and _hero_id == hero_id: _refresh()

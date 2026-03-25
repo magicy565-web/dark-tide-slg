@@ -2,6 +2,51 @@
 
 ---
 
+## v3.3.0 — 2026-03-25 (战斗演出强化 + 装备系统完善 + 全面Debug)
+
+### 战斗演出增强 (combat_view.gd)
+
+- **英雄技能视觉**: 治疗技能→绿色上升粒子; 伤害/AOE→扩散冲击环; 增益→金色上升箭头; 减益→红色下降箭头
+- **击杀演出强化**: 击杀时0.3秒慢动作 + 白色闪屏; 最后一个单位击杀额外缩放震动
+- **回合过渡动画**: 大字"第X回合"缩放淡出 + 暗角脉冲效果
+- **英雄KO可视化**: 红色闪烁 + "K.O."覆盖文字(2x缩放弹入) + 裂痕线条效果
+- **状态图标增强**: Buff/Debuff箭头指示; 毒素脉冲绿色覆盖; 燃烧脉冲橙色覆盖
+
+### 装备系统完善
+
+- **英雄界面装备**: hero_detail_panel 空装备栏新增"装备"按钮, 弹出筛选面板可直接装备
+- **背包装备**: inventory_panel 装备详情页新增"装备到[英雄名]"按钮列表
+- **战斗掉落**: 玩家胜利后自动掉落随机战利品 (70%消耗品/30%装备)
+
+### Bug修复 (9个)
+
+- **CRASH**: `QuestManager.get_all_unlocked_neutral_troops()` 函数缺失 → 新增聚合函数
+- **CRASH**: `LightFactionAI.get_tile_owner()` 不存在 → 改用 GameManager.tiles 直接查询
+- **CRASH**: `ThreatManager.tick_timers()` 从未被调用 → 加入Phase 4
+- **CRASH**: `ThreatManager.check_dominance()` 从未被调用 → 加入Phase 4
+- **CRASH**: `HeroSystem.process_prison_turn()` 从未被调用 → 加入Phase 5c3
+- **BUG**: `get_army_combat_power` 整数截断 → 改为浮点除法
+- **BUG**: HeroLeveling 存档重复反序列化 → 移除 save_manager 中的冗余调用
+- **DEPRECATED**: 2处 `emit_signal()` Godot 3语法 → 改为 `.emit()` (balance_manager, board)
+- **CLEANUP**: hud.gd 移除多余 `has_signal()` 守卫
+
+### 文件变更清单
+
+| 文件 | 变更类型 |
+|------|----------|
+| scenes/ui/combat_view.gd | 增强 (+350行动画/视觉效果) |
+| scenes/ui/hero_detail_panel.gd | 增强 (装备选择弹窗) |
+| scenes/ui/inventory_panel.gd | 增强 (装备到英雄功能) |
+| autoloads/game_manager.gd | 修复 (4个缺失调用 + 战斗掉落 + 整数截断) |
+| autoloads/save_manager.gd | 修复 (重复反序列化) |
+| systems/npc/quest_manager.gd | 修复 (新增聚合函数) |
+| systems/combat/combat_abilities.gd | 修复 (tile_owner查询) |
+| systems/balance/balance_manager.gd | 修复 (emit_signal语法) |
+| scenes/board/board.gd | 修复 (emit_signal语法) |
+| scenes/ui/hud.gd | 修复 (移除has_signal守卫) |
+
+---
+
 ## v3.2.0 — 2026-03-24 (地形系统全面重构)
 
 ### 地形系统重构 (faction_data.gd TERRAIN_DATA)

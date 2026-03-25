@@ -110,8 +110,7 @@ func _connect_signals() -> void:
 	# LEGACY: gold_changed/charm_changed are never emitted — kept for backward compat
 	EventBus.gold_changed.connect(_on_legacy_changed)
 	EventBus.charm_changed.connect(_on_legacy_changed)
-	if EventBus.has_signal("territory_selected"):
-		EventBus.territory_selected.connect(_on_territory_selected)
+	EventBus.territory_selected.connect(_on_territory_selected)
 	EventBus.combat_result.connect(_on_combat_result)
 	EventBus.order_changed.connect(_on_order_changed)
 	EventBus.threat_changed.connect(_on_threat_changed)

@@ -148,7 +148,7 @@ var _audit_log: Array = []
 func set_difficulty(key: String) -> void:
 	if DIFFICULTY_PRESETS.has(key):
 		current_difficulty = key
-		EventBus.emit_signal("difficulty_changed", key)
+		EventBus.difficulty_changed.emit(key)
 
 func get_diff() -> Dictionary:
 	return DIFFICULTY_PRESETS.get(current_difficulty, DIFFICULTY_PRESETS["normal"])

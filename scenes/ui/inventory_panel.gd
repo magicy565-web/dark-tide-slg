@@ -338,11 +338,32 @@ func _refresh_detail(item: Dictionary) -> void:
 		bu.pressed.connect(_on_use_item.bind(item_id))
 		btn_row.add_child(bu)
 	elif item_type == "equipment":
-		var il := Label.new()
-		il.text = "请在英雄界面装备此物品"
-		il.add_theme_font_size_override("font_size", 11)
-		il.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
-		btn_row.add_child(il)
+		var equip_hero_vbox := VBoxContainer.new()
+		equip_hero_vbox.add_theme_constant_override("separation", 4)
+		btn_row.add_child(equip_hero_vbox)
+		var pid: int = GameManager.get_human_player_id()
+		var heroes: Array = HeroSystem.get_recruited_heroes(pid)
+		if heroes.is_empty():
+			var il := Label.new()
+			il.text = "无已招募英雄可装备"
+			il.add_theme_font_size_override("font_size", 11)
+			il.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
+			equip_hero_vbox.add_child(il)
+		else:
+			var equip_title := Label.new()
+			equip_title.text = "装备到英雄:"
+			equip_title.add_theme_font_size_override("font_size", 12)
+			equip_title.add_theme_color_override("font_color", Color(0.8, 0.75, 0.5))
+			equip_hero_vbox.add_child(equip_title)
+			for hid in heroes:
+				var hero_def: Dictionary = FactionData.HEROES.get(hid, {})
+				var hero_name: String = hero_def.get("name", hid)
+				var hbtn := Button.new()
+				hbtn.text = "装备到 %s" % hero_name
+				hbtn.custom_minimum_size = Vector2(140, 26)
+				hbtn.add_theme_font_size_override("font_size", 11)
+				hbtn.pressed.connect(_on_equip_to_hero.bind(hid, item_id))
+				equip_hero_vbox.add_child(hbtn)
 	var bd := Button.new()
 	bd.text = "丢弃"; bd.custom_minimum_size = Vector2(80, 30)
 	bd.add_theme_font_size_override("font_size", 13)
@@ -354,6 +375,16 @@ func _refresh_detail(item: Dictionary) -> void:
 func _on_use_item(item_id: String) -> void:
 	AudioManager.play_ui_confirm()
 	ItemManager.use_item(GameManager.get_human_player_id(), item_id)
+	_selected_item_index = -1; detail_panel.visible = false; _refresh()
+
+func _on_equip_to_hero(hero_id: String, equip_id: String) -> void:
+	AudioManager.play_ui_confirm()
+	var result: Dictionary = HeroSystem.equip_item(hero_id, equip_id)
+	if result.get("ok", false):
+		var hero_def: Dictionary = FactionData.HEROES.get(hero_id, {})
+		EventBus.message_log.emit("%s 装备成功" % hero_def.get("name", hero_id))
+	else:
+		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "装备失败"))
 	_selected_item_index = -1; detail_panel.visible = false; _refresh()
 
 func _on_discard_item(item_id: String) -> void:

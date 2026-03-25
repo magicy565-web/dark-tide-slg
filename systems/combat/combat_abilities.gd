@@ -201,7 +201,11 @@ func apply_conscript_bonus(player_id: int, tile_index: int) -> Array:
 	var details: Array = []
 	var army: Array = RecruitManager._get_army_ref(player_id)
 	# Check if tile is owned by the player
-	var tile_owner: int = LightFactionAI.get_tile_owner(tile_index)
+	# BUG FIX: LightFactionAI.get_tile_owner() doesn't exist. Read owner_id
+	# directly from GameManager.tiles instead.
+	var tile_owner: int = -1
+	if tile_index >= 0 and tile_index < GameManager.tiles.size():
+		tile_owner = GameManager.tiles[tile_index].get("owner_id", -1)
 	if tile_owner != player_id:
 		return details
 	for troop in army:

@@ -609,6 +609,16 @@ func get_taming_tier(player_id: int, nf_id_or_tag) -> String:
 		return "tamed"
 
 
+func get_all_unlocked_neutral_troops(player_id: int) -> Array:
+	## Returns all troop IDs unlocked from ALL recruited neutral factions.
+	## Called by RecruitManager to add neutral troops to the recruit list.
+	var result: Array = []
+	var recruited: Array = get_recruited_factions(player_id)
+	for nf_id in recruited:
+		result.append_array(get_unlocked_neutral_troops(player_id, nf_id))
+	return result
+
+
 func get_unlocked_neutral_troops(player_id: int, nf_id_or_tag) -> Array:
 	## Returns array of troop IDs unlocked by recruiting this neutral faction.
 	var fid: int = _resolve_faction_id(nf_id_or_tag)

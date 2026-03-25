@@ -1411,9 +1411,15 @@ func begin_turn() -> void:
 			EventBus.message_log.emit("[color=red]%s 军饷不足! 欠饷%d金，士气低落(ATK/DEF-%.0f%%)[/color]" % [
 				player["name"], deficit, BalanceConfig.GOLD_DEFICIT_COMBAT_PENALTY * 100.0])
 
-	# ── Phase 4: Threat decay ──
+	# ── Phase 4: Threat decay & timers ──
 	if pid == get_human_player_id():
 		ThreatManager.tick_decay()
+		# BUG FIX: tick_timers() was never called, causing expeditions/bosses to
+		# fire every eligible turn instead of on their intended interval (3/5 turns).
+		ThreatManager.tick_timers()
+		# BUG FIX: check_dominance() was never called, so controlling 50%+ nodes
+		# didn't increase threat as designed in 03_战略设定.
+		ThreatManager.check_dominance(count_tiles_owned(pid), tiles.size())
 
 	# ── Phase 4b: Troop per-turn passive effects (regen, self_destruct, etc.) ──
 	_tick_troop_passives(pid)
@@ -1479,6 +1485,9 @@ func begin_turn() -> void:
 	# ── Phase 5c3: Harem cooldown tick ──
 	if pid == get_human_player_id():
 		HeroSystem.tick_harem_cooldowns()
+		# BUG FIX: process_prison_turn() was never called, so captured heroes never
+		# accumulated corruption and could never be recruited. Call it each turn.
+		HeroSystem.process_prison_turn()
 
 	# ── Phase 5c4: Per-tile public order drift ──
 	tick_tile_public_order()
@@ -1849,7 +1858,9 @@ func get_army_combat_power(army_id: int) -> int:
 	for troop in army["troops"]:
 		var soldiers: int = troop.get("soldiers", 0)
 		var atk: int = troop.get("atk", 10)
-		power += soldiers * atk / 10
+		# BUG FIX: integer division truncated per-unit power to 0 for small units
+		# (e.g. 2 soldiers × 4 ATK / 10 = 0). Use float division then convert.
+		power += int(float(soldiers * atk) / 10.0)
 	# Add hero combat bonus
 	for hero_id in army["heroes"]:
 		power += BalanceConfig.HERO_BASE_COMBAT_POWER  # Base hero power contribution
@@ -2212,6 +2223,10 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 
 	# ── 英雄经验 (v3.1) ──
 	_grant_hero_combat_exp(pid, result, won)
+
+	# ── 战斗战利品掉落 (v3.5) ──
+	if won and pid == get_human_player_id():
+		ItemManager.grant_random_loot(pid)
 
 	_cleanup_army_troops(army)
 	return won

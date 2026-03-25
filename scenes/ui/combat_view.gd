@@ -1451,25 +1451,32 @@ func _show_round_splash(round_num: int) -> void:
 	round_splash.text = "第 %d 回合" % round_num
 	round_splash.visible = true
 	round_splash.modulate = Color(1, 1, 1, 0)
-	round_splash.scale = Vector2(1.5, 1.5)
+	round_splash.scale = Vector2(2.0, 2.0)
 	round_splash.pivot_offset = Vector2(SCREEN_W * 0.5, 40)
 
 	var spd := 0.2 / _speed_mult
 	var tw := create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(round_splash, "modulate:a", 1.0, spd).set_ease(Tween.EASE_OUT)
-	tw.tween_property(round_splash, "scale", Vector2(1.0, 1.0), spd * 1.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tw.chain().tween_interval(0.5 / _speed_mult)
+	tw.tween_property(round_splash, "scale", Vector2(1.0, 1.0), spd * 1.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.chain().tween_interval(0.6 / _speed_mult)
 	tw.chain().set_parallel(true)
-	tw.chain().tween_property(round_splash, "modulate:a", 0.0, 0.25 / _speed_mult)
-	tw.chain().tween_property(round_splash, "position:y", round_splash.position.y - 20, 0.25 / _speed_mult)
+	tw.chain().tween_property(round_splash, "modulate:a", 0.0, 0.3 / _speed_mult)
+	tw.chain().tween_property(round_splash, "position:y", round_splash.position.y - 25, 0.3 / _speed_mult)
+	tw.chain().tween_property(round_splash, "scale", Vector2(0.85, 0.85), 0.3 / _speed_mult)
 	tw.chain().tween_callback(func():
 		round_splash.visible = false
 		round_splash.position.y = SCREEN_H * 0.35
 	)
 
+	# Vignette pulse (brief screen dim for atmosphere)
+	if is_instance_valid(vignette):
+		var tw_vig := create_tween()
+		tw_vig.tween_property(vignette, "color:a", 0.25, 0.15 / _speed_mult).set_ease(Tween.EASE_OUT)
+		tw_vig.tween_property(vignette, "color:a", 0.0, 0.6 / _speed_mult).set_ease(Tween.EASE_IN)
+
 	# Subtle screen flash for round start
-	_screen_flash_effect(Color(0.8, 0.7, 0.5, 0.08), 0.4)
+	_screen_flash_effect(Color(0.8, 0.7, 0.5, 0.12), 0.4)
 
 	# Horizontal light sweep line
 	var sweep := ColorRect.new()
@@ -1492,14 +1499,41 @@ func _play_kill_cutscene(side: String, slot_idx: int) -> void:
 	# Heavy screen shake
 	_screen_shake(SHAKE_HEAVY, 6.0)
 
-	# White screen flash
-	_screen_flash_effect(Color(1, 0.9, 0.8, 0.25), 0.3)
+	# White screen flash (enhanced - brighter and longer)
+	_screen_flash_effect(Color(1, 0.95, 0.9, 0.45), 0.35)
+
+	# Brief slow-motion effect
+	Engine.time_scale = KILL_SLOWMO_SCALE
+	get_tree().create_timer(0.3 * KILL_SLOWMO_SCALE).timeout.connect(func():
+		Engine.time_scale = 1.0
+	)
 
 	# Brief vignette darkening
 	if is_instance_valid(vignette):
-		vignette.color = Color(0, 0, 0, 0.2)
+		vignette.color = Color(0, 0, 0, 0.3)
 		var tw_v := create_tween()
-		tw_v.tween_property(vignette, "color:a", 0.0, 0.5 / _speed_mult)
+		tw_v.tween_property(vignette, "color:a", 0.0, 0.6 / _speed_mult)
+
+	# Check if this is the last unit on the dying side for extra drama
+	var remaining_alive := 0
+	for s_key in _live_units[side].keys():
+		if s_key != slot_idx:
+			var u: Dictionary = _live_units[side][s_key]
+			if u.get("soldiers", 0) > 0:
+				remaining_alive += 1
+	var is_last_kill := remaining_alive == 0
+
+	# Extra dramatic zoom pulse for last unit killed
+	if is_last_kill and is_instance_valid(cards[slot_idx]):
+		var card: PanelContainer = cards[slot_idx]
+		var orig_scale := card.scale
+		card.pivot_offset = card.size * 0.5
+		var tw_zoom := create_tween()
+		tw_zoom.tween_property(card, "scale", Vector2(1.15, 1.15), 0.1 / _speed_mult).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw_zoom.tween_property(card, "scale", orig_scale, 0.2 / _speed_mult).set_ease(Tween.EASE_IN_OUT)
+		# Extra heavy shake for final kill
+		_screen_shake(SHAKE_CRIT, 5.0)
+		_screen_flash_effect(Color(1, 0.85, 0.7, 0.55), 0.45)
 
 	# Apply death overlay with delay for dramatic effect
 	get_tree().create_timer(0.1 / _speed_mult).timeout.connect(func():
@@ -1529,7 +1563,42 @@ func _play_hero_knockout(side: String, slot_idx: int, hero_name: String) -> void
 	EventBus.sfx_hero_knockout.emit(hero_name)
 	# Extra dramatic effect for hero KO
 	_screen_shake(SHAKE_CRIT, 5.0)
-	_screen_flash_effect(Color(0.8, 0.2, 0.1, 0.3), 0.4)
+	_screen_flash_effect(Color(0.8, 0.2, 0.1, 0.4), 0.5)
+
+	# Red flash on the card
+	_flash_card(side, slot_idx, Color(1.0, 0.1, 0.05, 0.7))
+
+	# "KO" overlay text on card
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	if cards.has(slot_idx):
+		var card: PanelContainer = cards[slot_idx]
+		var ko_label := Label.new()
+		ko_label.text = "K.O."
+		ko_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ko_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		ko_label.anchor_right = 1.0
+		ko_label.anchor_bottom = 1.0
+		ko_label.add_theme_font_size_override("font_size", 42)
+		ko_label.add_theme_color_override("font_color", Color(1, 0.15, 0.1))
+		ko_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ko_label.z_index = 52
+		ko_label.modulate = Color(1, 1, 1, 0)
+		ko_label.scale = Vector2(2.0, 2.0)
+		ko_label.pivot_offset = Vector2(CARD_W * 0.5, CARD_H * 0.5)
+		card.add_child(ko_label)
+
+		var tw_ko := create_tween()
+		tw_ko.set_parallel(true)
+		tw_ko.tween_property(ko_label, "modulate:a", 1.0, 0.1 / _speed_mult).set_ease(Tween.EASE_OUT)
+		tw_ko.tween_property(ko_label, "scale", Vector2(1.0, 1.0), 0.2 / _speed_mult).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw_ko.chain().tween_interval(1.2 / _speed_mult)
+		tw_ko.chain().tween_property(ko_label, "modulate:a", 0.0, 0.4 / _speed_mult)
+		tw_ko.chain().tween_callback(func():
+			if is_instance_valid(ko_label): ko_label.queue_free()
+		)
+
+		# Card crack visual effect (diagonal crack lines across card)
+		_spawn_card_cracks(card)
 
 	# Show knockout banner
 	if is_instance_valid(passive_banner):
@@ -1790,6 +1859,16 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			if slot_idx >= 0:
 				_glow_card(side, slot_idx)
 				_show_passive_banner(desc, side)
+				# Ability-type visual effects
+				var ability_type: String = entry.get("ability_type", "")
+				if ability_type == "":
+					ability_type = _detect_ability_type(desc)
+				var ability_target_side: String = entry.get("target_side", side)
+				var ability_target_slot: int = entry.get("target_slot", slot_idx)
+				_play_ability_vfx(ability_type, ability_target_side, ability_target_slot, side, slot_idx)
+				# Apply buff/debuff tracking from abilities too
+				if ability_type in ["buff", "debuff"]:
+					_detect_and_apply_buff(ability_target_side, ability_target_slot, desc)
 
 		"siege":
 			log_line = "[color=#f88]〔攻城〕[/color] %s" % desc
@@ -2121,6 +2200,255 @@ func _update_buff_label(side: String, slot_idx: int) -> void:
 		buff_lbl.add_theme_color_override("font_color", Color(0.4, 0.6, 1.0))
 	else:
 		buff_lbl.add_theme_color_override("font_color", Color(0.7, 0.8, 0.9))
+
+	# Spawn visual buff/debuff arrow indicators on the card
+	var has_any_buff := false
+	var has_any_debuff := false
+	for b in buffs:
+		if b in ["atk_up", "def_up", "spd_up"]:
+			has_any_buff = true
+		if b in ["slow"]:
+			has_any_debuff = true
+	if has_any_buff:
+		_spawn_buff_arrow_indicator(card, true)
+	if has_any_debuff:
+		_spawn_buff_arrow_indicator(card, false)
+
+	# Pulsing overlay for poison
+	if buffs.has("poison"):
+		_spawn_dot_pulsing_overlay(card, Color(0.2, 0.85, 0.3, 0.12))
+	# Pulsing overlay for burn
+	if buffs.has("burn"):
+		_spawn_dot_pulsing_overlay(card, Color(1.0, 0.45, 0.1, 0.12))
+
+# ═══════════════════════════════════════════════════════════
+#            ABILITY VFX & ENHANCED VISUAL EFFECTS
+# ═══════════════════════════════════════════════════════════
+
+func _detect_ability_type(desc: String) -> String:
+	## Infer ability type from description text when not explicitly provided.
+	if "治" in desc or "回复" in desc or "治愈" in desc or "恢复" in desc:
+		return "heal"
+	if "范围" in desc or "全体" in desc or "aoe" in desc.to_lower():
+		return "aoe"
+	if "攻击" in desc or "伤害" in desc or "斩" in desc or "打击" in desc:
+		return "damage"
+	if "减速" in desc or "弱化" in desc or "诅咒" in desc or "减" in desc or "毒" in desc or "灼" in desc:
+		return "debuff"
+	if "强化" in desc or "鼓舞" in desc or "加速" in desc or "增" in desc or "护盾" in desc:
+		return "buff"
+	return "damage"
+
+func _play_ability_vfx(ability_type: String, target_side: String, target_slot: int, source_side: String, source_slot: int) -> void:
+	## Dispatch ability visual effects based on type.
+	match ability_type:
+		"heal":
+			_vfx_heal_sparkles(target_side, target_slot)
+		"damage":
+			_vfx_ability_impact_ring(target_side, target_slot)
+		"aoe":
+			_vfx_ability_impact_ring(target_side, target_slot)
+			# Also flash adjacent slots for AoE feel
+			for offset in [-1, 1]:
+				var adj_slot := target_slot + offset
+				if adj_slot >= 0 and adj_slot < 5:
+					_vfx_ability_impact_ring(target_side, adj_slot)
+		"buff":
+			_vfx_buff_arrows(target_side, target_slot, true)
+		"debuff":
+			_vfx_buff_arrows(target_side, target_slot, false)
+
+func _vfx_heal_sparkles(side: String, slot_idx: int) -> void:
+	## Green sparkle particles rising upward on the healed unit.
+	var pos := _get_card_center(side, slot_idx)
+	var density := _particle_density_mult()
+	var count := maxi(4, int(10 * density))
+	for i in range(count):
+		var sparkle := ColorRect.new()
+		var sz := randf_range(2.0, 5.0)
+		sparkle.size = Vector2(sz, sz)
+		sparkle.color = Color(
+			randf_range(0.2, 0.4),
+			randf_range(0.8, 1.0),
+			randf_range(0.3, 0.6),
+			0.85
+		)
+		sparkle.position = pos + Vector2(randf_range(-CARD_W * 0.4, CARD_W * 0.4), randf_range(-CARD_H * 0.3, CARD_H * 0.3))
+		sparkle.z_index = 45
+		anim_layer.add_child(sparkle)
+		var rise := randf_range(35, 65)
+		var dur := randf_range(0.5, 0.9) / _speed_mult
+		var delay := randf_range(0.0, 0.2) / _speed_mult
+		var tw := create_tween()
+		tw.tween_interval(delay)
+		tw.set_parallel(true)
+		tw.tween_property(sparkle, "position:y", sparkle.position.y - rise, dur).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tw.tween_property(sparkle, "position:x", sparkle.position.x + randf_range(-10, 10), dur)
+		tw.tween_property(sparkle, "modulate:a", 0.0, dur * 0.9)
+		tw.chain().tween_callback(func():
+			if is_instance_valid(sparkle): sparkle.queue_free()
+		)
+	# Green card flash
+	_flash_card(side, slot_idx, Color(0.2, 0.9, 0.4, 0.3))
+
+func _vfx_ability_impact_ring(side: String, slot_idx: int) -> void:
+	## Large impact ring expanding outward from target for damage/AoE abilities.
+	var pos := _get_card_center(side, slot_idx)
+	# Inner ring
+	var ring_inner := ColorRect.new()
+	ring_inner.size = Vector2(10, 10)
+	ring_inner.position = pos - Vector2(5, 5)
+	ring_inner.color = Color(1.0, 0.6, 0.2, 0.7)
+	ring_inner.z_index = 46
+	ring_inner.pivot_offset = Vector2(5, 5)
+	anim_layer.add_child(ring_inner)
+	var tw1 := create_tween().set_parallel(true)
+	tw1.tween_property(ring_inner, "size", Vector2(CARD_W * 1.2, CARD_H * 1.2), 0.3 / _speed_mult).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw1.tween_property(ring_inner, "position", pos - Vector2(CARD_W * 0.6, CARD_H * 0.6), 0.3 / _speed_mult).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw1.tween_property(ring_inner, "color:a", 0.0, 0.35 / _speed_mult)
+	tw1.chain().tween_callback(func():
+		if is_instance_valid(ring_inner): ring_inner.queue_free()
+	)
+	# Outer ring (delayed)
+	var ring_outer := ColorRect.new()
+	ring_outer.size = Vector2(6, 6)
+	ring_outer.position = pos - Vector2(3, 3)
+	ring_outer.color = Color(1.0, 0.85, 0.4, 0.5)
+	ring_outer.z_index = 45
+	anim_layer.add_child(ring_outer)
+	var tw2 := create_tween()
+	tw2.tween_interval(0.05 / _speed_mult)
+	tw2.set_parallel(true)
+	tw2.tween_property(ring_outer, "size", Vector2(CARD_W * 1.5, CARD_H * 1.5), 0.35 / _speed_mult).set_ease(Tween.EASE_OUT)
+	tw2.tween_property(ring_outer, "position", pos - Vector2(CARD_W * 0.75, CARD_H * 0.75), 0.35 / _speed_mult).set_ease(Tween.EASE_OUT)
+	tw2.tween_property(ring_outer, "color:a", 0.0, 0.4 / _speed_mult)
+	tw2.chain().tween_callback(func():
+		if is_instance_valid(ring_outer): ring_outer.queue_free()
+	)
+	# Impact flash + shake
+	_flash_card(side, slot_idx, Color(1.0, 0.5, 0.15, 0.5))
+	_screen_shake(SHAKE_LIGHT, 12.0)
+
+func _vfx_buff_arrows(side: String, slot_idx: int, is_buff: bool) -> void:
+	## Golden upward arrows for buff, red downward arrows for debuff.
+	var pos := _get_card_center(side, slot_idx)
+	var density := _particle_density_mult()
+	var count := maxi(3, int(6 * density))
+	var arrow_color: Color
+	var direction: float
+	var arrow_text: String
+	if is_buff:
+		arrow_color = Color(1.0, 0.85, 0.2, 0.9)
+		direction = -1.0  # upward
+		arrow_text = "^"
+	else:
+		arrow_color = Color(1.0, 0.2, 0.15, 0.9)
+		direction = 1.0   # downward
+		arrow_text = "v"
+
+	for i in range(count):
+		var arrow := Label.new()
+		arrow.text = arrow_text
+		arrow.add_theme_font_size_override("font_size", 18)
+		arrow.add_theme_color_override("font_color", arrow_color)
+		arrow.position = pos + Vector2(randf_range(-CARD_W * 0.35, CARD_W * 0.35), randf_range(-CARD_H * 0.2, CARD_H * 0.2))
+		arrow.z_index = 47
+		arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		anim_layer.add_child(arrow)
+		var travel := direction * randf_range(30, 55)
+		var dur := randf_range(0.5, 0.8) / _speed_mult
+		var delay := float(i) * 0.04 / _speed_mult
+		var tw := create_tween()
+		tw.tween_interval(delay)
+		tw.set_parallel(true)
+		tw.tween_property(arrow, "position:y", arrow.position.y + travel, dur).set_ease(Tween.EASE_OUT)
+		tw.tween_property(arrow, "modulate:a", 0.0, dur * 0.85)
+		tw.chain().tween_callback(func():
+			if is_instance_valid(arrow): arrow.queue_free()
+		)
+	# Card glow in buff/debuff color
+	_flash_card(side, slot_idx, Color(arrow_color.r, arrow_color.g, arrow_color.b, 0.3))
+
+func _spawn_card_cracks(card: PanelContainer) -> void:
+	## Draw diagonal crack lines across a card for hero KO visual.
+	var crack_color := Color(0.9, 0.2, 0.1, 0.7)
+	# Generate 3 random crack lines
+	for i in range(3):
+		var crack := Line2D.new()
+		crack.width = randf_range(1.5, 3.0)
+		crack.default_color = crack_color
+		crack.z_index = 51
+		# Random start and end within card bounds
+		var start_x := randf_range(0, CARD_W * 0.3)
+		var start_y := randf_range(0, CARD_H)
+		var end_x := randf_range(CARD_W * 0.7, CARD_W)
+		var end_y := randf_range(0, CARD_H)
+		# Add some jagged intermediate points
+		crack.add_point(Vector2(start_x, start_y))
+		var mid_count := randi_range(2, 4)
+		for j in range(mid_count):
+			var t := float(j + 1) / float(mid_count + 1)
+			var mx := lerp(start_x, end_x, t) + randf_range(-12, 12)
+			var my := lerp(start_y, end_y, t) + randf_range(-8, 8)
+			crack.add_point(Vector2(mx, my))
+		crack.add_point(Vector2(end_x, end_y))
+		crack.modulate = Color(1, 1, 1, 0)
+		card.add_child(crack)
+		# Animate crack appearing
+		var delay := float(i) * 0.06 / _speed_mult
+		var tw := create_tween()
+		tw.tween_interval(delay)
+		tw.tween_property(crack, "modulate:a", 1.0, 0.08 / _speed_mult)
+		tw.tween_interval(1.5 / _speed_mult)
+		tw.tween_property(crack, "modulate:a", 0.0, 0.5 / _speed_mult)
+		tw.tween_callback(func():
+			if is_instance_valid(crack): crack.queue_free()
+		)
+
+func _spawn_buff_arrow_indicator(card: PanelContainer, is_buff: bool) -> void:
+	## Spawn a small persistent arrow indicator on the card edge.
+	var indicator := Label.new()
+	indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	indicator.z_index = 48
+	if is_buff:
+		indicator.text = "^"
+		indicator.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3, 0.8))
+		indicator.position = Vector2(CARD_W - 18, 2)
+	else:
+		indicator.text = "v"
+		indicator.add_theme_color_override("font_color", Color(0.9, 0.2, 0.15, 0.8))
+		indicator.position = Vector2(CARD_W - 18, CARD_H - 18)
+	indicator.add_theme_font_size_override("font_size", 14)
+	card.add_child(indicator)
+	# Pulse the indicator then remove
+	var tw := create_tween().set_loops(3)
+	tw.tween_property(indicator, "modulate:a", 0.3, 0.3 / _speed_mult)
+	tw.tween_property(indicator, "modulate:a", 1.0, 0.3 / _speed_mult)
+	# Remove after pulsing
+	get_tree().create_timer(2.0 / _speed_mult).timeout.connect(func():
+		if is_instance_valid(indicator): indicator.queue_free()
+	)
+
+func _spawn_dot_pulsing_overlay(card: PanelContainer, color: Color) -> void:
+	## Spawn a pulsing color overlay on a card for DoT effects (poison/burn).
+	var overlay := ColorRect.new()
+	overlay.size = card.size
+	overlay.color = color
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.z_index = 36
+	card.add_child(overlay)
+	# Pulse 3 times then remove
+	var tw := create_tween().set_loops(3)
+	tw.tween_property(overlay, "color:a", color.a * 2.5, 0.35 / _speed_mult).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(overlay, "color:a", color.a * 0.5, 0.35 / _speed_mult).set_ease(Tween.EASE_IN_OUT)
+	get_tree().create_timer(2.2 / _speed_mult).timeout.connect(func():
+		if is_instance_valid(overlay):
+			var tw_fade := create_tween()
+			tw_fade.tween_property(overlay, "color:a", 0.0, 0.2 / _speed_mult)
+			tw_fade.tween_callback(func():
+				if is_instance_valid(overlay): overlay.queue_free()
+			)
+	)
 
 # ═══════════════════════════════════════════════════════════
 #                      SAVE / LOAD

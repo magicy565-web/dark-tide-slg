@@ -2,7 +2,7 @@
 ## Autoload singleton. Serializes full game state to JSON files.
 extends Node
 
-const SAVE_VERSION: String = "3.2.0"
+const SAVE_VERSION: String = "3.3.0"
 const SAVE_DIR: String = "user://saves/"
 const MAX_MANUAL_SLOTS: int = 5
 const AUTO_SLOT: int = 99
@@ -212,7 +212,9 @@ func _collect_save_data() -> Dictionary:
 		"quest_journal": QuestJournal.to_save_data(),
 		"balance_manager": BalanceManager.serialize(),
 		"story": StoryEventSystem.to_save_data(),
-		"hero_leveling": HeroLeveling.serialize(),
+		# NOTE: hero_leveling is serialized inside HeroSystem.to_save_data()["hero_leveling"]
+		# so we no longer duplicate it at the top level to avoid double-serialize/deserialize.
+		"hero_leveling": HeroLeveling.serialize(),  # kept for backward compat on load
 	}
 
 
@@ -327,7 +329,10 @@ func _apply_save_data(data: Dictionary) -> void:
 		StoryEventSystem.from_save_data(data.get("story", {}))
 
 	# 4d. Restore hero leveling state (v3.2+)
-	if data.has("hero_leveling"):
+	# BUG FIX: HeroLeveling was deserialized twice — once inside HeroSystem.from_save_data()
+	# and again here. Only restore from top-level if HeroSystem didn't already handle it
+	# (i.e., for saves where "heroes" key lacks "hero_leveling" but top-level has it).
+	if data.has("hero_leveling") and not data.get("heroes", {}).has("hero_leveling"):
 		HeroLeveling.deserialize(data.get("hero_leveling", {}))
 
 	# 5. Emit signals to refresh UI

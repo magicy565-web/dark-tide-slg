@@ -872,8 +872,7 @@ func _on_tile_clicked(tile_index: int) -> void:
 				_add_highlight_ring(at, Color(0.9, 0.2, 0.2, 0.6))
 		else: GameManager.deselect_army()
 	else: GameManager.deselect_army()
-	if EventBus.has_signal("territory_selected"):
-		EventBus.emit_signal("territory_selected", tile_index)
+	EventBus.territory_selected.emit(tile_index)
 	EventBus.player_arrived.emit(pid, tile_index)
 
 func _deselect_tile() -> void:
