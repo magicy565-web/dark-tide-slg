@@ -1432,12 +1432,39 @@ func begin_turn() -> void:
 	# ── Phase 5g3: Neutral faction AI (territory patrol & vassal production) ──
 	if pid == get_human_player_id():
 		NeutralFactionAI.tick()
-		# Add vassal production income
+		# Add vassal production income (base resources + faction-specific unique resources)
 		var vassal_income: Dictionary = NeutralFactionAI.get_vassal_production(pid)
-		if vassal_income["gold"] > 0 or vassal_income["food"] > 0 or vassal_income["iron"] > 0:
-			ResourceManager.apply_delta(pid, vassal_income)
-			EventBus.message_log.emit("[color=cyan]附庸贡献: 金%d 粮%d 铁%d[/color]" % [
-				vassal_income["gold"], vassal_income["food"], vassal_income["iron"]])
+		var has_basic: bool = vassal_income["gold"] > 0 or vassal_income["food"] > 0 or vassal_income["iron"] > 0
+		var has_strategic: bool = (vassal_income.get("gunpowder", 0) > 0
+			or vassal_income.get("shadow_essence", 0) > 0
+			or vassal_income.get("magic_crystal", 0) > 0
+			or vassal_income.get("war_horse", 0) > 0)
+		if has_basic or has_strategic or vassal_income.get("prestige", 0) > 0:
+			# Apply all resources via apply_delta (supports all resource keys)
+			var delta: Dictionary = {}
+			for key in vassal_income:
+				if vassal_income[key] > 0:
+					delta[key] = vassal_income[key]
+			if delta.size() > 0:
+				ResourceManager.apply_delta(pid, delta)
+			# Log message
+			var msg: String = "[color=cyan]附庸贡献: 金%d 粮%d 铁%d" % [
+				vassal_income["gold"], vassal_income["food"], vassal_income["iron"]]
+			var extras: Array = []
+			if vassal_income.get("gunpowder", 0) > 0:
+				extras.append("火药%d" % vassal_income["gunpowder"])
+			if vassal_income.get("shadow_essence", 0) > 0:
+				extras.append("暗影%d" % vassal_income["shadow_essence"])
+			if vassal_income.get("magic_crystal", 0) > 0:
+				extras.append("魔晶%d" % vassal_income["magic_crystal"])
+			if vassal_income.get("war_horse", 0) > 0:
+				extras.append("战马%d" % vassal_income["war_horse"])
+			if vassal_income.get("prestige", 0) > 0:
+				extras.append("威望%d" % vassal_income["prestige"])
+			if extras.size() > 0:
+				msg += " " + " ".join(extras)
+			msg += "[/color]"
+			EventBus.message_log.emit(msg)
 
 	# ── Phase 5h: Supply line attrition (v0.9.2) ──
 	_tick_supply_lines(pid)

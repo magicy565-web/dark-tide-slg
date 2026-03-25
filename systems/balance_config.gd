@@ -309,10 +309,54 @@ const NEUTRAL_PATROL_RANGE: int = 2
 const NEUTRAL_REINFORCE_PER_TURN: int = 1
 const NEUTRAL_REINFORCE_CAP_MULT: float = 1.5  # garrison cap = initial × this
 
-## Vassal production share (% of vassal node production sent to player)
+## Vassal production share (% of vassal node base_production sent to player)
 const VASSAL_PRODUCTION_SHARE: float = 0.60
 ## Vassal garrison is independent but benefits from player tech
 const VASSAL_DEFENSE_BONUS: float = 0.20  # +20% DEF for vassal garrisons
+
+## ── Neutral faction unique production (附庸后每回合独特产出) ──
+## 每个中立势力附庸后提供独特资源，体现其种族特色
+## base = 基地产出, territory = 每个领地节点产出 (叠加)
+## 设计基准: 附庸价值 ≈ 占领2-3个普通地块 + 独特资源加成
+const NEUTRAL_FACTION_PRODUCTION: Dictionary = {
+	# 铁锤矮人: 铁矿大户 + 少量金币, 提供火药(锻造副产物)
+	0: {
+		"base": {"gold": 8, "food": 2, "iron": 12, "gunpowder": 1},
+		"territory": {"gold": 3, "food": 1, "iron": 5},
+		"desc": "铁锤熔炉持续锻造精铁, 矮人工匠生产火药",
+	},
+	# 流浪商队: 金币大户 + 揭露情报(视野), 周期性免费道具
+	1: {
+		"base": {"gold": 18, "food": 4, "iron": 2},
+		"territory": {"gold": 6, "food": 2, "iron": 1},
+		"desc": "商队贸易网络带来丰厚金币收入",
+	},
+	# 亡灵巫师: 暗影精华 + 骷髅兵补充(不耗粮), 低金低粮
+	2: {
+		"base": {"gold": 4, "food": 0, "iron": 3, "shadow_essence": 3},
+		"territory": {"gold": 2, "food": 0, "iron": 1, "shadow_essence": 1},
+		"desc": "墓穴源源不断产出暗影精华, 亡灵不需要食物",
+	},
+	# 森林游侠: 粮食大户 + 少量魔晶(森林灵脉)
+	3: {
+		"base": {"gold": 6, "food": 14, "iron": 2, "magic_crystal": 1},
+		"territory": {"gold": 2, "food": 6, "iron": 1},
+		"desc": "森林丰饶的猎场与灵脉提供粮食和魔晶",
+	},
+	# 血月教团: 暗影精华 + 威望(信仰传播), 少量金铁
+	4: {
+		"base": {"gold": 6, "food": 2, "iron": 4, "shadow_essence": 2},
+		"territory": {"gold": 3, "food": 1, "iron": 2},
+		"desc": "血月祭坛汲取暗影之力, 教团扩张带来威望",
+		"prestige_per_turn": 2,
+	},
+	# 地精工匠: 火药大户 + 铁矿, 提供战马(机械坐骑)
+	5: {
+		"base": {"gold": 8, "food": 2, "iron": 8, "gunpowder": 3},
+		"territory": {"gold": 3, "food": 1, "iron": 3, "gunpowder": 1},
+		"desc": "地精工坊日夜不停生产火药和机械零件",
+	},
+}
 
 # ═══════════════ LIGHT FACTION DEFENSE ═══════════════
 

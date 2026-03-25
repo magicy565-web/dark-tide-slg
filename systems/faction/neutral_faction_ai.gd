@@ -249,30 +249,67 @@ func get_vassal_tiles(player_id: int) -> Array:
 
 func get_vassal_production(player_id: int) -> Dictionary:
 	## Calculate total production from vassal territories for a player.
-	var income: Dictionary = {"gold": 0, "food": 0, "iron": 0}
+	## Uses NEUTRAL_FACTION_PRODUCTION for faction-specific unique resources,
+	## plus base_production × VASSAL_PRODUCTION_SHARE for standard resources.
+	var income: Dictionary = {
+		"gold": 0, "food": 0, "iron": 0, "prestige": 0,
+		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
+	}
 	var share: float = BalanceConfig.VASSAL_PRODUCTION_SHARE
-	# Apply order multiplier so vassal income respects public order like normal production
-	var order_mult: float = 1.0
-	if OrderManager and OrderManager.has_method("get_production_multiplier"):
-		order_mult = OrderManager.get_production_multiplier()
 
 	for nf_id in _faction_state:
 		var state: Dictionary = _faction_state[nf_id]
 		if state["vassal_of"] != player_id:
 			continue
 
+		# ── Faction-specific unique production (独特产出) ──
+		var faction_prod: Dictionary = BalanceConfig.NEUTRAL_FACTION_PRODUCTION.get(nf_id, {})
+		var base_prod: Dictionary = faction_prod.get("base", {})
+		var territory_prod: Dictionary = faction_prod.get("territory", {})
+
+		# Count active tiles (still under neutral control, not captured by enemies)
+		var active_territory_count: int = 0
 		var all_tiles: Array = [state["base_tile"]] + state["territory"]
+		var base_active: bool = false
+
 		for t_idx in all_tiles:
 			if t_idx < 0 or t_idx >= GameManager.tiles.size():
 				continue
 			var tile: Dictionary = GameManager.tiles[t_idx]
-			# Only count tiles still under neutral control
+			if tile["owner_id"] >= 0:
+				continue  # tile captured by a player, skip
+			if t_idx == state["base_tile"]:
+				base_active = true
+			else:
+				active_territory_count += 1
+
+		# Apply base tile production (if base is still active)
+		if base_active:
+			for key in base_prod:
+				if income.has(key):
+					income[key] += int(base_prod[key])
+
+		# Apply per-territory-node production
+		for key in territory_prod:
+			if income.has(key):
+				income[key] += int(territory_prod[key]) * active_territory_count
+
+		# Apply prestige per turn (Blood Moon Cult special)
+		var prestige_per_turn: int = faction_prod.get("prestige_per_turn", 0)
+		if prestige_per_turn > 0 and base_active:
+			income["prestige"] += prestige_per_turn
+
+		# ── Standard tile base_production share (地块原始产出分成) ──
+		for t_idx in all_tiles:
+			if t_idx < 0 or t_idx >= GameManager.tiles.size():
+				continue
+			var tile: Dictionary = GameManager.tiles[t_idx]
 			if tile["owner_id"] >= 0:
 				continue
 			var prod: Dictionary = tile.get("base_production", {})
-			income["gold"] += int(float(prod.get("gold", 0)) * share * order_mult)
-			income["food"] += int(float(prod.get("food", 0)) * share * order_mult)
-			income["iron"] += int(float(prod.get("iron", 0)) * share * order_mult)
+			income["gold"] += int(float(prod.get("gold", 0)) * share)
+			income["food"] += int(float(prod.get("food", 0)) * share)
+			income["iron"] += int(float(prod.get("iron", 0)) * share)
 
 	return income
 
