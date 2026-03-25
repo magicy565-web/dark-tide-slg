@@ -19,6 +19,9 @@ var hero_panel = null
 # ── Quest journal panel (created at runtime) ──
 var quest_journal_panel = null
 
+# ── Quest tracker widget (on-screen HUD) ──
+var quest_tracker = null
+
 # ── Additional UI panels (created at runtime, code-only) ──
 var diplomacy_panel = null
 var tech_tree_panel = null
@@ -69,6 +72,12 @@ func _ready() -> void:
 	pirate_panel = CanvasLayer.new()
 	pirate_panel.set_script(PiratePanelScript)
 	add_child(pirate_panel)
+
+	# Quest tracker (always-visible on-screen widget)
+	var QuestTrackerScript = preload("res://scenes/ui/quest_tracker.gd")
+	quest_tracker = CanvasLayer.new()
+	quest_tracker.set_script(QuestTrackerScript)
+	add_child(quest_tracker)
 
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)

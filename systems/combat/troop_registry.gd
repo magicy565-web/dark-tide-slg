@@ -84,7 +84,7 @@ static func _register_evil_faction(d: Dictionary) -> void:
 		"name": "海盗散兵", "faction": "pirate",
 		"troop_class": TC_ASHIGARU, "row": ROW_FRONT,
 		"base_atk": 6, "base_def": 4, "max_soldiers": 7, "hp_per_soldier": 5,
-		"recruit_cost": 12, "passive": "pistol_shot", "category": CAT_FACTION,
+		"recruit_cost": 16, "passive": "pistol_shot", "category": CAT_FACTION,
 		"tier": 1, "desc": "手枪散兵, 前排可攻击后排",
 	}
 	d["pirate_archer"] = {
@@ -113,7 +113,7 @@ static func _register_evil_faction(d: Dictionary) -> void:
 	d["de_ninja"] = {
 		"name": "暗影刺客", "faction": "dark_elf",
 		"troop_class": TC_NINJA, "row": ROW_BACK,
-		"base_atk": 7, "base_def": 2, "max_soldiers": 4, "hp_per_soldier": 4,
+		"base_atk": 9, "base_def": 2, "max_soldiers": 5, "hp_per_soldier": 4,
 		"recruit_cost": 25, "passive": "assassin_crit", "category": CAT_FACTION,
 		"tier": 2, "desc": "无视嘲讽攻后排+30%暴击×2",
 	}
@@ -168,11 +168,11 @@ static func _register_light_faction(d: Dictionary) -> void:
 	}
 	# v3.0 rebalance: soldiers 15→12, cost 30→34 (raw 210→168, eff ×1.25→210→168)
 	# Old: 15 soldiers + DEF 10 + taunt = EHP ~30, nearly impenetrable wall
-	# New: 12 soldiers keeps tanky identity but leaves window to break through
+	# v3.5: soldiers 12→9 (raw_power 168→126, within T3 budget 60-160)
 	d["elf_ashigaru"] = {
 		"name": "树人", "faction": "high_elf",
 		"troop_class": TC_ASHIGARU, "row": ROW_FRONT,
-		"base_atk": 4, "base_def": 10, "max_soldiers": 12, "hp_per_soldier": 8,
+		"base_atk": 4, "base_def": 10, "max_soldiers": 9, "hp_per_soldier": 8,
 		"recruit_cost": 34, "passive": "taunt", "category": CAT_FACTION,
 		"tier": 3, "desc": "守护嘲讽, 强制吸引攻击",
 	}
@@ -277,8 +277,8 @@ static func _register_neutral(d: Dictionary) -> void:
 	d["neutral_treant"] = {
 		"name": "树人守卫", "faction": "neutral_ranger",
 		"troop_class": TC_ASHIGARU, "row": ROW_FRONT,
-		"base_atk": 5, "base_def": 12, "max_soldiers": 12, "hp_per_soldier": 10,
-		"recruit_cost": 35, "passive": "regen_2", "category": CAT_NEUTRAL,
+		"base_atk": 5, "base_def": 10, "max_soldiers": 9, "hp_per_soldier": 10,
+		"recruit_cost": 38, "passive": "regen_2", "category": CAT_NEUTRAL,
 		"tier": 3, "desc": "巨量HP+每回合回复2兵, 根缚定身敌人",
 	}
 	d["neutral_blood_shaman"] = {

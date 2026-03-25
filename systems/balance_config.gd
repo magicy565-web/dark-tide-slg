@@ -393,6 +393,41 @@ const DESPERATE_REINFORCE_PER_TURN: int = 2
 ## Minimum garrison for zone transfer
 const ZONE_TRANSFER_MIN_GARRISON: int = 3
 
+# ── Light Counterattack System (v3.5) ──
+## Proactive reconquest: light AI actively recaptures lost tiles
+
+## Counterattack spawn chance per turn (%) — scaled by difficulty ai_aggression
+const COUNTER_CHANCE_DEFENSE: int = 10    # DEFENSE tier: low aggression
+const COUNTER_CHANCE_MILITARY: int = 25   # MILITARY tier: moderate
+const COUNTER_CHANCE_DESPERATE: int = 40  # DESPERATE tier: all-out assault
+
+## Counterattack army strength (garrison units)
+const COUNTER_STRENGTH_DEFENSE: int = 6
+const COUNTER_STRENGTH_MILITARY: int = 12
+const COUNTER_STRENGTH_DESPERATE: int = 20
+
+## Counterattack cooldown (turns between counterattacks)
+const COUNTER_COOLDOWN_DEFENSE: int = 5
+const COUNTER_COOLDOWN_MILITARY: int = 3
+const COUNTER_COOLDOWN_DESPERATE: int = 2
+
+## Counterattack power multipliers (vs expedition which uses generic units)
+const COUNTER_ATK_PER_UNIT: float = 9.0   # Slightly weaker per-unit than expedition
+const COUNTER_DEF_PER_UNIT: float = 7.0
+
+## Garrison reinforcement surge: light AI periodically mass-reinforces frontier
+const SURGE_REINFORCE_CHANCE: int = 15     # % per turn at MILITARY+
+const SURGE_REINFORCE_AMOUNT: int = 5      # Garrison added to each frontier tile
+const SURGE_REINFORCE_MAX_TILES: int = 4   # Max tiles reinforced per surge
+
+## Proactive raid: light sends small raiding parties to harass player economy
+const LIGHT_RAID_CHANCE_DEFENSE: int = 5
+const LIGHT_RAID_CHANCE_MILITARY: int = 15
+const LIGHT_RAID_CHANCE_DESPERATE: int = 25
+const LIGHT_RAID_GOLD_DAMAGE_MIN: int = 15  # Gold stolen per raid
+const LIGHT_RAID_GOLD_DAMAGE_MAX: int = 40
+const LIGHT_RAID_GARRISON_DAMAGE: int = 2   # Garrison lost on raided tile
+
 # ═══════════════ EVIL FACTION AI ═══════════════
 
 ## Raid mechanics

@@ -92,6 +92,7 @@ const DIFFICULTY_PRESETS: Dictionary = {
 		"ai_garrison_mult": 0.75,
 		"ai_expedition_chance_mult": 0.60,
 		"ai_threat_gain_mult": 0.70,
+		"ai_aggression": 0.30,          # Light AI barely counterattacks
 		"player_income_mult": 1.20,
 		"player_xp_mult": 1.50,
 		"light_wall_hp_mult": 0.75,
@@ -104,6 +105,7 @@ const DIFFICULTY_PRESETS: Dictionary = {
 		"ai_garrison_mult": 1.00,
 		"ai_expedition_chance_mult": 1.00,
 		"ai_threat_gain_mult": 1.00,
+		"ai_aggression": 1.00,          # Baseline counterattack frequency
 		"player_income_mult": 1.00,
 		"player_xp_mult": 1.00,
 		"light_wall_hp_mult": 1.00,
@@ -116,6 +118,7 @@ const DIFFICULTY_PRESETS: Dictionary = {
 		"ai_garrison_mult": 1.25,
 		"ai_expedition_chance_mult": 1.30,
 		"ai_threat_gain_mult": 1.20,
+		"ai_aggression": 1.60,          # Frequent counterattacks + raids
 		"player_income_mult": 0.85,
 		"player_xp_mult": 0.80,
 		"light_wall_hp_mult": 1.25,
@@ -128,6 +131,7 @@ const DIFFICULTY_PRESETS: Dictionary = {
 		"ai_garrison_mult": 1.50,
 		"ai_expedition_chance_mult": 1.60,
 		"ai_threat_gain_mult": 1.50,
+		"ai_aggression": 2.20,          # Relentless assault, raids every turn
 		"player_income_mult": 0.70,
 		"player_xp_mult": 0.60,
 		"light_wall_hp_mult": 1.50,
@@ -175,6 +179,9 @@ func get_wall_hp_mult() -> float:
 
 func get_order_penalty_mult() -> float:
 	return get_diff()["order_penalty_mult"]
+
+func get_ai_aggression() -> float:
+	return get_diff().get("ai_aggression", 1.0)
 
 # ═══════════════ POWER BUDGET CALCULATOR ═══════════════
 

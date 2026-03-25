@@ -4,7 +4,7 @@ extends CanvasLayer
 
 # ── State ──
 var _visible: bool = false
-var _current_tab: String = "market"  # "market", "smuggle", "mercs", "raids", "harem"
+var _current_tab: String = "market"  # "market", "treasure", "smuggle", "mercs", "raids", "harem"
 
 # ── UI refs ──
 var root: Control
@@ -17,6 +17,7 @@ var stat_rum: Label
 var stat_streak: Label
 var tab_container: HBoxContainer
 var btn_tab_market: Button
+var btn_tab_treasure: Button
 var btn_tab_smuggle: Button
 var btn_tab_mercs: Button
 var btn_tab_raids: Button
@@ -34,6 +35,20 @@ const COL_CARD_BORDER := Color(0.4, 0.35, 0.15)
 const COL_DIM := Color(0.6, 0.6, 0.65)
 const COL_GOOD := Color(0.3, 0.9, 0.4)
 const COL_WARN := Color(1.0, 0.5, 0.3)
+
+# ── Item category colors ──
+const COL_CAT_WEAPON := Color(1.0, 0.4, 0.35)
+const COL_CAT_SUPPLY := Color(0.4, 0.85, 0.5)
+const COL_CAT_SPECIAL := Color(0.6, 0.5, 1.0)
+const COL_CAT_CONSUMABLE := Color(0.3, 0.75, 0.95)
+const COL_CAT_SLAVE := Color(1.0, 0.55, 0.75)
+
+# ── Treasure reward type colors ──
+const COL_TREASURE_GOLD := Color(1.0, 0.85, 0.2)
+const COL_TREASURE_MERC := Color(0.45, 0.7, 1.0)
+const COL_TREASURE_SLAVE := Color(1.0, 0.45, 0.65)
+const COL_TREASURE_RUM := Color(1.0, 0.6, 0.15)
+const COL_TREASURE_ITEM := Color(0.7, 0.4, 1.0)
 
 # ═══════════════ LIFECYCLE ═══════════════
 
@@ -121,6 +136,9 @@ func _build_ui() -> void:
 	btn_tab_market = _make_tab_button("黑市")
 	btn_tab_market.pressed.connect(func(): _switch_tab("market"))
 	tab_container.add_child(btn_tab_market)
+	btn_tab_treasure = _make_tab_button("寻宝")
+	btn_tab_treasure.pressed.connect(func(): _switch_tab("treasure"))
+	tab_container.add_child(btn_tab_treasure)
 	btn_tab_smuggle = _make_tab_button("走私航线")
 	btn_tab_smuggle.pressed.connect(func(): _switch_tab("smuggle"))
 	tab_container.add_child(btn_tab_smuggle)
@@ -163,7 +181,7 @@ func _switch_tab(tab: String) -> void:
 	_current_tab = tab; _refresh()
 
 func _update_tab_highlight() -> void:
-	var tabs_map := {"market": btn_tab_market, "smuggle": btn_tab_smuggle, "mercs": btn_tab_mercs, "raids": btn_tab_raids, "harem": btn_tab_harem}
+	var tabs_map := {"market": btn_tab_market, "treasure": btn_tab_treasure, "smuggle": btn_tab_smuggle, "mercs": btn_tab_mercs, "raids": btn_tab_raids, "harem": btn_tab_harem}
 	for key in tabs_map:
 		if key == _current_tab:
 			tabs_map[key].add_theme_color_override("font_color", COL_GOLD)
@@ -176,6 +194,7 @@ func _refresh() -> void:
 	_update_tab_highlight(); _refresh_stats(); _clear_content()
 	match _current_tab:
 		"market": _build_market()
+		"treasure": _build_treasure()
 		"smuggle": _build_smuggle()
 		"mercs": _build_mercs()
 		"raids": _build_raids()
@@ -199,36 +218,293 @@ func _clear_content() -> void:
 
 # ═══════════════ BLACK MARKET ═══════════════
 
+func _get_category_color(category: String) -> Color:
+	match category:
+		"weapon": return COL_CAT_WEAPON
+		"supply": return COL_CAT_SUPPLY
+		"special": return COL_CAT_SPECIAL
+		"consumable": return COL_CAT_CONSUMABLE
+		"slave": return COL_CAT_SLAVE
+	return COL_DIM
+
+func _get_category_icon(category: String) -> String:
+	match category:
+		"weapon": return "[武]"
+		"supply": return "[补]"
+		"special": return "[特]"
+		"consumable": return "[消]"
+		"slave": return "[奴]"
+	return "[?]"
+
+func _get_category_label(category: String) -> String:
+	match category:
+		"weapon": return "武器"
+		"supply": return "补给"
+		"special": return "特殊"
+		"consumable": return "消耗品"
+		"slave": return "奴隶"
+	return "未知"
+
 func _build_market() -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var stock: Array = PirateMechanic.get_market_stock(pid)
+
+	# ── Market header: stock count + infamy trade modifier ──
+	var header_card := _make_card()
+	var hv: VBoxContainer = header_card.get_child(0)
+	var infamy: int = PirateMechanic.get_infamy(pid)
+	var trade_mult: float = PirateMechanic.get_infamy_trade_mult(pid)
+	var header_row := HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", 16)
+	hv.add_child(header_row)
+	var hl := Label.new()
+	hl.text = "黑市库存: %d件" % stock.size()
+	hl.add_theme_font_size_override("font_size", 15)
+	hl.add_theme_color_override("font_color", COL_GOLD)
+	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_row.add_child(hl)
+	var trade_lbl := Label.new()
+	if trade_mult != 1.0:
+		trade_lbl.text = "价格调整: x%.2f (恶名%d)" % [trade_mult, infamy]
+		trade_lbl.add_theme_color_override("font_color", COL_WARN if trade_mult > 1.0 else COL_GOOD)
+	else:
+		trade_lbl.text = "价格正常 (恶名%d)" % infamy
+		trade_lbl.add_theme_color_override("font_color", COL_DIM)
+	trade_lbl.add_theme_font_size_override("font_size", 12)
+	header_row.add_child(trade_lbl)
+	content_container.add_child(header_card); _content_nodes.append(header_card)
+
 	if stock.is_empty():
 		_add_empty_label("黑市暂无商品, 下回合刷新"); return
+
 	for i in range(stock.size()):
 		var item: Dictionary = stock[i]
-		var card := _make_card()
-		var vbox: VBoxContainer = card.get_child(0)
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		vbox.add_child(row)
+		var category: String = item.get("category", "")
+		var cat_color: Color = _get_category_color(category)
+
+		var card := PanelContainer.new()
+		var cs := StyleBoxFlat.new()
+		cs.bg_color = COL_CARD_BG
+		cs.border_color = cat_color.darkened(0.3)
+		cs.set_border_width_all(1)
+		cs.border_width_left = 3  # Thick left border as category accent
+		cs.set_corner_radius_all(6); cs.set_content_margin_all(10)
+		card.add_theme_stylebox_override("panel", cs)
+
+		var vbox := VBoxContainer.new()
+		vbox.add_theme_constant_override("separation", 4)
+		card.add_child(vbox)
+
+		# Row 1: [category icon] name + price button
+		var top_row := HBoxContainer.new()
+		top_row.add_theme_constant_override("separation", 8)
+		vbox.add_child(top_row)
+
+		var cat_tag := Label.new()
+		cat_tag.text = _get_category_icon(category)
+		cat_tag.add_theme_font_size_override("font_size", 13)
+		cat_tag.add_theme_color_override("font_color", cat_color)
+		top_row.add_child(cat_tag)
+
 		var name_lbl := Label.new()
 		name_lbl.text = item.get("name", "???")
 		name_lbl.add_theme_font_size_override("font_size", 15)
 		name_lbl.add_theme_color_override("font_color", COL_GOLD)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(name_lbl)
+		top_row.add_child(name_lbl)
+
+		var cat_lbl := Label.new()
+		cat_lbl.text = _get_category_label(category)
+		cat_lbl.add_theme_font_size_override("font_size", 11)
+		cat_lbl.add_theme_color_override("font_color", cat_color.darkened(0.15))
+		top_row.add_child(cat_lbl)
+
+		# Row 2: description + effect hint
+		var desc_row := HBoxContainer.new()
+		desc_row.add_theme_constant_override("separation", 12)
+		vbox.add_child(desc_row)
 		var desc_lbl := Label.new()
 		desc_lbl.text = item.get("desc", "")
 		desc_lbl.add_theme_font_size_override("font_size", 12)
-		desc_lbl.add_theme_color_override("font_color", COL_DIM)
-		row.add_child(desc_lbl)
+		desc_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8))
+		desc_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		desc_row.add_child(desc_lbl)
+
+		var effect_hint := Label.new()
+		effect_hint.text = _get_effect_hint(item)
+		effect_hint.add_theme_font_size_override("font_size", 11)
+		effect_hint.add_theme_color_override("font_color", COL_GOOD)
+		desc_row.add_child(effect_hint)
+
+		# Row 3: buy button (with adjusted price)
+		var btn_row := HBoxContainer.new()
+		btn_row.alignment = BoxContainer.ALIGNMENT_END
+		vbox.add_child(btn_row)
+		var final_price: int = maxi(int(float(item.get("price", 0)) / trade_mult), 1)
 		var btn := Button.new()
-		btn.text = "购买 (%d金)" % item.get("price", 0)
-		btn.custom_minimum_size = Vector2(120, 28)
-		btn.add_theme_font_size_override("font_size", 12)
+		btn.text = "购买 (%d金)" % final_price
+		btn.custom_minimum_size = Vector2(130, 30)
+		btn.add_theme_font_size_override("font_size", 13)
 		var idx: int = i
 		btn.pressed.connect(_on_buy_market.bind(idx))
-		row.add_child(btn)
+		var player_gold: int = ResourceManager.get_resource(pid, "gold")
+		if player_gold < final_price:
+			btn.disabled = true
+			btn.tooltip_text = "金币不足"
+		btn_row.add_child(btn)
+
+		content_container.add_child(card); _content_nodes.append(card)
+
+
+func _get_effect_hint(item: Dictionary) -> String:
+	var effect: String = item.get("effect", "")
+	var value: int = item.get("value", 0)
+	match effect:
+		"atk_boost": return "ATK+%d" % value
+		"rum": return "士气+%d" % value
+		"iron": return "铁矿+%d" % value
+		"food": return "粮草+%d" % value
+		"treasure_map": return "获得藏宝图"
+		"scout_range": return "侦查+%d回合" % value
+		"smuggle_boost": return "走私+%d金" % value
+		"infamy": return "恶名+%d" % value
+		"escape_bonus": return "撤退+%d%%" % value
+		"heal": return "HP+%d" % value
+		"slave_train_all": return "调教+%d" % value
+		"slave_capture_bonus": return "捕获+%d" % value
+		"prestige": return "威望+%d" % value
+		"gold": return "金币+%d" % value
+	return ""
+
+
+# ═══════════════ TREASURE HUNTING ═══════════════
+
+func _get_treasure_reward_color(reward_type: String) -> Color:
+	match reward_type:
+		"gold": return COL_TREASURE_GOLD
+		"mercenary": return COL_TREASURE_MERC
+		"sex_slave": return COL_TREASURE_SLAVE
+		"rum": return COL_TREASURE_RUM
+		"item": return COL_TREASURE_ITEM
+	return COL_DIM
+
+func _get_treasure_reward_label(reward_type: String) -> String:
+	match reward_type:
+		"gold": return "金币宝箱"
+		"mercenary": return "流浪佣兵"
+		"sex_slave": return "囚禁奴隶"
+		"rum": return "陈年朗姆酒"
+		"item": return "稀有武器"
+	return "未知宝藏"
+
+func _get_treasure_reward_icon(reward_type: String) -> String:
+	match reward_type:
+		"gold": return "[金]"
+		"mercenary": return "[兵]"
+		"sex_slave": return "[奴]"
+		"rum": return "[酒]"
+		"item": return "[器]"
+	return "[?]"
+
+func _build_treasure() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	var maps: Array = PirateMechanic.get_treasure_maps(pid)
+
+	# ── Treasure header card ──
+	var header_card := _make_card()
+	var hv: VBoxContainer = header_card.get_child(0)
+	var h_row := HBoxContainer.new()
+	h_row.add_theme_constant_override("separation", 16)
+	hv.add_child(h_row)
+	var hl := Label.new()
+	hl.text = "藏宝图: %d张" % maps.size()
+	hl.add_theme_font_size_override("font_size", 16)
+	hl.add_theme_color_override("font_color", COL_GOLD)
+	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h_row.add_child(hl)
+	var hint_lbl := Label.new()
+	hint_lbl.text = "战斗胜利有%d%%概率获得藏宝图" % int(PirateMechanic.TREASURE_MAP_DROP_CHANCE * 100)
+	hint_lbl.add_theme_font_size_override("font_size", 11)
+	hint_lbl.add_theme_color_override("font_color", COL_DIM)
+	h_row.add_child(hint_lbl)
+	content_container.add_child(header_card); _content_nodes.append(header_card)
+
+	if maps.is_empty():
+		_add_empty_label("暂无藏宝图 — 通过战斗胜利或黑市购买获得"); return
+
+	for i in range(maps.size()):
+		var tmap: Dictionary = maps[i]
+		var reward_type: String = tmap.get("reward_type", "gold")
+		var reward_value: int = tmap.get("reward_value", 0)
+		var tile_idx: int = tmap.get("tile_index", -1)
+		var rcolor: Color = _get_treasure_reward_color(reward_type)
+
+		var card := PanelContainer.new()
+		var cs := StyleBoxFlat.new()
+		cs.bg_color = Color(0.08, 0.07, 0.16, 0.92)
+		cs.border_color = rcolor.darkened(0.25)
+		cs.set_border_width_all(1)
+		cs.border_width_left = 3
+		cs.set_corner_radius_all(6); cs.set_content_margin_all(10)
+		card.add_theme_stylebox_override("panel", cs)
+
+		var vbox := VBoxContainer.new()
+		vbox.add_theme_constant_override("separation", 4)
+		card.add_child(vbox)
+
+		# Row 1: Treasure icon + type + location
+		var top_row := HBoxContainer.new()
+		top_row.add_theme_constant_override("separation", 8)
+		vbox.add_child(top_row)
+
+		var icon_lbl := Label.new()
+		icon_lbl.text = _get_treasure_reward_icon(reward_type)
+		icon_lbl.add_theme_font_size_override("font_size", 14)
+		icon_lbl.add_theme_color_override("font_color", rcolor)
+		top_row.add_child(icon_lbl)
+
+		var type_lbl := Label.new()
+		type_lbl.text = "藏宝图 #%d: %s" % [i + 1, _get_treasure_reward_label(reward_type)]
+		type_lbl.add_theme_font_size_override("font_size", 15)
+		type_lbl.add_theme_color_override("font_color", rcolor)
+		type_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		top_row.add_child(type_lbl)
+
+		var loc_lbl := Label.new()
+		loc_lbl.text = "位置: 格%d" % tile_idx
+		loc_lbl.add_theme_font_size_override("font_size", 12)
+		loc_lbl.add_theme_color_override("font_color", COL_DIM)
+		top_row.add_child(loc_lbl)
+
+		# Row 2: Expected reward description
+		var reward_desc := Label.new()
+		reward_desc.add_theme_font_size_override("font_size", 12)
+		reward_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+		match reward_type:
+			"gold":
+				reward_desc.text = "预期奖励: 约%d金" % reward_value
+			"mercenary":
+				reward_desc.text = "预期奖励: 佣兵剑士 x%d" % reward_value
+			"sex_slave":
+				reward_desc.text = "预期奖励: 性奴隶 x%d" % reward_value
+			"rum":
+				reward_desc.text = "预期奖励: 朗姆酒士气 +%d" % reward_value
+			"item":
+				reward_desc.text = "预期奖励: 稀有武器 (ATK+15)"
+		vbox.add_child(reward_desc)
+
+		# Row 3: Explore button
+		var btn_row := HBoxContainer.new()
+		btn_row.alignment = BoxContainer.ALIGNMENT_END
+		vbox.add_child(btn_row)
+		var btn := Button.new()
+		btn.text = "探索宝藏"
+		btn.custom_minimum_size = Vector2(130, 30)
+		btn.add_theme_font_size_override("font_size", 13)
+		var map_idx: int = i
+		btn.pressed.connect(_on_explore_treasure.bind(map_idx))
+		btn_row.add_child(btn)
+
 		content_container.add_child(card); _content_nodes.append(card)
 
 # ═══════════════ SMUGGLING ROUTES ═══════════════
@@ -237,30 +513,78 @@ func _build_smuggle() -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var routes: Array = PirateMechanic.get_smuggle_routes(pid)
 	var income: int = PirateMechanic.get_smuggle_income(pid)
-	# Summary
+	var infamy: int = PirateMechanic.get_infamy(pid)
+
+	# ── Summary card with income breakdown ──
 	var summary := _make_card()
 	var sv: VBoxContainer = summary.get_child(0)
+	var s_row := HBoxContainer.new()
+	s_row.add_theme_constant_override("separation", 16)
+	sv.add_child(s_row)
 	var sl := Label.new()
-	sl.text = "走私航线: %d/%d | 每回合收入: %d金" % [routes.size(), PirateMechanic.MAX_SMUGGLE_ROUTES, income]
-	sl.add_theme_font_size_override("font_size", 14)
+	sl.text = "走私航线: %d/%d" % [routes.size(), PirateMechanic.MAX_SMUGGLE_ROUTES]
+	sl.add_theme_font_size_override("font_size", 15)
 	sl.add_theme_color_override("font_color", COL_GOLD)
-	sv.add_child(sl)
+	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	s_row.add_child(sl)
+	var income_lbl := Label.new()
+	income_lbl.text = "每回合: +%d金" % income
+	income_lbl.add_theme_font_size_override("font_size", 14)
+	income_lbl.add_theme_color_override("font_color", COL_GOOD if income > 0 else COL_DIM)
+	s_row.add_child(income_lbl)
+	# Risk warning based on infamy
+	if infamy >= PirateMechanic.INFAMY_HIGH_THRESHOLD:
+		var warn := Label.new()
+		warn.text = "高恶名: 走私航线有被破坏风险!"
+		warn.add_theme_font_size_override("font_size", 11)
+		warn.add_theme_color_override("font_color", COL_WARN)
+		sv.add_child(warn)
+	# Capacity hint
+	if routes.size() < PirateMechanic.MAX_SMUGGLE_ROUTES:
+		var cap_hint := Label.new()
+		cap_hint.text = "占领更多沿海领地以开辟新航线 (剩余%d条)" % (PirateMechanic.MAX_SMUGGLE_ROUTES - routes.size())
+		cap_hint.add_theme_font_size_override("font_size", 11)
+		cap_hint.add_theme_color_override("font_color", Color(0.5, 0.65, 0.8))
+		sv.add_child(cap_hint)
 	content_container.add_child(summary); _content_nodes.append(summary)
+
 	if routes.is_empty():
 		_add_empty_label("暂无走私航线, 占领沿海领地后可建立"); return
+
 	for i in range(routes.size()):
 		var route: Array = routes[i]
-		var card := _make_card()
-		var vbox: VBoxContainer = card.get_child(0)
+		var card := PanelContainer.new()
+		var cs := StyleBoxFlat.new()
+		cs.bg_color = COL_CARD_BG
+		cs.border_color = Color(0.25, 0.45, 0.6)
+		cs.set_border_width_all(1)
+		cs.border_width_left = 3
+		cs.set_corner_radius_all(6); cs.set_content_margin_all(10)
+		card.add_theme_stylebox_override("panel", cs)
+
+		var vbox := VBoxContainer.new()
+		vbox.add_theme_constant_override("separation", 3)
+		card.add_child(vbox)
+
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		vbox.add_child(row)
+		var route_icon := Label.new()
+		route_icon.text = "[航]"
+		route_icon.add_theme_font_size_override("font_size", 13)
+		route_icon.add_theme_color_override("font_color", Color(0.3, 0.65, 0.9))
+		row.add_child(route_icon)
 		var rl := Label.new()
-		rl.text = "航线 #%d: 格%d <-> 格%d | +%d金/回合" % [i + 1, route[0], route[1], PirateMechanic.SMUGGLE_INCOME_PER_ROUTE]
-		rl.add_theme_font_size_override("font_size", 13)
+		rl.text = "航线 #%d: 格%d <-> 格%d" % [i + 1, route[0], route[1]]
+		rl.add_theme_font_size_override("font_size", 14)
 		rl.add_theme_color_override("font_color", Color(0.5, 0.8, 1.0))
 		rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(rl)
+		var profit := Label.new()
+		profit.text = "+%d金/回合" % PirateMechanic.SMUGGLE_INCOME_PER_ROUTE
+		profit.add_theme_font_size_override("font_size", 13)
+		profit.add_theme_color_override("font_color", COL_GOOD)
+		row.add_child(profit)
 		var btn := Button.new()
 		btn.text = "废除"
 		btn.custom_minimum_size = Vector2(70, 26)
@@ -268,6 +592,7 @@ func _build_smuggle() -> void:
 		var ri: int = i
 		btn.pressed.connect(_on_destroy_route.bind(ri))
 		row.add_child(btn)
+
 		content_container.add_child(card); _content_nodes.append(card)
 
 # ═══════════════ MERCENARIES ═══════════════
@@ -275,50 +600,187 @@ func _build_smuggle() -> void:
 func _build_mercs() -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var mercs: Array = PirateMechanic.get_available_mercenaries(pid)
+	var player_gold: int = ResourceManager.get_resource(pid, "gold")
+
+	# ── Header card ──
+	var header_card := _make_card()
+	var hcv: VBoxContainer = header_card.get_child(0)
+	var hrow := HBoxContainer.new()
+	hrow.add_theme_constant_override("separation", 16)
+	hcv.add_child(hrow)
+	var htitle := Label.new()
+	htitle.text = "雇佣兵市场"
+	htitle.add_theme_font_size_override("font_size", 15)
+	htitle.add_theme_color_override("font_color", COL_GOLD)
+	htitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hrow.add_child(htitle)
+	var gold_lbl := Label.new()
+	gold_lbl.text = "可用金币: %d" % player_gold
+	gold_lbl.add_theme_font_size_override("font_size", 13)
+	gold_lbl.add_theme_color_override("font_color", COL_GOLD)
+	hrow.add_child(gold_lbl)
+	var hint := Label.new()
+	hint.text = "雇佣兵弱于正规兵种，但可快速补充兵力"
+	hint.add_theme_font_size_override("font_size", 11)
+	hint.add_theme_color_override("font_color", COL_DIM)
+	hcv.add_child(hint)
+	content_container.add_child(header_card); _content_nodes.append(header_card)
+
 	if mercs.is_empty():
 		_add_empty_label("无可用佣兵"); return
+
 	for merc in mercs:
-		var card := _make_card()
-		var vbox: VBoxContainer = card.get_child(0)
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		vbox.add_child(row)
+		var card := PanelContainer.new()
+		var cs := StyleBoxFlat.new()
+		cs.bg_color = COL_CARD_BG
+		cs.border_color = Color(0.3, 0.4, 0.55)
+		cs.set_border_width_all(1)
+		cs.border_width_left = 3
+		cs.set_corner_radius_all(6); cs.set_content_margin_all(10)
+		card.add_theme_stylebox_override("panel", cs)
+
+		var vbox := VBoxContainer.new()
+		vbox.add_theme_constant_override("separation", 4)
+		card.add_child(vbox)
+
+		# Row 1: Name
+		var name_row := HBoxContainer.new()
+		name_row.add_theme_constant_override("separation", 8)
+		vbox.add_child(name_row)
 		var nl := Label.new()
-		nl.text = "%s (ATK:%d HP:%d x%d)" % [merc.get("name", "?"), merc.get("atk", 0), merc.get("hp", 0), merc.get("count", 0)]
-		nl.add_theme_font_size_override("font_size", 14)
+		nl.text = merc.get("name", "?")
+		nl.add_theme_font_size_override("font_size", 15)
 		nl.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0))
 		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(nl)
+		name_row.add_child(nl)
+		var count_lbl := Label.new()
+		count_lbl.text = "x%d" % merc.get("count", 0)
+		count_lbl.add_theme_font_size_override("font_size", 14)
+		count_lbl.add_theme_color_override("font_color", COL_GOLD)
+		name_row.add_child(count_lbl)
+
+		# Row 2: Stats (ATK / HP in colored labels)
+		var stat_row := HBoxContainer.new()
+		stat_row.add_theme_constant_override("separation", 16)
+		vbox.add_child(stat_row)
+		var atk_lbl := Label.new()
+		atk_lbl.text = "ATK: %d" % merc.get("atk", 0)
+		atk_lbl.add_theme_font_size_override("font_size", 12)
+		atk_lbl.add_theme_color_override("font_color", COL_CAT_WEAPON)
+		stat_row.add_child(atk_lbl)
+		var hp_lbl := Label.new()
+		hp_lbl.text = "HP: %d" % merc.get("hp", 0)
+		hp_lbl.add_theme_font_size_override("font_size", 12)
+		hp_lbl.add_theme_color_override("font_color", COL_CAT_SUPPLY)
+		stat_row.add_child(hp_lbl)
+		var ce_lbl := Label.new()
+		var cost_val: int = merc.get("adjusted_cost", merc.get("cost", 0))
+		var count_val: int = merc.get("count", 1)
+		ce_lbl.text = "每兵: %.1f金" % (float(cost_val) / float(maxi(count_val, 1)))
+		ce_lbl.add_theme_font_size_override("font_size", 11)
+		ce_lbl.add_theme_color_override("font_color", COL_DIM)
+		ce_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stat_row.add_child(ce_lbl)
+
+		# Hire button
 		var btn := Button.new()
 		btn.text = "雇佣 (%d金)" % merc.get("adjusted_cost", 0)
-		btn.custom_minimum_size = Vector2(120, 28)
-		btn.add_theme_font_size_override("font_size", 12)
+		btn.custom_minimum_size = Vector2(130, 30)
+		btn.add_theme_font_size_override("font_size", 13)
 		var mid: String = merc.get("id", "")
-		btn.pressed.connect(_on_hire_merc.bind(pid, mid, merc.get("adjusted_cost", 0)))
-		row.add_child(btn)
+		var adj_cost: int = merc.get("adjusted_cost", 0)
+		btn.pressed.connect(_on_hire_merc.bind(pid, mid, adj_cost))
+		if player_gold < adj_cost:
+			btn.disabled = true
+			btn.tooltip_text = "金币不足"
+		stat_row.add_child(btn)
+
 		content_container.add_child(card); _content_nodes.append(card)
 
 # ═══════════════ ACTIVE RAIDS ═══════════════
 
 func _build_raids() -> void:
 	var raids: Array = PirateMechanic.get_active_raids()
+
+	# ── Header card ──
+	var header_card := _make_card()
+	var hv: VBoxContainer = header_card.get_child(0)
+	var h_row := HBoxContainer.new()
+	h_row.add_theme_constant_override("separation", 16)
+	hv.add_child(h_row)
+	var hl := Label.new()
+	hl.text = "AI突袭队: %d/%d" % [raids.size(), PirateMechanic.AI_MAX_RAID_PARTIES]
+	hl.add_theme_font_size_override("font_size", 15)
+	hl.add_theme_color_override("font_color", COL_WARN if raids.size() > 0 else COL_DIM)
+	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h_row.add_child(hl)
+	var reward_lbl := Label.new()
+	reward_lbl.text = "击败奖励: %d金/队" % PirateMechanic.AI_RAID_LOOT_ON_DEFEAT
+	reward_lbl.add_theme_font_size_override("font_size", 12)
+	reward_lbl.add_theme_color_override("font_color", COL_GOLD)
+	h_row.add_child(reward_lbl)
+	var spawn_hint := Label.new()
+	spawn_hint.text = "每回合%d%%概率生成新突袭队" % int(PirateMechanic.AI_RAID_SPAWN_CHANCE * 100)
+	spawn_hint.add_theme_font_size_override("font_size", 11)
+	spawn_hint.add_theme_color_override("font_color", COL_DIM)
+	hv.add_child(spawn_hint)
+	content_container.add_child(header_card); _content_nodes.append(header_card)
+
 	if raids.is_empty():
-		_add_empty_label("当前无活跃的AI突袭队"); return
+		_add_empty_label("当前无活跃的AI突袭队 — 和平时期"); return
+
 	for i in range(raids.size()):
 		var raid: Dictionary = raids[i]
-		var card := _make_card()
-		var vbox: VBoxContainer = card.get_child(0)
+		var turns_left: int = raid.get("turns_left", 0)
+		var strength: int = raid.get("strength", 0)
+
+		var card := PanelContainer.new()
+		var cs := StyleBoxFlat.new()
+		cs.bg_color = Color(0.12, 0.06, 0.06, 0.92)
+		cs.border_color = COL_WARN.darkened(0.2)
+		cs.set_border_width_all(1)
+		cs.border_width_left = 3
+		cs.set_corner_radius_all(6); cs.set_content_margin_all(10)
+		card.add_theme_stylebox_override("panel", cs)
+
+		var vbox := VBoxContainer.new()
+		vbox.add_theme_constant_override("separation", 3)
+		card.add_child(vbox)
+
+		var top_row := HBoxContainer.new()
+		top_row.add_theme_constant_override("separation", 12)
+		vbox.add_child(top_row)
+		var raid_icon := Label.new()
+		raid_icon.text = "[!]"
+		raid_icon.add_theme_font_size_override("font_size", 14)
+		raid_icon.add_theme_color_override("font_color", COL_WARN)
+		top_row.add_child(raid_icon)
 		var rl := Label.new()
-		rl.text = "突袭队 #%d | 位置: 格%d | 兵力: %d | 剩余: %d回合" % [
-			i + 1, raid.get("tile_index", -1), raid.get("strength", 0), raid.get("turns_left", 0)]
+		rl.text = "突袭队 #%d" % (i + 1)
 		rl.add_theme_font_size_override("font_size", 14)
 		rl.add_theme_color_override("font_color", COL_WARN)
-		vbox.add_child(rl)
-		var note := Label.new()
-		note.text = "击败可获得 %d金" % PirateMechanic.AI_RAID_LOOT_ON_DEFEAT
-		note.add_theme_font_size_override("font_size", 11)
-		note.add_theme_color_override("font_color", COL_DIM)
-		vbox.add_child(note)
+		rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		top_row.add_child(rl)
+
+		var stat_row := HBoxContainer.new()
+		stat_row.add_theme_constant_override("separation", 16)
+		vbox.add_child(stat_row)
+		var loc := Label.new()
+		loc.text = "位置: 格%d" % raid.get("tile_index", -1)
+		loc.add_theme_font_size_override("font_size", 12)
+		loc.add_theme_color_override("font_color", COL_DIM)
+		stat_row.add_child(loc)
+		var str_lbl := Label.new()
+		str_lbl.text = "兵力: %d" % strength
+		str_lbl.add_theme_font_size_override("font_size", 12)
+		str_lbl.add_theme_color_override("font_color", COL_CAT_WEAPON)
+		stat_row.add_child(str_lbl)
+		var turn_lbl := Label.new()
+		turn_lbl.text = "剩余: %d回合" % turns_left
+		turn_lbl.add_theme_font_size_override("font_size", 12)
+		turn_lbl.add_theme_color_override("font_color", COL_WARN if turns_left <= 1 else COL_DIM)
+		stat_row.add_child(turn_lbl)
+
 		content_container.add_child(card); _content_nodes.append(card)
 
 # ═══════════════ HAREM (后宫) — Lance 07 Style Gallery ═══════════════
@@ -541,6 +1003,13 @@ func _on_buy_market(item_index: int) -> void:
 	var ok: bool = PirateMechanic.buy_market_item(pid, item_index)
 	if not ok:
 		EventBus.message_log.emit("[color=red]金币不足或商品已售罄[/color]")
+	_refresh()
+
+func _on_explore_treasure(map_index: int) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	var result: Dictionary = PirateMechanic.explore_treasure(pid, map_index)
+	if result.is_empty():
+		EventBus.message_log.emit("[color=red]藏宝图探索失败[/color]")
 	_refresh()
 
 func _on_destroy_route(route_index: int) -> void:

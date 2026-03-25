@@ -639,6 +639,135 @@ func get_active_title() -> String:
 	return _active_title
 
 
+## Returns a list of active quests with objective details, for the on-screen tracker.
+## Each entry: { id, name, category, objectives: [{label, done, guidance}], desc }
+## Priority: main quest first, then side, then challenge, then character.
+func get_tracked_quests(player_id: int) -> Array:
+	var result: Array = []
+	# Main quests
+	for q in QuestDefs.MAIN_QUESTS:
+		var state: Dictionary = _main_progress.get(q["id"], {})
+		if state.get("status", -1) == QuestDefs.QuestStatus.ACTIVE:
+			result.append(_format_tracked(q, "主线", player_id))
+			break  # Only first active main quest
+	# Side quests (original + expanded)
+	var side_lists: Array = [QuestDefs.SIDE_QUESTS, SideQuestData.STORY_QUESTS, SideQuestData.BONUS_QUESTS, SideQuestData.INTEL_QUESTS]
+	for arr in side_lists:
+		for q in arr:
+			var state: Dictionary = _side_progress.get(q["id"], {})
+			if state.get("status", -1) == QuestDefs.QuestStatus.ACTIVE:
+				result.append(_format_tracked(q, "支线", player_id))
+	# Challenge quests
+	var faction_id: int = GameManager.get_player_faction(player_id)
+	if ChallengeData.CHALLENGES.has(faction_id):
+		for c in ChallengeData.CHALLENGES[faction_id]:
+			var state: Dictionary = _challenge_progress.get(c["id"], {})
+			if state.get("status", -1) == QuestDefs.QuestStatus.ACTIVE:
+				result.append({
+					"id": c["id"], "name": c["name"], "category": "挑战",
+					"desc": c.get("desc", ""),
+					"objectives": [{"label": c.get("task", ""), "done": false, "guidance": _get_guidance_for_type("challenge")}],
+				})
+	# Character quests
+	for hero_id in QuestDefs.CHARACTER_QUESTS:
+		if hero_id not in HeroSystem.recruited_heroes:
+			continue
+		var cq: Dictionary = QuestDefs.CHARACTER_QUESTS[hero_id]
+		for step in cq["steps"]:
+			var state: Dictionary = _character_progress.get(step["id"], {})
+			if state.get("status", -1) == QuestDefs.QuestStatus.ACTIVE:
+				var obj: Dictionary = step["objective"]
+				result.append({
+					"id": step["id"], "name": "%s - %s" % [cq["hero_name"], step["name"]],
+					"category": "角色", "desc": step.get("desc", ""),
+					"objectives": [{"label": obj.get("label", ""), "done": _evaluate_objective(obj, player_id), "guidance": _get_guidance_for_type(obj.get("type", ""))}],
+				})
+	return result
+
+
+func _format_tracked(q: Dictionary, category: String, player_id: int) -> Dictionary:
+	var objectives_status: Array = []
+	for obj in q.get("objectives", []):
+		objectives_status.append({
+			"label": obj.get("label", ""),
+			"done": _evaluate_objective(obj, player_id),
+			"guidance": _get_guidance_for_type(obj.get("type", "")),
+		})
+	return {
+		"id": q["id"], "name": q["name"], "category": category,
+		"desc": q.get("desc", ""),
+		"objectives": objectives_status,
+	}
+
+
+## Guidance text mapping: tells the player HOW to complete each objective type.
+func _get_guidance_for_type(otype: String) -> String:
+	match otype:
+		"tiles_min":
+			return "选择「进攻」行动，攻占相邻敌方或中立领地"
+		"battles_won_min":
+			return "进攻敌方领地并赢得战斗"
+		"army_count_min":
+			return "通过「内政→招募」创建新的军团"
+		"building_any", "buildings_min":
+			return "选择「内政→建造」在己方领地建造建筑"
+		"gold_min":
+			return "占领产金领地或等待回合收入积累"
+		"food_min":
+			return "占领农田领地或建造粮仓建筑"
+		"iron_min":
+			return "占领矿山领地或建造冶炼厂"
+		"heroes_min":
+			return "通过战斗俘获敌方英雄，在英雄管理中招募"
+		"neutral_recruited_min":
+			return "使用「外交」行动与中立势力交涉并完成收编任务"
+		"threat_min":
+			return "持续扩张领土和攻占要塞会自动提升威胁值"
+		"order_min":
+			return "使用威望提升秩序，或避免过度扩张"
+		"strongholds_min", "all_strongholds":
+			return "进攻光明联盟的要塞领地（地图上的城堡标记）"
+		"harbor_min":
+			return "攻占沿海的港口领地"
+		"slaves_min":
+			return "通过战斗俘获奴隶，或在奴隶市场购买"
+		"shadow_essence_min":
+			return "占领暗影领地或通过祭坛获取暗影精华"
+		"waaagh_frenzy_triggered", "waaagh_battle_win":
+			return "在WAAAGH!值较高时发动进攻触发狂暴"
+		"heroes_captured_total":
+			return "在战斗中击败并俘获敌方英雄"
+		"defend_expedition":
+			return "当远征军出现时防守己方领地"
+		"tiles_gained_in_turns":
+			return "集中在短时间内连续攻占多个领地"
+		"total_kills_min":
+			return "通过战斗消灭敌方士兵积累击杀数"
+		"tiles_not_lost_turns":
+			return "加强防御，避免领地被敌方夺回"
+		"ap_purchased_min":
+			return "使用威望在行动面板购买额外行动力"
+		"hero_level_min":
+			return "让英雄参与战斗获取经验升级"
+		"relics_min":
+			return "通过「探索」行动寻找遗物"
+		"researches_min":
+			return "在「训练科技」面板中完成研究项目"
+		"public_order_all_min":
+			return "在所有领地保持较高的公共秩序"
+		"fog_revealed_pct":
+			return "使用「探索」行动揭开战争迷雾"
+		"watchtowers_min":
+			return "在己方领地建造瞭望塔建筑"
+		"treaties_signed_min":
+			return "使用「外交」行动与其他势力签订条约"
+		"total_soldiers_min":
+			return "通过「内政→招募」扩充军队总兵力"
+		"challenge":
+			return "完成当前挑战任务的战斗要求"
+	return "查看任务日志(J)获取详情"
+
+
 # ═══════════════ FORMAT HELPERS ═══════════════
 
 func _format_quest(q: Dictionary, state: Dictionary, category: String, player_id: int) -> Dictionary:
