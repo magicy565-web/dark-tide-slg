@@ -10,6 +10,8 @@ var _efficiency: Dictionary = {}
 var _altar_counters: Dictionary = {}   # player_id -> turns since last sacrifice
 # ── 防止sync_slave_count递归调用 ──
 var _syncing: bool = false
+# ── Conversion queue (Dark Elf): { player_id: [{ "count": int, "turns_left": int }] } ──
+var _conversion_queue: Dictionary = {}
 
 
 func _ready() -> void:
@@ -20,6 +22,7 @@ func reset() -> void:
 	_allocations.clear()
 	_efficiency.clear()
 	_altar_counters.clear()
+	_conversion_queue.clear()
 
 
 func init_player(player_id: int, slave_count: int) -> void:
@@ -157,10 +160,9 @@ func convert_slaves_to_soldiers(player_id: int) -> bool:
 		EventBus.message_log.emit("奴隶不足! 需要 %d 名空闲奴隶" % SLAVES_PER_SOLDIER)
 		return false
 	alloc["idle"] -= SLAVES_PER_SOLDIER
+	# Only update ResourceManager — allocation already deducted above, skip sync to avoid triple deduction
 	ResourceManager.apply_delta(player_id, {"slaves": -SLAVES_PER_SOLDIER})
 	ResourceManager.add_army(player_id, 1)
-	# Sync: ensure ResourceManager slave count matches allocation total
-	sync_slave_count(player_id)
 	EventBus.message_log.emit("[color=purple]奴隶转化: %d名奴隶 → 1名士兵[/color]" % SLAVES_PER_SOLDIER)
 	return true
 
@@ -251,6 +253,35 @@ func sync_slave_count(player_id: int) -> void:
 	_syncing = false
 
 
+# ═══════════════ CONVERSION QUEUE (Dark Elf) ═══════════════
+
+func queue_conversion(player_id: int, count: int, turns: int) -> void:
+	## Queue captured slaves for troop conversion over N turns.
+	if not _conversion_queue.has(player_id):
+		_conversion_queue[player_id] = []
+	_conversion_queue[player_id].append({"count": count, "turns_left": turns})
+	EventBus.message_log.emit("[color=purple]%d名俘虏进入转化队列 (%d回合后完成)[/color]" % [count, turns])
+
+
+func tick_conversion(player_id: int) -> int:
+	## Called each turn for Dark Elf. Decrements conversion timers and returns total soldiers produced.
+	if not _conversion_queue.has(player_id):
+		return 0
+	var queue: Array = _conversion_queue[player_id]
+	var total_soldiers: int = 0
+	var i: int = queue.size() - 1
+	while i >= 0:
+		queue[i]["turns_left"] -= 1
+		if queue[i]["turns_left"] <= 0:
+			var count: int = queue[i]["count"]
+			var soldiers: int = maxi(1, count / SLAVES_PER_SOLDIER)
+			total_soldiers += soldiers
+			EventBus.message_log.emit("[color=purple]奴隶转化完成: %d名奴隶 → %d名士兵[/color]" % [count, soldiers])
+			queue.remove_at(i)
+		i -= 1
+	return total_soldiers
+
+
 # ═══════════════ SAVE / LOAD ═══════════════
 
 func to_save_data() -> Dictionary:
@@ -258,6 +289,7 @@ func to_save_data() -> Dictionary:
 		"allocations": _allocations.duplicate(true),
 		"efficiency": _efficiency.duplicate(true),
 		"altar_counters": _altar_counters.duplicate(true),
+		"conversion_queue": _conversion_queue.duplicate(true),
 	}
 
 
@@ -265,3 +297,13 @@ func from_save_data(data: Dictionary) -> void:
 	_allocations = data.get("allocations", {}).duplicate(true)
 	_efficiency = data.get("efficiency", {}).duplicate(true)
 	_altar_counters = data.get("altar_counters", {}).duplicate(true)
+	_conversion_queue = data.get("conversion_queue", {}).duplicate(true)
+	# Fix int keys after JSON round-trip
+	for dict_ref in [_allocations, _efficiency, _altar_counters, _conversion_queue]:
+		var keys_to_fix: Array = []
+		for k in dict_ref:
+			if k is String and k.is_valid_int():
+				keys_to_fix.append(k)
+		for k in keys_to_fix:
+			dict_ref[int(k)] = dict_ref[k]
+			dict_ref.erase(k)

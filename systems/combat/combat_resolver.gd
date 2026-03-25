@@ -707,8 +707,17 @@ func _build_action_queue(state: Dictionary) -> Array:
 
 
 func _sort_by_spd(a: Dictionary, b: Dictionary) -> bool:
-	if a["spd"] != b["spd"]:
-		return a["spd"] > b["spd"]
+	var spd_a: float = a["spd"]
+	var spd_b: float = b["spd"]
+	# Apply slow debuffs dynamically (not stored in spd field)
+	for d in a.get("debuffs", []):
+		if d["id"] == "slow" and d["duration"] > 0:
+			spd_a = maxf(spd_a - d["value"], 1.0)
+	for d in b.get("debuffs", []):
+		if d["id"] == "slow" and d["duration"] > 0:
+			spd_b = maxf(spd_b - d["value"], 1.0)
+	if spd_a != spd_b:
+		return spd_a > spd_b
 	return randf() > 0.5
 
 
@@ -823,7 +832,7 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 	if "poison_slow" in unit["passives"] and damage > 0 and target["is_alive"]:
 		target["debuffs"].append({"id": "poison_dot", "duration": 2, "value": 1})
 		target["debuffs"].append({"id": "slow", "duration": 2, "value": 2.0})
-		target["spd"] = maxf(target["spd"] - 2, 1.0)
+		# SPD penalty applied dynamically via debuff in action queue, not direct mod
 		log.append("%s [%s] 寒霜毒液! %s 中毒+减速2回合" % [unit["unit_type"], unit["side"], target["unit_type"]])
 
 	# Passive: gold_on_hit — on hit, player gains 2 gold
@@ -1034,11 +1043,10 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 				_apply_damage_to_unit(state, target, dmg, unit, log)
 				log.append("【%s】影步! 直取后排 %s, %d 伤害" % [unit["hero_id"], target["unit_type"], dmg])
 
-		"时间减速":  # 敌全体SPD-3, 2回合
+		"时间减速":  # 敌全体SPD-3, 2回合 (debuff-based, no direct stat mod)
 			for enemy in enemies:
 				if enemy["is_alive"]:
 					enemy["debuffs"].append({"id": "slow", "duration": 2, "value": 3.0})
-					enemy["spd"] = maxf(enemy["spd"] - 3, 1.0)
 			log.append("【%s】时间减速! 敌方SPD-3" % unit["hero_id"])
 
 		"突击号令":  # 己方全体骑兵ATK+2, 1回合
@@ -1067,8 +1075,7 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 					_apply_damage_to_unit(state, target, dmg, unit, log)
 			log.append("【%s】连射! 2次攻击" % unit["hero_id"])
 
-		"铁壁":  # DEF+3, 1回合
-			unit["def"] += 3
+		"铁壁":  # DEF+3, 1回合 (buff-based, no direct stat mod)
 			unit["buffs"].append({"id": "iron_wall", "duration": 1, "value": 3.0})
 			log.append("【%s】铁壁! DEF+3" % unit["hero_id"])
 
@@ -1227,6 +1234,11 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 		# leadership_aura buff: ATK+value
 		if b["id"] == "leadership_aura":
 			atk += b["value"]
+
+	# Iron Wall buff: DEF bonus from defender's buff list
+	for b in defender_unit["buffs"]:
+		if b["id"] == "iron_wall":
+			def_val += b["value"]
 
 	# Passive: bloodlust — accumulated ATK bonus from kills
 	atk += float(attacker_unit.get("bloodlust_bonus", 0))

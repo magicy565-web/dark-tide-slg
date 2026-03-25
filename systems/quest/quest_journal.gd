@@ -433,14 +433,17 @@ func _complete_character_step(step: Dictionary, hero_id: String, player_id: int)
 # ═══════════════ REWARD APPLICATION ═══════════════
 
 func _apply_reward(reward: Dictionary, player_id: int) -> void:
+	var delta: Dictionary = {}
 	if reward.has("gold"):
-		ResourceManager.add_resource(player_id, "gold", reward["gold"])
+		delta["gold"] = reward["gold"]
 	if reward.has("food"):
-		ResourceManager.add_resource(player_id, "food", reward["food"])
+		delta["food"] = reward["food"]
 	if reward.has("iron"):
-		ResourceManager.add_resource(player_id, "iron", reward["iron"])
+		delta["iron"] = reward["iron"]
 	if reward.has("prestige"):
-		ResourceManager.add_resource(player_id, "prestige", reward["prestige"])
+		delta["prestige"] = reward["prestige"]
+	if not delta.is_empty():
+		ResourceManager.apply_delta(player_id, delta)
 	if reward.has("shadow_essence"):
 		StrategicResourceManager.add_amount(player_id, "shadow_essence", reward["shadow_essence"])
 	if reward.has("item"):

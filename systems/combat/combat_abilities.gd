@@ -66,7 +66,7 @@ func tick_per_round_passives(player_id: int) -> Dictionary:
 					details.append("%s %s -1兵" % [td.get("name", troop["troop_id"]), pname])
 
 		elif passive == "charge_mana_1":
-			ResourceManager.add_resource(player_id, "mana", 1)
+			ResourceManager.apply_delta(player_id, {"mana": 1})
 			details.append("%s 法力充能 +1法力" % td.get("name", troop["troop_id"]))
 
 		# Reset ability_used flag for next battle

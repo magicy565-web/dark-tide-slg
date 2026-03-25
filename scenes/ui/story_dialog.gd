@@ -3,6 +3,8 @@
 ## Integrates with StoryEventSystem for progression tracking.
 extends CanvasLayer
 
+const FactionData = preload("res://systems/faction/faction_data.gd")
+
 # ── State ──
 var _visible: bool = false
 var _current_hero_id: String = ""

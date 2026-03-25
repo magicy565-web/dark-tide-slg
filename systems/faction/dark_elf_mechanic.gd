@@ -49,7 +49,7 @@ func on_combat_win(player_id: int) -> void:
 	var current: int = ResourceManager.get_slaves(player_id)
 	if current < cap:
 		ResourceManager.apply_delta(player_id, {"slaves": bonus})
-		SlaveManager.add_slaves(player_id, bonus)
+		SlaveManager.sync_slave_count(player_id)
 		EventBus.message_log.emit("[color=purple]黑暗精灵俘获+%d奴隶![/color]" % bonus)
 	else:
 		EventBus.message_log.emit("奴隶容量已满，无法俘获更多")

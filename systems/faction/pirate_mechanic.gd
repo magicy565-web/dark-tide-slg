@@ -1036,7 +1036,8 @@ func _spawn_raid_party(player_id: int) -> void:
 	var strength: int = randi_range(AI_RAID_MIN_STRENGTH, AI_RAID_MAX_STRENGTH)
 	if GameManager.tiles.is_empty():
 		return
-	var tile_index: int = randi() % GameManager.tiles.size()	var raid: Dictionary = {
+	var tile_index: int = randi() % GameManager.tiles.size()
+	var raid: Dictionary = {
 		"tile_index": tile_index,
 		"strength": strength,
 		"turns_left": AI_RAID_DURATION,

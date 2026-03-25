@@ -220,11 +220,30 @@ func _save_game_state() -> Dictionary:
 	## Serialize GameManager's own state.
 	var players_data: Array = []
 	for p in GameManager.players:
-		players_data.append(p.duplicate(true))
+		var pd: Dictionary = p.duplicate(true)
+		# Convert Color to serializable dict
+		if pd.has("color") and pd["color"] is Color:
+			var c: Color = pd["color"]
+			pd["color"] = {"r": c.r, "g": c.g, "b": c.b, "a": c.a, "_type": "Color"}
+		players_data.append(pd)
 
 	var tiles_data: Array = []
 	for t in GameManager.tiles:
-		tiles_data.append(t.duplicate(true))
+		var td: Dictionary = t.duplicate(true)
+		# Convert Vector3/Vector2 to serializable dicts
+		if td.has("position_3d") and td["position_3d"] is Vector3:
+			var v: Vector3 = td["position_3d"]
+			td["position_3d"] = {"x": v.x, "y": v.y, "z": v.z, "_type": "Vector3"}
+		if td.has("position") and td["position"] is Vector2:
+			var v2: Vector2 = td["position"]
+			td["position"] = {"x": v2.x, "y": v2.y, "_type": "Vector2"}
+		# Convert revealed dict int keys to string for JSON
+		if td.has("revealed") and td["revealed"] is Dictionary:
+			var rev: Dictionary = {}
+			for k in td["revealed"]:
+				rev[str(k)] = td["revealed"][k]
+			td["revealed"] = rev
+		tiles_data.append(td)
 
 	# Serialize armies (JSON keys must be strings)
 	var armies_data: Dictionary = {}
@@ -329,12 +348,30 @@ func _load_game_state(gs: Dictionary) -> void:
 	GameManager.players.clear()
 	for p in gs.get("players", []):
 		if p is Dictionary:
+			# Restore Color from serialized dict
+			if p.has("color") and p["color"] is Dictionary and p["color"].get("_type") == "Color":
+				var cd: Dictionary = p["color"]
+				p["color"] = Color(cd.get("r", 1.0), cd.get("g", 1.0), cd.get("b", 1.0), cd.get("a", 1.0))
 			GameManager.players.append(p)
 
 	# Restore tiles
 	GameManager.tiles.clear()
 	for t in gs.get("tiles", []):
 		if t is Dictionary:
+			# Restore Vector3 from serialized dict
+			if t.has("position_3d") and t["position_3d"] is Dictionary and t["position_3d"].get("_type") == "Vector3":
+				var vd: Dictionary = t["position_3d"]
+				t["position_3d"] = Vector3(vd.get("x", 0), vd.get("y", 0), vd.get("z", 0))
+			# Restore Vector2 from serialized dict
+			if t.has("position") and t["position"] is Dictionary and t["position"].get("_type") == "Vector2":
+				var vd2: Dictionary = t["position"]
+				t["position"] = Vector2(vd2.get("x", 0), vd2.get("y", 0))
+			# Restore revealed dict with int keys
+			if t.has("revealed") and t["revealed"] is Dictionary:
+				var rev: Dictionary = {}
+				for k in t["revealed"]:
+					rev[int(k)] = t["revealed"][k]
+				t["revealed"] = rev
 			GameManager.tiles.append(t)
 
 	# Restore adjacency (JSON keys are strings, convert back to int)

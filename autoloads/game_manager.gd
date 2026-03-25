@@ -1667,7 +1667,7 @@ func _tick_troop_passives(player_id: int) -> void:
 	# Subtract food savings from zero_food troops (already deducted from total)
 	var food_saved: int = tick_result.get("food_cost_reduction", 0)
 	if food_saved > 0:
-		ResourceManager.add_resource(player_id, "food", food_saved)
+		ResourceManager.apply_delta(player_id, {"food": food_saved})
 
 
 ## Phase 3: Check rebel army spawns on low-order player tiles.
@@ -2137,8 +2137,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		return true  # Undefended tile
 
 	# Determine terrain and siege
-	var terrain_str: String = tile.get("terrain", "plains")
-	var terrain_enum: int = _terrain_to_combat_enum(terrain_str)
+	var terrain_enum: int = tile.get("terrain", 0)  # Already int enum from FactionData.TerrainType
 	var is_siege: bool = tile.get("wall_hp", 0) > 0 or tile.get("core_fortress_wall_hp", 0) > 0
 	var city_def: int = tile.get("wall_hp", tile.get("core_fortress_wall_hp", 0))
 
@@ -2225,7 +2224,7 @@ func _terrain_to_combat_enum(terrain: String) -> int:
 		"forest": return 1   # CombatSystem.Terrain.FOREST
 		"mountain": return 2 # CombatSystem.Terrain.MOUNTAIN
 		"swamp": return 3    # CombatSystem.Terrain.SWAMP
-		"wall": return 4     # CombatSystem.Terrain.FORTRESS
+		"wall": return 5     # CombatSystem.Terrain.FORTRESS
 	return 0
 
 
@@ -2920,7 +2919,7 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 
 	# Grant experience to surviving troops (dynamic based on enemy composition)
 	var atk_exp: int = result.get("attacker_exp", BalanceConfig.COMBAT_XP_WIN if attacker_wins else BalanceConfig.COMBAT_XP_LOSS)
-	CombatResolver.grant_combat_experience(pid, atk_exp)
+	CombatAbilities.grant_combat_experience(pid, atk_exp)
 
 	# ── 英雄经验 (v3.1) ──
 	_grant_hero_combat_exp(pid, result, attacker_wins)
@@ -2932,11 +2931,11 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 
 	# Dissolve slave_fodder troops (Dark Elf T0 consumable)
 	if result.get("slave_fodder_dissolved", 0) > 0:
-		CombatResolver.dissolve_slave_fodder(pid)
+		CombatAbilities.dissolve_slave_fodder(pid)
 
 	# Zero_food victory recovery (skeleton +2 soldiers on win)
 	if attacker_wins and result.get("zero_food_recovery", 0) > 0:
-		CombatResolver.apply_zero_food_recovery(pid)
+		CombatAbilities.apply_zero_food_recovery(pid)
 
 	# Necromancer taming synergy: resurrect 20% of fallen as skeletons
 	var necro_res: int = result.get("necro_resurrect", 0)
@@ -2956,7 +2955,7 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 		tile["garrison"] = maxi(0, tile["garrison"] - defender_losses)
 		if slaves_captured > 0:
 			ResourceManager.apply_delta(pid, {"slaves": slaves_captured})
-			SlaveManager.add_slaves(pid, slaves_captured)
+			SlaveManager.sync_slave_count(pid)
 			EventBus.message_log.emit("俘获 %d 名奴隶!" % slaves_captured)
 			# Orc: convert captured slaves to sex slaves for breeding
 			if _get_faction_tag_for_player(pid) == "orc":
@@ -3023,18 +3022,18 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 
 	# Grant experience
 	var atk_exp: int = result.get("attacker_exp", BalanceConfig.COMBAT_XP_WIN if attacker_wins else BalanceConfig.COMBAT_XP_LOSS)
-	CombatResolver.grant_combat_experience(pid, atk_exp)
+	CombatAbilities.grant_combat_experience(pid, atk_exp)
 
 	# ── 英雄经验 (v3.1) ──
 	_grant_hero_combat_exp(pid, result, attacker_wins)
 
 	# Dissolve slave_fodder
 	if result.get("slave_fodder_dissolved", 0) > 0:
-		CombatResolver.dissolve_slave_fodder(pid)
+		CombatAbilities.dissolve_slave_fodder(pid)
 
 	# Zero_food recovery
 	if attacker_wins and result.get("zero_food_recovery", 0) > 0:
-		CombatResolver.apply_zero_food_recovery(pid)
+		CombatAbilities.apply_zero_food_recovery(pid)
 
 	# Necro resurrect
 	var necro_res: int = result.get("necro_resurrect", 0)
@@ -3052,7 +3051,7 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 		sync_player_army(pid)
 		if slaves_captured > 0:
 			ResourceManager.apply_delta(pid, {"slaves": slaves_captured})
-			SlaveManager.add_slaves(pid, slaves_captured)
+			SlaveManager.sync_slave_count(pid)
 			EventBus.message_log.emit("俘获 %d 名奴隶!" % slaves_captured)
 			# Orc: convert captured slaves to sex slaves for breeding
 			if _get_faction_tag_for_player(pid) == "orc":
@@ -4204,7 +4203,7 @@ func run_ai_turn() -> void:
 		# ── Phase 3: Recruit troops if under capacity ──
 		var owned_tiles: Array = get_domestic_tiles(pid)
 		if owned_tiles.size() > 0:
-			var faction_id: int = get_player_faction(pid)
+			faction_id = get_player_faction(pid)
 			var params: Dictionary = FactionData.FACTION_PARAMS.get(faction_id, {})
 			var recruit_gold: int = params.get("recruit_cost_gold", 50)
 			var recruit_iron: int = params.get("recruit_cost_iron", 10)
@@ -4377,7 +4376,7 @@ func _run_orc_ai(player_id: int) -> void:
 
 			if best_tile_idx >= 0:
 				action_attack_with_army(army["id"], best_tile_idx)
-				ai_armies = get_player_armies(pid)  # Refresh after combat
+				ai_armies = get_player_armies(player_id)  # Refresh after combat
 				did_action = true
 				break  # Re-evaluate after attack
 

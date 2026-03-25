@@ -699,7 +699,7 @@ const EQUIP_SLOT_NAMES: Dictionary = {
 	EquipSlot.ACCESSORY: "饰品",
 }
 
-const EQUIPMENT_DEFS: Dictionary = {
+static var EQUIPMENT_DEFS: Dictionary = {
 	"blood_moon_blade": {
 		"name": "血月之刃", "slot": EquipSlot.WEAPON, "rarity": "legendary",
 		"desc": "ATK+3, 击杀恢复1兵",
@@ -776,7 +776,7 @@ const EQUIP_RARITY_WEIGHTS: Dictionary = {
 # cooldown (turns between uses), desc (display text).
 # Damage skills deal (power + INT * int_scale) * army_count_factor damage to enemy effective power.
 # Heal skills restore soldiers. Buff/debuff apply multipliers.
-const HERO_SKILL_DEFS: Dictionary = {
+static var HERO_SKILL_DEFS: Dictionary = {
 	# --- Light heroes (captured/recruited) ---
 	"圣光斩": {"type": "damage", "power": 40, "int_scale": 5.0, "target": "enemy",
 		"desc": "对敌军造成光属性伤害", "cooldown": 2},

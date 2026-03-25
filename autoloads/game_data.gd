@@ -11,6 +11,8 @@
 ##   ultimate  — 3 faction ultimate troops (require shadow essence)
 extends Node
 
+const TroopRegistry = preload("res://systems/combat/troop_registry.gd")
+
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
 enum TroopClass { ASHIGARU, SAMURAI, ARCHER, CAVALRY, NINJA, PRIEST, MAGE_UNIT, CANNON }

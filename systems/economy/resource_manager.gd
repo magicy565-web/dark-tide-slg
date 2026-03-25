@@ -12,6 +12,7 @@ const RES_MAGIC_CRYSTAL := "magic_crystal"
 const RES_WAR_HORSE := "war_horse"
 const RES_GUNPOWDER := "gunpowder"
 const RES_SHADOW_ESSENCE := "shadow_essence"
+const RES_MANA := "mana"
 const ALL_RESOURCES: Array = ["gold", "food", "iron", "slaves", "prestige", "magic_crystal", "war_horse", "gunpowder", "shadow_essence"]
 
 # ── Per-player ledgers  { player_id: { "gold": int, ... } } ──
@@ -39,6 +40,7 @@ func init_player(player_id: int, starting: Dictionary) -> void:
 		RES_WAR_HORSE: starting.get("war_horse", 0),
 		RES_GUNPOWDER: starting.get("gunpowder", 0),
 		RES_SHADOW_ESSENCE: starting.get("shadow_essence", 0),
+		RES_MANA: starting.get("mana", 0),
 	}
 	_army[player_id] = starting.get("army", 0)
 	_slave_capacity[player_id] = starting.get("slaves", 0) + 3  # base capacity 3 + starting
@@ -160,3 +162,12 @@ func from_save_data(data: Dictionary) -> void:
 	_ledgers = data.get("ledgers", {}).duplicate(true)
 	_army = data.get("army", {}).duplicate(true)
 	_slave_capacity = data.get("slave_capacity", {}).duplicate(true)
+	# Fix int keys after JSON round-trip (keys become strings)
+	for dict_ref in [_ledgers, _army, _slave_capacity]:
+		var keys_to_fix: Array = []
+		for k in dict_ref:
+			if k is String and k.is_valid_int():
+				keys_to_fix.append(k)
+		for k in keys_to_fix:
+			dict_ref[int(k)] = dict_ref[k]
+			dict_ref.erase(k)
