@@ -281,6 +281,13 @@ func get_available_heroes() -> Array:
 	return result
 
 
+## Get heroes belonging to a specific player (heroes are human-player only)
+func get_heroes_for_player(player_id: int) -> Array:
+	if player_id != GameManager.get_human_player_id():
+		return []
+	return get_available_heroes()
+
+
 # ═══════════════ EQUIPMENT (v0.8.7) ═══════════════
 
 func _ensure_equip_slots(hero_id: String) -> void:

@@ -86,14 +86,17 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		state["atk_units"].size(), state["def_units"].size()])
 
 	# -- Phase 1: Wall / Siege --
-	var wall_hp: float = float(LightFactionAI.get_wall_hp(tile.get("index", -1)))
+	var tile_idx: int = tile.get("index", -1)
+	var wall_hp: float = 0.0
+	if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+		wall_hp = float(LightFactionAI.get_wall_hp(tile_idx))
 	# Terrain wall bonus
 	var tile_terrain: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
 	var terrain_info: Dictionary = FactionData.TERRAIN_DATA.get(tile_terrain, {})
 	wall_hp += float(terrain_info.get("wall_hp_bonus", 0))
-	# Equipment wall bonus
+	# Equipment wall bonus (only check defender's heroes)
 	if def_pid >= 0:
-		for hero in HeroSystem.get_available_heroes():
+		for hero in HeroSystem.get_heroes_for_player(def_pid):
 			if HeroSystem.has_equipment_passive(hero["id"], "node_wall_bonus"):
 				var bonus: float = HeroSystem.get_equipment_passive_value(hero["id"], "node_wall_bonus")
 				wall_hp += bonus
@@ -1458,10 +1461,10 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		attacker_losses = maxi(attacker_losses - reduced, 0)
 		log.append("暗影斗篷: 进攻方损失减少 %d" % reduced)
 
-	# Equipment: kill_heal (blood_moon_blade)
+	# Equipment: kill_heal (blood_moon_blade) — only check winner's heroes
 	var winner_pid: int = atk_pid if winner == "attacker" else def_pid
 	if winner_pid >= 0:
-		for hero in HeroSystem.get_available_heroes():
+		for hero in HeroSystem.get_heroes_for_player(winner_pid):
 			if HeroSystem.has_equipment_passive(hero["id"], "kill_heal"):
 				if winner == "attacker":
 					attacker_losses = maxi(attacker_losses - 1, 0)
@@ -1527,7 +1530,7 @@ func _check_slave_capture(winner_id: int, loser_units: Array) -> int:
 		count = maxi(count, 2)
 		BuffManager.consume_buff(winner_id, "guaranteed_slave")
 	if winner_id >= 0:
-		for hero in HeroSystem.get_available_heroes():
+		for hero in HeroSystem.get_heroes_for_player(winner_id):
 			if HeroSystem.has_equipment_passive(hero["id"], "capture_bonus"):
 				var bonus: float = HeroSystem.get_equipment_passive_value(hero["id"], "capture_bonus")
 				if randf() < bonus:

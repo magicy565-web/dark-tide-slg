@@ -1712,10 +1712,10 @@ func _on_close() -> void:
 	combat_view_closed.emit()
 
 func _on_speed_toggle() -> void:
-	if _speed_mult == 1.0:
+	if _speed_mult < 1.5:
 		_speed_mult = 2.0
 		btn_speed.text = "2x"
-	elif _speed_mult == 2.0:
+	elif _speed_mult < 2.5:
 		_speed_mult = 3.0
 		btn_speed.text = "3x"
 	else:

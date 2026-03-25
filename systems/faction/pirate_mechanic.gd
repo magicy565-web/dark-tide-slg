@@ -591,13 +591,13 @@ func _refresh_market(player_id: int) -> void:
 	var stock: Array = []
 	var used_indices: Array = []
 	for _i in range(item_count):
-		if used_indices.size() >= all_items.size():
+		if all_items.is_empty() or used_indices.size() >= all_items.size():
 			break
-		var idx: int = randi_range(0, all_items.size() - 1)
+		var idx: int = randi() % all_items.size()
 		# 避免重复
 		var attempts: int = 0
 		while idx in used_indices and attempts < 20:
-			idx = randi_range(0, all_items.size() - 1)
+			idx = randi() % all_items.size()
 			attempts += 1
 		used_indices.append(idx)
 		stock.append(all_items[idx].duplicate())
@@ -856,8 +856,10 @@ func explore_treasure(player_id: int, map_index: int) -> Dictionary:
 ## 内部: 生成一张随机藏宝图
 func _generate_treasure_map(player_id: int) -> void:
 	var maps: Array = _treasure_maps.get(player_id, [])
-	var reward_template: Dictionary = TREASURE_REWARDS[randi_range(0, TREASURE_REWARDS.size() - 1)]
-	var tile_index: int = randi_range(0, maxi(GameManager.tiles.size() - 1, 0))
+	if TREASURE_REWARDS.is_empty() or GameManager.tiles.is_empty():
+		return
+	var reward_template: Dictionary = TREASURE_REWARDS[randi() % TREASURE_REWARDS.size()]
+	var tile_index: int = randi() % GameManager.tiles.size()
 	var new_map: Dictionary = {
 		"tile_index": tile_index,
 		"reward_type": reward_template.get("type", "gold"),
@@ -1032,8 +1034,9 @@ func ai_tick(player_id: int) -> void:
 func _spawn_raid_party(player_id: int) -> void:
 	var raids: Array = _raid_parties.get(player_id, [])
 	var strength: int = randi_range(AI_RAID_MIN_STRENGTH, AI_RAID_MAX_STRENGTH)
-	var tile_index: int = randi_range(0, maxi(GameManager.tiles.size() - 1, 0))
-	var raid: Dictionary = {
+	if GameManager.tiles.is_empty():
+		return
+	var tile_index: int = randi() % GameManager.tiles.size()	var raid: Dictionary = {
 		"tile_index": tile_index,
 		"strength": strength,
 		"turns_left": AI_RAID_DURATION,
