@@ -2997,12 +2997,17 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 			PirateMechanic.on_combat_win_treasure_check(pid)
 			if slaves_captured > 0:
 				PirateMechanic.add_sex_slaves(pid, slaves_captured)
+		# ── 战斗战利品掉落 (v3.5) ──
+		if pid == get_human_player_id():
+			ItemManager.grant_random_loot(pid)
+		EventBus.combat_result.emit(pid, defender_desc, true)
 		return true
 	else:
 		ResourceManager.remove_army(pid, maxi(attacker_losses, 1))
 		sync_player_army(pid)
 		EventBus.message_log.emit("%s 攻打 %s 失败! 损失 %d 步兵" % [player["name"], defender_desc, attacker_losses])
 		_check_elimination(player)
+		EventBus.combat_result.emit(pid, defender_desc, false)
 		return false
 
 
@@ -3089,12 +3094,17 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 			PirateMechanic.on_combat_win_treasure_check(pid)
 			if slaves_captured > 0:
 				PirateMechanic.add_sex_slaves(pid, slaves_captured)
+		# ── 战斗战利品掉落 (v3.5) ──
+		if pid == get_human_player_id():
+			ItemManager.grant_random_loot(pid)
+		EventBus.combat_result.emit(pid, npc_desc, true)
 		return true
 	else:
 		ResourceManager.remove_army(pid, maxi(attacker_losses, 1))
 		sync_player_army(pid)
 		EventBus.message_log.emit("%s 败于 %s! 损失 %d 兵" % [player["name"], npc_desc, attacker_losses])
 		_check_elimination(player)
+		EventBus.combat_result.emit(pid, npc_desc, false)
 		return false
 
 

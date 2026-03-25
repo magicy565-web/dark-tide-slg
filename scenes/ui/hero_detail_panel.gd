@@ -101,6 +101,10 @@ func show_panel(hero_id: String = "") -> void:
 
 func hide_panel() -> void:
 	_visible = false; root.visible = false
+	# Clean up any open equip picker overlay
+	var old_overlay := root.get_node_or_null("EquipPickerOverlay")
+	if old_overlay != null:
+		old_overlay.queue_free()
 
 func is_panel_visible() -> bool:
 	return _visible
@@ -389,6 +393,10 @@ func _on_unequip(hero_id: String, slot_key: String) -> void:
 
 func _show_equip_picker(hero_id: String, slot_key: String) -> void:
 	## Show a popup listing available equipment from inventory that matches the given slot.
+	# Clean up any existing picker overlay first
+	var existing_overlay := root.get_node_or_null("EquipPickerOverlay")
+	if existing_overlay != null:
+		existing_overlay.queue_free()
 	var pid: int = GameManager.get_human_player_id()
 	var all_equip: Array = ItemManager.get_equipment_items(pid)
 	var slot_key_to_enum: Dictionary = {

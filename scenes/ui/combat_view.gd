@@ -1679,7 +1679,7 @@ func _on_play() -> void:
 	_play_next()
 
 func _play_next() -> void:
-	if not _playing or _log_index >= _action_log.size():
+	if not visible or not _playing or _log_index >= _action_log.size():
 		_finish_playback()
 		return
 	var entry: Dictionary = _action_log[_log_index]
@@ -1775,6 +1775,7 @@ func _update_card_soldiers_instant(side: String, slot_idx: int, soldiers: int, m
 		_apply_death_overlay(side, slot_idx)
 
 func _on_close() -> void:
+	_playing = false
 	visible = false
 	_combo_count = 0
 	combo_label.visible = false
