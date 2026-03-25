@@ -1312,6 +1312,7 @@ func begin_turn() -> void:
 	_tick_troop_passives(pid)
 
 	# ── Phase 4b2: Building-based wall repair (fortification) ──
+	# Only buildings that can repair walls: fortification, watchtower, etc.
 	for tile in tiles:
 		if tile == null:
 			continue
@@ -1319,6 +1320,9 @@ func begin_turn() -> void:
 			continue
 		var _bld: String = tile.get("building_id", "")
 		if _bld == "":
+			continue
+		# Quick filter: only fortification (Lv2+) provides wall repair
+		if _bld != "fortification":
 			continue
 		var _bld_lvl: int = tile.get("building_level", 1)
 		var _bld_eff: Dictionary = BuildingRegistry.get_building_effects(_bld, _bld_lvl)
@@ -1533,7 +1537,7 @@ func _spawn_expedition() -> void:
 			owned.append(tile)
 	if owned.is_empty():
 		return
-	var target: Dictionary = owned[randi_range(0, owned.size() - 1)]
+	var target: Dictionary = owned[randi() % owned.size()]
 	var strength: int = randi_range(30, 60)
 	EventBus.message_log.emit("[color=orange]光明联盟远征军(战力%d)进攻 %s![/color]" % [strength, target["name"]])
 	# Auto-resolve: compare garrison

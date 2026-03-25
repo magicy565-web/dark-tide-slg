@@ -68,7 +68,7 @@ func try_rebellion() -> Dictionary:
 	if owned_tiles.is_empty():
 		return {"rebelled": false}
 
-	var rebel_tile: Dictionary = owned_tiles[randi_range(0, owned_tiles.size() - 1)]
+	var rebel_tile: Dictionary = owned_tiles[randi() % owned_tiles.size()]
 	var garrison: int = maxi(1, strength)
 	rebel_tile["owner_id"] = -1
 	rebel_tile["garrison"] = garrison

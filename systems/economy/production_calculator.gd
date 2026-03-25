@@ -30,6 +30,15 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 	var params: Dictionary = FactionData.FACTION_PARAMS[faction_id]
 	var order_mult: float = OrderManager.get_production_multiplier()
 
+	# Cache faction multipliers (constant across all tiles)
+	var gold_income_mult: float = params["gold_income_mult"]
+	var food_production_mult: float = params["food_production_mult"]
+	var base_production_mult: float = params["base_production_mult"]
+	var iron_mult: float = params.get("iron_income_mult", 1.0)
+	var gold_base_mult: float = gold_income_mult * base_production_mult * order_mult
+	var food_base_mult: float = food_production_mult * base_production_mult * order_mult
+	var iron_base_mult: float = iron_mult * base_production_mult * order_mult
+
 	# ── Tile production ──
 	for tile in GameManager.tiles:
 		if tile == null:
@@ -44,13 +53,12 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		# Building level production bonus
 		var building_prod_bonus: float = _get_building_level_bonus(tile)
 
-		var iron_mult: float = params.get("iron_income_mult", 1.0)
-
 		var terrain_prod_mult: float = FactionData.TERRAIN_DATA.get(tile.get("terrain", FactionData.TerrainType.PLAINS), {}).get("production_mult", 1.0)
 
-		var g: int = int(roundf(float(base.get("gold", 0)) * level_mult * params["gold_income_mult"] * params["base_production_mult"] * order_mult * (1.0 + building_prod_bonus) * terrain_prod_mult))
-		var f: int = int(roundf(float(base.get("food", 0)) * level_mult * params["food_production_mult"] * params["base_production_mult"] * order_mult * (1.0 + building_prod_bonus) * terrain_prod_mult))
-		var ir: int = int(roundf(float(base.get("iron", 0)) * level_mult * iron_mult * params["base_production_mult"] * order_mult * (1.0 + building_prod_bonus) * terrain_prod_mult))
+		var tile_mult: float = level_mult * (1.0 + building_prod_bonus) * terrain_prod_mult
+		var g: int = int(roundf(float(base.get("gold", 0)) * tile_mult * gold_base_mult))
+		var f: int = int(roundf(float(base.get("food", 0)) * tile_mult * food_base_mult))
+		var ir: int = int(roundf(float(base.get("iron", 0)) * tile_mult * iron_base_mult))
 
 		income["gold"] += g
 		income["food"] += f

@@ -379,6 +379,10 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 	var log: Array = []
 	var remaining: float = wall_hp
 
+	# Cache siege buff outside loop — constant for entire siege phase
+	var _siege_buff: Variant = BuffManager.get_buff_value(state["atk_pid"], "siege_mult")
+	var _siege_mult: float = float(_siege_buff) if _siege_buff != null and _siege_buff > 1.0 else 1.0
+
 	for unit in state["atk_units"]:
 		if not unit["is_alive"]:
 			continue
@@ -389,10 +393,9 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 			siege_dmg *= CANNON_SIEGE_MULT
 		if "siege_x2" in unit["passives"]:
 			siege_dmg *= 2.0
-		# Siege buff
-		var siege_buff: Variant = BuffManager.get_buff_value(state["atk_pid"], "siege_mult")
-		if siege_buff != null and siege_buff > 1.0:
-			siege_dmg *= float(siege_buff)
+		# Siege buff (cached)
+		if _siege_mult > 1.0:
+			siege_dmg *= _siege_mult
 		remaining -= siege_dmg
 		log.append("%s 攻城伤害 %.0f" % [unit["unit_type"], siege_dmg])
 
