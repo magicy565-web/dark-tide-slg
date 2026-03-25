@@ -1561,8 +1561,8 @@ func get_max_armies(player_id: int) -> int:
 	# Check buildings: each Lv3 training_ground adds +1 army slot (max +1)
 	var training_lv3_count: int = 0
 	for tile in tiles:
-		if tile["owner_id"] == player_id:
-			var bld: String = tile.get("building", "")
+		if tile.get("owner_id", -1) == player_id:
+			var bld: String = tile.get("building_id", "")
 			var bld_lv: int = tile.get("building_level", 0)
 			if bld == "training_ground" and bld_lv >= 3:
 				training_lv3_count += 1

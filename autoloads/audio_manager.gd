@@ -125,7 +125,7 @@ func _connect_signals() -> void:
 	EventBus.tile_captured.connect(_on_tile_captured)
 	EventBus.tile_lost.connect(_on_tile_lost)
 	EventBus.hero_captured.connect(_on_hero_captured)
-	EventBus.research_completed.connect(_on_research_complete)
+	EventBus.tech_effects_applied.connect(_on_research_complete)
 	EventBus.waaagh_changed.connect(_on_waaagh_changed)
 	EventBus.event_triggered.connect(_on_event_triggered)
 
@@ -263,7 +263,7 @@ func _on_tile_lost(_pid: int, _tile: int) -> void:
 func _on_hero_captured(_hero_id: String) -> void:
 	play_sfx(SFX.HERO_CAPTURE)
 
-func _on_research_complete(_pid: int, _fid: int) -> void:
+func _on_research_complete(_pid: int) -> void:
 	play_sfx(SFX.RESEARCH_COMPLETE)
 
 func _on_waaagh_changed(_pid: int, value: int) -> void:

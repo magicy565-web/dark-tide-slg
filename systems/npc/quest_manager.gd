@@ -439,7 +439,8 @@ func _check_auto_advance(player_id: int) -> void:
 			# 战斗步骤不能自动推进，通知UI需要玩家手动处理战斗
 			var step: int = qdata.get("step", 0)
 			var step_data: Dictionary = _get_step_data(nf, step)
-			EventBus.quest_combat_required.emit(player_id, nf, step_data)
+			var enemy_soldiers: int = step_data.get("enemy_soldiers", 30)
+			EventBus.quest_combat_requested.emit(player_id, nf, enemy_soldiers)
 			continue
 
 		# Auto-advance: deduct costs, apply rewards, advance
