@@ -45,8 +45,11 @@ const GOLD_UPKEEP_PER_SOLDIER_DARK_ELF: float = 0.20  # 精灵适中 — 40兵=8
 ## Gold deficit combat penalty: ATK/DEF debuff when can't pay
 const GOLD_DEFICIT_COMBAT_PENALTY: float = 0.15  # -15% ATK/DEF
 
-## Supply line penalty: 3% global upkeep increase per additional army (TW:W hard difficulty)
-const SUPPLY_LINE_PENALTY_PCT: float = 0.03
+## Supply strain: armies in enemy territory take attrition
+const SUPPLY_ENEMY_TERRITORY_ATTRITION: float = 0.03  # 3% per turn in unowned tiles
+## Overextension: if total soldiers > owned_tiles × 5, surplus soldiers take attrition
+const SUPPLY_OVEREXTENSION_THRESHOLD: int = 5  # soldiers per owned tile before strain
+const SUPPLY_OVEREXTENSION_ATTRITION: float = 0.02  # 2% per turn when overextended
 
 ## Tile upgrade costs [gold, iron] — 5 levels (TW:W building cost curve)
 const UPGRADE_COSTS := [
@@ -114,14 +117,19 @@ const MAX_AP: int = 5
 ## Base population cap before tile bonuses
 const BASE_POPULATION_CAP: int = 3
 
-## Supply line thresholds (TW:W attrition)
+## DEPRECATED (v3.3): Supply line constants replaced by territory-based check.
+## Kept for backward compatibility — new code should use SUPPLY_ENEMY_TERRITORY_ATTRITION etc.
 const SUPPLY_SAFE_RANGE: int = 4
-const SUPPLY_ATTRITION_MILD_PCT: float = 0.03  # TW:W 3% losses per turn beyond safe range
-const SUPPLY_ATTRITION_CUT_PCT: float = 0.08   # TW:W 8% in hostile territory
+const SUPPLY_ATTRITION_MILD_PCT: float = 0.03
+const SUPPLY_ATTRITION_CUT_PCT: float = 0.08
 
-## Forced march penalty (TW:W: vulnerability, not heavy losses)
-const FORCED_MARCH_AP: int = 2
-const FORCED_MARCH_LOSS_PCT: float = 0.05
+## Forced march → replaced by AP purchase system
+const AP_BUY_BASE_COST: int = 20      # First extra AP costs 20 gold
+const AP_BUY_COST_SCALE: int = 20     # Each subsequent AP costs +20 more
+const AP_BUY_MAX_PER_TURN: int = 3    # Max 3 extra AP per turn
+## DEPRECATED: Forced march constants (kept for reference, unused)
+#const FORCED_MARCH_AP: int = 2
+#const FORCED_MARCH_LOSS_PCT: float = 0.05
 
 # ═══════════════ ORDER & THREAT (TW:W public order aligned) ═══════════════
 

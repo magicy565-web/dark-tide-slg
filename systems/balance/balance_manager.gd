@@ -287,7 +287,7 @@ func simulate_income(faction_id: int, phase_key: String) -> Dictionary:
 	# Upkeep estimate: assume 3 armies × 4 units average × 5 soldiers
 	var estimated_soldiers: int = 3 * 4 * 5
 	var food_upkeep: float = estimated_soldiers * BalanceConfig.FOOD_PER_SOLDIER
-	var supply_penalty: float = 3 * BalanceConfig.SUPPLY_LINE_PENALTY_PCT  # 3 armies
+	var supply_penalty: float = 3 * 0.03  # Legacy estimate: 3 armies × 3% each
 
 	# Net income
 	var net_gold: float = base_gold * (1.0 - supply_penalty)

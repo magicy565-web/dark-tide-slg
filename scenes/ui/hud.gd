@@ -1586,13 +1586,12 @@ func _update_tile_info_for(tile_index: int) -> void:
 		info += "[color=yellow]━━ 军团: %s ━━[/color]\n" % army["name"]
 		info += "部队编制: %d/%d | 总兵力: %d | 战力: %d\n" % [troop_count, GameManager.MAX_TROOPS_PER_ARMY, soldiers, power]
 		if army["player_id"] == pid:
-			var supply: int = GameManager.calculate_supply_line(army["id"])
-			if supply < 0:
-				info += "[color=red]补给线: 切断![/color]\n"
-			elif supply > GameManager.SUPPLY_LINE_SAFE:
-				info += "[color=orange]补给线: %d格 (过长)[/color]\n" % supply
+			var tile_idx: int = army.get("tile_index", -1)
+			var on_enemy: bool = tile_idx >= 0 and tile_idx < GameManager.tiles.size() and GameManager.tiles[tile_idx]["owner_id"] != pid and GameManager.tiles[tile_idx]["owner_id"] >= 0
+			if on_enemy:
+				info += "[color=orange]补给: 敌方领土 (每回合%.0f%%损耗)[/color]\n" % (BalanceConfig.SUPPLY_ENEMY_TERRITORY_ATTRITION * 100.0)
 			else:
-				info += "[color=green]补给线: %d格[/color]\n" % supply
+				info += "[color=green]补给: 正常[/color]\n"
 
 	# Neutral faction
 	if tile.get("neutral_faction_id", -1) >= 0:

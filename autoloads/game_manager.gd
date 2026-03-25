@@ -48,16 +48,19 @@ var MAX_TROOPS_PER_ARMY: int:
 	get: return BalanceConfig.MAX_TROOPS_PER_ARMY
 var MAX_HEROES_PER_ARMY: int:
 	get: return BalanceConfig.MAX_HEROES_PER_ARMY
+## DEPRECATED (v3.3): Supply line getters kept for backward compatibility.
+## New code should use BalanceConfig.SUPPLY_ENEMY_TERRITORY_ATTRITION etc.
 var SUPPLY_LINE_SAFE: int:
 	get: return BalanceConfig.SUPPLY_SAFE_RANGE
 var SUPPLY_LINE_ATTRITION_PCT: float:
 	get: return BalanceConfig.SUPPLY_ATTRITION_MILD_PCT
 var SUPPLY_LINE_CUT_ATTRITION_PCT: float:
 	get: return BalanceConfig.SUPPLY_ATTRITION_CUT_PCT
-var FORCED_MARCH_AP: int:
-	get: return BalanceConfig.FORCED_MARCH_AP
-var FORCED_MARCH_LOSS_PCT: float:
-	get: return BalanceConfig.FORCED_MARCH_LOSS_PCT
+## DEPRECATED: Forced march getters (AP purchase system replaces forced march)
+#var FORCED_MARCH_AP: int:
+#	get: return BalanceConfig.FORCED_MARCH_AP
+#var FORCED_MARCH_LOSS_PCT: float:
+#	get: return BalanceConfig.FORCED_MARCH_LOSS_PCT
 
 var UPGRADE_COSTS: Array:
 	get: return BalanceConfig.UPGRADE_COSTS
@@ -257,6 +260,7 @@ var has_rolled: bool = false
 var turn_number: int = 0
 var _had_combat_this_turn: bool = false
 var _prev_turn_had_combat: bool = false
+var _ap_purchases_this_turn: int = 0
 
 # ── Army system state (v0.9.2) ──
 # armies: { army_id: int -> { id, player_id, tile_index, name, troops: Array, heroes: Array } }
@@ -1243,6 +1247,7 @@ func begin_turn() -> void:
 	player["ap"] = calculate_action_points(pid)
 	player["atk_bonus"] = 0
 	player["def_bonus"] = 0
+	_ap_purchases_this_turn = 0
 	# Legacy state reset (board compat)
 	has_rolled = false
 	waiting_for_move = false
@@ -1811,45 +1816,39 @@ func action_deploy_army(army_id: int, target_tile: int) -> bool:
 	return true
 
 
-func action_forced_march(army_id: int, target_tile: int) -> bool:
-	## Move army 2 tiles in one action, costing 2 AP and 10% troop loss.
-	if not armies.has(army_id):
-		return false
-	var army: Dictionary = armies[army_id]
-	var player_id: int = army["player_id"]
+func action_buy_ap(player_id: int) -> Dictionary:
+	## Purchase 1 extra AP with gold. Cost escalates each purchase.
 	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < FORCED_MARCH_AP:
-		EventBus.message_log.emit("强行军需要 %d AP!" % FORCED_MARCH_AP)
+	if player.is_empty():
+		return {"success": false, "reason": "玩家不存在"}
+	if _ap_purchases_this_turn >= BalanceConfig.AP_BUY_MAX_PER_TURN:
+		return {"success": false, "reason": "本回合已达购买上限(%d次)" % BalanceConfig.AP_BUY_MAX_PER_TURN}
+
+	var cost: int = BalanceConfig.AP_BUY_BASE_COST + _ap_purchases_this_turn * BalanceConfig.AP_BUY_COST_SCALE
+	var current_gold: int = ResourceManager.get_resource(player_id, "gold")
+	if current_gold < cost:
+		return {"success": false, "reason": "金币不足(需要%d金, 当前%d金)" % [cost, current_gold]}
+
+	ResourceManager.apply_delta(player_id, {"gold": -cost})
+	player["ap"] += 1
+	_ap_purchases_this_turn += 1
+
+	var next_cost: int = BalanceConfig.AP_BUY_BASE_COST + _ap_purchases_this_turn * BalanceConfig.AP_BUY_COST_SCALE
+	EventBus.message_log.emit("[color=#ffcc44]花费 %d 金购买1行动力 (AP:%d, 下次费用:%d金)[/color]" % [cost, player["ap"], next_cost])
+	EventBus.resources_changed.emit(player_id)
+	return {"success": true, "cost": cost, "new_ap": player["ap"], "next_cost": next_cost}
+
+
+func action_forced_march(_army_id: int, _target_tile: int) -> bool:
+	## DEPRECATED: Forced march replaced by AP purchase system.
+	## Kept for backward compatibility — calls action_buy_ap instead.
+	var pid: int = -1
+	if armies.has(_army_id):
+		pid = armies[_army_id]["player_id"]
+	if pid < 0:
 		return false
-
-	# Target must be 2 hops away through owned territory
-	var from_tile: int = army["tile_index"]
-	if target_tile < 0 or target_tile >= tiles.size():
-		EventBus.message_log.emit("强行军目标无效!")
-		return false
-	var path: Array = _find_owned_path(from_tile, target_tile, player_id, 2)
-	if path.is_empty():
-		EventBus.message_log.emit("强行军目标不可达!")
-		return false
-
-	# Check no army at target
-	if not get_army_at_tile(target_tile).is_empty():
-		EventBus.message_log.emit("目标地域已有军团!")
-		return false
-
-	# Apply troop loss
-	for troop in army["troops"]:
-		var loss: int = maxi(1, int(float(troop["soldiers"]) * FORCED_MARCH_LOSS_PCT))
-		troop["soldiers"] = maxi(1, troop["soldiers"] - loss)
-
-	army["tile_index"] = target_tile
-	player["ap"] -= FORCED_MARCH_AP
-
-	for tile_idx in path:
-		_reveal_around(tile_idx, player_id)
-	EventBus.message_log.emit("%s 强行军至 %s (部队损耗10%%)" % [army["name"], tiles[target_tile]["name"]])
-	EventBus.army_deployed.emit(player_id, army_id, from_tile, target_tile)
-	return true
+	var result: Dictionary = action_buy_ap(pid)
+	return result.get("success", false)
 
 
 func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
@@ -2227,66 +2226,51 @@ func _find_owned_path(from: int, to: int, player_id: int, max_hops: int) -> Arra
 	return path
 
 
-func calculate_supply_line(army_id: int) -> int:
-	## Returns supply line length (hops to nearest core fortress through owned tiles).
-	## Returns -1 if disconnected (no path).
-	if not armies.has(army_id):
-		return -1
-	var army: Dictionary = armies[army_id]
-	var player_id: int = army["player_id"]
-	var start: int = army["tile_index"]
-
-	# Find all core fortresses owned by this player
-	var cores: Array = []
-	for i in range(tiles.size()):
-		if tiles[i]["owner_id"] == player_id and tiles[i]["type"] == TileType.CORE_FORTRESS:
-			cores.append(i)
-	# Also check dark base (faction home base)
-	if cores.is_empty():
-		for i in range(tiles.size()):
-			if tiles[i]["owner_id"] == player_id and tiles[i]["type"] == TileType.DARK_BASE:
-				cores.append(i)
-
-	if cores.is_empty():
-		return -1  # No base to supply from
-
-	# BFS from army tile through owned tiles to find nearest core
-	var visited: Dictionary = {start: 0}
-	var queue: Array = [start]
-	while queue.size() > 0:
-		var current: int = queue.pop_front()
-		var depth: int = visited[current]
-		if cores.has(current):
-			return depth
-		if not adjacency.has(current):
-			continue
-		for neighbor in adjacency[current]:
-			if visited.has(neighbor):
-				continue
-			if neighbor < tiles.size() and tiles[neighbor]["owner_id"] == player_id:
-				visited[neighbor] = depth + 1
-				queue.append(neighbor)
-	return -1  # Disconnected
+func calculate_supply_line(_army_id: int) -> int:
+	## DEPRECATED (v3.3): Supply lines simplified to territory-based check.
+	## Always returns 0 (safe). Kept for backward compatibility (UI references).
+	return 0
 
 
 func _tick_supply_lines(player_id: int) -> void:
-	## Apply supply line attrition to all armies of a player.
+	## Simplified supply: armies on unowned tiles take attrition.
+	## Overextension: too many soldiers relative to territory causes strain.
 	var player_armies: Array = get_player_armies(player_id)
-	for army in player_armies:
-		var supply_dist: int = calculate_supply_line(army["id"])
-		if supply_dist < 0:
-			# Disconnected — heavy attrition
-			for troop in army["troops"]:
-				var loss := clampi(maxi(1, int(float(troop["soldiers"]) * SUPPLY_LINE_CUT_ATTRITION_PCT)), 1, troop["soldiers"])
-				troop["soldiers"] = maxi(0, troop["soldiers"] - loss)
-			EventBus.message_log.emit("[color=red]%s 补给线被切断! 每回合损失%.0f%%兵[/color]" % [army["name"], SUPPLY_LINE_CUT_ATTRITION_PCT * 100.0])
+	if player_armies.is_empty():
+		return
+
+	# Check overextension (global check)
+	var total_soldiers: int = ResourceManager.get_army(player_id)
+	var owned_tiles: int = count_tiles_owned(player_id)
+	var supply_cap: int = owned_tiles * BalanceConfig.SUPPLY_OVEREXTENSION_THRESHOLD
+	var overextended: bool = total_soldiers > supply_cap
+
+	if overextended:
+		var surplus_pct: float = float(total_soldiers - supply_cap) / float(maxi(total_soldiers, 1))
+		var attrition_pct: float = BalanceConfig.SUPPLY_OVEREXTENSION_ATTRITION * surplus_pct * 10.0
+		attrition_pct = minf(attrition_pct, 0.05)  # Cap at 5%
+		# Apply to all troops
+		for army in player_armies:
+			for troop in army.get("troops", []):
+				var loss: int = maxi(0, int(float(troop["soldiers"]) * attrition_pct))
+				if loss > 0:
+					troop["soldiers"] = maxi(1, troop["soldiers"] - loss)
+		if attrition_pct > 0.005:
+			EventBus.message_log.emit("[color=orange]兵力过度扩张! (%d兵/%d地块上限) 每回合损耗%.1f%%[/color]" % [total_soldiers, supply_cap, attrition_pct * 100.0])
+		for army in player_armies:
 			_cleanup_army_troops(army)
-		elif supply_dist > SUPPLY_LINE_SAFE:
-			# Over-extended — light attrition
-			for troop in army["troops"]:
-				var loss := clampi(maxi(1, int(float(troop["soldiers"]) * SUPPLY_LINE_ATTRITION_PCT)), 1, troop["soldiers"])
-				troop["soldiers"] = maxi(0, troop["soldiers"] - loss)
-			EventBus.message_log.emit("[color=orange]%s 补给线过长(%d格)! 每回合损失%.0f%%兵[/color]" % [army["name"], supply_dist, SUPPLY_LINE_ATTRITION_PCT * 100.0])
+
+	# Per-army: check if on enemy territory
+	for army in player_armies:
+		var tile_idx: int = army.get("tile_index", -1)
+		if tile_idx < 0 or tile_idx >= tiles.size():
+			continue
+		if tiles[tile_idx]["owner_id"] != player_id and tiles[tile_idx]["owner_id"] >= 0:
+			# In enemy territory — flat attrition
+			for troop in army.get("troops", []):
+				var loss: int = maxi(1, int(float(troop["soldiers"]) * BalanceConfig.SUPPLY_ENEMY_TERRITORY_ATTRITION))
+				troop["soldiers"] = maxi(1, troop["soldiers"] - loss)
+			EventBus.message_log.emit("[color=orange]%s 在敌方领土! 补给困难,损失%.0f%%兵力[/color]" % [army.get("name", "军团"), BalanceConfig.SUPPLY_ENEMY_TERRITORY_ATTRITION * 100.0])
 			_cleanup_army_troops(army)
 
 
