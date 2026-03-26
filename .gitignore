@@ -11,3 +11,9 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Crash dumps
+core
+
+# Dev server
+server.py
