@@ -1084,6 +1084,7 @@ func on_raid_defeated(player_id: int, raid_index: int) -> int:
 		raids.remove_at(raid_index)
 		_raid_parties[player_id] = raids
 		var loot: int = AI_RAID_LOOT_ON_DEFEAT + raid.get("strength", 0) * 3
+		ResourceManager.apply_delta(player_id, {"gold": loot})
 		EventBus.message_log.emit("[color=gold]击败海盗突袭队! 获得%d金![/color]" % loot)
 		return loot
 	return 0
@@ -1296,6 +1297,9 @@ func from_save_data(data: Dictionary) -> void:
 	_fix_int_keys(_sex_slaves)
 	_slave_training = data.get("slave_training", {}).duplicate(true)
 	_fix_int_keys(_slave_training)
+	for pid in _slave_training:
+		if _slave_training[pid] is Dictionary:
+			_fix_int_keys(_slave_training[pid])
 	# 恶名
 	_infamy = data.get("infamy", {}).duplicate(true)
 	_fix_int_keys(_infamy)
@@ -1305,6 +1309,7 @@ func from_save_data(data: Dictionary) -> void:
 	# 旧版兼容: bonus_plunder
 	if data.has("bonus_plunder"):
 		_bonus_plunder = data.get("bonus_plunder", {}).duplicate(true)
+		_fix_int_keys(_bonus_plunder)
 	else:
 		_bonus_plunder = {}
 	# 朗姆酒

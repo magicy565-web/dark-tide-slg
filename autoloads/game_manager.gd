@@ -366,7 +366,7 @@ func calculate_action_points(player_id: int) -> int:
 
 func get_tile_production(tile: Dictionary) -> Dictionary:
 	var base: Dictionary = tile.get("base_production", {})
-	var level: int = tile.get("level", 1)
+	var level: int = maxi(tile.get("level", 1), 1)
 	var mult: float = UPGRADE_PROD_MULT[level - 1] if level <= UPGRADE_PROD_MULT.size() else 1.0
 	return {
 		"gold": int(float(base.get("gold", 0)) * mult),

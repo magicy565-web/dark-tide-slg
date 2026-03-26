@@ -976,7 +976,7 @@ func _check_tiles_in_window(turns: int, required: int) -> bool:
 func _get_max_hero_level() -> int:
 	var max_lvl: int = 0
 	for hero_id in HeroSystem.recruited_heroes:
-		var lvl: int = HeroSystem.get_hero_level(hero_id)
+		var lvl: int = HeroLeveling.get_hero_level(hero_id)
 		if lvl > max_lvl:
 			max_lvl = lvl
 	return max_lvl
@@ -996,7 +996,7 @@ func _get_fog_revealed_pct(player_id: int) -> float:
 		return 0.0
 	var revealed: int = 0
 	for t in GameManager.tiles:
-		if not t.get("fog", true):
+		if t.get("revealed", {}).get(player_id, false):
 			revealed += 1
 	return (float(revealed) / float(total)) * 100.0
 

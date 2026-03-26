@@ -297,14 +297,8 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 		bu.mana = 0
 
 		# Pull troop base stats from GameData autoload if available.
-		if Engine.has_singleton("GameData") or _has_autoload("GameData"):
-			var gd = Engine.get_singleton("GameData")
-			if gd == null:
-				gd = _get_autoload("GameData")
-			if gd and gd.has_method("get_troop_def"):
-				var td: Dictionary = gd.get_troop_def(bu.troop_id)
-				bu.atk += td.get("base_atk", 0)
-				bu.def_stat += td.get("base_def", 0)
+		# NOTE: Skipped — input atk/def already includes base stats from
+		# recruit_manager.get_combat_units(). Adding them again would double-dip.
 
 		# HP model: initialize per-soldier HP and total HP pool
 		bu.hp_per_soldier = d.get("hp_per_soldier", 5)
@@ -437,10 +431,12 @@ func _resolve_siege_phase(state: BattleState) -> void:
 		if state.city_def <= 0:
 			break
 
-	# If walls still stand, defender gets a flat DEF bonus for remaining wall HP.
+	# If walls still stand, defender gets a scaled DEF bonus for remaining wall HP.
+	# Cap the bonus to avoid absurd values (e.g. 50HP wall giving +50 DEF).
 	if state.city_def > 0:
+		var wall_bonus: int = mini(state.city_def / 5, 10)
 		for u in state.defender_units:
-			u.def_stat += state.city_def
+			u.def_stat += wall_bonus
 
 # ---------------------------------------------------------------------------
 # Preemptive Phase

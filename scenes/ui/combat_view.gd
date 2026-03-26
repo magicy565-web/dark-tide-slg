@@ -104,6 +104,7 @@ var _total_def_damage: int = 0
 var _kills_atk: int = 0
 var _kills_def: int = 0
 var _is_finishing: bool = false
+var _playback_generation: int = 0
 
 # ── Buff/debuff tracking (side -> slot -> Array[String]) ──
 var _active_buffs: Dictionary = {}
@@ -1713,9 +1714,11 @@ func _highlight_aoe_targets(target_side: String, slots: Array) -> void:
 func _on_play() -> void:
 	if _playing:
 		_playing = false
+		_playback_generation += 1
 		btn_play.text = "▶ Play"
 		return
 	_playing = true
+	_playback_generation += 1
 	btn_play.text = "⏸ Pause"
 	_play_next()
 
@@ -1745,10 +1748,15 @@ func _play_next() -> void:
 			base_delay = 0.5
 
 	var delay := base_delay / _speed_mult
-	get_tree().create_timer(delay).timeout.connect(_play_next)
+	var gen := _playback_generation
+	get_tree().create_timer(delay).timeout.connect(func():
+		if gen == _playback_generation:
+			_play_next()
+	)
 
 func _on_step() -> void:
 	_playing = false
+	_playback_generation += 1
 	btn_play.text = "▶ Play"
 	if _log_index < _action_log.size():
 		_apply_log_entry(_action_log[_log_index])
@@ -1760,6 +1768,7 @@ func _on_step() -> void:
 func _on_skip() -> void:
 	Engine.time_scale = 1.0
 	_playing = false
+	_playback_generation += 1
 	_is_finishing = true
 	# Apply all remaining entries without animations
 	while _log_index < _action_log.size():
@@ -1819,9 +1828,14 @@ func _update_card_soldiers_instant(side: String, slot_idx: int, soldiers: int, m
 func _on_close() -> void:
 	Engine.time_scale = 1.0
 	_playing = false
+	_playback_generation += 1
 	visible = false
 	_combo_count = 0
 	combo_label.visible = false
+	# Clean up anim_layer children (projectiles, particles, explosions)
+	if anim_layer:
+		for child in anim_layer.get_children():
+			child.queue_free()
 	if _vs_tween and _vs_tween.is_valid():
 		_vs_tween.kill()
 		_vs_tween = null

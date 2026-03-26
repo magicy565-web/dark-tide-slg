@@ -1249,6 +1249,7 @@ func _on_restart_pressed() -> void:
 	game_over_panel.visible = false
 	messages.clear()
 	message_log_label.text = ""
+	_reset_all_singletons()
 	get_tree().reload_current_scene()
 
 
@@ -1256,7 +1257,36 @@ func _on_return_main_menu_pressed() -> void:
 	game_over_panel.visible = false
 	messages.clear()
 	message_log_label.text = ""
+	_reset_all_singletons()
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
+
+
+func _reset_all_singletons() -> void:
+	ResourceManager.reset()
+	SlaveManager.reset()
+	BuffManager.reset()
+	ItemManager.reset()
+	RelicManager.reset()
+	OrderManager.reset()
+	ThreatManager.reset()
+	OrcMechanic.reset()
+	PirateMechanic.reset()
+	DarkElfMechanic.reset()
+	FactionManager.reset()
+	LightFactionAI.reset()
+	AllianceAI.reset()
+	EvilFactionAI.reset()
+	DiplomacyManager.reset()
+	NpcManager.reset()
+	QuestManager.reset()
+	StrategicResourceManager.reset()
+	RecruitManager.reset()
+	HeroSystem.reset()
+	EventSystem.reset()
+	AIScaling.reset()
+	NeutralFactionAI.reset()
+	QuestJournal.reset()
+	StoryEventSystem.reset()
 
 
 func _detect_victory_type(human_id: int) -> String:
@@ -1416,8 +1446,8 @@ func _set_all_buttons_disabled(val: bool) -> void:
 func _update_player_info() -> void:
 	if GameManager.players.is_empty():
 		return
-	var player: Dictionary = GameManager.get_current_player()
-	var pid: int = player["id"]
+	var pid: int = GameManager.get_human_player_id()
+	var player: Dictionary = GameManager.get_player_by_id(pid)
 
 	turn_label.text = "Turn %d %s" % [GameManager.turn_number, player["name"]]
 	turn_label.add_theme_color_override("font_color", player["color"])

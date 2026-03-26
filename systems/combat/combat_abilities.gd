@@ -47,10 +47,16 @@ func tick_per_round_passives(player_id: int) -> Dictionary:
 					details.append("%s 深根再生 +%d兵" % [td.get("name", troop["troop_id"]), heal])
 
 		elif passive == "necro_summon":
-			var skel_inst: Dictionary = GameData.create_troop_instance("neutral_skeleton", 4)
-			if not skel_inst.is_empty():
-				army.append(skel_inst)
-				details.append("%s 亡灵召唤: +1骷髅小队(4兵)" % td.get("name", troop["troop_id"]))
+			# Cap skeleton squads: max 3 necro-summoned skeletons per army
+			var skeleton_count: int = 0
+			for t in army:
+				if t["troop_id"] == "neutral_skeleton":
+					skeleton_count += 1
+			if skeleton_count < 3:
+				var skel_inst: Dictionary = GameData.create_troop_instance("neutral_skeleton", 4)
+				if not skel_inst.is_empty():
+					army.append(skel_inst)
+					details.append("%s 亡灵召唤: +1骷髅小队(4兵)" % td.get("name", troop["troop_id"]))
 
 		elif passive == "self_destruct_20" or passive == "misfire":
 			var chance: float = 0.2 if passive == "self_destruct_20" else 0.15
@@ -106,6 +112,7 @@ func dissolve_slave_fodder(player_id: int) -> void:
 		var td: Dictionary = GameData.get_troop_def(army[i]["troop_id"])
 		if td.get("passive", "") == "slave_fodder":
 			army.remove_at(i)
+			continue
 		i -= 1
 	RecruitManager._sync_army_count(player_id)
 

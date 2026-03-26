@@ -94,6 +94,8 @@ func on_combat_win(player_id: int, faction_id: int) -> void:
 	match faction_id:
 		FactionData.FactionID.ORC:
 			OrcMechanic.on_combat_win(player_id)
+		# PIRATE: handled directly in game_manager._resolve_army_combat
+		# with enemy_strength and sex slave capture logic
 		FactionData.FactionID.DARK_ELF:
 			DarkElfMechanic.on_combat_win(player_id)
 

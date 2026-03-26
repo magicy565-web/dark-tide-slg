@@ -371,7 +371,8 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 		aff_lbl.bbcode_enabled = true
 		aff_lbl.fit_content = true
 		aff_lbl.scroll_active = false
-		aff_lbl.text = aff_text
+		aff_lbl.clear()
+		aff_lbl.append_text(aff_text)
 		aff_lbl.custom_minimum_size = Vector2(0, 20)
 		aff_lbl.add_theme_font_size_override("normal_font_size", 12)
 		info_vbox.add_child(aff_lbl)
@@ -462,7 +463,8 @@ func _refresh_detail() -> void:
 	desc_lbl.bbcode_enabled = true
 	desc_lbl.fit_content = true
 	desc_lbl.scroll_active = false
-	desc_lbl.text = hero_def.get("desc", "")
+	desc_lbl.clear()
+	desc_lbl.append_text(hero_def.get("desc", ""))
 	desc_lbl.custom_minimum_size = Vector2(0, 40)
 	desc_lbl.add_theme_font_size_override("normal_font_size", 12)
 	desc_lbl.add_theme_color_override("default_color", Color(0.7, 0.7, 0.75))
