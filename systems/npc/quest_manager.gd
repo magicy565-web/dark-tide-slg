@@ -438,7 +438,8 @@ func _check_auto_advance(player_id: int) -> void:
 		if check.get("requires_combat", false):
 			# 战斗步骤不能自动推进，通知UI需要玩家手动处理战斗
 			var step_data: Dictionary = _get_step_data(nf, step)
-			var enemy_soldiers: int = step_data.get("enemy_soldiers", 30)
+			var trigger = step_data.get("trigger", {})
+			var enemy_soldiers: int = trigger.get("combat", 30) if trigger is Dictionary else step_data.get("enemy_soldiers", 30)
 			EventBus.quest_combat_requested.emit(player_id, nf, enemy_soldiers)
 			continue
 
@@ -700,6 +701,9 @@ static func _fix_int_keys(dict: Dictionary) -> void:
 func from_save_data(data: Dictionary) -> void:
 	_quest_progress = data.get("quest_progress", {}).duplicate(true)
 	_fix_int_keys(_quest_progress)
+	for pid in _quest_progress:
+		if _quest_progress[pid] is Dictionary:
+			_fix_int_keys(_quest_progress[pid])
 	_recruited_factions = data.get("recruited_factions", {}).duplicate(true)
 	_fix_int_keys(_recruited_factions)
 	_recruitment_bonuses = data.get("recruitment_bonuses", {}).duplicate(true)
@@ -707,7 +711,11 @@ func from_save_data(data: Dictionary) -> void:
 	_unlocked_units = data.get("unlocked_units", {}).duplicate(true)
 	_fix_int_keys(_unlocked_units)
 	_pending_quest_combat = data.get("pending_quest_combat", {}).duplicate(true)
+	_fix_int_keys(_pending_quest_combat)
 	_caravan_item_timer = data.get("caravan_item_timer", {}).duplicate(true)
 	_fix_int_keys(_caravan_item_timer)
 	_taming_levels = data.get("taming_levels", {}).duplicate(true)
 	_fix_int_keys(_taming_levels)
+	for pid in _taming_levels:
+		if _taming_levels[pid] is Dictionary:
+			_fix_int_keys(_taming_levels[pid])

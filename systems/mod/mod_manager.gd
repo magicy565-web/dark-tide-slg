@@ -233,6 +233,9 @@ func _load_single_mod(mod: Dictionary) -> void:
 			return
 		var events: Dictionary = events_data.get("events", {})
 		for event_id in events:
+			if not events[event_id] is Dictionary:
+				push_warning("ModManager: [%s] event '%s' is not a Dictionary, skipping" % [mod_id, event_id])
+				continue
 			events[event_id]["_mod_id"] = mod_id
 			_event_overrides[event_id] = events[event_id]
 		_loaded_data[mod_id]["events"] = events
@@ -245,6 +248,9 @@ func _load_single_mod(mod: Dictionary) -> void:
 			return
 		var items: Dictionary = items_data.get("items", {})
 		for item_id in items:
+			if not items[item_id] is Dictionary:
+				push_warning("ModManager: [%s] item '%s' is not a Dictionary, skipping" % [mod_id, item_id])
+				continue
 			items[item_id]["_mod_id"] = mod_id
 			_item_overrides[item_id] = items[item_id]
 		_loaded_data[mod_id]["items"] = items
@@ -257,6 +263,9 @@ func _load_single_mod(mod: Dictionary) -> void:
 			return
 		var buildings: Dictionary = buildings_data.get("buildings", {})
 		for bld_id in buildings:
+			if not buildings[bld_id] is Dictionary:
+				push_warning("ModManager: [%s] building '%s' is not a Dictionary, skipping" % [mod_id, bld_id])
+				continue
 			buildings[bld_id]["_mod_id"] = mod_id
 			_building_overrides[bld_id] = buildings[bld_id]
 		_loaded_data[mod_id]["buildings"] = buildings

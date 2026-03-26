@@ -330,6 +330,7 @@ func _snapshot_units(units: Array[BattleUnit]) -> Array:
 			"atk": u.atk,
 			"def": u.def_stat,
 			"spd": u.spd,
+			"int_stat": u.int_stat,
 			"soldiers": u.soldiers,
 			"max_soldiers": u.max_soldiers,
 			"hp": u.hp,

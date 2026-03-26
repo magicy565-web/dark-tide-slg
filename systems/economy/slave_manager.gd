@@ -136,10 +136,11 @@ func tick_altar(player_id: int) -> Dictionary:
 		return result
 
 	var params: Dictionary = FactionData.FACTION_PARAMS[FactionData.FactionID.DARK_ELF]
-	result["atk_bonus"] = altar_count * params["slave_altar_atk_per_slave"]
+	var altar_mult: float = StrategicResourceManager.get_altar_multiplier(player_id)
+	result["atk_bonus"] = int(altar_count * params["slave_altar_atk_per_slave"] * altar_mult)
 
 	# 03_战略设定: 祭品 1奴隶=2暗影精华=1法力
-	result["shadow_essence"] = altar_count * 2
+	result["shadow_essence"] = int(altar_count * 2 * altar_mult)
 
 	# Sacrifice check
 	_altar_counters[player_id] = _altar_counters.get(player_id, 0) + 1

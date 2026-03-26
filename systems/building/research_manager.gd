@@ -247,12 +247,12 @@ func process_turn(player_id: int) -> void:
 	_academy_missing_turns[player_id] = 0
 
 	var speed: float = get_research_speed(player_id)
-	state["progress"] += int(speed)
+	state["progress"] += speed
 
 	var data: Dictionary = get_tech_data(tech_id)
 	var required: int = data.get("turns", 1)
 
-	if state["progress"] >= required:
+	if state["progress"] >= float(required):
 		_complete_research(player_id, tech_id)
 
 

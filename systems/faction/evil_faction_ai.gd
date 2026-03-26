@@ -50,7 +50,7 @@ func _tick_faction(player_id: int, faction_id: int) -> void:
 					break
 
 		if player_nearby:
-			tile["garrison"] = tile.get("garrison", 0) + 1
+			tile["garrison"] = mini(tile.get("garrison", 0) + 1, base_garrison + 5)
 
 		# Hostile faction: chance to raid player's adjacent tiles
 		if is_hostile and player_nearby:

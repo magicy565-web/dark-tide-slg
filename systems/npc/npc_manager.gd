@@ -493,3 +493,14 @@ func from_save_data(data: Dictionary) -> void:
 			var state: Dictionary = _npc_states[pid][npc_id]
 			if not (state.get("triggered_thresholds") is Array):
 				state["triggered_thresholds"] = []
+			else:
+				for i in range(state["triggered_thresholds"].size()):
+					state["triggered_thresholds"][i] = int(state["triggered_thresholds"][i])
+	# Fix _type_triggered_thresholds inner arrays: convert threshold values to int
+	for pid in _type_triggered_thresholds:
+		if _type_triggered_thresholds[pid] is Dictionary:
+			for npc_type in _type_triggered_thresholds[pid]:
+				var arr = _type_triggered_thresholds[pid][npc_type]
+				if arr is Array:
+					for i in range(arr.size()):
+						arr[i] = int(arr[i])

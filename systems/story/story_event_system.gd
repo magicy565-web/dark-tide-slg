@@ -379,7 +379,12 @@ func _on_hero_recruited(hero_id: String) -> void:
 			story_progress[hero_id]["route"] = ROUTE_PURE_LOVE
 			story_progress[hero_id]["current_event"] = 0
 			story_progress[hero_id]["completed_events"] = []
-			story_progress[hero_id]["flags"] = {}
+			var old_flags: Dictionary = story_progress[hero_id].get("flags", {})
+			var preserved := {}
+			for keep_key in ["loyalty", "training_progress", "affection"]:
+				if old_flags.has(keep_key):
+					preserved[keep_key] = old_flags[keep_key]
+			story_progress[hero_id]["flags"] = preserved
 	else:
 		# 首次招募，无俘虏记录：根据阵营初始化路线
 		if faction == "neutral":

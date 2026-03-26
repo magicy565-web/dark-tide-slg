@@ -1090,6 +1090,9 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 				"is_alive": true, "player_id": unit["player_id"],
 				"buffs": [{"id": "summon_decay", "duration": 3, "value": 0}],
 				"debuffs": [],
+				"overload_count": 0, "bloodlust_bonus": 0,
+				"war_cry_used": false, "root_bind_used": false,
+				"trade_hire_used": false, "blood_ritual_used": false,
 				"immovable": false,
 			}
 			if unit["side"] == "attacker":

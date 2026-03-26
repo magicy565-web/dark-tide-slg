@@ -463,12 +463,11 @@ func _find_highest_trained_slave(player_id: int) -> int:
 
 
 ## 内部: 获取与光明阵营的好感度乘数
-func _get_light_faction_relation_mult(player_id: int) -> float:
-	if DiplomacyManager != null and DiplomacyManager.has_method("get_relation"):
-		# 假设返回 0-100, 50为中立
-		var relation: float = float(DiplomacyManager.get_relation(player_id, "light"))
-		# 好感50=x1.0, 好感100=x2.0, 好感0=x0.5
-		return 0.5 + relation * 0.015
+func _get_light_faction_relation_mult(_player_id: int) -> float:
+	if DiplomacyManager != null and DiplomacyManager.has_method("is_light_ceasefire_active"):
+		# 停战中视为友好(x1.5), 否则中立(x1.0)
+		if DiplomacyManager.is_light_ceasefire_active():
+			return 1.5
 	return 1.0
 
 

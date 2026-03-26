@@ -239,7 +239,7 @@ const TILE_ORDER_PROD_TABLE: Array = [
 	{"threshold": 0.05, "mult": 0.10, "label": "民不聊生"},   # 0-5%   极端破坏
 	{"threshold": 0.15, "mult": 0.30, "label": "动荡不安"},   # 5-15%  洗劫后
 	{"threshold": 0.25, "mult": 0.55, "label": "人心惶惶"},   # 15-25%
-	{"threshold": 0.35, "mult": 0.75, "label": "秩序初定"},   # 25-35%
+	{"threshold": 0.349, "mult": 0.75, "label": "秩序初定"},   # 25-35%
 	{"threshold": 0.50, "mult": 1.00, "label": "正常运转"},   # 35-50% ← 默认50%
 	{"threshold": 0.60, "mult": 1.10, "label": "安居乐业"},   # 50-60%
 	{"threshold": 0.70, "mult": 1.15, "label": "繁荣发展"},   # 60-70% ← 自然上限/占领

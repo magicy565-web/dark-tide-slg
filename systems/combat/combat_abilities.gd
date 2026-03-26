@@ -112,6 +112,7 @@ func dissolve_slave_fodder(player_id: int) -> void:
 		var td: Dictionary = GameData.get_troop_def(army[i]["troop_id"])
 		if td.get("passive", "") == "slave_fodder":
 			army.remove_at(i)
+			i -= 1
 			continue
 		i -= 1
 	RecruitManager._sync_army_count(player_id)
