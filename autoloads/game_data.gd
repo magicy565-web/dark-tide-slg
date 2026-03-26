@@ -541,7 +541,10 @@ func get_army_total_hp(army: Array) -> int:
 func get_army_combat_power(army: Array) -> int:
 	var power: int = 0
 	for troop in army:
-		var td: Dictionary = get_troop_def(troop["troop_id"])
+		var tid: String = troop.get("troop_id", "")
+		if tid == "":
+			continue
+		var td: Dictionary = get_troop_def(tid)
 		if td.is_empty():
 			continue
 		power += troop["soldiers"] * (td["base_atk"] + td["base_def"])

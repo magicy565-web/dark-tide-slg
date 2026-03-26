@@ -525,10 +525,13 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				"overload_count": 0, "bloodlust_bonus": 0,
 				"war_cry_used": false, "root_bind_used": false,
 				"trade_hire_used": false, "blood_ritual_used": false,
+				"immovable": false,
 			}
 			if unit["side"] == "attacker":
+				skeleton["slot"] = state["atk_units"].size()
 				state["atk_units"].append(skeleton)
 			else:
+				skeleton["slot"] = state["def_units"].size()
 				state["def_units"].append(skeleton)
 			log.append("%s [%s] 亡灵召唤! 召唤骷髅小队(2兵)" % [unit["unit_type"], unit["side"]])
 
@@ -600,10 +603,13 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				"overload_count": 0, "bloodlust_bonus": 0,
 				"war_cry_used": false, "root_bind_used": false,
 				"trade_hire_used": false, "blood_ritual_used": false,
+				"immovable": false,
 			}
 			if unit["side"] == "attacker":
+				merc["slot"] = state["atk_units"].size()
 				state["atk_units"].append(merc)
 			else:
+				merc["slot"] = state["def_units"].size()
 				state["def_units"].append(merc)
 			log.append("%s [%s] 佣兵雇佣! 召唤 %s(4兵)" % [unit["unit_type"], unit["side"], merc_type])
 
@@ -1084,10 +1090,13 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 				"is_alive": true, "player_id": unit["player_id"],
 				"buffs": [{"id": "summon_decay", "duration": 3, "value": 0}],
 				"debuffs": [],
+				"immovable": false,
 			}
 			if unit["side"] == "attacker":
+				summon["slot"] = state["atk_units"].size()
 				state["atk_units"].append(summon)
 			else:
+				summon["slot"] = state["def_units"].size()
 				state["def_units"].append(summon)
 			log.append("【%s】亡灵召唤! +2骷髅兵" % unit["hero_id"])
 

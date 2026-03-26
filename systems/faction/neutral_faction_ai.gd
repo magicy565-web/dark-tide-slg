@@ -449,5 +449,14 @@ func from_save_data(data: Dictionary) -> void:
 		var state: Dictionary = _faction_state[nf_id]
 		if state.has("initial_garrisons") and state["initial_garrisons"] is Dictionary:
 			_fix_int_keys(state["initial_garrisons"])
+	for nf_id in _faction_state:
+		var state: Dictionary = _faction_state[nf_id]
+		if state.has("territory"):
+			var fixed: Array = []
+			for v in state["territory"]:
+				fixed.append(int(v))
+			state["territory"] = fixed
+		if state.has("base_tile"):
+			state["base_tile"] = int(state.get("base_tile", -1))
 	_patrol_state = data.get("patrol_state", {}).duplicate(true)
 	_fix_int_keys(_patrol_state)

@@ -378,6 +378,23 @@ func _check_world_event_trigger(trigger: Dictionary, player_id: int) -> bool:
 					return false
 				if not QuestJournal._is_completed(QuestJournal._side_progress, trigger[key]):
 					return false
+			"turn_max":
+				if GameManager.turn_number > trigger[key]:
+					return false
+			"random_chance":
+				if randf() > trigger[key]:
+					return false
+			"orc_faction_exists":
+				if not FactionManager.is_faction_alive(FactionData.FactionID.ORC):
+					return false
+			"pirate_faction_exists":
+				if not FactionManager.is_faction_alive(FactionData.FactionID.PIRATE):
+					return false
+			"dark_elf_faction_exists":
+				if not FactionManager.is_faction_alive(FactionData.FactionID.DARK_ELF):
+					return false
+			_:
+				return false
 	return true
 
 

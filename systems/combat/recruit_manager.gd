@@ -261,6 +261,9 @@ func get_combat_units(player_id: int) -> Array:
 			"tier": td.get("tier", 1),
 			"synergy": syn.get("synergy_name", ""),
 			"experience": troop.get("experience", 0),
+			"spd": td.get("spd", 5),
+			"int_stat": td.get("int_stat", 0),
+			"hero_id": troop.get("commander_id", ""),
 		})
 	# Reset ability_used flags for the upcoming battle
 	for troop in army_ref:
@@ -321,6 +324,9 @@ func get_garrison_combat_units(tile_index: int) -> Array:
 			"troop_class": td.get("troop_class", GameData.TroopClass.ASHIGARU),
 			"row": gar_row_str,
 			"max_soldiers": troop.get("max_soldiers", td["max_soldiers"]),
+			"spd": td.get("spd", 5),
+			"int_stat": td.get("int_stat", 0),
+			"hero_id": troop.get("commander_id", ""),
 		})
 	return result
 
@@ -392,6 +398,9 @@ func get_wanderer_combat_units(tile_index: int) -> Array:
 			"soldiers": troop["soldiers"],
 			"troop_class": td.get("troop_class", GameData.TroopClass.ASHIGARU),
 			"row": wnd_row_str,
+			"spd": td.get("spd", 5),
+			"int_stat": td.get("int_stat", 0),
+			"hero_id": troop.get("commander_id", ""),
 		})
 	return result
 
@@ -445,6 +454,9 @@ func get_rebel_combat_units(tile_index: int) -> Array:
 			"soldiers": troop["soldiers"],
 			"troop_class": td.get("troop_class", GameData.TroopClass.ASHIGARU),
 			"row": reb_row_str,
+			"spd": td.get("spd", 5),
+			"int_stat": td.get("int_stat", 0),
+			"hero_id": troop.get("commander_id", ""),
 		})
 	return result
 
@@ -554,5 +566,7 @@ func _fix_int_keys(dict: Dictionary) -> void:
 		if k is String and k.is_valid_int():
 			fix_keys.append(k)
 	for k in fix_keys:
-		dict[int(k)] = dict[k]
+		var int_key: int = int(k)
+		if not dict.has(int_key):
+			dict[int_key] = dict[k]
 		dict.erase(k)

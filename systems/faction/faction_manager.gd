@@ -171,3 +171,6 @@ func to_save_data() -> Dictionary:
 
 func from_save_data(data: Dictionary) -> void:
 	_rival_factions = data.get("rival_factions", []).duplicate(true)
+	for rival in _rival_factions:
+		rival["faction_id"] = int(rival.get("faction_id", 0))
+		rival["player_id"] = int(rival.get("player_id", 0))

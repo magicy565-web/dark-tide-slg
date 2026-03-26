@@ -257,7 +257,7 @@ func get_hero_combat_stats(hero_id: String) -> Dictionary:
 		"troop": hero_data.get("troop", ""),
 		"atk": leveled.get("atk", hero_data.get("atk", 0)) + atk_bonus + equip_stats.get("atk", 0),
 		"def": leveled.get("def", hero_data.get("def", 0)) + def_bonus + equip_stats.get("def", 0),
-		"int_stat": leveled.get("int_stat", hero_data.get("int", 0)),
+		"int_stat": leveled.get("int_stat", hero_data.get("int", 0)) + equip_stats.get("int_stat", 0),
 		"spd": leveled.get("spd", hero_data.get("spd", 0)) + equip_stats.get("spd", 0),
 		"hp": leveled.get("hp", hero_data.get("base_hp", 20)),
 		"mp": leveled.get("mp", hero_data.get("base_mp", 10)),
@@ -368,7 +368,7 @@ func get_hero_equipment_details(hero_id: String) -> Array:
 
 func get_equipment_stat_totals(hero_id: String) -> Dictionary:
 	## Sum all stat bonuses from equipped items.
-	var totals := {"atk": 0, "def": 0, "spd": 0}
+	var totals := {"atk": 0, "def": 0, "spd": 0, "int_stat": 0}
 	_ensure_equip_slots(hero_id)
 	for slot_key in ["weapon", "armor", "accessory"]:
 		var equip_id: String = hero_equipment[hero_id][slot_key]

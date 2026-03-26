@@ -231,7 +231,8 @@ func _evaluate_objective(obj: Dictionary, player_id: int) -> bool:
 		"black_market_trades_min":
 			return _stats.get("black_market_trades", 0) >= value
 		"heroines_submission_min":
-			return _count_heroes_with_submission(player_id, value) >= 1
+			var required_count: int = obj.get("count", 1)
+			return _count_heroes_with_submission(player_id, value) >= required_count
 		"heroines_captured_min":
 			return _count_captured_heroines(player_id) >= value
 		"building_level_max":
@@ -698,6 +699,10 @@ func get_trait_effects() -> Array:
 
 func get_active_title() -> String:
 	return _active_title
+
+
+func get_stats() -> Dictionary:
+	return _stats
 
 
 ## Returns a list of active quests with objective details, for the on-screen tracker.

@@ -714,7 +714,10 @@ func show_battle(battle_result: Dictionary) -> void:
 
 	# Delay auto-play to let intro finish
 	if _auto_play:
-		get_tree().create_timer(0.8).timeout.connect(_on_play)
+		get_tree().create_timer(0.8).timeout.connect(func():
+			if visible:
+				_on_play()
+		)
 
 func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 	for slot_idx in cards.keys():
@@ -824,7 +827,9 @@ func _apply_death_overlay(side: String, slot_idx: int) -> void:
 	if not cards.has(slot_idx):
 		return
 	var card: PanelContainer = cards[slot_idx]
-	var overlay: Label = card.get_node("OverlayLabel")
+	var overlay: Label = card.get_node_or_null("OverlayLabel")
+	if overlay == null:
+		return
 
 	var unit_data: Dictionary = _live_units[side].get(slot_idx, {})
 	var cmd_id = unit_data.get("commander_id", "")
@@ -905,7 +910,7 @@ func _update_turn_bar() -> void:
 				var border := _make_border_rect(TURN_ICON_SIZE, TURN_ICON_SIZE, Color(1, 0.85, 0.3))
 				icon.add_child(border)
 				# Pulse animation on current icon
-				var tw := create_tween().set_loops()
+				var tw := icon.create_tween().set_loops()
 				tw.tween_property(border, "modulate:a", 0.4, 0.5)
 				tw.tween_property(border, "modulate:a", 1.0, 0.5)
 
@@ -2439,7 +2444,7 @@ func _spawn_card_cracks(card: PanelContainer) -> void:
 		var mid_count := randi_range(2, 4)
 		for j in range(mid_count):
 			var t := float(j + 1) / float(mid_count + 1)
-				var mx: float = lerp(start_x, end_x, t) + randf_range(-12, 12)
+			var mx: float = lerp(start_x, end_x, t) + randf_range(-12, 12)
 			var my: float = lerp(start_y, end_y, t) + randf_range(-8, 8)
 			crack.add_point(Vector2(mx, my))
 		crack.add_point(Vector2(end_x, end_y))

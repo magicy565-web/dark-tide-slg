@@ -686,7 +686,7 @@ func _assign_tile_types(positions: Array) -> void:
 				core_fortress_effect = fort_def["effect"]
 				core_fortress_wall_hp = fort_def.get("wall_hp", 0)
 				core_fortress_fall_effect = fort_def.get("fall_effect", "")
-				if fort_def.has("evil_faction"):
+				if fort_def.get("evil_faction", false):
 					match fort_def["faction"]:
 						"orc": original_faction = FactionData.FactionID.ORC
 						"pirate": original_faction = FactionData.FactionID.PIRATE

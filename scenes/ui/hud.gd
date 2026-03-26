@@ -943,7 +943,7 @@ func _on_domestic_recruit() -> void:
 func _on_recruit_troop(troop_id: String, tile: Dictionary) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var player: Dictionary = GameManager.get_player_by_id(pid)
-	if player["ap"] < 1:
+	if player.is_empty() or player.get("ap", 0) < 1:
 		EventBus.message_log.emit("Not enough AP!")
 		return
 	var success: bool = RecruitManager.recruit_unit(pid, troop_id, tile)
@@ -1382,8 +1382,10 @@ func _update_buttons() -> void:
 		return
 
 	var player: Dictionary = GameManager.get_current_player()
+	if player.is_empty():
+		return
 	var is_human: bool = not player.get("is_ai", true)
-	var pid: int = player["id"]
+	var pid: int = player.get("id", 0)
 	var faction_id: int = GameManager.get_player_faction(pid)
 
 	if not is_human or GameManager.waiting_for_move:
@@ -1391,7 +1393,7 @@ func _update_buttons() -> void:
 		btn_end_turn.disabled = not is_human
 		return
 
-	var has_ap: bool = player["ap"] >= 1
+	var has_ap: bool = player.get("ap", 0) >= 1
 
 	# Main four action buttons -- all require at least 1 AP
 	btn_attack.disabled = not has_ap
@@ -1448,9 +1450,11 @@ func _update_player_info() -> void:
 		return
 	var pid: int = GameManager.get_human_player_id()
 	var player: Dictionary = GameManager.get_player_by_id(pid)
+	if player.is_empty():
+		return
 
-	turn_label.text = "Turn %d %s" % [GameManager.turn_number, player["name"]]
-	turn_label.add_theme_color_override("font_color", player["color"])
+	turn_label.text = "Turn %d %s" % [GameManager.turn_number, player.get("name", "???")]
+	turn_label.add_theme_color_override("font_color", player.get("color", Color.WHITE))
 
 	gold_label.text = str(ResourceManager.get_resource(pid, "gold")) if _has_resource_icons else "Gold:%d" % ResourceManager.get_resource(pid, "gold")
 	food_label.text = str(ResourceManager.get_resource(pid, "food")) if _has_resource_icons else "Food:%d" % ResourceManager.get_resource(pid, "food")
@@ -1460,7 +1464,7 @@ func _update_player_info() -> void:
 	army_label.text = "Army:%d (%d units)" % [RecruitManager.get_total_soldiers(pid), RecruitManager._get_army_ref(pid).size()]
 	var pop_cap: int = GameManager.get_population_cap(pid)
 	pop_label.text = "Roster:%d/%d" % [RecruitManager._get_army_ref(pid).size(), pop_cap]
-	ap_label.text = "AP:%d" % player["ap"]
+	ap_label.text = "AP:%d" % player.get("ap", 0)
 	stronghold_label.text = "Fort:%s" % GameManager.get_stronghold_progress(pid)
 
 	order_label.text = "Order:%d (x%.2f)" % [OrderManager.get_order(), OrderManager.get_production_multiplier()]
@@ -1497,7 +1501,9 @@ func _update_tile_info() -> void:
 	if GameManager.players.is_empty() or GameManager.tiles.is_empty():
 		return
 	var player: Dictionary = GameManager.get_current_player()
-	var pid: int = player["id"]
+	if player.is_empty():
+		return
+	var pid: int = player.get("id", 0)
 	# Use selected tile from board, or first owned tile as fallback
 	var tile_idx: int = 0
 	var board_node = get_tree().get_root().find_child("Board", true, false)
@@ -1777,7 +1783,7 @@ func _on_game_over(winner_id: int) -> void:
 	var victory_type: String = ""
 	if is_victory:
 		victory_type = _detect_victory_type(human_id)
-		game_over_label.text = "%s Wins!" % GameManager.players[human_id]["name"]
+		game_over_label.text = "%s Wins!" % GameManager.get_player_by_id(human_id).get("name", "Player")
 		game_over_label.add_theme_color_override("font_color", Color.GOLD)
 		game_over_victory_type_label.text = victory_type
 		game_over_victory_type_label.add_theme_color_override("font_color", Color.GOLD)
@@ -1811,14 +1817,11 @@ func _on_combat_result(_attacker_id: int, _defender_desc: String, _won: bool) ->
 	_update_buttons()
 
 
-func _on_order_changed(new_value: int) -> void:
-	if order_label:
-		order_label.text = "Order: %d" % new_value
+func _on_order_changed(_new_value: int) -> void:
+	_update_player_info()
 
-
-func _on_threat_changed(new_value: int) -> void:
-	if threat_label:
-		threat_label.text = "Threat: %d" % new_value
+func _on_threat_changed(_new_value: int) -> void:
+	_update_player_info()
 
 
 # ═══════════════════════════════════════════════════════════════
