@@ -414,7 +414,9 @@ func _add_swamp_pools(parent: Node3D, y: float) -> void:
 
 func _add_water_edge(parent: Node3D, y: float) -> void:
 	var w := _make_box_mesh(Vector3(2.2, 0.02, 0.7), Color(0.12, 0.28, 0.5, 0.55))
-	w.material_override.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var mat := w.material_override.duplicate()
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	w.material_override = mat
 	w.position = Vector3(0, y + 0.01, 0.95); parent.add_child(w)
 	w.name = "CoastalWater"
 	_register_water_node(w, "wave")
@@ -483,7 +485,9 @@ func _add_volcanic_decor(parent: Node3D, y: float) -> void:
 func _add_river_flow(parent: Node3D, y: float) -> void:
 	# Water strip
 	var water := _make_box_mesh(Vector3(0.5, 0.02, 2.8), Color(0.15, 0.32, 0.55, 0.65))
-	water.material_override.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var water_mat := water.material_override.duplicate()
+	water_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	water.material_override = water_mat
 	water.position = Vector3(0, y + 0.01, 0)
 	water.name = "RiverWater"
 	parent.add_child(water)
@@ -535,7 +539,7 @@ func _add_wasteland_decor(parent: Node3D, y: float) -> void:
 		parent.add_child(crack)
 
 func _register_water_node(node: MeshInstance3D, type: String) -> void:
-	water_anim_nodes.append({"node": node, "type": type})
+	water_anim_nodes.append({"node": node, "type": type, "original_y": node.position.y, "original_z": node.position.z})
 
 func _build_chokepoint_marker(parent: Node3D, y: float) -> void:
 	# Gate pillars
@@ -1055,15 +1059,17 @@ func _process_water_animation(_delta: float) -> void:
 	for entry in water_anim_nodes:
 		var node: MeshInstance3D = entry["node"]
 		if not is_instance_valid(node): continue
+		var original_y: float = entry["original_y"]
 		match entry["type"]:
 			"wave":  # Coastal bob
-				node.position.y += sin(t * 1.8) * 0.0003
+				node.position.y = original_y + sin(t * 1.8) * 0.015
 			"bubble":  # Swamp bubble rise
 				var cycle: float = fmod(t, 3.5) / 3.5
-				node.position.y = node.position.y + sin(cycle * PI) * 0.0005
+				node.position.y = original_y + sin(cycle * PI) * 0.05
 				node.scale = Vector3.ONE * (1.0 - cycle * 0.3)
 			"flow":  # River flow drift
-				node.position.z = fmod(node.position.z + 0.002, 1.2) - 0.6
+				var original_z: float = entry["original_z"]
+				node.position.z = fmod(original_z + t * 0.1, 1.2) - 0.6
 
 # ═══════════════ UTILITY ═══════════════
 func _make_mat(color: Color) -> StandardMaterial3D:

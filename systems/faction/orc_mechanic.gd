@@ -196,7 +196,7 @@ func tick(player_id: int, had_combat: bool) -> void:
 	# ── Totem Pole bonus ──
 	var totem_bonus: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id and tile.get("building_id", "") == "totem_pole":
+		if tile.get("owner_id", -1) == player_id and tile.get("building_id", "") == "totem_pole":
 			var lvl: int = tile.get("building_level", 1)
 			var level_data: Dictionary = FactionData.BUILDING_LEVELS.get("totem_pole", {}).get(lvl, {})
 			totem_bonus += level_data.get("waaagh_per_turn", 5)
@@ -478,7 +478,7 @@ func _get_territory_slave_penalty(player_id: int) -> float:
 func _count_territory(player_id: int) -> int:
 	var count: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id:
+		if tile.get("owner_id", -1) == player_id:
 			count += 1
 	return count
 
@@ -517,7 +517,7 @@ func _calculate_breed_output(player_id: int) -> int:
 	# Count brood pits from tiles
 	var brood_pits: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id:
+		if tile.get("owner_id", -1) == player_id:
 			var bid: String = tile.get("building_id", "")
 			if bid == "brood_pit":
 				brood_pits += 1
@@ -639,7 +639,7 @@ func _end_frenzy(player_id: int) -> void:
 	var army: int = ResourceManager.get_army(player_id)
 	var loss: int = ceili(float(army) * params["waaagh_frenzy_army_loss_pct"])
 	if loss > 0:
-		ResourceManager.remove_army(player_id, loss)
+		RecruitManager.apply_combat_losses(player_id, loss)
 		EventBus.message_log.emit("[color=red]WAAAGH! 狂暴结束! 军队损失%d (疲劳)[/color]" % loss)
 	_waaagh[player_id] = 0
 	EventBus.frenzy_ended.emit(player_id)
@@ -651,7 +651,7 @@ func _trigger_infighting(player_id: int) -> void:
 	var army: int = ResourceManager.get_army(player_id)
 	var loss: int = ceili(float(army) * params["waaagh_zero_infighting_loss_pct"])
 	if loss > 0:
-		ResourceManager.remove_army(player_id, loss)
+		RecruitManager.apply_combat_losses(player_id, loss)
 		EventBus.message_log.emit("[color=red]WAAAGH! 耗尽! 内讧导致%d军队损失![/color]" % loss)
 	_waaagh[player_id] = 25  # Reset above infighting threshold to prevent repeat triggers
 

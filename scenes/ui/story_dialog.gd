@@ -55,9 +55,10 @@ func _process(delta: float) -> void:
 		var chars_to_show: int = int(_reveal_timer)
 		if chars_to_show > _reveal_current:
 			_reveal_current = mini(chars_to_show, _reveal_target.length())
-			text_label.text = _reveal_target.substr(0, _reveal_current)
+			text_label.visible_characters = _reveal_current
 			if _reveal_current >= _reveal_target.length():
 				_text_revealing = false
+				text_label.visible_characters = -1
 				btn_next.visible = true
 
 
@@ -220,7 +221,9 @@ func show_story_event(hero_id: String, event: Dictionary) -> void:
 
 	# Show scene description
 	var scene_text: String = event.get("scene", "")
-	scene_label.text = "[i]%s[/i]" % scene_text if scene_text != "" else ""
+	scene_label.clear()
+	if scene_text != "":
+		scene_label.append_text("[i]%s[/i]" % scene_text)
 
 	# Show progress
 	var route: String = StoryEventSystem.get_route(hero_id)
@@ -299,7 +302,8 @@ func _advance_dialogue() -> void:
 			_start_text_reveal(text)
 		"choice":
 			speaker_label.text = "选择"
-			text_label.text = entry.get("prompt", "请选择：")
+			text_label.clear()
+			text_label.append_text(entry.get("prompt", "请选择："))
 			_show_choices(entry.get("options", []))
 			btn_next.visible = false
 			_waiting_for_choice = true
@@ -312,7 +316,7 @@ func _advance_dialogue() -> void:
 			speaker_label.text = "系统"
 			system_prompt_label.text = entry.get("text", "")
 			system_prompt_label.visible = true
-			text_label.text = ""
+			text_label.clear()
 			btn_next.visible = true
 
 
@@ -321,13 +325,15 @@ func _start_text_reveal(full_text: String) -> void:
 	_reveal_current = 0
 	_reveal_timer = 0.0
 	_text_revealing = true
-	text_label.text = ""
+	text_label.clear()
+	text_label.append_text(full_text)
+	text_label.visible_characters = 0
 	btn_next.visible = false  # Hidden until reveal completes
 
 
 func _finish_text_reveal() -> void:
 	_text_revealing = false
-	text_label.text = _reveal_target
+	text_label.visible_characters = -1
 	btn_next.visible = true
 
 

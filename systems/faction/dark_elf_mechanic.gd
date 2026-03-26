@@ -71,7 +71,7 @@ func get_combat_atk_bonus(player_id: int) -> int:
 func has_altar_unlocked(player_id: int) -> bool:
 	## Check if Temple of Agony is built.
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id and tile.get("building_id", "") == "temple_of_agony":
+		if tile.get("owner_id", -1) == player_id and tile.get("building_id", "") == "temple_of_agony":
 			return true
 	return false
 

@@ -683,7 +683,7 @@ func get_market_item() -> Dictionary:
 func _get_black_market_level(player_id: int) -> int:
 	var max_level: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id:
+		if tile.get("owner_id", -1) == player_id:
 			var bid: String = tile.get("building_id", "")
 			if bid == "black_market" or bid == "smugglers_den":
 				var lvl: int = tile.get("building_level", 1)
@@ -811,7 +811,7 @@ func on_stronghold_captured(player_id: int) -> void:
 func get_loot_multiplier(player_id: int) -> float:
 	var mult: float = 1.0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id and tile.get("building_id", "") == "smugglers_den":
+		if tile.get("owner_id", -1) == player_id and tile.get("building_id", "") == "smugglers_den":
 			mult += 0.5
 			break  # 只叠加一次
 	# 高恶名额外掠夺加成
@@ -1074,17 +1074,18 @@ func get_active_raids() -> Array:
 
 
 ## 突袭队被击败. 返回金币掠夺奖励.
-func on_raid_defeated(raid_index: int) -> int:
-	# 从所有玩家的突袭队中查找并移除
-	for player_id in _raid_parties:
-		var raids: Array = _raid_parties[player_id]
-		if raid_index >= 0 and raid_index < raids.size():
-			var raid: Dictionary = raids[raid_index]
-			raids.remove_at(raid_index)
-			_raid_parties[player_id] = raids
-			var loot: int = AI_RAID_LOOT_ON_DEFEAT + raid.get("strength", 0) * 3
-			EventBus.message_log.emit("[color=gold]击败海盗突袭队! 获得%d金![/color]" % loot)
-			return loot
+func on_raid_defeated(player_id: int, raid_index: int) -> int:
+	# 从指定玩家的突袭队中查找并移除
+	if not _raid_parties.has(player_id):
+		return 0
+	var raids: Array = _raid_parties[player_id]
+	if raid_index >= 0 and raid_index < raids.size():
+		var raid: Dictionary = raids[raid_index]
+		raids.remove_at(raid_index)
+		_raid_parties[player_id] = raids
+		var loot: int = AI_RAID_LOOT_ON_DEFEAT + raid.get("strength", 0) * 3
+		EventBus.message_log.emit("[color=gold]击败海盗突袭队! 获得%d金![/color]" % loot)
+		return loot
 	return 0
 
 
@@ -1186,7 +1187,7 @@ func _create_mercenary_instance(merc_def: Dictionary, soldiers: int = -1) -> Dic
 func _count_territory(player_id: int) -> int:
 	var count: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id:
+		if tile.get("owner_id", -1) == player_id:
 			count += 1
 	return count
 
@@ -1195,7 +1196,7 @@ func _count_territory(player_id: int) -> int:
 func _count_building(player_id: int, building_id: String) -> int:
 	var count: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id and tile.get("building_id", "") == building_id:
+		if tile.get("owner_id", -1) == player_id and tile.get("building_id", "") == building_id:
 			count += 1
 	return count
 

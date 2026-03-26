@@ -239,7 +239,7 @@ func gift_resources(player_id: int, npc_id: String, gift: Dictionary) -> bool:
 
 	ResourceManager.spend(player_id, gift)
 
-	var total_value: int = gift.get("gold", 0) / 10 + gift.get("food", 0) / 2 + gift.get("iron", 0) / 3
+	var total_value: int = int(float(gift.get("gold", 0)) / 10.0 + float(gift.get("food", 0)) / 2.0 + float(gift.get("iron", 0)) / 3.0)
 	var ob_gain: int = maxi(1, total_value)
 
 	var state: Dictionary = _npc_states[player_id][npc_id]

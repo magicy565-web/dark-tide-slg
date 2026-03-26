@@ -449,14 +449,14 @@ func get_troop_def(troop_id: String) -> Dictionary:
 func get_troops_by_faction(faction_tag: String) -> Array:
 	var result: Array = []
 	for tid in TROOP_TYPES:
-		if TROOP_TYPES[tid]["faction"] == faction_tag:
+		if TROOP_TYPES[tid].get("faction", "") == faction_tag:
 			result.append(tid)
 	return result
 
 func get_troops_by_category(cat: int) -> Array:
 	var result: Array = []
 	for tid in TROOP_TYPES:
-		if TROOP_TYPES[tid]["category"] == cat:
+		if TROOP_TYPES[tid].get("category", -1) == cat:
 			result.append(tid)
 	return result
 
@@ -667,9 +667,9 @@ func get_recruitable_troops(faction_tag: String, tile_level: int) -> Array:
 	var result: Array = []
 	for tid in TROOP_TYPES:
 		var td: Dictionary = TROOP_TYPES[tid]
-		if td["faction"] != faction_tag:
+		if td.get("faction", "") != faction_tag:
 			continue
-		var cat: int = td["category"]
+		var cat: int = td.get("category", -1)
 		# Hero-bound troops: only available if bound hero is recruited
 		if cat == TroopCategory.HERO_BOUND:
 			var hero_id: String = td.get("hero_bound", "")
@@ -681,9 +681,9 @@ func get_recruitable_troops(faction_tag: String, tile_level: int) -> Array:
 			continue
 		if cat != TroopCategory.FACTION and cat != TroopCategory.ULTIMATE:
 			continue
-		if td.get("tier", 1) > tile_level and td["tier"] != 4:
+		if td.get("tier", 1) > tile_level and td.get("tier", 1) != 4:
 			continue
-		if td["tier"] == 4:
+		if td.get("tier", 1) == 4:
 			# Ultimate requires tile level 3+
 			if tile_level < 3:
 				continue

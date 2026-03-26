@@ -487,7 +487,7 @@ func _get_recruit_discount(player_id: int) -> float:
 	var discount: float = 0.0
 	# Training ground building discount
 	for tile in GameManager.tiles:
-		if tile["owner_id"] != player_id:
+		if tile.get("owner_id", -1) != player_id:
 			continue
 		if tile.get("building_id", "") == "training_ground":
 			var bld_level: int = tile.get("building_level", 1)
@@ -504,7 +504,7 @@ func _get_pop_cap(player_id: int) -> int:
 	## Base 3 + 1 per 5 tiles owned.
 	var owned_tiles: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id:
+		if tile.get("owner_id", -1) == player_id:
 			owned_tiles += 1
 	return 3 + (owned_tiles / 5)
 
@@ -533,3 +533,18 @@ func from_save_data(data: Dictionary) -> void:
 	_garrisons = data.get("garrisons", {}).duplicate(true)
 	_wanderers = data.get("wanderers", {}).duplicate(true)
 	_rebels = data.get("rebels", {}).duplicate(true)
+	# Fix int keys that became strings after JSON round-trip
+	_fix_int_keys(_armies)
+	_fix_int_keys(_garrisons)
+	_fix_int_keys(_wanderers)
+	_fix_int_keys(_rebels)
+
+
+func _fix_int_keys(dict: Dictionary) -> void:
+	var fix_keys = []
+	for k in dict.keys():
+		if k is String and k.is_valid_int():
+			fix_keys.append(k)
+	for k in fix_keys:
+		dict[int(k)] = dict[k]
+		dict.erase(k)

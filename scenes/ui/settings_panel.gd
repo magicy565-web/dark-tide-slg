@@ -45,6 +45,7 @@ const DEFAULTS: Dictionary = {
 	"auto_end_turn": false,
 	"auto_save": true,
 	"fullscreen": false,
+	"difficulty": 1,
 }
 
 
@@ -137,7 +138,7 @@ func _build_ui() -> void:
 
 	mute_check = CheckButton.new()
 	mute_check.text = "静音"
-	mute_check.toggled.connect(func(_on): AudioManager.toggle_mute())
+	mute_check.toggled.connect(func(on): AudioManager.master_muted = on; AudioServer.set_bus_mute(0, on))
 	vbox.add_child(mute_check)
 
 	vbox.add_child(HSeparator.new())
@@ -324,12 +325,13 @@ func _reset_to_defaults() -> void:
 	auto_end_turn_check.button_pressed = DEFAULTS["auto_end_turn"]
 	auto_save_check.button_pressed = DEFAULTS["auto_save"]
 	fullscreen_check.button_pressed = DEFAULTS["fullscreen"]
+	difficulty_option.selected = DEFAULTS["difficulty"]
 	# Apply audio defaults immediately
 	AudioManager.set_bgm_volume(DEFAULTS["bgm_volume"])
 	AudioManager.set_sfx_volume(DEFAULTS["sfx_volume"])
 	AudioManager.set_ambient_volume(DEFAULTS["ambient_volume"])
-	if AudioManager.master_muted != DEFAULTS["master_muted"]:
-		AudioManager.toggle_mute()
+	AudioManager.master_muted = DEFAULTS["master_muted"]
+	AudioServer.set_bus_mute(0, DEFAULTS["master_muted"])
 
 
 func _save_settings() -> void:
@@ -346,6 +348,7 @@ func _save_settings() -> void:
 	config.set_value("display", "show_fog", show_fog_check.button_pressed)
 	config.set_value("display", "combat_speed", combat_speed_slider.value * 3.0)
 	config.set_value("display", "fullscreen", fullscreen_check.button_pressed)
+	config.set_value("gameplay", "difficulty", difficulty_option.selected)
 	var err := config.save(SETTINGS_PATH)
 	if err != OK:
 		push_warning("SettingsPanel: Failed to save settings (error %d)" % err)
@@ -369,13 +372,14 @@ func _load_settings() -> void:
 	show_fog_check.button_pressed = config.get_value("display", "show_fog", DEFAULTS["show_fog"])
 	combat_speed_slider.value = config.get_value("display", "combat_speed", DEFAULTS["combat_speed"]) / 3.0
 	fullscreen_check.button_pressed = config.get_value("display", "fullscreen", DEFAULTS["fullscreen"])
+	difficulty_option.selected = config.get_value("gameplay", "difficulty", DEFAULTS["difficulty"])
 
 	# Apply loaded audio settings
 	AudioManager.set_bgm_volume(bgm_slider.value)
 	AudioManager.set_sfx_volume(sfx_slider.value)
 	AudioManager.set_ambient_volume(ambient_slider.value)
-	if mute_check.button_pressed != AudioManager.master_muted:
-		AudioManager.toggle_mute()
+	AudioManager.master_muted = mute_check.button_pressed
+	AudioServer.set_bus_mute(0, mute_check.button_pressed)
 
 	# Apply loaded fullscreen setting
 	if fullscreen_check.button_pressed:

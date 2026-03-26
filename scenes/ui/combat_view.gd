@@ -1717,6 +1717,7 @@ func _on_step() -> void:
 		_finish_playback()
 
 func _on_skip() -> void:
+	Engine.time_scale = 1.0
 	_playing = false
 	_is_finishing = true
 	# Apply all remaining entries without animations
@@ -1775,6 +1776,7 @@ func _update_card_soldiers_instant(side: String, slot_idx: int, soldiers: int, m
 		_apply_death_overlay(side, slot_idx)
 
 func _on_close() -> void:
+	Engine.time_scale = 1.0
 	_playing = false
 	visible = false
 	_combo_count = 0
@@ -2034,11 +2036,9 @@ func _intro_animation() -> void:
 		card.position = target_pos + Vector2(-slide_dist, 0)
 		card.modulate = Color(1, 1, 1, 0)
 		var delay := float(slot_idx) * delay_step
-		var tw := create_tween()
-		tw.tween_interval(delay)
-		tw.set_parallel(true)
-		tw.tween_property(card, "position", target_pos, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-		tw.tween_property(card, "modulate:a", 1.0, 0.25)
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(card, "position", target_pos, 0.35).set_delay(delay).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.tween_property(card, "modulate:a", 1.0, 0.25).set_delay(delay)
 
 	# Defender cards slide from right
 	for slot_idx in defender_cards.keys():
@@ -2047,11 +2047,9 @@ func _intro_animation() -> void:
 		card.position = target_pos + Vector2(slide_dist, 0)
 		card.modulate = Color(1, 1, 1, 0)
 		var delay := float(slot_idx) * delay_step
-		var tw := create_tween()
-		tw.tween_interval(delay)
-		tw.set_parallel(true)
-		tw.tween_property(card, "position", target_pos, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-		tw.tween_property(card, "modulate:a", 1.0, 0.25)
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(card, "position", target_pos, 0.35).set_delay(delay).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.tween_property(card, "modulate:a", 1.0, 0.25).set_delay(delay)
 
 	# VS text punch-in
 	# (VS label is already added; we animate it)
@@ -2280,12 +2278,10 @@ func _vfx_heal_sparkles(side: String, slot_idx: int) -> void:
 		var rise := randf_range(35, 65)
 		var dur := randf_range(0.5, 0.9) / _speed_mult
 		var delay := randf_range(0.0, 0.2) / _speed_mult
-		var tw := create_tween()
-		tw.tween_interval(delay)
-		tw.set_parallel(true)
-		tw.tween_property(sparkle, "position:y", sparkle.position.y - rise, dur).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-		tw.tween_property(sparkle, "position:x", sparkle.position.x + randf_range(-10, 10), dur)
-		tw.tween_property(sparkle, "modulate:a", 0.0, dur * 0.9)
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(sparkle, "position:y", sparkle.position.y - rise, dur).set_delay(delay).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tw.tween_property(sparkle, "position:x", sparkle.position.x + randf_range(-10, 10), dur).set_delay(delay)
+		tw.tween_property(sparkle, "modulate:a", 0.0, dur * 0.9).set_delay(delay)
 		tw.chain().tween_callback(func():
 			if is_instance_valid(sparkle): sparkle.queue_free()
 		)
@@ -2317,12 +2313,10 @@ func _vfx_ability_impact_ring(side: String, slot_idx: int) -> void:
 	ring_outer.color = Color(1.0, 0.85, 0.4, 0.5)
 	ring_outer.z_index = 45
 	anim_layer.add_child(ring_outer)
-	var tw2 := create_tween()
-	tw2.tween_interval(0.05 / _speed_mult)
-	tw2.set_parallel(true)
-	tw2.tween_property(ring_outer, "size", Vector2(CARD_W * 1.5, CARD_H * 1.5), 0.35 / _speed_mult).set_ease(Tween.EASE_OUT)
-	tw2.tween_property(ring_outer, "position", pos - Vector2(CARD_W * 0.75, CARD_H * 0.75), 0.35 / _speed_mult).set_ease(Tween.EASE_OUT)
-	tw2.tween_property(ring_outer, "color:a", 0.0, 0.4 / _speed_mult)
+	var tw2 := create_tween().set_parallel(true)
+	tw2.tween_property(ring_outer, "size", Vector2(CARD_W * 1.5, CARD_H * 1.5), 0.35 / _speed_mult).set_delay(0.05 / _speed_mult).set_ease(Tween.EASE_OUT)
+	tw2.tween_property(ring_outer, "position", pos - Vector2(CARD_W * 0.75, CARD_H * 0.75), 0.35 / _speed_mult).set_delay(0.05 / _speed_mult).set_ease(Tween.EASE_OUT)
+	tw2.tween_property(ring_outer, "color:a", 0.0, 0.4 / _speed_mult).set_delay(0.05 / _speed_mult)
 	tw2.chain().tween_callback(func():
 		if is_instance_valid(ring_outer): ring_outer.queue_free()
 	)
@@ -2359,11 +2353,9 @@ func _vfx_buff_arrows(side: String, slot_idx: int, is_buff: bool) -> void:
 		var travel := direction * randf_range(30, 55)
 		var dur := randf_range(0.5, 0.8) / _speed_mult
 		var delay := float(i) * 0.04 / _speed_mult
-		var tw := create_tween()
-		tw.tween_interval(delay)
-		tw.set_parallel(true)
-		tw.tween_property(arrow, "position:y", arrow.position.y + travel, dur).set_ease(Tween.EASE_OUT)
-		tw.tween_property(arrow, "modulate:a", 0.0, dur * 0.85)
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(arrow, "position:y", arrow.position.y + travel, dur).set_delay(delay).set_ease(Tween.EASE_OUT)
+		tw.tween_property(arrow, "modulate:a", 0.0, dur * 0.85).set_delay(delay)
 		tw.chain().tween_callback(func():
 			if is_instance_valid(arrow): arrow.queue_free()
 		)

@@ -204,9 +204,6 @@ func play_defeat() -> void:
 
 	var t := defeat_duration
 
-	# Apply grayscale shader
-	_sprite.material = _grayscale_material
-
 	var tw := _create_tween()
 
 	# Phase 1: Flash red briefly (death blow impact)
@@ -350,6 +347,11 @@ func _kill_active_tween() -> void:
 	if _active_tween and _active_tween.is_valid():
 		_active_tween.kill()
 	_active_tween = null
+	if _flash_material:
+		_flash_material.set_shader_parameter("flash_color", Color.WHITE)
+		_flash_material.set_shader_parameter("flash_amount", 0.0)
+	if _sprite and not _is_defeated:
+		_sprite.material = null
 
 func _on_anim_done(anim_name: String) -> void:
 	_is_animating = false
@@ -386,7 +388,7 @@ func _spawn_skill_particles(color: Color) -> void:
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		ptw.tween_property(particle, "modulate:a", 0.0, 0.5)
 		ptw.tween_property(particle, "scale", Vector2.ZERO, 0.5)
-		ptw.chain().tween_callback(particle.queue_free)
+		ptw.chain().tween_callback(func(): if is_instance_valid(particle): particle.queue_free())
 
 ## Spawn golden sparkles for victory celebration.
 func _spawn_victory_sparkles() -> void:
@@ -422,7 +424,7 @@ func _spawn_victory_sparkles() -> void:
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		ptw.tween_property(particle, "modulate:a", 0.0, life * 0.8).set_delay(life * 0.3)
 		ptw.tween_property(particle, "scale", Vector2(0.3, 0.3), life)
-		ptw.chain().tween_callback(particle.queue_free)
+		ptw.chain().tween_callback(func(): if is_instance_valid(particle): particle.queue_free())
 
 ## Create a simple colored square particle (no texture dependency).
 func _create_particle(color: Color) -> ColorRect:
