@@ -235,7 +235,8 @@ func get_dice_bonus(player_id: int) -> int:
 
 
 func get_production_multiplier(player_id: int) -> float:
-	var result: float = get_buff_value(player_id, "production_mult") as float
+	var raw = get_buff_value(player_id, "production_mult")
+	var result: float = raw as float if raw != null else 1.0
 	return clampf(result, 0.1, 5.0)
 
 
@@ -338,3 +339,11 @@ func to_save_data() -> Dictionary:
 
 func from_save_data(data: Dictionary) -> void:
 	_active_buffs = data.get("active_buffs", {}).duplicate(true)
+	# Fix int keys after JSON round-trip (player_id keys become strings)
+	var keys_to_fix: Array = []
+	for k in _active_buffs:
+		if k is String and k.is_valid_int():
+			keys_to_fix.append(k)
+	for k in keys_to_fix:
+		_active_buffs[int(k)] = _active_buffs[k]
+		_active_buffs.erase(k)

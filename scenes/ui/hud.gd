@@ -666,7 +666,8 @@ func _on_attack_pressed() -> void:
 	for army in armies:
 		var soldiers: int = GameManager.get_army_soldier_count(army["id"])
 		var power: int = GameManager.get_army_combat_power(army["id"])
-		var tile_name: String = GameManager.tiles[army["tile_index"]]["name"]
+		var tile_idx: int = army.get("tile_index", -1)
+		var tile_name: String = GameManager.tiles[tile_idx]["name"] if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "???"
 		var attackable: Array = GameManager.get_army_attackable_tiles(army["id"])
 		var label_text: String = "%s (兵力:%d 戦力:%d) @%s" % [army["name"], soldiers, power, tile_name]
 		if attackable.is_empty():
@@ -714,7 +715,8 @@ func _on_deploy_pressed() -> void:
 
 	for army in armies:
 		var soldiers: int = GameManager.get_army_soldier_count(army["id"])
-		var tile_name: String = GameManager.tiles[army["tile_index"]]["name"]
+		var tile_idx: int = army.get("tile_index", -1)
+		var tile_name: String = GameManager.tiles[tile_idx]["name"] if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "???"
 		var deployable: Array = GameManager.get_army_deployable_tiles(army["id"])
 		var label_text: String = "%s (兵力:%d) @%s" % [army["name"], soldiers, tile_name]
 		if deployable.is_empty():

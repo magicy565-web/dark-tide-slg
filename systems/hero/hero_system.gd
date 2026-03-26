@@ -425,17 +425,10 @@ func _slot_enum_to_key(slot_enum: int) -> String:
 # ═══════════════ ACTIVE SKILLS (v0.9.0) ═══════════════
 
 func tick_cooldowns() -> void:
-	## Called each turn. Decrements all cooldowns by 1.
+	## Called each turn. Decrements all skill cooldowns by 1.
 	for hero_id in _skill_cooldowns:
 		if _skill_cooldowns[hero_id] > 0:
 			_skill_cooldowns[hero_id] -= 1
-	# Harem action cooldowns
-	for hero_id in _harem_cooldowns:
-		var cd: Dictionary = _harem_cooldowns[hero_id]
-		if cd.get("train", 0) > 0:
-			cd["train"] -= 1
-		if cd.get("bed", 0) > 0:
-			cd["bed"] -= 1
 
 
 func tick_harem_cooldowns() -> void:
@@ -628,9 +621,12 @@ func bed_heroine(hero_id: String) -> Dictionary:
 	hero_submission[hero_id] = current_sub + 1
 	cd["bed"] = 2  # 2-turn cooldown
 	_harem_cooldowns[hero_id] = cd
-	# Heal player HP
+	# Heal hero HP via HeroLeveling stats
 	var heal_amount: int = 5
-	ResourceManager.apply_delta(pid, {"hp": heal_amount})
+	var hero_stats: Dictionary = HeroLeveling.get_hero_stats(hero_id)
+	var current_hp: int = hero_stats.get("hp", 20)
+	var max_hp: int = hero_stats.get("max_hp", current_hp)
+	HeroLeveling.set_hero_stat(hero_id, "hp", mini(current_hp + heal_amount, max_hp))
 	EventBus.heroine_submission_changed.emit(hero_id, hero_submission[hero_id])
 	EventBus.message_log.emit("[color=pink]与%s侍寝，服从度 %d，HP回复 +%d[/color]" % [_get_hero_name(hero_id), hero_submission[hero_id], heal_amount])
 	_check_harem_progress()
@@ -718,7 +714,7 @@ func _count_pirate_building(building_id: String) -> int:
 	var pid: int = GameManager.get_human_player_id()
 	var count: int = 0
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == pid and tile.get("building_id", "") == building_id:
+		if tile.get("owner_id", -1) == pid and tile.get("building_id", "") == building_id:
 			count += 1
 	return count
 
@@ -744,22 +740,22 @@ func to_save_data() -> Dictionary:
 
 
 func from_save_data(data: Dictionary) -> void:
-	captured_heroes = data.get("captured_heroes", [])
-	recruited_heroes = data.get("recruited_heroes", [])
-	hero_corruption = data.get("hero_corruption", {})
-	hero_affection = data.get("hero_affection", {})
+	captured_heroes = data.get("captured_heroes", []).duplicate()
+	recruited_heroes = data.get("recruited_heroes", []).duplicate()
+	hero_corruption = data.get("hero_corruption", {}).duplicate()
+	hero_affection = data.get("hero_affection", {}).duplicate()
 	hero_equipment = data.get("hero_equipment", {}).duplicate(true)
 	# 确保所有英雄（已招募+被俘）的装备槽都正确初始化
 	for hid in recruited_heroes:
 		_ensure_equip_slots(hid)
 	for hid in captured_heroes:
 		_ensure_equip_slots(hid)
-	_skill_cooldowns = data.get("skill_cooldowns", {})
-	hero_submission = data.get("hero_submission", {})
+	_skill_cooldowns = data.get("skill_cooldowns", {}).duplicate()
+	hero_submission = data.get("hero_submission", {}).duplicate()
 	_pirate_mode = data.get("pirate_mode", false)
-	_second_skills = data.get("second_skills", {})
+	_second_skills = data.get("second_skills", {}).duplicate()
 	_harem_cooldowns = data.get("harem_cooldowns", {}).duplicate(true)
-	_harem_unlocked = data.get("harem_unlocked", {})
+	_harem_unlocked = data.get("harem_unlocked", {}).duplicate()
 	if data.has("hero_leveling"):
 		HeroLeveling.deserialize(data["hero_leveling"])
 

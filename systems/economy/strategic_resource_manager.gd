@@ -186,3 +186,11 @@ func to_save_data() -> Dictionary:
 
 func from_save_data(data: Dictionary) -> void:
 	_permanent_upgrades = data.get("permanent_upgrades", {}).duplicate(true)
+	# Fix int keys after JSON round-trip (player_id keys become strings)
+	var keys_to_fix: Array = []
+	for k in _permanent_upgrades:
+		if k is String and k.is_valid_int():
+			keys_to_fix.append(k)
+	for k in keys_to_fix:
+		_permanent_upgrades[int(k)] = _permanent_upgrades[k]
+		_permanent_upgrades.erase(k)

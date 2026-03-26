@@ -215,7 +215,6 @@ func train_npc(player_id: int, npc_id: String) -> bool:
 		EventBus.message_log.emit("训练需要2名奴隶!")
 		return false
 
-	ResourceManager.apply_delta(player_id, {"slaves": -2})
 	SlaveManager.remove_slaves(player_id, 2)
 
 	var state: Dictionary = _npc_states[player_id][npc_id]

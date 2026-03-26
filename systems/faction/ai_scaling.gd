@@ -333,7 +333,7 @@ func to_save_data() -> Dictionary:
 
 
 func from_save_data(data: Dictionary) -> void:
-	_faction_threat = data.get("faction_threat", {})
-	_faction_tier = data.get("faction_tier", {})
-	_expedition_cd = data.get("expedition_cd", {})
-	_boss_cd = data.get("boss_cd", {})
+	_faction_threat = data.get("faction_threat", {}).duplicate()
+	_faction_tier = data.get("faction_tier", {}).duplicate()
+	_expedition_cd = data.get("expedition_cd", {}).duplicate()
+	_boss_cd = data.get("boss_cd", {}).duplicate()

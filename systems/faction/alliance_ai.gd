@@ -234,7 +234,7 @@ func _try_light_raid() -> void:
 	gold_stolen = mini(gold_stolen, current_gold)
 
 	if gold_stolen > 0:
-		ResourceManager.add_resource(pid, "gold", -gold_stolen)
+		ResourceManager.apply_delta(pid, {"gold": -gold_stolen})
 	target["garrison"] = maxi(0, target.get("garrison", 0) - BalanceConfig.LIGHT_RAID_GARRISON_DAMAGE)
 
 	var raid_type: String

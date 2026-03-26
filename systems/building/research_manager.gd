@@ -48,7 +48,7 @@ func _load_faction_tree(faction_id: int) -> void:
 	## Load the per-faction training tree. Only one tree is active at a time.
 	_active_tree.clear()
 	if TrainingData.FACTION_TRAINING_TREE.has(faction_id):
-		_active_tree = TrainingData.FACTION_TRAINING_TREE[faction_id]
+		_active_tree = TrainingData.FACTION_TRAINING_TREE[faction_id].duplicate(true)
 		var count: int = _active_tree.size()
 		EventBus.message_log.emit("已加载势力训练树 (%d 项科技)" % count)
 	else:
@@ -540,9 +540,9 @@ func to_save_data() -> Dictionary:
 
 
 func from_save_data(data: Dictionary) -> void:
-	_research_state = data.get("research_state", {})
-	_speed_cache = data.get("speed_cache", {})
-	_academy_missing_turns = data.get("academy_missing_turns", {})
+	_research_state = data.get("research_state", {}).duplicate(true)
+	_speed_cache = data.get("speed_cache", {}).duplicate()
+	_academy_missing_turns = data.get("academy_missing_turns", {}).duplicate()
 	# Fix int keys after JSON round-trip
 	for dict_ref in [_research_state, _speed_cache, _academy_missing_turns]:
 		var keys_to_fix: Array = []

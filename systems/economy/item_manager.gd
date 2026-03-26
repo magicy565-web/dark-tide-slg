@@ -303,3 +303,11 @@ func to_save_data() -> Dictionary:
 
 func from_save_data(data: Dictionary) -> void:
 	_inventories = data.get("inventories", {}).duplicate(true)
+	# Fix int keys after JSON round-trip (player_id keys become strings)
+	var keys_to_fix: Array = []
+	for k in _inventories:
+		if k is String and k.is_valid_int():
+			keys_to_fix.append(k)
+	for k in keys_to_fix:
+		_inventories[int(k)] = _inventories[k]
+		_inventories.erase(k)

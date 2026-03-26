@@ -461,7 +461,7 @@ func get_all_player_building_effects(player_id: int) -> Dictionary:
 		"crystal_efficiency": 1.0, "mana_regen": 0,
 	}
 	for tile in GameManager.tiles:
-		if tile["owner_id"] != player_id:
+		if tile.get("owner_id", -1) != player_id:
 			continue
 		var bld: String = tile.get("building_id", "")
 		if bld == "":
@@ -491,7 +491,7 @@ func get_tile_building_effects(tile: Dictionary) -> Dictionary:
 
 
 func can_build_at(player_id: int, tile: Dictionary, building_id: String) -> bool:
-	if tile["owner_id"] != player_id:
+	if tile.get("owner_id", -1) != player_id:
 		return false
 	# v0.8.3: Check terrain requirement
 	if not _meets_terrain_requirement(tile, building_id):
@@ -540,7 +540,7 @@ func can_upgrade_building(player_id: int, tile: Dictionary) -> bool:
 func get_available_buildings_for(player_id: int, tile: Dictionary) -> Array:
 	## Returns list of { "id": String, "name": String, "cost": Dict, "can_build": bool, "level": int }
 	var result: Array = []
-	if tile["owner_id"] != player_id:
+	if tile.get("owner_id", -1) != player_id:
 		return result
 
 	var existing_bld: String = tile.get("building_id", "")

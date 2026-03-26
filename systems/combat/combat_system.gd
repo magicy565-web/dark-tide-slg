@@ -76,7 +76,10 @@ class BattleUnit:
 
 	## Check whether the unit possesses a specific passive tag.
 	func has_passive(p: String) -> bool:
-		return passive.find(p) != -1
+		for tag in passive.split(","):
+			if tag.strip_edges() == p:
+				return true
+		return false
 
 # ---------------------------------------------------------------------------
 # BattleState – full battle context for the current engagement
@@ -962,7 +965,7 @@ func _get_enemies(unit: BattleUnit, state: BattleState) -> Array[BattleUnit]:
 
 ## Recalculate soldier count from current HP.
 func _recalc_soldiers(unit: BattleUnit) -> void:
-	if unit.hp <= 0:
+	if unit.hp <= 0 or unit.hp_per_soldier <= 0:
 		unit.soldiers = 0
 	else:
 		unit.soldiers = ceili(float(unit.hp) / float(unit.hp_per_soldier))

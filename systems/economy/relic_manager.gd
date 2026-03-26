@@ -124,3 +124,11 @@ func to_save_data() -> Dictionary:
 
 func from_save_data(data: Dictionary) -> void:
 	_player_relics = data.get("player_relics", {}).duplicate(true)
+	# Fix int keys after JSON round-trip (player_id keys become strings)
+	var keys_to_fix: Array = []
+	for k in _player_relics:
+		if k is String and k.is_valid_int():
+			keys_to_fix.append(k)
+	for k in keys_to_fix:
+		_player_relics[int(k)] = _player_relics[k]
+		_player_relics.erase(k)

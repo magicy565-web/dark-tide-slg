@@ -153,7 +153,7 @@ func _refresh_slots() -> void:
 
 
 func _add_slot_row(slot_index: int, label: String) -> void:
-	var actual_slot: int = slot_index if slot_index >= 0 else 0  # Auto-save uses slot 0
+	var actual_slot: int = slot_index if slot_index >= 0 else SaveManager.AUTO_SLOT  # Auto-save uses slot 99
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)

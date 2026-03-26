@@ -743,12 +743,12 @@ func to_save_data() -> Dictionary:
 
 
 func from_save_data(data: Dictionary) -> void:
-	_triggered_this_turn = data.get("triggered_this_turn", [])
-	_triggered_ids = data.get("triggered_ids", {})
-	_active_dots = data.get("active_dots", [])
+	_triggered_this_turn = data.get("triggered_this_turn", []).duplicate(true)
+	_triggered_ids = data.get("triggered_ids", {}).duplicate(true)
+	_active_dots = data.get("active_dots", []).duplicate(true)
 	_pending_gold = data.get("pending_gold", 0)
 	_immobile_this_turn = data.get("immobile_this_turn", false)
-	_temp_soldier_batches = data.get("temp_soldier_batches", [])
-	_world_event_triggered_ids = data.get("world_event_triggered_ids", {})
+	_temp_soldier_batches = data.get("temp_soldier_batches", []).duplicate(true)
+	_world_event_triggered_ids = data.get("world_event_triggered_ids", {}).duplicate(true)
 	# Re-register world events from data file so check_world_events() works
 	register_world_events()

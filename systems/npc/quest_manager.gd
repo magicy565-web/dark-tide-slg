@@ -131,7 +131,7 @@ func advance_quest(player_id: int, neutral_faction: int) -> bool:
 	set_taming_level(player_id, neutral_faction, old_taming + 3)
 	EventBus.neutral_quest_step_completed.emit(player_id, neutral_faction, current_step + 1)
 	var fname: String = FactionData.NEUTRAL_FACTION_NAMES.get(neutral_faction, "未知")
-	EventBus.message_log.emit("%s 任务进度: 步骤 %d/3" % [fname, current_step + 1])
+	EventBus.message_log.emit("%s 任务进度: 步骤 %d/%d" % [fname, current_step + 1, max_steps])
 	return true
 
 
@@ -666,7 +666,7 @@ func get_all_quest_status(player_id: int) -> Array:
 			"name": fname,
 			"leader": leader,
 			"step": step,
-			"max_steps": 3,
+			"max_steps": quest_chain.size() if not quest_chain.is_empty() else 3,
 			"recruited": recruited,
 			"current_task": current_task,
 		})

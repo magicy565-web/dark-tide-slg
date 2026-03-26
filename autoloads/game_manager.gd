@@ -1598,7 +1598,7 @@ func end_turn() -> void:
 		var settings_node = get_tree().get_root().find_child("SettingsPanel", true, false)
 		var auto_save_on: bool = false
 		if settings_node and settings_node.has_method("get_setting"):
-			auto_save_on = settings_node.get_setting("auto_end_turn") == true
+			auto_save_on = settings_node.get_setting("auto_save") == true
 		if auto_save_on:
 			SaveManager.auto_save()
 

@@ -40,6 +40,10 @@ func get_rival_factions() -> Array:
 
 
 func is_faction_alive(faction_id: int) -> bool:
+	# Check if this is the player's own faction (always alive unless game over)
+	var human_pid: int = GameManager.get_human_player_id()
+	if GameManager.get_player_faction(human_pid) == faction_id:
+		return true
 	for rival in _rival_factions:
 		if rival["faction_id"] == faction_id:
 			return rival["alive"]

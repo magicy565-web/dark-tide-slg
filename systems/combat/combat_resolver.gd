@@ -363,8 +363,8 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		else:
 			base_def += float(bld.get("def_bonus", 0))
 		# Mage building ATK bonus (arcane_institute)
-		var troop_base: String = _get_troop_base_type(unit_type)
-		if troop_base in ["mage_unit", "priest"]:
+		var troop_base2: String = _get_troop_base_type(unit_type)
+		if troop_base2 in ["mage_unit", "priest"]:
 			base_atk += float(bld.get("mage_atk_bonus", 0))
 		# Elite training (War College Lv3): +1 ATK and +1 DEF to all units
 		if bld.get("elite_training", false):
@@ -392,7 +392,7 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		"hero_id": hero_id,
 		"unit_type": unit_type,
 		"soldiers": soldiers,
-		"max_soldiers": soldiers,
+		"max_soldiers": raw.get("max_soldiers", soldiers),
 		"atk": maxf(base_atk, 0.0),
 		"def": maxf(base_def, 0.0),
 		"spd": maxf(spd, 1.0),
@@ -519,7 +519,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				"atk": 5.0, "def": 3.0, "spd": 3.0, "int_stat": 0.0,
 				"passives": [], "active_skill": {},
 				"skill_cooldown": 0, "has_charged": false,
-				"actions_this_round": 1, "max_actions": 1,
+				"actions_this_round": 0, "max_actions": 1,
 				"is_alive": true, "player_id": unit["player_id"],
 				"buffs": [], "debuffs": [],
 				"overload_count": 0, "bloodlust_bonus": 0,
@@ -594,7 +594,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				"atk": 6.0, "def": 4.0, "spd": 5.0, "int_stat": 0.0,
 				"passives": [], "active_skill": {},
 				"skill_cooldown": 0, "has_charged": false,
-				"actions_this_round": 1, "max_actions": 1,
+				"actions_this_round": 0, "max_actions": 1,
 				"is_alive": true, "player_id": unit["player_id"],
 				"buffs": [], "debuffs": [],
 				"overload_count": 0, "bloodlust_bonus": 0,
@@ -703,7 +703,7 @@ func _sort_by_spd(a: Dictionary, b: Dictionary) -> bool:
 			spd_b = maxf(spd_b - d["value"], 1.0)
 	if spd_a != spd_b:
 		return spd_a > spd_b
-	return randf() > 0.5
+	return a.get("unit_type", "") < b.get("unit_type", "")
 
 
 # ---------------------------------------------------------------------------
@@ -1373,8 +1373,9 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 		if _is_pirate:
 			var gold_per_kill: int = GameData.FACTION_PASSIVES.get("pirate", {}).get("gold_per_kill", 0)
 			if gold_per_kill > 0:
-				# Actual soldiers killed: damage, but no more than target had before
-				var soldiers_killed: int = mini(damage, maxi(target["soldiers"], 0))
+				# Actual soldiers killed: reconstruct pre-damage count since damage was already applied
+				var soldiers_before: int = target["soldiers"] + damage
+				var soldiers_killed: int = mini(damage, soldiers_before)
 				var gold_gain: int = soldiers_killed * gold_per_kill
 				# Synergy special: gold_income_bonus multiplier
 				var syn_specials: Dictionary = state.get("atk_synergy_specials", {}) if source["side"] == "attacker" else state.get("def_synergy_specials", {})

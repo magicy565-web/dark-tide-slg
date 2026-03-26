@@ -180,7 +180,7 @@ func _collect_save_data() -> Dictionary:
 			"timestamp": Time.get_datetime_string_from_system(),
 			"turn": GameManager.turn_number,
 			"faction": faction_id,
-			"player_name": GameManager.players[0].get("name", ""),
+			"player_name": GameManager.players[0].get("name", "") if not GameManager.players.is_empty() else "",
 		},
 		"game_state": _save_game_state(),
 		"resources": ResourceManager.to_save_data(),

@@ -1274,6 +1274,8 @@ func to_save_data() -> Dictionary:
 		"market_stock": _market_stock.duplicate(true),
 		# AI突袭
 		"raid_parties": _raid_parties.duplicate(true),
+		# 掠夺连击本回合更新标记
+		"plunder_streak_updated_this_turn": _plunder_streak_updated_this_turn.duplicate(true),
 	}
 
 
@@ -1301,3 +1303,4 @@ func from_save_data(data: Dictionary) -> void:
 	_market_stock = data.get("market_stock", {}).duplicate(true)
 	# AI突袭
 	_raid_parties = data.get("raid_parties", {}).duplicate(true)
+	_plunder_streak_updated_this_turn = data.get("plunder_streak_updated_this_turn", {}).duplicate(true)
