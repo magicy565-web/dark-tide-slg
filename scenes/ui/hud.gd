@@ -1543,8 +1543,8 @@ func _update_items() -> void:
 	if GameManager.players.is_empty():
 		return
 
-	var player: Dictionary = GameManager.players[0]
-	var pid: int = player["id"]
+	var pid: int = GameManager.get_human_player_id()
+	var player: Dictionary = GameManager.get_player_by_id(pid)
 	var inventory: Array = ItemManager.get_inventory(pid)
 
 	if inventory.is_empty():
@@ -1746,7 +1746,7 @@ func _on_game_over(winner_id: int) -> void:
 	var victory_type: String = ""
 	if is_victory:
 		victory_type = _detect_victory_type(human_id)
-		game_over_label.text = "%s 获得最终胜利!" % GameManager.players[human_id]["name"]
+		game_over_label.text = "%s 获得最终胜利!" % GameManager.get_player_by_id(human_id).get("name", "?")
 		game_over_label.add_theme_color_override("font_color", Color.GOLD)
 		game_over_victory_type_label.text = victory_type
 		game_over_victory_type_label.add_theme_color_override("font_color", Color.GOLD)

@@ -249,7 +249,7 @@ func calculate_food_upkeep(player_id: int) -> int:
 	var army: int = ResourceManager.get_army(player_id)
 	var food_rate: float = params["food_per_soldier"]
 	# Subtract skeleton legion from food calculation (undead don't eat)
-	var skeleton_count: int = RecruitManager.get_army_composition(player_id).get("skeleton_legion", 0)
+	var skeleton_count: int = RecruitManager.get_army_composition(player_id).get("neutral_skeleton", 0)
 	var food_army: int = maxi(0, army - skeleton_count)
 	# Orc uses ceili for the whole army
 	if faction_id == FactionData.FactionID.ORC:
@@ -276,7 +276,7 @@ func calculate_gold_upkeep(player_id: int) -> int:
 			gold_per_soldier = BalanceConfig.GOLD_UPKEEP_PER_SOLDIER_DARK_ELF
 
 	# Skeleton legion: undead don't need pay
-	var skeleton_count: int = RecruitManager.get_army_composition(player_id).get("skeleton_legion", 0)
+	var skeleton_count: int = RecruitManager.get_army_composition(player_id).get("neutral_skeleton", 0)
 	var paid_army: int = maxi(0, army - skeleton_count)
 	var base_cost: int = ceili(float(paid_army) * gold_per_soldier)
 

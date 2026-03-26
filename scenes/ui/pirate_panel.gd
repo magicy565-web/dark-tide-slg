@@ -1,6 +1,7 @@
 ## pirate_panel.gd - 海盗势力面板 UI for 暗潮 SLG (v2.0)
 ## Shows pirate stats, black market, smuggling routes, mercenaries, active raids, and harem.
 extends CanvasLayer
+const FactionData = preload("res://systems/faction/faction_data.gd")
 
 # ── State ──
 var _visible: bool = false

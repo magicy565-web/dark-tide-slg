@@ -301,8 +301,8 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 			var gd = Engine.get_singleton("GameData")
 			if gd == null:
 				gd = _get_autoload("GameData")
-			if gd and gd.has_method("get_troop_data"):
-				var td: Dictionary = gd.get_troop_data(bu.troop_id)
+			if gd and gd.has_method("get_troop_def"):
+				var td: Dictionary = gd.get_troop_def(bu.troop_id)
 				bu.atk += td.get("base_atk", 0)
 				bu.def_stat += td.get("base_def", 0)
 

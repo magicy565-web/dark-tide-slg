@@ -827,7 +827,6 @@ func _on_tile_hover_enter(tile_index: int) -> void:
 	var oh: int = hovered_tile; hovered_tile = tile_index
 	if oh >= 0: _update_territory_visual(oh); _animate_tile_hover(oh, false)
 	_update_territory_visual(tile_index); _animate_tile_hover(tile_index, true)
-	EventBus.message_log.emit("")
 
 func _on_tile_hover_exit(tile_index: int) -> void:
 	if hovered_tile == tile_index:
@@ -1140,7 +1139,7 @@ func setup_minimap(parent_control: Control) -> void:
 	minimap_viewport = SubViewport.new(); minimap_viewport.name = "MinimapViewport"
 	minimap_viewport.size = Vector2i(360, 280)
 	minimap_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	minimap_viewport.transparent_bg = false; minimap_container.add_child(minimap_viewport)
+	minimap_viewport.transparent_bg = false; minimap_viewport.world_3d = get_viewport().world_3d; minimap_container.add_child(minimap_viewport)
 	minimap_camera = Camera3D.new(); minimap_camera.name = "MinimapCamera"
 	minimap_camera.position = Vector3(9, 40, -8)
 	minimap_camera.rotation_degrees = Vector3(-90, 0, 0)

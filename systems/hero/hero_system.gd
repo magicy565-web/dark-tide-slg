@@ -471,13 +471,13 @@ func get_hero_skill_data(hero_id: String) -> Dictionary:
 	result["name"] = skill_name
 	result["hero_id"] = hero_id
 	result["hero_name"] = hero_data.get("name", hero_id)
-	result["hero_int"] = hero_data.get("int", 5)
+	result["hero_int"] = HeroLeveling.get_hero_stats(hero_id).get("int_stat", hero_data.get("int", 5))
 	result["ready"] = is_skill_ready(hero_id)
 	result["cooldown_remaining"] = get_skill_cooldown(hero_id)
 	# Calculate effective power
 	var base_power: float = skill_def.get("power", 0)
 	var int_scale: float = skill_def.get("int_scale", 0.0)
-	result["effective_power"] = base_power + float(hero_data.get("int", 5)) * int_scale
+	result["effective_power"] = base_power + float(HeroLeveling.get_hero_stats(hero_id).get("int_stat", hero_data.get("int", 5))) * int_scale
 	return result
 
 
@@ -502,7 +502,7 @@ func apply_skill_in_combat(hero_id: String) -> Dictionary:
 	if skill_def.is_empty():
 		return {}
 
-	var hero_int: int = hero_data.get("int", 5)
+	var hero_int: int = HeroLeveling.get_hero_stats(hero_id).get("int_stat", hero_data.get("int", 5))
 	# Affection bonus: +10% skill power per 5 affection
 	var aff: int = hero_affection.get(hero_id, 0)
 	var aff_mult: float = 1.0 + float(aff) / 5.0 * 0.1
@@ -762,6 +762,9 @@ func from_save_data(data: Dictionary) -> void:
 func _unlock_second_skill(hero_id: String) -> void:
 	## 好感度达到7时，解锁英雄的第二主动技能并加入可用技能列表
 	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+	# NOTE: FactionData.HEROES does not currently define a secondary skill key.
+	# This is a placeholder for future implementation. When secondary skills are
+	# added to FactionData.HEROES, use the appropriate key here (e.g., "active_2").
 	var second_skill: String = hero_data.get("active_2", "")
 	if second_skill == "":
 		return

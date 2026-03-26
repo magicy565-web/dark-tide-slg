@@ -309,7 +309,6 @@ func convert_slave_to_army(player_id: int) -> bool:
 	if current >= capacity:
 		EventBus.message_log.emit("[color=red]性奴隶已达上限 (%d/%d)! 无法转换更多![/color]" % [current, capacity])
 		return false
-	ResourceManager.apply_delta(player_id, {"slaves": -1})
 	SlaveManager.remove_slaves(player_id, 1)
 	_sex_slaves[player_id] = current + 1
 	EventBus.message_log.emit("[color=red]战争深坑: 1奴隶 -> 1性奴隶! (当前: %d/%d)[/color]" % [
@@ -486,8 +485,17 @@ func _count_territory(player_id: int) -> int:
 ## Internal: check if two players are at war.
 func _is_at_war_with(player_a: int, player_b: int) -> bool:
 	# Delegate to DiplomacyManager if available
-	if DiplomacyManager != null and DiplomacyManager.has_method("is_at_war"):
-		return DiplomacyManager.is_at_war(player_a, player_b)
+	# DiplomacyManager tracks hostility per faction, not per player.
+	# Check if player_a's faction is hostile toward player_b (via player_b's relations).
+	if DiplomacyManager != null and DiplomacyManager.has_method("get_all_relations"):
+		var faction_a: int = GameManager.get_player_faction(player_a)
+		var relations_b: Dictionary = DiplomacyManager.get_all_relations(player_b)
+		if relations_b.has(faction_a) and relations_b[faction_a].get("hostile", false):
+			return true
+		var faction_b: int = GameManager.get_player_faction(player_b)
+		var relations_a: Dictionary = DiplomacyManager.get_all_relations(player_a)
+		if relations_a.has(faction_b) and relations_a[faction_b].get("hostile", false):
+			return true
 	return false
 
 

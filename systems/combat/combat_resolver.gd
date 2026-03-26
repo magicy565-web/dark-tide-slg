@@ -194,10 +194,10 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 	# Compute synergy special effects from troop composition
 	var atk_fake_army: Array = []
 	for raw in raw_atk:
-		atk_fake_army.append({"troop_id": raw.get("type", "")})
+		atk_fake_army.append({"troop_id": raw.get("troop_id", raw.get("type", ""))})
 	var def_fake_army: Array = []
 	for raw in raw_def:
-		def_fake_army.append({"troop_id": raw.get("type", "")})
+		def_fake_army.append({"troop_id": raw.get("troop_id", raw.get("type", ""))})
 	var atk_synergy_specials: Dictionary = GameData.compute_synergy_specials(atk_fake_army)
 	var def_synergy_specials: Dictionary = GameData.compute_synergy_specials(def_fake_army)
 
@@ -703,7 +703,8 @@ func _sort_by_spd(a: Dictionary, b: Dictionary) -> bool:
 			spd_b = maxf(spd_b - d["value"], 1.0)
 	if spd_a != spd_b:
 		return spd_a > spd_b
-	return a.get("unit_type", "") < b.get("unit_type", "")
+	# Use hash-based tiebreaker for fairness instead of alphabetic ordering
+	return hash(a.get("unit_type", "") + str(a.get("slot", 0))) > hash(b.get("unit_type", "") + str(b.get("slot", 0)))
 
 
 # ---------------------------------------------------------------------------
@@ -1144,14 +1145,8 @@ func _select_target(state: Dictionary, unit: Dictionary) -> Dictionary:
 				break
 		if is_stealthed:
 			continue
-		# dodge_next: skip this unit as target (consume buff)
-		var has_dodge: bool = false
-		for b in enemy["buffs"]:
-			if b["id"] == "dodge_next":
-				has_dodge = true
-				break
-		if has_dodge:
-			continue
+		# dodge_next is consumed when damage is applied (_apply_damage_to_unit),
+		# not during target selection — units with dodge_next remain targetable.
 		targetable.append(enemy)
 
 	if targetable.is_empty():
@@ -1338,7 +1333,7 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 # Damage Application
 # ---------------------------------------------------------------------------
 
-func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, source: Dictionary, log: Array) -> void:
+func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, source: Dictionary, log: Array, _death_burst_recursion: bool = false) -> void:
 	if damage <= 0:
 		return
 
@@ -1392,7 +1387,7 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 
 		# Death burst: on death, deal ATK × 2 to all enemies
 		# FIX(HIGH): 清理冗余赋值，死亡爆发伤害对方阵营（即杀死自己的一方）
-		if "death_burst" in target["passives"]:
+		if "death_burst" in target["passives"] and not _death_burst_recursion:
 			var burst_enemies: Array
 			if target["side"] == "attacker":
 				burst_enemies = state["def_units"]
@@ -1402,11 +1397,7 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 			log.append("%s 死亡爆发! 对敌全体造成 %d 伤害!" % [target["unit_type"], burst_dmg])
 			for enemy in burst_enemies:
 				if enemy["is_alive"]:
-					enemy["soldiers"] -= burst_dmg
-					if enemy["soldiers"] <= 0:
-						enemy["soldiers"] = 0
-						enemy["is_alive"] = false
-						log.append("  → %s [%s] 被死亡爆发消灭!" % [enemy["unit_type"], enemy["side"]])
+					_apply_damage_to_unit(state, enemy, burst_dmg, target, log, true)
 
 
 # ---------------------------------------------------------------------------
@@ -1418,6 +1409,16 @@ func _end_of_round(state: Dictionary, log: Array) -> String:
 	for unit in state["atk_units"] + state["def_units"]:
 		if not unit["is_alive"]:
 			continue
+
+		# Check summon_decay BEFORE filtering expired buffs, so we can detect
+		# buffs that are about to expire (duration == 1 -> will be 0 after tick).
+		for b in unit["buffs"]:
+			if b["id"] == "summon_decay" and b["duration"] <= 1:
+				unit["is_alive"] = false
+				unit["soldiers"] = 0
+				log.append("%s [%s] 召唤物消散" % [unit["unit_type"], unit["side"]])
+				break
+
 		var remaining_buffs: Array = []
 		for b in unit["buffs"]:
 			b["duration"] -= 1
@@ -1431,17 +1432,6 @@ func _end_of_round(state: Dictionary, log: Array) -> String:
 			if d["duration"] > 0:
 				remaining_debuffs.append(d)
 		unit["debuffs"] = remaining_debuffs
-
-	# Remove summon-decay units that expired
-	for units_key in ["atk_units", "def_units"]:
-		for unit in state[units_key]:
-			if not unit["is_alive"]:
-				continue
-			for b in unit["buffs"]:
-				if b["id"] == "summon_decay" and b["duration"] <= 0:
-					unit["is_alive"] = false
-					unit["soldiers"] = 0
-					log.append("%s [%s] 召唤物消散" % [unit["unit_type"], unit["side"]])
 
 	var atk_alive: int = _count_total_soldiers(state["atk_units"])
 	var def_alive: int = _count_total_soldiers(state["def_units"])

@@ -128,6 +128,7 @@ var screen_flash: ColorRect
 var side_label_atk: Label
 var side_label_def: Label
 var vs_label: Label
+var _vs_tween: Tween = null
 
 # Card panels indexed: attacker_cards[slot] and defender_cards[slot]
 var attacker_cards: Dictionary = {}
@@ -259,9 +260,6 @@ func _build_ui() -> void:
 	vs_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	shake_container.add_child(vs_lbl)
 	vs_label = vs_lbl
-	var vs_tw := create_tween().set_loops()
-	vs_tw.tween_property(vs_lbl, "modulate:a", 0.5, 1.2).set_trans(Tween.TRANS_SINE)
-	vs_tw.tween_property(vs_lbl, "modulate:a", 0.9, 1.2).set_trans(Tween.TRANS_SINE)
 
 	# Divider line with glow effect
 	var divider := ColorRect.new()
@@ -669,6 +667,13 @@ func show_battle(battle_result: Dictionary) -> void:
 
 	# Intro animation: cards slide in from sides
 	_intro_animation()
+
+	# Start VS label pulse animation
+	if _vs_tween and _vs_tween.is_valid():
+		_vs_tween.kill()
+	_vs_tween = create_tween().set_loops()
+	_vs_tween.tween_property(vs_label, "modulate:a", 0.5, 1.2).set_trans(Tween.TRANS_SINE)
+	_vs_tween.tween_property(vs_label, "modulate:a", 0.9, 1.2).set_trans(Tween.TRANS_SINE)
 
 	# Delay auto-play to let intro finish
 	if _auto_play:
@@ -1781,6 +1786,9 @@ func _on_close() -> void:
 	visible = false
 	_combo_count = 0
 	combo_label.visible = false
+	if _vs_tween and _vs_tween.is_valid():
+		_vs_tween.kill()
+		_vs_tween = null
 	combat_view_closed.emit()
 
 func _on_speed_toggle() -> void:
@@ -2249,7 +2257,7 @@ func _play_ability_vfx(ability_type: String, target_side: String, target_slot: i
 			_vfx_ability_impact_ring(target_side, target_slot)
 			# Also flash adjacent slots for AoE feel
 			for offset in [-1, 1]:
-				var adj_slot := target_slot + offset
+				var adj_slot: int = target_slot + offset
 				if adj_slot >= 0 and adj_slot < 5:
 					_vfx_ability_impact_ring(target_side, adj_slot)
 		"buff":
@@ -2381,8 +2389,8 @@ func _spawn_card_cracks(card: PanelContainer) -> void:
 		var mid_count := randi_range(2, 4)
 		for j in range(mid_count):
 			var t := float(j + 1) / float(mid_count + 1)
-			var mx := lerp(start_x, end_x, t) + randf_range(-12, 12)
-			var my := lerp(start_y, end_y, t) + randf_range(-8, 8)
+				var mx: float = lerp(start_x, end_x, t) + randf_range(-12, 12)
+			var my: float = lerp(start_y, end_y, t) + randf_range(-8, 8)
 			crack.add_point(Vector2(mx, my))
 		crack.add_point(Vector2(end_x, end_y))
 		crack.modulate = Color(1, 1, 1, 0)

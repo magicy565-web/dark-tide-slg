@@ -509,7 +509,7 @@ func _apply_reward(reward: Dictionary, player_id: int) -> void:
 	if reward.has("relic"):
 		RelicManager.add_relic(player_id, reward["relic"])
 	if reward.has("order_bonus"):
-		OrderManager.add_order(reward["order_bonus"])
+		OrderManager.change_order(reward["order_bonus"])
 	if reward.has("waaagh"):
 		OrcMechanic.add_waaagh(player_id, reward["waaagh"])
 	if reward.has("plunder"):
@@ -897,7 +897,8 @@ func _on_combat_result(attacker_id: int, _defender_desc: String, won: bool) -> v
 		# Use CombatTracker for actual kill counts if available; fallback to
 		# estimated kills (avg garrison size) to avoid quest objectives being
 		# nearly impossible to complete.
-		var last_kills: int = CombatTracker.get_last_battle_kills() if CombatTracker and CombatTracker.has_method("get_last_battle_kills") else 5
+		# CombatTracker autoload does not exist; use estimated kills fallback
+		var last_kills: int = 5
 		_stats["total_kills"] = _stats.get("total_kills", 0) + last_kills
 		# Check WAAAGH! state for orc challenge
 		if OrcMechanic and OrcMechanic.has_method("get_waaagh"):
@@ -995,7 +996,7 @@ func _get_fog_revealed_pct(player_id: int) -> float:
 		return 0.0
 	var revealed: int = 0
 	for t in GameManager.tiles:
-		if t.get("revealed", {}).get(player_id, false):
+		if not t.get("fog", true):
 			revealed += 1
 	return (float(revealed) / float(total)) * 100.0
 

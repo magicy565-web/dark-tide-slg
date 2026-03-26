@@ -368,8 +368,8 @@ func _resolve_attack(target: Dictionary, strength: int, attacker_name: String) -
 	var exp_power: float = float(strength) * BalanceConfig.COUNTER_ATK_PER_UNIT * random_coeff * BalanceManager.get_ai_atk_mult()
 	var def_power: float = float(garrison) * BalanceConfig.COUNTER_DEF_PER_UNIT * randf_range(0.75, 1.25)
 
-	# Alliance defense bonus from adjacent tiles
-	var def_bonus: float = 1.0 + float(target.get("alliance_def_bonus", 0)) / 100.0
+	# alliance_def_bonus is already a percentage value (e.g., 30 = 30%)
+	var def_bonus: float = 1.0 + float(target.get("alliance_def_bonus", 0)) * 0.01
 	def_power *= def_bonus
 
 	if exp_power > def_power:

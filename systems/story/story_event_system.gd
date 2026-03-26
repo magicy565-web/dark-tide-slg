@@ -80,13 +80,11 @@ func _get_story_data(hero_id: String) -> Dictionary:
 	if script == null:
 		push_warning("StoryEventSystem: Failed to load story script: %s" % path)
 		return {}
-	# Story data scripts expose a static EVENTS dictionary
-	var data: Dictionary = script.get("EVENTS") if script.has_method("get") else {}
-	if data.is_empty():
-		# Try instantiating the class to get EVENTS const
-		var instance = script.new()
-		if instance and "EVENTS" in instance:
-			data = instance.EVENTS
+	# Story data scripts expose a const EVENTS dictionary
+	var data: Dictionary = {}
+	var instance = script.new()
+	if instance and "EVENTS" in instance:
+		data = instance.EVENTS
 	_story_cache[hero_id] = data
 	return data
 

@@ -1982,7 +1982,10 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 	if not armies.has(army_id):
 		return false
 	var army: Dictionary = armies[army_id]
-	if army.get("soldiers", 0) <= 0:
+	var total_soldiers: int = 0
+	for troop in army.get("troops", []):
+		total_soldiers += troop.get("soldiers", 0)
+	if total_soldiers <= 0:
 		EventBus.message_log.emit("军团没有士兵, 无法进攻!")
 		return false
 	var player_id: int = army["player_id"]
@@ -2103,8 +2106,8 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	# Build defender army dict from garrison
 	var defender_units: Array = []
 	var garrison_troops: Array = []
-	if RecruitManager.has_method("get_garrison_troops"):
-		garrison_troops = RecruitManager.get_garrison_troops(tile.get("index", 0))
+	if RecruitManager.has_method("get_garrison"):
+		garrison_troops = RecruitManager.get_garrison(tile.get("index", 0))
 
 	if not garrison_troops.is_empty():
 		slot_idx = 0
