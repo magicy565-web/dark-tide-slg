@@ -1093,4 +1093,17 @@ func from_save_data(data: Dictionary) -> void:
 	_stats = data.get("stats", {"battles_won": 0, "heroes_captured_total": 0,
 		"waaagh_battle_wins": 0, "expeditions_defended": 0, "tiles_captured_log": [],
 		"total_kills": 0, "ap_purchased": 0, "tiles_not_lost_streak": 0, "tiles_lost_this_turn": false}).duplicate(true)
+	# Fix int values in _stats after JSON round-trip
+	for stat_key in ["battles_won", "heroes_captured_total", "waaagh_battle_wins",
+			"expeditions_defended", "total_kills", "ap_purchased", "tiles_not_lost_streak"]:
+		if _stats.has(stat_key):
+			_stats[stat_key] = int(_stats[stat_key])
+	# Fix status/completed_at in progress dicts
+	for prog_dict in [_main_progress, _side_progress, _challenge_progress, _character_progress]:
+		for qid in prog_dict:
+			var entry: Dictionary = prog_dict[qid]
+			if entry.has("status"):
+				entry["status"] = int(entry["status"])
+			if entry.has("completed_at"):
+				entry["completed_at"] = int(entry["completed_at"])
 	_initialized = data.get("initialized", false)

@@ -3709,7 +3709,8 @@ func _give_random_item(player: Dictionary) -> void:
 	## Delegate to ItemManager for random item acquisition.
 	var item_id: String = ItemManager.get_random_item()
 	if ItemManager.add_item(player["id"], item_id):
-		EventBus.item_acquired.emit(player["id"], FactionData.ITEM_DEFS[item_id]["name"])
+		var item_def: Dictionary = FactionData.ITEM_DEFS.get(item_id, {})
+		EventBus.item_acquired.emit(player["id"], item_def.get("name", item_id))
 
 
 func use_item(item_id: String) -> void:
@@ -4134,10 +4135,12 @@ func check_win_condition() -> void:
 	# ── Defeat: All evil factions eliminated (rival AI wins) ──
 	var all_rivals_dead: bool = true
 	for pid in range(1, players.size()):
+		if pid == human_id:
+			continue
 		if count_tiles_owned(pid) > 0:
 			all_rivals_dead = false
 			break
-	if all_rivals_dead and human_tiles <= 0:
+	if all_rivals_dead:
 		game_active = false
 		EventBus.message_log.emit("[color=red]所有暗黑势力已被光明联盟消灭...[/color]")
 		EventBus.game_over.emit(-1)

@@ -298,6 +298,7 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		var um: Dictionary = terrain_data.get("unit_mods", {}).get(troop_base, {})
 		if um.get("ban", false):
 			base_atk = 0
+			soldiers = 0
 		else:
 			base_atk += um.get("atk", 0)
 			base_def += um.get("def", 0)
@@ -332,9 +333,9 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 	# Training system bonuses (batched lookup)
 	if player_id >= 0:
 		var train_bonus: Dictionary = ResearchManager.get_unit_stat_bonuses(player_id, unit_type)
-		base_atk += train_bonus["atk"]
-		base_def += train_bonus["def"]
-		soldiers += train_bonus["hp"]  # Training HP bonus → extra soldiers
+		base_atk += train_bonus.get("atk", 0)
+		base_def += train_bonus.get("def", 0)
+		soldiers += train_bonus.get("hp", 0)  # Training HP bonus → extra soldiers
 
 	# Buff multipliers
 	if player_id >= 0:
@@ -774,7 +775,7 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		log.append("%s [%s] 冲锋! 伤害×1.5" % [unit["unit_type"], unit["side"]])
 
 	# Passive: charge_stun — first attack ×1.5 + 30% chance to stun for 1 round
-	if "charge_stun" in unit["passives"] and not unit["has_charged"]:
+	elif "charge_stun" in unit["passives"] and not unit["has_charged"]:
 		damage = int(float(damage) * 1.5)
 		unit["has_charged"] = true
 		log.append("%s [%s] 冲锋! 伤害×1.5" % [unit["unit_type"], unit["side"]])
@@ -1382,7 +1383,7 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 			if gold_per_kill > 0:
 				# Actual soldiers killed: reconstruct pre-damage count since damage was already applied
 				var soldiers_before: int = target["soldiers"] + damage
-				var soldiers_killed: int = mini(damage, soldiers_before)
+				var soldiers_killed: int = soldiers_before - maxi(target["soldiers"], 0)
 				var gold_gain: int = soldiers_killed * gold_per_kill
 				# Synergy special: gold_income_bonus multiplier
 				var syn_specials: Dictionary = state.get("atk_synergy_specials", {}) if source["side"] == "attacker" else state.get("def_synergy_specials", {})

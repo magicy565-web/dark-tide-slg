@@ -199,76 +199,71 @@ func _load_single_mod(mod: Dictionary) -> void:
 	var troops_path: String = data_path + "troops.json"
 	if FileAccess.file_exists(troops_path):
 		var troops_data: Dictionary = _read_json(troops_path)
-		if not _validate_mod_schema(troops_data, "troops", mod_id):
-			return
-		var troops: Dictionary = troops_data.get("troops", {})
-		for troop_id in troops:
-			if not _validate_entry_schema(troops[troop_id], ["name"], "troops", troop_id, mod_id):
-				continue
-			troops[troop_id]["_mod_id"] = mod_id
-			_troop_overrides[troop_id] = troops[troop_id]
-		_loaded_data[mod_id]["troops"] = troops
-		EventBus.message_log.emit("[MOD:%s] 加载 %d 个兵种" % [mod_id, troops.size()])
+		if _validate_mod_schema(troops_data, "troops", mod_id):
+			var troops: Dictionary = troops_data.get("troops", {})
+			for troop_id in troops:
+				if not _validate_entry_schema(troops[troop_id], ["name"], "troops", troop_id, mod_id):
+					continue
+				troops[troop_id]["_mod_id"] = mod_id
+				_troop_overrides[troop_id] = troops[troop_id]
+			_loaded_data[mod_id]["troops"] = troops
+			EventBus.message_log.emit("[MOD:%s] 加载 %d 个兵种" % [mod_id, troops.size()])
 
 	# Load heroes.json
 	var heroes_path: String = data_path + "heroes.json"
 	if FileAccess.file_exists(heroes_path):
 		var heroes_data: Dictionary = _read_json(heroes_path)
-		if not _validate_mod_schema(heroes_data, "heroes", mod_id):
-			return
-		var heroes: Dictionary = heroes_data.get("heroes", {})
-		for hero_id in heroes:
-			if not _validate_entry_schema(heroes[hero_id], ["name"], "heroes", hero_id, mod_id):
-				continue
-			heroes[hero_id]["_mod_id"] = mod_id
-			_hero_overrides[hero_id] = heroes[hero_id]
-		_loaded_data[mod_id]["heroes"] = heroes
-		EventBus.message_log.emit("[MOD:%s] 加载 %d 个英雄" % [mod_id, heroes.size()])
+		if _validate_mod_schema(heroes_data, "heroes", mod_id):
+			var heroes: Dictionary = heroes_data.get("heroes", {})
+			for hero_id in heroes:
+				if not _validate_entry_schema(heroes[hero_id], ["name"], "heroes", hero_id, mod_id):
+					continue
+				heroes[hero_id]["_mod_id"] = mod_id
+				_hero_overrides[hero_id] = heroes[hero_id]
+			_loaded_data[mod_id]["heroes"] = heroes
+			EventBus.message_log.emit("[MOD:%s] 加载 %d 个英雄" % [mod_id, heroes.size()])
 
 	# Load events.json
 	var events_path: String = data_path + "events.json"
 	if FileAccess.file_exists(events_path):
 		var events_data: Dictionary = _read_json(events_path)
-		if not _validate_mod_schema(events_data, "events", mod_id):
-			return
-		var events: Dictionary = events_data.get("events", {})
-		for event_id in events:
-			if not events[event_id] is Dictionary:
-				push_warning("ModManager: [%s] event '%s' is not a Dictionary, skipping" % [mod_id, event_id])
-				continue
-			events[event_id]["_mod_id"] = mod_id
-			_event_overrides[event_id] = events[event_id]
-		_loaded_data[mod_id]["events"] = events
+		if _validate_mod_schema(events_data, "events", mod_id):
+			var events: Dictionary = events_data.get("events", {})
+			for event_id in events:
+				if not events[event_id] is Dictionary:
+					push_warning("ModManager: [%s] event '%s' is not a Dictionary, skipping" % [mod_id, event_id])
+					continue
+				events[event_id]["_mod_id"] = mod_id
+				_event_overrides[event_id] = events[event_id]
+			_loaded_data[mod_id]["events"] = events
 
 	# Load items.json
 	var items_path: String = data_path + "items.json"
 	if FileAccess.file_exists(items_path):
 		var items_data: Dictionary = _read_json(items_path)
-		if not _validate_mod_schema(items_data, "items", mod_id):
-			return
-		var items: Dictionary = items_data.get("items", {})
-		for item_id in items:
-			if not items[item_id] is Dictionary:
-				push_warning("ModManager: [%s] item '%s' is not a Dictionary, skipping" % [mod_id, item_id])
-				continue
-			items[item_id]["_mod_id"] = mod_id
-			_item_overrides[item_id] = items[item_id]
-		_loaded_data[mod_id]["items"] = items
+		if _validate_mod_schema(items_data, "items", mod_id):
+			var items: Dictionary = items_data.get("items", {})
+			for item_id in items:
+				if not items[item_id] is Dictionary:
+					push_warning("ModManager: [%s] item '%s' is not a Dictionary, skipping" % [mod_id, item_id])
+					continue
+				items[item_id]["_mod_id"] = mod_id
+				_item_overrides[item_id] = items[item_id]
+			_loaded_data[mod_id]["items"] = items
 
 	# Load buildings.json
 	var buildings_path: String = data_path + "buildings.json"
 	if FileAccess.file_exists(buildings_path):
 		var buildings_data: Dictionary = _read_json(buildings_path)
-		if not _validate_mod_schema(buildings_data, "buildings", mod_id):
-			return
-		var buildings: Dictionary = buildings_data.get("buildings", {})
-		for bld_id in buildings:
-			if not buildings[bld_id] is Dictionary:
-				push_warning("ModManager: [%s] building '%s' is not a Dictionary, skipping" % [mod_id, bld_id])
-				continue
-			buildings[bld_id]["_mod_id"] = mod_id
-			_building_overrides[bld_id] = buildings[bld_id]
-		_loaded_data[mod_id]["buildings"] = buildings
+		if _validate_mod_schema(buildings_data, "buildings", mod_id):
+			var buildings: Dictionary = buildings_data.get("buildings", {})
+			for bld_id in buildings:
+				if not buildings[bld_id] is Dictionary:
+					push_warning("ModManager: [%s] building '%s' is not a Dictionary, skipping" % [mod_id, bld_id])
+					continue
+				buildings[bld_id]["_mod_id"] = mod_id
+				_building_overrides[bld_id] = buildings[bld_id]
+			_loaded_data[mod_id]["buildings"] = buildings
 
 
 func _read_json(path: String) -> Dictionary:

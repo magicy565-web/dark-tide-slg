@@ -704,6 +704,10 @@ func from_save_data(data: Dictionary) -> void:
 	for pid in _quest_progress:
 		if _quest_progress[pid] is Dictionary:
 			_fix_int_keys(_quest_progress[pid])
+			for nf in _quest_progress[pid]:
+				var entry = _quest_progress[pid][nf]
+				if entry is Dictionary and entry.has("step"):
+					entry["step"] = int(entry["step"])
 	_recruited_factions = data.get("recruited_factions", {}).duplicate(true)
 	_fix_int_keys(_recruited_factions)
 	_recruitment_bonuses = data.get("recruitment_bonuses", {}).duplicate(true)

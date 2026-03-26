@@ -788,11 +788,12 @@ func get_troop_move_range(troop_id: String) -> int:
 
 ## Returns veterancy bonuses based on experience.
 func get_veterancy_bonuses(experience: int) -> Dictionary:
-	var result: Dictionary = {"atk_bonus": 0, "def_bonus": 0, "label": ""}
+	var result: Dictionary = {"atk_bonus": 0, "def_bonus": 0, "soldiers_bonus": 0, "label": ""}
 	for threshold in VETERANCY_THRESHOLDS:
 		if experience >= threshold["exp"]:
 			result["atk_bonus"] = threshold["atk_bonus"]
 			result["def_bonus"] = threshold["def_bonus"]
+			result["soldiers_bonus"] = threshold.get("soldiers_bonus", 0)
 			result["label"] = threshold["label"]
 	return result
 

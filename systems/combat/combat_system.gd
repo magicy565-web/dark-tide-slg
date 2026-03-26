@@ -158,6 +158,9 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 	state.mana_attacker = 0
 	state.mana_defender = 0
 
+	# -- Apply terrain penalties that persist for the whole battle ----------
+	_apply_terrain_modifiers(state)
+
 	# Snapshot initial unit states for combat visualization
 	var attacker_units_initial: Array = _snapshot_units(state.attacker_units)
 	var defender_units_initial: Array = _snapshot_units(state.defender_units)
@@ -169,9 +172,6 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 	var start_def: Dictionary = {}
 	for u in state.defender_units:
 		start_def[u.id] = u.soldiers
-
-	# -- Apply terrain penalties that persist for the whole battle ----------
-	_apply_terrain_modifiers(state)
 
 	# -- Siege phase (attacker chips at city walls before combat) -----------
 	if state.is_siege and state.city_def > 0:
@@ -288,7 +288,7 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 		bu.int_stat = d.get("int", 5)
 		bu.soldiers = d.get("soldiers", 100)
 		bu.max_soldiers = d.get("max_soldiers", d.get("soldiers", 100))
-		bu.row = d.get("row", 0 if i < MAX_FRONT_SLOTS else 1)
+		bu.row = d.get("row_int", d.get("row", 0 if i < MAX_FRONT_SLOTS else 1))
 		bu.slot = d.get("slot", i)
 		bu.passive = d.get("passive", "")
 		bu.is_attacker = is_attacker

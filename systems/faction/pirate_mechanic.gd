@@ -1222,8 +1222,8 @@ func sell_slave(player_id: int) -> bool:
 		if slaves <= 0:
 			EventBus.message_log.emit("没有奴隶可出售!")
 			return false
-		ResourceManager.apply_delta(player_id, {"slaves": -1, "gold": params["slave_sell_price"]})
 		SlaveManager.remove_slaves(player_id, 1)
+		ResourceManager.apply_delta(player_id, {"gold": params["slave_sell_price"]})
 		EventBus.message_log.emit("出售1名奴隶，获得%d金" % params["slave_sell_price"])
 		return true
 	# 使用新系统: 出售调教值最高的性奴隶
@@ -1244,7 +1244,6 @@ func buy_slave(player_id: int) -> bool:
 		EventBus.message_log.emit("奴隶容量已满!")
 		return false
 	ResourceManager.spend(player_id, {"gold": price})
-	ResourceManager.apply_delta(player_id, {"slaves": 1})
 	SlaveManager.add_slaves(player_id, 1)
 	EventBus.message_log.emit("购买1名奴隶，花费%d金" % price)
 	return true
@@ -1330,3 +1329,45 @@ func from_save_data(data: Dictionary) -> void:
 	_fix_int_keys(_raid_parties)
 	_plunder_streak_updated_this_turn = data.get("plunder_streak_updated_this_turn", {}).duplicate(true)
 	_fix_int_keys(_plunder_streak_updated_this_turn)
+	# Fix int values in market_stock after JSON round-trip
+	for pid in _market_stock:
+		if _market_stock[pid] is Array:
+			for item in _market_stock[pid]:
+				if item is Dictionary:
+					if item.has("price"):
+						item["price"] = int(item["price"])
+					if item.has("value"):
+						item["value"] = int(item["value"])
+	# Fix int values in _market_item after JSON round-trip
+	if _market_item.has("price"):
+		_market_item["price"] = int(_market_item["price"])
+	if _market_item.has("value"):
+		_market_item["value"] = int(_market_item["value"])
+	# Fix int values in raid_parties after JSON round-trip
+	for pid in _raid_parties:
+		if _raid_parties[pid] is Array:
+			for party in _raid_parties[pid]:
+				if party is Dictionary:
+					if party.has("tile_index"):
+						party["tile_index"] = int(party["tile_index"])
+					if party.has("strength"):
+						party["strength"] = int(party["strength"])
+					if party.has("turns_left"):
+						party["turns_left"] = int(party["turns_left"])
+	# Fix int values in treasure_maps after JSON round-trip
+	for pid in _treasure_maps:
+		if _treasure_maps[pid] is Array:
+			for tmap in _treasure_maps[pid]:
+				if tmap is Dictionary:
+					if tmap.has("tile_index"):
+						tmap["tile_index"] = int(tmap["tile_index"])
+					if tmap.has("reward_value"):
+						tmap["reward_value"] = int(tmap["reward_value"])
+	# Fix int values in smuggle_routes after JSON round-trip
+	for pid in _smuggle_routes:
+		if _smuggle_routes[pid] is Array:
+			for i in range(_smuggle_routes[pid].size()):
+				var route = _smuggle_routes[pid][i]
+				if route is Array:
+					for j in range(route.size()):
+						route[j] = int(route[j])

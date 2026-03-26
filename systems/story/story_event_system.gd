@@ -323,7 +323,10 @@ func _apply_event_effects(hero_id: String, event: Dictionary) -> void:
 			"gold":
 				ResourceManager.apply_delta(pid, {"gold": effects[key]})
 			"soldiers":
-				ResourceManager.add_army(pid, effects[key])
+				if effects[key] > 0:
+					ResourceManager.add_army(pid, effects[key])
+				else:
+					ResourceManager.remove_army(pid, -effects[key])
 			"iron":
 				ResourceManager.apply_delta(pid, {"iron": effects[key]})
 			"food":

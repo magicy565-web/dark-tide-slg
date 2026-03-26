@@ -129,5 +129,5 @@ func to_save_data() -> Dictionary:
 
 
 func from_save_data(data: Dictionary) -> void:
-	_order = data.get("order", 50)
-	_rebellion_cooldown = data.get("rebellion_cooldown", 0)
+	_order = int(data.get("order", 50))
+	_rebellion_cooldown = int(data.get("rebellion_cooldown", 0))

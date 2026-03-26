@@ -878,7 +878,6 @@ func _on_tile_clicked(tile_index: int) -> void:
 		else: GameManager.deselect_army()
 	else: GameManager.deselect_army()
 	EventBus.territory_selected.emit(tile_index)
-	EventBus.player_arrived.emit(pid, tile_index)
 
 func _deselect_tile() -> void:
 	var old: int = selected_tile; selected_tile = -1

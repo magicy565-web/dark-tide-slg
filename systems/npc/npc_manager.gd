@@ -496,6 +496,16 @@ func from_save_data(data: Dictionary) -> void:
 			else:
 				for i in range(state["triggered_thresholds"].size()):
 					state["triggered_thresholds"][i] = int(state["triggered_thresholds"][i])
+			# Fix obedience and last_trained_turn int values after JSON round-trip
+			if state.has("obedience"):
+				state["obedience"] = int(state["obedience"])
+			if state.has("last_trained_turn"):
+				state["last_trained_turn"] = int(state["last_trained_turn"])
+	# Fix escaped_npcs cooldown int values after JSON round-trip
+	for pid in _escaped_npcs:
+		if _escaped_npcs[pid] is Dictionary:
+			for npc_id in _escaped_npcs[pid]:
+				_escaped_npcs[pid][npc_id] = int(_escaped_npcs[pid][npc_id])
 	# Fix _type_triggered_thresholds inner arrays: convert threshold values to int
 	for pid in _type_triggered_thresholds:
 		if _type_triggered_thresholds[pid] is Dictionary:

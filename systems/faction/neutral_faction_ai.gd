@@ -458,5 +458,7 @@ func from_save_data(data: Dictionary) -> void:
 			state["territory"] = fixed
 		if state.has("base_tile"):
 			state["base_tile"] = int(state.get("base_tile", -1))
+		if state.has("vassal_of"):
+			state["vassal_of"] = int(state.get("vassal_of", -1))
 	_patrol_state = data.get("patrol_state", {}).duplicate(true)
 	_fix_int_keys(_patrol_state)

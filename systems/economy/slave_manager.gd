@@ -317,3 +317,21 @@ func from_save_data(data: Dictionary) -> void:
 		for k in keys_to_fix:
 			dict_ref[int(k)] = dict_ref[k]
 			dict_ref.erase(k)
+	# Fix allocation role int values after JSON round-trip
+	for pid in _allocations:
+		if _allocations[pid] is Dictionary:
+			for role in ["mine", "farm", "altar", "idle"]:
+				if _allocations[pid].has(role):
+					_allocations[pid][role] = int(_allocations[pid][role])
+	# Fix altar_counters int values after JSON round-trip
+	for pid in _altar_counters:
+		_altar_counters[pid] = int(_altar_counters[pid])
+	# Fix conversion_queue int values after JSON round-trip
+	for pid in _conversion_queue:
+		if _conversion_queue[pid] is Array:
+			for entry in _conversion_queue[pid]:
+				if entry is Dictionary:
+					if entry.has("count"):
+						entry["count"] = int(entry["count"])
+					if entry.has("turns_left"):
+						entry["turns_left"] = int(entry["turns_left"])

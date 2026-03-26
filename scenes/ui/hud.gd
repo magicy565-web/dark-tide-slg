@@ -1287,6 +1287,14 @@ func _reset_all_singletons() -> void:
 	NeutralFactionAI.reset()
 	QuestJournal.reset()
 	StoryEventSystem.reset()
+	if HeroLeveling.has_method("reset"):
+		HeroLeveling.reset()
+	else:
+		HeroLeveling.hero_exp.clear()
+		HeroLeveling.hero_level.clear()
+		HeroLeveling.hero_unlocked_passives.clear()
+		HeroLeveling.hero_current_hp.clear()
+		HeroLeveling.hero_current_mp.clear()
 
 
 func _detect_victory_type(human_id: int) -> String:

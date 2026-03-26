@@ -878,6 +878,29 @@ func from_save_data(data: Dictionary) -> void:
 			_fix_int_keys(_ceasefire[pid])
 	_treaties = data.get("treaties", {}).duplicate(true)
 	_fix_int_keys(_treaties)
+	# Fix treaty int values after JSON round-trip
+	for pid in _treaties:
+		if _treaties[pid] is Array:
+			for treaty in _treaties[pid]:
+				if treaty is Dictionary:
+					if treaty.has("target"):
+						treaty["target"] = int(treaty["target"])
+					if treaty.has("turns_left"):
+						treaty["turns_left"] = int(treaty["turns_left"])
+					if treaty.has("gold_per_turn"):
+						treaty["gold_per_turn"] = int(treaty["gold_per_turn"])
+	# Fix ceasefire int values after JSON round-trip
+	for pid in _ceasefire:
+		if _ceasefire[pid] is Dictionary:
+			for fid in _ceasefire[pid]:
+				_ceasefire[pid][fid] = int(_ceasefire[pid][fid])
+	# Fix relations rebellion_turns after JSON round-trip
+	for pid in _relations:
+		if _relations[pid] is Dictionary:
+			for fid in _relations[pid]:
+				var rel = _relations[pid][fid]
+				if rel is Dictionary and rel.has("rebellion_turns"):
+					rel["rebellion_turns"] = int(rel["rebellion_turns"])
 	_light_ceasefire_turns = data.get("light_ceasefire_turns", 0)
 	_light_extort_cooldown = data.get("light_extort_cooldown", 0)
 	_pending_light_peace = data.get("pending_light_peace", {}).duplicate(true)
