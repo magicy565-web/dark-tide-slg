@@ -1,5 +1,5 @@
 ## combat_view.gd - Sengoku Rance 07 style battle visualization (v3.0)
-## Full演出系統: screen shake, card physics, class projectiles, kill cutscenes,
+## Full presentation system: screen shake, card physics, class projectiles, kill cutscenes,
 ## passive banners, combo counter, round transitions, hero KO, AoE highlight
 extends CanvasLayer
 
@@ -52,9 +52,9 @@ const CLASS_COLORS := {
 }
 
 const CLASS_ABBR := {
-	"ashigaru":"足","samurai":"侍","cavalry":"骑","archer":"弓",
-	"cannon":"砲","ninja":"忍","mage":"魔","special":"特",
-	"priest":"僧","mage_unit":"魔",
+	"ashigaru":"ASH","samurai":"SAM","cavalry":"CAV","archer":"ARC",
+	"cannon":"CAN","ninja":"NIN","mage":"MAG","special":"SPE",
+	"priest":"PRI","mage_unit":"MAG",
 }
 
 # ── Projectile styles per class ──
@@ -70,6 +70,21 @@ const PROJ_STYLES := {
 	"special":  {"type": "slash", "color": Color(1, 0.9, 0.4, 0.95), "width": 4.0, "particles": 7},
 	"mage_unit":{"type": "magic", "color": Color(0.6, 0.3, 1.0, 0.9), "width": 4.0, "particles": 10},
 }
+
+# ── Battle background mapping (terrain -> pixel art bg) ──
+const BATTLE_BG_PATHS := {
+	0: "res://assets/ui/battle_bg_ruins.png",    # PLAINS -> ruins (default)
+	1: "res://assets/ui/battle_bg_forest.png",   # FOREST
+	2: "res://assets/ui/battle_bg_volcano.png",  # MOUNTAIN -> volcano
+	3: "res://assets/ui/battle_bg_forest.png",   # SWAMP -> forest variant
+	4: "res://assets/ui/battle_bg_harbor.png",   # COASTAL -> harbor
+	5: "res://assets/ui/battle_bg_ruins.png",    # FORTRESS_WALL -> ruins
+	6: "res://assets/ui/battle_bg_harbor.png",   # RIVER -> harbor variant
+	7: "res://assets/ui/battle_bg_temple.png",   # RUINS -> temple
+	8: "res://assets/ui/battle_bg_desert.png",   # WASTELAND -> desert
+	9: "res://assets/ui/battle_bg_volcano.png",  # VOLCANIC -> volcano
+}
+var _bg_texture_rect: TextureRect = null
 
 # ── State ──
 var _battle_state: Dictionary = {}
@@ -211,6 +226,16 @@ func _build_ui() -> void:
 	bg.color = Color(0.03, 0.04, 0.08, 0.97)
 	root.add_child(bg)
 
+	# Pixel art battle background (loaded dynamically per terrain)
+	_bg_texture_rect = TextureRect.new()
+	_bg_texture_rect.name = "BattleBg"
+	_bg_texture_rect.anchor_right = 1.0
+	_bg_texture_rect.anchor_bottom = 1.0
+	_bg_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_bg_texture_rect.modulate = Color(1, 1, 1, 0.35)  # dim so UI stays readable
+	_bg_texture_rect.visible = false
+	root.add_child(_bg_texture_rect)
+
 	# Shake container wraps all gameplay UI
 	shake_container = Control.new()
 	shake_container.name = "ShakeContainer"
@@ -220,14 +245,14 @@ func _build_ui() -> void:
 	root.add_child(shake_container)
 
 	# Title
-	title_label = _make_label("戦 闘", 30, Color(1, 0.92, 0.75), Vector2(0, 8), Vector2(SCREEN_W, 38))
+	title_label = _make_label("COMBAT", 30, Color(1, 0.92, 0.75), Vector2(0, 8), Vector2(SCREEN_W, 38))
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	shake_container.add_child(title_label)
 
 	# Terrain + round info
-	terrain_label = _make_label("地形: 平原", 13, Color(0.6, 0.6, 0.5), Vector2(40, 50), Vector2(300, 20))
+	terrain_label = _make_label("Terrain: Plains", 13, Color(0.6, 0.6, 0.5), Vector2(40, 50), Vector2(300, 20))
 	shake_container.add_child(terrain_label)
-	round_label = _make_label("回合 0/12", 13, Color(0.85, 0.75, 0.55), Vector2(SCREEN_W - 200, 50), Vector2(160, 20))
+	round_label = _make_label("Round 0/12", 13, Color(0.85, 0.75, 0.55), Vector2(SCREEN_W - 200, 50), Vector2(160, 20))
 	round_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	shake_container.add_child(round_label)
 
@@ -242,16 +267,16 @@ func _build_ui() -> void:
 	_build_turn_bar()
 
 	# Side labels with faction power tracking
-	side_label_atk = _make_label("【進攻方】", 18, Color(0.95, 0.7, 0.45), Vector2(60, GRID_TOP - 32), Vector2(260, 28))
+	side_label_atk = _make_label("[ATTACKER]", 18, Color(0.95, 0.7, 0.45), Vector2(60, GRID_TOP - 32), Vector2(260, 28))
 	shake_container.add_child(side_label_atk)
-	side_label_def = _make_label("【防御方】", 18, Color(0.45, 0.7, 0.95), Vector2(SCREEN_W - 320, GRID_TOP - 32), Vector2(260, 28))
+	side_label_def = _make_label("[DEFENDER]", 18, Color(0.45, 0.7, 0.95), Vector2(SCREEN_W - 320, GRID_TOP - 32), Vector2(260, 28))
 	side_label_def.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	shake_container.add_child(side_label_def)
 
 	# Damage trackers under side labels
-	damage_tracker_atk = _make_label("総傷害: 0", 11, Color(0.7, 0.55, 0.4), Vector2(60, GRID_TOP - 14), Vector2(200, 16))
+	damage_tracker_atk = _make_label("Total DMG: 0", 11, Color(0.7, 0.55, 0.4), Vector2(60, GRID_TOP - 14), Vector2(200, 16))
 	shake_container.add_child(damage_tracker_atk)
-	damage_tracker_def = _make_label("総傷害: 0", 11, Color(0.4, 0.55, 0.7), Vector2(SCREEN_W - 260, GRID_TOP - 14), Vector2(200, 16))
+	damage_tracker_def = _make_label("Total DMG: 0", 11, Color(0.4, 0.55, 0.7), Vector2(SCREEN_W - 260, GRID_TOP - 14), Vector2(200, 16))
 	damage_tracker_def.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	shake_container.add_child(damage_tracker_def)
 
@@ -386,7 +411,7 @@ func _create_card(pos: Vector2) -> PanelContainer:
 	# Row 2: Troop name
 	var name_lbl := Label.new()
 	name_lbl.name = "TroopName"
-	name_lbl.text = "空"
+	name_lbl.text = "Empty"
 	name_lbl.add_theme_font_size_override("font_size", 13)
 	name_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.78))
 	vbox.add_child(name_lbl)
@@ -478,7 +503,7 @@ func _build_clock_bar() -> void:
 	clock_container.size = Vector2(400, 22)
 	shake_container.add_child(clock_container)
 
-	var clk_lbl := _make_label("戦況進度", 10, Color(0.55, 0.55, 0.5), Vector2(0, -15), Vector2(400, 14))
+	var clk_lbl := _make_label("Battle Progress", 10, Color(0.55, 0.55, 0.5), Vector2(0, -15), Vector2(400, 14))
 	clk_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	clock_container.add_child(clk_lbl)
 
@@ -513,11 +538,11 @@ func _build_buttons() -> void:
 	row1.add_theme_constant_override("separation", 6)
 	container.add_child(row1)
 
-	btn_play = _make_btn("▶ 播放", _on_play)
+	btn_play = _make_btn("▶ Play", _on_play)
 	row1.add_child(btn_play)
-	btn_step = _make_btn("→ 単步", _on_step)
+	btn_step = _make_btn("-> Step", _on_step)
 	row1.add_child(btn_step)
-	btn_skip = _make_btn("⏭ 跳過", _on_skip)
+	btn_skip = _make_btn("⏭ Skip", _on_skip)
 	row1.add_child(btn_skip)
 
 	var row2 := HBoxContainer.new()
@@ -528,11 +553,11 @@ func _build_buttons() -> void:
 	btn_speed.custom_minimum_size = Vector2(50, 0)
 	row2.add_child(btn_speed)
 
-	btn_auto = _make_btn("自動", _on_auto_toggle)
+	btn_auto = _make_btn("Auto", _on_auto_toggle)
 	btn_auto.custom_minimum_size = Vector2(50, 0)
 	row2.add_child(btn_auto)
 
-	btn_close = _make_btn("関閉", _on_close)
+	btn_close = _make_btn("Close", _on_close)
 	btn_close.visible = false
 	row2.add_child(btn_close)
 func _build_result_panel() -> void:
@@ -644,15 +669,26 @@ func show_battle(battle_result: Dictionary) -> void:
 	log_text.clear()
 	result_panel.visible = false
 	btn_close.visible = false
-	btn_play.text = "▶ 播放"
+	btn_play.text = "▶ Play"
 	combo_label.visible = false
 	passive_banner.visible = false
-	damage_tracker_atk.text = "総傷害: 0"
-	damage_tracker_def.text = "総傷害: 0"
+	damage_tracker_atk.text = "Total DMG: 0"
+	damage_tracker_def.text = "Total DMG: 0"
 
-	title_label.text = battle_result.get("title", "戦 闘")
-	terrain_label.text = "地形: %s" % _get_terrain_name(battle_result.get("terrain", 0))
-	round_label.text = "回合 0/%d" % MAX_ROUNDS
+	title_label.text = battle_result.get("title", "COMBAT")
+	terrain_label.text = "Terrain: %s" % _get_terrain_name(battle_result.get("terrain", 0))
+	round_label.text = "Round 0/%d" % MAX_ROUNDS
+
+	# Load terrain-specific battle background
+	var terrain_id = battle_result.get("terrain", 0)
+	if typeof(terrain_id) == TYPE_STRING:
+		terrain_id = int(terrain_id)
+	var bg_path: String = BATTLE_BG_PATHS.get(terrain_id, BATTLE_BG_PATHS[0])
+	if ResourceLoader.exists(bg_path):
+		_bg_texture_rect.texture = load(bg_path)
+		_bg_texture_rect.visible = true
+	else:
+		_bg_texture_rect.visible = false
 
 	# Initialize live unit data
 	_live_units = {"attacker": {}, "defender": {}}
@@ -702,7 +738,7 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 			unit = units[slot_idx]
 
 		if unit.is_empty():
-			name_lbl.text = "空"
+			name_lbl.text = "Empty"
 			cmd_lbl.text = ""
 			buff_lbl.text = ""
 			count_lbl.text = ""
@@ -734,7 +770,7 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 
 			var soldiers: int = unit.get("soldiers", 0)
 			var max_soldiers: int = unit.get("max_soldiers", soldiers)
-			count_lbl.text = "兵力: %d/%d" % [soldiers, max_soldiers]
+			count_lbl.text = "Troops: %d/%d" % [soldiers, max_soldiers]
 			var ratio: float = float(soldiers) / max(1, max_soldiers)
 			bar_fill.size.x = BAR_W * ratio
 			bar_ghost.size.x = BAR_W * ratio
@@ -755,7 +791,7 @@ func _update_card_soldiers(side: String, slot_idx: int, soldiers: int, max_soldi
 	var bar_ghost: ColorRect = bar_container.get_node("BarGhost")
 	var bar_fill: ColorRect = bar_container.get_node("BarFill")
 
-	count_lbl.text = "兵力: %d/%d" % [soldiers, max_soldiers]
+	count_lbl.text = "Troops: %d/%d" % [soldiers, max_soldiers]
 	var ratio: float = float(soldiers) / max(1, max_soldiers)
 	var spd := ANIM_BASE_SPEED / _speed_mult
 
@@ -798,12 +834,12 @@ func _apply_death_overlay(side: String, slot_idx: int) -> void:
 			break
 
 	if is_captured:
-		overlay.text = "俘 獲"
+		overlay.text = "CAPTURED"
 		overlay.add_theme_color_override("font_color", Color(0.3, 0.5, 1.0))
 		# Blue chain flash effect for capture
 		_spawn_capture_chains(side, slot_idx)
 	else:
-		overlay.text = "殲 滅"
+		overlay.text = "ANNIHILATED"
 		overlay.add_theme_color_override("font_color", Color(1.0, 0.25, 0.15))
 	overlay.visible = true
 
@@ -972,10 +1008,10 @@ func _animate_attack(source_side: String, source_slot: int, target_side: String,
 	# 7. Track total damage
 	if source_side == "attacker":
 		_total_atk_damage += damage
-		damage_tracker_atk.text = "総傷害: %d" % _total_atk_damage
+		damage_tracker_atk.text = "Total DMG: %d" % _total_atk_damage
 	else:
 		_total_def_damage += damage
-		damage_tracker_def.text = "総傷害: %d" % _total_def_damage
+		damage_tracker_def.text = "Total DMG: %d" % _total_def_damage
 func _lunge_card(side: String, slot_idx: int, target_side: String) -> void:
 	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
 	if not cards.has(slot_idx):
@@ -1380,37 +1416,37 @@ func _spawn_damage_number(pos: Vector2, damage: int, max_soldiers: int, is_crit:
 func _flash_passive(side: String, slot_idx: int, desc: String = "") -> void:
 	var pos := _get_card_center(side, slot_idx)
 	# Detect passive type from description keywords
-	if "反击" in desc or "背刺" in desc:
+	if "反击" in desc or "counter" in desc.to_lower() or "背刺" in desc or "backstab" in desc.to_lower():
 		# Counter/backstab — red-orange flash + slash particles
 		_flash_card(side, slot_idx, Color(1.0, 0.4, 0.2, 0.4))
 		for i in range(3):
 			_spawn_sparkle(pos + Vector2(randf_range(-15, 15), randf_range(-10, 10)), Color(1.0, 0.5, 0.2))
-	elif "治" in desc or "复活" in desc or "回复" in desc:
+	elif "治" in desc or "heal" in desc.to_lower() or "复活" in desc or "revive" in desc.to_lower() or "回复" in desc or "regen" in desc.to_lower():
 		# Healing — green glow
 		_flash_card(side, slot_idx, Color(0.2, 0.9, 0.4, 0.35))
 		for i in range(5):
 			_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-15, 15)), Color(0.3, 1.0, 0.5))
-	elif "防" in desc or "铁壁" in desc or "方阵" in desc or "结界" in desc:
+	elif "防" in desc or "guard" in desc.to_lower() or "铁壁" in desc or "iron_wall" in desc.to_lower() or "方阵" in desc or "phalanx" in desc.to_lower() or "结界" in desc or "barrier" in desc.to_lower():
 		# Defense — blue shield flash
 		_flash_card(side, slot_idx, Color(0.2, 0.4, 1.0, 0.4))
 		for i in range(4):
 			_spawn_sparkle(pos + Vector2(randf_range(-18, 18), randf_range(-12, 12)), Color(0.4, 0.6, 1.0))
-	elif "灼烧" in desc or "炼狱" in desc or "引爆" in desc or "火焰" in desc:
+	elif "灼烧" in desc or "burn" in desc.to_lower() or "炼狱" in desc or "inferno" in desc.to_lower() or "引爆" in desc or "detonate" in desc.to_lower() or "火焰" in desc or "flame" in desc.to_lower():
 		# Fire — orange-red burn
 		_flash_card(side, slot_idx, Color(1.0, 0.35, 0.1, 0.4))
 		for i in range(5):
 			_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-15, 15)), Color(1.0, 0.4, 0.15))
-	elif "闪避" in desc or "隐身" in desc or "幻影" in desc:
+	elif "闪避" in desc or "dodge" in desc.to_lower() or "隐身" in desc or "stealth" in desc.to_lower() or "幻影" in desc or "phantom" in desc.to_lower():
 		# Evasion — white fade
 		_flash_card(side, slot_idx, Color(1.0, 1.0, 1.0, 0.25))
 		for i in range(3):
 			_spawn_sparkle(pos + Vector2(randf_range(-24, 24), randf_range(-18, 18)), Color(0.9, 0.95, 1.0))
-	elif "暴击" in desc or "致命" in desc or "穿甲" in desc:
+	elif "暴击" in desc or "crit" in desc.to_lower() or "致命" in desc or "lethal" in desc.to_lower() or "穿甲" in desc or "pierce" in desc.to_lower():
 		# Crit/pierce — gold burst
 		_flash_card(side, slot_idx, Color(1.0, 0.85, 0.2, 0.4))
 		for i in range(5):
 			_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-15, 15)), Color(1.0, 0.9, 0.3))
-	elif "法" in desc or "奥术" in desc or "魔导" in desc:
+	elif "法" in desc or "magic" in desc.to_lower() or "奥术" in desc or "arcane" in desc.to_lower() or "魔导" in desc or "sorcery" in desc.to_lower():
 		# Magic — purple glow
 		_flash_card(side, slot_idx, Color(0.6, 0.3, 1.0, 0.35))
 		for i in range(5):
@@ -1453,7 +1489,7 @@ func _show_round_splash(round_num: int) -> void:
 	EventBus.sfx_round_start.emit(round_num)
 	if not is_instance_valid(round_splash):
 		return
-	round_splash.text = "第 %d 回合" % round_num
+	round_splash.text = "Round %d" % round_num
 	round_splash.visible = true
 	round_splash.modulate = Color(1, 1, 1, 0)
 	round_splash.scale = Vector2(2.0, 2.0)
@@ -1545,7 +1581,7 @@ func _play_kill_cutscene(side: String, slot_idx: int) -> void:
 		_apply_death_overlay(side, slot_idx)
 	)
 
-	# Spawn "殲滅" / "俘獲" text particles flying outward
+	# Spawn "ANNIHILATED" / "CAPTURED" text particles flying outward
 	var pos := _get_card_center(side, slot_idx)
 	for i in range(6):
 		var particle := ColorRect.new()
@@ -1607,7 +1643,7 @@ func _play_hero_knockout(side: String, slot_idx: int, hero_name: String) -> void
 
 	# Show knockout banner
 	if is_instance_valid(passive_banner):
-		passive_banner_label.text = "英雄撃倒! — %s" % hero_name
+		passive_banner_label.text = "Hero KO! — %s" % hero_name
 		passive_banner_label.add_theme_color_override("font_color", Color(1, 0.3, 0.2))
 		passive_banner.visible = true
 		passive_banner.modulate = Color(1, 1, 1, 0)
@@ -1677,10 +1713,10 @@ func _highlight_aoe_targets(target_side: String, slots: Array) -> void:
 func _on_play() -> void:
 	if _playing:
 		_playing = false
-		btn_play.text = "▶ 播放"
+		btn_play.text = "▶ Play"
 		return
 	_playing = true
-	btn_play.text = "⏸ 暫停"
+	btn_play.text = "⏸ Pause"
 	_play_next()
 
 func _play_next() -> void:
@@ -1713,7 +1749,7 @@ func _play_next() -> void:
 
 func _on_step() -> void:
 	_playing = false
-	btn_play.text = "▶ 播放"
+	btn_play.text = "▶ Play"
 	if _log_index < _action_log.size():
 		_apply_log_entry(_action_log[_log_index])
 		_log_index += 1
@@ -1740,7 +1776,7 @@ func _on_skip() -> void:
 
 		if round_num > 0:
 			_current_round = round_num
-			round_label.text = "回合 %d/%d" % [round_num, MAX_ROUNDS]
+			round_label.text = "Round %d/%d" % [round_num, MAX_ROUNDS]
 			_update_clock(round_num)
 
 		if action == "attack" and target_slot >= 0:
@@ -1754,8 +1790,8 @@ func _on_skip() -> void:
 
 		_log_index += 1
 
-	damage_tracker_atk.text = "総傷害: %d" % _total_atk_damage
-	damage_tracker_def.text = "総傷害: %d" % _total_def_damage
+	damage_tracker_atk.text = "Total DMG: %d" % _total_atk_damage
+	damage_tracker_def.text = "Total DMG: %d" % _total_def_damage
 	_is_finishing = false
 	_finish_playback()
 func _update_card_soldiers_instant(side: String, slot_idx: int, soldiers: int, max_soldiers: int) -> void:
@@ -1769,7 +1805,7 @@ func _update_card_soldiers_instant(side: String, slot_idx: int, soldiers: int, m
 	var bar_ghost: ColorRect = bar_container.get_node("BarGhost")
 	var bar_fill: ColorRect = bar_container.get_node("BarFill")
 
-	count_lbl.text = "兵力: %d/%d" % [soldiers, max_soldiers]
+	count_lbl.text = "Troops: %d/%d" % [soldiers, max_soldiers]
 	var ratio: float = float(soldiers) / max(1, max_soldiers)
 	bar_fill.size.x = BAR_W * ratio
 	bar_ghost.size.x = BAR_W * ratio
@@ -1804,7 +1840,7 @@ func _on_speed_toggle() -> void:
 
 func _on_auto_toggle() -> void:
 	_auto_play = not _auto_play
-	btn_auto.text = "自動" if _auto_play else "手動"
+	btn_auto.text = "Auto" if _auto_play else "Manual"
 
 func _apply_log_entry(entry: Dictionary) -> void:
 	var action: String = entry.get("action", "")
@@ -1823,19 +1859,19 @@ func _apply_log_entry(entry: Dictionary) -> void:
 	# Round transition with splash
 	if round_num > 0 and round_num != _current_round:
 		_current_round = round_num
-		round_label.text = "回合 %d/%d" % [round_num, MAX_ROUNDS]
+		round_label.text = "Round %d/%d" % [round_num, MAX_ROUNDS]
 		_update_clock(round_num)
 
 	var log_line: String = ""
 	match action:
 		"round_start":
-			log_line = "[color=#666]═══════ 第%d回合 ═══════[/color]" % round_num
+			log_line = "[color=#666]═══════ Round %d ═══════[/color]" % round_num
 			_show_round_splash(round_num)
 
 		"attack":
 			var is_crit := damage > max_s * 0.4
 			var dmg_color := "#fa4" if is_crit else "#f88"
-			log_line = "[color=#dda]%s[/color] → %s [color=%s](-%d兵)[/color]" % [desc, target_name, dmg_color, damage]
+			log_line = "[color=#dda]%s[/color] → %s [color=%s](-%d troops)[/color]" % [desc, target_name, dmg_color, damage]
 			if target_slot >= 0:
 				_update_card_soldiers(target_side, target_slot, remaining, max_s)
 				_animate_attack(side, slot_idx, target_side, target_slot, damage, max_s, is_aoe)
@@ -1857,7 +1893,7 @@ func _apply_log_entry(entry: Dictionary) -> void:
 						_highlight_aoe_targets(target_side, aoe_slots)
 
 		"passive":
-			log_line = "[color=#8cf]〔被動〕[/color] %s" % desc
+			log_line = "[color=#8cf][Passive][/color] %s" % desc
 			if slot_idx >= 0:
 				_flash_passive(side, slot_idx, desc)
 				_show_passive_banner(desc, side)
@@ -1866,7 +1902,7 @@ func _apply_log_entry(entry: Dictionary) -> void:
 					_update_card_soldiers(side, slot_idx, remaining, max_s)
 
 		"ability":
-			log_line = "[color=#fc8]〔技能〕[/color] %s" % desc
+			log_line = "[color=#fc8][Skill][/color] %s" % desc
 			if slot_idx >= 0:
 				_glow_card(side, slot_idx)
 				_show_passive_banner(desc, side)
@@ -1882,12 +1918,12 @@ func _apply_log_entry(entry: Dictionary) -> void:
 					_detect_and_apply_buff(ability_target_side, ability_target_slot, desc)
 
 		"siege":
-			log_line = "[color=#f88]〔攻城〕[/color] %s" % desc
+			log_line = "[color=#f88][Siege][/color] %s" % desc
 			_screen_shake(SHAKE_MEDIUM, 8.0)
 			_spawn_siege_debris()
 
 		"death":
-			log_line = "[color=#f44]〔殲滅〕[/color] %s" % desc
+			log_line = "[color=#f44][Annihilate][/color] %s" % desc
 			if slot_idx >= 0:
 				# Kill cutscene handles death overlay
 				if not _is_finishing:
@@ -1908,7 +1944,7 @@ func _apply_log_entry(entry: Dictionary) -> void:
 
 func _finish_playback() -> void:
 	_playing = false
-	btn_play.text = "▶ 播放"
+	btn_play.text = "▶ Play"
 	btn_close.visible = true
 
 	var winner: String = _battle_state.get("winner", "")
@@ -1921,15 +1957,15 @@ func _finish_playback() -> void:
 	result_panel.pivot_offset = result_panel.size * 0.5
 
 	if winner == "attacker":
-		result_label.text = "進 攻 方 勝 利 !"
+		result_label.text = "ATTACKER WINS!"
 		result_label.add_theme_color_override("font_color", Color(1, 0.88, 0.3))
 		_screen_flash_effect(Color(1, 0.9, 0.5, 0.15), 0.5)
 	elif winner == "defender":
-		result_label.text = "防 御 方 勝 利 !"
+		result_label.text = "DEFENDER WINS!"
 		result_label.add_theme_color_override("font_color", Color(0.5, 0.7, 1))
 		_screen_flash_effect(Color(0.3, 0.5, 1.0, 0.1), 0.5)
 	else:
-		result_label.text = "戦 闘 終 了"
+		result_label.text = "BATTLE END"
 		result_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
 
 	# Stats summary with kill/survivor counts
@@ -1943,7 +1979,7 @@ func _finish_playback() -> void:
 	for u in def_final_arr:
 		if u != null and u.get("soldiers", 0) > 0:
 			def_survivors += 1
-	result_stats.text = "進攻傷害: %d  |  防御傷害: %d  |  回合: %d\n擊殺: 攻%d/防%d  |  存活: 攻%d/防%d" % [
+	result_stats.text = "ATK Damage: %d  |  DEF Damage: %d  |  Rounds: %d\nKills: ATK %d / DEF %d  |  Alive: ATK %d / DEF %d" % [
 		_total_atk_damage, _total_def_damage, _current_round,
 		_kills_atk, _kills_def, atk_survivors, def_survivors
 	]
@@ -2016,7 +2052,7 @@ func _hp_color(ratio: float) -> Color:
 
 func _get_terrain_name(terrain) -> String:
 	var tdata: Dictionary = FactionData.TERRAIN_DATA.get(terrain, {})
-	return tdata.get("name", "平原")
+	return tdata.get("name", "Plains")
 
 func _get_troop_display_name(troop_id: String) -> String:
 	for faction_id in FactionData.UNIT_DEFS:
@@ -2147,22 +2183,22 @@ func _detect_and_apply_buff(side: String, slot_idx: int, desc: String) -> void:
 		return
 	var buffs: Array = _active_buffs[side][slot_idx]
 	# Detect buff types from description text
-	if "灼烧" in desc or "炼狱" in desc:
+	if "灼烧" in desc or "炼狱" in desc or "burn" in desc.to_lower() or "inferno" in desc.to_lower():
 		if not buffs.has("burn"):
 			buffs.append("burn")
-	if "毒" in desc:
+	if "毒" in desc or "poison" in desc.to_lower():
 		if not buffs.has("poison"):
 			buffs.append("poison")
-	if "ATK+" in desc or "攻击" in desc:
+	if "ATK+" in desc or "攻击" in desc or "atk_up" in desc.to_lower():
 		if not buffs.has("atk_up"):
 			buffs.append("atk_up")
-	if "DEF+" in desc or "防御" in desc or "铁壁" in desc:
+	if "DEF+" in desc or "防御" in desc or "铁壁" in desc or "def_up" in desc.to_lower() or "iron_wall" in desc.to_lower():
 		if not buffs.has("def_up"):
 			buffs.append("def_up")
-	if "SPD+" in desc or "迅捷" in desc:
+	if "SPD+" in desc or "迅捷" in desc or "spd_up" in desc.to_lower():
 		if not buffs.has("spd_up"):
 			buffs.append("spd_up")
-	if "SPD-" in desc or "减速" in desc:
+	if "SPD-" in desc or "减速" in desc or "slow" in desc.to_lower():
 		if not buffs.has("slow"):
 			buffs.append("slow")
 	_update_buff_label(side, slot_idx)
@@ -2188,12 +2224,12 @@ func _update_buff_label(side: String, slot_idx: int) -> void:
 	var icons: Array[String] = []
 	for b in buffs:
 		match b:
-			"burn": icons.append("火")
-			"poison": icons.append("毒")
-			"atk_up": icons.append("攻↑")
-			"def_up": icons.append("防↑")
-			"spd_up": icons.append("速↑")
-			"slow": icons.append("速↓")
+			"burn": icons.append("BRN")
+			"poison": icons.append("PSN")
+			"atk_up": icons.append("ATK+")
+			"def_up": icons.append("DEF+")
+			"spd_up": icons.append("SPD+")
+			"slow": icons.append("SPD-")
 			_: icons.append("✦")
 	buff_lbl.text = " ".join(icons)
 	# Color the label based on dominant buff type
@@ -2234,15 +2270,15 @@ func _update_buff_label(side: String, slot_idx: int) -> void:
 
 func _detect_ability_type(desc: String) -> String:
 	## Infer ability type from description text when not explicitly provided.
-	if "治" in desc or "回复" in desc or "治愈" in desc or "恢复" in desc:
+	if "治" in desc or "回复" in desc or "治愈" in desc or "恢复" in desc or "heal" in desc.to_lower() or "regen" in desc.to_lower() or "revive" in desc.to_lower():
 		return "heal"
 	if "范围" in desc or "全体" in desc or "aoe" in desc.to_lower():
 		return "aoe"
-	if "攻击" in desc or "伤害" in desc or "斩" in desc or "打击" in desc:
+	if "攻击" in desc or "伤害" in desc or "斩" in desc or "打击" in desc or "damage" in desc.to_lower() or "strike" in desc.to_lower():
 		return "damage"
-	if "减速" in desc or "弱化" in desc or "诅咒" in desc or "减" in desc or "毒" in desc or "灼" in desc:
+	if "减速" in desc or "弱化" in desc or "诅咒" in desc or "减" in desc or "毒" in desc or "灼" in desc or "debuff" in desc.to_lower() or "slow" in desc.to_lower() or "poison" in desc.to_lower() or "burn" in desc.to_lower() or "curse" in desc.to_lower():
 		return "debuff"
-	if "强化" in desc or "鼓舞" in desc or "加速" in desc or "增" in desc or "护盾" in desc:
+	if "强化" in desc or "鼓舞" in desc or "加速" in desc or "增" in desc or "护盾" in desc or "buff" in desc.to_lower() or "boost" in desc.to_lower() or "shield" in desc.to_lower():
 		return "buff"
 	return "damage"
 

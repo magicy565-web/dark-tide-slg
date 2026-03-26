@@ -191,14 +191,14 @@ func _build_ui() -> void:
 	btn_row.add_child(progress_label)
 
 	btn_skip = Button.new()
-	btn_skip.text = "跳过"
+	btn_skip.text = "Skip"
 	btn_skip.custom_minimum_size = Vector2(70, 32)
 	btn_skip.add_theme_font_size_override("font_size", 12)
 	btn_skip.pressed.connect(_on_skip)
 	btn_row.add_child(btn_skip)
 
 	btn_next = Button.new()
-	btn_next.text = "继续 ▶"
+	btn_next.text = "Next ▶"
 	btn_next.custom_minimum_size = Vector2(90, 32)
 	btn_next.add_theme_font_size_override("font_size", 13)
 	btn_next.pressed.connect(_on_next)
@@ -301,9 +301,8 @@ func _advance_dialogue() -> void:
 				text = "[color=#8888aa]%s[/color]\n%s" % [action, text]
 			_start_text_reveal(text)
 		"choice":
-			speaker_label.text = "选择"
-			text_label.clear()
-			text_label.append_text(entry.get("prompt", "请选择："))
+			speaker_label.text = "Choice"
+			text_label.text = entry.get("prompt", "Choose:")
 			_show_choices(entry.get("options", []))
 			btn_next.visible = false
 			_waiting_for_choice = true
@@ -313,7 +312,7 @@ func _advance_dialogue() -> void:
 			var title: String = entry.get("title", "")
 			_start_text_reveal("[color=#ff6688]◆ %s ◆[/color]" % title if title != "" else "[color=#ff6688]◆ ◆[/color]")
 		"system_prompt":
-			speaker_label.text = "系统"
+			speaker_label.text = "System"
 			system_prompt_label.text = entry.get("text", "")
 			system_prompt_label.visible = true
 			text_label.clear()
@@ -347,7 +346,7 @@ func _show_choices(options: Array) -> void:
 	for i in range(options.size()):
 		var opt: Dictionary = options[i] if options[i] is Dictionary else {"text": str(options[i])}
 		var btn := Button.new()
-		btn.text = opt.get("text", "选项 %d" % (i + 1))
+		btn.text = opt.get("text", "Option %d" % (i + 1))
 		btn.custom_minimum_size = Vector2(400, 36)
 		btn.add_theme_font_size_override("font_size", 13)
 		btn.pressed.connect(_on_choice_selected.bind(i))

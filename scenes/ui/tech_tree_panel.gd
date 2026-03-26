@@ -1,4 +1,4 @@
-## tech_tree_panel.gd - 科技树/训练面板 UI for 暗潮 SLG (v1.0)
+## tech_tree_panel.gd - Research Tree Panel UI for Dark Tide SLG (v1.0)
 ## Displays research tree, progress, queue, and allows starting/cancelling research.
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -75,7 +75,7 @@ func _build_ui() -> void:
 	header_row.add_theme_constant_override("separation", 12)
 	outer_vbox.add_child(header_row)
 	header_label = Label.new()
-	header_label.text = "训练科技树"
+	header_label.text = "Research Tree"
 	header_label.add_theme_font_size_override("font_size", 22)
 	header_label.add_theme_color_override("font_color", Color(0.5, 0.8, 1.0))
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -149,7 +149,7 @@ func _refresh_status() -> void:
 	var speed: float = ResearchManager.get_research_speed(pid)
 	if current == "":
 		var lbl := Label.new()
-		lbl.text = "当前无研究项目"
+		lbl.text = "No current research"
 		lbl.add_theme_font_size_override("font_size", 14)
 		lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 		status_container.add_child(lbl)
@@ -160,7 +160,7 @@ func _refresh_status() -> void:
 		row.add_theme_constant_override("separation", 8)
 		status_container.add_child(row)
 		var lbl := Label.new()
-		lbl.text = "研究中: %s  [%d/%d回合]  速度: %.1f" % [data.get("name", current), progress, turns_needed, speed]
+		lbl.text = "Researching: %s  [%d/%d turns]  Speed: %.1f" % [data.get("name", current), progress, turns_needed, speed]
 		lbl.add_theme_font_size_override("font_size", 14)
 		lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -170,7 +170,7 @@ func _refresh_status() -> void:
 		bar.custom_minimum_size = Vector2(180, 16); bar.show_percentage = false
 		row.add_child(bar)
 		var btn_cancel := Button.new()
-		btn_cancel.text = "取消研究"; btn_cancel.custom_minimum_size = Vector2(100, 28)
+		btn_cancel.text = "Cancel Research"; btn_cancel.custom_minimum_size = Vector2(100, 28)
 		btn_cancel.add_theme_font_size_override("font_size", 12)
 		btn_cancel.pressed.connect(_on_cancel_research)
 		row.add_child(btn_cancel)
@@ -180,7 +180,7 @@ func _refresh_status() -> void:
 		var names: Array = []
 		for tid in queue: names.append(ResearchManager.get_tech_name(tid))
 		var ql := Label.new()
-		ql.text = "队列: %s" % " -> ".join(names)
+		ql.text = "Queue: %s" % " -> ".join(names)
 		ql.add_theme_font_size_override("font_size", 12)
 		ql.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
 		status_container.add_child(ql)
@@ -200,12 +200,12 @@ func _refresh_tree() -> void:
 	var branches: Dictionary = {}
 	for tech_id in ResearchManager._active_tree:
 		var data: Dictionary = ResearchManager._active_tree[tech_id]
-		var branch: String = data.get("branch", "通用")
+		var branch: String = data.get("branch", "General")
 		if not branches.has(branch): branches[branch] = []
 		branches[branch].append({"id": tech_id, "data": data})
 	if branches.is_empty():
 		var lbl := Label.new()
-		lbl.text = "无可用科技树 (需要建造学院类建筑)"
+		lbl.text = "No research available (build an academy first)"
 		lbl.add_theme_font_size_override("font_size", 14)
 		lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 		tree_container.add_child(lbl); _tree_nodes.append(lbl); return
@@ -221,11 +221,11 @@ func _refresh_tree() -> void:
 		for entry in techs:
 			var tid: String = entry["id"]; var d: Dictionary = entry["data"]
 			var state_text: String; var nc: Color
-			if tid in completed: state_text = "已完成"; nc = Color(0.3, 0.9, 0.4)
-			elif tid == current: state_text = "研究中"; nc = Color(1.0, 0.9, 0.3)
-			elif tid in queue: state_text = "队列中"; nc = Color(0.8, 0.7, 0.3)
-			elif tid in available_ids: state_text = "可研究"; nc = Color(0.9, 0.9, 0.95)
-			else: state_text = "未解锁"; nc = Color(0.4, 0.4, 0.45)
+			if tid in completed: state_text = "Complete"; nc = Color(0.3, 0.9, 0.4)
+			elif tid == current: state_text = "Researching"; nc = Color(1.0, 0.9, 0.3)
+			elif tid in queue: state_text = "Queued"; nc = Color(0.8, 0.7, 0.3)
+			elif tid in available_ids: state_text = "Available"; nc = Color(0.9, 0.9, 0.95)
+			else: state_text = "Locked"; nc = Color(0.4, 0.4, 0.45)
 			var btn := Button.new()
 			btn.text = "  T%d  %s  [%s]" % [d.get("tier", 0), d.get("name", tid), state_text]
 			btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -253,14 +253,14 @@ func _refresh_detail() -> void:
 	nl.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
 	detail_container.add_child(nl)
 	var ml := Label.new()
-	ml.text = "分支: %s  |  阶层: T%d" % [data.get("branch", "?"), data.get("tier", 0)]
+	ml.text = "Branch: %s  |  Tier: T%d" % [data.get("branch", "?"), data.get("tier", 0)]
 	ml.add_theme_font_size_override("font_size", 12)
 	ml.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	detail_container.add_child(ml)
 	detail_container.add_child(HSeparator.new())
 	# Description
 	var dl := Label.new()
-	dl.text = data.get("desc", "无描述"); dl.add_theme_font_size_override("font_size", 13)
+	dl.text = data.get("desc", "No description"); dl.add_theme_font_size_override("font_size", 13)
 	dl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	detail_container.add_child(dl)
@@ -270,13 +270,13 @@ func _refresh_detail() -> void:
 		var parts: Array = []
 		for key in cost: parts.append("%s: %d" % [key, cost[key]])
 		var cl := Label.new()
-		cl.text = "费用: %s" % ", ".join(parts)
+		cl.text = "Cost: %s" % ", ".join(parts)
 		cl.add_theme_font_size_override("font_size", 12)
 		cl.add_theme_color_override("font_color", Color(0.8, 0.6, 0.3))
 		detail_container.add_child(cl)
 	# Turns
 	var tl := Label.new()
-	tl.text = "研究回合: %d" % data.get("turns", 1)
+	tl.text = "Research turns: %d" % data.get("turns", 1)
 	tl.add_theme_font_size_override("font_size", 12)
 	tl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.8))
 	detail_container.add_child(tl)
@@ -288,7 +288,7 @@ func _refresh_detail() -> void:
 			var pd: Dictionary = ResearchManager.get_tech_data(p)
 			pn.append(pd.get("name", p) + (" (done)" if p in completed else ""))
 		var pl := Label.new()
-		pl.text = "前置: %s" % ", ".join(pn)
+		pl.text = "Requires: %s" % ", ".join(pn)
 		pl.add_theme_font_size_override("font_size", 12)
 		pl.add_theme_color_override("font_color", Color(0.7, 0.5, 0.4))
 		pl.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -298,7 +298,7 @@ func _refresh_detail() -> void:
 	if not effects.is_empty():
 		detail_container.add_child(HSeparator.new())
 		var et := Label.new()
-		et.text = "效果:"; et.add_theme_font_size_override("font_size", 13)
+		et.text = "Effects:"; et.add_theme_font_size_override("font_size", 13)
 		et.add_theme_color_override("font_color", Color(0.5, 0.8, 0.5))
 		detail_container.add_child(et)
 		for key in effects:
@@ -312,19 +312,19 @@ func _refresh_detail() -> void:
 	detail_container.add_child(HSeparator.new())
 	if _selected_tech_id in completed:
 		var done := Label.new()
-		done.text = "已完成"; done.add_theme_font_size_override("font_size", 14)
+		done.text = "Complete"; done.add_theme_font_size_override("font_size", 14)
 		done.add_theme_color_override("font_color", Color(0.3, 0.9, 0.4))
 		detail_container.add_child(done)
 	elif _selected_tech_id in available_ids:
 		var bs := Button.new()
-		bs.text = "开始研究" if current == "" else "加入研究队列"
+		bs.text = "Start Research" if current == "" else "Queue Research"
 		bs.custom_minimum_size = Vector2(140, 34)
 		bs.add_theme_font_size_override("font_size", 14)
 		bs.pressed.connect(_on_start_research.bind(_selected_tech_id))
 		detail_container.add_child(bs)
 	else:
 		var ll := Label.new()
-		ll.text = "前置条件未满足"; ll.add_theme_font_size_override("font_size", 13)
+		ll.text = "Prerequisites not met"; ll.add_theme_font_size_override("font_size", 13)
 		ll.add_theme_color_override("font_color", Color(0.5, 0.4, 0.4))
 		detail_container.add_child(ll)
 

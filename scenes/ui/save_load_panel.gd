@@ -1,4 +1,4 @@
-## save_load_panel.gd - Save/Load UI for 暗潮 SLG (v0.9.1)
+## save_load_panel.gd - Save/Load UI for Dark Tide SLG (v0.9.1)
 ## 5 manual slots + auto-save slot
 extends CanvasLayer
 
@@ -82,7 +82,7 @@ func _build_ui() -> void:
 	vbox.add_child(header)
 
 	title_label = Label.new()
-	title_label.text = "存档"
+	title_label.text = "Save/Load"
 	title_label.add_theme_font_size_override("font_size", 20)
 	title_label.add_theme_color_override("font_color", Color(0.8, 0.85, 1.0))
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -110,7 +110,7 @@ func _build_ui() -> void:
 
 func show_save() -> void:
 	_mode = "save"
-	title_label.text = "保存游戏"
+	title_label.text = "Save Game"
 	_refresh_slots()
 	_visible = true
 	root.visible = true
@@ -118,7 +118,7 @@ func show_save() -> void:
 
 func show_load() -> void:
 	_mode = "load"
-	title_label.text = "读取存档"
+	title_label.text = "Load Game"
 	_refresh_slots()
 	_visible = true
 	root.visible = true
@@ -145,11 +145,11 @@ func _refresh_slots() -> void:
 	_slot_nodes.clear()
 
 	# Auto-save slot
-	_add_slot_row(-1, "自动存档")
+	_add_slot_row(-1, "Auto Save")
 
 	# Manual slots
 	for i in range(SLOT_COUNT):
-		_add_slot_row(i, "存档 %d" % (i + 1))
+		_add_slot_row(i, "Slot %d" % (i + 1))
 
 
 func _add_slot_row(slot_index: int, label: String) -> void:
@@ -180,13 +180,13 @@ func _add_slot_row(slot_index: int, label: String) -> void:
 		var date: String = info.get("save_date", "")
 
 		var detail_lbl := Label.new()
-		detail_lbl.text = "回合%d | %s | %s" % [turn, faction, date]
+		detail_lbl.text = "Turn %d | %s | %s" % [turn, faction, date]
 		detail_lbl.add_theme_font_size_override("font_size", 11)
 		detail_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 		info_vbox.add_child(detail_lbl)
 	else:
 		var empty_lbl := Label.new()
-		empty_lbl.text = "-- 空 --"
+		empty_lbl.text = "-- Empty --"
 		empty_lbl.add_theme_font_size_override("font_size", 11)
 		empty_lbl.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
 		info_vbox.add_child(empty_lbl)
@@ -197,14 +197,14 @@ func _add_slot_row(slot_index: int, label: String) -> void:
 	btn.add_theme_font_size_override("font_size", 13)
 
 	if _mode == "save":
-		btn.text = "保存"
+		btn.text = "Save"
 		btn.pressed.connect(_on_save_slot.bind(actual_slot))
 		# Can't save to auto-save slot manually (it's automatic)
 		if slot_index < 0:
 			btn.disabled = true
-			btn.text = "自动"
+			btn.text = "Auto"
 	else:
-		btn.text = "读取"
+		btn.text = "Load"
 		btn.disabled = not has_save
 		btn.pressed.connect(_on_load_slot.bind(actual_slot))
 
@@ -213,7 +213,7 @@ func _add_slot_row(slot_index: int, label: String) -> void:
 	# Delete button (only for slots with saves, not auto-save)
 	if has_save and slot_index >= 0:
 		var btn_del := Button.new()
-		btn_del.text = "删"
+		btn_del.text = "Del"
 		btn_del.custom_minimum_size = Vector2(36, 36)
 		btn_del.add_theme_font_size_override("font_size", 12)
 		btn_del.pressed.connect(_on_delete_slot.bind(actual_slot))
@@ -229,9 +229,9 @@ func _on_save_slot(slot: int) -> void:
 	if SaveManager.has_method("save_game"):
 		var success: bool = SaveManager.save_game(slot)
 		if success:
-			EventBus.message_log.emit("[color=lime]游戏已保存到存档 %d[/color]" % (slot + 1))
+			EventBus.message_log.emit("[color=lime]Game saved to slot %d[/color]" % (slot + 1))
 		else:
-			EventBus.message_log.emit("[color=red]保存失败[/color]")
+			EventBus.message_log.emit("[color=red]Save failed[/color]")
 	_refresh_slots()
 
 
@@ -240,15 +240,15 @@ func _on_load_slot(slot: int) -> void:
 	if SaveManager.has_method("load_game"):
 		var success: bool = SaveManager.load_game(slot)
 		if success:
-			EventBus.message_log.emit("[color=lime]存档 %d 已读取[/color]" % (slot + 1))
+			EventBus.message_log.emit("[color=lime]Slot %d loaded[/color]" % (slot + 1))
 			hide_panel()
 		else:
-			EventBus.message_log.emit("[color=red]读取失败[/color]")
+			EventBus.message_log.emit("[color=red]Load failed[/color]")
 
 
 func _on_delete_slot(slot: int) -> void:
 	AudioManager.play_ui_click()
 	if SaveManager.has_method("delete_save"):
 		SaveManager.delete_save(slot)
-		EventBus.message_log.emit("存档 %d 已删除" % (slot + 1))
+		EventBus.message_log.emit("Slot %d deleted" % (slot + 1))
 	_refresh_slots()

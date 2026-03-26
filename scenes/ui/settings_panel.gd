@@ -1,4 +1,4 @@
-## settings_panel.gd - Game settings UI for 暗潮 SLG (v3.0)
+## settings_panel.gd - Game settings UI for Dark Tide SLG (v3.0)
 ## Provides audio, display, gameplay, and difficulty settings with persistence.
 extends CanvasLayer
 
@@ -116,7 +116,7 @@ func _build_ui() -> void:
 
 	# Title
 	var title := Label.new()
-	title.text = "游戏设置"
+	title.text = "Settings"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 24)
 	title.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
@@ -125,93 +125,93 @@ func _build_ui() -> void:
 	vbox.add_child(HSeparator.new())
 
 	# ── Audio section ──
-	_add_section_header(vbox, "音频")
+	_add_section_header(vbox, "Audio")
 
-	bgm_slider = _add_slider(vbox, "背景音乐", DEFAULTS["bgm_volume"])
+	bgm_slider = _add_slider(vbox, "BGM", DEFAULTS["bgm_volume"])
 	bgm_slider.value_changed.connect(func(v): AudioManager.set_bgm_volume(v))
 
-	sfx_slider = _add_slider(vbox, "音效", DEFAULTS["sfx_volume"])
+	sfx_slider = _add_slider(vbox, "SFX", DEFAULTS["sfx_volume"])
 	sfx_slider.value_changed.connect(func(v): AudioManager.set_sfx_volume(v))
 
-	ambient_slider = _add_slider(vbox, "环境音", DEFAULTS["ambient_volume"])
+	ambient_slider = _add_slider(vbox, "Ambient", DEFAULTS["ambient_volume"])
 	ambient_slider.value_changed.connect(func(v): AudioManager.set_ambient_volume(v))
 
 	mute_check = CheckButton.new()
-	mute_check.text = "静音"
-	mute_check.toggled.connect(func(on): AudioManager.master_muted = on; AudioServer.set_bus_mute(0, on))
+	mute_check.text = "Mute"
+	mute_check.toggled.connect(func(_on): AudioManager.toggle_mute())
 	vbox.add_child(mute_check)
 
 	vbox.add_child(HSeparator.new())
 
 	# ── Display section ──
-	_add_section_header(vbox, "显示")
+	_add_section_header(vbox, "Display")
 
 	show_grid_check = CheckButton.new()
-	show_grid_check.text = "显示网格"
+	show_grid_check.text = "Show Grid"
 	show_grid_check.button_pressed = DEFAULTS["show_grid"]
-	show_grid_check.toggled.connect(func(on): EventBus.message_log.emit("网格显示: %s" % ("开" if on else "关")))
+	show_grid_check.toggled.connect(func(on): EventBus.message_log.emit("Grid: %s" % ("ON" if on else "OFF")))
 	vbox.add_child(show_grid_check)
 
 	show_fog_check = CheckButton.new()
-	show_fog_check.text = "显示迷雾"
+	show_fog_check.text = "Show Fog"
 	show_fog_check.button_pressed = DEFAULTS["show_fog"]
-	show_fog_check.toggled.connect(func(on): EventBus.message_log.emit("迷雾显示: %s" % ("开" if on else "关")))
+	show_fog_check.toggled.connect(func(on): EventBus.message_log.emit("Fog: %s" % ("ON" if on else "OFF")))
 	vbox.add_child(show_fog_check)
 
 	fullscreen_check = CheckButton.new()
-	fullscreen_check.text = "全屏"
+	fullscreen_check.text = "Fullscreen"
 	fullscreen_check.button_pressed = DEFAULTS["fullscreen"]
 	fullscreen_check.toggled.connect(func(on):
 		if on:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 		else:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-		EventBus.message_log.emit("全屏: %s" % ("开" if on else "关"))
+		EventBus.message_log.emit("Fullscreen: %s" % ("ON" if on else "OFF"))
 	)
 	vbox.add_child(fullscreen_check)
 
-	combat_speed_slider = _add_slider(vbox, "战斗速度", DEFAULTS["combat_speed"] / 3.0)
+	combat_speed_slider = _add_slider(vbox, "Combat Speed", DEFAULTS["combat_speed"] / 3.0)
 	combat_speed_slider.value_changed.connect(func(v):
 		var speed: float = v * 3.0
-		EventBus.message_log.emit("战斗速度: %.1fx" % speed)
+		EventBus.message_log.emit("Combat Speed: %.1fx" % speed)
 	)
 
 	vbox.add_child(HSeparator.new())
 
 	# ── Gameplay section ──
-	_add_section_header(vbox, "游戏")
+	_add_section_header(vbox, "Gameplay")
 
 	tutorial_check = CheckButton.new()
-	tutorial_check.text = "启用教程"
+	tutorial_check.text = "Enable Tutorial"
 	tutorial_check.button_pressed = DEFAULTS["tutorial_enabled"]
 	vbox.add_child(tutorial_check)
 
 	edge_scroll_check = CheckButton.new()
-	edge_scroll_check.text = "边缘滚动"
+	edge_scroll_check.text = "Edge Scroll"
 	edge_scroll_check.button_pressed = DEFAULTS["edge_scroll"]
 	vbox.add_child(edge_scroll_check)
 
 	auto_end_turn_check = CheckButton.new()
-	auto_end_turn_check.text = "自动结束回合 (无行动时)"
+	auto_end_turn_check.text = "Auto End Turn (when idle)"
 	auto_end_turn_check.button_pressed = DEFAULTS["auto_end_turn"]
 	vbox.add_child(auto_end_turn_check)
 
 	auto_save_check = CheckButton.new()
-	auto_save_check.text = "自动存档"
+	auto_save_check.text = "Auto Save"
 	auto_save_check.button_pressed = DEFAULTS["auto_save"]
 	vbox.add_child(auto_save_check)
 
 	vbox.add_child(HSeparator.new())
 
 	# ── Difficulty section (v3.0) ──
-	_add_section_header(vbox, "难度")
+	_add_section_header(vbox, "Difficulty")
 
 	var diff_row := HBoxContainer.new()
 	diff_row.add_theme_constant_override("separation", 8)
 	vbox.add_child(diff_row)
 
 	var diff_lbl := Label.new()
-	diff_lbl.text = "游戏难度"
+	diff_lbl.text = "Game Difficulty"
 	diff_lbl.custom_minimum_size = Vector2(80, 0)
 	diff_lbl.add_theme_font_size_override("font_size", 14)
 	diff_row.add_child(diff_lbl)
@@ -219,20 +219,20 @@ func _build_ui() -> void:
 	difficulty_option = OptionButton.new()
 	difficulty_option.custom_minimum_size = Vector2(160, 30)
 	var diff_keys: Array = ["easy", "normal", "hard", "nightmare"]
-	var diff_labels: Array = ["简单", "普通", "困难", "噩梦"]
+	var diff_labels: Array = ["Easy", "Normal", "Hard", "Nightmare"]
 	for i in range(diff_keys.size()):
 		difficulty_option.add_item(diff_labels[i], i)
 	difficulty_option.selected = 1  # default: normal
 	difficulty_option.item_selected.connect(func(idx):
 		var key: String = diff_keys[idx]
 		BalanceManager.set_difficulty(key)
-		EventBus.message_log.emit("难度已设为: %s" % diff_labels[idx])
+		EventBus.message_log.emit("Difficulty set to: %s" % diff_labels[idx])
 	)
 	diff_row.add_child(difficulty_option)
 
 	# Difficulty description
 	var diff_desc := Label.new()
-	diff_desc.text = "影响AI强度、远征频率、威胁增长、玩家经济等"
+	diff_desc.text = "Affects AI strength, expedition frequency, threat growth, player economy"
 	diff_desc.add_theme_font_size_override("font_size", 11)
 	diff_desc.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 	diff_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -247,12 +247,12 @@ func _build_ui() -> void:
 	vbox.add_child(btn_row)
 
 	var btn_defaults := Button.new()
-	btn_defaults.text = "恢复默认"
+	btn_defaults.text = "Reset Defaults"
 	btn_defaults.pressed.connect(_reset_to_defaults)
 	btn_row.add_child(btn_defaults)
 
 	var btn_close := Button.new()
-	btn_close.text = "保存并关闭"
+	btn_close.text = "Save & Close"
 	btn_close.pressed.connect(func():
 		_save_settings()
 		toggle_settings()

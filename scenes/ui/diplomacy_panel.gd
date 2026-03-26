@@ -1,4 +1,4 @@
-## diplomacy_panel.gd - 外交面板 UI for 暗潮 SLG (v1.0)
+## diplomacy_panel.gd - Diplomacy Panel UI for Dark Tide SLG (v1.0)
 ## Shows all factions (light/evil/neutral) with diplomacy actions and taming levels.
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -85,7 +85,7 @@ func _build_ui() -> void:
 	header_row.add_theme_constant_override("separation", 12)
 	outer_vbox.add_child(header_row)
 	header_label = Label.new()
-	header_label.text = "外交总览"
+	header_label.text = "Diplomacy Overview"
 	header_label.add_theme_font_size_override("font_size", 22)
 	header_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.4))
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -100,13 +100,13 @@ func _build_ui() -> void:
 	tab_container = HBoxContainer.new()
 	tab_container.add_theme_constant_override("separation", 4)
 	outer_vbox.add_child(tab_container)
-	btn_tab_evil = _make_tab_button("恶势力阵营")
+	btn_tab_evil = _make_tab_button("Evil Factions")
 	btn_tab_evil.pressed.connect(func(): _switch_tab("evil"))
 	tab_container.add_child(btn_tab_evil)
-	btn_tab_light = _make_tab_button("光明阵营")
+	btn_tab_light = _make_tab_button("Light Alliance")
 	btn_tab_light.pressed.connect(func(): _switch_tab("light"))
 	tab_container.add_child(btn_tab_light)
-	btn_tab_neutral = _make_tab_button("中立势力")
+	btn_tab_neutral = _make_tab_button("Neutral Factions")
 	btn_tab_neutral.pressed.connect(func(): _switch_tab("neutral"))
 	tab_container.add_child(btn_tab_neutral)
 
@@ -161,7 +161,7 @@ func _clear_content() -> void:
 	_faction_nodes.clear()
 
 func _build_evil_factions() -> void:
-	## 恶势力阵营: ORC, PIRATE, DARK_ELF — 使用 DiplomacyManager
+	## Evil Factions: ORC, PIRATE, DARK_ELF -- uses DiplomacyManager
 	var pid: int = GameManager.get_human_player_id()
 	var factions: Array = [FactionData.FactionID.ORC, FactionData.FactionID.PIRATE, FactionData.FactionID.DARK_ELF]
 	var player_faction: int = GameManager.get_player_faction(pid)
@@ -169,7 +169,7 @@ func _build_evil_factions() -> void:
 	for fid in factions:
 		if fid == player_faction: continue
 		var rel: Dictionary = DiplomacyManager.get_all_relations(pid).get(fid, {})
-		var fname: String = FactionData.FACTION_NAMES.get(fid, "未知")
+		var fname: String = FactionData.FACTION_NAMES.get(fid, "Unknown")
 		var recruited: bool = rel.get("recruited", false)
 		var hostile: bool = rel.get("hostile", false)
 		var ceasefire: bool = DiplomacyManager.is_ceasefire_active(pid, fid)
@@ -178,17 +178,17 @@ func _build_evil_factions() -> void:
 		var status_text: String; var status_color: Color
 		if recruited:
 			if method == "diplomacy":
-				status_text = "已收编 (外交)"; status_color = Color(0.3, 0.9, 0.4)
+				status_text = "Subjugated (Diplomacy)"; status_color = Color(0.3, 0.9, 0.4)
 			else:
-				status_text = "已征服"; status_color = Color(0.9, 0.7, 0.2)
+				status_text = "Conquered"; status_color = Color(0.9, 0.7, 0.2)
 				var reb: int = rel.get("rebellion_turns", 0)
-				if reb > 0: status_text += " (叛乱风险: %d回合)" % reb
+				if reb > 0: status_text += " (Rebellion risk: %d turns)" % reb
 		elif ceasefire:
-			status_text = "停战中"; status_color = Color(0.6, 0.7, 1.0)
+			status_text = "Ceasefire"; status_color = Color(0.6, 0.7, 1.0)
 		elif hostile:
-			status_text = "敌对"; status_color = Color(1.0, 0.4, 0.3)
+			status_text = "Hostile"; status_color = Color(1.0, 0.4, 0.3)
 		else:
-			status_text = "中立"; status_color = Color(0.7, 0.7, 0.75)
+			status_text = "Neutral"; status_color = Color(0.7, 0.7, 0.75)
 
 		var card := _build_faction_card(fname, status_text, status_color, _get_evil_faction_color(fid))
 
@@ -200,8 +200,8 @@ func _build_evil_factions() -> void:
 				var type_name: String = DiplomacyManager._get_treaty_type_name(treaty["type"])
 				var extra: String = ""
 				if treaty.has("gold_per_turn"):
-					extra = " (%d金/回合)" % treaty["gold_per_turn"]
-				treaty_lbl.text = "  [%s] %d回合剩余%s" % [type_name, treaty["turns_left"], extra]
+					extra = " (%d gold/turn)" % treaty["gold_per_turn"]
+				treaty_lbl.text = "  [%s] %d turns left%s" % [type_name, treaty["turns_left"], extra]
 				treaty_lbl.add_theme_font_size_override("font_size", 11)
 				treaty_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.9))
 				card.get_child(0).add_child(treaty_lbl)
@@ -228,7 +228,7 @@ func _build_evil_factions() -> void:
 				btn_row2.add_theme_constant_override("separation", 4)
 				card.get_child(0).add_child(btn_row2)
 				var btn_gift := Button.new()
-				btn_gift.text = "赠礼 (50金)"
+				btn_gift.text = "Gift (50g)"
 				btn_gift.custom_minimum_size = Vector2(120, 28)
 				btn_gift.add_theme_font_size_override("font_size", 11)
 				btn_gift.pressed.connect(_on_send_gift.bind(fid))
@@ -237,7 +237,7 @@ func _build_evil_factions() -> void:
 			for treaty in active_treaties:
 				if treaty["target"] == fid:
 					var btn_break := Button.new()
-					btn_break.text = "撕毁: %s" % DiplomacyManager._get_treaty_type_name(treaty["type"])
+					btn_break.text = "Break: %s" % DiplomacyManager._get_treaty_type_name(treaty["type"])
 					btn_break.custom_minimum_size = Vector2(140, 28)
 					btn_break.add_theme_font_size_override("font_size", 11)
 					btn_break.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
@@ -247,7 +247,7 @@ func _build_evil_factions() -> void:
 		content_container.add_child(card); _faction_nodes.append(card)
 
 func _build_light_factions() -> void:
-	## 光明阵营: HUMAN_KINGDOM, HIGH_ELVES, MAGE_TOWER — 可外交互动
+	## Light Alliance: HUMAN_KINGDOM, HIGH_ELVES, MAGE_TOWER -- diplomacy interactions
 	var pid: int = GameManager.get_human_player_id()
 	var threat: int = ThreatManager.get_threat()
 	var ceasefire_active: bool = DiplomacyManager.is_light_ceasefire_active()
@@ -256,29 +256,29 @@ func _build_light_factions() -> void:
 	var status_text: String
 	var status_color: Color
 	if ceasefire_active:
-		status_text = "停战中 (%d回合)" % DiplomacyManager.get_light_ceasefire_turns()
+		status_text = "Ceasefire (%d turns)" % DiplomacyManager.get_light_ceasefire_turns()
 		status_color = Color(0.4, 0.8, 1.0)
 	elif threat >= 80:
-		status_text = "绝望反击 (威胁%d)" % threat
+		status_text = "Desperate Counter (Threat %d)" % threat
 		status_color = Color(1.0, 0.2, 0.2)
 	elif threat >= 60:
-		status_text = "全面战争 (威胁%d)" % threat
+		status_text = "Total War (Threat %d)" % threat
 		status_color = Color(1.0, 0.5, 0.2)
 	elif threat >= 30:
-		status_text = "警戒防御 (威胁%d)" % threat
+		status_text = "Alert Defense (Threat %d)" % threat
 		status_color = Color(1.0, 0.7, 0.3)
 	else:
-		status_text = "戒备 (威胁%d)" % threat
+		status_text = "Vigilant (Threat %d)" % threat
 		status_color = Color(0.7, 0.7, 0.75)
 
-	var card := _build_faction_card("光明联盟", status_text, status_color, Color(0.4, 0.6, 1.0))
+	var card := _build_faction_card("Light Alliance", status_text, status_color, Color(0.4, 0.6, 1.0))
 
 	# Threat bar
 	var threat_row := HBoxContainer.new()
 	threat_row.add_theme_constant_override("separation", 8)
 	card.get_child(0).add_child(threat_row)
 	var threat_lbl := Label.new()
-	threat_lbl.text = "威胁值: %d/100" % threat
+	threat_lbl.text = "Threat: %d/100" % threat
 	threat_lbl.custom_minimum_size = Vector2(100, 0)
 	threat_lbl.add_theme_font_size_override("font_size", 12)
 	threat_lbl.add_theme_color_override("font_color", Color(0.8, 0.5, 0.3))
@@ -290,7 +290,7 @@ func _build_light_factions() -> void:
 
 	# Description
 	var desc_lbl := Label.new()
-	desc_lbl.text = "光明阵营与暗势力天然敌对, 但可通过外交手段暂时停战或勒索"
+	desc_lbl.text = "The Light Alliance is naturally hostile to dark forces, but can negotiate ceasefires or extortion"
 	desc_lbl.add_theme_font_size_override("font_size", 11)
 	desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -317,11 +317,11 @@ func _build_light_factions() -> void:
 	# Individual light factions (info cards)
 	for lfid in FactionData.LIGHT_FACTION_NAMES:
 		var fname: String = FactionData.LIGHT_FACTION_NAMES[lfid]
-		var sub_card := _build_faction_card(fname, "敌对", Color(1.0, 0.5, 0.3), Color(0.4, 0.6, 1.0))
+		var sub_card := _build_faction_card(fname, "Hostile", Color(1.0, 0.5, 0.3), Color(0.4, 0.6, 1.0))
 		content_container.add_child(sub_card); _faction_nodes.append(sub_card)
 
 func _build_neutral_factions() -> void:
-	## 中立势力: 6 neutral factions with taming system (0-10)
+	## Neutral Factions: 6 neutral factions with taming system (0-10)
 	var pid: int = GameManager.get_human_player_id()
 	for nfid in FactionData.NEUTRAL_FACTION_NAMES:
 		var fname: String = FactionData.NEUTRAL_FACTION_NAMES[nfid]
@@ -330,21 +330,21 @@ func _build_neutral_factions() -> void:
 		var recruited: bool = QuestManager.is_faction_recruited(pid, nfid) if QuestManager.has_method("is_faction_recruited") else (taming >= 10)
 		var status_text: String; var status_color: Color
 		match tier:
-			"hostile": status_text = "敌意"; status_color = Color(1.0, 0.4, 0.3)
-			"neutral": status_text = "中立"; status_color = Color(0.7, 0.7, 0.75)
-			"friendly": status_text = "友好"; status_color = Color(0.5, 0.8, 0.4)
-			"allied": status_text = "同盟"; status_color = Color(0.3, 0.7, 1.0)
-			"tamed": status_text = "驯服"; status_color = Color(1.0, 0.85, 0.3)
+			"hostile": status_text = "Hostile"; status_color = Color(1.0, 0.4, 0.3)
+			"neutral": status_text = "Neutral"; status_color = Color(0.7, 0.7, 0.75)
+			"friendly": status_text = "Friendly"; status_color = Color(0.5, 0.8, 0.4)
+			"allied": status_text = "Allied"; status_color = Color(0.3, 0.7, 1.0)
+			"tamed": status_text = "Tamed"; status_color = Color(1.0, 0.85, 0.3)
 			_: status_text = tier; status_color = Color(0.6, 0.6, 0.6)
 		if recruited:
-			status_text = "已收编"; status_color = Color(0.3, 1.0, 0.5)
+			status_text = "Subjugated"; status_color = Color(0.3, 1.0, 0.5)
 		var card := _build_faction_card(fname, status_text, status_color, Color(0.8, 0.7, 0.5))
 		# Taming progress bar
 		var taming_row := HBoxContainer.new()
 		taming_row.add_theme_constant_override("separation", 8)
 		card.get_child(0).add_child(taming_row)
 		var taming_lbl := Label.new()
-		taming_lbl.text = "驯服度: %d/10" % taming
+		taming_lbl.text = "Taming: %d/10" % taming
 		taming_lbl.custom_minimum_size = Vector2(90, 0)
 		taming_lbl.add_theme_font_size_override("font_size", 12)
 		taming_lbl.add_theme_color_override("font_color", Color(0.7, 0.65, 0.5))
@@ -355,7 +355,7 @@ func _build_neutral_factions() -> void:
 		taming_row.add_child(bar)
 		# Threshold labels
 		var threshold_lbl := Label.new()
-		threshold_lbl.text = "  0=敌意  3=中立  5=友好  7=同盟  10=驯服"
+		threshold_lbl.text = "  0=Hostile  3=Neutral  5=Friendly  7=Allied  10=Tamed"
 		threshold_lbl.add_theme_font_size_override("font_size", 10)
 		threshold_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 		card.get_child(0).add_child(threshold_lbl)
@@ -363,7 +363,7 @@ func _build_neutral_factions() -> void:
 		if QuestManager.has_method("get_quest_step"):
 			var step: int = QuestManager.get_quest_step(pid, nfid)
 			var quest_lbl := Label.new()
-			quest_lbl.text = "任务进度: %d/3 步骤" % step
+			quest_lbl.text = "Quest: %d/3 steps" % step
 			quest_lbl.add_theme_font_size_override("font_size", 12)
 			quest_lbl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.5))
 			card.get_child(0).add_child(quest_lbl)
@@ -449,12 +449,12 @@ func _on_send_gift(faction_id: int) -> void:
 	AudioManager.play_ui_click()
 	var pid: int = GameManager.get_human_player_id()
 	if not ResourceManager.can_afford(pid, {"gold": 50}):
-		EventBus.message_log.emit("[color=red]金币不足 (需要50金)[/color]"); return
+		EventBus.message_log.emit("[color=red]Not enough gold (need 50)[/color]"); return
 	ResourceManager.spend(pid, {"gold": 50})
-	# BUG修复: 赠礼需要实际改善外交关系，否则只扣金币无效果
+	# BUG fix: gift needs to actually improve relations, otherwise just deducts gold with no effect
 	if DiplomacyManager.has_method("improve_relation"):
 		DiplomacyManager.improve_relation(pid, faction_id, 5)
-	EventBus.message_log.emit("向 %s 赠送贡品 (-50金, 好感+5)" % FactionData.FACTION_NAMES.get(faction_id, "未知"))
+	EventBus.message_log.emit("Sent tribute to %s (-50g, Rep +5)" % FactionData.FACTION_NAMES.get(faction_id, "Unknown"))
 	_refresh()
 
 func _on_dim_bg_input(event: InputEvent) -> void:

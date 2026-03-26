@@ -1,4 +1,4 @@
-## hero_detail_panel.gd - 英雄详情面板 UI for 暗潮 SLG (v1.0)
+## hero_detail_panel.gd - Hero Details panel UI for Dark Tide SLG (v1.0)
 ## Detailed hero info: stats breakdown, affection, equipment, skills, leveling.
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -72,7 +72,7 @@ func _build_ui() -> void:
 	header_row.add_theme_constant_override("separation", 12)
 	outer_vbox.add_child(header_row)
 	header_label = Label.new()
-	header_label.text = "英雄详情"
+	header_label.text = "Hero Details"
 	header_label.add_theme_font_size_override("font_size", 22)
 	header_label.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -131,9 +131,9 @@ func _refresh() -> void:
 	nl.add_theme_font_size_override("font_size", 20)
 	nl.add_theme_color_override("font_color", _get_faction_color(hero_def.get("faction", "")))
 	_add(nl)
-	header_label.text = hero_def.get("name", "英雄详情")
+	header_label.text = hero_def.get("name", "Hero Details")
 	var tl := Label.new()
-	tl.text = "阵营: %s  |  兵种: %s" % [hero_def.get("faction", "?"), hero_def.get("troop", "?")]
+	tl.text = "Faction: %s  |  Troop: %s" % [hero_def.get("faction", "?"), hero_def.get("troop", "?")]
 	tl.add_theme_font_size_override("font_size", 13)
 	tl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	_add(tl)
@@ -146,7 +146,7 @@ func _refresh() -> void:
 	lr.add_theme_constant_override("separation", 8)
 	_add(lr)
 	var ll := Label.new()
-	ll.text = "等级: %d" % level; ll.add_theme_font_size_override("font_size", 15)
+	ll.text = "Level: %d" % level; ll.add_theme_font_size_override("font_size", 15)
 	ll.add_theme_color_override("font_color", Color(0.9, 0.85, 0.4))
 	lr.add_child(ll)
 	var bar := ProgressBar.new()
@@ -162,7 +162,7 @@ func _refresh() -> void:
 
 	# ── Stats with breakdown (base + level + equipment) ──
 	_add(HSeparator.new())
-	_add(_make_section("属性"))
+	_add(_make_section("Stats"))
 	var ba: int = hero_def.get("base_atk", hero_def.get("atk", 0))
 	var bd: int = hero_def.get("base_def", hero_def.get("def", 0))
 	var bs: int = hero_def.get("base_spd", hero_def.get("spd", 0))
@@ -179,7 +179,7 @@ func _refresh() -> void:
 
 	# ── Affection (0-10) ──
 	_add(HSeparator.new())
-	_add(_make_section("好感度"))
+	_add(_make_section("Affection"))
 	var hearts: String = ""
 	for i in range(10): hearts += "# " if i < affection else "o "
 	var al := Label.new()
@@ -192,17 +192,17 @@ func _refresh() -> void:
 		var ut: Array = []
 		for u in unlocks:
 			match u:
-				"passive_upgrade": ut.append("被动强化")
-				"unique_event": ut.append("专属事件")
-				"second_active_skill": ut.append("第二技能")
-				"exclusive_ending": ut.append("专属结局")
+				"passive_upgrade": ut.append("Passive Upgrade")
+				"unique_event": ut.append("Unique Event")
+				"second_active_skill": ut.append("Second Skill")
+				"exclusive_ending": ut.append("Exclusive Ending")
 		var ul := Label.new()
-		ul.text = "已解锁: %s" % ", ".join(ut)
+		ul.text = "Unlocked: %s" % ", ".join(ut)
 		ul.add_theme_font_size_override("font_size", 11)
 		ul.add_theme_color_override("font_color", Color(0.5, 0.7, 0.4))
 		_add(ul)
 	var rl := Label.new()
-	rl.text = "阈值: 3=被动强化  5=专属事件  7=第二技能  10=专属结局"
+	rl.text = "Threshold: 3=Passive  5=Event  7=Skill  10=Ending"
 	rl.add_theme_font_size_override("font_size", 10)
 	rl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 	_add(rl)
@@ -212,7 +212,7 @@ func _refresh() -> void:
 	var _faction_id: int = GameManager.get_player_faction(_pid)
 	if _faction_id == FactionData.FactionID.PIRATE:
 		_add(HSeparator.new())
-		_add(_make_section("服从度"))
+		_add(_make_section("Submission"))
 		var submission: int = HeroSystem.get_submission(_hero_id)
 		var sub_color: Color
 		if submission < 3:
@@ -221,9 +221,9 @@ func _refresh() -> void:
 			sub_color = Color(1.0, 0.85, 0.3)   # yellow
 		else:
 			sub_color = Color(0.3, 1.0, 0.4)    # green
-		var sub_text: String = "服从度: %d/10" % submission
+		var sub_text: String = "Submission: %d/10" % submission
 		if submission >= 7:
-			sub_text += "  ✓ 已臣服"
+			sub_text += "  ✓ Submitted"
 		var sub_label := Label.new()
 		sub_label.text = sub_text
 		sub_label.add_theme_font_size_override("font_size", 13)
@@ -232,9 +232,9 @@ func _refresh() -> void:
 
 	# ── Equipment Slots ──
 	_add(HSeparator.new())
-	_add(_make_section("装备"))
+	_add(_make_section("Equipment"))
 	var equip_details: Array = HeroSystem.get_hero_equipment_details(_hero_id)
-	var slot_names: Dictionary = {"weapon": "武器", "armor": "防具", "accessory": "饰品"}
+	var slot_names: Dictionary = {"weapon": "Weapon", "armor": "Armor", "accessory": "Accessory"}
 	for ei in equip_details:
 		var sk: String = ei.get("slot_key", "")
 		var eid: String = ei.get("equip_id", "")
@@ -263,40 +263,40 @@ func _refresh() -> void:
 				esl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.9))
 				sr.add_child(esl)
 			var bu := Button.new()
-			bu.text = "卸下"; bu.custom_minimum_size = Vector2(56, 24)
+			bu.text = "Unequip"; bu.custom_minimum_size = Vector2(56, 24)
 			bu.add_theme_font_size_override("font_size", 11)
 			bu.pressed.connect(_on_unequip.bind(_hero_id, sk))
 			sr.add_child(bu)
 		else:
 			var eml := Label.new()
-			eml.text = "-- 空 --"; eml.add_theme_font_size_override("font_size", 13)
+			eml.text = "-- Empty --"; eml.add_theme_font_size_override("font_size", 13)
 			eml.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
 			eml.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			sr.add_child(eml)
 			var be := Button.new()
-			be.text = "装备"; be.custom_minimum_size = Vector2(56, 24)
+			be.text = "Equip"; be.custom_minimum_size = Vector2(56, 24)
 			be.add_theme_font_size_override("font_size", 11)
 			be.pressed.connect(_show_equip_picker.bind(_hero_id, sk))
 			sr.add_child(be)
 
 	# ── Active Skills ──
 	_add(HSeparator.new())
-	_add(_make_section("主动技能"))
+	_add(_make_section("Active Skill"))
 	var skill_data: Dictionary = HeroSystem.get_hero_skill_data(_hero_id)
 	if not skill_data.is_empty():
 		_add_skill(skill_data)
 	else:
 		var nsl := Label.new()
-		nsl.text = "无主动技能"; nsl.add_theme_font_size_override("font_size", 12)
+		nsl.text = "No active skill"; nsl.add_theme_font_size_override("font_size", 12)
 		nsl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 		_add(nsl)
-	# Second skill (好感度7解锁)
+	# Second skill (affection 7 unlock)
 	var sk2_name: String = combat_stats.get("active_2", "")
 	if sk2_name != "":
 		var sk2_def: Dictionary = FactionData.HERO_SKILL_DEFS.get(sk2_name, {})
 		if not sk2_def.is_empty():
 			var s2l := Label.new()
-			s2l.text = "[第二技能]"; s2l.add_theme_font_size_override("font_size", 12)
+			s2l.text = "[Second Skill]"; s2l.add_theme_font_size_override("font_size", 12)
 			s2l.add_theme_color_override("font_color", Color(0.8, 0.6, 0.3))
 			_add(s2l)
 			var s2d: Dictionary = sk2_def.duplicate(); s2d["name"] = sk2_name
@@ -304,12 +304,12 @@ func _refresh() -> void:
 
 	# ── Passive Skills ──
 	_add(HSeparator.new())
-	_add(_make_section("被动技能"))
+	_add(_make_section("Passive Skills"))
 	var lp: Array = combat_stats.get("level_passives", [])
 	var ep: Array = combat_stats.get("equipment_passives", [])
 	if lp.is_empty() and ep.is_empty():
 		var npl := Label.new()
-		npl.text = "无已解锁被动"; npl.add_theme_font_size_override("font_size", 12)
+		npl.text = "No unlocked passives"; npl.add_theme_font_size_override("font_size", 12)
 		npl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 		_add(npl)
 	else:
@@ -317,21 +317,21 @@ func _refresh() -> void:
 			var pn: String = p.get("id", p.get("name", "?")) if p is Dictionary else str(p)
 			var pd: String = p.get("desc", "") if p is Dictionary else ""
 			var pl := Label.new()
-			pl.text = "  [等级] %s%s" % [pn, (" - " + pd) if pd != "" else ""]
+			pl.text = "  [Level] %s%s" % [pn, (" - " + pd) if pd != "" else ""]
 			pl.add_theme_font_size_override("font_size", 12)
 			pl.add_theme_color_override("font_color", Color(0.5, 0.8, 0.6))
 			pl.autowrap_mode = TextServer.AUTOWRAP_WORD
 			_add(pl)
 		for epp in ep:
 			var epl := Label.new()
-			epl.text = "  [装备] %s" % str(epp)
+			epl.text = "  [Equip] %s" % str(epp)
 			epl.add_theme_font_size_override("font_size", 12)
 			epl.add_theme_color_override("font_color", Color(0.5, 0.6, 0.9))
 			_add(epl)
 
 func _add_skill(sd: Dictionary) -> void:
 	var sl := Label.new()
-	sl.text = "%s  [%s]  威力: %.0f  冷却: %d回合" % [sd.get("name", "?"), sd.get("type", "?"), sd.get("power", 0), sd.get("cooldown", 0)]
+	sl.text = "%s  [%s]  Power: %.0f  Cooldown: %d turns" % [sd.get("name", "?"), sd.get("type", "?"), sd.get("power", 0), sd.get("cooldown", 0)]
 	sl.add_theme_font_size_override("font_size", 13)
 	sl.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
 	_add(sl)
@@ -345,9 +345,9 @@ func _add_skill(sd: Dictionary) -> void:
 	if sd.has("ready"):
 		var cl := Label.new()
 		if sd["ready"]:
-			cl.text = "  状态: 可用"; cl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+			cl.text = "  Status: Ready"; cl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
 		else:
-			cl.text = "  冷却中: %d回合" % sd.get("cooldown_remaining", 0)
+			cl.text = "  Cooldown: %d turns" % sd.get("cooldown_remaining", 0)
 			cl.add_theme_color_override("font_color", Color(0.8, 0.4, 0.3))
 		cl.add_theme_font_size_override("font_size", 11)
 		_add(cl)
@@ -377,7 +377,7 @@ func _add_stat(name: String, total: int, base: int, lvl: int, eq: int, color: Co
 	vl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.95))
 	row.add_child(vl)
 	var bl := Label.new()
-	bl.text = "(基础:%d + 等级:%d + 装备:%d)" % [base, lvl, eq]
+	bl.text = "(Base:%d + Level:%d + Equip:%d)" % [base, lvl, eq]
 	bl.add_theme_font_size_override("font_size", 11)
 	bl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 	row.add_child(bl)
@@ -387,9 +387,9 @@ func _add_stat(name: String, total: int, base: int, lvl: int, eq: int, color: Co
 func _on_unequip(hero_id: String, slot_key: String) -> void:
 	var result: Dictionary = HeroSystem.unequip_item(hero_id, slot_key)
 	if result.get("ok", false):
-		EventBus.message_log.emit("已卸下装备"); _refresh()
+		EventBus.message_log.emit("Equipment removed"); _refresh()
 	else:
-		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "卸下失败"))
+		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "Unequip failed"))
 
 func _show_equip_picker(hero_id: String, slot_key: String) -> void:
 	## Show a popup listing available equipment from inventory that matches the given slot.
@@ -412,7 +412,7 @@ func _show_equip_picker(hero_id: String, slot_key: String) -> void:
 		if eq_def.get("slot", -1) == target_enum:
 			matching.append(eq)
 	if matching.is_empty():
-		EventBus.message_log.emit("[color=yellow]背包中没有可用的%s装备[/color]" % {"weapon": "武器", "armor": "防具", "accessory": "饰品"}.get(slot_key, slot_key))
+		EventBus.message_log.emit("[color=yellow]No available %s equipment in inventory[/color]" % {"weapon": "Weapon", "armor": "Armor", "accessory": "Accessory"}.get(slot_key, slot_key))
 		return
 	# Build popup overlay
 	var overlay := Control.new()
@@ -444,7 +444,7 @@ func _show_equip_picker(hero_id: String, slot_key: String) -> void:
 	var title_row := HBoxContainer.new()
 	pvbox.add_child(title_row)
 	var title_lbl := Label.new()
-	title_lbl.text = "选择装备 (%s)" % {"weapon": "武器", "armor": "防具", "accessory": "饰品"}.get(slot_key, slot_key)
+	title_lbl.text = "Select Equipment (%s)" % {"weapon": "Weapon", "armor": "Armor", "accessory": "Accessory"}.get(slot_key, slot_key)
 	title_lbl.add_theme_font_size_override("font_size", 16)
 	title_lbl.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -490,14 +490,14 @@ func _show_equip_picker(hero_id: String, slot_key: String) -> void:
 			pas_lbl.add_theme_color_override("font_color", Color(0.7, 0.5, 0.9))
 			row.add_child(pas_lbl)
 		var equip_btn := Button.new()
-		equip_btn.text = "装备"; equip_btn.custom_minimum_size = Vector2(56, 24)
+		equip_btn.text = "Equip"; equip_btn.custom_minimum_size = Vector2(56, 24)
 		equip_btn.add_theme_font_size_override("font_size", 11)
 		equip_btn.pressed.connect(func():
 			var result: Dictionary = HeroSystem.equip_item(hero_id, eq_id)
 			if result.get("ok", false):
-				EventBus.message_log.emit("装备成功")
+				EventBus.message_log.emit("Equip success")
 			else:
-				EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "装备失败"))
+				EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "Equip failed"))
 			overlay.queue_free()
 			_refresh()
 		)

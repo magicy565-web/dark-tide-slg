@@ -1,4 +1,4 @@
-## inventory_panel.gd - 背包/道具面板 UI for 暗潮 SLG (v1.0)
+## inventory_panel.gd - Inventory Panel UI for Dark Tide SLG (v1.0)
 ## Shows player inventory (consumables + equipment), item details, use/discard, and relic display.
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -79,7 +79,7 @@ func _build_ui() -> void:
 	header_row.add_theme_constant_override("separation", 12)
 	outer_vbox.add_child(header_row)
 	header_label = Label.new()
-	header_label.text = "背包"
+	header_label.text = "Inventory"
 	header_label.add_theme_font_size_override("font_size", 22)
 	header_label.add_theme_color_override("font_color", Color(0.9, 0.75, 0.3))
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -98,16 +98,16 @@ func _build_ui() -> void:
 	tab_container = HBoxContainer.new()
 	tab_container.add_theme_constant_override("separation", 4)
 	outer_vbox.add_child(tab_container)
-	btn_tab_all = _make_tab_button("全部")
+	btn_tab_all = _make_tab_button("All")
 	btn_tab_all.pressed.connect(func(): _switch_tab("all"))
 	tab_container.add_child(btn_tab_all)
-	btn_tab_consumable = _make_tab_button("消耗品")
+	btn_tab_consumable = _make_tab_button("Consumable")
 	btn_tab_consumable.pressed.connect(func(): _switch_tab("consumable"))
 	tab_container.add_child(btn_tab_consumable)
-	btn_tab_equipment = _make_tab_button("装备")
+	btn_tab_equipment = _make_tab_button("Equipment")
 	btn_tab_equipment.pressed.connect(func(): _switch_tab("equipment"))
 	tab_container.add_child(btn_tab_equipment)
-	btn_tab_relic = _make_tab_button("遗物")
+	btn_tab_relic = _make_tab_button("Relic")
 	btn_tab_relic.pressed.connect(func(): _switch_tab("relic"))
 	tab_container.add_child(btn_tab_relic)
 	outer_vbox.add_child(HSeparator.new())
@@ -175,7 +175,7 @@ func _refresh() -> void:
 
 func _refresh_capacity() -> void:
 	var pid: int = GameManager.get_human_player_id()
-	capacity_label.text = "容量: %d/%d" % [ItemManager.get_inventory_size(pid), ItemManager.MAX_ITEMS]
+	capacity_label.text = "Capacity: %d/%d" % [ItemManager.get_inventory_size(pid), ItemManager.MAX_ITEMS]
 
 func _refresh_list() -> void:
 	for node in _item_nodes:
@@ -191,7 +191,7 @@ func _refresh_list() -> void:
 		_: items = ItemManager.get_inventory(pid)
 	if items.is_empty():
 		var lbl := Label.new()
-		lbl.text = "背包为空" if _current_tab != "equipment" else "无未装备的装备"
+		lbl.text = "Inventory empty" if _current_tab != "equipment" else "No unequipped items"
 		lbl.add_theme_font_size_override("font_size", 14)
 		lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -218,14 +218,14 @@ func _build_item_row(item: Dictionary, index: int) -> PanelContainer:
 	var type_lbl := Label.new()
 	var tt: String = item.get("type", "unknown")
 	match tt:
-		"consumable": type_lbl.text = "[消耗品]"
-		"equipment": type_lbl.text = "[装备-%s]" % item.get("slot", "")
+		"consumable": type_lbl.text = "[Consumable]"
+		"equipment": type_lbl.text = "[Equip-%s]" % item.get("slot", "")
 		_: type_lbl.text = "[%s]" % tt
 	type_lbl.add_theme_font_size_override("font_size", 11)
 	type_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 	hbox.add_child(type_lbl)
 	var btn_detail := Button.new()
-	btn_detail.text = "详情"; btn_detail.custom_minimum_size = Vector2(60, 26)
+	btn_detail.text = "Details"; btn_detail.custom_minimum_size = Vector2(60, 26)
 	btn_detail.add_theme_font_size_override("font_size", 12)
 	btn_detail.pressed.connect(_on_select_item.bind(index, item))
 	hbox.add_child(btn_detail)
@@ -236,7 +236,7 @@ func _build_relic_display() -> void:
 	var relic: Dictionary = RelicManager.get_relic(pid)
 	if relic.is_empty():
 		var lbl := Label.new()
-		lbl.text = "尚未选择遗物"
+		lbl.text = "No relic selected"
 		lbl.add_theme_font_size_override("font_size", 14)
 		lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 		item_container.add_child(lbl); _item_nodes.append(lbl); return
@@ -264,13 +264,13 @@ func _build_relic_display() -> void:
 		var parts: Array = []
 		for key in effects: parts.append("%s: %s" % [key, str(effects[key])])
 		var el := Label.new()
-		el.text = "效果: %s%s" % [", ".join(parts), " (已翻倍)" if upgraded else ""]
+		el.text = "Effect: %s%s" % [", ".join(parts), " (Doubled)" if upgraded else ""]
 		el.add_theme_font_size_override("font_size", 12)
 		el.add_theme_color_override("font_color", Color(0.6, 0.8, 0.5))
 		vbox.add_child(el)
 	if not upgraded:
 		var bu := Button.new()
-		bu.text = "升级遗物 (5暗影精华)"; bu.custom_minimum_size = Vector2(180, 30)
+		bu.text = "Upgrade Relic (5 Shadow Essence)"; bu.custom_minimum_size = Vector2(180, 30)
 		bu.add_theme_font_size_override("font_size", 12)
 		bu.pressed.connect(_on_upgrade_relic)
 		vbox.add_child(bu)
@@ -291,7 +291,7 @@ func _refresh_detail(item: Dictionary) -> void:
 	nl.add_theme_color_override("font_color", _get_rarity_color(item.get("rarity", "common")))
 	detail_container.add_child(nl)
 	var dl := Label.new()
-	dl.text = item.get("desc", "无描述"); dl.add_theme_font_size_override("font_size", 13)
+	dl.text = item.get("desc", "No description"); dl.add_theme_font_size_override("font_size", 13)
 	dl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	detail_container.add_child(dl)
@@ -302,7 +302,7 @@ func _refresh_detail(item: Dictionary) -> void:
 			var parts: Array = []
 			for key in eff: parts.append("%s: %s" % [key, str(eff[key])])
 			var el := Label.new()
-			el.text = "效果: %s" % ", ".join(parts)
+			el.text = "Effect: %s" % ", ".join(parts)
 			el.add_theme_font_size_override("font_size", 12)
 			el.add_theme_color_override("font_color", Color(0.5, 0.8, 0.5))
 			detail_container.add_child(el)
@@ -318,11 +318,11 @@ func _refresh_detail(item: Dictionary) -> void:
 		var passive: String = ed.get("passive", "none")
 		if passive != "none":
 			var pl := Label.new()
-			pl.text = "被动: %s" % passive; pl.add_theme_font_size_override("font_size", 12)
+			pl.text = "Passive: %s" % passive; pl.add_theme_font_size_override("font_size", 12)
 			pl.add_theme_color_override("font_color", Color(0.7, 0.5, 0.9))
 			detail_container.add_child(pl)
 		var sll := Label.new()
-		sll.text = "栏位: %s" % item.get("slot", "?")
+		sll.text = "Slot: %s" % item.get("slot", "?")
 		sll.add_theme_font_size_override("font_size", 12)
 		sll.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 		detail_container.add_child(sll)
@@ -333,7 +333,7 @@ func _refresh_detail(item: Dictionary) -> void:
 	detail_container.add_child(btn_row)
 	if item_type == "consumable":
 		var bu := Button.new()
-		bu.text = "使用"; bu.custom_minimum_size = Vector2(80, 30)
+		bu.text = "Use"; bu.custom_minimum_size = Vector2(80, 30)
 		bu.add_theme_font_size_override("font_size", 13)
 		bu.pressed.connect(_on_use_item.bind(item_id))
 		btn_row.add_child(bu)
@@ -345,13 +345,13 @@ func _refresh_detail(item: Dictionary) -> void:
 		var heroes: Array = HeroSystem.get_recruited_heroes(pid)
 		if heroes.is_empty():
 			var il := Label.new()
-			il.text = "无已招募英雄可装备"
+			il.text = "No recruited heroes to equip"
 			il.add_theme_font_size_override("font_size", 11)
 			il.add_theme_color_override("font_color", Color(0.6, 0.6, 0.5))
 			equip_hero_vbox.add_child(il)
 		else:
 			var equip_title := Label.new()
-			equip_title.text = "装备到英雄:"
+			equip_title.text = "Equip to hero:"
 			equip_title.add_theme_font_size_override("font_size", 12)
 			equip_title.add_theme_color_override("font_color", Color(0.8, 0.75, 0.5))
 			equip_hero_vbox.add_child(equip_title)
@@ -359,13 +359,13 @@ func _refresh_detail(item: Dictionary) -> void:
 				var hero_def: Dictionary = FactionData.HEROES.get(hid, {})
 				var hero_name: String = hero_def.get("name", hid)
 				var hbtn := Button.new()
-				hbtn.text = "装备到 %s" % hero_name
+				hbtn.text = "Equip to %s" % hero_name
 				hbtn.custom_minimum_size = Vector2(140, 26)
 				hbtn.add_theme_font_size_override("font_size", 11)
 				hbtn.pressed.connect(_on_equip_to_hero.bind(hid, item_id))
 				equip_hero_vbox.add_child(hbtn)
 	var bd := Button.new()
-	bd.text = "丢弃"; bd.custom_minimum_size = Vector2(80, 30)
+	bd.text = "Discard"; bd.custom_minimum_size = Vector2(80, 30)
 	bd.add_theme_font_size_override("font_size", 13)
 	bd.pressed.connect(_on_discard_item.bind(item_id))
 	btn_row.add_child(bd)
@@ -382,9 +382,9 @@ func _on_equip_to_hero(hero_id: String, equip_id: String) -> void:
 	var result: Dictionary = HeroSystem.equip_item(hero_id, equip_id)
 	if result.get("ok", false):
 		var hero_def: Dictionary = FactionData.HEROES.get(hero_id, {})
-		EventBus.message_log.emit("%s 装备成功" % hero_def.get("name", hero_id))
+		EventBus.message_log.emit("%s equipped successfully" % hero_def.get("name", hero_id))
 	else:
-		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "装备失败"))
+		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "Equip failed"))
 	_selected_item_index = -1; detail_panel.visible = false; _refresh()
 
 func _on_discard_item(item_id: String) -> void:
@@ -392,7 +392,7 @@ func _on_discard_item(item_id: String) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	ItemManager.remove_item(pid, item_id)
 	var defs: Dictionary = FactionData.ITEM_DEFS.get(item_id, FactionData.EQUIPMENT_DEFS.get(item_id, {}))
-	EventBus.message_log.emit("丢弃了 %s" % defs.get("name", item_id))
+	EventBus.message_log.emit("Discarded %s" % defs.get("name", item_id))
 	_selected_item_index = -1; detail_panel.visible = false; _refresh()
 
 func _on_upgrade_relic() -> void:

@@ -1,4 +1,4 @@
-## quest_journal_panel.gd — Quest Journal UI Panel for 暗潮 SLG (v2.4)
+## quest_journal_panel.gd — Quest Journal UI Panel for Dark Tide SLG (v2.4)
 ## Modal panel showing all quest types: main, side, challenge, character.
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -107,7 +107,7 @@ func _build_ui() -> void:
 	outer_vbox.add_child(header_row)
 
 	header_label = Label.new()
-	header_label.text = "任务日志"
+	header_label.text = "Quest Journal"
 	header_label.add_theme_font_size_override("font_size", 22)
 	header_label.add_theme_color_override("font_color", Color(0.8, 0.9, 0.6))
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -130,19 +130,19 @@ func _build_ui() -> void:
 	tab_container.add_theme_constant_override("separation", 4)
 	outer_vbox.add_child(tab_container)
 
-	btn_tab_main = _make_tab_button("主线任务")
+	btn_tab_main = _make_tab_button("Main Quests")
 	btn_tab_main.pressed.connect(func(): _switch_tab("main"))
 	tab_container.add_child(btn_tab_main)
 
-	btn_tab_side = _make_tab_button("支线任务")
+	btn_tab_side = _make_tab_button("Side Quests")
 	btn_tab_side.pressed.connect(func(): _switch_tab("side"))
 	tab_container.add_child(btn_tab_side)
 
-	btn_tab_challenge = _make_tab_button("挑战任务")
+	btn_tab_challenge = _make_tab_button("Challenges")
 	btn_tab_challenge.pressed.connect(func(): _switch_tab("challenge"))
 	tab_container.add_child(btn_tab_challenge)
 
-	btn_tab_character = _make_tab_button("角色任务")
+	btn_tab_character = _make_tab_button("Character Quests")
 	btn_tab_character.pressed.connect(func(): _switch_tab("character"))
 	tab_container.add_child(btn_tab_character)
 
@@ -241,7 +241,7 @@ func _refresh() -> void:
 
 	# Update status label
 	var active_count: int = QuestJournal.get_active_count()
-	status_label.text = "进行中: %d" % active_count
+	status_label.text = "Active: %d" % active_count
 
 	if filtered.is_empty():
 		_add_empty_notice(target_cat)
@@ -262,17 +262,17 @@ func _refresh() -> void:
 			_add_quest_card(quest)
 		# Story sub-header
 		if not story.is_empty():
-			_add_sub_header("剧情")
+			_add_sub_header("Story")
 			for quest in story:
 				_add_quest_card(quest)
 		# Bonus sub-header
 		if not bonus.is_empty():
-			_add_sub_header("奖励")
+			_add_sub_header("Bonus")
 			for quest in bonus:
 				_add_quest_card(quest)
 		# Intel sub-header
 		if not intel.is_empty():
-			_add_sub_header("情报")
+			_add_sub_header("Intel")
 			for quest in intel:
 				_add_quest_card(quest)
 	else:
@@ -287,10 +287,10 @@ func _clear_content() -> void:
 
 func _add_empty_notice(category: String) -> void:
 	var names: Dictionary = {
-		"main": "主线", "side": "支线", "challenge": "挑战", "character": "角色"
+		"main": "Main", "side": "Side", "challenge": "Challenge", "character": "Character"
 	}
 	var lbl := Label.new()
-	lbl.text = "暂无%s任务" % names.get(category, "")
+	lbl.text = "No %s quests" % names.get(category, "")
 	lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 	lbl.add_theme_font_size_override("font_size", 15)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -408,7 +408,7 @@ func _add_quest_card(quest: Dictionary) -> void:
 	var reward_preview: String = quest.get("reward_preview", "")
 	if reward_preview != "" and status != "locked":
 		var reward_lbl := Label.new()
-		reward_lbl.text = "奖励: %s" % reward_preview
+		reward_lbl.text = "Reward: %s" % reward_preview
 		reward_lbl.add_theme_font_size_override("font_size", 12)
 		reward_lbl.add_theme_color_override("font_color", Color(0.6, 0.5, 0.3))
 		vbox.add_child(reward_lbl)
@@ -416,7 +416,7 @@ func _add_quest_card(quest: Dictionary) -> void:
 	# Challenge battle button (for combat_pending status)
 	if status == "combat_pending":
 		var battle_btn := Button.new()
-		battle_btn.text = "开始挑战战斗"
+		battle_btn.text = "Start Challenge"
 		battle_btn.custom_minimum_size = Vector2(140, 30)
 		battle_btn.add_theme_font_size_override("font_size", 13)
 		var quest_id: String = quest.get("id", "")
@@ -430,13 +430,13 @@ func _add_quest_card(quest: Dictionary) -> void:
 
 func _status_text(status: String) -> String:
 	match status:
-		"locked": return "[未解锁]"
-		"available": return "[可接受]"
-		"active": return "[进行中]"
-		"combat_pending": return "[待战斗]"
-		"completed": return "[已完成]"
-		"failed": return "[已失败]"
-	return "[未知]"
+		"locked": return "[Locked]"
+		"available": return "[Available]"
+		"active": return "[Active]"
+		"combat_pending": return "[Combat Ready]"
+		"completed": return "[Completed]"
+		"failed": return "[Failed]"
+	return "[Unknown]"
 
 
 func _status_title_color(status: String) -> Color:

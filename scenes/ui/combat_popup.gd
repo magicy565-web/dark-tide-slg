@@ -1,4 +1,4 @@
-## combat_popup.gd - Battle result display for 暗潮 SLG (v0.9.1)
+## combat_popup.gd - Battle result display for Dark Tide SLG (v0.9.1)
 ## Shows combat outcome with attacker/defender info, losses, and loot
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -76,7 +76,7 @@ func _build_ui() -> void:
 
 	# Title
 	title_label = Label.new()
-	title_label.text = "战斗结果"
+	title_label.text = "Battle Result"
 	title_label.add_theme_font_size_override("font_size", 22)
 	title_label.add_theme_color_override("font_color", Color(0.95, 0.7, 0.3))
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -101,7 +101,7 @@ func _build_ui() -> void:
 
 	# Dismiss
 	btn_dismiss = Button.new()
-	btn_dismiss.text = "确认"
+	btn_dismiss.text = "OK"
 	btn_dismiss.custom_minimum_size = Vector2(140, 38)
 	btn_dismiss.add_theme_font_size_override("font_size", 15)
 	btn_dismiss.pressed.connect(_on_dismiss)
@@ -116,8 +116,8 @@ func _build_ui() -> void:
 
 func show_combat_result(data: Dictionary) -> void:
 	var won: bool = data.get("won", false)
-	var attacker: String = data.get("attacker_name", "进攻方")
-	var defender: String = data.get("defender_name", "防守方")
+	var attacker: String = data.get("attacker_name", "Attacker")
+	var defender: String = data.get("defender_name", "Defender")
 	var atk_losses: int = data.get("attacker_losses", 0)
 	var def_losses: int = data.get("defender_losses", 0)
 	var atk_power: int = data.get("attacker_power", 0)
@@ -128,10 +128,10 @@ func show_combat_result(data: Dictionary) -> void:
 	var hero_captured: String = data.get("hero_captured", "")
 
 	if won:
-		title_label.text = "胜利!"
+		title_label.text = "Victory!"
 		title_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
 	else:
-		title_label.text = "败北..."
+		title_label.text = "Defeat..."
 		title_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
 
 	var text: String = ""
@@ -141,25 +141,25 @@ func show_combat_result(data: Dictionary) -> void:
 		text += "[center][color=gray]%s[/color][/center]\n\n" % tile_name
 
 	# Power comparison
-	text += "[color=cyan]%s[/color] (战力: %d)  vs  [color=red]%s[/color] (战力: %d)\n\n" % [attacker, atk_power, defender, def_power]
+	text += "[color=cyan]%s[/color] (Power: %d)  vs  [color=red]%s[/color] (Power: %d)\n\n" % [attacker, atk_power, defender, def_power]
 
 	# Separator line
 	text += "[color=gray]━━━━━━━━━━━━━━━━━━━━━━━━[/color]\n\n"
 
 	# Losses
-	text += "我方损失: [color=yellow]%d[/color] 兵\n" % atk_losses
-	text += "敌方损失: [color=yellow]%d[/color] 兵\n" % def_losses
+	text += "Our losses: [color=yellow]%d[/color] troops\n" % atk_losses
+	text += "Enemy losses: [color=yellow]%d[/color] troops\n" % def_losses
 
 	# Loot
 	if won:
-		text += "\n[color=gold]战利品:[/color]\n"
+		text += "\n[color=gold]Loot:[/color]\n"
 		if loot_gold > 0:
-			text += "  金币 +%d\n" % loot_gold
+			text += "  Gold +%d\n" % loot_gold
 		if slaves_captured > 0:
-			text += "  俘虏 +%d\n" % slaves_captured
+			text += "  Slaves +%d\n" % slaves_captured
 		if hero_captured != "":
 			var hero_name: String = FactionData.HEROES.get(hero_captured, {}).get("name", hero_captured)
-			text += "  [color=orchid]俘获英雄: %s[/color]\n" % hero_name
+			text += "  [color=orchid]Hero captured: %s[/color]\n" % hero_name
 
 	result_label.text = text
 	_show_animated()
@@ -185,7 +185,7 @@ func _on_combat_result(attacker_id: int, defender_desc: String, won: bool) -> vo
 	# Build basic data from signal
 	var data := {
 		"won": won,
-		"attacker_name": GameManager.get_player_by_id(attacker_id).get("name", "玩家") if GameManager.get_player_by_id(attacker_id) else "玩家",
+		"attacker_name": GameManager.get_player_by_id(attacker_id).get("name", "Player") if GameManager.get_player_by_id(attacker_id) else "Player",
 		"defender_name": defender_desc,
 	}
 	if _visible:

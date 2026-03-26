@@ -1,6 +1,24 @@
-## hud.gd - Action Selection HUD for 暗潮 SLG (v0.8 - Sengoku Rance style)
+## hud.gd - Action Selection HUD for Dark Tide SLG (v0.8 - Sengoku Rance style)
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
+
+# ── Pixel art assets ──
+var _panel_tex: Texture2D
+var _btn_normal_tex: Texture2D
+var _btn_hover_tex: Texture2D
+var _btn_pressed_tex: Texture2D
+var _icon_gold: Texture2D
+var _icon_food: Texture2D
+var _icon_iron: Texture2D
+var _icon_slave: Texture2D
+var _icon_prestige: Texture2D
+var _icon_crystal: Texture2D
+var _has_resource_icons: bool = false
+
+func _safe_load(path: String) -> Resource:
+	if ResourceLoader.exists(path):
+		return load(path)
+	return null
 
 # ── Action mode state machine ──
 enum ActionMode { NONE, ATTACK, DEPLOY, DOMESTIC, DIPLOMACY, EXPLORE, DOMESTIC_SUB, SELECT_ATTACK_TARGET, SELECT_DEPLOY_TARGET }
@@ -121,6 +139,18 @@ func _connect_signals() -> void:
 # ═══════════════════════════════════════════════════════════════
 
 func _build_ui() -> void:
+	_panel_tex = _safe_load("res://assets/ui/panel_frame.png")
+	_btn_normal_tex = _safe_load("res://assets/ui/btn_normal.png")
+	_btn_hover_tex = _safe_load("res://assets/ui/btn_hover.png")
+	_btn_pressed_tex = _safe_load("res://assets/ui/btn_pressed.png")
+	_icon_gold = _safe_load("res://assets/ui/icon_gold_coin.png")
+	_icon_food = _safe_load("res://assets/ui/icon_food_grain.png")
+	_icon_iron = _safe_load("res://assets/ui/icon_iron_ore.png")
+	_icon_slave = _safe_load("res://assets/ui/icon_slave_chain.png")
+	_icon_prestige = _safe_load("res://assets/ui/icon_prestige_crown.png")
+	_icon_crystal = _safe_load("res://assets/ui/icon_magic_crystal.png")
+	_has_resource_icons = _icon_gold != null
+
 	var root := Control.new()
 	root.name = "HUDRoot"
 	root.anchor_right = 1.0
@@ -146,10 +176,7 @@ func _build_top_bar(parent: Control) -> void:
 	panel.anchor_right = 1.0
 	panel.offset_bottom = 58
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.1, 0.92)
-	style.set_content_margin_all(4)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.06, 0.1, 0.92), 8))
 	parent.add_child(panel)
 
 	# Use a VBoxContainer to hold both rows so layout is automatic
@@ -163,34 +190,34 @@ func _build_top_bar(parent: Control) -> void:
 	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(hbox)
 
-	turn_label = _make_label("回合: ---", 14, Color.WHITE)
+	turn_label = _make_label("Turn: ---", 14, Color.WHITE)
 	turn_label.custom_minimum_size.x = 120
 	hbox.add_child(turn_label)
-	gold_label = _make_label("金:0", 14, Color.GOLD)
-	gold_label.custom_minimum_size.x = 50
-	hbox.add_child(gold_label)
-	food_label = _make_label("粮:0", 14, Color(0.6, 0.9, 0.4))
-	food_label.custom_minimum_size.x = 50
-	hbox.add_child(food_label)
-	iron_label = _make_label("铁:0", 14, Color(0.7, 0.7, 0.8))
-	iron_label.custom_minimum_size.x = 50
-	hbox.add_child(iron_label)
-	slaves_label = _make_label("奴:0", 14, Color(0.9, 0.6, 0.3))
-	slaves_label.custom_minimum_size.x = 60
-	hbox.add_child(slaves_label)
-	prestige_label = _make_label("威:0", 14, Color(1.0, 0.85, 0.3))
-	prestige_label.custom_minimum_size.x = 65
-	hbox.add_child(prestige_label)
-	army_label = _make_label("兵:0", 14, Color.LIGHT_BLUE)
+	var gold_hb := _make_icon_label(_icon_gold, "0", 14, Color.GOLD, 50)
+	gold_label = gold_hb.get_child(gold_hb.get_child_count() - 1)
+	hbox.add_child(gold_hb)
+	var food_hb := _make_icon_label(_icon_food, "0", 14, Color(0.6, 0.9, 0.4), 50)
+	food_label = food_hb.get_child(food_hb.get_child_count() - 1)
+	hbox.add_child(food_hb)
+	var iron_hb := _make_icon_label(_icon_iron, "0", 14, Color(0.7, 0.7, 0.8), 50)
+	iron_label = iron_hb.get_child(iron_hb.get_child_count() - 1)
+	hbox.add_child(iron_hb)
+	var slave_hb := _make_icon_label(_icon_slave, "0", 14, Color(0.9, 0.6, 0.3), 60)
+	slaves_label = slave_hb.get_child(slave_hb.get_child_count() - 1)
+	hbox.add_child(slave_hb)
+	var prestige_hb := _make_icon_label(_icon_prestige, "0", 14, Color(1.0, 0.85, 0.3), 65)
+	prestige_label = prestige_hb.get_child(prestige_hb.get_child_count() - 1)
+	hbox.add_child(prestige_hb)
+	army_label = _make_label("Army:0", 14, Color.LIGHT_BLUE)
 	army_label.custom_minimum_size.x = 100
 	hbox.add_child(army_label)
-	pop_label = _make_label("人口:0/0", 13, Color(0.9, 0.75, 0.5))
+	pop_label = _make_label("Pop:0/0", 13, Color(0.9, 0.75, 0.5))
 	pop_label.custom_minimum_size.x = 80
 	hbox.add_child(pop_label)
 	ap_label = _make_label("AP:0", 14, Color.LIGHT_GREEN)
 	ap_label.custom_minimum_size.x = 45
 	hbox.add_child(ap_label)
-	stronghold_label = _make_label("要塞:0/4", 14, Color.ORANGE)
+	stronghold_label = _make_label("Fort:0/4", 14, Color.ORANGE)
 	stronghold_label.custom_minimum_size.x = 70
 	hbox.add_child(stronghold_label)
 
@@ -200,25 +227,25 @@ func _build_top_bar(parent: Control) -> void:
 	hbox2.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(hbox2)
 
-	order_label = _make_label("秩序:50", 12, Color(0.5, 0.8, 1.0))
+	order_label = _make_label("Order:50", 12, Color(0.5, 0.8, 1.0))
 	order_label.custom_minimum_size.x = 90
 	hbox2.add_child(order_label)
-	threat_label = _make_label("威胁:0", 12, Color(1.0, 0.4, 0.3))
+	threat_label = _make_label("Threat:0", 12, Color(1.0, 0.4, 0.3))
 	threat_label.custom_minimum_size.x = 90
 	hbox2.add_child(threat_label)
 	waaagh_label = _make_label("", 12, Color(1.0, 0.2, 0.1))
 	waaagh_label.custom_minimum_size.x = 80
 	hbox2.add_child(waaagh_label)
-	magic_crystal_label = _make_label("魔晶:0", 11, Color(0.6, 0.4, 1.0))
-	magic_crystal_label.custom_minimum_size.x = 55
-	hbox2.add_child(magic_crystal_label)
-	war_horse_label = _make_label("战马:0", 11, Color(0.8, 0.6, 0.3))
+	var crystal_hb := _make_icon_label(_icon_crystal, "0", 11, Color(0.6, 0.4, 1.0), 55)
+	magic_crystal_label = crystal_hb.get_child(crystal_hb.get_child_count() - 1)
+	hbox2.add_child(crystal_hb)
+	war_horse_label = _make_label("Horse:0", 11, Color(0.8, 0.6, 0.3))
 	war_horse_label.custom_minimum_size.x = 55
 	hbox2.add_child(war_horse_label)
-	gunpowder_label = _make_label("火药:0", 11, Color(0.9, 0.5, 0.2))
+	gunpowder_label = _make_label("Gunpowder:0", 11, Color(0.9, 0.5, 0.2))
 	gunpowder_label.custom_minimum_size.x = 55
 	hbox2.add_child(gunpowder_label)
-	shadow_essence_label = _make_label("暗影:0", 11, Color(0.5, 0.2, 0.7))
+	shadow_essence_label = _make_label("Shadow:0", 11, Color(0.5, 0.2, 0.7))
 	shadow_essence_label.custom_minimum_size.x = 55
 	hbox2.add_child(shadow_essence_label)
 
@@ -230,37 +257,33 @@ func _build_action_panel(parent: Control) -> void:
 	action_panel.position = Vector2(10, 60)
 	action_panel.size = Vector2(200, 560)
 	action_panel.mouse_filter = Control.MOUSE_FILTER_PASS
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.1, 0.88)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(8)
-	action_panel.add_theme_stylebox_override("panel", style)
+	action_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.06, 0.1, 0.88)))
 	parent.add_child(action_panel)
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 4)
 	action_panel.add_child(vbox)
 
-	var title := _make_label("行動選択", 15, Color(0.8, 0.8, 0.9))
+	var title := _make_label("Actions", 15, Color(0.8, 0.8, 0.9))
 	vbox.add_child(title)
 
-	btn_attack = _make_button("進攻 (1AP)")
+	btn_attack = _make_button("Attack (1AP)")
 	btn_attack.pressed.connect(_on_attack_pressed)
 	vbox.add_child(btn_attack)
 
-	btn_deploy = _make_button("部署 (1AP)")
+	btn_deploy = _make_button("Deploy (1AP)")
 	btn_deploy.pressed.connect(_on_deploy_pressed)
 	vbox.add_child(btn_deploy)
 
-	btn_domestic = _make_button("内政 (1AP)")
+	btn_domestic = _make_button("Domestic (1AP)")
 	btn_domestic.pressed.connect(_on_domestic_pressed)
 	vbox.add_child(btn_domestic)
 
-	btn_diplomacy = _make_button("外交 (1AP)")
+	btn_diplomacy = _make_button("Diplomacy (1AP)")
 	btn_diplomacy.pressed.connect(_on_diplomacy_pressed)
 	vbox.add_child(btn_diplomacy)
 
-	btn_explore = _make_button("探索 (1AP)")
+	btn_explore = _make_button("Explore (1AP)")
 	btn_explore.pressed.connect(_on_explore_pressed)
 	vbox.add_child(btn_explore)
 
@@ -270,21 +293,21 @@ func _build_action_panel(parent: Control) -> void:
 	vbox.add_child(sep)
 
 	# Prestige actions
-	btn_reduce_threat = _make_button("降威胁-10 (20威望)")
+	btn_reduce_threat = _make_button("Reduce Threat -10 (20 Prestige)")
 	btn_reduce_threat.pressed.connect(_on_reduce_threat)
 	vbox.add_child(btn_reduce_threat)
 
-	btn_boost_order = _make_button("升秩序+10 (15威望)")
+	btn_boost_order = _make_button("Boost Order +10 (15 Prestige)")
 	btn_boost_order.pressed.connect(_on_boost_order)
 	vbox.add_child(btn_boost_order)
 
 	# Pirate slave trade (shown conditionally)
-	btn_sell_slave = _make_button("出售奴隶 (25金)")
+	btn_sell_slave = _make_button("Sell Slave (25g)")
 	btn_sell_slave.pressed.connect(_on_sell_slave)
 	btn_sell_slave.visible = false
 	vbox.add_child(btn_sell_slave)
 
-	btn_buy_slave = _make_button("购买奴隶 (40金)")
+	btn_buy_slave = _make_button("Buy Slave (40g)")
 	btn_buy_slave.pressed.connect(_on_buy_slave)
 	btn_buy_slave.visible = false
 	vbox.add_child(btn_buy_slave)
@@ -294,24 +317,24 @@ func _build_action_panel(parent: Control) -> void:
 	sep_hero.add_theme_constant_override("separation", 4)
 	vbox.add_child(sep_hero)
 
-	btn_hero = _make_button("英雄管理 (H)")
+	btn_hero = _make_button("Heroes (H)")
 	btn_hero.pressed.connect(_on_hero_pressed)
 	vbox.add_child(btn_hero)
 
-	btn_research = _make_button("训练科技")
+	btn_research = _make_button("Research")
 	btn_research.pressed.connect(_on_research_pressed)
 	vbox.add_child(btn_research)
 
-	btn_quest_journal = _make_button("任务日志 (J)")
+	btn_quest_journal = _make_button("Quest Log (J)")
 	btn_quest_journal.pressed.connect(_on_quest_journal_pressed)
 	vbox.add_child(btn_quest_journal)
 
 	# Save/Load buttons (free actions)
-	var btn_save := _make_button("保存 (F5)")
+	var btn_save := _make_button("Save (F5)")
 	btn_save.pressed.connect(_on_save_pressed)
 	vbox.add_child(btn_save)
 
-	var btn_load := _make_button("读档 (F9)")
+	var btn_load := _make_button("Load (F9)")
 	btn_load.pressed.connect(_on_load_pressed)
 	vbox.add_child(btn_load)
 
@@ -320,7 +343,7 @@ func _build_action_panel(parent: Control) -> void:
 	sep2.add_theme_constant_override("separation", 8)
 	vbox.add_child(sep2)
 
-	btn_end_turn = _make_button("结束回合")
+	btn_end_turn = _make_button("End Turn")
 	btn_end_turn.pressed.connect(_on_end_turn_pressed)
 	vbox.add_child(btn_end_turn)
 
@@ -333,36 +356,32 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 	domestic_panel.size = Vector2(160, 160)
 	domestic_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	domestic_panel.visible = false
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.06, 0.14, 0.92)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(8)
-	domestic_panel.add_theme_stylebox_override("panel", style)
+	domestic_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.08, 0.06, 0.14, 0.92)))
 	parent.add_child(domestic_panel)
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 4)
 	domestic_panel.add_child(vbox)
 
-	var title := _make_label("内政メニュー", 13, Color(0.7, 0.8, 0.9))
+	var title := _make_label("Domestic Menu", 13, Color(0.7, 0.8, 0.9))
 	vbox.add_child(title)
 
-	btn_recruit = _make_button("招募 (募兵)")
+	btn_recruit = _make_button("Recruit")
 	btn_recruit.custom_minimum_size = Vector2(140, 30)
 	btn_recruit.pressed.connect(_on_domestic_recruit)
 	vbox.add_child(btn_recruit)
 
-	btn_upgrade = _make_button("升级领地")
+	btn_upgrade = _make_button("Upgrade Territory")
 	btn_upgrade.custom_minimum_size = Vector2(140, 30)
 	btn_upgrade.pressed.connect(_on_domestic_upgrade)
 	vbox.add_child(btn_upgrade)
 
-	btn_build = _make_button("建造设施")
+	btn_build = _make_button("Build")
 	btn_build.custom_minimum_size = Vector2(140, 30)
 	btn_build.pressed.connect(_on_domestic_build)
 	vbox.add_child(btn_build)
 
-	btn_army_view = _make_button("军团一览")
+	btn_army_view = _make_button("Army Overview")
 	btn_army_view.custom_minimum_size = Vector2(140, 30)
 	btn_army_view.pressed.connect(_on_army_view)
 	vbox.add_child(btn_army_view)
@@ -378,13 +397,7 @@ func _build_target_panel(parent: Control) -> void:
 	target_panel.size = Vector2(420, 400)
 	target_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	target_panel.visible = false
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.07, 0.12, 0.92)
-	style.border_color = Color(0.3, 0.35, 0.5)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(8)
-	target_panel.add_theme_stylebox_override("panel", style)
+	target_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.07, 0.12, 0.92)))
 	parent.add_child(target_panel)
 
 	var vbox := VBoxContainer.new()
@@ -395,7 +408,7 @@ func _build_target_panel(parent: Control) -> void:
 	var header := HBoxContainer.new()
 	vbox.add_child(header)
 
-	target_title_label = _make_label("目标一覧", 14, Color(0.9, 0.85, 0.7))
+	target_title_label = _make_label("Targets", 14, Color(0.9, 0.85, 0.7))
 	target_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(target_title_label)
 
@@ -425,18 +438,14 @@ func _build_item_panel(parent: Control) -> void:
 	item_panel.position = Vector2(10, 450)
 	item_panel.size = Vector2(200, 130)
 	item_panel.mouse_filter = Control.MOUSE_FILTER_PASS
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.06, 0.1, 0.88)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(8)
-	item_panel.add_theme_stylebox_override("panel", style)
+	item_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.06, 0.1, 0.88)))
 	parent.add_child(item_panel)
 
 	item_container = VBoxContainer.new()
 	item_container.add_theme_constant_override("separation", 3)
 	item_panel.add_child(item_container)
 
-	var title := _make_label("道具背包", 14, Color(0.8, 0.8, 0.9))
+	var title := _make_label("Inventory", 14, Color(0.8, 0.8, 0.9))
 	item_container.add_child(title)
 
 
@@ -451,13 +460,7 @@ func _build_tile_info(parent: Control) -> void:
 	panel.offset_top = 60
 	panel.offset_bottom = 360
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.08, 0.12, 0.9)
-	style.border_color = Color(0.3, 0.3, 0.4)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	style.set_content_margin_all(8)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.08, 0.12, 0.9)))
 	parent.add_child(panel)
 
 	tile_info_label = RichTextLabel.new()
@@ -465,7 +468,7 @@ func _build_tile_info(parent: Control) -> void:
 	tile_info_label.fit_content = true
 	tile_info_label.scroll_active = false
 	tile_info_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tile_info_label.text = "[b]当前位置[/b]\n等待游戏开始..."
+	tile_info_label.text = "[b]Current Location[/b]\nWaiting for game to start..."
 	tile_info_label.add_theme_font_size_override("normal_font_size", 12)
 	panel.add_child(tile_info_label)
 
@@ -480,9 +483,7 @@ func _build_message_log(parent: Control) -> void:
 	panel.anchor_bottom = 1.0
 	panel.offset_top = -160
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.04, 0.04, 0.08, 0.85)
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.04, 0.04, 0.08, 0.85)))
 	parent.add_child(panel)
 
 	message_log_label = RichTextLabel.new()
@@ -521,7 +522,7 @@ func _build_game_over(parent: Control) -> void:
 	vbox.add_theme_constant_override("separation", 8)
 	game_over_panel.add_child(vbox)
 
-	game_over_label = _make_label("游戏结束!", 26, Color.GOLD)
+	game_over_label = _make_label("Game Over!", 26, Color.GOLD)
 	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(game_over_label)
 
@@ -533,7 +534,7 @@ func _build_game_over(parent: Control) -> void:
 	sep.add_theme_constant_override("separation", 8)
 	vbox.add_child(sep)
 
-	var stats_title := _make_label("— 战绩统计 —", 14, Color(0.7, 0.7, 0.8))
+	var stats_title := _make_label("-- Battle Stats --", 14, Color(0.7, 0.7, 0.8))
 	stats_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(stats_title)
 
@@ -550,11 +551,11 @@ func _build_game_over(parent: Control) -> void:
 	btn_hbox.add_theme_constant_override("separation", 16)
 	vbox.add_child(btn_hbox)
 
-	var restart := _make_button("重新开始")
+	var restart := _make_button("Restart")
 	restart.pressed.connect(_on_restart_pressed)
 	btn_hbox.add_child(restart)
 
-	var main_menu_btn := _make_button("返回主菜单")
+	var main_menu_btn := _make_button("Main Menu")
 	main_menu_btn.pressed.connect(_on_return_main_menu_pressed)
 	btn_hbox.add_child(main_menu_btn)
 
@@ -657,10 +658,10 @@ func _on_attack_pressed() -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var armies: Array = GameManager.get_player_armies(pid)
 
-	_show_target_panel("進攻 - 選択軍団")
+	_show_target_panel("Attack - Select Army")
 
 	if armies.is_empty():
-		_add_target_label("(军团がありません — 先に作成してください)")
+		_add_target_label("(No armies available)")
 		return
 
 	for army in armies:
@@ -669,9 +670,9 @@ func _on_attack_pressed() -> void:
 		var tile_idx: int = army.get("tile_index", -1)
 		var tile_name: String = GameManager.tiles[tile_idx]["name"] if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "???"
 		var attackable: Array = GameManager.get_army_attackable_tiles(army["id"])
-		var label_text: String = "%s (兵力:%d 戦力:%d) @%s" % [army["name"], soldiers, power, tile_name]
+		var label_text: String = "%s (Troops:%d Power:%d) @%s" % [army["name"], soldiers, power, tile_name]
 		if attackable.is_empty():
-			label_text += " [無目標]"
+			label_text += " [No Target]"
 		_add_target_button(label_text, _on_attack_army_selected.bind(army["id"]), attackable.is_empty())
 
 
@@ -681,17 +682,17 @@ func _on_attack_army_selected(army_id: int) -> void:
 	var army: Dictionary = GameManager.get_army(army_id)
 	var attackable: Array = GameManager.get_army_attackable_tiles(army_id)
 
-	_show_target_panel("進攻 - %s → 目標選択" % army["name"])
+	_show_target_panel("Attack - %s -> Select Target" % army["name"])
 
 	if attackable.is_empty():
-		_add_target_label("(攻撃可能な領地がありません)")
+		_add_target_label("(No attackable territories)")
 		return
 
 	for tidx in attackable:
 		var tile: Dictionary = GameManager.tiles[tidx]
 		var label_text: String = "%s (Lv%d)" % [tile["name"], tile["level"]]
 		if tile["garrison"] > 0:
-			label_text += " 守軍:%d" % tile["garrison"]
+			label_text += " Garrison:%d" % tile["garrison"]
 		if tile["owner_id"] >= 0:
 			var owner: Dictionary = GameManager.get_player_by_id(tile["owner_id"])
 			label_text += " [%s]" % owner.get("name", "???")
@@ -707,10 +708,10 @@ func _on_deploy_pressed() -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var armies: Array = GameManager.get_player_armies(pid)
 
-	_show_target_panel("部署 - 選択軍団")
+	_show_target_panel("Deploy - Select Army")
 
 	if armies.is_empty():
-		_add_target_label("(军团がありません)")
+		_add_target_label("(No armies available)")
 		return
 
 	for army in armies:
@@ -718,9 +719,9 @@ func _on_deploy_pressed() -> void:
 		var tile_idx: int = army.get("tile_index", -1)
 		var tile_name: String = GameManager.tiles[tile_idx]["name"] if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "???"
 		var deployable: Array = GameManager.get_army_deployable_tiles(army["id"])
-		var label_text: String = "%s (兵力:%d) @%s" % [army["name"], soldiers, tile_name]
+		var label_text: String = "%s (Troops:%d) @%s" % [army["name"], soldiers, tile_name]
 		if deployable.is_empty():
-			label_text += " [移動不可]"
+			label_text += " [Cannot Move]"
 		_add_target_button(label_text, _on_deploy_army_selected.bind(army["id"]), deployable.is_empty())
 
 
@@ -730,10 +731,10 @@ func _on_deploy_army_selected(army_id: int) -> void:
 	var army: Dictionary = GameManager.get_army(army_id)
 	var deployable: Array = GameManager.get_army_deployable_tiles(army_id)
 
-	_show_target_panel("部署 - %s → 目的地" % army["name"])
+	_show_target_panel("Deploy - %s -> Destination" % army["name"])
 
 	if deployable.is_empty():
-		_add_target_label("(移動可能な領地がありません)")
+		_add_target_label("(No reachable territories)")
 		return
 
 	for tidx in deployable:
@@ -754,7 +755,7 @@ func _on_domestic_pressed() -> void:
 	var player: Dictionary = GameManager.get_player_by_id(pid)
 	var army_size: int = RecruitManager.get_army(pid).size()
 	var pop_cap: int = RecruitManager._get_pop_cap(pid)
-	btn_recruit.text = "招募部队 (%d/%d编制)" % [army_size, pop_cap]
+	btn_recruit.text = "Recruit (%d/%d slots)" % [army_size, pop_cap]
 	btn_recruit.disabled = player.get("ap", 0) < 1
 	btn_upgrade.disabled = not GameManager.can_upgrade()
 	btn_build.disabled = not GameManager.can_build_any()
@@ -770,34 +771,34 @@ func _on_diplomacy_pressed() -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var targets: Array = GameManager.get_diplomacy_targets(pid)
 
-	_show_target_panel("外交 - 対象選択")
+	_show_target_panel("Diplomacy - Select Target")
 
 	if targets.is_empty():
-		_add_target_label("(外交対象がいません)")
+		_add_target_label("(No diplomatic targets)")
 		return
 
 	for entry in targets:
 		var label_text: String = entry.get("name", "???")
 		if entry.get("recruited", false):
-			label_text += " [已招募]"
+			label_text += " [Recruited]"
 		else:
 			# Show taming level and tier
 			var taming: int = entry.get("taming_level", 0)
 			var tier_str: String = entry.get("taming_tier", "hostile")
 			var tier_label: String = ""
 			match tier_str:
-				"hostile": tier_label = "敌对"
-				"neutral": tier_label = "中立"
-				"friendly": tier_label = "友好"
-				"allied": tier_label = "同盟"
-				"tamed": tier_label = "驯服"
-			label_text += " [驯服:%d/10 %s]" % [taming, tier_label]
+				"hostile": tier_label = "Hostile"
+				"neutral": tier_label = "Neutral"
+				"friendly": tier_label = "Friendly"
+				"allied": tier_label = "Allied"
+				"tamed": tier_label = "Tamed"
+			label_text += " [Taming:%d/10 %s]" % [taming, tier_label]
 			if entry.get("quest_step", 0) > 0:
-				label_text += " 任务:%d/%d" % [entry.get("quest_step", 0), entry.get("max_steps", 3)]
+				label_text += " Quest:%d/%d" % [entry.get("quest_step", 0), entry.get("max_steps", 3)]
 			# Show unlocked troops
 			var unlocked: Array = entry.get("unlocked_troops", [])
 			if not unlocked.is_empty():
-				label_text += " 可招:%d兵种" % unlocked.size()
+				label_text += " Recruitable: %d types" % unlocked.size()
 		_add_target_button(label_text, _on_diplomacy_target.bind(entry))
 
 
@@ -809,10 +810,10 @@ func _on_explore_pressed() -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var tiles: Array = GameManager.get_explorable_tiles(pid)
 
-	_show_target_panel("探索 - 目標選択")
+	_show_target_panel("Explore - Select Target")
 
 	if tiles.is_empty():
-		_add_target_label("(探索可能な領地がありません)")
+		_add_target_label("(No explorable territories)")
 		return
 
 	for tile in tiles:
@@ -880,21 +881,21 @@ func _on_domestic_recruit() -> void:
 			tile_idx = sel
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 
-	_show_target_panel("招募部队 - 兵種選択")
+	_show_target_panel("Recruit - Select Troop")
 
 	var available: Array = RecruitManager.get_available_units(pid, tile)
 	if available.is_empty():
-		_add_target_label("(当前位置无可招募兵种)")
+		_add_target_label("(No recruitable troops here)")
 		return
 
 	# Show army status header
 	var army_summary: Array = RecruitManager.get_army_summary(pid)
 	var pop_cap: int = RecruitManager._get_pop_cap(pid)
-	_add_target_label("军团: %d/%d 编制" % [army_summary.size(), pop_cap])
+	_add_target_label("Army: %d/%d slots" % [army_summary.size(), pop_cap])
 
 	# Show current army composition
 	if not army_summary.is_empty():
-		var army_text: String = "现有: "
+		var army_text: String = "Current: "
 		for entry in army_summary:
 			var vet_str: String = " [%s]" % entry["veterancy"] if entry["veterancy"] != "" else ""
 			army_text += "%s(%d/%d)%s " % [entry["name"], entry["soldiers"], entry["max_soldiers"], vet_str]
@@ -911,7 +912,7 @@ func _on_domestic_recruit() -> void:
 		if not pdef.is_empty():
 			passive_name = pdef.get("name", "")
 
-		var label_text: String = "[%s] %s (%s) ATK:%d DEF:%d 兵:%d | %s" % [
+		var label_text: String = "[%s] %s (%s) ATK:%d DEF:%d Troops:%d | %s" % [
 			tier_str, entry["name"], entry["troop_class_name"] if entry.has("troop_class_name") else GameData.get_class_name(entry.get("troop_class", 0)),
 			entry["base_atk"], entry.get("base_def", 0), entry["max_soldiers"],
 			cost_str.strip_edges()
@@ -919,7 +920,7 @@ func _on_domestic_recruit() -> void:
 		if passive_name != "":
 			label_text += " [%s]" % passive_name
 		if entry.get("is_mercenary", false):
-			label_text += " (佣兵)"
+			label_text += " (Merc)"
 		if entry.get("synergy", "") != "":
 			label_text += " ★%s" % entry["synergy"]
 
@@ -943,7 +944,7 @@ func _on_recruit_troop(troop_id: String, tile: Dictionary) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var player: Dictionary = GameManager.get_player_by_id(pid)
 	if player["ap"] < 1:
-		EventBus.message_log.emit("AP不足!")
+		EventBus.message_log.emit("Not enough AP!")
 		return
 	var success: bool = RecruitManager.recruit_unit(pid, troop_id, tile)
 	if success:
@@ -953,7 +954,7 @@ func _on_recruit_troop(troop_id: String, tile: Dictionary) -> void:
 		# Refresh the recruit panel to show updated state
 		_on_domestic_recruit()
 	else:
-		EventBus.message_log.emit("招募失败 — 资源不足或军团已满")
+		EventBus.message_log.emit("Recruit failed - insufficient resources or army full")
 
 
 func _on_army_view() -> void:
@@ -962,28 +963,28 @@ func _on_army_view() -> void:
 	domestic_panel.visible = false
 
 	var pid: int = GameManager.get_human_player_id()
-	_show_target_panel("军団一覧")
+	_show_target_panel("Army Overview")
 
 	var summary: Array = RecruitManager.get_army_summary(pid)
 	if summary.is_empty():
-		_add_target_label("(军团中没有部队)")
+		_add_target_label("(No troops in army)")
 		return
 
 	var pop_cap: int = RecruitManager._get_pop_cap(pid)
-	_add_target_label("编制: %d/%d | 总兵力: %d" % [summary.size(), pop_cap, RecruitManager.get_total_soldiers(pid)])
+	_add_target_label("Roster: %d/%d | Total: %d" % [summary.size(), pop_cap, RecruitManager.get_total_soldiers(pid)])
 
 	# Faction passive display
 	var ftag: String = GameManager._get_faction_tag_for_player(pid)
 	var fp: Dictionary = GameData.get_faction_passive(ftag)
 	if not fp.is_empty():
-		_add_target_label("阵营特性: %s — %s" % [fp.get("name", ""), fp.get("desc", "")], Color(0.8, 0.7, 0.4))
+		_add_target_label("Faction Trait: %s -- %s" % [fp.get("name", ""), fp.get("desc", "")], Color(0.8, 0.7, 0.4))
 
 	# Slave conversion status (Dark Elf)
 	if ftag == "dark_elf":
 		var conv_status: Array = SlaveManager.get_conversion_status(pid)
 		if not conv_status.is_empty():
 			for cs in conv_status:
-				_add_target_label("  转化中: %d名俘虏 (%d回合后完成)" % [cs["count"], cs["turns_left"]], Color(0.7, 0.5, 0.8))
+				_add_target_label("  Converting: %d prisoners (%d turns left)" % [cs["count"], cs["turns_left"]], Color(0.7, 0.5, 0.8))
 
 	# Troop list
 	for entry in summary:
@@ -997,7 +998,7 @@ func _on_army_view() -> void:
 		if not pdef.is_empty():
 			passive_name = pdef.get("name", "")
 
-		var line1: String = "[%s] %s (%s/%s) ATK:%d DEF:%d 兵:%d/%d%s" % [
+		var line1: String = "[%s] %s (%s/%s) ATK:%d DEF:%d Troops:%d/%d%s" % [
 			tier_str, entry["name"], entry["class_name"], entry["row"],
 			entry["atk"], entry["def"],
 			entry["soldiers"], entry["max_soldiers"], vet_str
@@ -1011,12 +1012,12 @@ func _on_army_view() -> void:
 
 		# Active ability status
 		if entry["ability"] != "":
-			var used_str: String = "已使用" if entry["ability_used"] else "可用"
-			_add_target_label("  技能: %s (%s)" % [entry["ability"], used_str], Color(0.6, 0.75, 0.6))
+			var used_str: String = "Used" if entry["ability_used"] else "Ready"
+			_add_target_label("  Skill: %s (%s)" % [entry["ability"], used_str], Color(0.6, 0.75, 0.6))
 
 		# Upkeep
 		if entry["upkeep"] > 0:
-			_add_target_label("  维持: %d粮/回合 | 经验: %d" % [entry["upkeep"], entry["experience"]], Color(0.55, 0.55, 0.6))
+			_add_target_label("  Upkeep: %d food/turn | EXP: %d" % [entry["upkeep"], entry["experience"]], Color(0.55, 0.55, 0.6))
 
 
 func _on_domestic_upgrade() -> void:
@@ -1026,14 +1027,14 @@ func _on_domestic_upgrade() -> void:
 	domestic_panel.visible = false
 
 	var pid: int = GameManager.get_human_player_id()
-	_show_target_panel("升级领地 - 選択")
+	_show_target_panel("Upgrade Territory - Select")
 
 	var found: bool = false
 	for i in range(GameManager.tiles.size()):
 		var tile: Dictionary = GameManager.tiles[i]
 		if tile["owner_id"] == pid and tile["level"] < GameManager.MAX_TILE_LEVEL:
 			var cost: Array = GameManager.UPGRADE_COSTS[tile["level"]]
-			var label_text: String = "%s Lv%d -> Lv%d (%d金 %d铁)" % [
+			var label_text: String = "%s Lv%d -> Lv%d (%d gold %d iron)" % [
 				tile["name"], tile["level"], tile["level"] + 1, cost[0], cost[1]
 			]
 			var can_afford: bool = ResourceManager.can_afford(pid, {"gold": cost[0], "iron": cost[1]})
@@ -1049,7 +1050,7 @@ func _on_domestic_upgrade() -> void:
 			found = true
 
 	if not found:
-		_add_target_label("(升级可能な領地がありません)")
+		_add_target_label("(No upgradable territories)")
 
 
 func _on_domestic_build() -> void:
@@ -1059,7 +1060,7 @@ func _on_domestic_build() -> void:
 	domestic_panel.visible = false
 
 	var pid: int = GameManager.get_human_player_id()
-	_show_target_panel("建造設施 - 領地選択")
+	_show_target_panel("Build - Select Territory")
 
 	var found: bool = false
 	for i in range(GameManager.tiles.size()):
@@ -1070,7 +1071,7 @@ func _on_domestic_build() -> void:
 			found = true
 
 	if not found:
-		_add_target_label("(建造可能な領地がありません)")
+		_add_target_label("(No buildable territories)")
 
 
 func _on_domestic_upgrade_target(tile_index: int) -> void:
@@ -1086,10 +1087,10 @@ func _on_domestic_build_tile(tile_index: int) -> void:
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var available: Array = BuildingRegistry.get_available_buildings_for(pid, tile)
 
-	_show_target_panel("建造設施 - %s" % tile["name"])
+	_show_target_panel("Build - %s" % tile["name"])
 
 	if available.is_empty():
-		_add_target_label("(建築可能な設施がありません)")
+		_add_target_label("(No buildings available)")
 		return
 
 	for b in available:
@@ -1098,11 +1099,11 @@ func _on_domestic_build_tile(tile_index: int) -> void:
 		if not cost.is_empty():
 			var cost_parts: Array = []
 			if cost.get("gold", 0) > 0:
-				cost_parts.append("%d金" % cost["gold"])
+				cost_parts.append("%dg" % cost["gold"])
 			if cost.get("iron", 0) > 0:
-				cost_parts.append("%d铁" % cost["iron"])
+				cost_parts.append("%d iron" % cost["iron"])
 			if cost.get("slaves", 0) > 0:
-				cost_parts.append("%d奴" % cost["slaves"])
+				cost_parts.append("%d slaves" % cost["slaves"])
 			if not cost_parts.is_empty():
 				label_text += " (%s)" % " ".join(cost_parts)
 		var btn := Button.new()
@@ -1167,22 +1168,22 @@ func _on_research_pressed() -> void:
 	domestic_panel.visible = false
 
 	var pid: int = GameManager.get_human_player_id()
-	_show_target_panel("训练科技树")
+	_show_target_panel("Research Tree")
 
 	# Get research state from ResearchManager
 	if not ResearchManager.has_method("get_research_status"):
-		_add_target_label("(训练系统加载中...)")
+		_add_target_label("(Loading research system...)")
 		return
 
 	var status: Dictionary = ResearchManager.get_research_status(pid)
 	if status.is_empty():
-		_add_target_label("(无可用训练项目)")
+		_add_target_label("(No available research)")
 		return
 
 	# Show current research
 	var current: Dictionary = status.get("current", {})
 	if not current.is_empty():
-		_add_target_label("研究中: %s (%d/%d)" % [
+		_add_target_label("Researching: %s (%d/%d)" % [
 			current.get("name", "???"),
 			current.get("progress", 0),
 			current.get("cost", 0)
@@ -1191,7 +1192,7 @@ func _on_research_pressed() -> void:
 	# Show available research
 	var available: Array = status.get("available", [])
 	for entry in available:
-		var label_text: String = "%s (费用:%d)" % [entry.get("name", "???"), entry.get("cost", 0)]
+		var label_text: String = "%s (Cost:%d)" % [entry.get("name", "???"), entry.get("cost", 0)]
 		if entry.get("desc", "") != "":
 			label_text += "\n  %s" % entry["desc"]
 		var btn := Button.new()
@@ -1206,7 +1207,7 @@ func _on_research_pressed() -> void:
 	# Show completed research
 	var completed: Array = status.get("completed", [])
 	if not completed.is_empty():
-		_add_target_label("\n已完成:", Color(0.5, 0.7, 0.4))
+		_add_target_label("\nCompleted:", Color(0.5, 0.7, 0.4))
 		for tech_name in completed:
 			_add_target_label("  %s" % tech_name, Color(0.4, 0.6, 0.35))
 
@@ -1215,7 +1216,7 @@ func _on_start_research(tech_id: String) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	if ResearchManager.has_method("start_research"):
 		ResearchManager.start_research(pid, tech_id)
-		EventBus.message_log.emit("开始研究: %s" % tech_id)
+		EventBus.message_log.emit("Started research: %s" % tech_id)
 		# Refresh the panel
 		_on_research_pressed()
 
@@ -1269,13 +1270,13 @@ func _detect_victory_type(human_id: int) -> String:
 				if tile["owner_id"] == human_id:
 					human_sh += 1
 	if total_sh > 0 and human_sh >= total_sh:
-		return "征服胜利"
+		return "Conquest Victory"
 
 	# Check domination: >= 60% tiles
 	var total_tiles: int = GameManager.tiles.size()
 	var human_tiles: int = GameManager.count_tiles_owned(human_id)
 	if total_tiles > 0 and float(human_tiles) / float(total_tiles) >= 0.60:
-		return "支配胜利"
+		return "Domination Victory"
 
 	# Check shadow dominion: threat >= 100 + ultimate unit
 	var threat: int = ThreatManager.get_threat()
@@ -1297,37 +1298,37 @@ func _detect_victory_type(human_id: int) -> String:
 		if has_ultimate:
 			break
 	if threat >= 100 and has_ultimate:
-		return "暗影统治"
+		return "Shadow Domination"
 
 	# Check harem victory
 	var human_faction: int = GameManager.get_player_faction(human_id)
 	if human_faction == FactionData.FactionID.PIRATE and HeroSystem.check_harem_victory():
-		return "后宫胜利"
+		return "Harem Victory"
 
-	return "胜利"
+	return "Victory"
 
 
 func _get_victory_stats(player_id: int) -> Array:
 	var stats: Array = []
-	stats.append("回合数: %d" % GameManager.turn_number)
+	stats.append("Turns: %d" % GameManager.turn_number)
 
 	var owned: int = GameManager.count_tiles_owned(player_id)
 	var total: int = GameManager.tiles.size()
-	stats.append("领地: %d/%d" % [owned, total])
+	stats.append("Territory: %d/%d" % [owned, total])
 
 	var total_soldiers: int = 0
 	for army_id in GameManager.armies:
 		var army: Dictionary = GameManager.armies[army_id]
 		if army["player_id"] == player_id:
 			total_soldiers += GameManager.get_army_soldier_count(army_id)
-	stats.append("军队: %d" % total_soldiers)
+	stats.append("Army: %d" % total_soldiers)
 
 	var recruited: int = HeroSystem.recruited_heroes.size()
 	var total_heroines: int = FactionData.HEROES.size()
-	stats.append("女武将: %d/%d" % [recruited, total_heroines])
+	stats.append("Heroines: %d/%d" % [recruited, total_heroines])
 
 	var player_gold: int = ResourceManager.get_resource(player_id, "gold")
-	stats.append("金币: %d" % player_gold)
+	stats.append("Gold: %d" % player_gold)
 
 	return stats
 # ═══════════════════════════════════════════════════════════════
@@ -1418,22 +1419,22 @@ func _update_player_info() -> void:
 	var player: Dictionary = GameManager.get_current_player()
 	var pid: int = player["id"]
 
-	turn_label.text = "第%d回合 %s" % [GameManager.turn_number, player["name"]]
+	turn_label.text = "Turn %d %s" % [GameManager.turn_number, player["name"]]
 	turn_label.add_theme_color_override("font_color", player["color"])
 
-	gold_label.text = "金:%d" % ResourceManager.get_resource(pid, "gold")
-	food_label.text = "粮:%d" % ResourceManager.get_resource(pid, "food")
-	iron_label.text = "铁:%d" % ResourceManager.get_resource(pid, "iron")
-	slaves_label.text = "奴:%d/%d" % [ResourceManager.get_slaves(pid), ResourceManager.get_slave_capacity(pid)]
-	prestige_label.text = "威望:%d" % ResourceManager.get_resource(pid, "prestige")
-	army_label.text = "兵:%d (%d部队)" % [RecruitManager.get_total_soldiers(pid), RecruitManager._get_army_ref(pid).size()]
+	gold_label.text = str(ResourceManager.get_resource(pid, "gold")) if _has_resource_icons else "Gold:%d" % ResourceManager.get_resource(pid, "gold")
+	food_label.text = str(ResourceManager.get_resource(pid, "food")) if _has_resource_icons else "Food:%d" % ResourceManager.get_resource(pid, "food")
+	iron_label.text = str(ResourceManager.get_resource(pid, "iron")) if _has_resource_icons else "Iron:%d" % ResourceManager.get_resource(pid, "iron")
+	slaves_label.text = ("%d/%d" % [ResourceManager.get_slaves(pid), ResourceManager.get_slave_capacity(pid)]) if _has_resource_icons else "Slaves:%d/%d" % [ResourceManager.get_slaves(pid), ResourceManager.get_slave_capacity(pid)]
+	prestige_label.text = str(ResourceManager.get_resource(pid, "prestige")) if _has_resource_icons else "Prestige:%d" % ResourceManager.get_resource(pid, "prestige")
+	army_label.text = "Army:%d (%d units)" % [RecruitManager.get_total_soldiers(pid), RecruitManager._get_army_ref(pid).size()]
 	var pop_cap: int = GameManager.get_population_cap(pid)
-	pop_label.text = "军团:%d/%d" % [RecruitManager._get_army_ref(pid).size(), pop_cap]
+	pop_label.text = "Roster:%d/%d" % [RecruitManager._get_army_ref(pid).size(), pop_cap]
 	ap_label.text = "AP:%d" % player["ap"]
-	stronghold_label.text = "要塞:%s" % GameManager.get_stronghold_progress(pid)
+	stronghold_label.text = "Fort:%s" % GameManager.get_stronghold_progress(pid)
 
-	order_label.text = "秩序:%d (x%.2f)" % [OrderManager.get_order(), OrderManager.get_production_multiplier()]
-	threat_label.text = "威胁:%d [%s]" % [ThreatManager.get_threat(), ThreatManager.get_tier_name()]
+	order_label.text = "Order:%d (x%.2f)" % [OrderManager.get_order(), OrderManager.get_production_multiplier()]
+	threat_label.text = "Threat:%d [%s]" % [ThreatManager.get_threat(), ThreatManager.get_tier_name()]
 
 	# WAAAGH! display for Orc faction
 	var faction_id: int = GameManager.get_player_faction(pid)
@@ -1456,10 +1457,10 @@ func _update_player_info() -> void:
 		food_label.add_theme_color_override("font_color", Color(0.6, 0.9, 0.4))
 
 	# Strategic resources
-	magic_crystal_label.text = "魔晶:%d" % ResourceManager.get_resource(pid, "magic_crystal")
-	war_horse_label.text = "战马:%d" % ResourceManager.get_resource(pid, "war_horse")
-	gunpowder_label.text = "火药:%d" % ResourceManager.get_resource(pid, "gunpowder")
-	shadow_essence_label.text = "暗影:%d" % ResourceManager.get_resource(pid, "shadow_essence")
+	magic_crystal_label.text = str(ResourceManager.get_resource(pid, "magic_crystal")) if _has_resource_icons else "Crystal:%d" % ResourceManager.get_resource(pid, "magic_crystal")
+	war_horse_label.text = "Horse:%d" % ResourceManager.get_resource(pid, "war_horse")
+	gunpowder_label.text = "Gunpowder:%d" % ResourceManager.get_resource(pid, "gunpowder")
+	shadow_essence_label.text = "Shadow:%d" % ResourceManager.get_resource(pid, "shadow_essence")
 
 
 func _update_tile_info() -> void:
@@ -1481,53 +1482,53 @@ func _update_tile_info() -> void:
 				tile_idx = i
 				break
 	var tile: Dictionary = GameManager.tiles[tile_idx]
-	var type_name: String = GameManager.TILE_NAMES.get(tile["type"], "未知")
+	var type_name: String = GameManager.TILE_NAMES.get(tile["type"], "Unknown")
 
-	var info: String = "[b]%s[/b] (Lv%d)\n類型: %s\n" % [tile["name"], tile["level"], type_name]
+	var info: String = "[b]%s[/b] (Lv%d)\nType: %s\n" % [tile["name"], tile["level"], type_name]
 
 	if tile["owner_id"] >= 0:
 		var prod: Dictionary = GameManager.get_tile_production(tile)
-		info += "産出: 金%d 粮%d 铁%d 人口%d\n" % [prod["gold"], prod["food"], prod["iron"], prod["pop"]]
+		info += "Output: Gold %d Food %d Iron %d Pop %d\n" % [prod["gold"], prod["food"], prod["iron"], prod["pop"]]
 
 	if tile["owner_id"] == pid:
-		info += "[color=green]已占領[/color]\n"
+		info += "[color=green]Captured[/color]\n"
 		var bld: String = tile.get("building_id", "")
 		if bld != "":
 			var bld_level: int = tile.get("building_level", 1)
 			var max_level: int = BuildingRegistry.get_building_max_level(bld)
-			info += "建築: [color=orchid]%s[/color] (Lv%d/%d)\n" % [BuildingRegistry.get_building_name(bld), bld_level, max_level]
+			info += "Building: [color=orchid]%s[/color] (Lv%d/%d)\n" % [BuildingRegistry.get_building_name(bld), bld_level, max_level]
 		else:
-			info += "[color=gray]可建造設施[/color]\n"
+			info += "[color=gray]Can build[/color]\n"
 		var stype: String = tile.get("resource_station_type", "")
 		if stype != "":
-			info += "[color=cyan]資源産出: %s[/color]\n" % stype
+			info += "[color=cyan]Resource output: %s[/color]\n" % stype
 	elif tile["owner_id"] >= 0:
 		var _owner = GameManager.get_player_by_id(tile["owner_id"])
-		var oname: String = _owner.get("name", "敵軍") if _owner else "敵軍"
-		info += "[color=red]%s 占領[/color]\n" % oname
+		var oname: String = _owner.get("name", "Enemy") if _owner else "Enemy"
+		info += "[color=red]%s Captured[/color]\n" % oname
 	else:
 		if tile["garrison"] > 0:
-			info += "守軍: %d\n" % tile["garrison"]
+			info += "Garrison: %d\n" % tile["garrison"]
 
 	if tile.get("light_faction", -1) >= 0:
-		info += "光明陣営: %s\n" % FactionData.LIGHT_FACTION_NAMES.get(tile["light_faction"], "未知")
+		info += "Light Alliance: %s\n" % FactionData.LIGHT_FACTION_NAMES.get(tile["light_faction"], "Unknown")
 
 	if tile.get("neutral_faction_id", -1) >= 0:
 		var nf_id: int = tile["neutral_faction_id"]
-		var nf_name: String = FactionData.NEUTRAL_FACTION_NAMES.get(nf_id, "未知")
+		var nf_name: String = FactionData.NEUTRAL_FACTION_NAMES.get(nf_id, "Unknown")
 		if NeutralFactionAI.is_vassal(nf_id):
-			info += "[color=lime]附庸: %s[/color]\n" % nf_name
+			info += "[color=lime]Vassal: %s[/color]\n" % nf_name
 		else:
-			info += "中立勢力: %s\n" % nf_name
+			info += "Neutral Faction: %s\n" % nf_name
 		# Show territory info
 		var territory: Array = NeutralFactionAI.get_faction_territory(nf_id)
-		info += "领地节点: %d\n" % territory.size()
+		info += "Territory nodes: %d\n" % territory.size()
 
 	if tile["owner_id"] == pid and tile["level"] < GameManager.MAX_TILE_LEVEL:
 		var cost: Array = GameManager.UPGRADE_COSTS[tile["level"]]
-		info += "\n[color=yellow]升級->Lv%d: %d金 %d铁[/color]" % [tile["level"] + 1, cost[0], cost[1]]
+		info += "\n[color=yellow]Upgrade->Lv%d: %d gold %d iron[/color]" % [tile["level"] + 1, cost[0], cost[1]]
 
-	info += "\n\n要塞進度:"
+	info += "\n\nFortress Progress:"
 	for p in GameManager.players:
 		info += "\n  %s: %s" % [p["name"], GameManager.get_stronghold_progress(p["id"])]
 
@@ -1548,7 +1549,7 @@ func _update_items() -> void:
 	var inventory: Array = ItemManager.get_inventory(pid)
 
 	if inventory.is_empty():
-		var empty_lbl := _make_label("(空)", 11, Color(0.5, 0.5, 0.55))
+		var empty_lbl := _make_label("(Empty)", 11, Color(0.5, 0.5, 0.55))
 		item_container.add_child(empty_lbl)
 		item_buttons.append(empty_lbl)
 		return
@@ -1639,14 +1640,14 @@ func _update_tile_info_for(tile_index: int) -> void:
 		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var pid: int = GameManager.get_human_player_id()
-	var type_name: String = GameManager.TILE_NAMES.get(tile["type"], "未知")
+	var type_name: String = GameManager.TILE_NAMES.get(tile["type"], "Unknown")
 	var terrain: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
 
 	var tdata: Dictionary = FactionData.TERRAIN_DATA.get(terrain, {})
-	var terrain_name: String = tdata.get("name", "未知")
+	var terrain_name: String = tdata.get("name", "Unknown")
 
 	var info: String = "[b]%s[/b] (Lv%d)\n" % [tile["name"], tile["level"]]
-	info += "类型: %s | 地形: %s\n" % [type_name, terrain_name]
+	info += "Type: %s | Terrain: %s\n" % [type_name, terrain_name]
 
 	# Terrain combat modifiers
 	var t_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain, {}) if "TERRAIN_DATA" in FactionData else {}
@@ -1654,42 +1655,42 @@ func _update_tile_info_for(tile_index: int) -> void:
 		var atk_m: float = t_data.get("atk_mult", 1.0)
 		var def_m: float = t_data.get("def_mult", 1.0)
 		if atk_m != 1.0 or def_m != 1.0:
-			info += "[color=gray]战斗修正: ATK×%.2f DEF×%.2f[/color]\n" % [atk_m, def_m]
+			info += "[color=gray]Combat mod: ATK×%.2f DEF×%.2f[/color]\n" % [atk_m, def_m]
 
 	# Terrain move cost & attrition tooltip
 	var move_cost: int = tdata.get("move_cost", 1)
 	var attrition_pct: float = tdata.get("attrition_pct", 0.0)
 	if move_cost > 1 or attrition_pct > 0.0:
-		var extra_info: String = "[color=gray]移动消耗: %dAP" % move_cost
+		var extra_info: String = "[color=gray]Move cost: %dAP" % move_cost
 		if attrition_pct > 0.0:
-			extra_info += " | 减员: %.0f%%/回合" % (attrition_pct * 100.0)
+			extra_info += " | Attrition: %.0f%%/turn" % (attrition_pct * 100.0)
 		extra_info += "[/color]\n"
 		info += extra_info
 
 	# Chokepoint
 	if tile.get("is_chokepoint", false):
-		info += "[color=orange]关隘: ATK-10% DEF+20%[/color]\n"
+		info += "[color=orange]Chokepoint: ATK-10% DEF+20%[/color]\n"
 
 	# Owner info
 	if tile["owner_id"] == pid:
-		info += "[color=green]己方领地[/color]\n"
+		info += "[color=green]Own territory[/color]\n"
 		var prod: Dictionary = GameManager.get_tile_production(tile) if GameManager.has_method("get_tile_production") else {}
 		if not prod.is_empty():
-			info += "产出: 金%d 粮%d 铁%d\n" % [prod.get("gold", 0), prod.get("food", 0), prod.get("iron", 0)]
+			info += "Output: Gold %d Food %d Iron %d\n" % [prod.get("gold", 0), prod.get("food", 0), prod.get("iron", 0)]
 		var bld: String = tile.get("building_id", "")
 		if bld != "":
-			info += "建筑: [color=orchid]%s[/color] Lv%d\n" % [BuildingRegistry.get_building_name(bld), tile.get("building_level", 1)]
+			info += "Building: [color=orchid]%s[/color] Lv%d\n" % [BuildingRegistry.get_building_name(bld), tile.get("building_level", 1)]
 	elif tile["owner_id"] >= 0:
 		var _owner = GameManager.get_player_by_id(tile["owner_id"])
-		var oname: String = _owner.get("name", "敌军") if _owner else "敌军"
-		info += "[color=red]%s 占领[/color]\n" % oname
+		var oname: String = _owner.get("name", "Enemy") if _owner else "Enemy"
+		info += "[color=red]%s Captured[/color]\n" % oname
 	else:
-		info += "[color=gray]无主之地[/color]\n"
+		info += "[color=gray]Unclaimed[/color]\n"
 
 	# Garrison
 	var garrison: int = tile.get("garrison", 0)
 	if garrison > 0:
-		info += "驻军: %d\n" % garrison
+		info += "Garrison: %d\n" % garrison
 
 	# Army stationed here (v0.9.2)
 	var army: Dictionary = GameManager.get_army_at_tile(tile_index)
@@ -1697,33 +1698,33 @@ func _update_tile_info_for(tile_index: int) -> void:
 		var soldiers: int = GameManager.get_army_soldier_count(army["id"])
 		var power: int = GameManager.get_army_combat_power(army["id"])
 		var troop_count: int = army["troops"].size()
-		info += "[color=yellow]━━ 军团: %s ━━[/color]\n" % army["name"]
-		info += "部队编制: %d/%d | 总兵力: %d | 战力: %d\n" % [troop_count, GameManager.MAX_TROOPS_PER_ARMY, soldiers, power]
+		info += "[color=yellow]━━ Army: %s ━━[/color]\n" % army["name"]
+		info += "Troop roster: %d/%d | Total troops: %d | Power: %d\n" % [troop_count, GameManager.MAX_TROOPS_PER_ARMY, soldiers, power]
 		if army["player_id"] == pid:
 			var tile_idx: int = army.get("tile_index", -1)
 			var on_enemy: bool = tile_idx >= 0 and tile_idx < GameManager.tiles.size() and GameManager.tiles[tile_idx]["owner_id"] != pid and GameManager.tiles[tile_idx]["owner_id"] >= 0
 			if on_enemy:
-				info += "[color=orange]补给: 敌方领土 (每回合%.0f%%损耗)[/color]\n" % (BalanceConfig.SUPPLY_ENEMY_TERRITORY_ATTRITION * 100.0)
+				info += "[color=orange]Supply: Enemy territory (%.0f%% attrition/turn)[/color]\n" % (BalanceConfig.SUPPLY_ENEMY_TERRITORY_ATTRITION * 100.0)
 			else:
-				info += "[color=green]补给: 正常[/color]\n"
+				info += "[color=green]Supply: Normal[/color]\n"
 
 	# Neutral faction
 	if tile.get("neutral_faction_id", -1) >= 0:
 		var nf_id2: int = tile["neutral_faction_id"]
-		var nf_name2: String = FactionData.NEUTRAL_FACTION_NAMES.get(nf_id2, "未知")
+		var nf_name2: String = FactionData.NEUTRAL_FACTION_NAMES.get(nf_id2, "Unknown")
 		if NeutralFactionAI.is_vassal(nf_id2):
-			info += "[color=lime]附庸: %s[/color]\n" % nf_name2
+			info += "[color=lime]Vassal: %s[/color]\n" % nf_name2
 		else:
-			info += "中立势力: %s\n" % nf_name2
+			info += "Neutral Faction: %s\n" % nf_name2
 
 	# Light faction
 	if tile.get("light_faction", -1) >= 0:
-		info += "光明阵营: %s\n" % FactionData.LIGHT_FACTION_NAMES.get(tile["light_faction"], "未知")
+		info += "Light Alliance: %s\n" % FactionData.LIGHT_FACTION_NAMES.get(tile["light_faction"], "Unknown")
 
 	# Wall HP
 	var wall_hp: int = tile.get("wall_hp", 0)
 	if wall_hp > 0:
-		info += "城防HP: %d\n" % wall_hp
+		info += "Wall HP: %d\n" % wall_hp
 
 	tile_info_label.text = info
 
@@ -1746,15 +1747,15 @@ func _on_game_over(winner_id: int) -> void:
 	var victory_type: String = ""
 	if is_victory:
 		victory_type = _detect_victory_type(human_id)
-		game_over_label.text = "%s 获得最终胜利!" % GameManager.get_player_by_id(human_id).get("name", "?")
+		game_over_label.text = "%s Wins!" % GameManager.players[human_id]["name"]
 		game_over_label.add_theme_color_override("font_color", Color.GOLD)
 		game_over_victory_type_label.text = victory_type
 		game_over_victory_type_label.add_theme_color_override("font_color", Color.GOLD)
 		game_over_style.border_color = Color.GOLD
 		game_over_style.bg_color = Color(0.12, 0.1, 0.02, 0.95)
 	else:
-		victory_type = "战败"
-		game_over_label.text = "游戏结束..."
+		victory_type = "Defeat"
+		game_over_label.text = "Game Over..."
 		game_over_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
 		game_over_victory_type_label.text = victory_type
 		game_over_victory_type_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
@@ -1782,17 +1783,54 @@ func _on_combat_result(_attacker_id: int, _defender_desc: String, _won: bool) ->
 
 func _on_order_changed(new_value: int) -> void:
 	if order_label:
-		order_label.text = "秩序: %d" % new_value
+		order_label.text = "Order: %d" % new_value
 
 
 func _on_threat_changed(new_value: int) -> void:
 	if threat_label:
-		threat_label.text = "威胁: %d" % new_value
+		threat_label.text = "Threat: %d" % new_value
 
 
 # ═══════════════════════════════════════════════════════════════
 #                       HELPERS
 # ═══════════════════════════════════════════════════════════════
+
+func _make_panel_style(fallback_color: Color = Color(0.06, 0.06, 0.1, 0.88), margin: int = 12) -> StyleBox:
+	if _panel_tex:
+		var stex := StyleBoxTexture.new()
+		stex.texture = _panel_tex
+		stex.texture_margin_left = margin
+		stex.texture_margin_right = margin
+		stex.texture_margin_top = margin
+		stex.texture_margin_bottom = margin
+		stex.content_margin_left = 8
+		stex.content_margin_right = 8
+		stex.content_margin_top = 8
+		stex.content_margin_bottom = 8
+		return stex
+	else:
+		var sf := StyleBoxFlat.new()
+		sf.bg_color = fallback_color
+		sf.set_corner_radius_all(6)
+		sf.set_content_margin_all(8)
+		return sf
+
+
+func _make_icon_label(icon: Texture2D, text: String, size: int, color: Color, min_w: float) -> HBoxContainer:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 2)
+	hb.custom_minimum_size.x = min_w
+	if icon:
+		var tr := TextureRect.new()
+		tr.texture = icon
+		tr.custom_minimum_size = Vector2(18, 18)
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hb.add_child(tr)
+	var lbl := _make_label(text, size, color)
+	hb.add_child(lbl)
+	return hb
+
 
 func _make_label(text: String, size: int, color: Color) -> Label:
 	var lbl := Label.new()
@@ -1808,4 +1846,24 @@ func _make_button(text: String) -> Button:
 	btn.custom_minimum_size = Vector2(180, 32)
 	btn.add_theme_font_size_override("font_size", 12)
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	if _btn_normal_tex:
+		var sn := StyleBoxTexture.new()
+		sn.texture = _btn_normal_tex
+		sn.texture_margin_left = 8
+		sn.texture_margin_right = 8
+		sn.texture_margin_top = 6
+		sn.texture_margin_bottom = 6
+		sn.content_margin_left = 10
+		sn.content_margin_right = 10
+		sn.content_margin_top = 4
+		sn.content_margin_bottom = 4
+		btn.add_theme_stylebox_override("normal", sn)
+		if _btn_hover_tex:
+			var sh := sn.duplicate()
+			sh.texture = _btn_hover_tex
+			btn.add_theme_stylebox_override("hover", sh)
+		if _btn_pressed_tex:
+			var sp := sn.duplicate()
+			sp.texture = _btn_pressed_tex
+			btn.add_theme_stylebox_override("pressed", sp)
 	return btn

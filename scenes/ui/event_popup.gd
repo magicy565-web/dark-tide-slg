@@ -1,4 +1,4 @@
-## event_popup.gd - Modal event dialog for 暗潮 SLG (v0.9.1)
+## event_popup.gd - Modal event dialog for Dark Tide SLG (v0.9.1)
 extends CanvasLayer
 
 # ── State ──
@@ -92,7 +92,7 @@ func _build_ui() -> void:
 	header.add_child(icon_label)
 
 	title_label = Label.new()
-	title_label.text = "事件"
+	title_label.text = "Event"
 	title_label.add_theme_font_size_override("font_size", 20)
 	title_label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.6))
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -127,7 +127,7 @@ func _build_ui() -> void:
 
 	# Dismiss button (for events without choices)
 	btn_dismiss = Button.new()
-	btn_dismiss.text = "确认"
+	btn_dismiss.text = "OK"
 	btn_dismiss.custom_minimum_size = Vector2(120, 38)
 	btn_dismiss.add_theme_font_size_override("font_size", 14)
 	btn_dismiss.pressed.connect(_on_dismiss)
@@ -150,13 +150,13 @@ func show_event(title: String, description: String, choices: Array = [], event_i
 	if choices.is_empty():
 		# No choices, just show dismiss
 		btn_dismiss.visible = true
-		btn_dismiss.text = "确认"
+		btn_dismiss.text = "OK"
 	else:
 		btn_dismiss.visible = false
 		for i in range(choices.size()):
 			var choice: Dictionary = choices[i] if choices[i] is Dictionary else {"text": str(choices[i])}
 			var btn := Button.new()
-			btn.text = choice.get("text", "选项 %d" % (i + 1))
+			btn.text = choice.get("text", "Option %d" % (i + 1))
 			btn.custom_minimum_size = Vector2(400, 36)
 			btn.add_theme_font_size_override("font_size", 13)
 			btn.pressed.connect(_on_choice.bind(i))
@@ -265,4 +265,4 @@ func _set_event_icon(event_id: String) -> void:
 
 
 func _is_conquest_popup() -> bool:
-	return title_label.text.begins_with("占领")
+	return title_label.text.begins_with("Conquest")

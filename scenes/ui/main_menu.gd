@@ -1,10 +1,15 @@
-## main_menu.gd - Title screen + Faction selection for 暗潮 SLG (v0.9.1)
+## main_menu.gd - Title screen + Faction selection for Dark Tide SLG (v4.0-pixel)
 extends CanvasLayer
 
 signal game_started(faction_id: int)
 
 # ── Font ──
 var _cjk_font: Font = null
+
+# ── Pixel art assets ──
+var _bg_texture: Texture2D = null
+var _logo_texture: Texture2D = null
+var _crest_textures: Dictionary = {}  # faction_id -> Texture2D
 
 # ── State ──
 var _selected_faction: int = -1
@@ -27,31 +32,39 @@ var faction_container: VBoxContainer
 var faction_buttons: Array = []
 var faction_desc_label: RichTextLabel
 var faction_preview_panel: PanelContainer
+var faction_crest_display: TextureRect
 var btn_confirm: Button
 var btn_back: Button
+
+# Faction crest paths
+const CREST_PATHS := {
+	0: "res://assets/ui/crest_orc.png",
+	1: "res://assets/ui/crest_pirate.png",
+	2: "res://assets/ui/crest_dark_elf.png",
+}
 
 # Faction data for display
 const FACTION_DISPLAY := {
 	0: {  # ORC
-		"name": "兽人部落",
+		"name": "Orc Horde",
 		"color": Color(0.8, 0.3, 0.2),
 		"icon": "WAAAGH!",
-		"desc": "[b]兽人部落[/b]\n\n[color=orange]特殊机制: WAAAGH! 战意系统[/color]\n\n战斗胜利积累战意值，满100触发狂暴状态：\n- ATK +50%，DEF -20%\n- 持续3回合\n- 连续不战斗则战意衰减\n\n[color=yellow]专属兵种:[/color] 兽人步兵 / 巨魔 / 战猪骑兵\n\n[color=gray]难度: ★★☆ 适合进攻型玩家[/color]",
-		"start_bonus": "初始兵力+5, 起始领地产粮+20%",
+		"desc": "[b]Orc Horde[/b]\n\n[color=orange]Special Mechanic: WAAAGH! Battle Fury[/color]\n\nWin battles to accumulate fury. At 100, triggers berserker rage:\n- ATK +50%, DEF -20%\n- Lasts 3 turns\n- Fury decays if idle\n\n[color=yellow]Unique Troops:[/color] Orc Infantry / Troll / War Boar Rider\n\n[color=gray]Difficulty: ★★☆ Aggressive playstyle[/color]",
+		"start_bonus": "Starting troops +5, Territory grain +20%",
 	},
 	1: {  # PIRATE
-		"name": "海盗联盟",
+		"name": "Pirate Alliance",
 		"color": Color(0.3, 0.5, 0.8),
 		"icon": "PLUNDER",
-		"desc": "[b]海盗联盟[/b]\n\n[color=orange]特殊机制: 掠夺 & 奴隶贸易[/color]\n\n战斗胜利掠夺额外金币，俘虏敌人为奴隶：\n- 奴隶可分配至矿场/农场提升产出\n- 可在黑市买卖奴隶\n- 暗精灵可将奴隶转化为精锐兵种\n\n[color=yellow]专属兵种:[/color] 海盗刀客 / 火枪手 / 炮击手\n\n[color=gray]难度: ★★★ 适合经济型玩家[/color]",
-		"start_bonus": "初始金币+30, 黑市解锁",
+		"desc": "[b]Pirate Alliance[/b]\n\n[color=orange]Special Mechanic: Plunder & Slave Trade[/color]\n\nVictories yield bonus gold and capture prisoners as slaves:\n- Assign slaves to mines/farms for extra output\n- Buy and sell slaves on the black market\n- Dark elves can convert slaves into elite troops\n\n[color=yellow]Unique Troops:[/color] Pirate Cutlass / Musketeer / Cannoneer\n\n[color=gray]Difficulty: ★★★ Economy playstyle[/color]",
+		"start_bonus": "Starting gold +30, Black Market unlocked",
 	},
 	2: {  # DARK_ELF
-		"name": "暗精灵议会",
+		"name": "Dark Elf Council",
 		"color": Color(0.5, 0.2, 0.7),
 		"icon": "SHADOW",
-		"desc": "[b]暗精灵议会[/b]\n\n[color=orange]特殊机制: 奴隶祭坛 & 暗影转化[/color]\n\n通过暗影祭坛将奴隶转化为精锐暗精灵武士：\n- 每5奴隶转化1名暗精灵武士\n- 祭坛每3回合可献祭提升全军ATK\n- 暗影行者需训练解锁\n\n[color=yellow]专属兵种:[/color] 暗影行者 / 暗精灵刺客 / 冷蜥骑兵 / 暗精灵武士\n\n[color=gray]难度: ★★★ 适合策略型玩家[/color]",
-		"start_bonus": "初始奴隶+3, 暗影精华+2",
+		"desc": "[b]Dark Elf Council[/b]\n\n[color=orange]Special Mechanic: Slave Altar & Shadow Conversion[/color]\n\nConvert slaves into elite Dark Elf warriors at the Shadow Altar:\n- Every 5 slaves yields 1 Dark Elf Warrior\n- Altar sacrifice every 3 turns boosts army ATK\n- Shadow Walker requires training unlock\n\n[color=yellow]Unique Troops:[/color] Shadow Walker / Dark Elf Assassin / Cold Lizard Rider / Dark Elf Warrior\n\n[color=gray]Difficulty: ★★★ Strategic playstyle[/color]",
+		"start_bonus": "Starting slaves +3, Shadow Essence +2",
 	},
 }
 
@@ -64,8 +77,21 @@ func _ready() -> void:
 	layer = 10
 	# Load CJK font
 	_cjk_font = load("res://assets/fonts/NotoSansCJKsc-Regular.otf")
+	# Load pixel art assets
+	_bg_texture = _safe_load("res://assets/ui/main_menu_bg.png")
+	_logo_texture = _safe_load("res://assets/ui/main_menu_logo.png")
+	for fid in CREST_PATHS:
+		var tex = _safe_load(CREST_PATHS[fid])
+		if tex:
+			_crest_textures[fid] = tex
 	_build_ui()
 	_show_title()
+
+
+func _safe_load(path: String) -> Resource:
+	if ResourceLoader.exists(path):
+		return load(path)
+	return null
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -80,13 +106,22 @@ func _build_ui() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(root)
 
-	# Full-screen dark background
-	var bg := ColorRect.new()
-	bg.name = "Background"
-	bg.anchor_right = 1.0
-	bg.anchor_bottom = 1.0
-	bg.color = Color(0.03, 0.03, 0.06, 1.0)
-	root.add_child(bg)
+	# Full-screen background — pixel art image or fallback solid color
+	if _bg_texture:
+		var bg_img := TextureRect.new()
+		bg_img.name = "Background"
+		bg_img.texture = _bg_texture
+		bg_img.anchor_right = 1.0
+		bg_img.anchor_bottom = 1.0
+		bg_img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		root.add_child(bg_img)
+	else:
+		var bg := ColorRect.new()
+		bg.name = "Background"
+		bg.anchor_right = 1.0
+		bg.anchor_bottom = 1.0
+		bg.color = Color(0.03, 0.03, 0.06, 1.0)
+		root.add_child(bg)
 
 	_build_title_panel()
 	_build_faction_panel()
@@ -101,12 +136,12 @@ func _build_title_panel() -> void:
 	title_panel.anchor_right = 0.5
 	title_panel.anchor_top = 0.5
 	title_panel.anchor_bottom = 0.5
-	title_panel.offset_left = -200
-	title_panel.offset_right = 200
-	title_panel.offset_top = -180
-	title_panel.offset_bottom = 180
+	title_panel.offset_left = -220
+	title_panel.offset_right = 220
+	title_panel.offset_top = -200
+	title_panel.offset_bottom = 200
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.06, 0.12, 0.95)
+	style.bg_color = Color(0.08, 0.06, 0.12, 0.80)
 	style.border_color = Color(0.6, 0.3, 0.1)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(12)
@@ -119,23 +154,21 @@ func _build_title_panel() -> void:
 	vbox.add_theme_constant_override("separation", 12)
 	title_panel.add_child(vbox)
 
-	# Title
-	var title := Label.new()
-	title.text = "暗    潮"
-	_apply_font_to_label(title)
-	title.add_theme_font_size_override("font_size", 42)
-	title.add_theme_color_override("font_color", Color(0.85, 0.55, 0.15))
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(title)
-
-	# Subtitle
-	var sub := Label.new()
-	sub.text = "D A R K   T I D E"
-	_apply_font_to_label(sub)
-	sub.add_theme_font_size_override("font_size", 16)
-	sub.add_theme_color_override("font_color", Color(0.6, 0.5, 0.4))
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(sub)
+	# Logo image or fallback text title
+	if _logo_texture:
+		var logo_rect := TextureRect.new()
+		logo_rect.texture = _logo_texture
+		logo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		logo_rect.custom_minimum_size = Vector2(380, 120)
+		vbox.add_child(logo_rect)
+	else:
+		var title := Label.new()
+		title.text = "DARK TIDE"
+		_apply_font_to_label(title)
+		title.add_theme_font_size_override("font_size", 42)
+		title.add_theme_color_override("font_color", Color(0.85, 0.55, 0.15))
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vbox.add_child(title)
 
 	# Separator
 	var sep := HSeparator.new()
@@ -143,21 +176,21 @@ func _build_title_panel() -> void:
 	vbox.add_child(sep)
 
 	# Buttons
-	btn_new_game = _make_menu_button("新的征程")
+	btn_new_game = _make_menu_button("New Campaign")
 	btn_new_game.pressed.connect(_on_new_game)
 	vbox.add_child(btn_new_game)
 
-	btn_continue = _make_menu_button("继续战役")
+	btn_continue = _make_menu_button("Continue")
 	btn_continue.pressed.connect(_on_continue)
 	vbox.add_child(btn_continue)
 
-	btn_settings = _make_menu_button("游戏设置")
+	btn_settings = _make_menu_button("Settings")
 	btn_settings.pressed.connect(_on_settings)
 	vbox.add_child(btn_settings)
 
 	# Version
 	version_label = Label.new()
-	version_label.text = "v3.3.0"
+	version_label.text = "v4.0.0-pixel"
 	_apply_font_to_label(version_label)
 	version_label.add_theme_font_size_override("font_size", 11)
 	version_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
@@ -196,11 +229,11 @@ func _build_faction_panel_content() -> void:
 	# Left side: faction list
 	var left_vbox := VBoxContainer.new()
 	left_vbox.add_theme_constant_override("separation", 8)
-	left_vbox.custom_minimum_size = Vector2(280, 0)
+	left_vbox.custom_minimum_size = Vector2(300, 0)
 	main_hbox.add_child(left_vbox)
 
 	var header := Label.new()
-	header.text = "选择你的阵营"
+	header.text = "Choose Your Faction"
 	_apply_font_to_label(header)
 	header.add_theme_font_size_override("font_size", 22)
 	header.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
@@ -214,15 +247,19 @@ func _build_faction_panel_content() -> void:
 	faction_container.add_theme_constant_override("separation", 6)
 	left_vbox.add_child(faction_container)
 
-	# Create faction buttons
+	# Create faction buttons with crest icons
 	for fid in FACTION_DISPLAY.keys():
 		var fdata: Dictionary = FACTION_DISPLAY[fid]
+		var btn_hbox := HBoxContainer.new()
+		btn_hbox.add_theme_constant_override("separation", 8)
+
+		# Crest icon inside button
 		var btn := Button.new()
 		btn.text = "  %s  %s" % [fdata["icon"], fdata["name"]]
-		btn.custom_minimum_size = Vector2(260, 52)
+		btn.custom_minimum_size = Vector2(280, 56)
 		if _cjk_font:
 			btn.add_theme_font_override("font", _cjk_font)
-		btn.add_theme_font_size_override("font_size", 16)
+		btn.add_theme_font_size_override("font_size", 15)
 		btn.pressed.connect(_on_faction_button.bind(fid))
 		faction_container.add_child(btn)
 		faction_buttons.append(btn)
@@ -238,20 +275,37 @@ func _build_faction_panel_content() -> void:
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	left_vbox.add_child(btn_row)
 
-	btn_back = _make_menu_button("返回")
+	btn_back = _make_menu_button("Back")
 	btn_back.custom_minimum_size = Vector2(120, 38)
 	btn_back.pressed.connect(_on_back_to_title)
 	btn_row.add_child(btn_back)
 
-	btn_confirm = _make_menu_button("开始征程")
-	btn_confirm.custom_minimum_size = Vector2(140, 38)
+	btn_confirm = _make_menu_button("Start Campaign")
+	btn_confirm.custom_minimum_size = Vector2(160, 38)
 	btn_confirm.disabled = true
 	btn_confirm.pressed.connect(_on_confirm_faction)
 	btn_row.add_child(btn_confirm)
 
-	# Right side: faction description
+	# Right side: faction preview with crest + description
+	var right_vbox := VBoxContainer.new()
+	right_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_vbox.add_theme_constant_override("separation", 12)
+	main_hbox.add_child(right_vbox)
+
+	# Faction crest display area
+	var crest_center := CenterContainer.new()
+	crest_center.custom_minimum_size = Vector2(0, 140)
+	right_vbox.add_child(crest_center)
+
+	faction_crest_display = TextureRect.new()
+	faction_crest_display.custom_minimum_size = Vector2(128, 128)
+	faction_crest_display.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	faction_crest_display.visible = false
+	crest_center.add_child(faction_crest_display)
+
+	# Description panel
 	faction_preview_panel = PanelContainer.new()
-	faction_preview_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	faction_preview_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var preview_style := StyleBoxFlat.new()
 	preview_style.bg_color = Color(0.06, 0.05, 0.1, 0.9)
 	preview_style.border_color = Color(0.3, 0.25, 0.2)
@@ -259,7 +313,7 @@ func _build_faction_panel_content() -> void:
 	preview_style.set_corner_radius_all(8)
 	preview_style.set_content_margin_all(16)
 	faction_preview_panel.add_theme_stylebox_override("panel", preview_style)
-	main_hbox.add_child(faction_preview_panel)
+	right_vbox.add_child(faction_preview_panel)
 
 	faction_desc_label = RichTextLabel.new()
 	faction_desc_label.bbcode_enabled = true
@@ -268,7 +322,7 @@ func _build_faction_panel_content() -> void:
 	_apply_font_to_rtl(faction_desc_label)
 	faction_desc_label.add_theme_font_size_override("normal_font_size", 14)
 	faction_desc_label.add_theme_color_override("default_color", Color(0.85, 0.85, 0.88))
-	faction_desc_label.text = "[center][color=gray]请从左侧选择一个阵营[/color][/center]"
+	faction_desc_label.text = "[center][color=gray]Select a faction from the left[/color][/center]"
 	faction_preview_panel.add_child(faction_desc_label)
 
 
@@ -282,7 +336,7 @@ func _build_loading_label() -> void:
 	loading_label.offset_left = -100
 	loading_label.offset_right = 100
 	_apply_font_to_label(loading_label)
-	loading_label.text = "生成世界中..."
+	loading_label.text = "Generating World..."
 	loading_label.add_theme_font_size_override("font_size", 20)
 	loading_label.add_theme_color_override("font_color", Color(0.8, 0.6, 0.2))
 	loading_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -336,7 +390,7 @@ func _on_continue() -> void:
 	if success:
 		_hide_menu()
 	else:
-		EventBus.message_log.emit("[color=red]存档加载失败[/color]")
+		EventBus.message_log.emit("[color=red]Failed to load save[/color]")
 		_show_title()
 
 
@@ -403,8 +457,15 @@ func _update_faction_description() -> void:
 	if _selected_faction < 0:
 		return
 	var fdata: Dictionary = FACTION_DISPLAY[_selected_faction]
+	# Show faction crest
+	if _crest_textures.has(_selected_faction):
+		faction_crest_display.texture = _crest_textures[_selected_faction]
+		faction_crest_display.visible = true
+	else:
+		faction_crest_display.visible = false
+	# Update description text
 	var text: String = fdata["desc"]
-	text += "\n\n[color=lime]开局加成: %s[/color]" % fdata["start_bonus"]
+	text += "\n\n[color=lime]Starting Bonus: %s[/color]" % fdata["start_bonus"]
 	faction_desc_label.text = text
 
 

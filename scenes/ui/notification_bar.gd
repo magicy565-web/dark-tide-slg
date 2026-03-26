@@ -1,4 +1,4 @@
-## notification_bar.gd - Top notification system for 暗潮 SLG (v0.9.1)
+## notification_bar.gd - Top notification system for Dark Tide SLG (v0.9.1)
 ## Slide-in notifications for important events (hero captures, research complete, etc.)
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -116,16 +116,16 @@ func _remove_notification(panel: PanelContainer) -> void:
 
 func _on_hero_captured(hero_id: String) -> void:
 	var name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
-	show_notification("俘获英雄: %s" % name, Color(0.9, 0.6, 0.9))
+	show_notification("Hero captured: %s" % name, Color(0.9, 0.6, 0.9))
 
 
 func _on_hero_recruited(hero_id: String) -> void:
 	var name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
-	show_notification("%s 已加入!" % name, Color(0.4, 1.0, 0.5))
+	show_notification("%s joined!" % name, Color(0.4, 1.0, 0.5))
 
 
 func _on_tech_complete(_pid: int) -> void:
-	show_notification("训练研究完成!", Color(0.4, 0.8, 1.0))
+	show_notification("Research complete!", Color(0.4, 0.8, 1.0))
 
 
 func _on_tile_captured(pid: int, tile_index: int) -> void:
@@ -134,24 +134,24 @@ func _on_tile_captured(pid: int, tile_index: int) -> void:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
-	show_notification("占领: %s" % tile.get("name", "???"), Color(0.4, 1.0, 0.4))
+	show_notification("Captured: %s" % tile.get("name", "???"), Color(0.4, 1.0, 0.4))
 
 
 func _on_expedition(tile_index: int) -> void:
-	show_notification("远征军来袭!", Color(1.0, 0.3, 0.2), 5.0)
+	show_notification("Expedition incoming!", Color(1.0, 0.3, 0.2), 5.0)
 
 
 func _on_rebellion(tile_index: int) -> void:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
-	show_notification("叛乱! %s" % tile.get("name", "???"), Color(1.0, 0.5, 0.2))
+	show_notification("Rebellion! %s" % tile.get("name", "???"), Color(1.0, 0.5, 0.2))
 
 
 func _on_relic(_pid: int, relic_id: String) -> void:
-	show_notification("获得圣遗物: %s" % relic_id, Color(1.0, 0.8, 0.2))
+	show_notification("Relic obtained: %s" % relic_id, Color(1.0, 0.8, 0.2))
 
 
 func _on_ai_threat(faction_key: String, _threat: int, new_tier: int) -> void:
 	if new_tier >= 2:
-		show_notification("%s 势力进入威胁阶段 %d!" % [faction_key, new_tier], Color(1.0, 0.4, 0.3), 5.0)
+		show_notification("%s faction reached threat level %d!" % [faction_key, new_tier], Color(1.0, 0.4, 0.3), 5.0)

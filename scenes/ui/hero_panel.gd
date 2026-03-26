@@ -1,4 +1,4 @@
-## hero_panel.gd - Hero management UI for 暗潮 SLG (v0.9.1)
+## hero_panel.gd - Hero management UI for Dark Tide SLG (v0.9.1)
 ## Provides hero list, detail view, equipment management, and prison management
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -111,7 +111,7 @@ func _build_ui() -> void:
 	outer_vbox.add_child(header_row)
 
 	header_label = Label.new()
-	header_label.text = "英雄管理"
+	header_label.text = "Hero Management"
 	header_label.add_theme_font_size_override("font_size", 22)
 	header_label.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -129,11 +129,11 @@ func _build_ui() -> void:
 	tab_container.add_theme_constant_override("separation", 4)
 	outer_vbox.add_child(tab_container)
 
-	btn_tab_roster = _make_tab_button("已招募英雄")
+	btn_tab_roster = _make_tab_button("Roster")
 	btn_tab_roster.pressed.connect(_on_tab_roster)
 	tab_container.add_child(btn_tab_roster)
 
-	btn_tab_prison = _make_tab_button("牢狱")
+	btn_tab_prison = _make_tab_button("Prison")
 	btn_tab_prison.pressed.connect(_on_tab_prison)
 	tab_container.add_child(btn_tab_prison)
 
@@ -270,13 +270,13 @@ func _build_roster_list() -> void:
 	var recruited: Array = HeroSystem.get_recruited_heroes(pid)
 
 	if recruited.is_empty():
-		var lbl := _make_info_label("尚无招募的英雄")
+		var lbl := _make_info_label("No recruited heroes")
 		content_container.add_child(lbl)
 		_hero_nodes.append(lbl)
 		return
 
 	# Header
-	var header := _make_info_label("已招募英雄 (%d人)" % recruited.size(), Color(0.8, 0.7, 0.4))
+	var header := _make_info_label("Recruited Heroes (%d)" % recruited.size(), Color(0.8, 0.7, 0.4))
 	content_container.add_child(header)
 	_hero_nodes.append(header)
 
@@ -291,13 +291,13 @@ func _build_prison_list() -> void:
 	var prisoners: Array = HeroSystem.get_prison_heroes(pid)
 
 	if prisoners.is_empty():
-		var lbl := _make_info_label("牢狱中没有囚犯")
+		var lbl := _make_info_label("No prisoners")
 		content_container.add_child(lbl)
 		_hero_nodes.append(lbl)
 		return
 
 	var prison_cap: int = HeroSystem.PRISON_CAPACITY if "PRISON_CAPACITY" in HeroSystem else 5
-	var header := _make_info_label("囚犯 (%d/%d)" % [prisoners.size(), prison_cap], Color(0.8, 0.5, 0.3))
+	var header := _make_info_label("Prisoners (%d/%d)" % [prisoners.size(), prison_cap], Color(0.8, 0.5, 0.3))
 	content_container.add_child(header)
 	_hero_nodes.append(header)
 
@@ -361,7 +361,7 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 
 	# Affection / corruption
 	if context == "recruited":
-		var aff_text: String = "好感度: "
+		var aff_text: String = "Affection: "
 		for i in range(5):
 			if i < affection:
 				aff_text += "[color=red]♥[/color]"
@@ -379,7 +379,7 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 		var corruption: int = HeroSystem.get_corruption(hero_id) if HeroSystem.has_method("get_corruption") else 0
 		var corrupt_max: int = hero_def.get("corrupt_threshold", 100)
 		var corrupt_lbl := Label.new()
-		corrupt_lbl.text = "腐化度: %d/%d" % [corruption, corrupt_max]
+		corrupt_lbl.text = "Corruption: %d/%d" % [corruption, corrupt_max]
 		corrupt_lbl.add_theme_font_size_override("font_size", 12)
 		corrupt_lbl.add_theme_color_override("font_color", Color(0.7, 0.4, 0.6))
 		info_vbox.add_child(corrupt_lbl)
@@ -391,7 +391,7 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 
 	# Detail button
 	var btn_detail := Button.new()
-	btn_detail.text = "详情"
+	btn_detail.text = "Detail"
 	btn_detail.custom_minimum_size = Vector2(80, 28)
 	btn_detail.add_theme_font_size_override("font_size", 12)
 	btn_detail.pressed.connect(_on_hero_detail.bind(hero_id))
@@ -401,7 +401,7 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 		# Recruit button
 		var can_recruit: bool = HeroSystem.can_recruit(hero_id) if HeroSystem.has_method("can_recruit") else false
 		var btn_recruit := Button.new()
-		btn_recruit.text = "招募"
+		btn_recruit.text = "Recruit"
 		btn_recruit.custom_minimum_size = Vector2(80, 28)
 		btn_recruit.add_theme_font_size_override("font_size", 12)
 		btn_recruit.disabled = not can_recruit
@@ -410,7 +410,7 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 
 		# Release button
 		var btn_release := Button.new()
-		btn_release.text = "释放"
+		btn_release.text = "Release"
 		btn_release.custom_minimum_size = Vector2(80, 28)
 		btn_release.add_theme_font_size_override("font_size", 12)
 		btn_release.pressed.connect(_on_release_hero.bind(hero_id))
@@ -419,7 +419,7 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 	elif context == "recruited":
 		# Gift button (increase affection)
 		var btn_gift := Button.new()
-		btn_gift.text = "赠礼"
+		btn_gift.text = "Gift"
 		btn_gift.custom_minimum_size = Vector2(80, 28)
 		btn_gift.add_theme_font_size_override("font_size", 12)
 		btn_gift.pressed.connect(_on_gift_hero.bind(hero_id))
@@ -472,7 +472,7 @@ func _refresh_detail() -> void:
 	detail_container.add_child(sep)
 
 	# Stats
-	var stats_title := _make_info_label("属性", Color(0.85, 0.75, 0.4))
+	var stats_title := _make_info_label("Stats", Color(0.85, 0.75, 0.4))
 	detail_container.add_child(stats_title)
 
 	var atk: int = combat_stats.get("atk", hero_def.get("base_atk", 0))
@@ -489,13 +489,13 @@ func _refresh_detail() -> void:
 	var sep2 := HSeparator.new()
 	detail_container.add_child(sep2)
 
-	var skill_title := _make_info_label("主动技能", Color(0.85, 0.75, 0.4))
+	var skill_title := _make_info_label("Active Skill", Color(0.85, 0.75, 0.4))
 	detail_container.add_child(skill_title)
 
 	var skill_data: Dictionary = FactionData.HERO_SKILL_DEFS.get(_selected_hero_id, {}) if "HERO_SKILL_DEFS" in FactionData else {}
 	if not skill_data.is_empty():
 		var skill_name_lbl := Label.new()
-		skill_name_lbl.text = "%s (CD: %d回合)" % [skill_data.get("desc", "???"), skill_data.get("cooldown", 0)]
+		skill_name_lbl.text = "%s (CD: %d turns)" % [skill_data.get("desc", "???"), skill_data.get("cooldown", 0)]
 		skill_name_lbl.add_theme_font_size_override("font_size", 12)
 		skill_name_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 1.0))
 		skill_name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -506,23 +506,23 @@ func _refresh_detail() -> void:
 			var ready: bool = HeroSystem.is_skill_ready(_selected_hero_id)
 			var cd_lbl := Label.new()
 			if ready:
-				cd_lbl.text = "状态: 可用"
+				cd_lbl.text = "Status: Ready"
 				cd_lbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
 			else:
 				var remaining: int = HeroSystem.get_skill_cooldown(_selected_hero_id) if HeroSystem.has_method("get_skill_cooldown") else 0
-				cd_lbl.text = "冷却中: %d回合" % remaining
+				cd_lbl.text = "Cooldown: %d turns" % remaining
 				cd_lbl.add_theme_color_override("font_color", Color(0.8, 0.4, 0.3))
 			cd_lbl.add_theme_font_size_override("font_size", 11)
 			detail_container.add_child(cd_lbl)
 	else:
-		var no_skill := _make_info_label("无技能数据", Color(0.5, 0.5, 0.55))
+		var no_skill := _make_info_label("No skill data", Color(0.5, 0.5, 0.55))
 		detail_container.add_child(no_skill)
 
 	# Equipment section
 	var sep3 := HSeparator.new()
 	detail_container.add_child(sep3)
 
-	var equip_title := _make_info_label("装备", Color(0.85, 0.75, 0.4))
+	var equip_title := _make_info_label("Equipment", Color(0.85, 0.75, 0.4))
 	detail_container.add_child(equip_title)
 
 	_build_equipment_slots()
@@ -530,7 +530,7 @@ func _refresh_detail() -> void:
 
 func _build_equipment_slots() -> void:
 	var slot_names: Array = ["weapon", "armor", "accessory"]
-	var slot_labels: Dictionary = {"weapon": "武器", "armor": "防具", "accessory": "饰品"}
+	var slot_labels: Dictionary = {"weapon": "Weapon", "armor": "Armor", "accessory": "Accessory"}
 
 	for slot in slot_names:
 		var slot_row := HBoxContainer.new()
@@ -561,21 +561,21 @@ func _build_equipment_slots() -> void:
 			slot_row.add_child(equip_name)
 
 			var btn_unequip := Button.new()
-			btn_unequip.text = "卸下"
+			btn_unequip.text = "Unequip"
 			btn_unequip.custom_minimum_size = Vector2(56, 24)
 			btn_unequip.add_theme_font_size_override("font_size", 11)
 			btn_unequip.pressed.connect(_on_unequip.bind(_selected_hero_id, slot))
 			slot_row.add_child(btn_unequip)
 		else:
 			var empty_lbl := Label.new()
-			empty_lbl.text = "-- 空 --"
+			empty_lbl.text = "-- Empty --"
 			empty_lbl.add_theme_font_size_override("font_size", 12)
 			empty_lbl.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
 			empty_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			slot_row.add_child(empty_lbl)
 
 			var btn_equip := Button.new()
-			btn_equip.text = "装备"
+			btn_equip.text = "Equip"
 			btn_equip.custom_minimum_size = Vector2(56, 24)
 			btn_equip.add_theme_font_size_override("font_size", 11)
 			btn_equip.pressed.connect(_on_equip_slot.bind(_selected_hero_id, slot))
@@ -592,18 +592,18 @@ func _on_recruit_hero(hero_id: String) -> void:
 	if HeroSystem.has_method("recruit_hero"):
 		var result: bool = HeroSystem.recruit_hero(hero_id)
 		if result:
-			EventBus.message_log.emit("[color=lime]%s 已加入你的阵营![/color]" % FactionData.HEROES.get(hero_id, {}).get("name", hero_id))
+			EventBus.message_log.emit("[color=lime]%s has joined your faction![/color]" % FactionData.HEROES.get(hero_id, {}).get("name", hero_id))
 			_refresh_list()
 			detail_panel.visible = false
 		else:
-			EventBus.message_log.emit("[color=red]招募条件未满足[/color]")
+			EventBus.message_log.emit("[color=red]Recruitment conditions not met[/color]")
 
 
 func _on_release_hero(hero_id: String) -> void:
 	AudioManager.play_ui_click()
 	if HeroSystem.has_method("release_hero"):
 		HeroSystem.release_hero(hero_id)
-		EventBus.message_log.emit("%s 已被释放" % FactionData.HEROES.get(hero_id, {}).get("name", hero_id))
+		EventBus.message_log.emit("%s has been released" % FactionData.HEROES.get(hero_id, {}).get("name", hero_id))
 		_refresh_list()
 		detail_panel.visible = false
 
@@ -616,12 +616,12 @@ func _on_gift_hero(hero_id: String) -> void:
 		ResourceManager.spend(pid, {"gold": 10})
 		if HeroSystem.has_method("increase_affection"):
 			HeroSystem.increase_affection(hero_id, 1)
-		EventBus.message_log.emit("向 %s 赠送了礼物 (-10金)" % FactionData.HEROES.get(hero_id, {}).get("name", hero_id))
+		EventBus.message_log.emit("Gave a gift to %s (-10 gold)" % FactionData.HEROES.get(hero_id, {}).get("name", hero_id))
 		_refresh_list()
 		if _selected_hero_id == hero_id:
 			_refresh_detail()
 	else:
-		EventBus.message_log.emit("[color=red]金币不足 (需要10金)[/color]")
+		EventBus.message_log.emit("[color=red]Not enough gold (need 10)[/color]")
 
 
 func _on_equip_slot(hero_id: String, slot: String) -> void:
@@ -631,7 +631,7 @@ func _on_equip_slot(hero_id: String, slot: String) -> void:
 	var inventory: Array = ItemManager.get_equipment_items(pid) if ItemManager.has_method("get_equipment_items") else []
 
 	if inventory.is_empty():
-		EventBus.message_log.emit("[color=yellow]背包中没有可装备的物品[/color]")
+		EventBus.message_log.emit("[color=yellow]No equippable items in inventory[/color]")
 		return
 
 	# Filter by slot type
@@ -644,7 +644,7 @@ func _on_equip_slot(hero_id: String, slot: String) -> void:
 			matching.append(item)
 
 	if matching.is_empty():
-		EventBus.message_log.emit("[color=yellow]没有适合该栏位的装备[/color]")
+		EventBus.message_log.emit("[color=yellow]No equipment for this slot[/color]")
 		return
 
 	if matching.size() == 1:
@@ -691,7 +691,7 @@ func _show_equip_selection_popup(hero_id: String, items: Array) -> void:
 	popup_bg.add_child(vbox)
 
 	var title := Label.new()
-	title.text = "选择装备"
+	title.text = "Select Equipment"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 16)
 	title.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
@@ -719,7 +719,7 @@ func _show_equip_selection_popup(hero_id: String, items: Array) -> void:
 		vbox.add_child(btn)
 
 	var btn_cancel := Button.new()
-	btn_cancel.text = "取消"
+	btn_cancel.text = "Cancel"
 	btn_cancel.pressed.connect(func(): popup_bg.queue_free())
 	vbox.add_child(btn_cancel)
 
@@ -729,10 +729,10 @@ func _do_equip_item(hero_id: String, equip_id: String) -> void:
 		var result: Dictionary = HeroSystem.equip_item(hero_id, equip_id)
 		if result.get("ok", false):
 			var equip_def: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {})
-			EventBus.message_log.emit("[color=lime]装备了 %s[/color]" % equip_def.get("name", equip_id))
+			EventBus.message_log.emit("[color=lime]Equipped %s[/color]" % equip_def.get("name", equip_id))
 			_refresh_detail()
 		else:
-			EventBus.message_log.emit("[color=red]装备失败[/color]")
+			EventBus.message_log.emit("[color=red]Equip failed[/color]")
 
 
 func _on_unequip(hero_id: String, slot: String) -> void:
@@ -740,10 +740,10 @@ func _on_unequip(hero_id: String, slot: String) -> void:
 	if HeroSystem.has_method("unequip_item"):
 		var result: Dictionary = HeroSystem.unequip_item(hero_id, slot)
 		if result.get("ok", false):
-			EventBus.message_log.emit("已卸下装备")
+			EventBus.message_log.emit("Equipment removed")
 			_refresh_detail()
 		else:
-			EventBus.message_log.emit("[color=red]背包已满, 无法卸下[/color]")
+			EventBus.message_log.emit("[color=red]Inventory full, cannot unequip[/color]")
 
 
 func _on_dim_bg_input(event: InputEvent) -> void:
