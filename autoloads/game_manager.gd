@@ -686,7 +686,7 @@ func _assign_tile_types(positions: Array) -> void:
 				core_fortress_effect = fort_def["effect"]
 				core_fortress_wall_hp = fort_def.get("wall_hp", 0)
 				core_fortress_fall_effect = fort_def.get("fall_effect", "")
-				if fort_def.get("evil_faction", false):
+				if fort_def.has("evil_faction"):
 					match fort_def["faction"]:
 						"orc": original_faction = FactionData.FactionID.ORC
 						"pirate": original_faction = FactionData.FactionID.PIRATE
@@ -953,6 +953,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	armies.clear()
 	_next_army_id = 1
 	selected_army_id = -1
+	_pending_conquest_tile_index = -1
 	turn_number = 0
 
 	# Reset all subsystems
@@ -1002,6 +1003,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	_give_starting_army(0, chosen_faction)
 	DiplomacyManager.init_player(0)
 	StrategicResourceManager.init_player(0)
+	ResearchManager.init_player(0)
 	if chosen_faction == FactionData.FactionID.ORC:
 		OrcMechanic.init_player(0)
 
@@ -1420,6 +1422,7 @@ func begin_turn() -> void:
 		# BUG FIX: check_dominance() was never called, so controlling 50%+ nodes
 		# didn't increase threat as designed in 03_战略设定.
 		ThreatManager.check_dominance(count_tiles_owned(pid), tiles.size())
+		OrderManager.tick_turn()
 
 	# ── Phase 4b: Troop per-turn passive effects (regen, self_destruct, etc.) ──
 	_tick_troop_passives(pid)
@@ -1485,6 +1488,7 @@ func begin_turn() -> void:
 	# ── Phase 5c3: Harem cooldown tick ──
 	if pid == get_human_player_id():
 		HeroSystem.tick_harem_cooldowns()
+		HeroSystem.tick_cooldowns()
 		# BUG FIX: process_prison_turn() was never called, so captured heroes never
 		# accumulated corruption and could never be recruited. Call it each turn.
 		HeroSystem.process_prison_turn()
@@ -3372,6 +3376,8 @@ func upgrade_tile() -> void:
 		EventBus.message_log.emit("领地已达最高等级!")
 		return
 
+	if tile["level"] >= UPGRADE_COSTS.size():
+		return
 	var cost: Array = UPGRADE_COSTS[tile["level"]]
 	if not ResourceManager.can_afford(player["id"], {"gold": cost[0], "iron": cost[1]}):
 		EventBus.message_log.emit("资源不足! 升级需要 %d金 %d铁" % [cost[0], cost[1]])
@@ -3396,6 +3402,8 @@ func can_upgrade() -> bool:
 	if tile["owner_id"] != player["id"]:
 		return false
 	if tile["level"] >= MAX_TILE_LEVEL:
+		return false
+	if tile["level"] >= UPGRADE_COSTS.size():
 		return false
 	var cost: Array = UPGRADE_COSTS[tile["level"]]
 	return ResourceManager.can_afford(player["id"], {"gold": cost[0], "iron": cost[1]})
@@ -3941,6 +3949,8 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 			if tile["level"] >= MAX_TILE_LEVEL:
 				EventBus.message_log.emit("领地已达最高等级!")
 				return false
+			if tile["level"] >= UPGRADE_COSTS.size():
+				return false
 			var cost: Array = UPGRADE_COSTS[tile["level"]]
 			if not ResourceManager.can_afford(pid, {"gold": cost[0], "iron": cost[1]}):
 				EventBus.message_log.emit("资源不足!")
@@ -4055,10 +4065,9 @@ func check_win_condition() -> void:
 	var human_sh: int = 0
 	for tile in tiles:
 		if tile["type"] == TileType.LIGHT_STRONGHOLD or tile["type"] == TileType.CORE_FORTRESS:
-			if tile.get("original_faction", -1) != -1 or tile["type"] == TileType.LIGHT_STRONGHOLD:
-				total_sh += 1
-				if tile["owner_id"] == human_id:
-					human_sh += 1
+			total_sh += 1
+			if tile["owner_id"] == human_id:
+				human_sh += 1
 
 	if total_sh > 0 and human_sh >= total_sh:
 		game_active = false

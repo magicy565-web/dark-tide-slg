@@ -642,6 +642,8 @@ func _draw_edges() -> void:
 	for ti in GameManager.adjacency:
 		for ni in GameManager.adjacency[ti]:
 			if ni > ti:
+				if ti >= GameManager.tiles.size() or ni >= GameManager.tiles.size():
+					continue
 				var ft: Dictionary = GameManager.tiles[ti]; var tt: Dictionary = GameManager.tiles[ni]
 				_create_road_edge(ft["position_3d"], tt["position_3d"], _get_elev(ft), _get_elev(tt))
 

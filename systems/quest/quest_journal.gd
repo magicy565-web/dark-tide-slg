@@ -201,9 +201,9 @@ func _evaluate_objective(obj: Dictionary, player_id: int) -> bool:
 		"hero_level_min":
 			return _get_max_hero_level() >= value
 		"relics_min":
-			return RelicManager.get_relic_count(player_id) >= value
+			return (1 if RelicManager.has_relic(player_id) else 0) >= value
 		"researches_min":
-			return ResearchManager.get_completed_count(player_id) >= value
+			return ResearchManager.get_completed_techs(player_id).size() >= value
 		"public_order_all_min":
 			return _all_tiles_public_order_min(player_id, value / 100.0)
 		"fog_revealed_pct":
@@ -314,10 +314,10 @@ func _evaluate_trigger(trigger: Dictionary, player_id: int) -> bool:
 				if _get_max_hero_level() < trigger[key]:
 					return false
 			"relics_min":
-				if RelicManager.get_relic_count(player_id) < trigger[key]:
+				if (1 if RelicManager.has_relic(player_id) else 0) < trigger[key]:
 					return false
 			"researches_min":
-				if ResearchManager.get_completed_count(player_id) < trigger[key]:
+				if ResearchManager.get_completed_techs(player_id).size() < trigger[key]:
 					return false
 			"treaties_signed_min":
 				if DiplomacyManager.get_treaty_count(player_id) < trigger[key]:

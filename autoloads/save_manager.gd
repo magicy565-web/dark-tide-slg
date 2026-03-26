@@ -15,6 +15,8 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not GameManager.game_active:
+		return
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_F5:
 			save_game(0)  # Quick save to slot 0
@@ -377,6 +379,18 @@ func _load_game_state(gs: Dictionary) -> void:
 				for k in t["revealed"]:
 					rev[int(k)] = t["revealed"][k]
 				t["revealed"] = rev
+			var i: int = GameManager.tiles.size()
+			t["index"] = int(t.get("index", i))
+			t["type"] = int(t.get("type", 0))
+			t["owner_id"] = int(t.get("owner_id", -1))
+			t["garrison"] = int(t.get("garrison", 0))
+			t["level"] = int(t.get("level", 1))
+			t["light_faction"] = int(t.get("light_faction", -1))
+			t["neutral_faction_id"] = int(t.get("neutral_faction_id", -1))
+			t["terrain"] = int(t.get("terrain", 0))
+			t["original_faction"] = int(t.get("original_faction", -1))
+			t["building_level"] = int(t.get("building_level", 0))
+			t["terrain_move_cost"] = int(t.get("terrain_move_cost", 1))
 			GameManager.tiles.append(t)
 
 	# Restore adjacency (JSON keys are strings, convert back to int)

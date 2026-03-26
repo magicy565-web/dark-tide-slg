@@ -374,6 +374,12 @@ func _load_settings() -> void:
 	fullscreen_check.button_pressed = config.get_value("display", "fullscreen", DEFAULTS["fullscreen"])
 	difficulty_option.selected = config.get_value("gameplay", "difficulty", DEFAULTS["difficulty"])
 
+	# Apply loaded difficulty setting
+	var _diff_keys: Array = ["easy", "normal", "hard", "nightmare"]
+	var _diff_idx: int = difficulty_option.selected
+	if _diff_idx >= 0 and _diff_idx < _diff_keys.size():
+		BalanceManager.set_difficulty(_diff_keys[_diff_idx])
+
 	# Apply loaded audio settings
 	AudioManager.set_bgm_volume(bgm_slider.value)
 	AudioManager.set_sfx_volume(sfx_slider.value)
