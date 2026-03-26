@@ -1019,27 +1019,30 @@ func _is_completed(progress_dict: Dictionary, quest_id: String) -> bool:
 
 
 func _count_tiles_with_terrain(player_id: int, terrain_type: String) -> int:
+	var terrain_enum: int = -1
+	match terrain_type:
+		"ruins":
+			terrain_enum = FactionData.TerrainType.RUINS
+		"mine":
+			terrain_enum = FactionData.TerrainType.MOUNTAIN
+		_:
+			push_warning("QuestJournal: unknown terrain_type string '%s'" % terrain_type)
+			return 0
 	var c: int = 0
 	for tile in GameManager.tiles:
-		if tile.get("owner_id", -1) == player_id and tile.get("terrain", "") == terrain_type:
+		if tile.get("owner_id", -1) == player_id and tile.get("terrain", -1) == terrain_enum:
 			c += 1
 	return c
 
 
 func _count_captured_heroines(player_id: int) -> int:
-	var c: int = 0
-	if HeroSystem and HeroSystem.has_method("get_captured_heroes"):
-		var captured: Array = HeroSystem.get_captured_heroes()
-		c = captured.size()
-	else:
-		c = _stats.get("heroes_captured_total", 0)
-	return c
+	return HeroSystem.captured_heroes.size()
 
 
 func _count_heroes_with_submission(player_id: int, threshold: int) -> int:
 	var c: int = 0
 	for hero_id in HeroSystem.recruited_heroes:
-		var submission: int = HeroSystem.hero_affection.get(hero_id, 0)
+		var submission: int = HeroSystem.hero_submission.get(hero_id, 0)
 		if submission >= threshold:
 			c += 1
 	return c

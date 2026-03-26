@@ -17,9 +17,9 @@ const RESEARCH_BASE_SPEED: float = 1.0
 
 # ── Faction Unit Availability ──
 static var FACTION_AVAILABLE_UNITS: Dictionary = {
-	FactionData.FactionID.ORC: ["ashigaru", "samurai", "priest", "mage_unit", "grunt", "troll", "warg_rider"],
-	FactionData.FactionID.PIRATE: ["archer", "cannon", "cavalry", "ninja", "cutthroat", "gunner", "bombardier"],
-	FactionData.FactionID.DARK_ELF: ["ninja", "priest", "mage_unit", "shadow_walker", "assassin", "cold_lizard", "warrior"],
+	FactionData.FactionID.ORC: ["ashigaru", "samurai", "priest", "mage_unit", "orc_ashigaru", "orc_samurai", "orc_cavalry"],
+	FactionData.FactionID.PIRATE: ["archer", "cannon", "cavalry", "ninja", "pirate_ashigaru", "pirate_archer", "pirate_cannon"],
+	FactionData.FactionID.DARK_ELF: ["ninja", "priest", "mage_unit", "shadow_walker", "de_samurai", "de_ninja", "de_cavalry"],
 }
 
 # ── Per-Faction Training Trees ──
@@ -44,7 +44,7 @@ static var FACTION_TRAINING_TREE: Dictionary = {
 			"name": "战吼鼓舞", "branch": TechBranch.FACTION_SPECIAL, "tier": TechTier.BASIC,
 			"cost": {"gold": 200, "iron": 25}, "turns": 2, "prereqs": [],
 			"desc": "兽人全单位ATK+3, DEF+1, 粮食消耗-10%",
-			"effects": {"unit_buff": {"types": ["grunt", "troll", "warg_rider"], "atk": 3, "def": 1}, "food_consume_reduction": 0.10},
+			"effects": {"unit_buff": {"types": ["orc_ashigaru", "orc_samurai", "orc_cavalry"], "atk": 3, "def": 1}, "food_consume_reduction": 0.10},
 		},
 		"orc_morale_basic": {
 			"name": "蛮族士气", "branch": TechBranch.FACTION_SPECIAL, "tier": TechTier.BASIC,
@@ -64,14 +64,14 @@ static var FACTION_TRAINING_TREE: Dictionary = {
 			"cost": {"gold": 300, "iron": 40}, "turns": 3,
 			"prereqs": ["orc_warcry_basic"],
 			"desc": "[被动] 巨魔再生+2兵/回合, HP<30%时ATK+40%",
-			"effects": {"unit_passive": {"type": "troll", "id": "rage_regen", "regen_bonus": 2, "low_hp_atk_mult": 1.40}},
+			"effects": {"unit_passive": {"type": "orc_samurai", "id": "rage_regen", "regen_bonus": 2, "low_hp_atk_mult": 1.40}},
 		},
 		"orc_warg_charge": {
 			"name": "战猪骑兵·蛮力冲锋", "branch": TechBranch.FACTION_SPECIAL, "tier": TechTier.ADVANCED,
 			"cost": {"gold": 280, "iron": 35}, "turns": 3,
 			"prereqs": ["orc_warcry_basic"],
 			"desc": "[被动] 战猪冲锋×2.0, 冲锋击退敌方前排1格",
-			"effects": {"unit_passive": {"type": "warg_rider", "id": "brutal_charge", "charge_mult": 2.0, "knockback": true}},
+			"effects": {"unit_passive": {"type": "orc_cavalry", "id": "brutal_charge", "charge_mult": 2.0, "knockback": true}},
 		},
 		"orc_blood_ritual": {
 			"name": "血祭术", "branch": TechBranch.MAGIC, "tier": TechTier.ADVANCED,
@@ -114,7 +114,7 @@ static var FACTION_TRAINING_TREE: Dictionary = {
 			"name": "海盗战训", "branch": TechBranch.FACTION_SPECIAL, "tier": TechTier.BASIC,
 			"cost": {"gold": 150, "iron": 15}, "turns": 2, "prereqs": [],
 			"desc": "海盗全单位ATK+2, SPD+2, 沿海地形ATK+2",
-			"effects": {"unit_buff": {"types": ["cutthroat", "gunner", "bombardier"], "atk": 2, "spd": 2}, "coastal_atk_bonus": 2},
+			"effects": {"unit_buff": {"types": ["pirate_ashigaru", "pirate_archer", "pirate_cannon"], "atk": 2, "spd": 2}, "coastal_atk_bonus": 2},
 		},
 		"pirate_plunder_basic": {
 			"name": "掠夺之道", "branch": TechBranch.FACTION_SPECIAL, "tier": TechTier.BASIC,
@@ -134,14 +134,14 @@ static var FACTION_TRAINING_TREE: Dictionary = {
 			"cost": {"gold": 280, "iron": 30}, "turns": 3,
 			"prereqs": ["pirate_crew_basic"],
 			"desc": "[被动] 火枪手双重射击(×0.7×2次), 先制攻击×1.5",
-			"effects": {"unit_passive": {"type": "gunner", "id": "double_shot", "shots": 2, "shot_mult": 0.7, "first_strike_mult": 1.5}},
+			"effects": {"unit_passive": {"type": "pirate_archer", "id": "double_shot", "shots": 2, "shot_mult": 0.7, "first_strike_mult": 1.5}},
 		},
 		"pirate_bombardier_ap": {
 			"name": "炮击手·穿甲弹", "branch": TechBranch.FACTION_SPECIAL, "tier": TechTier.ADVANCED,
 			"cost": {"gold": 300, "iron": 40, "gunpowder": 2}, "turns": 3,
 			"prereqs": ["pirate_crew_basic"],
 			"desc": "[被动] 炮击手无视DEF30%, 对城防×2.5",
-			"effects": {"unit_passive": {"type": "bombardier", "id": "armor_piercing", "def_ignore": 0.30, "siege_mult": 2.5}},
+			"effects": {"unit_passive": {"type": "pirate_cannon", "id": "armor_piercing", "def_ignore": 0.30, "siege_mult": 2.5}},
 		},
 		"pirate_smoke": {
 			"name": "烟雾弹", "branch": TechBranch.MOBILE, "tier": TechTier.ADVANCED,
@@ -184,7 +184,7 @@ static var FACTION_TRAINING_TREE: Dictionary = {
 			"name": "暗精灵战训", "branch": TechBranch.FACTION_SPECIAL, "tier": TechTier.BASIC,
 			"cost": {"gold": 160, "iron": 20}, "turns": 2, "prereqs": [],
 			"desc": "暗精灵全单位DEF+2, INT+2, 暗影地形ATK+3",
-			"effects": {"unit_buff": {"types": ["warrior", "assassin", "cold_lizard"], "def": 2, "int": 2}, "shadow_terrain_atk": 3},
+			"effects": {"unit_buff": {"types": ["de_samurai", "de_ninja", "de_cavalry"], "def": 2, "int": 2}, "shadow_terrain_atk": 3},
 		},
 		"delf_shadow_walker": {
 			"name": "暗影行者训练", "branch": TechBranch.FACTION_SPECIAL, "tier": TechTier.BASIC,
@@ -204,7 +204,7 @@ static var FACTION_TRAINING_TREE: Dictionary = {
 			"cost": {"gold": 280, "iron": 25, "shadow": 1}, "turns": 3,
 			"prereqs": ["delf_warrior_basic"],
 			"desc": "[被动] 刺客攻击附带中毒(-1兵/回合×2), 背刺+50%",
-			"effects": {"unit_passive": {"type": "assassin", "id": "venom_blade", "poison_dot": 1, "poison_turns": 2, "backstab_bonus": 0.50}},
+			"effects": {"unit_passive": {"type": "de_ninja", "id": "venom_blade", "poison_dot": 1, "poison_turns": 2, "backstab_bonus": 0.50}},
 		},
 		"delf_shadow_clone": {
 			"name": "幽影分身", "branch": TechBranch.FACTION_SPECIAL, "tier": TechTier.ADVANCED,

@@ -705,18 +705,33 @@ func to_save_data() -> Dictionary:
 	}
 
 
+static func _fix_int_keys(dict: Dictionary) -> void:
+	var fix_keys = []
+	for k in dict.keys():
+		if k is String and k.is_valid_int():
+			fix_keys.append(k)
+	for k in fix_keys:
+		dict[int(k)] = dict[k]
+		dict.erase(k)
+
+
 func from_save_data(data: Dictionary) -> void:
 	# Original WAAAGH state
 	_waaagh = data.get("waaagh", {}).duplicate()
+	_fix_int_keys(_waaagh)
 	_frenzy_turns = data.get("frenzy_turns", {}).duplicate()
+	_fix_int_keys(_frenzy_turns)
 	_idle_turns = data.get("idle_turns", {}).duplicate()
+	_fix_int_keys(_idle_turns)
 	_frenzy_count = int(data.get("frenzy_count", 0))
 	# Sex slave / reproduction state (with backward compatibility)
 	_brood_pits = data.get("brood_pits", {}).duplicate()
+	_fix_int_keys(_brood_pits)
 	if data.has("sex_slaves"):
 		_sex_slaves = data.get("sex_slaves", {}).duplicate()
 	else:
 		_sex_slaves = {}  # Old save: no sex slaves, start fresh
+	_fix_int_keys(_sex_slaves)
 	if data.has("warrior_pool"):
 		_warrior_pool = data.get("warrior_pool", {}).duplicate()
 	elif data.has("population_pool"):
@@ -724,6 +739,7 @@ func from_save_data(data: Dictionary) -> void:
 		_warrior_pool = data.get("population_pool", {}).duplicate()
 	else:
 		_warrior_pool = {}
+	_fix_int_keys(_warrior_pool)
 	if data.has("breed_rate"):
 		_breed_rate = data.get("breed_rate", {}).duplicate()
 	elif data.has("growth_rate"):
@@ -731,6 +747,7 @@ func from_save_data(data: Dictionary) -> void:
 		_breed_rate = data.get("growth_rate", {}).duplicate()
 	else:
 		_breed_rate = {}
+	_fix_int_keys(_breed_rate)
 	if data.has("total_warriors"):
 		_total_warriors = data.get("total_warriors", {}).duplicate()
 	elif data.has("tribe_size"):
@@ -738,8 +755,12 @@ func from_save_data(data: Dictionary) -> void:
 		_total_warriors = data.get("tribe_size", {}).duplicate()
 	else:
 		_total_warriors = {}
+	_fix_int_keys(_total_warriors)
 	# Roar state
 	_roar_cooldown = data.get("roar_cooldown", {}).duplicate()
+	_fix_int_keys(_roar_cooldown)
 	_roar_active = data.get("roar_active", {}).duplicate()
+	_fix_int_keys(_roar_active)
 	# Momentum state
 	_combat_streak = data.get("combat_streak", {}).duplicate()
+	_fix_int_keys(_combat_streak)

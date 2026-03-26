@@ -340,7 +340,7 @@ func check_world_events() -> Array:
 			"desc": we.get("desc", ""),
 		}
 		if EventBus.has_signal("show_event_popup"):
-			EventBus.show_event_popup.emit(popup_data)
+			EventBus.show_event_popup.emit(popup_data.get("title", ""), popup_data.get("desc", ""), [])
 		# Apply player effects
 		var effects: Dictionary = we.get("effects", {})
 		if not effects.is_empty():

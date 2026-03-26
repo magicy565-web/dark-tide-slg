@@ -99,5 +99,16 @@ func to_save_data() -> Dictionary:
 	}
 
 
+static func _fix_int_keys(dict: Dictionary) -> void:
+	var fix_keys = []
+	for k in dict.keys():
+		if k is String and k.is_valid_int():
+			fix_keys.append(k)
+	for k in fix_keys:
+		dict[int(k)] = dict[k]
+		dict.erase(k)
+
+
 func from_save_data(data: Dictionary) -> void:
 	_altar_atk_bonus = data.get("altar_atk_bonus", {}).duplicate(true)
+	_fix_int_keys(_altar_atk_bonus)

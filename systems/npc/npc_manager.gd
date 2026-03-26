@@ -470,10 +470,23 @@ func to_save_data() -> Dictionary:
 	}
 
 
+static func _fix_int_keys(dict: Dictionary) -> void:
+	var fix_keys = []
+	for k in dict.keys():
+		if k is String and k.is_valid_int():
+			fix_keys.append(k)
+	for k in fix_keys:
+		dict[int(k)] = dict[k]
+		dict.erase(k)
+
+
 func from_save_data(data: Dictionary) -> void:
 	_npc_states = data.get("npc_states", {}).duplicate(true)
+	_fix_int_keys(_npc_states)
 	_type_triggered_thresholds = data.get("type_triggered_thresholds", {}).duplicate(true)
+	_fix_int_keys(_type_triggered_thresholds)
 	_escaped_npcs = data.get("escaped_npcs", {}).duplicate(true)
+	_fix_int_keys(_escaped_npcs)
 	# 验证triggered_thresholds类型，防止存档数据损坏
 	for pid in _npc_states:
 		for npc_id in _npc_states[pid]:

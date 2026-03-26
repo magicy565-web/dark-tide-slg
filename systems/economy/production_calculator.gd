@@ -27,7 +27,9 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 	}
 
 	var faction_id: int = GameManager.get_player_faction(player_id)
-	var params: Dictionary = FactionData.FACTION_PARAMS[faction_id]
+	var params: Dictionary = FactionData.FACTION_PARAMS.get(faction_id, {})
+	if params.is_empty():
+		return income
 	# NOTE: order_mult is now per-tile, not global
 	# Cache faction multipliers (constant across all tiles)
 	var gold_income_mult: float = params["gold_income_mult"]
@@ -241,7 +243,9 @@ func calculate_food_upkeep(player_id: int) -> int:
 	## Returns total food consumed this turn by army.
 	## Skeleton legion (undead) units do not consume food.
 	var faction_id: int = GameManager.get_player_faction(player_id)
-	var params: Dictionary = FactionData.FACTION_PARAMS[faction_id]
+	var params: Dictionary = FactionData.FACTION_PARAMS.get(faction_id, {})
+	if params.is_empty():
+		return 0
 	var army: int = ResourceManager.get_army(player_id)
 	var food_rate: float = params["food_per_soldier"]
 	# Subtract skeleton legion from food calculation (undead don't eat)
@@ -292,6 +296,8 @@ func calculate_plunder_value(player_id: int) -> int:
 	var faction_id: int = GameManager.get_player_faction(player_id)
 	if faction_id != FactionData.FactionID.PIRATE:
 		return 0
-	var params: Dictionary = FactionData.FACTION_PARAMS[faction_id]
+	var params: Dictionary = FactionData.FACTION_PARAMS.get(faction_id, {})
+	if params.is_empty():
+		return 0
 	var owned: int = GameManager.count_tiles_owned(player_id)
 	return params["plunder_base_per_tile"] * owned

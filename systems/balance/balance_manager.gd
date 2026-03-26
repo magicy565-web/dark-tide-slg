@@ -277,16 +277,16 @@ func simulate_income(faction_id: int, phase_key: String) -> Dictionary:
 	var params: Dictionary = FactionData.FACTION_PARAMS.get(faction_id, {})
 
 	# Base income from tiles
-	var gold_per_tile: int = BalanceConfig.GOLD_PER_NODE_LEVEL[mini(avg_level - 1, 4)]
-	var food_per_tile: int = BalanceConfig.FOOD_PER_NODE_LEVEL[mini(avg_level - 1, 4)]
-	var iron_per_tile: int = BalanceConfig.IRON_PER_NODE_LEVEL[mini(avg_level - 1, 4)]
+	var gold_per_tile: int = BalanceConfig.GOLD_PER_NODE_LEVEL[clampi(avg_level - 1, 0, 4)]
+	var food_per_tile: int = BalanceConfig.FOOD_PER_NODE_LEVEL[clampi(avg_level - 1, 0, 4)]
+	var iron_per_tile: int = BalanceConfig.IRON_PER_NODE_LEVEL[clampi(avg_level - 1, 0, 4)]
 
 	var base_gold: float = gold_per_tile * tiles * params.get("gold_income_mult", 1.0)
 	var base_food: float = food_per_tile * tiles * params.get("food_production_mult", 1.0)
 	var base_iron: float = iron_per_tile * tiles * params.get("iron_income_mult", 1.0)
 
 	# Apply production multiplier from tile level
-	var prod_mult: float = BalanceConfig.UPGRADE_PROD_MULT[mini(avg_level - 1, 4)]
+	var prod_mult: float = BalanceConfig.UPGRADE_PROD_MULT[clampi(avg_level - 1, 0, 4)]
 	base_gold *= prod_mult
 	base_food *= prod_mult
 	base_iron *= prod_mult

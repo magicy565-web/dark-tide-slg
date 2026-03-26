@@ -44,11 +44,24 @@ func to_save_data() -> Dictionary:
 	}
 
 
+static func _fix_int_keys(dict: Dictionary) -> void:
+	var fix_keys = []
+	for k in dict.keys():
+		if k is String and k.is_valid_int():
+			fix_keys.append(k)
+	for k in fix_keys:
+		dict[int(k)] = dict[k]
+		dict.erase(k)
+
+
 func from_save_data(data: Dictionary) -> void:
 	# Deep-duplicate to avoid mutating the save source (Bug fix Round 3)
 	_wall_hp = data.get("wall_hp", {}).duplicate(true)
+	_fix_int_keys(_wall_hp)
 	_barrier_active = data.get("barrier_active", {}).duplicate(true)
+	_fix_int_keys(_barrier_active)
 	_mana_pool = data.get("mana_pool", {}).duplicate(true)
+	_fix_int_keys(_mana_pool)
 	_mana_max = data.get("mana_max", 0)
 	_human_reinforcement_disabled = data.get("human_reinforcement_disabled", false)
 	_teleport_disabled = data.get("teleport_disabled", false)

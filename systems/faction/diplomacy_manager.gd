@@ -599,6 +599,15 @@ func get_active_treaties(player_id: int) -> Array:
 	return result
 
 
+func get_treaty_count(player_id: int) -> int:
+	## Returns the number of active treaties for a player.
+	var count: int = 0
+	for t in _get_player_treaties(player_id):
+		if t["turns_left"] > 0:
+			count += 1
+	return count
+
+
 func cleanup_faction_treaties(faction_id: int) -> void:
 	## Remove all treaties involving the eliminated faction across all players.
 	for player_id in _treaties:
@@ -844,10 +853,31 @@ func to_save_data() -> Dictionary:
 	}
 
 
+static func _fix_int_keys(dict: Dictionary) -> void:
+	var fix_keys = []
+	for k in dict.keys():
+		if k is String and k.is_valid_int():
+			fix_keys.append(k)
+	for k in fix_keys:
+		dict[int(k)] = dict[k]
+		dict.erase(k)
+
+
 func from_save_data(data: Dictionary) -> void:
 	_relations = data.get("relations", {}).duplicate(true)
+	_fix_int_keys(_relations)
+	# Fix nested dicts inside _relations (faction_id int keys)
+	for pid in _relations:
+		if _relations[pid] is Dictionary:
+			_fix_int_keys(_relations[pid])
 	_ceasefire = data.get("ceasefire", {}).duplicate(true)
+	_fix_int_keys(_ceasefire)
+	# Fix nested dicts inside _ceasefire (target_faction_id int keys)
+	for pid in _ceasefire:
+		if _ceasefire[pid] is Dictionary:
+			_fix_int_keys(_ceasefire[pid])
 	_treaties = data.get("treaties", {}).duplicate(true)
+	_fix_int_keys(_treaties)
 	_light_ceasefire_turns = data.get("light_ceasefire_turns", 0)
 	_light_extort_cooldown = data.get("light_extort_cooldown", 0)
 	_pending_light_peace = data.get("pending_light_peace", {}).duplicate(true)

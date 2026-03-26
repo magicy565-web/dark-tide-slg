@@ -687,11 +687,27 @@ func to_save_data() -> Dictionary:
 	}
 
 
+static func _fix_int_keys(dict: Dictionary) -> void:
+	var fix_keys = []
+	for k in dict.keys():
+		if k is String and k.is_valid_int():
+			fix_keys.append(k)
+	for k in fix_keys:
+		dict[int(k)] = dict[k]
+		dict.erase(k)
+
+
 func from_save_data(data: Dictionary) -> void:
 	_quest_progress = data.get("quest_progress", {}).duplicate(true)
+	_fix_int_keys(_quest_progress)
 	_recruited_factions = data.get("recruited_factions", {}).duplicate(true)
+	_fix_int_keys(_recruited_factions)
 	_recruitment_bonuses = data.get("recruitment_bonuses", {}).duplicate(true)
+	_fix_int_keys(_recruitment_bonuses)
 	_unlocked_units = data.get("unlocked_units", {}).duplicate(true)
+	_fix_int_keys(_unlocked_units)
 	_pending_quest_combat = data.get("pending_quest_combat", {}).duplicate(true)
 	_caravan_item_timer = data.get("caravan_item_timer", {}).duplicate(true)
+	_fix_int_keys(_caravan_item_timer)
 	_taming_levels = data.get("taming_levels", {}).duplicate(true)
+	_fix_int_keys(_taming_levels)

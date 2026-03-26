@@ -1280,14 +1280,28 @@ func to_save_data() -> Dictionary:
 	}
 
 
+static func _fix_int_keys(dict: Dictionary) -> void:
+	var fix_keys = []
+	for k in dict.keys():
+		if k is String and k.is_valid_int():
+			fix_keys.append(k)
+	for k in fix_keys:
+		dict[int(k)] = dict[k]
+		dict.erase(k)
+
+
 func from_save_data(data: Dictionary) -> void:
 	# 性奴隶 (带旧版兼容)
 	_sex_slaves = data.get("sex_slaves", {}).duplicate(true)
+	_fix_int_keys(_sex_slaves)
 	_slave_training = data.get("slave_training", {}).duplicate(true)
+	_fix_int_keys(_slave_training)
 	# 恶名
 	_infamy = data.get("infamy", {}).duplicate(true)
+	_fix_int_keys(_infamy)
 	# 掠夺
 	_plunder_streak = data.get("plunder_streak", {}).duplicate(true)
+	_fix_int_keys(_plunder_streak)
 	# 旧版兼容: bonus_plunder
 	if data.has("bonus_plunder"):
 		_bonus_plunder = data.get("bonus_plunder", {}).duplicate(true)
@@ -1295,13 +1309,20 @@ func from_save_data(data: Dictionary) -> void:
 		_bonus_plunder = {}
 	# 朗姆酒
 	_rum_morale = data.get("rum_morale", {}).duplicate(true)
+	_fix_int_keys(_rum_morale)
 	# 藏宝图
 	_treasure_maps = data.get("treasure_maps", {}).duplicate(true)
+	_fix_int_keys(_treasure_maps)
 	# 走私
 	_smuggle_routes = data.get("smuggle_routes", {}).duplicate(true)
+	_fix_int_keys(_smuggle_routes)
 	# 黑市
 	_market_item = data.get("market_item", {}).duplicate(true)
+	_fix_int_keys(_market_item)
 	_market_stock = data.get("market_stock", {}).duplicate(true)
+	_fix_int_keys(_market_stock)
 	# AI突袭
 	_raid_parties = data.get("raid_parties", {}).duplicate(true)
+	_fix_int_keys(_raid_parties)
 	_plunder_streak_updated_this_turn = data.get("plunder_streak_updated_this_turn", {}).duplicate(true)
+	_fix_int_keys(_plunder_streak_updated_this_turn)
