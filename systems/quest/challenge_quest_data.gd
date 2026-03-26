@@ -57,7 +57,7 @@ const CHALLENGE_EQUIPMENT: Dictionary = {
 	"de_shadow_fang": {
 		"name": "暗影之牙", "slot": FactionData.EquipSlot.WEAPON, "rarity": "legendary",
 		"desc": "ATK+4, INT+2, 暗杀后排概率+25%", "faction": "dark_elf",
-		"stats": {"atk": 4},
+		"stats": {"atk": 4, "int_stat": 2},
 		"passive": "assassinate_bonus", "passive_value": 0.25,
 		"drop_weight": 0,
 	},

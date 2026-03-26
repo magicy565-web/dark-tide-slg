@@ -13,7 +13,7 @@ const RES_WAR_HORSE := "war_horse"
 const RES_GUNPOWDER := "gunpowder"
 const RES_SHADOW_ESSENCE := "shadow_essence"
 const RES_MANA := "mana"
-const ALL_RESOURCES: Array = ["gold", "food", "iron", "slaves", "prestige", "magic_crystal", "war_horse", "gunpowder", "shadow_essence"]
+const ALL_RESOURCES: Array = ["gold", "food", "iron", "slaves", "prestige", "magic_crystal", "war_horse", "gunpowder", "shadow_essence", "mana"]
 
 # ── Per-player ledgers  { player_id: { "gold": int, ... } } ──
 var _ledgers: Dictionary = {}

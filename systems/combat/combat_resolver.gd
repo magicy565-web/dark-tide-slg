@@ -1523,10 +1523,6 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		"details": log,
 	}
 
-	EventBus.combat_result.emit(atk_pid,
-		"player_%d" % def_pid if def_pid >= 0 else "ai_defender",
-		winner == "attacker")
-
 	return combat_result
 
 

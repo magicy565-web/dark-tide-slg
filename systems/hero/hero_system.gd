@@ -621,12 +621,9 @@ func bed_heroine(hero_id: String) -> Dictionary:
 	hero_submission[hero_id] = current_sub + 1
 	cd["bed"] = 2  # 2-turn cooldown
 	_harem_cooldowns[hero_id] = cd
-	# Heal hero HP via HeroLeveling stats
+	# Heal hero HP via HeroLeveling combat state
 	var heal_amount: int = 5
-	var hero_stats: Dictionary = HeroLeveling.get_hero_stats(hero_id)
-	var current_hp: int = hero_stats.get("hp", 20)
-	var max_hp: int = hero_stats.get("max_hp", current_hp)
-	HeroLeveling.set_hero_stat(hero_id, "hp", mini(current_hp + heal_amount, max_hp))
+	HeroLeveling.restore_hero_hp(hero_id, heal_amount)
 	EventBus.heroine_submission_changed.emit(hero_id, hero_submission[hero_id])
 	EventBus.message_log.emit("[color=pink]与%s侍寝，服从度 %d，HP回复 +%d[/color]" % [_get_hero_name(hero_id), hero_submission[hero_id], heal_amount])
 	_check_harem_progress()

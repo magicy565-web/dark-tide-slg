@@ -1355,7 +1355,7 @@ func begin_turn() -> void:
 	# ── Phase 2b: Recalculate research speed (building effects may have changed) ──
 	ResearchManager.update_research_speed(pid)
 
-	if income["gold"] > 0 or income["food"] > 0 or income["iron"] > 0:
+	if income.values().any(func(v): return v != 0):
 		ResourceManager.apply_delta(pid, income)
 		var msg: String = "%s 产出: 金%d 粮%d 铁%d" % [
 			player["name"], income["gold"], income["food"], income["iron"]]
@@ -1982,6 +1982,9 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 	if not armies.has(army_id):
 		return false
 	var army: Dictionary = armies[army_id]
+	if army.get("soldiers", 0) <= 0:
+		EventBus.message_log.emit("军团没有士兵, 无法进攻!")
+		return false
 	var player_id: int = army["player_id"]
 	var player: Dictionary = get_player_by_id(player_id)
 	if player.is_empty() or player["ap"] < 1:
@@ -2866,7 +2869,7 @@ func _handle_rival_base(player: Dictionary, tile: Dictionary) -> void:
 					break
 			if not rival_has_tiles:
 				var rival_fid: int = get_player_faction(rival_id)
-				FactionManager.mark_faction_dead(rival_fid)
+				FactionManager.mark_faction_dead(rival_fid, player["id"])
 
 
 # ═══════════════ COMBAT ═══════════════
@@ -3824,6 +3827,9 @@ func action_attack(player_id: int, target_tile_index: int) -> bool:
 	var player: Dictionary = get_player_by_id(player_id)
 	if player.is_empty() or player["ap"] < 1:
 		return false
+	if ResourceManager.get_army(player_id) <= 0:
+		EventBus.message_log.emit("没有士兵, 无法进攻!")
+		return false
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
 		return false
 
@@ -4107,7 +4113,7 @@ func check_win_condition() -> void:
 		return
 
 	# ── Defeat: Elimination ──
-	if ResourceManager.get_army(human_id) <= 0 and human_tiles <= 0:
+	if human_tiles <= 0:
 		game_active = false
 		EventBus.message_log.emit("[color=red]你的势力已被消灭...[/color]")
 		EventBus.game_over.emit(-1)

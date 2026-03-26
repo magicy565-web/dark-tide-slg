@@ -86,9 +86,51 @@ const HERO_BASE_STATS: Dictionary = {
 		"atk": 5, "def": 4, "int_stat": 9, "spd": 7,
 	},
 	"homura": {
-		"name": "焔", "role": "炎舞法师",
+		"name": "焔", "role": "炎舞法師",
 		"base_hp": 22, "base_mp": 10,
 		"atk": 8, "def": 3, "int_stat": 7, "spd": 8,
+	},
+	# --- Pirate / Dark Elf Heroes ---
+	"shion_pirate": {
+		"name": "潮音", "role": "海風射手",
+		"base_hp": 24, "base_mp": 8,
+		"atk": 7, "def": 4, "int_stat": 5, "spd": 7,
+	},
+	"youya": {
+		"name": "妖夜", "role": "夜行暗殺者",
+		"base_hp": 20, "base_mp": 8,
+		"atk": 6, "def": 3, "int_stat": 4, "spd": 9,
+	},
+	# --- Neutral Leaders ---
+	"hibiki": {
+		"name": "響", "role": "山岳守護者",
+		"base_hp": 28, "base_mp": 8,
+		"atk": 5, "def": 7, "int_stat": 4, "spd": 5,
+	},
+	"sara": {
+		"name": "沙罗", "role": "砂漠狙撃手",
+		"base_hp": 22, "base_mp": 10,
+		"atk": 7, "def": 3, "int_stat": 6, "spd": 6,
+	},
+	"mei": {
+		"name": "冥", "role": "冥界召喚師",
+		"base_hp": 18, "base_mp": 12,
+		"atk": 8, "def": 2, "int_stat": 8, "spd": 4,
+	},
+	"kaede": {
+		"name": "枫", "role": "幻影忍者",
+		"base_hp": 20, "base_mp": 8,
+		"atk": 6, "def": 4, "int_stat": 5, "spd": 9,
+	},
+	"akane": {
+		"name": "朱音", "role": "古代巫女",
+		"base_hp": 20, "base_mp": 14,
+		"atk": 3, "def": 5, "int_stat": 7, "spd": 5,
+	},
+	"hanabi": {
+		"name": "花火", "role": "砲撃手",
+		"base_hp": 18, "base_mp": 8,
+		"atk": 9, "def": 2, "int_stat": 5, "spd": 3,
 	},
 }
 
@@ -108,6 +150,16 @@ const GROWTH_RATES: Dictionary = {
 	"sou":      { "hp": 7,  "mp": 7, "atk": 8, "def": 5, "int_stat": 9,  "spd": 2  },
 	"shion":    { "hp": 5,  "mp": 8, "atk": 4, "def": 3, "int_stat": 9,  "spd": 8  },
 	"homura":   { "hp": 6,  "mp": 5, "atk": 8, "def": 2, "int_stat": 7,  "spd": 8  },
+	# --- Pirate / Dark Elf Heroes ---
+	"shion_pirate": { "hp": 7, "mp": 3, "atk": 8, "def": 4, "int_stat": 4, "spd": 8 },
+	"youya":        { "hp": 5, "mp": 3, "atk": 7, "def": 2, "int_stat": 3, "spd": 10 },
+	# --- Neutral Leaders ---
+	"hibiki":  { "hp": 10, "mp": 2, "atk": 4, "def": 9, "int_stat": 3, "spd": 4 },
+	"sara":    { "hp": 6,  "mp": 4, "atk": 8, "def": 3, "int_stat": 5, "spd": 7 },
+	"mei":     { "hp": 5,  "mp": 8, "atk": 7, "def": 2, "int_stat": 9, "spd": 3 },
+	"kaede":   { "hp": 5,  "mp": 3, "atk": 7, "def": 3, "int_stat": 4, "spd": 10 },
+	"akane":   { "hp": 6,  "mp": 9, "atk": 2, "def": 5, "int_stat": 8, "spd": 4 },
+	"hanabi":  { "hp": 5,  "mp": 3, "atk": 10, "def": 2, "int_stat": 4, "spd": 2 },
 }
 
 # =============================================================================
@@ -789,6 +841,548 @@ const PASSIVE_UNLOCK_TREE: Dictionary = {
 			"type": "special",
 			"aura_atk": 5, "dot_rounds": 5,
 			"heal_reduction_pct": 80, "fire_damage_bonus_pct": 50,
+		},
+	],
+
+	# ── 潮音（海風射手）───────────────────────────────────
+	"shion_pirate": [
+		{
+			"level": 3, "passive_id": "shion_p_sea_breeze",
+			"name": "海風の加護", "desc": "SPD+2, 弓兵射程+1",
+			"type": "stat_bonus",
+			"stat": "spd", "value": 2, "range_bonus": 1,
+		},
+		{
+			"level": 7, "passive_id": "shion_p_rapid_fire",
+			"name": "速射", "desc": "25%概率攻撃两次",
+			"type": "special",
+			"chance_pct": 25, "extra_attacks": 1,
+		},
+		{
+			"level": 12, "passive_id": "shion_p_tidal_arrow",
+			"name": "潮流矢", "desc": "攻撃附帯1回合减速(敌SPD-2)",
+			"type": "on_hit",
+			"debuff_stat": "spd", "debuff_value": -2, "duration": 1,
+		},
+		{
+			"level": 18, "passive_id": "shion_p_corsair_instinct",
+			"name": "海賊の勘", "desc": "闪避率+20%, 回避后ATK+3持続1回合",
+			"type": "on_hit",
+			"dodge_chance_pct": 20, "post_dodge_atk_bonus": 3, "bonus_duration": 1,
+		},
+		# ── Lv25-50 新増被動 ──
+		{
+			"level": 25, "passive_id": "shion_p_storm_volley",
+			"name": "暴風連射", "desc": "40%概率攻撃两次; 攻撃後排ATK+3",
+			"type": "special",
+			"chance_pct": 40, "extra_attacks": 1,
+			"back_row_atk_bonus": 3,
+		},
+		{
+			"level": 30, "passive_id": "shion_p_ocean_current",
+			"name": "海流操作", "desc": "全軍SPD+2; 敵全軍SPD-1",
+			"type": "aura",
+			"ally_spd": 2, "enemy_spd": -1,
+		},
+		{
+			"level": 35, "passive_id": "shion_p_piercing_tide",
+			"name": "貫潮矢", "desc": "無視目標40%DEF; 減速効果提升至SPD-3",
+			"type": "special",
+			"def_ignore_pct": 40, "slow_value": -3,
+		},
+		{
+			"level": 40, "passive_id": "shion_p_maelstrom",
+			"name": "大渦", "desc": "先制階段攻撃全後排(ATK×0.5); 附帯減速",
+			"type": "priority",
+			"target": "all_back_row", "damage_mult": 0.5, "apply_slow": true,
+		},
+		{
+			"level": 45, "passive_id": "shion_p_phantom_fleet",
+			"name": "幽霊艦隊", "desc": "闪避率+35%; 50%概率攻撃三次",
+			"type": "special",
+			"dodge_chance_pct": 35, "triple_shot_pct": 50,
+		},
+		{
+			"level": 50, "passive_id": "shion_p_sovereign_tide",
+			"name": "潮王·極", "desc": "全軍SPD+4; 敵SPD-3; 先制AoE(ATK×0.7); 60%三連射",
+			"type": "special",
+			"ally_spd": 4, "enemy_spd": -3,
+			"priority_aoe_mult": 0.7, "triple_shot_pct": 60,
+		},
+	],
+
+	# ── 妖夜（夜行暗殺者）─────────────────────────────────
+	"youya": [
+		{
+			"level": 3, "passive_id": "youya_night_prowl",
+			"name": "夜行", "desc": "夜間戦闘時ATK+3, SPD+2",
+			"type": "conditional_stat",
+			"condition": "night_battle",
+			"stats": { "atk": 3, "spd": 2 },
+		},
+		{
+			"level": 7, "passive_id": "youya_poison_blade",
+			"name": "毒刃", "desc": "攻撃附帯2回合毒(毎回合ATK×0.2傷害)",
+			"type": "on_hit",
+			"dot_rounds": 2, "dot_atk_mult": 0.2,
+		},
+		{
+			"level": 12, "passive_id": "youya_shadow_meld",
+			"name": "影潜", "desc": "首回合隐身; 解除隐身時首撃×2.0",
+			"type": "stealth",
+			"duration_rounds": 1, "first_attack_mult": 2.0,
+		},
+		{
+			"level": 18, "passive_id": "youya_lethal_dance",
+			"name": "致命舞踏", "desc": "暴撃率+20%; 暴撃時追加攻撃1次",
+			"type": "special",
+			"crit_bonus_pct": 20, "crit_extra_attack": 1,
+		},
+		# ── Lv25-50 新増被動 ──
+		{
+			"level": 25, "passive_id": "youya_dark_venom",
+			"name": "闇毒", "desc": "毒DoT提升至ATK×0.35; 中毒目標DEF-3",
+			"type": "on_hit",
+			"dot_atk_mult": 0.35, "poison_def_reduction": 3,
+		},
+		{
+			"level": 30, "passive_id": "youya_elven_agility",
+			"name": "精灵敏捷", "desc": "闪避率+30%; SPD+3",
+			"type": "special",
+			"dodge_chance_pct": 30, "stat_bonus": { "spd": 3 },
+		},
+		{
+			"level": 35, "passive_id": "youya_death_mark",
+			"name": "死之刻印", "desc": "攻撃標記目標; 被標記者受全軍傷害+25%",
+			"type": "on_hit",
+			"mark_damage_taken_bonus_pct": 25,
+		},
+		{
+			"level": 40, "passive_id": "youya_shadow_dance",
+			"name": "影之舞", "desc": "2回合隐身; 解除時首撃×2.5; 暴撃率+30%",
+			"type": "stealth",
+			"duration_rounds": 2, "first_attack_mult": 2.5, "crit_bonus_pct": 30,
+		},
+		{
+			"level": 45, "passive_id": "youya_assassin_creed",
+			"name": "暗殺信条", "desc": "対HP<40%目標傷害×2.5; 撃殺時隐身1回合",
+			"type": "conditional_stat",
+			"condition": "target_hp_below_pct", "threshold": 40,
+			"damage_mult": 2.5, "kill_stealth_rounds": 1,
+		},
+		{
+			"level": 50, "passive_id": "youya_phantom_sovereign",
+			"name": "夜帝", "desc": "3回合隐身; 暴撃率+40%; 闪避45%; 毒DoT(ATK×0.5)無法驅散",
+			"type": "special",
+			"stealth_rounds": 3, "crit_bonus_pct": 40,
+			"dodge_chance_pct": 45, "dot_atk_mult": 0.5, "dot_undispellable": true,
+		},
+	],
+
+	# ── 響（山岳守護者）───────────────────────────────────
+	"hibiki": [
+		{
+			"level": 3, "passive_id": "hibiki_iron_wall",
+			"name": "鉄壁の構え", "desc": "據點防守時DEF+3",
+			"type": "conditional_stat",
+			"condition": "defending_stronghold",
+			"stat": "def", "value": 3,
+		},
+		{
+			"level": 7, "passive_id": "hibiki_mountain_vigor",
+			"name": "山岳の活力", "desc": "毎回合回復1兵HP",
+			"type": "per_round",
+			"heal_target": "self", "heal_amount": 1,
+		},
+		{
+			"level": 12, "passive_id": "hibiki_shield_wall",
+			"name": "盾壁陣", "desc": "前排友軍DEF+3",
+			"type": "aura_row",
+			"row": "front", "stat": "def", "value": 3,
+		},
+		{
+			"level": 18, "passive_id": "hibiki_unbreakable",
+			"name": "不壊の体", "desc": "HP帰零時60%保留1兵(毎場1次)",
+			"type": "on_death",
+			"survive_chance_pct": 60, "uses_per_battle": 1,
+		},
+		# ── Lv25-50 新増被動 ──
+		{
+			"level": 25, "passive_id": "hibiki_earthquake",
+			"name": "地震", "desc": "被攻撃時25%使攻撃者眩暈1回合",
+			"type": "on_hit",
+			"chance_pct": 25, "effect": "stun_attacker", "duration": 1,
+		},
+		{
+			"level": 30, "passive_id": "hibiki_fortress",
+			"name": "山城堅守", "desc": "據點防守時全軍DEF+4; 城防削減-30%",
+			"type": "conditional_stat",
+			"condition": "defending_stronghold",
+			"stat": "def", "value": 4, "siege_reduction_pct": 30,
+		},
+		{
+			"level": 35, "passive_id": "hibiki_taunt",
+			"name": "挑発", "desc": "強制敵方優先攻撃響所在部隊",
+			"type": "targeting",
+			"force_target": true,
+		},
+		{
+			"level": 40, "passive_id": "hibiki_avalanche",
+			"name": "雪崩", "desc": "反弾受到傷害的25%給攻撃者",
+			"type": "on_hit",
+			"reflect_damage_pct": 25,
+		},
+		{
+			"level": 45, "passive_id": "hibiki_immovable",
+			"name": "不動明王", "desc": "HP<50%時DEF翻倍; 免疫全部控制効果",
+			"type": "conditional_stat",
+			"condition": "hp_below_pct", "threshold": 50,
+			"def_mult": 2.0, "cc_immune": true,
+		},
+		{
+			"level": 50, "passive_id": "hibiki_mountain_god",
+			"name": "山神", "desc": "全軍DEF+5; HP帰零時100%保留1兵(毎場2次); 反射30%",
+			"type": "aura",
+			"stat": "def", "value": 5,
+			"on_death_survive_pct": 100, "uses_per_battle": 2,
+			"reflect_damage_pct": 30,
+		},
+	],
+
+	# ── 沙罗（砂漠狙撃手）─────────────────────────────────
+	"sara": [
+		{
+			"level": 3, "passive_id": "sara_desert_eye",
+			"name": "砂漠の眼", "desc": "攻撃後排ATK+2",
+			"type": "conditional_stat",
+			"condition": "target_back_row",
+			"stat": "atk", "value": 2,
+		},
+		{
+			"level": 7, "passive_id": "sara_sandstorm_veil",
+			"name": "砂嵐の帳", "desc": "闪避率+15%",
+			"type": "special",
+			"dodge_chance_pct": 15,
+		},
+		{
+			"level": 12, "passive_id": "sara_heat_arrow",
+			"name": "灼熱矢", "desc": "攻撃附帯1回合灼焼(ATK×0.2)",
+			"type": "on_hit",
+			"dot_rounds": 1, "dot_atk_mult": 0.2,
+		},
+		{
+			"level": 18, "passive_id": "sara_mirage",
+			"name": "蜃気楼", "desc": "敵軍遠程攻撃命中率-20%",
+			"type": "aura_enemy",
+			"ranged_accuracy_reduction_pct": 20,
+		},
+		# ── Lv25-50 新増被動 ──
+		{
+			"level": 25, "passive_id": "sara_scorching_wind",
+			"name": "熱砂の風", "desc": "攻撃後排ATK+4; 30%概率攻撃两次",
+			"type": "conditional_stat",
+			"condition": "target_back_row",
+			"stat": "atk", "value": 4, "double_shot_pct": 30,
+		},
+		{
+			"level": 30, "passive_id": "sara_sandstorm",
+			"name": "大砂嵐", "desc": "先制階段攻撃全後排(ATK×0.4); 附帯命中率低下",
+			"type": "priority",
+			"target": "all_back_row", "damage_mult": 0.4, "accuracy_debuff": true,
+		},
+		{
+			"level": 35, "passive_id": "sara_oasis_blessing",
+			"name": "緑洲祝福", "desc": "全軍毎回合回復1兵HP; +1法力/回合",
+			"type": "per_round",
+			"heal_target": "all_allies", "heal_amount": 1, "mp_regen": 1,
+		},
+		{
+			"level": 40, "passive_id": "sara_piercing_heat",
+			"name": "灼穿矢", "desc": "無視目標45%DEF; 灼焼提升至ATK×0.35",
+			"type": "special",
+			"def_ignore_pct": 45, "dot_atk_mult": 0.35,
+		},
+		{
+			"level": 45, "passive_id": "sara_desert_phantom",
+			"name": "砂漠幻影", "desc": "闪避率+30%; 暴撃率+20%; 暴撃傷害×2.0",
+			"type": "special",
+			"dodge_chance_pct": 30, "crit_bonus_pct": 20, "crit_mult": 2.0,
+		},
+		{
+			"level": 50, "passive_id": "sara_sun_queen",
+			"name": "太陽女王", "desc": "全軍ATK+4; 先制AoE(ATK×0.6); 50%三連射; 閃避35%",
+			"type": "special",
+			"aura_atk": 4, "priority_aoe_mult": 0.6,
+			"triple_shot_pct": 50, "dodge_chance_pct": 35,
+		},
+	],
+
+	# ── 冥（冥界召喚師）───────────────────────────────────
+	"mei": [
+		{
+			"level": 3, "passive_id": "mei_dark_focus",
+			"name": "冥界集中", "desc": "法術傷害+10%",
+			"type": "special",
+			"spell_damage_bonus_pct": 10,
+		},
+		{
+			"level": 7, "passive_id": "mei_soul_drain",
+			"name": "魂吸", "desc": "攻撃時回復MP1",
+			"type": "on_hit",
+			"mp_drain": 1,
+		},
+		{
+			"level": 12, "passive_id": "mei_summon_wraith",
+			"name": "亡霊召喚", "desc": "毎5回合召喚亡霊兵1隊(3兵力)",
+			"type": "per_round",
+			"interval": 5, "summon": "wraith", "summon_hp": 3,
+		},
+		{
+			"level": 18, "passive_id": "mei_death_curse",
+			"name": "死之呪詛", "desc": "攻撃附帯呪詛: 目標受治療効果-50%, 持続2回合",
+			"type": "on_hit",
+			"heal_reduction_pct": 50, "debuff_duration": 2,
+		},
+		# ── Lv25-50 新増被動 ──
+		{
+			"level": 25, "passive_id": "mei_necrotic_surge",
+			"name": "死霊奔流", "desc": "法術傷害+25%; AoE額外命中2目標",
+			"type": "special",
+			"spell_damage_bonus_pct": 25, "aoe_extra_targets": 2,
+		},
+		{
+			"level": 30, "passive_id": "mei_soul_harvest",
+			"name": "魂魄収穫", "desc": "毎撃殺1個部隊回復MP3且ATK+2(本場永久)",
+			"type": "on_kill",
+			"mp_restore": 3, "stat_bonus": { "atk": 2 }, "permanent": true,
+		},
+		{
+			"level": 35, "passive_id": "mei_undead_legion",
+			"name": "不死軍団", "desc": "毎3回合召喚亡霊兵(5兵力); 亡霊ATK+2",
+			"type": "per_round",
+			"interval": 3, "summon": "wraith", "summon_hp": 5, "summon_atk_bonus": 2,
+		},
+		{
+			"level": 40, "passive_id": "mei_void_rift",
+			"name": "虚空裂隙", "desc": "毎4回合対全敵造成INT×2傷害; 附帯呪詛",
+			"type": "per_round",
+			"interval": 4, "aoe_damage_int_mult": 2, "apply_curse": true,
+		},
+		{
+			"level": 45, "passive_id": "mei_reaper_aura",
+			"name": "死神領域", "desc": "敵全軍DEF-3; 受治療効果-30%",
+			"type": "aura_enemy",
+			"stat": "def", "value": -3, "heal_reduction_pct": 30,
+		},
+		{
+			"level": 50, "passive_id": "mei_lord_of_death",
+			"name": "冥王", "desc": "法術傷害+50%; 毎2回合召喚亡霊(7兵力); 全敵DEF-5; INT+6",
+			"type": "special",
+			"spell_damage_bonus_pct": 50,
+			"summon_interval": 2, "summon_hp": 7,
+			"enemy_def_reduction": 5, "aura_int": 6,
+		},
+	],
+
+	# ── 枫（幻影忍者）─────────────────────────────────────
+	"kaede": [
+		{
+			"level": 3, "passive_id": "kaede_forest_stealth",
+			"name": "森隠れ", "desc": "首回合隐身",
+			"type": "stealth",
+			"duration_rounds": 1,
+		},
+		{
+			"level": 7, "passive_id": "kaede_clone_strike",
+			"name": "分身撃", "desc": "20%概率攻撃两次",
+			"type": "special",
+			"chance_pct": 20, "extra_attacks": 1,
+		},
+		{
+			"level": 12, "passive_id": "kaede_leaf_blade",
+			"name": "木葉刃", "desc": "暴撃率+15%; 攻撃後排ATK+2",
+			"type": "special",
+			"crit_bonus_pct": 15, "back_row_atk_bonus": 2,
+		},
+		{
+			"level": 18, "passive_id": "kaede_phantom_clone",
+			"name": "幻影分身", "desc": "闪避率+25%; 分身概率提升至35%",
+			"type": "special",
+			"dodge_chance_pct": 25, "clone_attack_pct": 35,
+		},
+		# ── Lv25-50 新増被動 ──
+		{
+			"level": 25, "passive_id": "kaede_wind_step",
+			"name": "風歩", "desc": "SPD+3; 隐身延長至2回合",
+			"type": "stealth",
+			"duration_rounds": 2, "stat_bonus": { "spd": 3 },
+		},
+		{
+			"level": 30, "passive_id": "kaede_binding_vine",
+			"name": "縛り蔓", "desc": "攻撃時25%使目標無法行動1回合",
+			"type": "on_hit",
+			"chance_pct": 25, "effect": "root_target", "duration": 1,
+		},
+		{
+			"level": 35, "passive_id": "kaede_leaf_storm",
+			"name": "木葉嵐", "desc": "先制階段攻撃全後排(ATK×0.4); 暴撃率+25%",
+			"type": "priority",
+			"target": "all_back_row", "damage_mult": 0.4, "crit_bonus_pct": 25,
+		},
+		{
+			"level": 40, "passive_id": "kaede_mirror_image",
+			"name": "鏡像", "desc": "闪避率+40%; 闪避後下次攻撃ATK+5",
+			"type": "on_hit",
+			"dodge_chance_pct": 40, "post_dodge_atk_bonus": 5,
+		},
+		{
+			"level": 45, "passive_id": "kaede_thousand_leaves",
+			"name": "千葉乱舞", "desc": "50%概率攻撃三次; 暴撃率+30%",
+			"type": "special",
+			"triple_shot_pct": 50, "crit_bonus_pct": 30,
+		},
+		{
+			"level": 50, "passive_id": "kaede_forest_sovereign",
+			"name": "森羅万象", "desc": "3回合隐身; 暴撃率+40%; 闪避50%; 60%三連撃; SPD+5",
+			"type": "special",
+			"stealth_rounds": 3, "crit_bonus_pct": 40,
+			"dodge_chance_pct": 50, "triple_shot_pct": 60,
+			"stat_bonus": { "spd": 5 },
+		},
+	],
+
+	# ── 朱音（古代巫女）───────────────────────────────────
+	"akane": [
+		{
+			"level": 3, "passive_id": "akane_prayer",
+			"name": "祈りの力", "desc": "毎回合回復最傷部隊1兵HP",
+			"type": "per_round",
+			"heal_target": "most_injured", "heal_amount": 1,
+		},
+		{
+			"level": 7, "passive_id": "akane_holy_spring",
+			"name": "聖泉", "desc": "+2法力/回合",
+			"type": "per_round",
+			"mp_regen": 2,
+		},
+		{
+			"level": 12, "passive_id": "akane_purify",
+			"name": "浄化", "desc": "毎3回合移除全軍1個負面状態",
+			"type": "per_round",
+			"interval": 3, "effect": "remove_ally_debuff", "count": 1,
+		},
+		{
+			"level": 18, "passive_id": "akane_sacred_barrier",
+			"name": "聖域結界", "desc": "全軍法術傷害減免20%",
+			"type": "aura",
+			"magic_damage_reduction_pct": 20,
+		},
+		# ── Lv25-50 新増被動 ──
+		{
+			"level": 25, "passive_id": "akane_divine_grace",
+			"name": "神恩", "desc": "全軍毎回合回復2兵HP; INT+2",
+			"type": "per_round",
+			"heal_target": "all_allies", "heal_amount": 2,
+			"aura_int": 2,
+		},
+		{
+			"level": 30, "passive_id": "akane_spirit_link",
+			"name": "霊魂鏈接", "desc": "全軍受傷平摊(防止集火秒殺)",
+			"type": "special",
+			"damage_distribution": true,
+		},
+		{
+			"level": 35, "passive_id": "akane_resurrection",
+			"name": "蘇生の儀", "desc": "首個被殲滅部隊回復50%兵力(毎場1次)",
+			"type": "special",
+			"revive_hp_pct": 50, "uses_per_battle": 1,
+		},
+		{
+			"level": 40, "passive_id": "akane_ancient_ward",
+			"name": "古代結界", "desc": "全軍法術減免35%; 毎2回合驅散敵方2個増益",
+			"type": "aura",
+			"magic_damage_reduction_pct": 35,
+			"dispel_interval": 2, "dispel_count": 2,
+		},
+		{
+			"level": 45, "passive_id": "akane_miracle",
+			"name": "奇跡", "desc": "+3法力/回合; 治療技能消耗-2; 蘇生次数+1",
+			"type": "per_round",
+			"mp_regen": 3, "heal_mp_reduction": 2, "revive_extra_uses": 1,
+		},
+		{
+			"level": 50, "passive_id": "akane_eternal_priestess",
+			"name": "永遠の巫女", "desc": "全軍毎回合回復3兵HP; INT+5; 法術減免50%; 蘇生2次/場",
+			"type": "per_round",
+			"heal_target": "all_allies", "heal_amount": 3,
+			"aura_int": 5, "magic_damage_reduction_pct": 50,
+			"revive_uses_per_battle": 2,
+		},
+	],
+
+	# ── 花火（砲撃手）─────────────────────────────────────
+	"hanabi": [
+		{
+			"level": 3, "passive_id": "hanabi_heavy_shell",
+			"name": "重砲弾", "desc": "攻撃附帯濺射(周囲敵軍受20%傷害)",
+			"type": "on_hit",
+			"splash_damage_pct": 20,
+		},
+		{
+			"level": 7, "passive_id": "hanabi_demolition",
+			"name": "破壊工作", "desc": "対建築/城防傷害+30%",
+			"type": "special",
+			"siege_damage_bonus_pct": 30,
+		},
+		{
+			"level": 12, "passive_id": "hanabi_incendiary",
+			"name": "焼夷弾", "desc": "攻撃附帯2回合灼焼(ATK×0.25)",
+			"type": "on_hit",
+			"dot_rounds": 2, "dot_atk_mult": 0.25,
+		},
+		{
+			"level": 18, "passive_id": "hanabi_barrage",
+			"name": "一斉砲撃", "desc": "先制階段攻撃全後排(ATK×0.4)",
+			"type": "priority",
+			"target": "all_back_row", "damage_mult": 0.4,
+		},
+		# ── Lv25-50 新増被動 ──
+		{
+			"level": 25, "passive_id": "hanabi_armor_piercing",
+			"name": "徹甲弾", "desc": "無視目標40%DEF; 濺射提升至30%",
+			"type": "special",
+			"def_ignore_pct": 40, "splash_damage_pct": 30,
+		},
+		{
+			"level": 30, "passive_id": "hanabi_carpet_bomb",
+			"name": "絨毯爆撃", "desc": "先制階段攻撃全敵(ATK×0.3); 附帯灼焼",
+			"type": "priority",
+			"target": "all_enemies", "damage_mult": 0.3, "apply_burn": true,
+		},
+		{
+			"level": 35, "passive_id": "hanabi_explosive_chain",
+			"name": "連鎖爆発", "desc": "灼焼中敵人受傷+25%; 撃殺時爆発傷害波及周囲",
+			"type": "special",
+			"burn_damage_bonus_pct": 25, "kill_explosion": true,
+		},
+		{
+			"level": 40, "passive_id": "hanabi_siege_master",
+			"name": "攻城達人", "desc": "対建築傷害+60%; ATK+4対城防戦",
+			"type": "special",
+			"siege_damage_bonus_pct": 60, "siege_atk_bonus": 4,
+		},
+		{
+			"level": 45, "passive_id": "hanabi_napalm",
+			"name": "業火弾", "desc": "灼焼DoT提升至ATK×0.5; 無法驅散; 無視50%DEF",
+			"type": "on_hit",
+			"dot_atk_mult": 0.5, "dot_undispellable": true, "def_ignore_pct": 50,
+		},
+		{
+			"level": 50, "passive_id": "hanabi_fire_goddess",
+			"name": "花火之神", "desc": "全軍ATK+5; 先制AoE全敵(ATK×0.6); 濺射40%; 灼焼5回合",
+			"type": "special",
+			"aura_atk": 5, "priority_aoe_mult": 0.6,
+			"splash_damage_pct": 40, "dot_rounds": 5,
 		},
 	],
 }

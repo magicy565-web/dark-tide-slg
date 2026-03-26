@@ -155,6 +155,18 @@ func get_recruitment_method(player_id: int, faction_id: int) -> String:
 func get_all_relations(player_id: int) -> Dictionary:
 	return _relations.get(player_id, {})
 
+
+func improve_relation(player_id: int, faction_id: int, amount: int) -> void:
+	## Improve the relation value with a faction by the given amount.
+	if not _relations.has(player_id):
+		_relations[player_id] = {}
+	if not _relations[player_id].has(faction_id):
+		_relations[player_id][faction_id] = {"hostile": false, "recruited": false, "method": "", "rebellion_turns": 0}
+	# If relation is hostile, a large enough improvement can de-escalate
+	if amount > 0 and _relations[player_id][faction_id].get("hostile", false):
+		_relations[player_id][faction_id]["hostile"] = false
+	EventBus.message_log.emit("[color=green]与%s的关系改善了 +%d[/color]" % [_get_faction_name(faction_id), amount])
+
 func _grant_faction_outposts(player_id: int, faction_id: int) -> void:
 	## Transfer all faction outposts to the player.
 	for tile in GameManager.tiles:
@@ -585,6 +597,28 @@ func get_active_treaties(player_id: int) -> Array:
 		if t["turns_left"] > 0:
 			result.append(t.duplicate())
 	return result
+
+
+func cleanup_faction_treaties(faction_id: int) -> void:
+	## Remove all treaties involving the eliminated faction across all players.
+	for player_id in _treaties:
+		var active: Array = []
+		for treaty in _treaties[player_id]:
+			if treaty["target"] == faction_id:
+				var fname: String = _get_faction_name(faction_id)
+				var type_name: String = _get_treaty_type_name(treaty["type"])
+				EventBus.message_log.emit("[color=gray]%s已灭亡, 与其的%s自动终止[/color]" % [fname, type_name])
+			else:
+				active.append(treaty)
+		_treaties[player_id] = active
+	# Also clean up ceasefire entries
+	for player_id in _ceasefire:
+		if _ceasefire[player_id].has(faction_id):
+			_ceasefire[player_id].erase(faction_id)
+	# Clean up relations
+	for player_id in _relations:
+		if _relations[player_id].has(faction_id):
+			_relations[player_id].erase(faction_id)
 
 
 func _get_treaty_type_name(treaty_type: String) -> String:

@@ -613,7 +613,7 @@ func _on_gift_hero(hero_id: String) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	# Gift costs 10 gold
 	if ResourceManager.can_afford(pid, {"gold": 10}):
-		ResourceManager.deduct(pid, {"gold": 10})
+		ResourceManager.spend(pid, {"gold": 10})
 		if HeroSystem.has_method("increase_affection"):
 			HeroSystem.increase_affection(hero_id, 1)
 		EventBus.message_log.emit("向 %s 赠送了礼物 (-10金)" % FactionData.HEROES.get(hero_id, {}).get("name", hero_id))

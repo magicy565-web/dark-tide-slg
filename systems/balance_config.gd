@@ -522,7 +522,7 @@ const ACADEMY_QUEUE_SIZE := [1, 1, 2, 3]  # Lv0, Lv1, Lv2, Lv3
 # ═══════════════ HERO LEVELING (v3.1) ═══════════════
 
 ## Hero level cap
-const HERO_MAX_LEVEL: int = 20
+const HERO_MAX_LEVEL: int = 50
 
 ## EXP awards per combat
 const HERO_EXP_COMBAT_WIN: int = 10

@@ -308,7 +308,7 @@ const CHARACTER_EQUIPMENT: Dictionary = {
 	"sou_arcane_tome": {
 		"name": "蒼的魔导书·星辰录", "slot": FactionData.EquipSlot.ACCESSORY, "rarity": "legendary",
 		"desc": "INT+3, 全军法术伤害+25%",
-		"stats": {},
+		"stats": {"int_stat": 3},
 		"passive": "spell_power_bonus", "passive_value": 0.25,
 		"drop_weight": 0,
 	},

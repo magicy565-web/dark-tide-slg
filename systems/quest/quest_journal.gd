@@ -214,7 +214,47 @@ func _evaluate_objective(obj: Dictionary, player_id: int) -> bool:
 			return DiplomacyManager.get_treaty_count(player_id) >= value
 		"total_soldiers_min":
 			return _get_total_soldiers(player_id) >= value
-	return false
+		"ruins_captured_min":
+			return _count_tiles_with_terrain(player_id, "ruins") >= value
+		"trading_posts_min":
+			return _count_tiles_with_building(player_id, "trading_post") >= value
+		"mines_captured_min":
+			return _count_tiles_with_terrain(player_id, "mine") >= value
+		"waaagh_min":
+			if OrcMechanic and OrcMechanic.has_method("get_waaagh"):
+				return OrcMechanic.get_waaagh(player_id) >= value
+			return false
+		"main_quest_completed":
+			return _is_completed(_main_progress, str(value))
+		"tiles_defended_min":
+			return _stats.get("tiles_defended", 0) >= value
+		"black_market_trades_min":
+			return _stats.get("black_market_trades", 0) >= value
+		"heroines_submission_min":
+			return _count_heroes_with_submission(player_id, value) >= 1
+		"heroines_captured_min":
+			return _count_captured_heroines(player_id) >= value
+		"building_level_max":
+			return _any_building_level_at_least(player_id, value)
+		"treasure_maps_min":
+			return _stats.get("treasure_maps", 0) >= value
+		"low_ap_turns_min":
+			return _stats.get("low_ap_turns", 0) >= value
+		"tiles_captured_in_turn_min":
+			return _stats.get("tiles_captured_this_turn", 0) >= value
+		"wanderer_kills_min":
+			return _stats.get("wanderer_kills", 0) >= value
+		"gold_spent_min":
+			return _stats.get("gold_spent", 0) >= value
+		"infamy_min":
+			if PirateMechanic and PirateMechanic.has_method("get_infamy"):
+				return PirateMechanic.get_infamy(player_id) >= value
+			return false
+		"turn_min":
+			return GameManager.turn_number >= value
+		_:
+			push_warning("QuestJournal: _evaluate_objective unhandled type '%s'" % otype)
+			return false
 
 
 func _evaluate_trigger(trigger: Dictionary, player_id: int) -> bool:
@@ -284,6 +324,24 @@ func _evaluate_trigger(trigger: Dictionary, player_id: int) -> bool:
 			"side_quest_completed":
 				if not _is_completed(_side_progress, trigger[key]):
 					return false
+			"waaagh_min":
+				if not (OrcMechanic and OrcMechanic.has_method("get_waaagh") and OrcMechanic.get_waaagh(player_id) >= trigger[key]):
+					return false
+			"ruins_captured_min":
+				if _count_tiles_with_terrain(player_id, "ruins") < trigger[key]:
+					return false
+			"trading_posts_min":
+				if _count_tiles_with_building(player_id, "trading_post") < trigger[key]:
+					return false
+			"mines_captured_min":
+				if _count_tiles_with_terrain(player_id, "mine") < trigger[key]:
+					return false
+			"heroines_captured_min":
+				if _count_captured_heroines(player_id) < trigger[key]:
+					return false
+			_:
+				push_warning("QuestJournal: _evaluate_trigger unhandled key '%s'" % key)
+				return false
 	return true
 
 
@@ -958,6 +1016,40 @@ func _get_total_soldiers(player_id: int) -> int:
 
 func _is_completed(progress_dict: Dictionary, quest_id: String) -> bool:
 	return progress_dict.get(quest_id, {}).get("status", -1) == QuestDefs.QuestStatus.COMPLETED
+
+
+func _count_tiles_with_terrain(player_id: int, terrain_type: String) -> int:
+	var c: int = 0
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) == player_id and tile.get("terrain", "") == terrain_type:
+			c += 1
+	return c
+
+
+func _count_captured_heroines(player_id: int) -> int:
+	var c: int = 0
+	if HeroSystem and HeroSystem.has_method("get_captured_heroes"):
+		var captured: Array = HeroSystem.get_captured_heroes()
+		c = captured.size()
+	else:
+		c = _stats.get("heroes_captured_total", 0)
+	return c
+
+
+func _count_heroes_with_submission(player_id: int, threshold: int) -> int:
+	var c: int = 0
+	for hero_id in HeroSystem.recruited_heroes:
+		var submission: int = HeroSystem.hero_affection.get(hero_id, 0)
+		if submission >= threshold:
+			c += 1
+	return c
+
+
+func _any_building_level_at_least(player_id: int, min_level: int) -> bool:
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) == player_id and tile.get("building_level", 0) >= min_level:
+			return true
+	return false
 
 func _notify_quest_available(category: String, quest_name: String) -> void:
 	EventBus.message_log.emit("[color=yellow][新%s任务] %s[/color]" % [category, quest_name])

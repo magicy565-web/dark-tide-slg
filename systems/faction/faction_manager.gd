@@ -51,7 +51,7 @@ func is_faction_alive(faction_id: int) -> bool:
 	return false
 
 
-func mark_faction_dead(faction_id: int) -> void:
+func mark_faction_dead(faction_id: int, conquering_player_id: int = -1) -> void:
 	# 校验阵营ID是否存在于名称表中，避免空引用
 	if not FactionData.FACTION_NAMES.has(faction_id):
 		push_warning("FactionManager: mark_faction_dead 无效的 faction_id=%d" % faction_id)
@@ -61,10 +61,14 @@ func mark_faction_dead(faction_id: int) -> void:
 			rival["alive"] = false
 			EventBus.message_log.emit("[color=gold]%s 已被征服![/color]" % FactionData.FACTION_NAMES[faction_id])
 			OrderManager.on_faction_conquered()
-			ResourceManager.apply_delta(
-				GameManager.get_human_player_id(),
-				{"prestige": FactionData.PRESTIGE_SOURCES["conquer_faction"]}
-			)
+			# Only award prestige if the conquering player is the human player
+			var human_pid: int = GameManager.get_human_player_id()
+			if conquering_player_id == human_pid or conquering_player_id == -1:
+				ResourceManager.apply_delta(
+					human_pid,
+					{"prestige": FactionData.PRESTIGE_SOURCES["conquer_faction"]}
+				)
+			DiplomacyManager.cleanup_faction_treaties(faction_id)
 			break
 
 
