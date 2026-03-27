@@ -1,6 +1,7 @@
-## ai_scaling.gd - AI combat scaling via threat tiers (v0.8.5)
+## ai_scaling.gd - AI combat scaling via threat tiers (v4.0)
 ## AI factions do NOT use training/research. Their stats scale with threat value.
 ## Each AI faction has independent threat tracking.
+## v4.0: Bonus units, tactical directives, commander interventions, counter-composition.
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const TrainingData = preload("res://systems/faction/training_data.gd")
@@ -197,6 +198,158 @@ func get_wall_bonus(faction_key: String) -> float:
 	return get_stat_multipliers(faction_key).get("wall_bonus", 0.0)
 
 
+# ═══════════════ v4.0: TIER-BASED BONUS UNITS ═══════════════
+
+## At higher tiers, AI gets bonus garrison units instead of just stat multipliers.
+## This makes AI stronger through NUMBERS not just inflated stats.
+const TIER_BONUS_GARRISON: Dictionary = {
+	0: 0,   # Tier 0: no bonus
+	1: 2,   # Tier 1: +2 bonus garrison on border tiles per turn
+	2: 4,   # Tier 2: +4
+	3: 7,   # Tier 3: +7
+}
+
+func get_tier_bonus_garrison(faction_key: String) -> int:
+	## Returns bonus garrison units per turn for border tiles at this threat tier.
+	var tier: int = get_tier(faction_key)
+	return TIER_BONUS_GARRISON.get(tier, 0)
+
+
+func apply_tier_bonus_garrison(faction_key: String) -> void:
+	## Apply bonus garrison to border tiles based on threat tier.
+	var bonus: int = get_tier_bonus_garrison(faction_key)
+	if bonus <= 0:
+		return
+	var applied: int = 0
+	for tile in GameManager.tiles:
+		if tile["owner_id"] >= 0:
+			continue
+		if not _tile_belongs_to_faction(tile, faction_key):
+			continue
+		# Only apply to border tiles (adjacent to player territory)
+		var on_border: bool = false
+		if GameManager.adjacency.has(tile["index"]):
+			for nb_idx in GameManager.adjacency[tile["index"]]:
+				if nb_idx < GameManager.tiles.size() and GameManager.tiles[nb_idx]["owner_id"] >= 0:
+					on_border = true
+					break
+		if on_border:
+			tile["garrison"] += bonus
+			applied += 1
+	if applied > 0 and bonus >= 4:
+		EventBus.message_log.emit("[color=orange][%s] 高威胁等级增援: %d个前线据点各+%d驻军[/color]" % [faction_key, applied, bonus])
+
+
+# ═══════════════ v4.0: TACTICAL DIRECTIVE ACCESS ═══════════════
+
+## At higher tiers, AI gains access to better tactical directives.
+## Tier 0: NONE only
+## Tier 1: HOLD_LINE, FOCUS_FIRE
+## Tier 2: + ALL_OUT, GUERRILLA
+## Tier 3: + AMBUSH (all directives)
+
+const TIER_AVAILABLE_DIRECTIVES: Dictionary = {
+	0: [],
+	1: [2, 4],       # HOLD_LINE=2, FOCUS_FIRE=4
+	2: [1, 2, 3, 4], # + ALL_OUT=1, GUERRILLA=3
+	3: [1, 2, 3, 4, 5],  # + AMBUSH=5
+}
+
+func get_available_directives(faction_key: String) -> Array:
+	## Returns array of TacticalDirective enum values available at current tier.
+	var tier: int = get_tier(faction_key)
+	return TIER_AVAILABLE_DIRECTIVES.get(tier, [])
+
+
+func can_use_directive(faction_key: String, directive: int) -> bool:
+	## Check if a faction can use a specific tactical directive at their current tier.
+	if directive == 0:  # NONE is always available
+		return true
+	return directive in get_available_directives(faction_key)
+
+
+# ═══════════════ v4.0: AI COMMANDER INTERVENTIONS ═══════════════
+
+## At Tier 2+, AI can use Commander Interventions during combat with reduced CP.
+const AI_INTERVENTION_CP: Dictionary = {
+	2: 2,  # Tier 2: 2 CP budget
+	3: 4,  # Tier 3: 4 CP budget
+}
+
+## Interventions the AI will prioritize by personality
+const AI_INTERVENTION_PRIORITY: Dictionary = {
+	Personality.AGGRESSIVE: [
+		CommanderIntervention.InterventionType.INSPIRE,
+		CommanderIntervention.InterventionType.REDIRECT_FIRE,
+		CommanderIntervention.InterventionType.FOCUS_VOLLEY,
+		CommanderIntervention.InterventionType.SACRIFICE_PAWN,
+	],
+	Personality.DEFENSIVE: [
+		CommanderIntervention.InterventionType.SHIELD_WALL,
+		CommanderIntervention.InterventionType.RALLY,
+		CommanderIntervention.InterventionType.BAIT_AND_SWITCH,
+		CommanderIntervention.InterventionType.TACTICAL_RETREAT,
+	],
+	Personality.ECONOMIC: [
+		CommanderIntervention.InterventionType.FOCUS_VOLLEY,
+		CommanderIntervention.InterventionType.REDIRECT_FIRE,
+		CommanderIntervention.InterventionType.SHIELD_WALL,
+		CommanderIntervention.InterventionType.TACTICAL_RETREAT,
+	],
+	Personality.DIPLOMATIC: [
+		CommanderIntervention.InterventionType.BAIT_AND_SWITCH,
+		CommanderIntervention.InterventionType.RALLY,
+		CommanderIntervention.InterventionType.SHIELD_WALL,
+		CommanderIntervention.InterventionType.TACTICAL_RETREAT,
+	],
+}
+
+func get_ai_intervention_cp(faction_key: String) -> int:
+	## Returns how many CP the AI gets for commander interventions.
+	var tier: int = get_tier(faction_key)
+	return AI_INTERVENTION_CP.get(tier, 0)
+
+
+func get_ai_intervention_priorities(faction_key: String) -> Array:
+	## Returns ordered list of intervention types the AI should try.
+	var personality: int = get_personality(faction_key)
+	return AI_INTERVENTION_PRIORITY.get(personality, [])
+
+
+func can_use_interventions(faction_key: String) -> bool:
+	## Returns true if this AI faction can use commander interventions.
+	return get_tier(faction_key) >= 2
+
+
+# ═══════════════ v4.0: COUNTER-COMPOSITION ═══════════════
+
+## At Tier 3, AI can analyze player army and build counter-compositions.
+## This changes the defender army composition metadata attached to tiles.
+
+func should_use_counter_composition(faction_key: String) -> bool:
+	## Tier 3 AI uses counter-composition against the player.
+	return get_tier(faction_key) >= 3
+
+
+func get_counter_army_types(faction_key: String) -> Array:
+	## Returns unit types that counter the player's recent army composition.
+	## Delegates to AIStrategicPlanner for the actual analysis.
+	if not should_use_counter_composition(faction_key):
+		return []
+	var faction_id: int = _ai_key_to_faction_id(faction_key)
+	if faction_id < 0:
+		return []
+	return AIStrategicPlanner.get_counter_composition(faction_key, faction_id)
+
+
+func _ai_key_to_faction_id(ai_key: String) -> int:
+	match ai_key:
+		"orc_ai": return FactionData.FactionID.ORC
+		"pirate_ai": return FactionData.FactionID.PIRATE
+		"dark_elf_ai": return FactionData.FactionID.DARK_ELF
+	return -1
+
+
 # ═══════════════ PASSIVE & ULTIMATE QUERIES ═══════════════
 
 func has_tier2_passive(faction_key: String) -> bool:
@@ -228,7 +381,7 @@ func get_tier3_ultimate(faction_key: String) -> Dictionary:
 # ═══════════════ TURN PROCESSING ═══════════════
 
 func process_turn() -> void:
-	## Called once per turn. Handles threat decay, expedition/boss spawns.
+	## Called once per turn. Handles threat decay, expedition/boss spawns, and tier bonuses.
 	for faction_key in _faction_threat:
 		# Natural decay: -1 per turn
 		if _faction_threat[faction_key] > 0:
@@ -237,6 +390,9 @@ func process_turn() -> void:
 			change_threat(faction_key, -decay)
 
 		var tier: int = get_tier(faction_key)
+
+		# v4.0: Apply tier-based bonus garrison to border tiles
+		apply_tier_bonus_garrison(faction_key)
 
 		# Expedition spawn check
 		var exp_data: Dictionary = TrainingData.AI_THREAT_SCALING.get("expedition", {})
@@ -260,19 +416,28 @@ func process_turn() -> void:
 
 func _try_spawn_expedition(faction_key: String) -> void:
 	## Attempt to spawn an expedition army for the given AI faction.
+	## v4.0: Uses strategic planner to place expedition at predicted attack point.
 	var exp_data: Dictionary = TrainingData.AI_THREAT_SCALING.get("expedition", {})
 	var count_range: Array = exp_data.get("unit_count_range", [3, 5])
 	var unit_count: int = randi_range(count_range[0], count_range[1])
 
-	# Find a suitable tile owned by this AI faction
-	var target_tile_idx: int = _find_ai_border_tile(faction_key)
+	# v4.0: Tier bonus units for expeditions
+	var tier: int = get_tier(faction_key)
+	unit_count += tier  # +1/2/3 bonus units at tier 1/2/3
+
+	# v4.0: Try to place at the predicted player attack point first
+	var predicted_target: int = AIStrategicPlanner.predict_player_next_target(faction_key)
+	var target_tile_idx: int = predicted_target if predicted_target >= 0 else _find_ai_border_tile(faction_key)
+	if target_tile_idx < 0:
+		target_tile_idx = _find_ai_border_tile(faction_key)
 	if target_tile_idx < 0:
 		return
 
 	# Add garrison as the expedition
 	if target_tile_idx < GameManager.tiles.size():
 		GameManager.tiles[target_tile_idx]["garrison"] += unit_count
-		EventBus.message_log.emit("[color=red][%s] 远征军出动! +%d 兵力 → 据点#%d[/color]" % [faction_key, unit_count, target_tile_idx])
+		var strategic_note: String = " (战略部署)" if predicted_target >= 0 else ""
+		EventBus.message_log.emit("[color=red][%s] 远征军出动! +%d 兵力 → 据点#%d%s[/color]" % [faction_key, unit_count, target_tile_idx, strategic_note])
 		expedition_spawned.emit(faction_key, target_tile_idx)
 
 

@@ -979,6 +979,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	AllianceAI.reset()
 	EvilFactionAI.reset()
 	LightFactionAI.reset()
+	AIStrategicPlanner.reset()
 	StoryEventSystem.reset()
 	# OrcMechanic/PirateMechanic/DarkElfMechanic reset via FactionManager.reset() above
 
@@ -1542,6 +1543,7 @@ func begin_turn() -> void:
 	AllianceAI.tick(ThreatManager.get_threat())
 
 	# ── Phase 5g: Unrecruited evil faction AI ──
+	AIStrategicPlanner.process_turn(pid)
 	EvilFactionAI.tick(pid)
 
 	# ── Phase 5g2: AI pirate raiding parties ──
@@ -2055,7 +2057,7 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 			tile["garrison"] = int(float(original_garrison) * (1.0 + bonus))
 
 	# Resolve combat: army vs garrison
-	var won: bool = _resolve_army_combat(army, tile, defender_desc)
+	var won: bool = await _resolve_army_combat(army, tile, defender_desc)
 
 	if not won and tile.get("light_faction", -1) >= 0:
 		tile["garrison"] = original_garrison
@@ -2213,7 +2215,16 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 
 	# Run CombatSystem
 	var combat: CombatSystem = CombatSystem.new()
-	var result: Dictionary = combat.resolve_battle(attacker_data, defender_data, node_data)
+	# Enable Commander Intervention for human player
+	var is_human: bool = pid == get_human_player_id()
+	if is_human:
+		combat.player_controlled = true
+		var hero_list: Array = []
+		for au in attacker_units:
+			if au.get("commander_id", "generic") != "generic":
+				hero_list.append({"id": au["commander_id"], "passives": au.get("passive", "").split(",")})
+		CommanderIntervention.initialize_for_battle(attacker_units, hero_list)
+	var result: Dictionary = await combat.resolve_battle(attacker_data, defender_data, node_data)
 
 	# Add title for combat view display
 	result["title"] = "%s 进攻 %s" % [army.get("name", "军团"), defender_desc]

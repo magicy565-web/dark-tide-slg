@@ -4,6 +4,15 @@
 extends CanvasLayer
 
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
+
+## Archetype display names for counter indicator labels
+const ARCHETYPE_LABELS := {
+	"infantry": "步兵", "heavy_infantry": "重步", "cavalry": "骑兵",
+	"archer": "弓手", "gunner": "火枪", "mage": "法师", "assassin": "刺客",
+	"berserker": "狂战", "priest": "祭司", "artillery": "炮兵", "tank": "坦克",
+	"undead_infantry": "亡灵", "mech": "机甲", "boss": "Boss", "fodder": "杂兵",
+}
 
 signal combat_view_closed()
 
@@ -154,11 +163,13 @@ var defender_cards: Dictionary = {}
 var _shake_intensity: float = 0.0
 var _shake_decay: float = 0.0
 var _shake_offset: Vector2 = Vector2.ZERO
+var _intervention_panel = null  # CombatInterventionPanel instance
 func _ready() -> void:
 	layer = 20
 	visible = false
 	_build_ui()
 	EventBus.combat_started.connect(_on_combat_started)
+	_setup_intervention_panel()
 	set_process(true)
 func _process(delta: float) -> void:
 	if not visible:
@@ -484,6 +495,15 @@ func _create_card(pos: Vector2) -> PanelContainer:
 	morale_lbl.add_theme_color_override("font_color", Color(0.2, 0.8, 0.2))
 	bot_row.add_child(morale_lbl)
 
+	# Row 7: Archetype badge (counter matrix base type)
+	var archetype_lbl := Label.new()
+	archetype_lbl.name = "ArchetypeLabel"
+	archetype_lbl.text = ""
+	archetype_lbl.add_theme_font_size_override("font_size", 9)
+	archetype_lbl.add_theme_color_override("font_color", Color(0.7, 0.65, 0.5))
+	archetype_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	vbox.add_child(archetype_lbl)
+
 	# Death/capture overlay (hidden by default)
 	var overlay_lbl := Label.new()
 	overlay_lbl.name = "OverlayLabel"
@@ -496,6 +516,10 @@ func _create_card(pos: Vector2) -> PanelContainer:
 	overlay_lbl.add_theme_font_size_override("font_size", 28)
 	overlay_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(overlay_lbl)
+
+	# Tooltip shows counter summary on hover
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	panel.tooltip_text = ""
 
 	return panel
 func _build_clock_bar() -> void:
@@ -755,6 +779,7 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 			class_tab.color = Color(0.18, 0.18, 0.18)
 			var empty_s := _make_card_style(Color(0.06, 0.06, 0.09, 0.5), Color(0.15, 0.15, 0.18))
 			card.add_theme_stylebox_override("panel", empty_s)
+			card.tooltip_text = ""
 			_live_units[side].erase(slot_idx)
 			if _active_buffs.has(side):
 				_active_buffs[side][slot_idx] = []
@@ -799,6 +824,43 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 					morale_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 0.2))
 				else:
 					morale_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+
+			# Archetype badge from counter matrix
+			var archetype_lbl: Label = vbox.get_node_or_null("ArchetypeLabel")
+			if archetype_lbl:
+				var troop_id: String = unit.get("troop_id", "")
+				var base_type: String = CounterMatrix.TYPE_MAP.get(troop_id, "")
+				if base_type != "":
+					var display: String = ARCHETYPE_LABELS.get(base_type, base_type)
+					archetype_lbl.text = "[%s]" % display
+					archetype_lbl.add_theme_color_override("font_color", CLASS_COLORS.get(uclass, Color(0.6, 0.55, 0.45)).lightened(0.3))
+				else:
+					archetype_lbl.text = ""
+
+			# Set counter summary tooltip
+			var troop_id_tip: String = unit.get("troop_id", "")
+			if troop_id_tip != "":
+				var summary: Dictionary = CounterMatrix.get_counter_summary(troop_id_tip)
+				var tip_lines: Array = []
+				var base_disp: String = ARCHETYPE_LABELS.get(summary.get("base_type", ""), summary.get("base_type", ""))
+				tip_lines.append("兵种: %s" % base_disp)
+				var strong: Array = summary.get("strong_vs", [])
+				if not strong.is_empty():
+					var names: Array = []
+					for s in strong:
+						var t_name: String = ARCHETYPE_LABELS.get(s.get("type", ""), s.get("type", ""))
+						names.append(("★" if s.get("hard", false) else "") + t_name)
+					tip_lines.append("克制: %s" % ", ".join(names))
+				var weak: Array = summary.get("weak_vs", [])
+				if not weak.is_empty():
+					var names: Array = []
+					for w in weak:
+						var w_name: String = ARCHETYPE_LABELS.get(w.get("type", ""), w.get("type", ""))
+						names.append(("★" if w.get("hard", false) else "") + w_name)
+					tip_lines.append("弱于: %s" % ", ".join(names))
+				card.tooltip_text = "\n".join(tip_lines)
+			else:
+				card.tooltip_text = ""
 
 func _update_card_soldiers(side: String, slot_idx: int, soldiers: int, max_soldiers: int) -> void:
 	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
@@ -1043,6 +1105,18 @@ func _animate_attack(source_side: String, source_slot: int, target_side: String,
 	get_tree().create_timer(impact_delay + 0.06 / _speed_mult).timeout.connect(func():
 		_spawn_damage_number(to_pos, damage, max_soldiers, is_crit)
 	)
+
+	# 5b. Counter relationship floating text
+	var target_data: Dictionary = _live_units[target_side].get(target_slot, {})
+	var src_troop: String = unit_data.get("troop_id", "")
+	var tgt_troop: String = target_data.get("troop_id", "")
+	if src_troop != "" and tgt_troop != "":
+		var counter_info: Dictionary = CounterMatrix.get_counter(src_troop, tgt_troop)
+		var advantage: String = counter_info.get("advantage", "neutral")
+		if advantage != "neutral":
+			get_tree().create_timer(impact_delay + 0.12 / _speed_mult).timeout.connect(func():
+				_spawn_counter_indicator(to_pos, counter_info)
+			)
 
 	# 6. Update combo
 	_update_combo(source_side, damage)
@@ -1455,6 +1529,39 @@ func _spawn_damage_number(pos: Vector2, damage: int, max_soldiers: int, is_crit:
 		if is_instance_valid(lbl): lbl.queue_free()
 	)
 
+func _spawn_counter_indicator(pos: Vector2, counter_info: Dictionary) -> void:
+	## Spawn a floating label showing the counter relationship during combat.
+	var advantage: String = counter_info.get("advantage", "neutral")
+	var atk_mult: float = counter_info.get("atk_mult", 1.0)
+	var lbl := Label.new()
+	match advantage:
+		"hard_counter":
+			lbl.text = "克制! x%.1f" % atk_mult
+			lbl.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3))
+			lbl.add_theme_font_size_override("font_size", 16)
+		"strong":
+			lbl.text = "优势 x%.1f" % atk_mult
+			lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+			lbl.add_theme_font_size_override("font_size", 14)
+		"weak":
+			lbl.text = "被克! x%.1f" % atk_mult
+			lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+			lbl.add_theme_font_size_override("font_size", 14)
+		_:
+			lbl.queue_free()
+			return
+	lbl.position = pos + Vector2(randf_range(10, 30), -55)
+	lbl.z_index = 101
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	anim_layer.add_child(lbl)
+	var spd := 1.2 / _speed_mult
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(lbl, "position:y", lbl.position.y - 40.0, spd).set_ease(Tween.EASE_OUT)
+	tw.tween_property(lbl, "modulate:a", 0.0, spd)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(lbl): lbl.queue_free()
+	)
+
 func _flash_passive(side: String, slot_idx: int, desc: String = "") -> void:
 	var pos := _get_card_center(side, slot_idx)
 	# Detect passive type from description keywords
@@ -1787,6 +1894,8 @@ func _play_next() -> void:
 				base_delay = 0.55  # heavier hits get slightly more time
 		"passive", "ability":
 			base_delay = 0.5
+		"intervention":
+			base_delay = 0.8
 
 	var delay := base_delay / _speed_mult
 	var gen := _playback_generation
@@ -1981,6 +2090,11 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			_screen_shake(SHAKE_MEDIUM, 8.0)
 			_spawn_siege_debris()
 
+		"intervention":
+			log_line = "[color=gold]%s[/color]" % desc
+			_screen_shake(SHAKE_LIGHT, 6.0)
+			_show_passive_banner(desc, "attacker")
+
 		"death":
 			log_line = "[color=#f44][Annihilate][/color] %s" % desc
 			if slot_idx >= 0:
@@ -2126,6 +2240,26 @@ func _get_troop_display_name(troop_id: String) -> String:
 
 func _on_combat_started(_attacker_id: int, _tile_index: int) -> void:
 	pass
+
+func _setup_intervention_panel() -> void:
+	var InterventionPanel = load("res://scenes/ui/combat_intervention_panel.gd")
+	_intervention_panel = InterventionPanel.new()
+	get_tree().root.call_deferred("add_child", _intervention_panel)
+	EventBus.combat_intervention_phase.connect(_on_intervention_phase)
+	_intervention_panel.intervention_decided.connect(_on_intervention_decided)
+	_intervention_panel.intervention_skipped.connect(_on_intervention_skipped)
+
+func _on_intervention_phase(state: Dictionary) -> void:
+	# Panel shows during combat resolution (before combat_view playback).
+	# The combat_view may not be visible yet -- that's fine, the panel is independent.
+	_intervention_panel.show_panel(state)
+
+func _on_intervention_decided(intervention_type: int, target: Variant) -> void:
+	EventBus.combat_intervention_chosen.emit(intervention_type, target)
+
+func _on_intervention_skipped() -> void:
+	# Emit with -1 type to signal skip
+	EventBus.combat_intervention_chosen.emit(-1, null)
 
 func _intro_animation() -> void:
 	# Cards slide in from the sides with staggered timing

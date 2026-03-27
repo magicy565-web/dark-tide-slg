@@ -147,6 +147,10 @@ class BattleState:
 ##
 ## node_data format:
 ##   { "terrain": int, "is_siege": bool, "city_def": int }
+## When true, the battle loop will pause each round to await player intervention
+## decisions via EventBus signals.  Set by the caller before invoking resolve_battle.
+var player_controlled: bool = false
+
 func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_data: Dictionary) -> Dictionary:
 	# -- Build state --------------------------------------------------------
 	var state := BattleState.new()
@@ -194,6 +198,34 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 
 		# Start-of-round passives (regen, mana charge)
 		_apply_round_start_passives(state)
+
+		# -- Commander Intervention Phase (human player only) --
+		if player_controlled:
+			CommanderIntervention.tick_cooldowns()
+			if CommanderIntervention.get_current_cp() > 0:
+				var available: Array = CommanderIntervention.get_available_interventions()
+				if not available.is_empty():
+					var intervention_state: Dictionary = _build_intervention_state(state)
+					intervention_state["round"] = state.round_number
+					intervention_state["intervention_options"] = available
+					intervention_state["intervention_cp"] = CommanderIntervention.get_current_cp()
+					EventBus.combat_intervention_phase.emit(intervention_state)
+					# Await player decision (panel emits one of these)
+					var result: Array = await EventBus.combat_intervention_chosen
+					var chosen_type: int = result[0] if result.size() > 0 else -1
+					var chosen_target: Variant = result[1] if result.size() > 1 else null
+					if chosen_type >= 0:
+						var log_lines: Array = []
+						CommanderIntervention.execute(chosen_type, intervention_state, chosen_target, log_lines)
+						# Apply intervention effects back to BattleState
+						_apply_intervention_results(state, intervention_state)
+						# Add intervention to action_log for combat view display
+						var idata: Dictionary = CommanderIntervention.INTERVENTION_DATA.get(chosen_type, {})
+						state.action_log.append({
+							"action": "intervention",
+							"round": state.round_number,
+							"desc": log_lines[0] if not log_lines.is_empty() else idata.get("name", "干预"),
+						})
 
 		# Build action queue for this round
 		var queue := _get_action_queue(state)
@@ -345,6 +377,53 @@ func _snapshot_units(units: Array[BattleUnit]) -> Array:
 			"class": _infer_unit_class(u.troop_id),
 		})
 	return snap
+
+
+## Build a dict-based state that CommanderIntervention.execute() can work with.
+## This bridges BattleState (objects) <-> intervention system (dicts).
+func _build_intervention_state(state: BattleState) -> Dictionary:
+	var atk_units: Array = []
+	for u in state.attacker_units:
+		atk_units.append({
+			"slot": u.slot, "row": "front" if u.row == 0 else "back",
+			"unit_type": u.troop_id, "soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
+			"atk": u.atk, "def": u.def_stat, "spd": u.spd,
+			"is_alive": u.is_alive(), "morale": 100, "is_routed": false,
+			"hero_id": u.hero_id, "active_skill": {},
+			"buffs": [], "passives": u.passive.split(","),
+		})
+	var def_units: Array = []
+	for u in state.defender_units:
+		def_units.append({
+			"slot": u.slot, "row": "front" if u.row == 0 else "back",
+			"unit_type": u.troop_id, "soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
+			"atk": u.atk, "def": u.def_stat, "spd": u.spd,
+			"is_alive": u.is_alive(), "morale": 100, "is_routed": false,
+			"hero_id": u.hero_id,
+			"buffs": [], "passives": u.passive.split(","),
+		})
+	return {"atk_units": atk_units, "def_units": def_units, "_intervention_log_ref": []}
+
+
+## Apply intervention results (mutations to the bridge dict) back to BattleUnit objects.
+func _apply_intervention_results(state: BattleState, istate: Dictionary) -> void:
+	# Sync attacker units
+	for d in istate["atk_units"]:
+		for u in state.attacker_units:
+			if u.slot == d["slot"]:
+				u.soldiers = d["soldiers"]
+				u.hp = u.soldiers * u.hp_per_soldier
+				if d["soldiers"] <= 0:
+					u.soldiers = 0
+					u.hp = 0
+				u.row = 0 if d["row"] == "front" else 1
+				# Apply ATK/DEF buffs as flat modifications
+				for buff in d.get("buffs", []):
+					if buff.get("mult_atk", false):
+						u.atk = int(float(u.atk) * (1.0 + buff.get("value", 0.0)))
+					if buff.get("mult_def", false):
+						u.def_stat = int(float(u.def_stat) * (1.0 + buff.get("value", 0.0)))
+				break
 
 
 ## Infer a display class from troop_id for color coding in combat view.

@@ -77,6 +77,8 @@ var btn_recruit: Button
 var btn_upgrade: Button
 var btn_build: Button
 var btn_army_view: Button
+var btn_tile_dev: Button
+var _tile_dev_panel: Node = null
 
 # ── UI refs: item panel ──
 var item_panel: PanelContainer
@@ -353,7 +355,7 @@ func _build_action_panel(parent: Control) -> void:
 func _build_domestic_sub_panel(parent: Control) -> void:
 	domestic_panel = PanelContainer.new()
 	domestic_panel.position = Vector2(220, 60)
-	domestic_panel.size = Vector2(160, 160)
+	domestic_panel.size = Vector2(160, 196)
 	domestic_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	domestic_panel.visible = false
 	domestic_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.08, 0.06, 0.14, 0.92)))
@@ -385,6 +387,11 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 	btn_army_view.custom_minimum_size = Vector2(140, 30)
 	btn_army_view.pressed.connect(_on_army_view)
 	vbox.add_child(btn_army_view)
+
+	btn_tile_dev = _make_button("Dev Path (Undeveloped)")
+	btn_tile_dev.custom_minimum_size = Vector2(140, 30)
+	btn_tile_dev.pressed.connect(_on_tile_dev_pressed)
+	vbox.add_child(btn_tile_dev)
 
 
 # ── Center panel: target / tile selector ──
@@ -760,6 +767,15 @@ func _on_domestic_pressed() -> void:
 	btn_upgrade.disabled = not GameManager.can_upgrade()
 	btn_build.disabled = not GameManager.can_build_any()
 
+	# Update tile development button text based on selected tile
+	var tile_idx: int = _get_selected_owned_tile(pid)
+	if tile_idx >= 0 and _tile_dev_panel and _tile_dev_panel.has_method("get_tile_status_text"):
+		btn_tile_dev.text = "Dev: %s" % _tile_dev_panel.get_tile_status_text(tile_idx)
+		btn_tile_dev.disabled = false
+	else:
+		btn_tile_dev.text = "Dev Path (N/A)"
+		btn_tile_dev.disabled = true
+
 	domestic_panel.visible = true
 
 
@@ -1018,6 +1034,39 @@ func _on_army_view() -> void:
 		# Upkeep
 		if entry["upkeep"] > 0:
 			_add_target_label("  Upkeep: %d food/turn | EXP: %d" % [entry["upkeep"], entry["experience"]], Color(0.55, 0.55, 0.6))
+
+
+func _on_tile_dev_pressed() -> void:
+	domestic_panel.visible = false
+	var pid: int = GameManager.get_human_player_id()
+	var tile_idx: int = _get_selected_owned_tile(pid)
+	if tile_idx < 0:
+		return
+	_ensure_tile_dev_panel()
+	if _tile_dev_panel:
+		_tile_dev_panel.show_panel(tile_idx)
+
+
+func _ensure_tile_dev_panel() -> void:
+	if _tile_dev_panel != null:
+		return
+	var panel_script = load("res://scenes/ui/tile_development_panel.gd")
+	if panel_script:
+		_tile_dev_panel = panel_script.new()
+		get_tree().root.add_child(_tile_dev_panel)
+
+
+func _get_selected_owned_tile(pid: int) -> int:
+	var board_node = get_tree().get_root().find_child("Board", true, false)
+	if board_node and board_node.has_method("get_selected_tile"):
+		var sel: int = board_node.get_selected_tile()
+		if sel >= 0 and sel < GameManager.tiles.size() and GameManager.tiles[sel]["owner_id"] == pid:
+			return sel
+	var player: Dictionary = GameManager.get_player_by_id(pid)
+	var pos: int = player.get("position", 0)
+	if pos >= 0 and pos < GameManager.tiles.size() and GameManager.tiles[pos]["owner_id"] == pid:
+		return pos
+	return -1
 
 
 func _on_domestic_upgrade() -> void:

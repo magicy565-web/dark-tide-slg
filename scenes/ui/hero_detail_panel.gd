@@ -3,6 +3,15 @@
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const HeroLevelData = preload("res://systems/hero/hero_level_data.gd")
+const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
+
+## Archetype display names for counter section
+const _ARCHETYPE_LABELS := {
+	"infantry": "步兵", "heavy_infantry": "重步", "cavalry": "骑兵",
+	"archer": "弓手", "gunner": "火枪", "mage": "法师", "assassin": "刺客",
+	"berserker": "狂战", "priest": "祭司", "artillery": "炮兵", "tank": "坦克",
+	"undead_infantry": "亡灵", "mech": "机甲", "boss": "Boss", "fodder": "杂兵",
+}
 
 # ── State ──
 var _visible: bool = false
@@ -139,6 +148,77 @@ func _refresh() -> void:
 	tl.add_theme_font_size_override("font_size", 13)
 	tl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	_add(tl)
+
+	# ── Counter Matrix (兵种克制) ──
+	var troop_type: String = hero_def.get("troop", "")
+	if troop_type != "":
+		_add(HSeparator.new())
+		_add(_make_section("兵种克制"))
+		var summary: Dictionary = CounterMatrix.get_counter_summary(troop_type)
+		var base_disp: String = _ARCHETYPE_LABELS.get(summary.get("base_type", ""), summary.get("base_type", "?"))
+		var type_lbl := Label.new()
+		type_lbl.text = "基础兵种: %s" % base_disp
+		type_lbl.add_theme_font_size_override("font_size", 13)
+		type_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+		_add(type_lbl)
+		# Strong against
+		var strong: Array = summary.get("strong_vs", [])
+		if not strong.is_empty():
+			var strong_row := HBoxContainer.new()
+			strong_row.add_theme_constant_override("separation", 6)
+			_add(strong_row)
+			var strong_prefix := Label.new()
+			strong_prefix.text = "克制:"
+			strong_prefix.add_theme_font_size_override("font_size", 12)
+			strong_prefix.add_theme_color_override("font_color", Color(0.3, 0.9, 0.4))
+			strong_prefix.custom_minimum_size = Vector2(40, 0)
+			strong_row.add_child(strong_prefix)
+			for s in strong:
+				var s_name: String = _ARCHETYPE_LABELS.get(s.get("type", ""), s.get("type", ""))
+				var s_lbl := Label.new()
+				if s.get("hard", false):
+					s_lbl.text = "★%s" % s_name
+					s_lbl.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3))
+				else:
+					s_lbl.text = "%s" % s_name
+					s_lbl.add_theme_color_override("font_color", Color(0.5, 0.9, 0.4))
+				s_lbl.add_theme_font_size_override("font_size", 12)
+				strong_row.add_child(s_lbl)
+		else:
+			var no_strong := Label.new()
+			no_strong.text = "克制: 无"
+			no_strong.add_theme_font_size_override("font_size", 12)
+			no_strong.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+			_add(no_strong)
+		# Weak against
+		var weak: Array = summary.get("weak_vs", [])
+		if not weak.is_empty():
+			var weak_row := HBoxContainer.new()
+			weak_row.add_theme_constant_override("separation", 6)
+			_add(weak_row)
+			var weak_prefix := Label.new()
+			weak_prefix.text = "弱于:"
+			weak_prefix.add_theme_font_size_override("font_size", 12)
+			weak_prefix.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
+			weak_prefix.custom_minimum_size = Vector2(40, 0)
+			weak_row.add_child(weak_prefix)
+			for w in weak:
+				var w_name: String = _ARCHETYPE_LABELS.get(w.get("type", ""), w.get("type", ""))
+				var w_lbl := Label.new()
+				if w.get("hard", false):
+					w_lbl.text = "★%s" % w_name
+					w_lbl.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+				else:
+					w_lbl.text = "%s" % w_name
+					w_lbl.add_theme_color_override("font_color", Color(1.0, 0.5, 0.3))
+				w_lbl.add_theme_font_size_override("font_size", 12)
+				weak_row.add_child(w_lbl)
+		else:
+			var no_weak := Label.new()
+			no_weak.text = "弱于: 无"
+			no_weak.add_theme_font_size_override("font_size", 12)
+			no_weak.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+			_add(no_weak)
 
 	# ── Level & EXP ──
 	_add(HSeparator.new())

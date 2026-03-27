@@ -143,6 +143,10 @@ signal tech_effects_applied(player_id: int)
 # ── AI Scaling (v0.8.5) ──
 signal ai_threat_changed(faction_key: String, new_threat: int, new_tier: int)
 
+# ── AI Strategic Planner (v4.0) ──
+signal ai_strategy_changed(faction_key: String, new_strategy: int)
+signal ai_coordinated_attack(target_tile: int, faction_keys: Array)
+
 # ── Troop / Military (Phase 3) ──
 signal rebel_spawned(tile_index: int)
 signal wanderer_spawned(tile_index: int)

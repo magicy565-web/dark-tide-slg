@@ -4,6 +4,15 @@
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const CombatResolver = preload("res://systems/combat/combat_resolver.gd")
+const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
+
+## Archetype display names for counter indicators
+const _ARCHETYPE_LABELS := {
+	"infantry": "步兵", "heavy_infantry": "重步", "cavalry": "骑兵",
+	"archer": "弓手", "gunner": "火枪", "mage": "法师", "assassin": "刺客",
+	"berserker": "狂战", "priest": "祭司", "artillery": "炮兵", "tank": "坦克",
+	"undead_infantry": "亡灵", "mech": "机甲", "boss": "Boss", "fodder": "杂兵",
+}
 
 # ── State ──
 var _visible: bool = false
@@ -282,6 +291,20 @@ func _build_orders_ui() -> void:
 	_decoy_option.custom_minimum_size = Vector2(200, 28)
 	form_grid.add_child(_decoy_option)
 
+	content_vbox.add_child(HSeparator.new())
+
+	# ── Section 4: Counter Preview ──
+	var counter_label := Label.new()
+	counter_label.text = "兵种克制预览:"
+	counter_label.add_theme_font_size_override("font_size", 15)
+	counter_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
+	content_vbox.add_child(counter_label)
+
+	var counter_container := VBoxContainer.new()
+	counter_container.name = "CounterPreviewContainer"
+	counter_container.add_theme_constant_override("separation", 3)
+	content_vbox.add_child(counter_container)
+
 	# ── Buttons row ──
 	main_vbox.add_child(HSeparator.new())
 
@@ -388,6 +411,9 @@ func show_tactical_orders(player_id: int, _tile_index: int) -> void:
 	# Populate protected/decoy slot dropdowns
 	_populate_formation_slots(player_id)
 
+	# Populate counter preview for player units
+	_populate_counter_preview(player_id)
+
 	_show_orders_animated()
 
 
@@ -451,6 +477,79 @@ func _populate_formation_slots(player_id: int) -> void:
 
 	_protected_option.selected = 0
 	_decoy_option.selected = 0
+
+
+func _populate_counter_preview(player_id: int) -> void:
+	## Build counter relationship indicators for each unit in the player's army.
+	var container: VBoxContainer = _orders_panel.find_child("CounterPreviewContainer", true, false)
+	if container == null:
+		return
+	for child in container.get_children():
+		child.queue_free()
+
+	var units: Array = RecruitManager.get_combat_units(player_id) if RecruitManager else []
+	if units.is_empty():
+		var empty_lbl := Label.new()
+		empty_lbl.text = "(无部队)"
+		empty_lbl.add_theme_font_size_override("font_size", 12)
+		empty_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		container.add_child(empty_lbl)
+		return
+
+	for i in range(units.size()):
+		var u: Dictionary = units[i]
+		var troop_id: String = u.get("type", "")
+		if troop_id == "":
+			continue
+		var summary: Dictionary = CounterMatrix.get_counter_summary(troop_id)
+		var base_type: String = summary.get("base_type", "")
+		var base_disp: String = _ARCHETYPE_LABELS.get(base_type, base_type)
+		var troop_name: String = u.get("name", troop_id)
+
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		container.add_child(row)
+
+		# Unit name + archetype
+		var name_lbl := Label.new()
+		name_lbl.text = "%s [%s]" % [troop_name, base_disp]
+		name_lbl.add_theme_font_size_override("font_size", 12)
+		name_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85))
+		name_lbl.custom_minimum_size = Vector2(150, 0)
+		row.add_child(name_lbl)
+
+		# Strong against (green arrows)
+		var strong: Array = summary.get("strong_vs", [])
+		for s in strong:
+			var s_name: String = _ARCHETYPE_LABELS.get(s.get("type", ""), s.get("type", ""))
+			var s_lbl := Label.new()
+			if s.get("hard", false):
+				s_lbl.text = "▲▲%s" % s_name
+				s_lbl.add_theme_color_override("font_color", Color(0.2, 1.0, 0.3))
+			else:
+				s_lbl.text = "▲%s" % s_name
+				s_lbl.add_theme_color_override("font_color", Color(0.5, 0.9, 0.4))
+			s_lbl.add_theme_font_size_override("font_size", 11)
+			row.add_child(s_lbl)
+
+		# Spacer
+		var spacer := Control.new()
+		spacer.custom_minimum_size = Vector2(8, 0)
+		row.add_child(spacer)
+
+		# Weak against (red arrows)
+		var weak: Array = summary.get("weak_vs", [])
+		for w in weak:
+			var w_name: String = _ARCHETYPE_LABELS.get(w.get("type", ""), w.get("type", ""))
+			var w_lbl := Label.new()
+			if w.get("hard", false):
+				w_lbl.text = "▼▼%s" % w_name
+				w_lbl.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+			else:
+				w_lbl.text = "▼%s" % w_name
+				w_lbl.add_theme_color_override("font_color", Color(1.0, 0.5, 0.3))
+			w_lbl.add_theme_font_size_override("font_size", 11)
+			row.add_child(w_lbl)
 
 
 # ═══════════════════════════════════════════════════════════════
