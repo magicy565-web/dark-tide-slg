@@ -19,9 +19,9 @@ enum OpType {
 const OPERATION_DEFS: Dictionary = {
 	OpType.SCOUT:             { "gold": 5,  "intel": 10, "success": 90, "cooldown": 1, "name": "侦察" },
 	OpType.SABOTAGE:          { "gold": 15, "intel": 25, "success": 60, "cooldown": 3, "name": "破坏" },
-	OpType.ASSASSINATE:       { "gold": 25, "intel": 40, "success": 35, "cooldown": 5, "name": "暗杀" },
-	OpType.STEAL_TECH:        { "gold": 20, "intel": 30, "success": 50, "cooldown": 4, "name": "窃取科技" },
-	OpType.INCITE_REVOLT:     { "gold": 30, "intel": 50, "success": 45, "cooldown": 6, "name": "煽动叛乱" },
+	OpType.ASSASSINATE:       { "gold": 25, "intel": 40, "success": 40, "cooldown": 5, "name": "暗杀" },
+	OpType.STEAL_TECH:        { "gold": 25, "intel": 30, "success": 50, "cooldown": 4, "name": "窃取科技" },
+	OpType.INCITE_REVOLT:     { "gold": 30, "intel": 35, "success": 45, "cooldown": 6, "name": "煽动叛乱" },
 	OpType.SPREAD_RUMORS:     { "gold": 10, "intel": 15, "success": 75, "cooldown": 2, "name": "散布谣言" },
 	OpType.INTERCEPT_ORDERS:  { "gold": 15, "intel": 20, "success": 65, "cooldown": 2, "name": "截获命令" },
 	OpType.PLANT_EVIDENCE:    { "gold": 20, "intel": 35, "success": 55, "cooldown": 4, "name": "栽赃嫁祸" },
@@ -29,7 +29,7 @@ const OPERATION_DEFS: Dictionary = {
 
 # ── Constants ──
 const INTEL_MAX_BASE: int = 100
-const INTEL_DECAY_DEFAULT: int = 5
+const INTEL_DECAY_DEFAULT: int = 3
 const INTEL_DECAY_SHADOW: int = 2
 const INTEL_COST_PER_POINT: int = 10
 const COUNTER_INTEL_MAX: int = 100
@@ -40,6 +40,13 @@ const INTERROGATION_SUCCESS_CHANCE: int = 50
 const SPY_MASTER_INTEL_BONUS: int = 10
 const SPY_MASTER_SUCCESS_BONUS: int = 10
 const SCOUT_REVEAL_DURATION: int = 3
+const COUNTER_INTEL_COST_PER_POINT: int = 15
+const COUNTER_INTEL_INVEST_MAX: int = 50
+const SCOUT_SYNERGY_BONUS: int = 15
+const SCOUT_SYNERGY_WINDOW: int = 3
+const BLOWN_COVER_FAIL_THRESHOLD: int = 3
+const BLOWN_COVER_INTEL_LOSS: int = 20
+const BLOWN_COVER_CI_GAIN: int = 10
 
 # ── Per-player state ──
 # { player_id: int_value }
@@ -55,6 +62,10 @@ var _intercepted_orders: Dictionary = {}
 var _sabotaged_tiles: Dictionary = {}
 # { player_id: [ { "hero_id": String, "turns_left": int, "atk_penalty": int, "def_penalty": int } ] }
 var _wounded_heroes: Dictionary = {}
+# { player_id: { target_id: int -> consecutive_failures: int } }
+var _consecutive_failures: Dictionary = {}
+# { player_id: [ { "tile": int, "turn": int } ] }  — records successful scout ops for synergy
+var _scout_history: Dictionary = {}
 
 # ═══════════════ INIT / RESET ═══════════════
 
@@ -70,6 +81,8 @@ func reset() -> void:
 	_intercepted_orders.clear()
 	_sabotaged_tiles.clear()
 	_wounded_heroes.clear()
+	_consecutive_failures.clear()
+	_scout_history.clear()
 
 
 func init_player(player_id: int) -> void:
@@ -80,6 +93,8 @@ func init_player(player_id: int) -> void:
 	_intercepted_orders[player_id] = []
 	_sabotaged_tiles[player_id] = []
 	_wounded_heroes[player_id] = []
+	_consecutive_failures[player_id] = {}
+	_scout_history[player_id] = []
 
 
 # ═══════════════ INTEL GETTERS / SETTERS ═══════════════
@@ -126,6 +141,27 @@ func invest_in_intel(player_id: int, gold_amount: int) -> int:
 	return get_intel(player_id)
 
 
+func invest_in_counter_intel(player_id: int, gold_amount: int) -> int:
+	## Spend gold to increase counter-intel at 15 gold per point (max 50).
+	if gold_amount <= 0:
+		return get_counter_intel(player_id)
+	var affordable: int = mini(gold_amount, ResourceManager.get_resource(player_id, "gold"))
+	if affordable < COUNTER_INTEL_COST_PER_POINT:
+		return get_counter_intel(player_id)
+	var points: int = affordable / COUNTER_INTEL_COST_PER_POINT
+	var current: int = get_counter_intel(player_id)
+	var room: int = maxi(0, COUNTER_INTEL_INVEST_MAX - current)
+	points = mini(points, room)
+	if points <= 0:
+		return current
+	var actual_cost: int = points * COUNTER_INTEL_COST_PER_POINT
+	ResourceManager.spend(player_id, {"gold": actual_cost})
+	set_counter_intel(player_id, current + points)
+	EventBus.message_log.emit("[反谍] 投资%d金, 反情报+%d (当前%d/%d)" % [
+		actual_cost, points, get_counter_intel(player_id), COUNTER_INTEL_INVEST_MAX])
+	return get_counter_intel(player_id)
+
+
 # ═══════════════ EXECUTE OPERATION ═══════════════
 
 func execute_operation(player_id: int, operation_type: int, target) -> Dictionary:
@@ -167,6 +203,12 @@ func execute_operation(player_id: int, operation_type: int, target) -> Dictionar
 		# If target is a faction/player, apply their counter-intel
 		var target_counter: int = get_counter_intel(target)
 		success_chance -= target_counter / 2
+
+	# Scout synergy: if SABOTAGE or INCITE_REVOLT on a tile scouted within last 3 turns
+	if operation_type in [OpType.SABOTAGE, OpType.INCITE_REVOLT] and target is int:
+		if _has_scout_synergy(player_id, target):
+			success_chance += SCOUT_SYNERGY_BONUS
+
 	success_chance = clampi(success_chance, 5, 99)
 
 	var roll: int = randi() % 100
@@ -195,6 +237,14 @@ func execute_operation(player_id: int, operation_type: int, target) -> Dictionar
 	if not result["success"] and target is int:
 		_check_counter_intel_capture(player_id, target, op_def["name"])
 
+	# Track scout history for synergy
+	if operation_type == OpType.SCOUT and result["success"] and target is int:
+		_record_scout(player_id, target)
+
+	# Blown cover: track consecutive failures per target
+	if target is int:
+		_track_consecutive_failure(player_id, target, result["success"])
+
 	EventBus.spy_operation_result.emit(player_id, operation_type, result["success"], result["details"])
 	EventBus.message_log.emit("[谍报] %s" % result["message"])
 	return result
@@ -221,10 +271,10 @@ func _handle_sabotage(player_id: int, tile_idx: int, succeeded: bool) -> Diction
 func _handle_assassinate(player_id: int, target_faction: int, succeeded: bool, roll: int, threshold: int) -> Dictionary:
 	if not succeeded:
 		return {"success": false, "message": "暗杀行动失败! 目标警觉逃脱", "details": {"outcome": "fail"}}
-	# Within success range: 35% kill, 40% wound, 25% fail (relative to success threshold)
+	# Within success range: 25% kill, 50% wound, 25% fail (relative to success threshold)
 	# Remap: roll is 0..threshold-1. Split into sub-outcomes.
 	var sub_roll: int = randi() % 100
-	if sub_roll < 35:
+	if sub_roll < 25:
 		# Kill
 		return {"success": true, "message": "暗杀成功! 目标英雄已被击杀",
 			"details": {"outcome": "kill", "target_faction": target_faction}}
@@ -258,8 +308,8 @@ func _handle_incite_revolt(player_id: int, tile_idx: int, succeeded: bool) -> Di
 
 func _handle_spread_rumors(player_id: int, target_faction: int, succeeded: bool) -> Dictionary:
 	if succeeded:
-		return {"success": true, "message": "散布谣言成功! 目标阵营英雄好感-1, 外交声望-5",
-			"details": {"target_faction": target_faction, "affection_loss": 1, "reputation_loss": 5}}
+		return {"success": true, "message": "散布谣言成功! 目标阵营英雄好感-2, 外交声望-10",
+			"details": {"target_faction": target_faction, "affection_loss": 2, "reputation_loss": 10}}
 	return {"success": false, "message": "散布谣言失败! 谣言未能传播", "details": {}}
 
 
@@ -479,6 +529,52 @@ func _set_cooldown(player_id: int, op_type: int, turns: int) -> void:
 	_cooldowns[player_id][op_type] = turns
 
 
+# ═══════════════ SCOUT SYNERGY & BLOWN COVER ═══════════════
+
+func _record_scout(player_id: int, tile_idx: int) -> void:
+	## Record a successful scout for synergy tracking.
+	if not _scout_history.has(player_id):
+		_scout_history[player_id] = []
+	_scout_history[player_id].append({"tile": tile_idx, "turn": _get_current_turn()})
+
+
+func _has_scout_synergy(player_id: int, tile_idx: int) -> bool:
+	## Check if tile was scouted within the last SCOUT_SYNERGY_WINDOW turns.
+	if not _scout_history.has(player_id):
+		return false
+	var cur_turn: int = _get_current_turn()
+	for entry in _scout_history[player_id]:
+		if entry["tile"] == tile_idx and (cur_turn - entry["turn"]) <= SCOUT_SYNERGY_WINDOW:
+			return true
+	return false
+
+
+func _track_consecutive_failure(player_id: int, target_id: int, succeeded: bool) -> void:
+	## Track consecutive failures per target. After 3 in a row, blown cover penalty.
+	if not _consecutive_failures.has(player_id):
+		_consecutive_failures[player_id] = {}
+	if succeeded:
+		_consecutive_failures[player_id][target_id] = 0
+		return
+	var prev: int = _consecutive_failures[player_id].get(target_id, 0)
+	prev += 1
+	_consecutive_failures[player_id][target_id] = prev
+	if prev >= BLOWN_COVER_FAIL_THRESHOLD:
+		# Blown cover: intel network exposed
+		_set_intel(player_id, maxi(0, get_intel(player_id) - BLOWN_COVER_INTEL_LOSS))
+		set_counter_intel(target_id, get_counter_intel(target_id) + BLOWN_COVER_CI_GAIN)
+		_consecutive_failures[player_id][target_id] = 0
+		EventBus.message_log.emit("[谍报] 情报网暴露! 连续%d次失败, 情报-%d, 对方反情报+%d" % [
+			BLOWN_COVER_FAIL_THRESHOLD, BLOWN_COVER_INTEL_LOSS, BLOWN_COVER_CI_GAIN])
+
+
+func _get_current_turn() -> int:
+	## Helper to get current game turn from GameManager or fallback.
+	if GameManager and GameManager.has_method("get_current_turn"):
+		return GameManager.get_current_turn()
+	return 0
+
+
 # ═══════════════ REVEALED TILE HELPERS ═══════════════
 
 func _add_revealed_tile(player_id: int, tile_idx: int, duration: int) -> void:
@@ -503,6 +599,8 @@ func to_save_data() -> Dictionary:
 		"intercepted_orders": _intercepted_orders.duplicate(true),
 		"sabotaged_tiles": _sabotaged_tiles.duplicate(true),
 		"wounded_heroes": _wounded_heroes.duplicate(true),
+		"consecutive_failures": _consecutive_failures.duplicate(true),
+		"scout_history": _scout_history.duplicate(true),
 	}
 
 
@@ -514,6 +612,8 @@ func from_save_data(data: Dictionary) -> void:
 	_intercepted_orders = data.get("intercepted_orders", {}).duplicate(true)
 	_sabotaged_tiles = data.get("sabotaged_tiles", {}).duplicate(true)
 	_wounded_heroes = data.get("wounded_heroes", {}).duplicate(true)
+	_consecutive_failures = data.get("consecutive_failures", {}).duplicate(true)
+	_scout_history = data.get("scout_history", {}).duplicate(true)
 	# Fix int keys after JSON round-trip
 	_fix_int_keys(_intel)
 	_fix_int_keys(_counter_intel)
@@ -522,6 +622,8 @@ func from_save_data(data: Dictionary) -> void:
 	_fix_int_keys(_intercepted_orders)
 	_fix_int_keys(_sabotaged_tiles)
 	_fix_int_keys(_wounded_heroes)
+	_fix_int_keys(_consecutive_failures)
+	_fix_int_keys(_scout_history)
 
 
 static func _fix_int_keys(dict: Dictionary) -> void:

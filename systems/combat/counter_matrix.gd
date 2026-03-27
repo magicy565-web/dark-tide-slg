@@ -60,11 +60,13 @@ const COUNTER_TABLE: Dictionary = {
 		"mage":      {"atk_mult": 1.30, "def_mult": 0.80, "label": "骑兵突袭法师"},
 		"artillery": {"atk_mult": 1.50, "def_mult": 0.70, "label": "骑兵碾压炮兵", "hard": true},
 		"priest":    {"atk_mult": 1.30, "def_mult": 0.85, "label": "骑兵追击祭司"},
+		"assassin":  {"atk_mult": 1.25, "def_mult": 0.90, "label": "骑兵追猎刺客"},
 		"heavy_infantry": {"atk_mult": 0.70, "def_mult": 1.30, "label": "骑兵撞铁壁", "weak": true},
 		"tank":      {"atk_mult": 0.60, "def_mult": 1.40, "label": "骑兵撞坦克", "weak": true},
 	},
 	"infantry": {
 		"cavalry":   {"atk_mult": 1.20, "def_mult": 0.90, "label": "步兵列阵拒骑"},
+		"gunner":    {"atk_mult": 1.20, "def_mult": 0.90, "label": "步兵盾墙挡火枪"},
 		"berserker": {"atk_mult": 0.80, "def_mult": 1.20, "label": "步兵惧怕狂战士", "weak": true},
 		"assassin":  {"atk_mult": 0.85, "def_mult": 1.15, "label": "步兵难防刺客"},
 	},
@@ -86,6 +88,8 @@ const COUNTER_TABLE: Dictionary = {
 		"infantry":  {"atk_mult": 1.30, "def_mult": 0.85, "label": "火枪穿透步兵"},
 		"heavy_infantry": {"atk_mult": 1.20, "def_mult": 0.90, "label": "火枪破重甲"},
 		"tank":      {"atk_mult": 1.10, "def_mult": 0.95, "label": "火枪击坦克"},
+		"mech":      {"atk_mult": 1.20, "def_mult": 0.90, "label": "火枪穿甲击机甲"},
+		"assassin":  {"atk_mult": 1.15, "def_mult": 0.90, "label": "火枪警戒防刺客"},
 		"cavalry":   {"atk_mult": 0.80, "def_mult": 1.20, "label": "火枪怕突击", "weak": true},
 	},
 	"mage": {
@@ -114,6 +118,7 @@ const COUNTER_TABLE: Dictionary = {
 		"tank":      {"atk_mult": 1.30, "def_mult": 0.90, "label": "炮击坦克"},
 		"heavy_infantry": {"atk_mult": 1.20, "def_mult": 0.90, "label": "炮击重甲"},
 		"infantry":  {"atk_mult": 1.20, "def_mult": 0.90, "label": "炮击步兵"},
+		"mech":      {"atk_mult": 1.20, "def_mult": 0.90, "label": "炮击机甲"},
 		"cavalry":   {"atk_mult": 0.60, "def_mult": 1.50, "label": "炮兵怕骑兵", "weak": true},
 		"assassin":  {"atk_mult": 0.60, "def_mult": 1.40, "label": "炮兵怕刺客", "weak": true},
 	},
@@ -126,6 +131,7 @@ const COUNTER_TABLE: Dictionary = {
 	"priest": {
 		# Priests generally don't deal damage (heal mode), but if forced to:
 		"undead_infantry": {"atk_mult": 1.50, "def_mult": 0.70, "label": "神圣克亡灵", "hard": true},
+		"berserker": {"atk_mult": 1.20, "def_mult": 0.90, "label": "神圣安抚狂战"},
 	},
 	"undead_infantry": {
 		"infantry":  {"atk_mult": 1.10, "def_mult": 0.90, "label": "亡灵压步兵"},
@@ -138,11 +144,14 @@ const COUNTER_TABLE: Dictionary = {
 		"artillery": {"atk_mult": 0.80, "def_mult": 1.20, "label": "机甲怕炮击"},
 	},
 	"boss": {
-		# Boss types take reduced counter damage
-		"_default":  {"atk_mult": 1.10, "def_mult": 0.90, "label": "终极单位"},
+		# Boss has actual matchups instead of flat bonus
+		"infantry":  {"atk_mult": 1.40, "def_mult": 0.75, "label": "终极碾压步兵", "hard": true},
+		"archer":    {"atk_mult": 1.30, "def_mult": 0.80, "label": "终极压制弓手"},
+		"mage":      {"atk_mult": 0.75, "def_mult": 1.25, "label": "终极畏惧魔法", "weak": true},
+		"artillery": {"atk_mult": 0.70, "def_mult": 1.30, "label": "终极怕炮击", "weak": true},
 	},
 	"fodder": {
-		"_default":  {"atk_mult": 0.80, "def_mult": 1.20, "label": "弱小单位"},
+		"_default":  {"atk_mult": 0.80, "def_mult": 1.20, "label": "弱小单位", "morale_resist": 0.50},
 	},
 }
 

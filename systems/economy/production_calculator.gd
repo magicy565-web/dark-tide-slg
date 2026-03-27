@@ -114,6 +114,45 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 					var cur_order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
 					tile["public_order"] = minf(cur_order + adj_effects["order_per_turn_adjacent"], 100.0)
 
+			# ── Seasonal tile development bonuses ──
+			var seasonal: Dictionary = TileDevelopment.get_seasonal_tile_bonus(tile_idx)
+			income["prestige"] += seasonal.get("prestige_bonus", 0)
+			# garrison_regen is applied by garrison system, not income
+
+		# ── Espionage sabotage penalty ──
+		if Engine.get_main_loop() is SceneTree:
+			var _esp_root: Node = (Engine.get_main_loop() as SceneTree).root
+			if _esp_root.has_node("EspionageSystem"):
+				var esp: Node = _esp_root.get_node("EspionageSystem")
+				if tile_idx >= 0 and esp.is_tile_sabotaged(tile_idx):
+					var sab_penalty: float = esp.get_sabotage_penalty(tile_idx)
+					if sab_penalty > 0.0:
+						income["gold"] -= int(float(g) * sab_penalty)
+						income["food"] -= int(float(f) * sab_penalty)
+						income["iron"] -= int(float(ir) * sab_penalty)
+
+	# ── Tile synergy bonuses from TileDevelopment ──
+	var synergy: Dictionary = TileDevelopment.get_global_synergy_bonuses(player_id)
+	if synergy.get("gold_mult", 1.0) != 1.0:
+		income["gold"] = int(float(income["gold"]) * synergy["gold_mult"])
+
+	# ── Supply depot upkeep ──
+	if Engine.get_main_loop() is SceneTree:
+		var _depot_root: Node = (Engine.get_main_loop() as SceneTree).root
+		if _depot_root.has_node("SupplySystem"):
+			var ss: Node = _depot_root.get_node("SupplySystem")
+			if ss.has_method("get_depot_count"):
+				var depot_count: int = ss.get_depot_count(player_id)
+				income["gold"] -= depot_count * BalanceConfig.SUPPLY_DEPOT_UPKEEP_GOLD
+			else:
+				# Fallback: count depots from internal dict if method not available
+				var depot_dict: Dictionary = ss.get("_supply_depots") if ss.get("_supply_depots") != null else {}
+				var depot_count: int = 0
+				for _tidx in depot_dict:
+					if depot_dict[_tidx] == player_id:
+						depot_count += 1
+				income["gold"] -= depot_count * BalanceConfig.SUPPLY_DEPOT_UPKEEP_GOLD
+
 	# ── Global building effects (recruit_discount, supply_penalty_reduction) ──
 	var global_bld: Dictionary = BuildingRegistry.get_all_player_building_effects(player_id)
 	cached_recruit_discount = int(global_bld.get("recruit_discount", 0))

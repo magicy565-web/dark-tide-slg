@@ -168,6 +168,9 @@ func regen_walls() -> void:
 	var regen: int = data["wall_regen_per_turn"]
 	# v0.8.5: AI threat scaling wall bonus
 	var wall_bonus: float = AIScaling.get_wall_bonus("human")
+	# Seasonal factor: walls regen faster in defensive seasons (Winter)
+	var seasonal_def: float = 2.0 - _get_seasonal_factor()  # inverse: Winter=1.3, Spring=0.8
+	regen = maxi(1, int(float(regen) * seasonal_def))
 	for tile in GameManager.tiles:
 		if tile.get("light_faction", -1) != FactionData.LightFaction.HUMAN_KINGDOM:
 			continue
@@ -327,14 +330,18 @@ func tick_light_factions() -> void:
 	# Mage AI: try to cast spells on threatened tiles
 	_mage_ai_cast()
 
+	# Alliance coordination: light factions help each other against shared threats
+	_try_light_faction_coordination()
+
 
 func _mage_ai_cast() -> void:
 	## Improved AI for mage spell casting. Priorities:
 	## 1. Barrage - deal damage when mana >= 20 and player is adjacent
 	## 2. Teleport - reinforce most threatened tile when mana >= 15
 	## 3. Barrier - protect threatened mage tiles when mana >= 10
+	var seasonal_factor: float = _get_seasonal_factor()
 
-	# Priority 1: Barrage against player tiles
+	# Priority 1: Barrage against player tiles (more aggressive in Spring/Summer)
 	if can_cast_spell("barrage"):
 		for tile in GameManager.tiles:
 			if tile.get("light_faction", -1) != FactionData.LightFaction.MAGE_TOWER:
@@ -351,7 +358,7 @@ func _mage_ai_cast() -> void:
 							var dmg: int = effect.get("damage", 0)
 							# v3.5: Scale barrage damage by difficulty aggression
 							var aggr_mult: float = BalanceManager.get_ai_aggression()
-							var scaled_dmg: float = float(dmg) * 0.6 * aggr_mult
+							var scaled_dmg: float = float(dmg) * 0.6 * aggr_mult * seasonal_factor
 							target_tile["garrison"] = maxi(0, target_tile.get("garrison", 0) - int(scaled_dmg))
 							EventBus.message_log.emit("[法师塔] 魔法弹幕命中据点#%d! 驻军-%.0f" % [nb, scaled_dmg])
 						return  # One spell per turn
@@ -374,9 +381,12 @@ func _mage_ai_cast() -> void:
 				max_threat_score = threat_score
 				most_threatened_idx = tile["index"]
 		if most_threatened_idx >= 0 and max_threat_score >= 2:
-			cast_spell("teleport")
-			apply_spell_effect("teleport", most_threatened_idx)
-			return
+			# Seasonal: in defensive seasons (low factor), teleport more readily
+			var teleport_threshold: int = 2 if seasonal_factor >= 1.0 else 1
+			if max_threat_score >= teleport_threshold:
+				cast_spell("teleport")
+				apply_spell_effect("teleport", most_threatened_idx)
+				return
 
 	# Priority 3: Barrier on threatened mage tiles (existing logic)
 	for tile in GameManager.tiles:
@@ -402,3 +412,120 @@ func disable_human_reinforcement() -> void:
 
 func disable_teleport() -> void:
 	_teleport_disabled = true
+
+
+# ═══════════════ WEATHER / SEASON AWARENESS ═══════════════
+
+func _get_weather_system() -> Node:
+	## Safe autoload access to WeatherSystem node.
+	var root: Node = (Engine.get_main_loop() as SceneTree).root
+	if root and root.has_node("WeatherSystem"):
+		return root.get_node("WeatherSystem")
+	return null
+
+
+func _get_seasonal_factor() -> float:
+	## Returns a multiplier for light faction aggressiveness based on current season.
+	## Spring: 1.2 (fresh start), Summer: 1.1, Autumn: 0.9, Winter: 0.7 (hunker down).
+	var ws: Node = _get_weather_system()
+	if ws == null:
+		return 1.0
+	match ws.current_season:
+		0:  # SPRING
+			return 1.2
+		1:  # SUMMER
+			return 1.1
+		2:  # AUTUMN
+			return 0.9
+		3:  # WINTER
+			return 0.7
+	return 1.0
+
+
+# ═══════════════ ALLIANCE COORDINATION ═══════════════
+
+func _try_light_faction_coordination() -> void:
+	## When multiple light factions share borders with the same evil faction attacker,
+	## the one with the larger garrison reinforces the weaker one (20% of excess).
+	# Build a map of light factions and their border threats from evil factions
+	var faction_garrisons: Dictionary = {}  # light_faction_id -> { "total": int, "tiles": Array }
+	var faction_threats: Dictionary = {}    # light_faction_id -> Set[evil_faction_id]
+
+	for tile in GameManager.tiles:
+		var lf: int = tile.get("light_faction", -1)
+		if lf < 0 or tile["owner_id"] >= 0:
+			continue  # Skip non-light or captured tiles
+
+		if not faction_garrisons.has(lf):
+			faction_garrisons[lf] = {"total": 0, "tiles": []}
+		faction_garrisons[lf]["total"] += tile.get("garrison", 0)
+		faction_garrisons[lf]["tiles"].append(tile)
+
+		# Check adjacent tiles for evil faction threats
+		if not faction_threats.has(lf):
+			faction_threats[lf] = {}
+		if GameManager.adjacency.has(tile["index"]):
+			for nb_idx in GameManager.adjacency[tile["index"]]:
+				if nb_idx >= GameManager.tiles.size():
+					continue
+				var nb: Dictionary = GameManager.tiles[nb_idx]
+				var evil_fac: int = nb.get("original_faction", -1)
+				if nb["owner_id"] < 0 and evil_fac >= 0:
+					faction_threats[lf][evil_fac] = true
+
+	# Find light factions that share the same evil attacker
+	var light_factions: Array = faction_threats.keys()
+	if light_factions.size() < 2:
+		return
+
+	for i in range(light_factions.size()):
+		for j in range(i + 1, light_factions.size()):
+			var lf_a: int = light_factions[i]
+			var lf_b: int = light_factions[j]
+			# Check if they share any common evil threat
+			var shared_threat: bool = false
+			for evil_id in faction_threats.get(lf_a, {}):
+				if faction_threats.get(lf_b, {}).has(evil_id):
+					shared_threat = true
+					break
+			if not shared_threat:
+				continue
+
+			# Determine which is stronger and which is weaker
+			var garrison_a: int = faction_garrisons.get(lf_a, {}).get("total", 0)
+			var garrison_b: int = faction_garrisons.get(lf_b, {}).get("total", 0)
+			var stronger: int = lf_a if garrison_a >= garrison_b else lf_b
+			var weaker: int = lf_b if garrison_a >= garrison_b else lf_a
+			var stronger_garrison: int = maxi(garrison_a, garrison_b)
+			var weaker_garrison: int = mini(garrison_a, garrison_b)
+
+			# Only reinforce if there's a meaningful difference
+			var excess: int = stronger_garrison - weaker_garrison
+			if excess < 4:
+				continue
+
+			# Transfer 20% of excess from strongest tile to weakest tile of weaker faction
+			var transfer: int = maxi(1, excess / 5)  # 20% of excess
+			var stronger_tiles: Array = faction_garrisons.get(stronger, {}).get("tiles", [])
+			var weaker_tiles: Array = faction_garrisons.get(weaker, {}).get("tiles", [])
+			if stronger_tiles.is_empty() or weaker_tiles.is_empty():
+				continue
+
+			# Find strongest donor tile and weakest recipient tile
+			var donor: Dictionary = stronger_tiles[0]
+			for t in stronger_tiles:
+				if t.get("garrison", 0) > donor.get("garrison", 0):
+					donor = t
+			var recipient: Dictionary = weaker_tiles[0]
+			for t in weaker_tiles:
+				if t.get("garrison", 0) < recipient.get("garrison", 0):
+					recipient = t
+
+			# Only transfer if donor can afford it (keep at least 3 garrison)
+			var actual_transfer: int = mini(transfer, maxi(0, donor.get("garrison", 0) - 3))
+			if actual_transfer <= 0:
+				continue
+
+			donor["garrison"] -= actual_transfer
+			recipient["garrison"] += actual_transfer
+			EventBus.message_log.emit("[光明阵营] 联盟协调: 增援%d兵力至薄弱据点#%d" % [actual_transfer, recipient["index"]])

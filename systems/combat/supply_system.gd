@@ -15,14 +15,15 @@ class_name SupplySystem
 ## March modes available to the player when moving an army.
 enum MarchMode {
 	NORMAL        = 0,
-	FORCED_MARCH  = 1,  ## AP cost -1 (min 1), supply drains 2x, SPD-1 next combat
-	CAREFUL_MARCH = 2,  ## AP cost +1, supply drains 0.5x, +10% DEF, no ambush
-	FORAGE        = 3,  ## Stay in place, restore 20 supply, 15% foraging accident
+	FORCED_MARCH  = 1,  ## AP cost -1 (min 1), supply drains 2x, +2 SPD next combat (momentum)
+	CAREFUL_MARCH = 2,  ## AP cost +1, supply drains 0.5x, +10% DEF, ambush immune
+	FORAGE        = 3,  ## Stay in place, restore 20-30 supply, 10% foraging accident
 }
 
 const SUPPLY_MAX          := 100
-const SUPPLY_DRAIN_PER_DIST := 5   ## supply_drain = distance * this
-const ATTRITION_THRESHOLD := 50    ## supply < this: light attrition
+const SUPPLY_DRAIN_PER_DIST := 3   ## supply_drain = max(5, distance * this)
+const SUPPLY_DRAIN_MINIMUM  := 5   ## minimum drain per turn when away from supply
+const ATTRITION_THRESHOLD := 40    ## supply < this: light attrition
 const SEVERE_THRESHOLD    := 25    ## supply < this: stat penalties + morale drain
 const CATASTROPHIC         := 0    ## supply == 0: catastrophic losses
 
@@ -34,9 +35,10 @@ const SEVERE_MORALE_DRAIN   := 10
 const DESERT_CHANCE          := 0.10  ## 10% desert chance per squad at supply 0
 
 const FORAGE_RESTORE       := 20
-const FORAGE_ACCIDENT_CHANCE := 0.15
+const FORAGE_ACCIDENT_CHANCE := 0.10
 const FORAGE_ACCIDENT_MIN  := 1
 const FORAGE_ACCIDENT_MAX  := 2
+const FORAGE_FARM_RESTORE  := 30   ## supply restored when foraging on FARM/food tiles
 
 const DEPOT_GOLD_COST := 15
 const DEPOT_IRON_COST := 5
@@ -51,6 +53,9 @@ var _supply: Dictionary = {}
 
 ## { army_id: int -> MarchMode }
 var _march_modes: Dictionary = {}
+
+## { army_id: int -> consecutive turns at zero supply }
+var _zero_supply_turns: Dictionary = {}
 
 ## Set[tile_index] of tiles with supply depots.  { tile_index: player_id }
 var _supply_depots: Dictionary = {}
@@ -135,9 +140,10 @@ func get_combat_modifiers_for_army(army_id: int) -> Dictionary:
 
 	# March mode bonuses/penalties
 	if mode == MarchMode.FORCED_MARCH:
-		mods["spd_mod"] = -1
+		mods["spd_mod"] = 2  # Momentum from forced march: +2 SPD in next combat
 	elif mode == MarchMode.CAREFUL_MARCH:
 		mods["def_mod"] += 0.10  # +10% DEF
+		mods["ambush_immune"] = true  # Cannot be ambushed during careful march
 
 	return mods
 
@@ -175,7 +181,7 @@ func process_turn(player_id: int) -> Array:
 			# On or adjacent to owned tile / depot — full restore
 			new_supply = SUPPLY_MAX
 		else:
-			var drain := dist * SUPPLY_DRAIN_PER_DIST
+			var drain := maxi(SUPPLY_DRAIN_MINIMUM, dist * SUPPLY_DRAIN_PER_DIST)
 			# March mode multipliers
 			match mode:
 				MarchMode.FORCED_MARCH:
@@ -214,12 +220,14 @@ func process_turn(player_id: int) -> Array:
 func register_army(army_id: int) -> void:
 	_supply[army_id] = SUPPLY_MAX
 	_march_modes[army_id] = MarchMode.NORMAL
+	_zero_supply_turns[army_id] = 0
 
 
 ## Remove tracking when an army is disbanded.
 func unregister_army(army_id: int) -> void:
 	_supply.erase(army_id)
 	_march_modes.erase(army_id)
+	_zero_supply_turns.erase(army_id)
 
 # ---------------------------------------------------------------------------
 # Internals — Attrition
@@ -228,6 +236,12 @@ func unregister_army(army_id: int) -> void:
 func _apply_attrition(army_id: int, supply: int, army: Dictionary) -> Dictionary:
 	var losses: Dictionary = {}
 	var squads: Array = army.get("squads", [])
+
+	# Track consecutive turns at zero supply
+	if supply <= CATASTROPHIC:
+		_zero_supply_turns[army_id] = _zero_supply_turns.get(army_id, 0) + 1
+	else:
+		_zero_supply_turns[army_id] = 0
 
 	if supply > ATTRITION_THRESHOLD:
 		return losses
@@ -239,8 +253,8 @@ func _apply_attrition(army_id: int, supply: int, army: Dictionary) -> Dictionary
 		if supply <= CATASTROPHIC:
 			# Catastrophic losses
 			lost = CATASTROPHIC_LOSS
-			# Desertion check
-			if randf() < DESERT_CHANCE:
+			# Desertion only after 2+ consecutive turns at zero supply
+			if _zero_supply_turns.get(army_id, 0) >= 2 and randf() < DESERT_CHANCE:
 				lost += squad.get("soldiers", 0)  # entire squad deserts
 				losses[squad_id] = lost
 				continue
@@ -261,7 +275,12 @@ func _apply_attrition(army_id: int, supply: int, army: Dictionary) -> Dictionary
 
 func _process_forage(army_id: int, army: Dictionary) -> Dictionary:
 	var old_supply := get_supply_for_army(army_id)
-	var new_supply := mini(old_supply + FORAGE_RESTORE, SUPPLY_MAX)
+	# Check if tile has food production for bonus forage
+	var tile_index: int = army.get("tile_index", -1)
+	var restore_amount := FORAGE_RESTORE
+	if _is_food_tile(tile_index):
+		restore_amount = FORAGE_FARM_RESTORE
+	var new_supply := mini(old_supply + restore_amount, SUPPLY_MAX)
 	_supply[army_id] = new_supply
 
 	var ev: Dictionary = {
@@ -361,3 +380,37 @@ func _get_strategic_resource(player_id: int, resource: String) -> int:
 func _deduct_resource(player_id: int, resource: String, amount: int) -> void:
 	if game_data and game_data.has_method("deduct_resource"):
 		game_data.deduct_resource(player_id, resource, amount)
+
+
+## Check if a tile is a farm or food-producing tile for forage bonus.
+func _is_food_tile(tile_index: int) -> bool:
+	if tile_index < 0:
+		return false
+	if map_graph and map_graph.has_method("get_tile_type"):
+		var tile_type: String = map_graph.get_tile_type(tile_index)
+		return tile_type in ["farm", "FARM", "village", "granary", "rice_paddy", "plantation"]
+	if map_graph and map_graph.has_method("get_tile_data"):
+		var tile_data: Dictionary = map_graph.get_tile_data(tile_index)
+		var t_type: String = tile_data.get("type", tile_data.get("terrain", ""))
+		if t_type.to_lower() in ["farm", "village", "granary", "rice_paddy", "plantation"]:
+			return true
+		return tile_data.get("food_production", 0) > 0
+	return false
+
+
+# ---------------------------------------------------------------------------
+# Public API — Supply Status Label (Chinese)
+# ---------------------------------------------------------------------------
+
+## Returns a Chinese status label based on the army's current supply level.
+## "补给充足" / "补给紧张" / "补给危急" / "断粮!"
+func get_supply_status_label(army_id: int) -> String:
+	var supply := get_supply_for_army(army_id)
+	if supply <= CATASTROPHIC:
+		return "断粮!"
+	elif supply < SEVERE_THRESHOLD:
+		return "补给危急"
+	elif supply < ATTRITION_THRESHOLD:
+		return "补给紧张"
+	else:
+		return "补给充足"

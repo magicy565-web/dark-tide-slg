@@ -212,6 +212,8 @@ signal light_extorted(player_id: int, gold: int)
 # ── Tile Development Path (v3.5) ──
 signal tile_path_chosen(tile_idx: int, path: int)
 signal tile_building_built(tile_idx: int, building_id: String)
+signal tile_tier3_reached(tile_idx: int, path: int, bonus: Dictionary)
+signal tile_path_converted(tile_idx: int, old_path: int, new_path: int)
 
 # ── Weather & Season System ──
 signal season_changed(season_id: int, season_data: Dictionary)

@@ -25,7 +25,7 @@ enum InterventionType {
 const INTERVENTION_DATA: Dictionary = {
 	InterventionType.REDIRECT_FIRE: {
 		"name": "集火指令", "desc": "指定一个敌方单位, 全军集中攻击(1回合)",
-		"cp_cost": 1, "cooldown": 3, "requires_target": true,
+		"cp_cost": 1, "cooldown": 2, "requires_target": true,
 	},
 	InterventionType.RALLY: {
 		"name": "鼓舞士气", "desc": "全军士气+20, 解除1个溃逃单位",
@@ -33,7 +33,7 @@ const INTERVENTION_DATA: Dictionary = {
 	},
 	InterventionType.HERO_SKILL_NOW: {
 		"name": "强令发动", "desc": "立即发动一名英雄的主动技能(无视冷却)",
-		"cp_cost": 3, "cooldown": 0, "requires_target": true,  # target = hero_id
+		"cp_cost": 3, "cooldown": 3, "requires_target": true,  # target = hero_id
 	},
 	InterventionType.FORMATION_SHIFT: {
 		"name": "阵型变换", "desc": "交换一个前排与后排单位的位置",
@@ -41,15 +41,15 @@ const INTERVENTION_DATA: Dictionary = {
 	},
 	InterventionType.TACTICAL_RETREAT: {
 		"name": "战术撤退", "desc": "撤出一个单位(保存兵力但退出战斗)",
-		"cp_cost": 2, "cooldown": 0, "requires_target": true,
+		"cp_cost": 2, "cooldown": 2, "requires_target": true,
 	},
 	InterventionType.INSPIRE: {
-		"name": "激励号令", "desc": "全军ATK+15%, 持续2回合",
+		"name": "激励号令", "desc": "全军ATK+20%, 持续2回合",
 		"cp_cost": 2, "cooldown": 5, "requires_target": false,
 	},
 	InterventionType.SHIELD_WALL: {
 		"name": "盾墙", "desc": "前排DEF+30%, ATK-20%, 持续1回合",
-		"cp_cost": 1, "cooldown": 3, "requires_target": false,
+		"cp_cost": 2, "cooldown": 3, "requires_target": false,
 	},
 	InterventionType.FOCUS_VOLLEY: {
 		"name": "齐射", "desc": "后排远程单位集中攻击同一目标, 伤害+25%",
@@ -57,7 +57,7 @@ const INTERVENTION_DATA: Dictionary = {
 	},
 	InterventionType.SACRIFICE_PAWN: {
 		"name": "弃子", "desc": "牺牲最弱单位, 完全治愈最强单位",
-		"cp_cost": 2, "cooldown": 0, "requires_target": false,
+		"cp_cost": 2, "cooldown": 99, "requires_target": false,
 	},
 	InterventionType.BAIT_AND_SWITCH: {
 		"name": "诱敌", "desc": "敌方本回合只能攻击你DEF最高的单位",
@@ -139,6 +139,12 @@ func execute(intervention_type: int, state: Dictionary, target: Variant, log: Ar
 func tick_cooldowns() -> void:
 	for key in _cooldowns.keys():
 		_cooldowns[key] = maxi(_cooldowns[key] - 1, 0)
+
+## CP regeneration: at round 4 and round 8 the player regains 1 CP.
+## Call this from the combat loop at the start of each round.
+func check_cp_regen(round_num: int) -> void:
+	if round_num == 4 or round_num == 8:
+		_current_cp = mini(_current_cp + 1, _max_cp)
 
 func get_retreated_units() -> Array:
 	return _retreated_units
@@ -222,8 +228,8 @@ func _execute_tactical_retreat(state: Dictionary, target_slot: Variant, log: Arr
 func _execute_inspire(state: Dictionary, log: Array) -> void:
 	for unit in state["atk_units"]:
 		if unit["is_alive"]:
-			unit["buffs"].append({"id": "inspire", "duration": 2, "value": 0.15, "mult_atk": true})
-	log.append("[color=gold]【指挥】激励号令! 全军ATK+15%%(2回合)[/color]")
+			unit["buffs"].append({"id": "inspire", "duration": 2, "value": 0.20, "mult_atk": true})
+	log.append("[color=gold]【指挥】激励号令! 全军ATK+20%%(2回合)[/color]")
 
 func _execute_shield_wall(state: Dictionary, log: Array) -> void:
 	for unit in state["atk_units"]:

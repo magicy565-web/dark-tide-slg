@@ -535,3 +535,21 @@ const HP_PER_SOLDIER_DEFAULT: int = 5
 
 ## Hero knockout threshold (hero loses passives when HP <= 0)
 const HERO_KNOCKOUT_PASSIVE_LOSS: bool = true
+
+# ═══════════════ TILE DEVELOPMENT ENRICHMENT (v3.6) ═══════════════
+
+## Supply depot upkeep: gold cost per depot per turn
+const SUPPLY_DEPOT_UPKEEP_GOLD: int = 2
+
+## Path conversion costs (switching a tile's development path)
+const PATH_CONVERSION_GOLD_COST: int = 30
+const PATH_CONVERSION_IRON_COST: int = 10
+const PATH_CONVERSION_REBUILD_TURNS: int = 2
+
+## Specialization synergy thresholds and bonuses
+const SYNERGY_MILITARY_THRESHOLD: int = 3
+const SYNERGY_ECONOMIC_THRESHOLD: int = 3
+const SYNERGY_CULTURAL_THRESHOLD: int = 3
+const SYNERGY_MILITARY_ATK_BONUS: int = 1
+const SYNERGY_ECONOMIC_GOLD_MULT: float = 1.10
+const SYNERGY_CULTURAL_EXP_MULT: float = 1.15

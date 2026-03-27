@@ -258,6 +258,15 @@ func evaluate_strategy(faction_key: String) -> int:
 	if border_pressure >= 4:
 		weights[Strategy.DEFEND] += 0.20
 
+	# Weather awareness: apply weather multiplier to offensive strategies
+	var weather_mult: float = _evaluate_weather_for_attack()
+	weights[Strategy.RAID] *= weather_mult
+	weights[Strategy.EXPAND] *= weather_mult
+	# Harsh weather favors defending / consolidating
+	if weather_mult < 0.7:
+		weights[Strategy.DEFEND] += 0.20
+		weights[Strategy.CONSOLIDATE] += 0.10
+
 	# Normalize and pick weighted random
 	var total: float = 0.0
 	for s in weights:
@@ -310,6 +319,9 @@ func select_raid_target(faction_key: String, source_tiles: Array) -> Dictionary:
 			var personality: int = AIScaling.get_personality(faction_key)
 			if personality == AIScaling.Personality.ECONOMIC:
 				score += float(level) * 2.0
+			# Supply feasibility: skip targets that are too far for reliable supply
+			if not _check_supply_feasibility(src, nb):
+				continue
 			candidates.append({"tile": nb, "score": score, "source": src})
 
 	if candidates.is_empty():
@@ -343,6 +355,9 @@ func select_weakest_adjacent_target(faction_key: String) -> Dictionary:
 					already_listed = true
 					break
 			if not already_listed:
+				# Supply feasibility: skip if target is out of sustainable range
+				if not _check_supply_feasibility(tile, nb):
+					continue
 				candidates.append({"tile": nb, "garrison": garrison})
 
 	if candidates.is_empty():
@@ -596,6 +611,98 @@ func _count_border_pressure(faction_key: String) -> int:
 						pressure += 1
 						break
 	return pressure
+
+
+# ═══════════════ WEATHER AWARENESS ═══════════════
+
+func _get_weather_system() -> Node:
+	## Safe autoload access to WeatherSystem node.
+	var root: Node = (Engine.get_main_loop() as SceneTree).root
+	if root and root.has_node("WeatherSystem"):
+		return root.get_node("WeatherSystem")
+	return null
+
+
+func _evaluate_weather_for_attack() -> float:
+	## Returns a multiplier (0.3–1.5) indicating how favorable weather/season is for attacking.
+	## Low values discourage attacks; high values encourage them (e.g. fog for ambush).
+	var ws: Node = _get_weather_system()
+	if ws == null:
+		return 1.0  # No weather system present, neutral
+
+	var season: int = ws.current_season  # WeatherSystem.Season enum
+	var weather: int = ws.current_weather  # WeatherSystem.Weather enum
+
+	# Winter + Storm = blizzard: strongly discourage attacking
+	if season == 3 and weather == 3:  # WINTER + STORM
+		return 0.3
+
+	var multiplier: float = 1.0
+
+	# Season base adjustments
+	match season:
+		3:  # WINTER
+			multiplier *= 0.7  # Winter generally discourages offense
+		2:  # AUTUMN
+			multiplier *= 0.9
+		0:  # SPRING
+			multiplier *= 1.05
+		1:  # SUMMER
+			multiplier *= 1.0
+
+	# Weather adjustments
+	match weather:
+		1:  # RAIN — slight disadvantage for ranged-heavy armies
+			multiplier *= 0.8
+		2:  # FOG — good for ambush-oriented factions
+			multiplier *= 1.2
+		3:  # STORM
+			multiplier *= 0.6
+		4:  # SNOW
+			multiplier *= 0.5
+		0:  # CLEAR — neutral
+			multiplier *= 1.0
+		5:  # DROUGHT
+			multiplier *= 0.9
+		6:  # MONSOON
+			multiplier *= 0.75
+
+	return clampf(multiplier, 0.3, 1.5)
+
+
+# ═══════════════ SUPPLY AWARENESS ═══════════════
+
+func _check_supply_feasibility(source_tile: Dictionary, target_tile: Dictionary) -> bool:
+	## Estimates if an army can sustain a campaign from source to target.
+	## Uses a rough BFS-based adjacency hop distance. If the distance exceeds a
+	## reasonable supply range, the campaign is not feasible.
+	var max_supply_range: int = 6  # maximum hops the AI considers sustainable
+	var source_idx: int = source_tile.get("index", -1)
+	var target_idx: int = target_tile.get("index", -1)
+	if source_idx < 0 or target_idx < 0:
+		return false
+	if source_idx == target_idx:
+		return true
+
+	# BFS to find hop distance
+	var visited: Dictionary = {source_idx: true}
+	var frontier: Array = [source_idx]
+	var depth: int = 0
+	while frontier.size() > 0 and depth < max_supply_range:
+		depth += 1
+		var next_frontier: Array = []
+		for idx in frontier:
+			if not GameManager.adjacency.has(idx):
+				continue
+			for nb_idx in GameManager.adjacency[idx]:
+				if nb_idx == target_idx:
+					return true  # Reachable within supply range
+				if not visited.has(nb_idx) and nb_idx < GameManager.tiles.size():
+					visited[nb_idx] = true
+					next_frontier.append(nb_idx)
+		frontier = next_frontier
+
+	return false  # Target is too far for reliable supply
 
 
 # ═══════════════ SAVE / LOAD ═══════════════

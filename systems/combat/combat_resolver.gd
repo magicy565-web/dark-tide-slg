@@ -266,6 +266,7 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		# -- Commander Intervention Phase --
 		if state.get("interventions_enabled", false):
 			CommanderIntervention.tick_cooldowns()
+			CommanderIntervention.check_cp_regen(round_num)
 			var pending: Array = state.get("pending_interventions", [])
 			for intervention in pending:
 				if intervention.get("round", -1) == round_num:
@@ -1999,6 +2000,31 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 			if _weather_atk_mod != 0:
 				base_damage = maxf(base_damage + _weather_atk_mod, 0.0)
 
+	# Terrain-based damage modifiers (not captured by passives)
+	var _terrain_type: int = state.get("terrain", FactionData.TerrainType.PLAINS)
+	var _atk_base_type: String = CounterMatrix.TYPE_MAP.get(attacker_unit["unit_type"], "infantry")
+	var _def_base_type: String = CounterMatrix.TYPE_MAP.get(defender_unit["unit_type"], "infantry")
+	# Cavalry penalized in rough terrain (forest/swamp): effective ATK-2 applied to damage
+	if _atk_base_type == "cavalry" and (_terrain_type == FactionData.TerrainType.FOREST or _terrain_type == FactionData.TerrainType.SWAMP):
+		base_damage = maxf(base_damage - 2.0, 0.0)
+	# Archer high ground advantage on mountain: effective ATK+1 applied to damage
+	if _atk_base_type == "archer" and _terrain_type == FactionData.TerrainType.MOUNTAIN:
+		base_damage += 1.0
+	# Fortress bonus for defender on owned tile: effective DEF+3 baked into damage reduction
+	if _terrain_type == FactionData.TerrainType.FORTRESS_WALL:
+		var _tile: Dictionary = state.get("tile", {})
+		var _tile_faction: int = _tile.get("light_faction", _tile.get("original_faction", -1))
+		var _def_pid: int = defender_unit.get("player_id", state.get("def_pid", -1))
+		# Defender is on their own fortress tile
+		if _tile_faction >= 0 and _def_pid >= 0 and _tile_faction == _def_pid:
+			# DEF+3 equivalent: reduce damage by soldiers * 3 / 10 (matching core formula scale)
+			base_damage = maxf(base_damage - float(soldiers) * 3.0 / 10.0, 0.0)
+
+	# Flanking bonus: if attacker's side has no front row alive, back row attacks get +15% damage
+	var _own_units: Array = state["atk_units"] if attacker_unit["side"] == "attacker" else state["def_units"]
+	if attacker_unit["row"] == "back" and _count_alive_in_row(_own_units, "front") == 0:
+		base_damage *= 1.15
+
 	# FIX(MAJOR): 护盾buff改为取最强护盾生效，不再乘法叠加；使用后标记移除
 	var best_shield_idx: int = -1
 	var best_shield_val: float = 0.0
@@ -2068,6 +2094,13 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 	if "morale_immune" not in target["passives"] and not target.get("immovable", false) and not target.get("is_routed", false):
 		var soldiers_lost: int = mini(damage, target["soldiers"] + damage)  # actual soldiers killed
 		var morale_loss: int = soldiers_lost * MORALE_PER_SOLDIER_KILLED
+		# Fodder morale resist: fodder units take reduced morale damage when routed (thematic)
+		var _target_base_type: String = CounterMatrix.TYPE_MAP.get(target["unit_type"], "infantry")
+		if _target_base_type == "fodder":
+			var _fodder_data: Dictionary = CounterMatrix.COUNTER_TABLE.get("fodder", {}).get("_default", {})
+			var _morale_resist: float = _fodder_data.get("morale_resist", 0.0)
+			if _morale_resist > 0.0:
+				morale_loss = int(float(morale_loss) * (1.0 - _morale_resist))
 		target["morale"] = maxi(target.get("morale", MORALE_START) - morale_loss, 0)
 		EventBus.unit_morale_changed.emit(target["unit_type"], target["side"], target["morale"])
 

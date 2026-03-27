@@ -29,7 +29,7 @@ var burning_tiles: Dictionary = {}
 const SEASON_DATA: Dictionary = {
 	Season.SPRING: {
 		"id": Season.SPRING,
-		"name": "春 (Spring)",
+		"name": "春",
 		"food_mult": 1.20,
 		"gold_mult": 1.0,
 		"iron_mult": 1.0,
@@ -44,7 +44,7 @@ const SEASON_DATA: Dictionary = {
 	},
 	Season.SUMMER: {
 		"id": Season.SUMMER,
-		"name": "夏 (Summer)",
+		"name": "夏",
 		"food_mult": 1.0,
 		"gold_mult": 1.15,
 		"iron_mult": 1.0,
@@ -59,7 +59,7 @@ const SEASON_DATA: Dictionary = {
 	},
 	Season.AUTUMN: {
 		"id": Season.AUTUMN,
-		"name": "秋 (Autumn)",
+		"name": "秋",
 		"food_mult": 1.30,   # harvest bonus
 		"gold_mult": 1.0,
 		"iron_mult": 1.20,
@@ -74,7 +74,7 @@ const SEASON_DATA: Dictionary = {
 	},
 	Season.WINTER: {
 		"id": Season.WINTER,
-		"name": "冬 (Winter)",
+		"name": "冬",
 		"food_mult": 0.70,
 		"gold_mult": 1.0,
 		"iron_mult": 1.0,
@@ -96,7 +96,7 @@ const SEASON_DATA: Dictionary = {
 const WEATHER_DATA: Dictionary = {
 	Weather.CLEAR: {
 		"id": Weather.CLEAR,
-		"name": "Clear",
+		"name": "晴朗",
 		"atk_mod": 0,
 		"def_mod": 0,
 		"spd_mod": 0,
@@ -118,10 +118,11 @@ const WEATHER_DATA: Dictionary = {
 		"river_coastal_production_mult": 1.0,
 		"siege_wall_hp_mult": 1.0,
 		"forest_burn": false,
+		"morale_start_bonus": 5,
 	},
 	Weather.RAIN: {
 		"id": Weather.RAIN,
-		"name": "Rain",
+		"name": "雨天",
 		"atk_mod": 0, "def_mod": 0, "spd_mod": 0,
 		"ranged_atk_mod": -2, "cavalry_atk_mod": 0, "siege_def_mod": 0,
 		"movement_ap_extra": 0, "visibility_mod": 0,
@@ -139,7 +140,7 @@ const WEATHER_DATA: Dictionary = {
 	},
 	Weather.FOG: {
 		"id": Weather.FOG,
-		"name": "Fog",
+		"name": "浓雾",
 		"atk_mod": 0, "def_mod": 0, "spd_mod": 0,
 		"ranged_atk_mod": -3, "cavalry_atk_mod": 0, "siege_def_mod": 0,
 		"movement_ap_extra": 0, "visibility_mod": -99,  # sentinel: halve visibility
@@ -157,10 +158,10 @@ const WEATHER_DATA: Dictionary = {
 	},
 	Weather.STORM: {
 		"id": Weather.STORM,
-		"name": "Storm",
+		"name": "暴风",
 		"atk_mod": -1, "def_mod": 0, "spd_mod": 0,
-		"ranged_atk_mod": 0, "cavalry_atk_mod": 0, "siege_def_mod": 0,
-		"movement_ap_extra": 0, "visibility_mod": 0,
+		"ranged_atk_mod": -2, "cavalry_atk_mod": 0, "siege_def_mod": 0,
+		"movement_ap_extra": 1, "visibility_mod": 0,
 		"food_mult": 1.0, "gold_mult": 1.0, "iron_mult": 1.0,
 		"cavalry_charge_disabled": false,
 		"fire_attacks_nullified": false,
@@ -175,12 +176,12 @@ const WEATHER_DATA: Dictionary = {
 	},
 	Weather.SNOW: {
 		"id": Weather.SNOW,
-		"name": "Snow",
+		"name": "大雪",
 		"atk_mod": 0, "def_mod": 0, "spd_mod": -2,
 		"ranged_atk_mod": 0, "cavalry_atk_mod": 0, "siege_def_mod": 0,
-		"movement_ap_extra": 2, "visibility_mod": 0,
+		"movement_ap_extra": 1, "visibility_mod": 0,
 		"food_mult": 1.0, "gold_mult": 1.0, "iron_mult": 1.0,
-		"cavalry_charge_disabled": false,
+		"cavalry_charge_disabled": true,
 		"fire_attacks_nullified": false,
 		"fire_attacks_bonus": 0.0,
 		"naval_blocked": false,
@@ -193,12 +194,12 @@ const WEATHER_DATA: Dictionary = {
 	},
 	Weather.DROUGHT: {
 		"id": Weather.DROUGHT,
-		"name": "Drought",
+		"name": "干旱",
 		"atk_mod": 0, "def_mod": 0, "spd_mod": 0,
 		"ranged_atk_mod": 0, "cavalry_atk_mod": 0, "siege_def_mod": 0,
 		"movement_ap_extra": 0, "visibility_mod": 0,
 		"food_mult": 0.60,  # -40%
-		"gold_mult": 1.0, "iron_mult": 1.0,
+		"gold_mult": 1.10, "iron_mult": 1.0,
 		"cavalry_charge_disabled": false,
 		"fire_attacks_nullified": false,
 		"fire_attacks_bonus": 0.30,
@@ -212,9 +213,9 @@ const WEATHER_DATA: Dictionary = {
 	},
 	Weather.MONSOON: {
 		"id": Weather.MONSOON,
-		"name": "Monsoon",
+		"name": "季风",
 		"atk_mod": 0, "def_mod": 0, "spd_mod": 0,
-		"ranged_atk_mod": 0, "cavalry_atk_mod": 0, "siege_def_mod": 0,
+		"ranged_atk_mod": -1, "cavalry_atk_mod": 0, "siege_def_mod": 0,
 		"movement_ap_extra": 0, "visibility_mod": 0,
 		"food_mult": 1.0, "gold_mult": 1.0, "iron_mult": 1.0,
 		"cavalry_charge_disabled": false,
@@ -350,7 +351,7 @@ func get_current_weather() -> Dictionary:
 func get_combat_modifiers() -> Dictionary:
 	var s: Dictionary = SEASON_DATA[current_season]
 	var w: Dictionary = WEATHER_DATA[current_weather]
-	return {
+	var mods: Dictionary = {
 		"atk_mod":         w["atk_mod"],
 		"def_mod":         w["def_mod"] + s["heavy_armor_def_mod"],
 		"spd_mod":         w["spd_mod"] + s["cavalry_spd_mod"],
@@ -367,7 +368,12 @@ func get_combat_modifiers() -> Dictionary:
 		"ambush_bonus":            w["ambush_bonus"],
 		"attrition_exposed":       w["attrition_exposed"],
 		"morale_recovery":         s["morale_recovery"],
+		"morale_start_bonus":      w.get("morale_start_bonus", 0),
 	}
+	# Cross-system interaction: winter + storm = blizzard
+	if current_season == Season.WINTER and current_weather == Weather.STORM:
+		mods["spd_mod"] -= 3  # blizzard: all_spd_mod -3
+	return mods
 
 
 ## Combined production multipliers from both season and weather.
@@ -406,6 +412,10 @@ func get_visibility_modifier() -> int:
 # ─────────────────────────────────────────────
 
 func _roll_weather() -> Weather:
+	# Weather persistence: 30% chance current weather persists
+	if current_turn > 0 and (randi() % 100) < 30:
+		return current_weather
+
 	var table: Array = WEATHER_WEIGHTS[current_season]
 	var total_weight: int = 0
 	for entry in table:

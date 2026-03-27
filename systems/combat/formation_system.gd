@@ -31,6 +31,19 @@ const FORMATION_NAMES: Dictionary = {
 	FormationID.LONE_WOLF: "Lone Wolf",
 }
 
+const FORMATION_NAMES_CN: Dictionary = {
+	FormationID.IRON_WALL: "铁壁阵",
+	FormationID.CAVALRY_CHARGE: "骑兵冲锋",
+	FormationID.ARROW_STORM: "箭雨阵",
+	FormationID.SHADOW_STRIKE: "影袭阵",
+	FormationID.ARCANE_BARRAGE: "奥术轰炸",
+	FormationID.HOLY_BASTION: "圣域阵",
+	FormationID.BERSERKER_HORDE: "狂暴部落",
+	FormationID.PIRATE_BROADSIDE: "海盗齐射",
+	FormationID.BALANCED_FORCE: "均衡阵容",
+	FormationID.LONE_WOLF: "独狼",
+}
+
 # ─── Tactical Combo IDs ─────────────────────────────────────────────────────
 const COMBO_PINCER_ATTACK := "PINCER_ATTACK"
 const COMBO_DESPERATE_STAND := "DESPERATE_STAND"
@@ -64,29 +77,45 @@ static func _is_heavy_front(unit: Dictionary) -> bool:
 		return false
 	if unit.get("troop_class", -1) in HEAVY_FRONT_CLASSES:
 		return true
-	var uid: String = unit.get("id", unit.get("troop_id", ""))
+	var uid := _get_unit_id_string(unit)
 	for tag in HEAVY_FRONT_IDS:
 		if uid.find(tag) != -1:
 			return true
-	return false
+	# Additional keyword fallback for troop_id/unit_type strings
+	return uid.find("samurai") != -1 or uid.find("guardian") != -1 or uid.find("shield") != -1
+
+static func _get_unit_id_string(unit: Dictionary) -> String:
+	return unit.get("id", unit.get("troop_id", unit.get("unit_type", ""))).to_lower()
 
 static func _is_cavalry(unit: Dictionary) -> bool:
-	return unit.get("troop_class", -1) == TC_CAVALRY
+	if unit.get("troop_class", -1) == TC_CAVALRY:
+		return true
+	var uid := _get_unit_id_string(unit)
+	return uid.find("cavalry") != -1 or uid.find("knight") != -1 or uid.find("rider") != -1 or uid.find("horseman") != -1
 
 static func _is_ranged(unit: Dictionary) -> bool:
-	return unit.get("troop_class", -1) in RANGED_CLASSES
+	if unit.get("troop_class", -1) in RANGED_CLASSES:
+		return true
+	var uid := _get_unit_id_string(unit)
+	return uid.find("archer") != -1 or uid.find("cannon") != -1 or uid.find("gunner") != -1 or uid.find("bowman") != -1 or uid.find("marksman") != -1
 
 static func _is_ninja_or_assassin(unit: Dictionary) -> bool:
 	if unit.get("troop_class", -1) == TC_NINJA:
 		return true
-	var uid: String = unit.get("id", unit.get("troop_id", ""))
-	return uid.find("assassin") != -1
+	var uid := _get_unit_id_string(unit)
+	return uid.find("assassin") != -1 or uid.find("ninja") != -1 or uid.find("shinobi") != -1
 
 static func _is_mage(unit: Dictionary) -> bool:
-	return unit.get("troop_class", -1) == TC_MAGE_UNIT
+	if unit.get("troop_class", -1) == TC_MAGE_UNIT:
+		return true
+	var uid := _get_unit_id_string(unit)
+	return uid.find("mage") != -1 or uid.find("wizard") != -1 or uid.find("sorcerer") != -1 or uid.find("warlock") != -1
 
 static func _is_priest(unit: Dictionary) -> bool:
-	return unit.get("troop_class", -1) == TC_PRIEST
+	if unit.get("troop_class", -1) == TC_PRIEST:
+		return true
+	var uid := _get_unit_id_string(unit)
+	return uid.find("priest") != -1 or uid.find("cleric") != -1 or uid.find("monk") != -1 or uid.find("healer") != -1
 
 static func _is_orc(unit: Dictionary) -> bool:
 	return unit.get("faction", "") == "orc"
@@ -94,14 +123,16 @@ static func _is_orc(unit: Dictionary) -> bool:
 static func _is_cannon_or_gunner(unit: Dictionary) -> bool:
 	if unit.get("troop_class", -1) == TC_CANNON:
 		return true
-	var uid: String = unit.get("id", unit.get("troop_id", ""))
-	return uid.find("gunner") != -1
+	var uid := _get_unit_id_string(unit)
+	return uid.find("gunner") != -1 or uid.find("cannon") != -1 or uid.find("artillery") != -1
 
 static func _is_front(unit: Dictionary) -> bool:
 	return unit.get("row", ROW_FRONT) == ROW_FRONT
 
 static func _is_support(unit: Dictionary) -> bool:
-	return unit.get("troop_class", -1) in [TC_PRIEST, TC_MAGE_UNIT]
+	if unit.get("troop_class", -1) in [TC_PRIEST, TC_MAGE_UNIT]:
+		return true
+	return _is_mage(unit) or _is_priest(unit)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PUBLIC API — detect_formations
@@ -192,19 +223,24 @@ static func detect_formations(units: Array, terrain: String = "") -> Array:
 ##   front_def_add                               — front row DEF add
 ##   back_damage_reduction                       — back row incoming damage mult
 ##   cavalry_atk_mult_r1                         — cavalry ATK mult round 1
+##   cavalry_def_penalty_r1                      — cavalry DEF penalty during charge round
 ##   cavalry_stampede_morale                     — morale penalty if stampede triggers
 ##   ranged_double_attack_rounds                 — rounds where ranged attack twice
 ##   ranged_def_penalty                          — DEF penalty for ranged in those rounds
+##   ranged_exhaustion_after_round               — after this round, ranged get SPD penalty
+##   ranged_exhaustion_spd_penalty               — SPD penalty for exhausted ranged units
 ##   shadow_bypass_chance                        — chance to bypass front row
 ##   shadow_bypass_rounds                        — how many rounds bypass lasts
 ##   mana_regen_add                              — extra mana per round
 ##   aoe_damage_mult                             — AoE damage multiplier
 ##   heal_per_round                              — soldiers healed per round (all)
-##   front_morale_immune                         — front row immune to morale loss
+##   front_morale_loss_reduction                 — front row morale loss reduction (0.5 = 50%)
 ##   orc_atk_add                                 — flat ATK add for orc units
 ##   orc_death_atk_stack                         — ATK gained per orc death
+##   orc_death_atk_stack_cap                     — max ATK from death stacking
 ##   ranged_atk_add                              — flat ATK add for ranged
 ##   siege_damage_mult                           — siege damage multiplier
+##   adaptive_bonus                              — if losing, all stats get additional +1
 ##   lone_wolf_atk_mult, lone_wolf_def_mult      — lone wolf multipliers
 ##   lone_wolf_spd_add, lone_wolf_morale_immune  — lone wolf extras
 static func get_formation_bonuses(formations: Array) -> Dictionary:
@@ -218,9 +254,12 @@ static func get_formation_bonuses(formations: Array) -> Dictionary:
 			FormationID.CAVALRY_CHARGE:
 				b["cavalry_atk_mult_r1"] = b.get("cavalry_atk_mult_r1", 1.0) * 1.5
 				b["cavalry_stampede_morale"] = b.get("cavalry_stampede_morale", 0) + 20
+				b["cavalry_def_penalty_r1"] = b.get("cavalry_def_penalty_r1", 0) - 2
 			FormationID.ARROW_STORM:
 				b["ranged_double_attack_rounds"] = [1, 2]
 				b["ranged_def_penalty"] = b.get("ranged_def_penalty", 0) - 2
+				b["ranged_exhaustion_after_round"] = 2  # After round 2, ranged units get SPD-2
+				b["ranged_exhaustion_spd_penalty"] = -2
 			FormationID.SHADOW_STRIKE:
 				b["shadow_bypass_chance"] = 0.4
 				b["shadow_bypass_rounds"] = 2
@@ -229,21 +268,23 @@ static func get_formation_bonuses(formations: Array) -> Dictionary:
 				b["aoe_damage_mult"] = b.get("aoe_damage_mult", 1.0) * 1.25
 			FormationID.HOLY_BASTION:
 				b["heal_per_round"] = b.get("heal_per_round", 0) + 1
-				b["front_morale_immune"] = true
+				b["front_morale_loss_reduction"] = 0.5  # Front row morale loss reduced by 50%
 			FormationID.BERSERKER_HORDE:
 				b["orc_atk_add"] = b.get("orc_atk_add", 0) + 2
 				b["orc_death_atk_stack"] = 1
+				b["orc_death_atk_stack_cap"] = 3  # Maximum +3 ATK from death stacking
 			FormationID.PIRATE_BROADSIDE:
 				b["ranged_atk_add"] = b.get("ranged_atk_add", 0) + 4
 				b["siege_damage_mult"] = b.get("siege_damage_mult", 1.0) * 2.0
 			FormationID.BALANCED_FORCE:
 				b["atk_add"] = b.get("atk_add", 0) + 1
-				b["def_add"] = b.get("def_add", 0) + 1
+				b["def_add"] = b.get("def_add", 0) + 2
 				b["spd_add"] = b.get("spd_add", 0) + 1
+				b["adaptive_bonus"] = true  # If losing (total soldiers < enemy), all stats +1
 			FormationID.LONE_WOLF:
-				b["lone_wolf_atk_mult"] = 2.0
-				b["lone_wolf_def_mult"] = 1.5
-				b["lone_wolf_spd_add"] = 5
+				b["lone_wolf_atk_mult"] = 1.5
+				b["lone_wolf_def_mult"] = 1.3
+				b["lone_wolf_spd_add"] = 3
 				b["lone_wolf_morale_immune"] = true
 
 	return b
@@ -479,3 +520,33 @@ static func _get_event_bus() -> Node:
 	if tree == null:
 		return null
 	return tree.root.get_node_or_null("/root/EventBus")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PUBLIC API — get_formation_description_cn
+# ═══════════════════════════════════════════════════════════════════════════════
+
+## Returns a Chinese description of a formation's requirements and effects for UI display.
+static func get_formation_description_cn(formation_id: int) -> String:
+	match formation_id:
+		FormationID.IRON_WALL:
+			return "【铁壁阵】需要3个以上重装前排单位。效果：前排防御+3，后排受伤减半。"
+		FormationID.CAVALRY_CHARGE:
+			return "【骑兵冲锋】需要2个以上骑兵单位。效果：第1回合骑兵攻击+50%，敌方士气-20。代价：冲锋回合骑兵防御-2。"
+		FormationID.ARROW_STORM:
+			return "【箭雨阵】需要3个以上远程单位。效果：前2回合远程单位攻击两次，防御-2。代价：第2回合后远程单位疲劳，速度-2持续至战斗结束。"
+		FormationID.SHADOW_STRIKE:
+			return "【影袭阵】需要2个以上忍者/刺客单位。效果：前2回合40%概率绕过前排直击后排。"
+		FormationID.ARCANE_BARRAGE:
+			return "【奥术轰炸】需要2个以上法师单位。效果：每回合法力回复+2，范围伤害+25%。"
+		FormationID.HOLY_BASTION:
+			return "【圣域阵】需要至少1个牧师和2个前排单位。效果：每回合回复1名士兵，前排士气损失减少50%。"
+		FormationID.BERSERKER_HORDE:
+			return "【狂暴部落】需要4个以上兽人单位。效果：兽人攻击+2，每有兽人阵亡全队攻击+1（上限+3）。"
+		FormationID.PIRATE_BROADSIDE:
+			return "【海盗齐射】需要2个以上炮手/火枪手且在沿海地形。效果：远程攻击+4，攻城伤害翻倍。"
+		FormationID.BALANCED_FORCE:
+			return "【均衡阵容】需要至少1个前排、1个远程、1个辅助单位。效果：攻击+1，防御+2，速度+1。自适应：若总兵力少于敌方，全属性额外+1。"
+		FormationID.LONE_WOLF:
+			return "【独狼】仅部署1个单位时自动触发。效果：攻击x1.5，防御x1.3，速度+3，免疫士气崩溃。"
+	return "未知阵型"

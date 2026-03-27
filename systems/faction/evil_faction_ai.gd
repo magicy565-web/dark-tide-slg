@@ -84,6 +84,9 @@ func _tick_faction(player_id: int, faction_id: int) -> void:
 	if is_hostile:
 		_try_coordinated_attack(player_id, faction_id, source_tiles)
 
+	# Counter-espionage: invest in counter-intel if being scouted
+	_try_counter_espionage(player_id, faction_id)
+
 
 func _try_strategic_raid(player_id: int, source_tiles: Array, faction_id: int) -> void:
 	## Strategic raid: pick the best target instead of random.
@@ -111,10 +114,14 @@ func _try_strategic_raid(player_id: int, source_tiles: Array, faction_id: int) -
 	if tier >= 2:
 		raid_strength += tier * 2
 
+	# Build formation-aware army composition for the raid
+	var _raid_composition: Array = _pick_raid_composition(faction_id, raid_strength)
+
 	var target_garrison: int = target.get("garrison", 0)
 
-	# Choose tactical directive for the raid
+	# Choose tactical directive for the raid (weather-adjusted)
 	var directive: int = AIStrategicPlanner.choose_tactical_directive(ai_key, true, raid_strength, target_garrison)
+	directive = _adjust_directive_for_weather(directive, ai_key)
 	var directive_name: String = CombatResolver.DIRECTIVE_DATA.get(directive, {}).get("name", "")
 	var directive_suffix: String = ""
 	if directive_name != "" and directive_name != "无":
@@ -285,3 +292,144 @@ func _faction_to_ai_key(faction_id: int) -> String:
 		FactionData.FactionID.PIRATE: return "pirate_ai"
 		FactionData.FactionID.DARK_ELF: return "dark_elf_ai"
 	return ""
+
+
+# ═══════════════ WEATHER-TACTICAL AWARENESS ═══════════════
+
+func _get_weather_system() -> Node:
+	## Safe autoload access to WeatherSystem node.
+	var root: Node = (Engine.get_main_loop() as SceneTree).root
+	if root and root.has_node("WeatherSystem"):
+		return root.get_node("WeatherSystem")
+	return null
+
+
+func _adjust_directive_for_weather(directive: int, ai_key: String) -> int:
+	## Adjust tactical directive choice based on current weather conditions.
+	var ws: Node = _get_weather_system()
+	if ws == null:
+		return directive
+
+	var weather: int = ws.current_weather  # WeatherSystem.Weather enum
+
+	match weather:
+		1, 3:  # RAIN or STORM — prefer defensive / guerrilla tactics, avoid offense-heavy
+			if directive == CombatResolver.TacticalDirective.ALL_OUT or directive == CombatResolver.TacticalDirective.FOCUS_FIRE:
+				# Try HOLD_LINE first, then GUERRILLA
+				if AIScaling.can_use_directive(ai_key, CombatResolver.TacticalDirective.HOLD_LINE):
+					return CombatResolver.TacticalDirective.HOLD_LINE
+				if AIScaling.can_use_directive(ai_key, CombatResolver.TacticalDirective.GUERRILLA):
+					return CombatResolver.TacticalDirective.GUERRILLA
+		2:  # FOG — prefer AMBUSH
+			if AIScaling.can_use_directive(ai_key, CombatResolver.TacticalDirective.AMBUSH):
+				return CombatResolver.TacticalDirective.AMBUSH
+
+	return directive
+
+
+# ═══════════════ FORMATION-AWARE ARMY COMPOSITION ═══════════════
+
+func _pick_raid_composition(faction_id: int, base_strength: int) -> Array:
+	## Build a raid army composition that tries to achieve formation thresholds.
+	## Returns an array of unit_type strings weighted toward formation requirements.
+	var ai_key: String = _faction_to_ai_key(faction_id)
+	var available: Array = AIStrategicPlanner._get_faction_available_units(faction_id)
+	if available.is_empty():
+		return []
+
+	# Classify available units by archetype
+	var heavy_infantry: Array = []
+	var cavalry: Array = []
+	var orc_units: Array = []
+	var other_units: Array = []
+
+	for unit_type in available:
+		var base: String = CounterMatrix.TYPE_MAP.get(unit_type, "infantry")
+		var is_orc: bool = unit_type.begins_with("orc_")
+		if base == "heavy_infantry" or base == "tank":
+			heavy_infantry.append(unit_type)
+		if base == "cavalry":
+			cavalry.append(unit_type)
+		if is_orc:
+			orc_units.append(unit_type)
+		other_units.append(unit_type)
+
+	# Determine preferred composition based on formation thresholds
+	var composition: Array = []
+
+	# Prefer IRON_WALL if we have heavy infantry types (need 3+ for formation)
+	if heavy_infantry.size() > 0 and base_strength >= 3:
+		var heavy_count: int = mini(base_strength, maxi(3, base_strength / 2))
+		for i in range(heavy_count):
+			composition.append(heavy_infantry[i % heavy_infantry.size()])
+		# Fill rest with other units
+		var remaining: int = base_strength - heavy_count
+		for i in range(remaining):
+			composition.append(other_units[i % other_units.size()])
+		return composition
+
+	# Prefer CAVALRY_CHARGE if we have 2+ cavalry types
+	if cavalry.size() > 0 and base_strength >= 2:
+		var cav_count: int = mini(base_strength, maxi(2, base_strength / 2))
+		for i in range(cav_count):
+			composition.append(cavalry[i % cavalry.size()])
+		var remaining: int = base_strength - cav_count
+		for i in range(remaining):
+			composition.append(other_units[i % other_units.size()])
+		return composition
+
+	# Prefer BERSERKER_HORDE if we have 4+ orc units
+	if orc_units.size() > 0 and base_strength >= 4 and faction_id == FactionData.FactionID.ORC:
+		for i in range(base_strength):
+			composition.append(orc_units[i % orc_units.size()])
+		return composition
+
+	# Fallback: use counter-composition from planner
+	var counter: Array = AIStrategicPlanner.get_counter_composition(ai_key, faction_id)
+	for i in range(base_strength):
+		composition.append(counter[i % maxi(1, counter.size())])
+	return composition
+
+
+# ═══════════════ COUNTER-ESPIONAGE ═══════════════
+
+func _get_espionage_system() -> Node:
+	## Safe autoload access to EspionageSystem node.
+	var root: Node = (Engine.get_main_loop() as SceneTree).root
+	if root and root.has_node("EspionageSystem"):
+		return root.get_node("EspionageSystem")
+	return null
+
+
+func _try_counter_espionage(player_id: int, faction_id: int) -> void:
+	## If AI detects it has been scouted, invest in counter-intel.
+	var es: Node = _get_espionage_system()
+	if es == null:
+		return
+
+	# Check if any of our tiles have been revealed by the player's espionage
+	var revealed: Array = es.get_revealed_tiles(player_id)
+	if revealed.is_empty():
+		return
+
+	# Check if any revealed tiles belong to this faction
+	var faction_scouted: bool = false
+	for tile_idx in revealed:
+		if tile_idx < GameManager.tiles.size():
+			var tile: Dictionary = GameManager.tiles[tile_idx]
+			if tile.get("original_faction", -1) == faction_id and tile["owner_id"] < 0:
+				faction_scouted = true
+				break
+
+	if not faction_scouted:
+		return
+
+	# AI faction is being scouted — invest in counter-intelligence
+	# Use a pseudo player_id for the AI faction (negative faction_id)
+	var ai_pseudo_id: int = -(faction_id + 100)
+	var ai_key: String = _faction_to_ai_key(faction_id)
+	var current_ci: int = es.get_counter_intel(ai_pseudo_id)
+	if current_ci < 30:
+		# Directly boost counter-intel for the AI faction (no gold cost for AI)
+		es.set_counter_intel(ai_pseudo_id, mini(50, current_ci + 5))
+		EventBus.message_log.emit("[%s] 检测到敌方侦察活动, 加强反情报措施" % ai_key)

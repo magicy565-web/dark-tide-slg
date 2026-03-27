@@ -113,6 +113,9 @@ const PATH_BUILDINGS: Dictionary = {
 # Key: tile_index (int), Value: { "path": DevPath, "buildings": Array[String], "committed": bool }
 var _tile_dev: Dictionary = {}
 
+# Tracks tiles undergoing path conversion rebuild: { tile_index: int -> turns_remaining: int }
+var _rebuilding_tiles: Dictionary = {}
+
 
 func get_tile_development(tile_idx: int) -> Dictionary:
 	if not _tile_dev.has(tile_idx):
@@ -144,6 +147,8 @@ func can_build(tile_idx: int, building_id: String) -> Dictionary:
 	var dev: Dictionary = get_tile_development(tile_idx)
 	if not dev["committed"]:
 		return {"can": false, "reason": "未选择发展路线"}
+	if is_tile_rebuilding(tile_idx):
+		return {"can": false, "reason": "地块正在重建中"}
 	if get_available_slots(tile_idx) <= 0:
 		return {"can": false, "reason": "建筑槽位已满"}
 	if building_id in dev["buildings"]:
@@ -172,6 +177,20 @@ func build(tile_idx: int, building_id: String) -> bool:
 	dev["buildings"].append(building_id)
 	_tile_dev[tile_idx] = dev
 	EventBus.tile_building_built.emit(tile_idx, building_id)
+
+	# ── Tier 3 development event: special one-time bonus at 4 buildings ──
+	if dev["buildings"].size() == 4:
+		var bonus: Dictionary = {}
+		match dev["path"]:
+			DevPath.MILITARY:
+				bonus = {"type": "elite_unit", "desc": "军事巅峰: 免费获得1支精锐部队"}
+			DevPath.ECONOMIC:
+				bonus = {"type": "gold_windfall", "amount": 50, "desc": "经济巅峰: 一次性获得50金"}
+			DevPath.CULTURAL:
+				bonus = {"type": "prestige_windfall", "amount": 5, "desc": "文化巅峰: 一次性获得5威望"}
+		if not bonus.is_empty():
+			EventBus.tile_tier3_reached.emit(tile_idx, dev["path"], bonus)
+
 	return true
 
 
@@ -180,6 +199,8 @@ func get_tile_path_effects(tile_idx: int) -> Dictionary:
 	var effects: Dictionary = {}
 	if dev["path"] == DevPath.UNDEVELOPED:
 		return effects
+	if is_tile_rebuilding(tile_idx):
+		return effects  # No production during rebuild
 
 	var path_data: Dictionary = PATH_BONUSES.get(dev["path"], {})
 	var num_buildings: int = dev["buildings"].size()
@@ -249,13 +270,131 @@ func get_path_buildings_list(path: int) -> Array:
 	return PATH_BUILDINGS.get(path, [])
 
 
+func get_global_synergy_bonuses(player_id: int) -> Dictionary:
+	## Counts tiles per development path owned by this player and returns
+	## applicable synergy bonuses when thresholds are met.
+	## Returns: { "atk_bonus": int, "gold_mult": float, "exp_mult": float }
+	var path_counts: Dictionary = {
+		DevPath.MILITARY: 0,
+		DevPath.ECONOMIC: 0,
+		DevPath.CULTURAL: 0,
+	}
+	for tile in GameManager.tiles:
+		if tile == null:
+			continue
+		if tile.get("owner_id", -1) != player_id:
+			continue
+		var tile_idx: int = tile.get("index", -1)
+		if tile_idx < 0:
+			continue
+		var dev: Dictionary = get_tile_development(tile_idx)
+		if dev["path"] != DevPath.UNDEVELOPED:
+			path_counts[dev["path"]] += 1
+
+	var bonuses: Dictionary = {}
+	if path_counts[DevPath.MILITARY] >= BalanceConfig.SYNERGY_MILITARY_THRESHOLD:
+		bonuses["atk_bonus"] = BalanceConfig.SYNERGY_MILITARY_ATK_BONUS
+	if path_counts[DevPath.ECONOMIC] >= BalanceConfig.SYNERGY_ECONOMIC_THRESHOLD:
+		bonuses["gold_mult"] = BalanceConfig.SYNERGY_ECONOMIC_GOLD_MULT
+	if path_counts[DevPath.CULTURAL] >= BalanceConfig.SYNERGY_CULTURAL_THRESHOLD:
+		bonuses["exp_mult"] = BalanceConfig.SYNERGY_CULTURAL_EXP_MULT
+	return bonuses
+
+
+func convert_path(tile_idx: int, new_path: int) -> bool:
+	## Converts a tile's development path at heavy cost: lose ALL buildings,
+	## pay PATH_CONVERSION_GOLD_COST gold + PATH_CONVERSION_IRON_COST iron,
+	## and the tile enters "rebuilding" for PATH_CONVERSION_REBUILD_TURNS turns.
+	## Returns false if conversion is not possible (undeveloped, same path,
+	## already rebuilding, or insufficient resources).
+	var dev: Dictionary = get_tile_development(tile_idx)
+	if not dev["committed"]:
+		return false  # Must have a committed path to convert
+	if dev["path"] == new_path:
+		return false  # Already on this path
+	if new_path == DevPath.UNDEVELOPED:
+		return false
+	if is_tile_rebuilding(tile_idx):
+		return false  # Already rebuilding
+	# Check player can afford (assume tile has owner_id in GameManager.tiles)
+	var owner_id: int = -1
+	for tile in GameManager.tiles:
+		if tile != null and tile.get("index", -1) == tile_idx:
+			owner_id = tile.get("owner_id", -1)
+			break
+	if owner_id < 0:
+		return false
+	var gold: int = ResourceManager.get_gold(owner_id)
+	var iron: int = ResourceManager.get_iron(owner_id)
+	if gold < BalanceConfig.PATH_CONVERSION_GOLD_COST or iron < BalanceConfig.PATH_CONVERSION_IRON_COST:
+		return false
+
+	# Pay cost
+	ResourceManager.add_gold(owner_id, -BalanceConfig.PATH_CONVERSION_GOLD_COST)
+	ResourceManager.add_iron(owner_id, -BalanceConfig.PATH_CONVERSION_IRON_COST)
+
+	# Record old path for signal
+	var old_path: int = dev["path"]
+
+	# Wipe all buildings and set new path
+	dev["buildings"] = []
+	dev["path"] = new_path
+	dev["committed"] = true
+	_tile_dev[tile_idx] = dev
+
+	# Enter rebuilding state
+	_rebuilding_tiles[tile_idx] = BalanceConfig.PATH_CONVERSION_REBUILD_TURNS
+
+	EventBus.tile_path_converted.emit(tile_idx, old_path, new_path)
+	return true
+
+
+func is_tile_rebuilding(tile_idx: int) -> bool:
+	## Returns true if the tile is in a post-conversion rebuilding state.
+	return _rebuilding_tiles.get(tile_idx, 0) > 0
+
+
+func tick_rebuilding() -> void:
+	## Called once per turn to decrement rebuilding timers.
+	var finished: Array = []
+	for idx in _rebuilding_tiles:
+		_rebuilding_tiles[idx] -= 1
+		if _rebuilding_tiles[idx] <= 0:
+			finished.append(idx)
+	for idx in finished:
+		_rebuilding_tiles.erase(idx)
+
+
+func get_seasonal_tile_bonus(tile_idx: int) -> Dictionary:
+	## Returns per-turn seasonal bonuses for a tile based on its development path.
+	## Cultural tiles: +1 prestige in Autumn (harvest festivals).
+	## Military tiles: +1 garrison regen in Winter (mobilization).
+	var dev: Dictionary = get_tile_development(tile_idx)
+	var bonuses: Dictionary = {}
+	if dev["path"] == DevPath.UNDEVELOPED:
+		return bonuses
+
+	# Safe access to WeatherSystem
+	if Engine.get_main_loop() is SceneTree:
+		var root: Node = (Engine.get_main_loop() as SceneTree).root
+		if root.has_node("WeatherSystem"):
+			var ws: Node = root.get_node("WeatherSystem")
+			var season: int = ws.current_season
+			if dev["path"] == DevPath.CULTURAL and season == 2:  # Season.AUTUMN
+				bonuses["prestige_bonus"] = 1
+			if dev["path"] == DevPath.MILITARY and season == 3:  # Season.WINTER
+				bonuses["garrison_regen"] = 1
+	return bonuses
+
+
 # Save/Load support
 func to_save_data() -> Dictionary:
-	return {"tile_dev": _tile_dev.duplicate(true)}
+	return {"tile_dev": _tile_dev.duplicate(true), "rebuilding_tiles": _rebuilding_tiles.duplicate(true)}
 
 
 func from_save_data(data: Dictionary) -> void:
 	_tile_dev = data.get("tile_dev", {})
+	_rebuilding_tiles = data.get("rebuilding_tiles", {})
 	# Fix int keys after JSON round-trip (keys become strings)
 	var keys_to_fix: Array = []
 	for k in _tile_dev:
@@ -264,6 +403,13 @@ func from_save_data(data: Dictionary) -> void:
 	for k in keys_to_fix:
 		_tile_dev[int(k)] = _tile_dev[k]
 		_tile_dev.erase(k)
+	var rb_keys_to_fix: Array = []
+	for k in _rebuilding_tiles:
+		if k is String and k.is_valid_int():
+			rb_keys_to_fix.append(k)
+	for k in rb_keys_to_fix:
+		_rebuilding_tiles[int(k)] = _rebuilding_tiles[k]
+		_rebuilding_tiles.erase(k)
 
 
 func _get_tile_level(tile_idx: int) -> int:
