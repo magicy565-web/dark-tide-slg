@@ -71,6 +71,7 @@ class BattleUnit:
 	var hero_knocked_out: bool = false  ## 英雄被击倒 (失去被动加成)
 	var morale: int = 100               ## 士气 (0 = rout)
 	var is_routed: bool = false          ## 已溃败
+	var exp: int = 0                     ## 累积经验值 (老兵/精锐判定用)
 
 	## Convenience: unit is alive if it has HP remaining.
 	func is_alive() -> bool:
@@ -332,6 +333,14 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 	var units: Array[BattleUnit] = []
 	var raw_units: Array = army.get("units", [])
 
+	# v4.3: Tile development combat bonuses (defender gets home-tile bonus)
+	var tile_bonuses: Dictionary = {"atk": 0, "def": 0, "morale": 0}
+	var tile_idx: int = army.get("tile_index", -1)
+	if tile_idx >= 0 and _has_autoload("DiplomacyManager"):
+		var dm: Node = _get_autoload("DiplomacyManager")
+		if dm != null and dm.has_method("get_tile_combat_bonuses"):
+			tile_bonuses = dm.get_tile_combat_bonuses(tile_idx)
+
 	for i in range(raw_units.size()):
 		var d: Dictionary = raw_units[i]
 		var bu := BattleUnit.new()
@@ -351,6 +360,7 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 		bu.has_acted = false
 		bu.first_attack = true
 		bu.mana = 0
+		bu.exp = d.get("exp", 0)
 
 		# Pull troop base stats from GameData autoload if available.
 		# NOTE: Skipped — input atk/def already includes base stats from
@@ -369,6 +379,29 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 			bu.hero_max_hp = bu.hero_hp
 			bu.hero_mp = hero_data.get("mp", 0)
 			bu.hero_max_mp = bu.hero_mp
+
+		# v4.3: Hero-Troop Synergy — hero commanding matching troop type
+		if bu.hero_id != "" and not hero_data.is_empty():
+			var hero_specialty: String = hero_data.get("troop_specialty", "")
+			if hero_specialty != "" and bu.troop_id.find(hero_specialty) >= 0:
+				bu.atk += BalanceConfig.HERO_TROOP_SYNERGY_ATK
+				bu.def_stat += BalanceConfig.HERO_TROOP_SYNERGY_DEF
+				bu.morale = mini(100, bu.morale + BalanceConfig.HERO_TROOP_SYNERGY_MORALE)
+
+		# v4.3: Veteran / Elite bonuses based on accumulated EXP
+		if bu.exp >= BalanceConfig.ELITE_EXP_THRESHOLD:
+			bu.atk += BalanceConfig.ELITE_ATK_BONUS
+			bu.def_stat += BalanceConfig.ELITE_DEF_BONUS
+			bu.morale = mini(100, bu.morale + BalanceConfig.ELITE_MORALE_BONUS)
+		elif bu.exp >= BalanceConfig.VETERAN_EXP_THRESHOLD:
+			bu.atk += BalanceConfig.VETERAN_ATK_BONUS
+			bu.morale = mini(100, bu.morale + BalanceConfig.VETERAN_MORALE_BONUS)
+
+		# v4.3: Tile development combat bonuses (military tiles buff garrison)
+		if tile_bonuses.get("atk", 0) > 0:
+			bu.atk += tile_bonuses["atk"]
+		if tile_bonuses.get("morale", 0) > 0:
+			bu.morale = mini(100, bu.morale + tile_bonuses["morale"])
 
 		units.append(bu)
 
@@ -1070,10 +1103,26 @@ func _apply_passive_on_hit(attacker: BattleUnit, defender: BattleUnit, damage: i
 
 ## Returns "attacker" if defenders are wiped, "defender" if attackers are
 ## wiped, or "" if the battle should continue.
+## v4.3: Also checks for total rout (all surviving units routed = defeat).
 func _check_battle_end(state: BattleState) -> String:
 	if state.total_attacker_soldiers() <= 0:
 		return "defender"
 	if state.total_defender_soldiers() <= 0:
+		return "attacker"
+	# v4.3: Total rout check — if all living units on a side are routed, they lose
+	var atk_all_routed: bool = true
+	for u in state.attacker_units:
+		if u.is_alive() and not u.is_routed:
+			atk_all_routed = false
+			break
+	if atk_all_routed and state.total_attacker_soldiers() > 0:
+		return "defender"
+	var def_all_routed: bool = true
+	for u in state.defender_units:
+		if u.is_alive() and not u.is_routed:
+			def_all_routed = false
+			break
+	if def_all_routed and state.total_defender_soldiers() > 0:
 		return "attacker"
 	return ""
 
@@ -1109,6 +1158,7 @@ func _reduce_morale(unit: BattleUnit, amount: int, state: BattleState) -> void:
 		_rout_unit(unit, state)
 
 ## Rout a unit: lose 30% soldiers, mark as routed (removed from action queue).
+## v4.3: Morale cascade — routing triggers morale loss on adjacent allies.
 func _rout_unit(unit: BattleUnit, state: BattleState) -> void:
 	unit.is_routed = true
 	var loss: int = int(ceil(float(unit.soldiers) * 0.30))
@@ -1127,14 +1177,36 @@ func _rout_unit(unit: BattleUnit, state: BattleState) -> void:
 		"desc": "%s 士气崩溃，溃败！损失%d兵" % [unit.troop_id, loss],
 	})
 	EventBus.unit_routed.emit(unit.troop_id, side_str)
+	# v4.3: Morale cascade — same-row allies lose extra morale when neighbor routs
+	var allies: Array[BattleUnit] = state.attacker_units if unit.is_attacker else state.defender_units
+	for u in allies:
+		if u == unit or not u.is_alive() or u.is_routed:
+			continue
+		if u.row == unit.row:
+			# Same row: -10 morale (panic spreads through the line)
+			_reduce_morale(u, 10, state)
+		else:
+			# Other row: -5 morale (distant concern)
+			_reduce_morale(u, 5, state)
 
 ## When an ally dies, all surviving same-side units lose 15 morale.
+## v4.3: If 50%+ of side's starting units are dead, remaining units lose extra morale.
 func _apply_ally_death_morale(dead_unit: BattleUnit, state: BattleState) -> void:
 	var allies: Array[BattleUnit] = state.attacker_units if dead_unit.is_attacker else state.defender_units
+	var total_units: int = allies.size()
+	var dead_count: int = 0
+	for u in allies:
+		if not u.is_alive():
+			dead_count += 1
+	# Base morale loss
+	var base_loss: int = 15
+	# v4.3: Escalating morale loss when heavy casualties taken
+	if total_units > 0 and float(dead_count) / float(total_units) >= 0.5:
+		base_loss = 25  # Heavy casualties: panic
 	for u in allies:
 		if u == dead_unit or not u.is_alive() or u.is_routed:
 			continue
-		_reduce_morale(u, 15, state)
+		_reduce_morale(u, base_loss, state)
 
 ## Try to fetch an autoload node by name at runtime.
 func _has_autoload(aname: String) -> bool:

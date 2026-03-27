@@ -387,6 +387,91 @@ func get_seasonal_tile_bonus(tile_idx: int) -> Dictionary:
 	return bonuses
 
 
+func get_combat_bonuses(tile_idx: int) -> Dictionary:
+	## v4.3: Returns combat stat bonuses for units fighting at this tile.
+	## Military path: +ATK per building, +morale per building
+	## Cultural path: hero skill CD reduction at tier 2+
+	## Economic path: supply recovery bonus at tier 2+
+	var dev: Dictionary = get_tile_development(tile_idx)
+	var bonuses: Dictionary = {"atk": 0, "def": 0, "morale": 0, "supply": 0, "hero_cd_reduction": 0}
+	if dev["path"] == DevPath.UNDEVELOPED:
+		return bonuses
+	if is_tile_rebuilding(tile_idx):
+		return bonuses
+
+	var num_buildings: int = dev["buildings"].size()
+	match dev["path"]:
+		DevPath.MILITARY:
+			bonuses["atk"] = BalanceConfig.TILE_MILITARY_GARRISON_ATK * num_buildings
+			bonuses["morale"] = BalanceConfig.TILE_MILITARY_GARRISON_MORALE * num_buildings
+		DevPath.CULTURAL:
+			if num_buildings >= 2:
+				bonuses["hero_cd_reduction"] = BalanceConfig.TILE_CULTURAL_HERO_CD_REDUCTION
+		DevPath.ECONOMIC:
+			if num_buildings >= 2:
+				bonuses["supply"] = BalanceConfig.TILE_ECONOMIC_SUPPLY_BONUS
+	return bonuses
+
+
+func process_military_training(player_id: int) -> void:
+	## v4.3: Military tiles with training_ground grant EXP to stationed armies each turn.
+	## Called during the turn processing phase.
+	for tile in GameManager.tiles:
+		if tile == null:
+			continue
+		if tile.get("owner_id", -1) != player_id:
+			continue
+		var tile_idx: int = tile.get("index", -1)
+		if tile_idx < 0:
+			continue
+		var dev: Dictionary = get_tile_development(tile_idx)
+		if dev["path"] != DevPath.MILITARY:
+			continue
+		if "training_ground" not in dev["buildings"]:
+			continue
+		# Grant EXP to armies stationed at this tile
+		var exp_grant: int = BalanceConfig.TILE_MILITARY_TRAINING_GROUND_EXP
+		if Engine.get_main_loop() is SceneTree:
+			var root: Node = (Engine.get_main_loop() as SceneTree).root
+			if root.has_node("RecruitManager"):
+				var rm: Node = root.get_node("RecruitManager")
+				if rm.has_method("grant_garrison_exp"):
+					rm.grant_garrison_exp(tile_idx, exp_grant)
+
+
+func get_development_summary(player_id: int) -> Dictionary:
+	## v4.3: Returns a summary of all tile development for UI/AI purposes.
+	## { "military": int, "economic": int, "cultural": int, "undeveloped": int,
+	##   "total_buildings": int, "tier3_count": int }
+	var summary: Dictionary = {
+		"military": 0, "economic": 0, "cultural": 0, "undeveloped": 0,
+		"total_buildings": 0, "tier3_count": 0,
+	}
+	for tile in GameManager.tiles:
+		if tile == null:
+			continue
+		if tile.get("owner_id", -1) != player_id:
+			continue
+		var tile_idx: int = tile.get("index", -1)
+		if tile_idx < 0:
+			continue
+		var dev: Dictionary = get_tile_development(tile_idx)
+		var num_bld: int = dev["buildings"].size()
+		summary["total_buildings"] += num_bld
+		match dev["path"]:
+			DevPath.MILITARY:
+				summary["military"] += 1
+			DevPath.ECONOMIC:
+				summary["economic"] += 1
+			DevPath.CULTURAL:
+				summary["cultural"] += 1
+			_:
+				summary["undeveloped"] += 1
+		if num_bld >= 4:
+			summary["tier3_count"] += 1
+	return summary
+
+
 # Save/Load support
 func to_save_data() -> Dictionary:
 	return {"tile_dev": _tile_dev.duplicate(true), "rebuilding_tiles": _rebuilding_tiles.duplicate(true)}

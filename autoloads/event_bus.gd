@@ -228,3 +228,19 @@ signal spy_captured(player_id: int, target_id: int)
 signal formation_detected(side: String, formation_id: int, formation_name: String)
 signal formation_clash(atk_formation: int, def_formation: int, effect: String)
 signal tactical_combo_triggered(combo_id: String, description: String)
+
+# ── Reputation & Diplomacy Depth (v4.3) ──
+signal reputation_threshold_crossed(faction_key: String, old_level: String, new_level: String)
+signal treaty_break_cascade(total_breaks: int)
+signal treachery_debuff_applied(player_id: int, duration: int)
+
+# ── Event Chains (v4.3) ──
+signal event_chain_triggered(parent_id: String, chain_id: String, delay_turns: int)
+signal event_chain_resolved(chain_id: String, choice_index: int)
+
+# ── Veteran System (v4.3) ──
+signal unit_promoted_veteran(unit_id: String, troop_id: String)
+signal unit_promoted_elite(unit_id: String, troop_id: String)
+
+# ── Tile Combat Bonuses (v4.3) ──
+signal tile_combat_bonus_applied(tile_idx: int, path: int, bonuses: Dictionary)

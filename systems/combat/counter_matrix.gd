@@ -96,6 +96,7 @@ const COUNTER_TABLE: Dictionary = {
 		"heavy_infantry": {"atk_mult": 1.50, "def_mult": 0.70, "label": "魔法克重甲", "hard": true},
 		"tank":      {"atk_mult": 1.40, "def_mult": 0.75, "label": "魔法克坦克", "hard": true},
 		"infantry":  {"atk_mult": 1.20, "def_mult": 0.90, "label": "魔法压步兵"},
+		"berserker": {"atk_mult": 1.15, "def_mult": 0.90, "label": "魔法压狂战"},  # v4.3: mage soft-counters berserker (low magic resist)
 		"assassin":  {"atk_mult": 0.60, "def_mult": 1.50, "label": "法师怕刺客", "weak": true},
 		"cavalry":   {"atk_mult": 0.80, "def_mult": 1.20, "label": "法师怕骑兵", "weak": true},
 	},

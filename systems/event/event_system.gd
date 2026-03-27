@@ -33,6 +33,12 @@ var _pending_events: Array = []
 var _event_cooldowns: Dictionary = {}  # event_id -> int (turns remaining)
 const EVENT_COOLDOWN_TURNS: int = 5
 
+# ── Event Chain System (v4.3): tracks choices for cascading follow-up events ──
+# { parent_event_id: { "choice": int, "turn": int } }
+var _event_chain_history: Dictionary = {}
+# Pending chain events: [ { "event": Dictionary, "trigger_turn": int } ]
+var _pending_chain_events: Array = []
+
 
 func _ready() -> void:
 	_register_events()
@@ -50,6 +56,8 @@ func reset() -> void:
 	_event_cooldowns.clear()
 	_world_events.clear()
 	_world_event_triggered_ids.clear()
+	_event_chain_history.clear()
+	_pending_chain_events.clear()
 
 
 # ═══════════════ EVENT REGISTRATION ═══════════════
@@ -299,13 +307,137 @@ func _register_events() -> void:
 		]
 	})
 
+	# ═══════════════ EVENT CHAINS (v4.3) ═══════════════
+	# Chain events are follow-ups that trigger N turns after the parent event,
+	# based on which choice the player made. This creates multi-turn narrative arcs.
+
+	# Chain: plague → aftermath
+	_events.append({
+		"id": "plague_aftermath", "name": "瘟疫余波",
+		"desc": "瘟疫过后，幸存者中出现了两种声音。",
+		"condition": "chain:plague", "repeatable": false,
+		"chain_parent": "plague",
+		"choices": [
+			{"text": "建设医馆 (-80金, 秩序+8, 该地块治安+20%)",
+			 "effects": {"gold": -80, "order": 8}},
+			{"text": "招募幸存者 (+5兵力, 但部队ATK-10% 3回合)",
+			 "effects": {"soldiers": 5, "buff": {"type": "atk_pct", "value": -10, "duration": 3}}},
+		]
+	})
+
+	# Chain: refugee_camp → integration
+	_events.append({
+		"id": "refugee_integration", "name": "难民安置",
+		"desc": "之前收容的难民已在领地定居，他们提出了请求。",
+		"condition": "chain:refugee_camp:0", "repeatable": false,
+		"chain_parent": "refugee_camp", "chain_choice": 0,
+		"choices": [
+			{"text": "分配土地 (-30金, +8粮/回合x5)", "effects": {"gold": -30, "type": "dot", "food": 8, "duration": 5}},
+			{"text": "编入劳役 (+5奴隶, 秩序-3)", "effects": {"slaves": 5, "order": -3}},
+		]
+	})
+
+	# Chain: refugee_camp (chose kill) → haunting
+	_events.append({
+		"id": "refugee_haunting", "name": "冤魂作祟",
+		"desc": "被屠杀的难民的怨念弥漫在领地上空。",
+		"condition": "chain:refugee_camp:1", "repeatable": false,
+		"chain_parent": "refugee_camp", "chain_choice": 1,
+		"choices": [
+			{"text": "举行祭祀安魂 (-3奴隶, 秩序+5)", "effects": {"slaves": -3, "order": 5}},
+			{"text": "无视 (士气-10全军, 声望-10)", "effects": {"reputation_all": -10, "buff": {"type": "morale_pct", "value": -10, "duration": 3}}},
+		]
+	})
+
+	# Chain: black_trader → return visit
+	_events.append({
+		"id": "trader_return", "name": "商人的回礼",
+		"desc": "之前的神秘商人再次出现，这次带来了更珍贵的货物。",
+		"condition": "chain:black_trader:0", "repeatable": false,
+		"chain_parent": "black_trader", "chain_choice": 0,
+		"choices": [
+			{"text": "购买秘药 (-100金, 随机英雄永久ATK+2)", "effects": {"gold": -100, "hero_stat_boost": {"stat": "atk", "value": 2}}},
+			{"text": "换取情报 (-60金, 揭示4格迷雾)", "effects": {"gold": -60, "reveal": 4}},
+		]
+	})
+
+	# Chain: black_trader (chose rob) → revenge
+	_events.append({
+		"id": "trader_revenge", "name": "商人的复仇",
+		"desc": "被抢劫的商人雇佣了一队佣兵前来报复。",
+		"condition": "chain:black_trader:1", "repeatable": false,
+		"chain_parent": "black_trader", "chain_choice": 1,
+		"choices": [
+			{"text": "迎战 (战斗: 敌10兵)", "effects": {"type": "combat", "enemy_soldiers": 10}},
+			{"text": "赔偿 (-120金, 声望+5)", "effects": {"gold": -120, "reputation_all": 5}},
+		]
+	})
+
+	# Chain: ancient_ruins (chose dig) → curse of the ancients
+	_events.append({
+		"id": "ruins_curse", "name": "远古诅咒",
+		"desc": "挖掘遗迹释放了远古封印中的力量。",
+		"condition": "chain:ancient_ruins:0", "repeatable": false,
+		"chain_parent": "ancient_ruins", "chain_choice": 0,
+		"choices": [
+			{"text": "封印力量 (-3魔晶, 获得强力遗物)", "effects": {"magic_crystal": -3, "relic": true}},
+			{"text": "吸收力量 (全军ATK+20% 5回合, 但秩序-8)", "effects": {"order": -8, "buff": {"type": "atk_pct", "value": 20, "duration": 5}}},
+		]
+	})
+
+	# Chain: blood_ritual → divine retribution
+	_events.append({
+		"id": "ritual_retribution", "name": "神罚降临",
+		"desc": "频繁的血祭引来了光明诸神的注意。",
+		"condition": "chain:blood_ritual:0", "repeatable": false,
+		"chain_parent": "blood_ritual", "chain_choice": 0,
+		"choices": [
+			{"text": "加强祭坛 (-5奴隶, +3暗影精华, 威胁+10)", "effects": {"slaves": -5, "shadow_essence": 3, "threat": 10}},
+			{"text": "暂停祭祀 (秩序+5, 失去ATK增益)", "effects": {"order": 5}},
+		]
+	})
+
+	# Chain: mercenaries → veteran mercenaries offer permanent contract
+	_events.append({
+		"id": "merc_contract", "name": "佣兵长约",
+		"desc": "之前雇佣的佣兵队长对你产生了敬意，提出永久效力。",
+		"condition": "chain:mercenaries:0", "repeatable": false,
+		"chain_parent": "mercenaries", "chain_choice": 0,
+		"choices": [
+			{"text": "签约 (-200金, 永久+8精锐兵)", "effects": {"gold": -200, "soldiers": 8}},
+			{"text": "拒绝但推荐 (+3威望, 声望+10)", "effects": {"prestige": 3, "reputation_all": 10}},
+		]
+	})
+
 
 # ═══════════════ CONDITION CHECKS ═══════════════
 
 func check_condition(event: Dictionary) -> bool:
 	var pid: int = GameManager.get_human_player_id()
 	var faction_id: int = GameManager.get_player_faction(pid)
-	match event["condition"]:
+	var cond: String = event["condition"]
+
+	# v4.3: Chain condition format: "chain:parent_id" or "chain:parent_id:choice_index"
+	if cond.begins_with("chain:"):
+		var parts: PackedStringArray = cond.split(":")
+		var parent_id: String = parts[1] if parts.size() > 1 else ""
+		if not _event_chain_history.has(parent_id):
+			return false
+		# If specific choice required, check it
+		if parts.size() > 2:
+			var required_choice: int = int(parts[2])
+			if _event_chain_history[parent_id].get("choice", -1) != required_choice:
+				return false
+		# Check delay: chain events fire 2-4 turns after parent
+		var parent_turn: int = _event_chain_history[parent_id].get("turn", 0)
+		var delay: int = GameManager.turn_number - parent_turn
+		if delay < BalanceConfig.EVENT_CHAIN_DELAY_MIN:
+			return false
+		if delay > BalanceConfig.EVENT_CHAIN_DELAY_MAX + 2:
+			return false  # Expired: too long since parent
+		return true
+
+	match cond:
 		"always":
 			return true
 		"turn_gte_5":
@@ -797,6 +929,33 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 				LightFactionAI.repair_wall(tile["index"], boost_amount)
 		result["applied"].append("wall_boost: +%d (all walls)" % boost_amount)
 
+	# v4.3: Hero permanent stat boost (from chain events)
+	if effects.has("hero_stat_boost"):
+		var boost: Dictionary = effects["hero_stat_boost"]
+		var stat_key: String = boost.get("stat", "atk")
+		var stat_val: int = boost.get("value", 1)
+		var boosted_hero: String = ""
+		# Apply to first recruited hero
+		if HeroSystem.has_method("get_recruited_heroes"):
+			var recruited: Array = HeroSystem.get_recruited_heroes()
+			if not recruited.is_empty():
+				boosted_hero = recruited[0]
+				if HeroSystem.has_method("modify_hero_stat"):
+					HeroSystem.modify_hero_stat(boosted_hero, stat_key, stat_val)
+				EventBus.message_log.emit("[color=green]%s 的%s永久+%d![/color]" % [boosted_hero, stat_key.to_upper(), stat_val])
+		result["applied"].append("hero_stat_boost: %s+%d (%s)" % [stat_key, stat_val, boosted_hero])
+
+	# v4.3: Shadow essence resource
+	if effects.has("shadow_essence"):
+		ResourceManager.apply_delta(pid, {"shadow_essence": effects["shadow_essence"]})
+		result["applied"].append("shadow_essence: %+d" % effects["shadow_essence"])
+
+	# v4.3: Record event choice for chain system
+	_event_chain_history[event_id] = {
+		"choice": choice_index,
+		"turn": GameManager.turn_number,
+	}
+
 	EventBus.event_choice_made.emit(event_id, choice_index)
 	return result
 
@@ -867,6 +1026,8 @@ func to_save_data() -> Dictionary:
 		"temp_soldier_batches": _temp_soldier_batches.duplicate(true),
 		"world_event_triggered_ids": _world_event_triggered_ids.duplicate(true),
 		"event_cooldowns": _event_cooldowns.duplicate(true),
+		"event_chain_history": _event_chain_history.duplicate(true),
+		"pending_chain_events": _pending_chain_events.duplicate(true),
 	}
 
 
@@ -879,5 +1040,7 @@ func from_save_data(data: Dictionary) -> void:
 	_temp_soldier_batches = data.get("temp_soldier_batches", []).duplicate(true)
 	_world_event_triggered_ids = data.get("world_event_triggered_ids", {}).duplicate(true)
 	_event_cooldowns = data.get("event_cooldowns", {}).duplicate(true)
+	_event_chain_history = data.get("event_chain_history", {}).duplicate(true)
+	_pending_chain_events = data.get("pending_chain_events", []).duplicate(true)
 	# Re-register world events from data file so check_world_events() works
 	register_world_events()

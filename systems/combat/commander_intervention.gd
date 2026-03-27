@@ -44,7 +44,7 @@ const INTERVENTION_DATA: Dictionary = {
 		"cp_cost": 2, "cooldown": 2, "requires_target": true,
 	},
 	InterventionType.INSPIRE: {
-		"name": "激励号令", "desc": "全军ATK+20%, 持续2回合",
+		"name": "激励号令", "desc": "全军ATK+20%, 士气+15, 持续2回合",
 		"cp_cost": 2, "cooldown": 5, "requires_target": false,
 	},
 	InterventionType.SHIELD_WALL: {
@@ -229,7 +229,9 @@ func _execute_inspire(state: Dictionary, log: Array) -> void:
 	for unit in state["atk_units"]:
 		if unit["is_alive"]:
 			unit["buffs"].append({"id": "inspire", "duration": 2, "value": 0.20, "mult_atk": true})
-	log.append("[color=gold]【指挥】激励号令! 全军ATK+20%%(2回合)[/color]")
+			# v4.3: Inspire also restores morale (synergy with deeper morale system)
+			unit["morale"] = mini(unit.get("morale", 100) + 15, 100)
+	log.append("[color=gold]【指挥】激励号令! 全军ATK+20%% 士气+15(2回合)[/color]")
 
 func _execute_shield_wall(state: Dictionary, log: Array) -> void:
 	for unit in state["atk_units"]:

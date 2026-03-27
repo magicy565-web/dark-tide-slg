@@ -271,6 +271,108 @@ func tick_reputation_decay() -> void:
 			_reputation[key] += REPUTATION_DECAY_RATE
 
 
+# ═══════════════ REPUTATION GAMEPLAY IMPACT (v4.3) ═══════════════
+
+## Track total treaty-breaking count for "背信弃义" debuff
+var _treaty_breaks_total: int = 0
+
+
+func get_reputation_cost_multiplier(faction_key: String) -> float:
+	## Returns a cost multiplier for diplomacy actions based on reputation.
+	## Friendly = cheaper (0.80x), hostile = more expensive (1.50x).
+	var rep: int = get_reputation(faction_key)
+	if rep > 30:
+		return BalanceConfig.REPUTATION_FRIENDLY_COST_MULT
+	elif rep < -50:
+		return BalanceConfig.REPUTATION_HOSTILE_COST_MULT
+	return 1.0
+
+
+func get_reputation_duration_modifier(faction_key: String) -> int:
+	## Returns a treaty duration modifier based on reputation.
+	## Friendly = +2 turns, hostile = -2 turns.
+	var rep: int = get_reputation(faction_key)
+	if rep > 30:
+		return BalanceConfig.REPUTATION_FRIENDLY_DURATION_BONUS
+	elif rep < -50:
+		return -BalanceConfig.REPUTATION_HOSTILE_DURATION_PENALTY
+	return 0
+
+
+func is_trade_blocked_by_reputation(faction_key: String) -> bool:
+	## Returns true if reputation is too low for trade.
+	return get_reputation(faction_key) < BalanceConfig.REPUTATION_TRADE_BLOCK_THRESHOLD
+
+
+func is_alliance_blocked_by_reputation(faction_key: String) -> bool:
+	## Returns true if reputation is too low for military alliance.
+	return get_reputation(faction_key) < BalanceConfig.REPUTATION_ALLIANCE_THRESHOLD
+
+
+func get_treaty_breaks_total() -> int:
+	return _treaty_breaks_total
+
+
+func _apply_treaty_break_cascade(target_faction: int) -> void:
+	## Breaking a treaty hurts reputation with ALL factions, not just the target.
+	_treaty_breaks_total += 1
+	for key in _reputation:
+		change_reputation(key, BalanceConfig.TREATY_BREAK_REPUTATION_CASCADE)
+	EventBus.message_log.emit("[color=red]背盟行为传遍各地! 所有势力声望%d[/color]" % BalanceConfig.TREATY_BREAK_REPUTATION_CASCADE)
+	# Check for "背信弃义" debuff threshold
+	if _treaty_breaks_total >= BalanceConfig.TREATY_BREAK_THRESHOLD:
+		var pid: int = GameManager.get_human_player_id()
+		BuffManager.add_buff(pid, "treachery_debuff", "atk_pct",
+			-BalanceConfig.TREATY_BREAK_DEBUFF_ATK_PENALTY * 100,
+			BalanceConfig.TREATY_BREAK_DEBUFF_DURATION, "reputation")
+		EventBus.message_log.emit("[color=red]【背信弃义】连续背盟%d次! ATK-%d%% 持续%d回合[/color]" % [
+			_treaty_breaks_total,
+			int(BalanceConfig.TREATY_BREAK_DEBUFF_ATK_PENALTY * 100),
+			BalanceConfig.TREATY_BREAK_DEBUFF_DURATION])
+
+
+func get_tile_combat_bonuses(tile_idx: int) -> Dictionary:
+	## Returns combat bonuses for units fighting at/from a developed tile.
+	## Military path: +ATK per building, +morale per building
+	## Cultural path: hero skill CD-1
+	## Economic path: supply bonus
+	var bonuses: Dictionary = {"atk": 0, "def": 0, "morale": 0, "supply": 0, "hero_cd_reduction": 0}
+	if not _has_autoload("TileDevelopment"):
+		return bonuses
+	var td: Node = _get_autoload("TileDevelopment")
+	if td == null:
+		return bonuses
+	var dev: Dictionary = td.get_tile_development(tile_idx)
+	if dev["path"] == td.DevPath.UNDEVELOPED:
+		return bonuses
+	var num_buildings: int = dev["buildings"].size()
+	match dev["path"]:
+		td.DevPath.MILITARY:
+			bonuses["atk"] = BalanceConfig.TILE_MILITARY_GARRISON_ATK * num_buildings
+			bonuses["morale"] = BalanceConfig.TILE_MILITARY_GARRISON_MORALE * num_buildings
+		td.DevPath.CULTURAL:
+			bonuses["hero_cd_reduction"] = BalanceConfig.TILE_CULTURAL_HERO_CD_REDUCTION if num_buildings >= 2 else 0
+		td.DevPath.ECONOMIC:
+			bonuses["supply"] = BalanceConfig.TILE_ECONOMIC_SUPPLY_BONUS if num_buildings >= 2 else 0
+	return bonuses
+
+
+func _has_autoload(aname: String) -> bool:
+	var tree := Engine.get_main_loop()
+	if tree is SceneTree:
+		return (tree as SceneTree).root.has_node(aname)
+	return false
+
+
+func _get_autoload(aname: String) -> Node:
+	var tree := Engine.get_main_loop()
+	if tree is SceneTree:
+		var root: Node = (tree as SceneTree).root
+		if root.has_node(aname):
+			return root.get_node(aname)
+	return null
+
+
 # ═══════════════ CEASEFIRE (ORC-ONLY) ═══════════════
 
 func offer_ceasefire(player_id: int, faction_id: int, turns: int = 5) -> bool:
@@ -475,12 +577,21 @@ func can_sign_alliance(player_id: int, target_faction: int) -> Dictionary:
 	if not has_treaty(player_id, "nap", target_faction):
 		result["possible"] = false
 		result["missing"].append("需要先签订互不侵犯条约")
-	if not ResourceManager.can_afford(player_id, {"gold": BalanceConfig.ALLIANCE_EVIL_COST_GOLD}):
+	# v4.3: Reputation gate — need minimum reputation for alliance
+	var rep_key: String = _faction_to_ai_key(target_faction)
+	if rep_key != "" and is_alliance_blocked_by_reputation(rep_key):
 		result["possible"] = false
-		result["missing"].append("金币不足(需要%d金)" % BalanceConfig.ALLIANCE_EVIL_COST_GOLD)
-	if ResourceManager.get_resource(player_id, "prestige") < BalanceConfig.ALLIANCE_EVIL_COST_PRESTIGE:
+		result["missing"].append("声望不足(需≥%d), 对方不信任你" % BalanceConfig.REPUTATION_ALLIANCE_THRESHOLD)
+	# v4.3: Reputation-adjusted costs
+	var cost_mult: float = get_reputation_cost_multiplier(rep_key) if rep_key != "" else 1.0
+	var adjusted_gold: int = int(BalanceConfig.ALLIANCE_EVIL_COST_GOLD * cost_mult)
+	var adjusted_prestige: int = int(BalanceConfig.ALLIANCE_EVIL_COST_PRESTIGE * cost_mult)
+	if not ResourceManager.can_afford(player_id, {"gold": adjusted_gold}):
 		result["possible"] = false
-		result["missing"].append("威望不足(需要%d)" % BalanceConfig.ALLIANCE_EVIL_COST_PRESTIGE)
+		result["missing"].append("金币不足(需要%d金)" % adjusted_gold)
+	if ResourceManager.get_resource(player_id, "prestige") < adjusted_prestige:
+		result["possible"] = false
+		result["missing"].append("威望不足(需要%d)" % adjusted_prestige)
 	return result
 
 
@@ -488,17 +599,26 @@ func sign_alliance(player_id: int, target_faction: int) -> bool:
 	var check: Dictionary = can_sign_alliance(player_id, target_faction)
 	if not check["possible"]:
 		return false
-	ResourceManager.spend(player_id, {"gold": BalanceConfig.ALLIANCE_EVIL_COST_GOLD, "prestige": BalanceConfig.ALLIANCE_EVIL_COST_PRESTIGE})
+	# v4.3: Reputation-adjusted costs and duration
+	var rep_key: String = _faction_to_ai_key(target_faction)
+	var cost_mult: float = get_reputation_cost_multiplier(rep_key) if rep_key != "" else 1.0
+	var adjusted_gold: int = int(BalanceConfig.ALLIANCE_EVIL_COST_GOLD * cost_mult)
+	var adjusted_prestige: int = int(BalanceConfig.ALLIANCE_EVIL_COST_PRESTIGE * cost_mult)
+	var dur_mod: int = get_reputation_duration_modifier(rep_key) if rep_key != "" else 0
+	var adjusted_duration: int = maxi(3, BalanceConfig.ALLIANCE_EVIL_DURATION + dur_mod)
+	ResourceManager.spend(player_id, {"gold": adjusted_gold, "prestige": adjusted_prestige})
 	var treaty := {
 		"type": "alliance",
 		"target": target_faction,
-		"turns_left": BalanceConfig.ALLIANCE_EVIL_DURATION,
+		"turns_left": adjusted_duration,
 	}
 	_get_player_treaties(player_id).append(treaty)
 	var fname: String = _get_faction_name(target_faction)
 	EventBus.message_log.emit("[color=lime]与%s缔结军事同盟! ATK+%d%% DEF+%d%%, 持续%d回合[/color]" % [
 		fname, int(BalanceConfig.ALLIANCE_EVIL_ATK_BONUS * 100),
-		int(BalanceConfig.ALLIANCE_EVIL_DEF_BONUS * 100), BalanceConfig.ALLIANCE_EVIL_DURATION])
+		int(BalanceConfig.ALLIANCE_EVIL_DEF_BONUS * 100), adjusted_duration])
+	if cost_mult != 1.0:
+		EventBus.message_log.emit("[color=gray](声望影响: 费用x%.0f%%, 时长%+d回合)[/color]" % [cost_mult * 100, dur_mod])
 	EventBus.treaty_signed.emit(player_id, "alliance", target_faction)
 	# Reduce AI threat for allied faction
 	var ai_key: String = _faction_to_ai_key(target_faction)
@@ -521,6 +641,11 @@ func can_sign_trade(player_id: int, target_faction: int) -> Dictionary:
 	if rel.get("hostile", false):
 		result["possible"] = false
 		result["missing"].append("已敌对, 无法通商")
+	# v4.3: Reputation gate — too low reputation blocks trade
+	var rep_key: String = _faction_to_ai_key(target_faction)
+	if rep_key != "" and is_trade_blocked_by_reputation(rep_key):
+		result["possible"] = false
+		result["missing"].append("声望过低(<%d), 对方拒绝通商" % BalanceConfig.REPUTATION_TRADE_BLOCK_THRESHOLD)
 	if not ResourceManager.can_afford(player_id, {"gold": BalanceConfig.TRADE_COST_GOLD}):
 		result["possible"] = false
 		result["missing"].append("金币不足(需要%d金)" % BalanceConfig.TRADE_COST_GOLD)
@@ -574,6 +699,8 @@ func break_treaty(player_id: int, treaty_type: String, target_faction: int) -> b
 						fname, BalanceConfig.TRIBUTE_BREAK_PRESTIGE_COST, BalanceConfig.TRIBUTE_BREAK_THREAT_GAIN])
 				"trade":
 					EventBus.message_log.emit("[color=yellow]终止与%s的通商协定[/color]" % fname)
+			# v4.3: Reputation cascade — breaking any treaty hurts ALL reputations
+			_apply_treaty_break_cascade(target_faction)
 			EventBus.treaty_broken.emit(player_id, treaty_type, target_faction)
 			return true
 	return false
@@ -917,6 +1044,7 @@ func to_save_data() -> Dictionary:
 		"light_extort_cooldown": _light_extort_cooldown,
 		"pending_light_peace": _pending_light_peace.duplicate(true),
 		"reputation": _reputation.duplicate(),
+		"treaty_breaks_total": _treaty_breaks_total,
 	}
 
 
@@ -972,6 +1100,7 @@ func from_save_data(data: Dictionary) -> void:
 	_light_extort_cooldown = data.get("light_extort_cooldown", 0)
 	_pending_light_peace = data.get("pending_light_peace", {}).duplicate(true)
 	_reputation = data.get("reputation", {}).duplicate()
+	_treaty_breaks_total = data.get("treaty_breaks_total", 0)
 	# Fix reputation int values after JSON round-trip
 	for key in _reputation:
 		_reputation[key] = int(_reputation[key])

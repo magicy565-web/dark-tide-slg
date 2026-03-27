@@ -553,3 +553,62 @@ const SYNERGY_CULTURAL_THRESHOLD: int = 3
 const SYNERGY_MILITARY_ATK_BONUS: int = 1
 const SYNERGY_ECONOMIC_GOLD_MULT: float = 1.10
 const SYNERGY_CULTURAL_EXP_MULT: float = 1.15
+
+# ═══════════════ REPUTATION GAMEPLAY IMPACT (v4.3) ═══════════════
+
+## Reputation-based diplomacy cost modifiers
+## friendly (>30): -20% treaty costs | hostile (<-50): +50% costs, blocks trade
+const REPUTATION_FRIENDLY_COST_MULT: float = 0.80     # 友好声望: 条约费用-20%
+const REPUTATION_HOSTILE_COST_MULT: float = 1.50       # 敌对声望: 条约费用+50%
+const REPUTATION_FRIENDLY_DURATION_BONUS: int = 2      # 友好声望: 条约持续+2回合
+const REPUTATION_HOSTILE_DURATION_PENALTY: int = 2      # 敌对声望: 条约持续-2回合
+
+## Reputation thresholds for gating advanced diplomatic options
+const REPUTATION_ALLIANCE_THRESHOLD: int = 10          # 声望≥10才能结盟
+const REPUTATION_TRADE_BLOCK_THRESHOLD: int = -30      # 声望<-30封锁通商
+
+## Reputation cascade on treaty-breaking: penalty applied to ALL factions
+const TREATY_BREAK_REPUTATION_CASCADE: int = -10       # 背盟时所有势力声望-10
+const TREATY_BREAK_THRESHOLD: int = 3                  # 连续背盟N次触发"背信"debuff
+const TREATY_BREAK_DEBUFF_ATK_PENALTY: float = 0.10    # "背信弃义"debuff: ATK-10%
+const TREATY_BREAK_DEBUFF_DURATION: int = 10           # "背信弃义"持续10回合
+
+# ═══════════════ HERO-TROOP SYNERGY (v4.3) ═══════════════
+
+## Hero commanding matching troop type gets synergy bonus
+const HERO_TROOP_SYNERGY_ATK: int = 2                 # 英雄指挥匹配兵种: ATK+2
+const HERO_TROOP_SYNERGY_DEF: int = 1                 # DEF+1
+const HERO_TROOP_SYNERGY_MORALE: int = 10              # 初始士气+10
+
+## Veteran unit bonuses (based on accumulated EXP/battles)
+const VETERAN_EXP_THRESHOLD: int = 20                  # EXP≥20: 老兵
+const VETERAN_ATK_BONUS: int = 1                       # 老兵ATK+1
+const VETERAN_MORALE_BONUS: int = 5                    # 老兵初始士气+5
+const ELITE_EXP_THRESHOLD: int = 50                    # EXP≥50: 精锐
+const ELITE_ATK_BONUS: int = 2                         # 精锐ATK+2
+const ELITE_DEF_BONUS: int = 1                         # 精锐DEF+1
+const ELITE_MORALE_BONUS: int = 10                     # 精锐初始士气+10
+
+# ═══════════════ TILE DEVELOPMENT → COMBAT (v4.3) ═══════════════
+
+## Military tile stationed army bonuses
+const TILE_MILITARY_GARRISON_ATK: int = 1              # 军事地块驻军ATK+1 per building
+const TILE_MILITARY_GARRISON_MORALE: int = 5           # 军事地块驻军士气+5 per building
+const TILE_MILITARY_TRAINING_GROUND_EXP: int = 3       # 练兵场每回合给驻军+3 EXP
+
+## Cultural tile bonuses
+const TILE_CULTURAL_HERO_CD_REDUCTION: int = 1         # 文化地块英雄技能CD-1
+const TILE_CULTURAL_AFFECTION_BONUS: int = 1           # 文化地块英雄好感+1/回合
+
+## Economic tile supply bonuses
+const TILE_ECONOMIC_SUPPLY_BONUS: int = 10             # 经济地块补给恢复+10/回合
+
+# ═══════════════ EVENT CHAINS (v4.3) ═══════════════
+
+## Event chain follow-up delay (turns after trigger event)
+const EVENT_CHAIN_DELAY_MIN: int = 2
+const EVENT_CHAIN_DELAY_MAX: int = 4
+
+## Event consequence escalation
+const EVENT_CHAIN_REWARD_ESCALATION: float = 1.25      # 连锁事件奖励提高25%
+const EVENT_CHAIN_RISK_ESCALATION: float = 1.30        # 连锁事件风险提高30%
