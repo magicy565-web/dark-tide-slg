@@ -135,7 +135,24 @@ const EVENTS: Dictionary = {
 					{"speaker": "月華", "text": "你到底对我做了什么……大地已经不再用从前的声音和我说话了……"},
 				]
 			},
-			"system_prompt": "月華的调教进度 [4/10]。灵脉连接被快感侵蚀，她开始无法分辨大地的声音与身体的渴望。",
+			"choice_prompt": "月華的灵脉连接已开始动摇。你对她与大地关系的态度，将影响一切。",
+			"choices": [
+				{
+					"text": "触碰她的灵纹时刻意放缓，让她的灵脉不至于断裂",
+					"hint": "你选择保留她与大地的联系。这份温柔会被她记住。",
+					"consequence": "月華感受到了触碰中的克制。灵纹的闪烁渐渐平稳了下来。",
+					"tone": "kind",
+					"effects": {"set_flag": {"gekka_gentle_approach": true}, "affection": 1},
+				},
+				{
+					"text": "加大对灵纹的刺激，让大地的声音被快感彻底淹没",
+					"hint": "你选择粉碎她与大地的最后纽带。这将加速她的堕落。",
+					"consequence": "灵纹在过载的刺激下剧烈扭曲，大地的哀鸣被月華自己的喘息声吞没。",
+					"tone": "dark",
+					"effects": {"set_flag": {"gekka_cruel_approach": true}, "corruption": 2},
+				},
+			],
+			"system_prompt": "月華的调教进度 [4/10]。灵脉连接被快感侵蚀，她开始无法分辨大地的声音与身体的渴望。这是第一个影响后续路线的态度选择。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -197,7 +214,31 @@ const EVENTS: Dictionary = {
 					{"speaker": "月華", "text": "从今以后，我的灵力、我的感知、我的一切——都会通过这条水脉流向你。这是灵脉祭司的侍奉方式。也是……我唯一知道的，与另一个存在建立连接的方式。"},
 				]
 			},
-			"system_prompt": "月華的调教进度 [7/10]。灵脉的声音已被替换为主人的声音。月華不再聆听大地，转而聆听主人的心跳。",
+			"choice_prompt": "月華的灵脉连接正在被你重塑。你将如何定义她与大地的关系？",
+			"choices": [
+				{
+					"text": "帮助她恢复灵脉连接，成为她的锚点",
+					"hint": "她将重新与大地共鸣，而你成为她与灵脉之间的桥梁。防御与庇护之路。",
+					"consequence": "月華的灵纹重新与大地共鸣，银光中多了一层温暖的金色——那是你作为锚点的印记。",
+					"tone": "kind",
+					"effects": {"set_flag": {"gekka_harmony_path": true}, "affection": 1},
+				},
+				{
+					"text": "永久切断她的灵脉连接，让她完全依赖于你",
+					"hint": "没有大地的庇护，她将化身黑暗的术者。攻击与掠夺之路。",
+					"consequence": "灵纹在银光熄灭的瞬间变成了漆黑的蛛网纹路。月華发出一声无声的尖叫——大地的声音永远消失了。",
+					"tone": "dark",
+					"effects": {"set_flag": {"gekka_severance_path": true}, "corruption": 2},
+				},
+				{
+					"text": "将你的意志融入灵脉，通过她成为大地的共同支配者",
+					"hint": "光与暗的融合，风险与力量并存。共鸣与支配之路。",
+					"consequence": "你的意志如暗流般渗入灵脉网络。月華的灵纹一半银白一半漆黑，在两种力量的交织中剧烈闪烁。",
+					"tone": "pragmatic",
+					"effects": {"set_flag": {"gekka_resonance_path": true}, "corruption": 1, "affection": 1},
+				},
+			],
+			"system_prompt": "月華的调教进度 [7/10]。灵脉的声音已被替换为主人的声音。月華不再聆听大地，转而聆听主人的心跳。关键分歧点：你将决定月華与灵脉的最终关系。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -259,6 +300,74 @@ const EVENTS: Dictionary = {
 			},
 			"system_prompt": "月華的调教进度 [10/10]。调教完毕。月華已将灵脉的全部力量献给主人，成为专属的灵能侍祭。解锁称号「堕落月巫」。",
 			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "gekka_training_04a_harmony",
+			"name": "调教 分歧: 大地之盾（和谐之路）",
+			"trigger": {
+				"prev_event": "gekka_training_04",
+				"requires_flag": "gekka_harmony_path",
+			},
+			"scene": "月華的圆形居室中，灵纹以柔和的金银双色脉动着。她跪坐在圆毯上，双手按在地面上——通过你重建的锚点，灵脉再次与她连接。但这次不同了，灵脉的声音经过你的过滤才能抵达她，像是被温柔驯化的河流。",
+			"dialogues": [
+				{"type": "narration", "text": "月華睁开眼睛，银灰色的瞳孔中浮现着金色的涟漪。"},
+				{"speaker": "月華", "text": "主人……大地说，它感受到了你的存在。你不是破坏者——你是新的河床。灵脉愿意通过你流向我。"},
+				{"type": "narration", "text": "她站起身，赤足踏在圆毯上。脚下的灵纹图案亮起金色的光芒，向外扩散成一个完整的防御阵法。"},
+				{"speaker": "月華", "text": "大地赐予我的不是破坏的力量。而是守护的力量——守护您。从今以后，灵脉之盾将永远庇佑在您身边。"},
+				{"type": "narration", "text": "一层半透明的金色灵力屏障在她周围浮现，如同大地本身化为了盾牌。"},
+			],
+			"system_prompt": "和谐之路确立。月華成为大地之盾，获得防御型战斗增益：+5 DEF，每场战斗灵脉之盾可吸收一次攻击。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"gekka_earth_shield": true},
+				"combat_bonus": {"def": 5, "special": "earth_shield_absorb_1_hit"},
+			},
+		},
+		{
+			"id": "gekka_training_04b_severance",
+			"name": "调教 分歧: 暗蚀咒姬（断绝之路）",
+			"trigger": {
+				"prev_event": "gekka_training_04",
+				"requires_flag": "gekka_severance_path",
+			},
+			"scene": "月華的居室中弥漫着一种不祥的暗紫色雾气。灵纹已经完全变成了漆黑色，在她苍白的肌肤上如同蔓延的毒藤。她跪坐在圆毯中央，但圆毯上的纹饰已不再是灵脉图案——而是某种更古老、更黑暗的咒阵。",
+			"dialogues": [
+				{"type": "narration", "text": "月華抬起头。她的瞳孔从银灰色变成了深紫色，像是被灌注了某种异质的力量。"},
+				{"speaker": "月華", "text": "主人。大地的声音……已经完全消失了。永远地。"},
+				{"type": "narration", "text": "她的声音不再空灵，而是带着一种低沉的磁性——像是暗夜中的蛊惑之音。"},
+				{"speaker": "月華", "text": "但沉默中，我听到了另一种声音。灵脉祭司被切断连接后，残余的灵力会反噬——变成诅咒。而我……学会了驾驭这些诅咒。"},
+				{"type": "narration", "text": "她伸出手掌，一团暗紫色的灵力在指尖凝聚，像是一颗微型的黑洞，贪婪地吞噬着周围的光线。"},
+				{"speaker": "月華", "text": "为了您——我愿意成为黑暗本身。每一个敌人的生命力，都将被我吸干后献给您。"},
+			],
+			"system_prompt": "断绝之路确立。月華成为暗蚀咒姬，获得攻击型战斗增益：+5 ATK，每回合从敌军吸取1名士兵。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"gekka_dark_enchantress": true},
+				"combat_bonus": {"atk": 5, "special": "drain_1_soldier_per_round"},
+			},
+		},
+		{
+			"id": "gekka_training_04c_resonance",
+			"name": "调教 分歧: 双极巫女（共鸣之路）",
+			"trigger": {
+				"prev_event": "gekka_training_04",
+				"requires_flag": "gekka_resonance_path",
+			},
+			"scene": "月華的居室中充满了一种奇异的景象——半边房间笼罩在柔和的银色月光中，另半边则被暗紫色的阴影吞噬。光与暗的分界线恰好穿过月華的身体。她跪坐在交界处，左半身灵纹发着银白色光芒，右半身灵纹闪烁着漆黑的脉动。",
+			"dialogues": [
+				{"type": "narration", "text": "月華睁开眼睛——左眼银灰，右眼暗紫。两种截然不同的力量在她体内剧烈交锋，却被某种更强大的意志压制在平衡之中。"},
+				{"speaker": "月華", "text": "主人……您的意志已经融入灵脉了。大地在抵抗——但您的力量比大地更深。"},
+				{"type": "narration", "text": "她伸出双手。左手浮现银色的治愈之光，右手凝聚暗紫的破坏之力。"},
+				{"speaker": "月華", "text": "我能感受到两股力量在体内撕扯。灵脉的守护与诅咒的侵蚀——它们本不该共存。但因为您……它们被迫共存了。"},
+				{"type": "narration", "text": "她双手合十，银与紫的灵力在掌心爆发出一道耀眼的白光。大地微微震颤。"},
+				{"speaker": "月華", "text": "这股力量不稳定——但当它释放的时候，足以摧毁战场上的一切。我将成为您的双极之刃。"},
+			],
+			"system_prompt": "共鸣之路确立。月華成为双极巫女，获得均衡型战斗增益：+3 ATK，+3 DEF，每回合10%概率释放灵脉共鸣造成范围伤害。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"gekka_dual_conduit": true},
+				"combat_bonus": {"atk": 3, "def": 3, "special": "10pct_aoe_damage_per_round"},
+			},
 		},
 	],
 	"pure_love": [
@@ -368,7 +477,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "gekka_pure_love_03",
 			"name": "纯爱 Stage 03: 爱慕（永恒与刹那）",
-			"trigger": {"prev_event": "gekka_pure_love_02", "affection_min": 5, "turn_min": 6},
+			"trigger": {"prev_event": "gekka_pure_love_02", "affection_min": 5, "turn_min": 6, "excludes_flag": "gekka_severance_path"},
 			"scene": "深秋。古树林中的叶子变成了金色和赤红色，在月光下呈现出一种梦幻般的暖色调。银色苔藓依然发光，但在落叶的覆盖下显得更加朦胧。 月華站在林中的一处灵脉涌泉旁。涌泉从地下岩缝中溢出，在月光下散发着微弱的银色荧光——这是灵脉能量最直观的物理显现。她赤足站在泉水中，水面只没过脚踝，但灵脉的能量从脚底源源不断地涌入她的身体。 这段时间以来，月華的变化是微妙但深刻的。她仍然安静，仍然聆听大地，但她不再是一个孤独的听众。她开始在指挥官到来之前采集他喜欢的草药泡茶，开始记住人类历法中的节日，开始在对方到来时抬起头微笑——而不是等对方先开口才回应。 但今夜，她的表情不同寻常。银灰色的双眸中带着一种深沉的忧伤——那是看穿了太多岁月的存在独有的悲伤。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官来到涌泉旁"},
@@ -442,7 +551,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "gekka_pure_love_04",
 			"name": "纯爱 Stage 04: 伴侣（灵魂的共鸣）",
-			"trigger": {"prev_event": "gekka_pure_love_03", "affection_min": 8, "turn_min": 10},
+			"trigger": {"prev_event": "gekka_pure_love_03", "affection_min": 8, "turn_min": 10, "excludes_flag": "gekka_severance_path"},
 			"scene": "冬日。古树林的枝头挂满了霜花，但灵脉涌泉的周围依然温暖如春——即使月華不再是灵脉祭司，大地仍然记得她，用地热为她曾经的祈祷之地维持着温度。 月華站在涌泉旁的一棵新生的银杏树下。那棵树是在她放弃灵脉连接的那一夜自行生长出来的——像是大地留给她的最后一件礼物。短短数月已经长到了两人多高，银色的叶子即使在冬天也不会凋落。 月華的外貌发生了微妙的变化。灵纹虽然黯淡了，但并没有完全消失——在阳光或月光的照射下，那些灰色的纹路会泛起极淡的银色微光，像是旧日荣光的余韵。她的银色长发也不再有灵力的流光，但在月光下依然美得惊心动魄。最大的变化在她的眼睛——银灰色的虹膜变成了灰蓝色，少了超脱的冷冽，多了人间的温柔。 她穿着一件淡蓝色的棉布长裙——不再是祭司法衣，而是翠玲帮她挑选的凡人衣物。脖子上挂着一枚从灵脉涌泉中捞出的银色石子，被她用绳线串成了项链。 她正在银杏树下准备什么东西——地面上铺着一块干净的白布，上面摆放着两个杯子、一壶茶、几块精灵点心，以及一束她从林中采集的冬季花朵。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官沿着已经走了无数遍的小径来到涌泉旁"},
@@ -557,7 +666,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "gekka_exclusive_ending",
 			"name": "Lv10 专属结局: 大地的祝福・永恒之春",
-			"trigger": {"affection_min": 10},
+			"trigger": {"affection_min": 10, "excludes_flag": "gekka_severance_path"},
 			"scene": "春分之日，银杏树下。月華不再是灵脉祭司，却依然能感受到脚下大地微弱的脉动。她赤脚踩在草地上，灰蓝色的眼睛在晨光中如溪水般澄澈。银色长发随风飘扬，发梢沾着露珠。",
 			"dialogues": [
 				{"speaker": "月華", "text": "大地在说话。它说——春天来了。"},

@@ -409,6 +409,47 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		if story_flags.get("sou_arcane_formation", false):
 			int_stat *= 1.4
 
+		# Yukino (雪乃) — path bonuses
+		if story_flags.get("yukino_redemption", false):
+			base_def += 4
+			passives.append("yukino_heal_2")  # +2 heal per round (lowest unit)
+		elif story_flags.get("yukino_corruption", false):
+			base_atk += 4
+			passives.append("yukino_curse")  # curse enemies -1 DEF per round
+		elif story_flags.get("yukino_devotion", false):
+			base_atk += 3; base_def += 3
+			if randf() < 0.10:
+				passives.append("refuse_orders")  # 10% skip action "拒绝非战斗命令"
+		# Momiji (紅葉) — path bonuses
+		if story_flags.get("momiji_partner", false):
+			base_def += 2
+			passives.append("momiji_gold_bonus_20")  # +20% gold bonus on victory
+		elif story_flags.get("momiji_asset", false):
+			base_atk += 3; base_def += 3
+		elif story_flags.get("momiji_rival", false):
+			base_atk += 4
+			passives.append("momiji_gold_bonus_15")  # 15% chance bonus gold
+		# Gekka (月華) — path bonuses
+		if story_flags.get("gekka_harmony", false):
+			base_def += 5
+			passives.append("earth_shield")  # first hit deals 0 damage (one-time)
+		elif story_flags.get("gekka_severance", false):
+			base_atk += 5
+			passives.append("gekka_drain")  # drain 1 soldier from random enemy per round
+		elif story_flags.get("gekka_resonance", false):
+			base_atk += 3; base_def += 3
+			passives.append("gekka_aoe_10")  # 10% chance AoE 1 damage to all enemies
+		# Hakagure (葉隠) — path bonuses
+		if story_flags.get("hakagure_freedom", false):
+			base_atk += 4; spd += 2
+			passives.append("hakagure_first_strike")  # acts first regardless of SPD
+		elif story_flags.get("hakagure_reforge", false):
+			base_atk += 3; base_def += 4
+			passives.append("hakagure_nullify_crit")  # 20% nullify enemy crit
+		elif story_flags.get("hakagure_unleash", false):
+			base_atk += 6; base_def -= 2
+			passives.append("hakagure_instant_kill")  # 25% instant kill on ≤2 soldiers
+
 	# ── Terrain modifiers (data-driven from TERRAIN_DATA) ──
 	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
 	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
@@ -844,6 +885,56 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				log.append("%s [%s] 中毒身亡!" % [unit["unit_type"], unit["side"]])
 				continue
 
+		# Passive: yukino_heal_2 — heal +2 soldiers to lowest allied unit each round
+		if "yukino_heal_2" in unit["passives"]:
+			var allies: Array = state["atk_units"] if unit["side"] == "attacker" else state["def_units"]
+			var lowest: Dictionary = {}
+			var lowest_pct: float = 2.0
+			for ally in allies:
+				if ally["is_alive"] and ally["soldiers"] < ally["max_soldiers"]:
+					var pct: float = float(ally["soldiers"]) / float(ally["max_soldiers"])
+					if pct < lowest_pct:
+						lowest_pct = pct
+						lowest = ally
+			if not lowest.is_empty():
+				var heal_amt: int = mini(2, lowest["max_soldiers"] - lowest["soldiers"])
+				lowest["soldiers"] += heal_amt
+				log.append("%s [%s] 雪乃治愈: %s +%d兵" % [unit["unit_type"], unit["side"], lowest["unit_type"], heal_amt])
+
+		# Passive: yukino_curse — curse all enemies -1 DEF per round
+		if "yukino_curse" in unit["passives"]:
+			var enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
+			for enemy in enemies:
+				if enemy["is_alive"]:
+					enemy["def"] = maxf(enemy["def"] - 1.0, 0.0)
+			log.append("%s [%s] 雪乃诅咒: 全敌军DEF-1" % [unit["unit_type"], unit["side"]])
+
+		# Passive: gekka_drain — drain 1 soldier from random enemy unit per round
+		if "gekka_drain" in unit["passives"]:
+			var enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
+			var alive_enemies: Array = _get_all_alive(enemies)
+			if not alive_enemies.is_empty():
+				var drain_target: Dictionary = alive_enemies[randi() % alive_enemies.size()]
+				drain_target["soldiers"] -= 1
+				log.append("%s [%s] 月華吸血: %s -1兵" % [unit["unit_type"], unit["side"], drain_target["unit_type"]])
+				if drain_target["soldiers"] <= 0:
+					drain_target["soldiers"] = 0
+					drain_target["is_alive"] = false
+					log.append("%s [%s] 被吸尽消灭!" % [drain_target["unit_type"], drain_target["side"]])
+
+		# Passive: gekka_aoe_10 — 10% chance to deal 1 damage to all enemy units
+		if "gekka_aoe_10" in unit["passives"]:
+			if randf() < 0.10:
+				var enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
+				log.append("%s [%s] 月華共鸣! 全敌军受到1点伤害" % [unit["unit_type"], unit["side"]])
+				for enemy in enemies:
+					if enemy["is_alive"]:
+						enemy["soldiers"] -= 1
+						if enemy["soldiers"] <= 0:
+							enemy["soldiers"] = 0
+							enemy["is_alive"] = false
+							log.append("  → %s [%s] 被共鸣消灭!" % [enemy["unit_type"], enemy["side"]])
+
 		# Tick down skill cooldown
 		if unit["skill_cooldown"] > 0:
 			unit["skill_cooldown"] -= 1
@@ -889,6 +980,10 @@ func _build_action_queue(state: Dictionary) -> Array:
 		if not is_preemptive and unit["side"] == "attacker" and atk_ambush_r1:
 			is_preemptive = true
 		if not is_preemptive and unit["side"] == "defender" and def_ambush_r1:
+			is_preemptive = true
+
+		# Hakagure first strike: acts first in round regardless of SPD
+		if not is_preemptive and "hakagure_first_strike" in unit["passives"]:
 			is_preemptive = true
 
 		if is_preemptive:
@@ -1014,7 +1109,13 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 
 	# Passive: assassin_crit — 30% chance for ×2 damage
 	if "assassin_crit" in unit["passives"]:
-		if randf() < 0.3:
+		# Hakagure reforge: 20% chance to nullify enemy crit
+		var crit_nullified: bool = false
+		if "hakagure_nullify_crit" in target["passives"]:
+			if randf() < 0.20:
+				crit_nullified = true
+				log.append("%s [%s] 葉隠鍛直: 暴击被无效化!" % [target["unit_type"], target["side"]])
+		if not crit_nullified and randf() < 0.3:
 			damage = int(float(damage) * 2.0)
 			log.append("%s [%s] 暴击! 伤害×2" % [unit["unit_type"], unit["side"]])
 
@@ -1032,6 +1133,13 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 
 	# Apply damage
 	_apply_damage_to_unit(state, target, damage, unit, log)
+
+	# Hakagure unleash: 25% instant kill on units with ≤2 soldiers
+	if "hakagure_instant_kill" in unit["passives"] and target["is_alive"] and target["soldiers"] <= 2:
+		if randf() < 0.25:
+			target["soldiers"] = 0
+			target["is_alive"] = false
+			log.append("%s [%s] 葉隠解放! %s 即死!" % [unit["unit_type"], unit["side"], target["unit_type"]])
 
 	# Passive: bloodlust — on kill, gain ATK+1 permanently for this battle
 	if "bloodlust" in unit["passives"] and target_soldiers_before > 0 and not target["is_alive"]:
@@ -1654,6 +1762,12 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 		log.append("%s [%s] 分身闪避了攻击!" % [target["unit_type"], target["side"]])
 		return
 
+	# Earth shield (gekka_harmony): first hit this battle deals 0 damage to target
+	if "earth_shield" in target["passives"]:
+		target["passives"].erase("earth_shield")  # one-time use
+		log.append("%s [%s] 大地之盾! 伤害被完全吸收!" % [target["unit_type"], target["side"]])
+		return
+
 	# Escape_30: 30% chance to survive lethal damage (soldiers would drop to 0)
 	if target["soldiers"] - damage <= 0 and "escape_30" in target["passives"]:
 		if randf() < 0.3:
@@ -1838,6 +1952,20 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		ResourceManager.apply_delta(winner_pid, {"gold": pillage_gold})
 		log.append("劫掠! 胜利方获得 +%d 金" % pillage_gold)
 
+	# Story flag gold bonuses: momiji paths
+	var gold_bonus_flags: Dictionary = {}
+	for unit in winner_units:
+		if unit["is_alive"]:
+			# momiji_partner: +20% gold bonus on victory
+			if "momiji_gold_bonus_20" in unit["passives"]:
+				gold_bonus_flags["momiji_gold_bonus_20"] = true
+				log.append("%s [%s] 紅葉伙伴: 胜利金币+20%%!" % [unit["unit_type"], unit["side"]])
+			# momiji_rival: 15% chance bonus gold
+			if "momiji_gold_bonus_15" in unit["passives"]:
+				if randf() < 0.15:
+					gold_bonus_flags["momiji_gold_bonus_15"] = true
+					log.append("%s [%s] 紅葉竞争: 触发额外金币奖励!" % [unit["unit_type"], unit["side"]])
+
 	var combat_result := {
 		"winner": winner,
 		"attacker_losses": attacker_losses,
@@ -1845,6 +1973,7 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		"slaves_captured": slaves_captured,
 		"wall_destroyed": wall_destroyed,
 		"details": log,
+		"gold_bonus_flags": gold_bonus_flags,
 	}
 
 	return combat_result

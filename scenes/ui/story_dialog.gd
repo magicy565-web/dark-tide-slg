@@ -14,6 +14,7 @@ var _current_dialogue_index: int = -1
 var _waiting_for_choice: bool = false
 var _showing_h_event: bool = false
 var _text_revealing: bool = false       # True while text is being revealed char-by-char
+var _is_branch_choice: bool = false     # True when showing a story branch choice (vs inline dialogue choice)
 
 # ── Text reveal settings ──
 const CHARS_PER_SECOND: float = 40.0
@@ -65,6 +66,8 @@ func _process(delta: float) -> void:
 func _connect_signals() -> void:
 	if EventBus.has_signal("story_event_triggered"):
 		EventBus.story_event_triggered.connect(_on_story_event_triggered)
+	if EventBus.has_signal("story_choice_requested"):
+		EventBus.story_choice_requested.connect(_on_story_choice_requested)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -260,6 +263,14 @@ func _build_dialogue_queue(event: Dictionary) -> void:
 	var dialogues: Array = event.get("dialogues", [])
 	for d in dialogues:
 		_dialogue_queue.append(d)
+	# Branch-point choices (story branching system) — inserted after main dialogues
+	var choices: Array = event.get("choices", [])
+	if not choices.is_empty():
+		_dialogue_queue.append({
+			"type": "branch_choice",
+			"prompt": event.get("choice_prompt", ""),
+			"choices": choices,
+		})
 	# H-event dialogues (appended after main)
 	var h_event: Dictionary = event.get("h_event", {})
 	if not h_event.is_empty():
@@ -306,6 +317,8 @@ func _advance_dialogue() -> void:
 			_show_choices(entry.get("options", []))
 			btn_next.visible = false
 			_waiting_for_choice = true
+		"branch_choice":
+			_show_branch_choices(entry.get("choices", []))
 		"h_event_start":
 			_showing_h_event = true
 			speaker_label.text = ""
@@ -362,7 +375,12 @@ func _on_choice_selected(index: int) -> void:
 	_waiting_for_choice = false
 	choice_container.visible = false
 	var event_id: String = _current_event.get("id", "")
-	EventBus.story_choice_made.emit(_current_hero_id, event_id, index)
+	# If this is a branch-point choice (event has "choices" array), resolve via StoryEventSystem
+	if _is_branch_choice:
+		StoryEventSystem.resolve_story_choice(_current_hero_id, event_id, index)
+		_is_branch_choice = false
+	else:
+		EventBus.story_choice_made.emit(_current_hero_id, event_id, index)
 	_advance_dialogue()
 
 
@@ -394,6 +412,74 @@ func _on_next() -> void:
 func _on_skip() -> void:
 	# Skip to end of current event
 	_finish_event()
+
+
+## Handle story_choice_requested signal — show branch-point choices with consequence hints.
+## This is called when StoryEventSystem detects an event with a "choices" array.
+func _on_story_choice_requested(hero_id: String, event_id: String, choices: Array) -> void:
+	if not _visible:
+		# If dialog isn't open yet, the story_event_triggered signal will open it.
+		# We just need to inject the branch choices into the dialogue queue.
+		return
+	if hero_id != _current_hero_id:
+		return
+	# Show the branch choices in the existing dialog
+	_show_branch_choices(choices)
+
+
+## Display branch-point choices with rich consequence hints.
+## Unlike inline dialogue choices, these have lasting gameplay effects shown to the player.
+func _show_branch_choices(choices: Array) -> void:
+	_clear_choices()
+	_is_branch_choice = true
+	_waiting_for_choice = true
+	choice_container.visible = true
+	btn_next.visible = false
+
+	speaker_label.text = "命运的抉择"
+	text_label.clear()
+	text_label.visible_characters = -1
+	_text_revealing = false
+
+	# Build prompt from event context
+	var prompt_text: String = _current_event.get("choice_prompt", "你的选择将改变这段关系的走向。")
+	text_label.append_text("[color=#ffcc88]%s[/color]" % prompt_text)
+
+	for i in range(choices.size()):
+		var choice: Dictionary = choices[i]
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(500, 0)
+		btn.add_theme_font_size_override("font_size", 13)
+
+		# Build rich choice text: label + hint
+		var choice_text: String = choice.get("text", "选项 %d" % (i + 1))
+		var hint: String = choice.get("hint", "")
+		var consequence: String = choice.get("consequence", "")
+
+		if hint != "":
+			choice_text += "  [%s]" % hint
+		if consequence != "":
+			choice_text += "\n    → %s" % consequence
+
+		btn.text = choice_text
+		# Color code by choice tone if available
+		var tone: String = choice.get("tone", "")
+		match tone:
+			"kind", "gentle", "pure":
+				btn.add_theme_color_override("font_color", Color(0.6, 0.9, 1.0))
+			"dark", "cruel", "dominate":
+				btn.add_theme_color_override("font_color", Color(1.0, 0.5, 0.5))
+			"pragmatic", "neutral":
+				btn.add_theme_color_override("font_color", Color(0.9, 0.85, 0.6))
+			_:
+				btn.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+
+		btn.pressed.connect(_on_choice_selected.bind(i))
+		choice_container.add_child(btn)
+
+	# Show a system hint about permanence
+	system_prompt_label.text = "⚠ 此选择不可撤回，将影响后续剧情走向和战斗能力。"
+	system_prompt_label.visible = true
 
 
 # ═══════════════════════════════════════════════════════════════

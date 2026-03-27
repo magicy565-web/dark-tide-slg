@@ -203,7 +203,24 @@ const EVENTS: Dictionary = {
 					{"type": "narration", "text": "她说的是对方手掌的温度。对于一个一生都在寒冷中度过的人来说——这个字包含了她全部的语汇所不能描述的东西。"},
 				]
 			},
-			"system_prompt": "叶隐的调教进度 [7/10]。忍者的身体已经完全记住了快感的回路，并开始主动回应。声音虽然仍极少，但每一个音节都是从沉默的深渊中打捞出来的真实碎片。",
+			"choice_prompt": "叶隐的身体开始回应你的触碰。她不再只是一件武器——但你想让她成为什么？",
+			"choices": [
+				{
+					"text": "握住她伸过来的手，用体温回应她的\"暖\"",
+					"hint": "你选择温柔。这可能唤醒她被压抑的自我意识。",
+					"consequence": "你的手指与她交握，她的瞳孔中第一次出现了属于人类的波动。",
+					"tone": "kind",
+					"effects": {"set_flag": {"hakagure_gentle_approach": true}, "affection": 1},
+				},
+				{
+					"text": "按住她的肩膀，让她记住谁才是主人",
+					"hint": "你选择支配。她会将对你的服从刻入本能深处。",
+					"consequence": "你的手掌按住她的肩，叶隐的身体立刻僵住，然后缓缓低下头——一个完美的服从姿态。",
+					"tone": "dark",
+					"effects": {"set_flag": {"hakagure_dominant_approach": true}, "corruption": 2},
+				},
+			],
+			"system_prompt": "叶隐的调教进度 [7/10]。忍者的身体已经完全记住了快感的回路，并开始主动回应。声音虽然仍极少，但每一个音节都是从沉默的深渊中打捞出来的真实碎片。这是第一个影响后续路线的态度选择。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -295,8 +312,105 @@ const EVENTS: Dictionary = {
 					{"type": "narration", "text": "铃铛发出最后一声轻响，然后安静了。"},
 				]
 			},
-			"system_prompt": "叶隐的调教进度 [10/10]。调教完毕。无声的刃找到了唯一的主人。叶隐的语言能力仍极为有限，但她学会了用声音传递最重要的东西。解锁称号「驯服的影」。",
+			"choice_prompt": "叶隐说她想留在这里。但以什么身份留下——这取决于你。",
+			"choices": [
+				{
+					"text": "解除她所有的束缚，告诉她可以自由地活",
+					"hint": "释放她。让她不再是任何人的刃，而是一个自由的人。速度与先手之路。",
+					"consequence": "叶隐看着被解开的腕带落在地上，紫色的瞳孔中泛起从未见过的光——那是自由的颜色。",
+					"tone": "kind",
+					"effects": {"set_flag": {"hakagure_freedom_path": true}, "affection": 2},
+				},
+				{
+					"text": "将铃铛重新系紧，告诉她你就是她新的主人",
+					"hint": "给她新的忠诚对象。她将以绝对的服从换取存在的意义。防御与守护之路。",
+					"consequence": "叶隐听到\"主人\"二字时，浑身一颤。然后她跪下，将额头贴在你的手背上——忍者对新主的臣服礼。",
+					"tone": "pragmatic",
+					"effects": {"set_flag": {"hakagure_reforge_path": true}, "corruption": 1, "affection": 1},
+				},
+				{
+					"text": "拿走铃铛，打开她心中封印的杀意",
+					"hint": "释放被压抑的本能。沉默的忍者将化身为嗜血的暗杀者。极致攻击之路。",
+					"consequence": "铃铛被取下的瞬间，叶隐的瞳孔骤然收缩成针尖大小。一股冰冷的杀气从她身上爆发——铃铛一直在压制着的东西，被释放了。",
+					"tone": "dark",
+					"effects": {"set_flag": {"hakagure_unleash_path": true}, "corruption": 3},
+				},
+			],
+			"system_prompt": "叶隐的调教进度 [10/10]。调教完毕。无声的刃找到了唯一的主人。叶隐的语言能力仍极为有限，但她学会了用声音传递最重要的东西。解锁称号「驯服的影」。关键分歧点：你将决定叶隐的最终身份。",
 			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "hakagure_training_04a_freedom",
+			"name": "调教 分歧: 自由之刃（解放之路）",
+			"trigger": {
+				"prev_event": "hakagure_training_04",
+				"requires_flag": "hakagure_freedom_path",
+			},
+			"scene": "清晨。叶隐站在城堡的屋顶上，面向日出的方向。她没有戴面具，没有系铃铛，没有任何束缚。风吹动她银灰色的长发，深色短衣的衣摆在风中翻飞。她第一次以自由之身站在阳光下。",
+			"dialogues": [
+				{"type": "narration", "text": "叶隐转过身，紫色的瞳孔在朝阳中变成了浅紫色——像是被阳光洗涤过的宝石。"},
+				{"speaker": "叶隐", "text": "……风。很暖。"},
+				{"type": "narration", "text": "她张开双臂，让风穿过指间。这是一个对忍者来说毫无意义的动作——但对一个自由的人来说，这就是全部。"},
+				{"speaker": "叶隐", "text": "叶隐……不是刃了。叶隐是——"},
+				{"type": "narration", "text": "她低头看着自己的双手。那双杀过无数人的手，在阳光下显得出奇的纤细。"},
+				{"speaker": "叶隐", "text": "叶隐是……你的、人。自由的人。为你——战斗的人。"},
+				{"type": "narration", "text": "她的嘴角弯起一个笨拙但真实的弧度。这是叶隐第一次微笑。"},
+			],
+			"system_prompt": "自由之路确立。叶隐成为自由之刃，获得速攻型战斗增益：+4 ATK，+2 SPD，战斗中获得先手攻击权。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"hakagure_free_blade": true},
+				"combat_bonus": {"atk": 4, "spd": 2, "special": "first_strike"},
+			},
+		},
+		{
+			"id": "hakagure_training_04b_reforge",
+			"name": "调教 分歧: 影之守卫（铸忠之路）",
+			"trigger": {
+				"prev_event": "hakagure_training_04",
+				"requires_flag": "hakagure_reforge_path",
+			},
+			"scene": "夜晚。叶隐跪在指挥官房间的门外，如同一尊雕像。她穿着一套全新的暗色忍装——由她自己重新设计，胸口处绣着指挥官的纹章。铃铛被她用黑色丝线重新固定在脖子上，每当有人接近这扇门，她就会发出警示。",
+			"dialogues": [
+				{"type": "action", "text": "指挥官打开房门，发现叶隐守在门外"},
+				{"type": "narration", "text": "叶隐抬起头。紫色的瞳孔在月光中深邃而忠诚，像是两颗永远不会偏离轨道的星辰。"},
+				{"speaker": "叶隐", "text": "主人。叶隐在。"},
+				{"type": "narration", "text": "她站起身，动作流畅无声——只有铃铛发出一声轻响。"},
+				{"speaker": "叶隐", "text": "今夜……有三人接近。都被叶隐赶走了。没有危险。"},
+				{"type": "narration", "text": "她的报告简洁精确，每个字都经过筛选。忍者的效率与新生的忠诚完美融合。"},
+				{"speaker": "叶隐", "text": "叶隐的命是主人给的。叶隐的影……永远在主人身后。"},
+			],
+			"system_prompt": "铸忠之路确立。叶隐成为影之守卫，获得防御型战斗增益：+3 ATK，+4 DEF，20%概率无效化敌方暴击。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"hakagure_shadow_guard": true},
+				"combat_bonus": {"atk": 3, "def": 4, "special": "20pct_nullify_enemy_crit"},
+			},
+		},
+		{
+			"id": "hakagure_training_04c_unleash",
+			"name": "调教 分歧: 血月之刃（解放杀意之路）",
+			"trigger": {
+				"prev_event": "hakagure_training_04",
+				"requires_flag": "hakagure_unleash_path",
+			},
+			"scene": "深夜。叶隐站在训练场的正中央，周围是被她在一瞬间斩杀的十二个稻草人。每一具都被从不同的角度一击致命。她的短刀还在滴着稻草的汁液，但她的呼吸平稳得如同站在那里什么都没做。 她的眼神变了。紫色的瞳孔深处，有某种暗红色的东西在涌动——那是被银月议会封印了十五年的杀意。",
+			"dialogues": [
+				{"type": "narration", "text": "叶隐缓缓转身。她的面容依然苍白美丽，但嘴角多了一个之前从未出现过的弧度——不是笑容，是猎食者发现猎物时的本能反应。"},
+				{"speaker": "叶隐", "text": "……快。太快了。它们还没来得及发出声音。"},
+				{"type": "narration", "text": "她低头看着自己的手。手指在月光下微微颤抖——不是恐惧，是兴奋。"},
+				{"speaker": "叶隐", "text": "以前——杀人是任务。现在——"},
+				{"type": "narration", "text": "她将短刀收入袖中，抬起头看向夜空。紫色的瞳孔中暗红的涟漪越来越浓。"},
+				{"speaker": "叶隐", "text": "杀意……很舒服。你打开了它。叶隐……不想再关上了。"},
+				{"type": "narration", "text": "她走向指挥官，脚步无声，如同夜色中滑行的毒蛇。"},
+				{"speaker": "叶隐", "text": "告诉叶隐——下一个该杀谁。"},
+			],
+			"system_prompt": "解放杀意之路确立。叶隐成为血月之刃，获得暗杀型战斗增益：+6 ATK，-2 DEF，25%概率对低HP单位发动即死攻击。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"hakagure_blood_assassin": true},
+				"combat_bonus": {"atk": 6, "def": -2, "special": "25pct_instant_kill_low_hp"},
+			},
 		},
 	],
 	"pure_love": [
@@ -436,7 +550,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hakagure_pure_love_03",
 			"name": "纯爱 Stage 03: 花与刃（主动的行动）",
-			"trigger": {"prev_event": "hakagure_pure_love_02", "affection_min": 5, "turn_min": 6},
+			"trigger": {"prev_event": "hakagure_pure_love_02", "affection_min": 5, "turn_min": 6, "excludes_flag": "hakagure_unleash_path"},
 			"scene": "春天来了。营地周围的山坡上开满了不知名的野花——白色的、紫色的、淡黄色的。 叶隐站在山坡上。风吹过来，把她银灰色的长发和野花一起吹向同一个方向。她没有戴面具——她已经不在人多的时候戴面具了。只有偶尔在陌生人突然出现时，她会下意识地用手遮住脸。 她的变化是肉眼可见的。依然沉默寡言——但\"沉默\"的质地变了。之前的沉默是封闭的、隔绝的，像一堵墙。现在的沉默是安静的、柔和的，像一面湖水。 她会出现在人群中了。虽然总是在边缘、在角落、在不被注意的位置——但她确实存在于那里。她会在食堂吃饭了——虽然仍然选最角落的座位，吃饭的速度快到像在执行任务。她甚至开始参与一些简单的营地工作——修补帐篷、整理物资。她不和任何人说话，但别人递给她工具时，她会接过来。 她怀里抱着一束刚摘的野花。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官沿着山坡走来"},
@@ -512,7 +626,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hakagure_pure_love_04",
 			"name": "纯爱 Stage 04: 脱下面具（第一次真正开口说话）",
-			"trigger": {"prev_event": "hakagure_pure_love_03", "affection_min": 8, "turn_min": 10},
+			"trigger": {"prev_event": "hakagure_pure_love_03", "affection_min": 8, "turn_min": 10, "excludes_flag": "hakagure_unleash_path"},
 			"scene": "夏夜。营地后方的小湖边。萤火虫在水面上方飞舞，像是从水底浮上来的星星。 叶隐站在湖边。她穿着一件素色的浴衣——那是营地里其他女性送给她的，她犹豫了很久才接受。浴衣的系带扎得不太规范，显然她对这种衣物不熟悉。 她的面具被她用一条丝带系在了腰间。不是戴着，也不是丢弃——而是带在身上。它不再是她的脸，但仍然是她的一部分。 银灰色的长发被简单地扎了一个低马尾，几缕碎发垂在耳际。月光和萤火虫的光芒交织在她身上，在水面上投下一个柔和的倒影。 她在等人。 这是她第一次主动约人来一个地方。她花了一整天的时间鼓起勇气，最终在指挥官的办公桌上放了一张纸条——上面画着一个月亮和一个湖泊的简笔画。没有文字。但意思很清楚。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官来到湖边"},
@@ -646,7 +760,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hakagure_exclusive_ending",
 			"name": "Lv10 专属结局: 小夜的名字・月下之声",
-			"trigger": {"affection_min": 10},
+			"trigger": {"affection_min": 10, "excludes_flag": "hakagure_unleash_path"},
 			"scene": "宁静的月夜。小夜坐在屋檐上，银色长发在月光下如流水般垂落。她不再戴面具，不再系铃铛。脚边放着一柄短刀——不是武器，而是她用来雕刻木器的工具。她正在小小的木牌上刻字。",
 			"dialogues": [
 				{"speaker": "小夜", "text": "……刻好了。"},
