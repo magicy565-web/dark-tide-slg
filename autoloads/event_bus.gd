@@ -158,6 +158,12 @@ signal taming_changed(player_id: int, faction_tag: String, new_level: int)
 signal territory_selected(tile_index: int)
 signal territory_deselected()
 signal army_deployed(player_id: int, army_id: int, from_tile: int, to_tile: int)
+
+# ── Supply & Attrition ──
+signal army_supply_changed(army_id: int, supply: int)
+signal army_attrition(army_id: int, losses: Dictionary)
+signal supply_depot_built(tile_index: int, player_id: int)
+signal supply_depot_destroyed(tile_index: int)
 signal army_created(player_id: int, army_id: int, tile_index: int)
 signal army_disbanded(player_id: int, army_id: int)
 signal army_selected(army_id: int)
@@ -206,3 +212,17 @@ signal light_extorted(player_id: int, gold: int)
 # ── Tile Development Path (v3.5) ──
 signal tile_path_chosen(tile_idx: int, path: int)
 signal tile_building_built(tile_idx: int, building_id: String)
+
+# ── Weather & Season System ──
+signal season_changed(season_id: int, season_data: Dictionary)
+signal weather_changed(weather_id: int, weather_data: Dictionary)
+
+# ── Espionage & Intelligence (v4.1) ──
+signal spy_operation_result(player_id: int, op_type: int, success: bool, details: Dictionary)
+signal intel_changed(player_id: int, intel: int)
+signal spy_captured(player_id: int, target_id: int)
+
+# ── Formation Synergy & Tactics (v4.2) ──
+signal formation_detected(side: String, formation_id: int, formation_name: String)
+signal formation_clash(atk_formation: int, def_formation: int, effect: String)
+signal tactical_combo_triggered(combo_id: String, description: String)

@@ -243,6 +243,8 @@ func _on_card_hover(card: PanelContainer, entering: bool) -> void:
 func _on_skip() -> void:
 	hide_panel()
 	intervention_skipped.emit()
+	# Bridge to EventBus so combat_system.gd's await resolves
+	EventBus.combat_intervention_chosen.emit(-1, null)
 
 func _execute_intervention(type_key: int, target: Variant) -> void:
 	# Don't execute here -- the CombatSystem will execute after receiving the signal.
@@ -250,6 +252,8 @@ func _execute_intervention(type_key: int, target: Variant) -> void:
 	if CommanderIntervention.can_use(type_key):
 		hide_panel()
 		intervention_decided.emit(type_key, target)
+		# Bridge to EventBus so combat_system.gd's await resolves
+		EventBus.combat_intervention_chosen.emit(type_key, target)
 	else:
 		# Refresh to show updated state (e.g. insufficient CP now)
 		_refresh()

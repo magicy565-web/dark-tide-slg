@@ -1982,6 +1982,23 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 	if _counter_info["atk_mult"] != 1.0:
 		base_damage *= _counter_info["atk_mult"]
 
+	# Apply weather/season combat modifiers
+	if Engine.get_main_loop() is SceneTree:
+		var _wr: Node = (Engine.get_main_loop() as SceneTree).root
+		if _wr.has_node("WeatherSystem"):
+			var _ws: Node = _wr.get_node("WeatherSystem")
+			var _wm: Dictionary = _ws.get_combat_modifiers()
+			var _weather_atk_mod: float = float(_wm.get("atk_mod", 0))
+			# Check if attacker is ranged
+			var _is_ranged: bool = attacker_unit["unit_type"].find("archer") != -1 or attacker_unit["unit_type"].find("cannon") != -1 or attacker_unit["unit_type"].find("mage") != -1 or attacker_unit["unit_type"].find("gunner") != -1
+			if _is_ranged:
+				_weather_atk_mod += float(_wm.get("ranged_atk_mod", 0))
+			var _is_cav: bool = attacker_unit["unit_type"].find("cavalry") != -1 or attacker_unit["unit_type"].find("rider") != -1
+			if _is_cav:
+				_weather_atk_mod += float(_wm.get("cavalry_atk_mod", 0))
+			if _weather_atk_mod != 0:
+				base_damage = maxf(base_damage + _weather_atk_mod, 0.0)
+
 	# FIX(MAJOR): 护盾buff改为取最强护盾生效，不再乘法叠加；使用后标记移除
 	var best_shield_idx: int = -1
 	var best_shield_val: float = 0.0

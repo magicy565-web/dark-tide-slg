@@ -29,6 +29,13 @@ var inventory_panel = null
 var hero_detail_panel_node = null
 var pirate_panel = null
 
+# ── New depth systems UI (v4.2) ──
+var weather_hud = null
+var espionage_panel = null
+var supply_overlay = null
+var formation_preview = null
+var combat_intervention_panel = null
+
 
 func _ready() -> void:
 	# Start with HUD hidden, menu visible (board stays visible - camera needs it)
@@ -78,6 +85,32 @@ func _ready() -> void:
 	quest_tracker = CanvasLayer.new()
 	quest_tracker.set_script(QuestTrackerScript)
 	add_child(quest_tracker)
+
+	# ── New depth system UI panels (v4.2) ──
+	var WeatherHudScript = preload("res://scenes/ui/weather_hud.gd")
+	weather_hud = CanvasLayer.new()
+	weather_hud.set_script(WeatherHudScript)
+	add_child(weather_hud)
+
+	var EspionagePanelScript = preload("res://scenes/ui/espionage_panel.gd")
+	espionage_panel = CanvasLayer.new()
+	espionage_panel.set_script(EspionagePanelScript)
+	add_child(espionage_panel)
+
+	var SupplyOverlayScript = preload("res://scenes/ui/supply_overlay.gd")
+	supply_overlay = CanvasLayer.new()
+	supply_overlay.set_script(SupplyOverlayScript)
+	add_child(supply_overlay)
+
+	var FormationPreviewScript = preload("res://scenes/ui/formation_preview.gd")
+	formation_preview = CanvasLayer.new()
+	formation_preview.set_script(FormationPreviewScript)
+	add_child(formation_preview)
+
+	var CombatInterventionScript = preload("res://scenes/ui/combat_intervention_panel.gd")
+	combat_intervention_panel = CanvasLayer.new()
+	combat_intervention_panel.set_script(CombatInterventionScript)
+	add_child(combat_intervention_panel)
 
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)
@@ -142,6 +175,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			if hero_detail_panel_node and hero_detail_panel_node.is_panel_visible():
 				return
 			if pirate_panel and pirate_panel.is_panel_visible():
+				return
+			if espionage_panel and espionage_panel.visible:
+				espionage_panel.visible = false
 				return
 			if combat_view.visible:
 				return  # Let combat view handle ESC

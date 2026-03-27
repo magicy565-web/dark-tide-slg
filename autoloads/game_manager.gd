@@ -1589,6 +1589,16 @@ func begin_turn() -> void:
 			msg += "[/color]"
 			EventBus.message_log.emit(msg)
 
+	# ── Phase 5g4: Weather, Supply & Espionage turn processing ──
+	if Engine.get_main_loop() is SceneTree:
+		var _sys_root: Node = (Engine.get_main_loop() as SceneTree).root
+		if _sys_root.has_node("WeatherSystem"):
+			_sys_root.get_node("WeatherSystem").advance_turn()
+		if _sys_root.has_node("SupplySystem"):
+			_sys_root.get_node("SupplySystem").process_turn(pid)
+		if _sys_root.has_node("EspionageSystem"):
+			_sys_root.get_node("EspionageSystem").process_turn(pid)
+
 	# ── Phase 5h: Supply line attrition (v0.9.2) ──
 	_tick_supply_lines(pid)
 	_tick_terrain_attrition(pid)

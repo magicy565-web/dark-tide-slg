@@ -182,6 +182,16 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 	if iron_bonus_pct > 0.0:
 		income["iron"] = int(float(income["iron"]) * (1.0 + iron_bonus_pct))
 
+	# ── Weather & Season production modifiers ──
+	if Engine.get_main_loop() is SceneTree:
+		var root: Node = (Engine.get_main_loop() as SceneTree).root
+		if root.has_node("WeatherSystem"):
+			var ws: Node = root.get_node("WeatherSystem")
+			var weather_mods: Dictionary = ws.get_production_modifiers()
+			income["gold"] = int(float(income["gold"]) * weather_mods.get("gold_mult", 1.0))
+			income["food"] = int(float(income["food"]) * weather_mods.get("food_mult", 1.0))
+			income["iron"] = int(float(income["iron"]) * weather_mods.get("iron_mult", 1.0))
+
 	return income
 
 

@@ -69,6 +69,8 @@ class BattleUnit:
 	var hero_max_mp: int = 0
 	var hero_id: String = ""         ## 英雄ID (空=无英雄指挥)
 	var hero_knocked_out: bool = false  ## 英雄被击倒 (失去被动加成)
+	var morale: int = 100               ## 士气 (0 = rout)
+	var is_routed: bool = false          ## 已溃败
 
 	## Convenience: unit is alive if it has HP remaining.
 	func is_alive() -> bool:
@@ -164,6 +166,28 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 
 	# -- Apply terrain penalties that persist for the whole battle ----------
 	_apply_terrain_modifiers(state)
+
+	# ── Formation Detection & Synergy ──
+	var _fs := FormationSystem.new()
+	var atk_unit_dicts: Array = _build_formation_dicts(state.attacker_units)
+	var def_unit_dicts: Array = _build_formation_dicts(state.defender_units)
+	var terrain_str: String = FactionData.TERRAIN_DATA.get(state.terrain, {}).get("name", "plains")
+	var atk_formations: Array = _fs.detect_formations(atk_unit_dicts, terrain_str)
+	var def_formations: Array = _fs.detect_formations(def_unit_dicts, terrain_str)
+	if not atk_formations.is_empty():
+		var atk_bonuses: Dictionary = _fs.get_formation_bonuses(atk_formations)
+		_fs.apply_formation_to_units(atk_unit_dicts, atk_bonuses)
+		_sync_formation_to_battle_units(state.attacker_units, atk_unit_dicts)
+		_fs.emit_formation_detected("attacker", atk_formations)
+	if not def_formations.is_empty():
+		var def_bonuses: Dictionary = _fs.get_formation_bonuses(def_formations)
+		_fs.apply_formation_to_units(def_unit_dicts, def_bonuses)
+		_sync_formation_to_battle_units(state.defender_units, def_unit_dicts)
+		_fs.emit_formation_detected("defender", def_formations)
+	# Check formation clashes
+	var clashes: Dictionary = _fs.check_formation_clash(atk_formations, def_formations)
+	if not clashes.is_empty():
+		_fs.emit_formation_clashes(clashes)
 
 	# Snapshot initial unit states for combat visualization
 	var attacker_units_initial: Array = _snapshot_units(state.attacker_units)
@@ -375,6 +399,8 @@ func _snapshot_units(units: Array[BattleUnit]) -> Array:
 			"slot": u.slot,
 			"passive": u.passive,
 			"class": _infer_unit_class(u.troop_id),
+			"morale": u.morale,
+			"is_routed": u.is_routed,
 		})
 	return snap
 
@@ -388,7 +414,7 @@ func _build_intervention_state(state: BattleState) -> Dictionary:
 			"slot": u.slot, "row": "front" if u.row == 0 else "back",
 			"unit_type": u.troop_id, "soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
 			"atk": u.atk, "def": u.def_stat, "spd": u.spd,
-			"is_alive": u.is_alive(), "morale": 100, "is_routed": false,
+			"is_alive": u.is_alive(), "morale": u.morale, "is_routed": u.is_routed,
 			"hero_id": u.hero_id, "active_skill": {},
 			"buffs": [], "passives": u.passive.split(","),
 		})
@@ -398,7 +424,7 @@ func _build_intervention_state(state: BattleState) -> Dictionary:
 			"slot": u.slot, "row": "front" if u.row == 0 else "back",
 			"unit_type": u.troop_id, "soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
 			"atk": u.atk, "def": u.def_stat, "spd": u.spd,
-			"is_alive": u.is_alive(), "morale": 100, "is_routed": false,
+			"is_alive": u.is_alive(), "morale": u.morale, "is_routed": u.is_routed,
 			"hero_id": u.hero_id,
 			"buffs": [], "passives": u.passive.split(","),
 		})
@@ -417,6 +443,11 @@ func _apply_intervention_results(state: BattleState, istate: Dictionary) -> void
 					u.soldiers = 0
 					u.hp = 0
 				u.row = 0 if d["row"] == "front" else 1
+				# Sync morale from intervention (rally can restore morale)
+				if d.has("morale"):
+					u.morale = clampi(d["morale"], 0, 100)
+					if u.is_routed and u.morale > 0:
+						u.is_routed = false  # Rally un-routs the unit
 				# Apply ATK/DEF buffs as flat modifications
 				for buff in d.get("buffs", []):
 					if buff.get("mult_atk", false):
@@ -618,10 +649,10 @@ func _get_action_queue(state: BattleState) -> Array[BattleUnit]:
 	var queue: Array[BattleUnit] = []
 
 	for u in state.attacker_units:
-		if u.is_alive():
+		if u.is_alive() and not u.is_routed:
 			queue.append(u)
 	for u in state.defender_units:
-		if u.is_alive():
+		if u.is_alive() and not u.is_routed:
 			queue.append(u)
 
 	# Sort by SPD descending; assign random tiebreak keys before sorting so the
@@ -706,6 +737,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 					"round": state.round_number,
 					"desc": "%s 被歼灭" % t.troop_id,
 				})
+				# Allies lose morale when a comrade is eliminated
+				_apply_ally_death_morale(t, state)
 
 		unit.first_attack = false
 		# Emit one attack entry per AoE target for combat_view compatibility
@@ -772,6 +805,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 			"round": state.round_number,
 			"desc": "%s 被歼灭" % target.troop_id,
 		})
+		# Allies lose morale when a comrade is eliminated
+		_apply_ally_death_morale(target, state)
 		return { "action": "_already_logged" }
 
 	return entry
@@ -819,6 +854,16 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 		adjusted = 11.5 + (troops - 15.0) * 0.25
 
 	var base_damage: float = adjusted * float(raw_diff) / 100.0
+
+	# Apply unit counter matrix multipliers (CounterMatrix)
+	var _counter: Dictionary = CounterMatrix.get_counter(attacker.troop_id, defender.troop_id)
+	if _counter["atk_mult"] != 1.0:
+		base_damage *= _counter["atk_mult"]
+	# def_mult < 1.0 means attacker takes less damage; > 1.0 means more.
+	# Translate to defender effectiveness: scale defender's contribution inversely.
+	if _counter["def_mult"] != 1.0:
+		base_damage /= _counter["def_mult"]
+
 	var final_damage: float = base_damage * skill_mult
 
 	# Convert from "equivalent soldiers killed" to HP damage
@@ -867,6 +912,10 @@ func _apply_damage(target: BattleUnit, damage: int, state: BattleState) -> void:
 
 	target.hp = maxi(0, new_hp)
 	_recalc_soldiers(target)
+
+	# Morale loss on significant hit (5+ HP damage = significant)
+	if damage >= 5 and target.is_alive() and not target.is_routed:
+		_reduce_morale(target, 5, state)
 
 	# death_burst: on death, deal ATK*2 HP to all living enemies
 	if target.hp <= 0 and target.has_passive("death_burst"):
@@ -1046,6 +1095,47 @@ func _recalc_soldiers(unit: BattleUnit) -> void:
 	else:
 		unit.soldiers = ceili(float(unit.hp) / float(unit.hp_per_soldier))
 
+# ---------------------------------------------------------------------------
+# Morale System
+# ---------------------------------------------------------------------------
+
+## Reduce a unit's morale by the given amount. If morale reaches 0, the unit routs.
+func _reduce_morale(unit: BattleUnit, amount: int, state: BattleState) -> void:
+	if unit.is_routed or not unit.is_alive():
+		return
+	unit.morale = maxi(0, unit.morale - amount)
+	EventBus.unit_morale_changed.emit(unit.troop_id, "attacker" if unit.is_attacker else "defender", unit.morale)
+	if unit.morale <= 0:
+		_rout_unit(unit, state)
+
+## Rout a unit: lose 30% soldiers, mark as routed (removed from action queue).
+func _rout_unit(unit: BattleUnit, state: BattleState) -> void:
+	unit.is_routed = true
+	var loss: int = int(ceil(float(unit.soldiers) * 0.30))
+	var hp_loss: int = loss * unit.hp_per_soldier
+	unit.hp = maxi(0, unit.hp - hp_loss)
+	_recalc_soldiers(unit)
+	var side_str: String = "attacker" if unit.is_attacker else "defender"
+	state.action_log.append({
+		"action": "rout",
+		"unit": unit.id,
+		"side": side_str,
+		"slot": unit.slot,
+		"soldiers_lost": loss,
+		"remaining_soldiers": unit.soldiers,
+		"round": state.round_number,
+		"desc": "%s 士气崩溃，溃败！损失%d兵" % [unit.troop_id, loss],
+	})
+	EventBus.unit_routed.emit(unit.troop_id, side_str)
+
+## When an ally dies, all surviving same-side units lose 15 morale.
+func _apply_ally_death_morale(dead_unit: BattleUnit, state: BattleState) -> void:
+	var allies: Array[BattleUnit] = state.attacker_units if dead_unit.is_attacker else state.defender_units
+	for u in allies:
+		if u == dead_unit or not u.is_alive() or u.is_routed:
+			continue
+		_reduce_morale(u, 15, state)
+
 ## Try to fetch an autoload node by name at runtime.
 func _has_autoload(aname: String) -> bool:
 	var tree := Engine.get_main_loop()
@@ -1061,3 +1151,40 @@ func _get_autoload(aname: String) -> Node:
 		if root.has_node(aname):
 			return root.get_node(aname)
 	return null
+
+
+## Convert BattleUnit array to plain dictionaries for FormationSystem.
+func _build_formation_dicts(units: Array[BattleUnit]) -> Array:
+	var result: Array = []
+	for u in units:
+		if not u.is_alive():
+			continue
+		result.append({
+			"id": u.id,
+			"troop_id": u.troop_id,
+			"unit_type": u.troop_id,
+			"row": u.row,
+			"slot": u.slot,
+			"atk": u.atk,
+			"def": u.def_stat,
+			"spd": u.spd,
+			"soldiers": u.soldiers,
+			"max_soldiers": u.max_soldiers,
+		})
+	return result
+
+
+## Sync formation bonus changes from plain dicts back to BattleUnit objects.
+func _sync_formation_to_battle_units(units: Array[BattleUnit], dicts: Array) -> void:
+	var dict_map: Dictionary = {}
+	for d in dicts:
+		dict_map[d["id"]] = d
+	for u in units:
+		if not u.is_alive():
+			continue
+		var d: Dictionary = dict_map.get(u.id, {})
+		if d.is_empty():
+			continue
+		u.atk = d.get("atk", u.atk)
+		u.def_stat = d.get("def", u.def_stat)
+		u.spd = d.get("spd", u.spd)
