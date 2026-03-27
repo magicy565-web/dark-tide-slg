@@ -624,6 +624,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 		if "scatter" in unit["passives"]:
 			if float(unit["soldiers"]) < float(unit["max_soldiers"]) * 0.3:
 				unit["is_alive"] = false
+				unit["soldiers"] = 0  # BUG FIX: zero soldiers so loss tracking is accurate
 				log.append("%s [%s] 溃散撤退!" % [unit["unit_type"], unit["side"]])
 				continue
 
@@ -885,7 +886,7 @@ func _execute_heal(state: Dictionary, healer: Dictionary, log: Array) -> void:
 	for ally in allies:
 		if not ally["is_alive"] or ally == healer:
 			continue
-		var ratio: float = float(ally["soldiers"]) / float(ally["max_soldiers"])
+		var ratio: float = float(ally["soldiers"]) / float(maxi(ally["max_soldiers"], 1))  # BUG FIX: prevent division by zero
 		if ratio < best_ratio:
 			best_ratio = ratio
 			best_target = ally
@@ -941,10 +942,8 @@ func _execute_aoe_attack_half(state: Dictionary, unit: Dictionary, log: Array) -
 		var damage: int = _calculate_damage(unit, enemy, state)
 		if damage == 0:
 			continue
-		# 0.5x damage to compensate for free AoE
+		# BUG FIX: only apply 0.5x reduction (was double-applying 0.5 * 0.6 = 0.3x)
 		damage = maxi(1, int(float(damage) * 0.5))
-		# AoE per-target reduction
-		damage = maxi(1, int(float(damage) * 0.6))
 		_apply_damage_to_unit(state, enemy, damage, unit, log)
 		hit_count += 1
 	log.append("%s [%s] AoE攻击(固定)! 命中 %d 个目标 (×0.5)" % [
@@ -1242,7 +1241,8 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 			atk *= 2.0
 
 	# Passive: berserker_rage — when <50% soldiers, ATK×2 and DEF becomes 0
-	if "berserker_rage" in attacker_unit["passives"]:
+	# BUG FIX: use elif to prevent stacking with low_hp_double (was 4x ATK)
+	elif "berserker_rage" in attacker_unit["passives"]:
 		if float(attacker_unit["soldiers"]) < float(attacker_unit["max_soldiers"]) * 0.5:
 			atk *= 2.0
 
@@ -1252,7 +1252,8 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 			def_val = 0.0
 
 	# Passive: blood_triple — when unit is <30% soldiers, ATK is tripled
-	if "blood_triple" in attacker_unit["passives"]:
+	# BUG FIX: use elif to prevent stacking with berserker_rage (was 6x ATK)
+	if "blood_triple" in attacker_unit["passives"] and not ("berserker_rage" in attacker_unit["passives"] or "low_hp_double" in attacker_unit["passives"]):
 		if float(attacker_unit["soldiers"]) < float(attacker_unit["max_soldiers"]) * 0.3:
 			atk *= 3.0
 
@@ -1601,10 +1602,14 @@ func _get_troop_base_type(unit_type: String) -> String:
 		"apprentice_mage", "battle_mage", "archmage", "elf_mage", "arcane_artillery", \
 		"mage_apprentice", "mage_battle", "mage_grand":
 			return "mage_unit"
-		"bombardier", "goblin_artillery", "pirate_cannon", "pirate_ultimate":
+		"bombardier", "goblin_artillery", "pirate_cannon":
 			return "cannon"
+		"pirate_ultimate":
+			return "samurai"  # BUG FIX: pirate_ultimate is TC_SAMURAI, not cannon
 		"orc_ultimate":
 			return "samurai"
+		"de_ultimate":
+			return "mage_unit"  # BUG FIX: de_ultimate is TC_MAGE_UNIT, was falling through to ashigaru
 	return "ashigaru"  # Default fallback
 
 

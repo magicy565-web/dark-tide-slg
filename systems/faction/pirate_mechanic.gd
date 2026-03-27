@@ -310,13 +310,18 @@ func consume_sex_slaves(player_id: int, count: int) -> bool:
 	if current < count:
 		EventBus.message_log.emit("[color=red]性奴隶不足! 需要%d, 仅有%d[/color]" % [count, current])
 		return false
-	_sex_slaves[player_id] = current - count
+	# BUG FIX: Don't decrement _sex_slaves here; _remove_slave_at_index already does it
+	# _sex_slaves[player_id] = current - count  -- REMOVED: was causing double decrement
 	# 移除对应调教数据 (从最低调教值的开始移除)
 	var training: Dictionary = _slave_training.get(player_id, {})
 	for _i in range(count):
 		var lowest_idx: int = _find_lowest_trained_slave(player_id)
 		if lowest_idx >= 0:
 			_remove_slave_at_index(player_id, lowest_idx)
+	# If _remove_slave_at_index didn't remove enough (no training data), fix count directly
+	var after: int = _sex_slaves.get(player_id, 0)
+	if after > current - count:
+		_sex_slaves[player_id] = maxi(current - count, 0)
 	EventBus.message_log.emit("[color=red]消耗性奴隶 -%d (剩余: %d)[/color]" % [count, _sex_slaves.get(player_id, 0)])
 	return true
 

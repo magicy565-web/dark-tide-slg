@@ -185,7 +185,8 @@ func check_quest_triggers(player_id: int, neutral_faction: int) -> Dictionary:
 	## Check if current step's trigger conditions are met.
 	## Returns { "can_advance": bool, "missing": String, "requires_combat": bool, ... }
 	var step: int = get_quest_step(player_id, neutral_faction)
-	if step == 0 or step > 3:
+	# BUG FIX: was hardcoded to step > 3, now uses actual quest chain length
+	if step == 0:
 		return {"can_advance": false, "missing": "任务未开始"}
 
 	if not FactionData.NEUTRAL_FACTION_DATA.has(neutral_faction):
@@ -429,7 +430,10 @@ func _check_auto_advance(player_id: int) -> void:
 		if qdata.get("completed", false):
 			continue
 		var step: int = qdata.get("step", 0)
-		if step < 1 or step > 3:
+		# BUG FIX: was hardcoded to step > 3, now checks actual quest chain size
+		var faction_data_nf: Dictionary = FactionData.NEUTRAL_FACTION_DATA.get(nf, {})
+		var quest_chain_nf: Array = faction_data_nf.get("quest_chain", [])
+		if step < 1 or step > quest_chain_nf.size():
 			continue
 
 		var check: Dictionary = check_quest_triggers(player_id, nf)

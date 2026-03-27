@@ -1591,6 +1591,9 @@ func begin_turn() -> void:
 func end_turn() -> void:
 	if not game_active:
 		return
+	# BUG FIX: bounds check before accessing players array
+	if players.is_empty() or current_player_index < 0 or current_player_index >= players.size():
+		return
 	var player: Dictionary = players[current_player_index]
 	waiting_for_move = false
 	reachable_tiles.clear()
@@ -2095,10 +2098,11 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			"id": "att_%d" % slot_idx,
 			"commander_id": army["heroes"][0] if army["heroes"].size() > 0 and slot_idx == 0 else "generic",
 			"troop_id": troop.get("troop_id", "infantry"),
-			"atk": troop.get("atk", 5) + player.get("atk_bonus", 0),
-			"def": troop.get("def", 5) + player.get("def_bonus", 0),
-			"spd": troop.get("spd", 5),
-			"int": troop.get("int", 5),
+			# BUG FIX: troop instances don't have atk/def keys; look up from troop definition
+			"atk": GameData.get_troop_def(troop.get("troop_id", "")).get("base_atk", 5) + player.get("atk_bonus", 0),
+			"def": GameData.get_troop_def(troop.get("troop_id", "")).get("base_def", 5) + player.get("def_bonus", 0),
+			"spd": GameData.get_troop_def(troop.get("troop_id", "")).get("base_spd", 5),
+			"int": GameData.get_troop_def(troop.get("troop_id", "")).get("base_int", 5),
 			"soldiers": troop.get("soldiers", 0),
 			"max_soldiers": troop.get("max_soldiers", troop.get("soldiers", 0)),
 			"row": troop.get("row", 0 if slot_idx < 3 else 1),
@@ -2122,10 +2126,11 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 				"id": "def_%d" % slot_idx,
 				"commander_id": "generic",
 				"troop_id": gt.get("troop_id", "infantry"),
-				"atk": gt.get("atk", 5),
-				"def": gt.get("def", 5),
-				"spd": gt.get("spd", 5),
-				"int": gt.get("int", 5),
+				# BUG FIX: garrison troop instances don't have atk/def; look up from definition
+				"atk": GameData.get_troop_def(gt.get("troop_id", "")).get("base_atk", 5),
+				"def": GameData.get_troop_def(gt.get("troop_id", "")).get("base_def", 5),
+				"spd": GameData.get_troop_def(gt.get("troop_id", "")).get("base_spd", 5),
+				"int": GameData.get_troop_def(gt.get("troop_id", "")).get("base_int", 5),
 				"soldiers": gt.get("soldiers", 0),
 				"max_soldiers": gt.get("max_soldiers", gt.get("soldiers", 0)),
 				"row": gt.get("row", 0 if slot_idx < 3 else 1),
@@ -2196,13 +2201,11 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	var captured_heroes: Array = result.get("captured_heroes", [])
 
 	# Apply losses to attacker army troops
-	for troop in army["troops"]:
-		for i in range(attacker_units.size()):
-			var au: Dictionary = attacker_units[i]
-			if att_losses.has(au["id"]):
-				if troop.get("troop_id", "") == au["troop_id"] or i == army["troops"].find(troop):
-					troop["soldiers"] = maxi(0, troop["soldiers"] - att_losses[au["id"]])
-					break
+	# BUG FIX: match by slot index instead of troop_id to handle duplicate troop types
+	for i in range(mini(army["troops"].size(), attacker_units.size())):
+		var au: Dictionary = attacker_units[i]
+		if att_losses.has(au["id"]):
+			army["troops"][i]["soldiers"] = maxi(0, army["troops"][i]["soldiers"] - att_losses[au["id"]])
 
 	if won:
 		tile["garrison"] = 0
@@ -3683,14 +3686,16 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 				EventBus.message_log.emit("下次访问此据点时获得 %d 金币" % int(value))
 			"attacked_next_turn":
 				# Schedule an enemy attack at the start of next turn
+				# BUG FIX: value is boolean true, use meaningful attack strength
 				if not player.has("deferred_attacks"):
 					player["deferred_attacks"] = []
+				var attack_strength: int = randi_range(30, 50) if (value is bool or int(abs(value)) <= 1) else int(abs(value))
 				player["deferred_attacks"].append({
-					"strength": int(abs(value)),
+					"strength": attack_strength,
 					"turns_delay": 1,
 					"tile_index": player.get("position", 0),
 				})
-				EventBus.message_log.emit("[color=red]下回合将遭到 %d 兵力的袭击![/color]" % int(abs(value)))
+				EventBus.message_log.emit("[color=red]下回合将遭到 %d 兵力的袭击![/color]" % attack_strength)
 			"prep_turns":
 				# Grant a preparation buff for N turns (defense bonus)
 				var duration: int = int(abs(value))

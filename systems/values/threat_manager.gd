@@ -156,6 +156,7 @@ func to_save_data() -> Dictionary:
 
 
 func from_save_data(data: Dictionary) -> void:
-	_threat = data.get("threat", 0)
-	_expedition_timer = data.get("expedition_timer", 0)
-	_boss_timer = data.get("boss_timer", 0)
+	# BUG FIX: cast to int — JSON deserialization returns float
+	_threat = int(data.get("threat", 0))
+	_expedition_timer = int(data.get("expedition_timer", 0))
+	_boss_timer = int(data.get("boss_timer", 0))

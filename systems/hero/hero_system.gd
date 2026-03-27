@@ -183,8 +183,10 @@ func get_affection_unlocks(hero_id: String) -> Array:
 
 # ═══════════════ PUBLIC API (hero_panel.gd) ═══════════════
 
-func get_recruited_heroes(player_id: int) -> Array:
+func get_recruited_heroes(_player_id: int) -> Array:
 	## Returns array of hero_id strings recruited by this player.
+	## Note: In current single-player design, all recruited heroes belong to the human player.
+	## The _player_id parameter is kept for API compatibility.
 	var result: Array = []
 	for hid in recruited_heroes:
 		var hero: Dictionary = FactionData.HEROES.get(hid, {})
@@ -193,7 +195,7 @@ func get_recruited_heroes(player_id: int) -> Array:
 	return result
 
 
-func get_prison_heroes(player_id: int) -> Array:
+func get_prison_heroes(_player_id: int) -> Array:
 	## Returns array of hero_id strings currently in prison.
 	var result: Array = []
 	for hid in captured_heroes:

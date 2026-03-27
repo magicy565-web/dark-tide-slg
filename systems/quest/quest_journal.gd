@@ -899,11 +899,9 @@ func _on_combat_result(attacker_id: int, _defender_desc: String, won: bool) -> v
 	if attacker_id == pid and won:
 		_stats["battles_won"] += 1
 		# Bug fix Round 3: total_kills was incrementing by 1 per battle.
-		# Use CombatTracker for actual kill counts if available; fallback to
-		# estimated kills (avg garrison size) to avoid quest objectives being
-		# nearly impossible to complete.
-		# CombatTracker autoload does not exist; use estimated kills fallback
-		var last_kills: int = 5
+		# Signal handler only receives (attacker_id, defender_desc, won) — no detailed
+		# combat result dict available. Use a reasonable estimate based on typical garrison.
+		var last_kills: int = clampi(GameManager.tiles.size(), 3, 15) if not GameManager.tiles.is_empty() else 5
 		_stats["total_kills"] = _stats.get("total_kills", 0) + last_kills
 		# Check WAAAGH! state for orc challenge
 		if OrcMechanic and OrcMechanic.has_method("get_waaagh"):

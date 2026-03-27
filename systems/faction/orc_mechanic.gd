@@ -580,12 +580,14 @@ func _tick_reproduction(player_id: int) -> void:
 		EventBus.message_log.emit("[color=red]性奴隶繁殖: 战士 +%d (战士池: %d, 性奴隶: %d/%d, 总兵力: %d)[/color]" % [
 			new_warriors, _warrior_pool[player_id], slaves, capacity, _total_warriors[player_id]])
 
-	# Food consumption: total warriors eat total_warriors * 0.3 food per turn
-	var total_w: int = _total_warriors.get(player_id, 0)
-	var food_cost: int = ceili(float(total_w) * 0.3)
+	# Food consumption: only warrior_pool eats here (army soldiers handled by ProductionCalculator)
+	# BUG FIX: was charging food for total_warriors (army + pool), causing double deduction
+	# since ProductionCalculator.calculate_food_upkeep() already charges for army soldiers
+	var pool_w: int = _warrior_pool.get(player_id, 0)
+	var food_cost: int = ceili(float(pool_w) * 0.3)
 	if food_cost > 0:
 		ResourceManager.apply_delta(player_id, {"food": -food_cost})
-		EventBus.message_log.emit("[color=red]兽人食物消耗: -%d (总兵力: %d)[/color]" % [food_cost, total_w])
+		EventBus.message_log.emit("[color=red]兽人食物消耗: -%d (战士池: %d)[/color]" % [food_cost, pool_w])
 
 	# Auto-spawn check: notify player if they can spawn
 	if can_auto_spawn(player_id):
