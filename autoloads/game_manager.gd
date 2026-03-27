@@ -250,6 +250,12 @@ var _prev_turn_had_combat: bool = false
 var _ap_purchases_this_turn: int = 0
 var _turn_cache: Dictionary = {}
 
+# ── Commander Tactical Orders (player session state) ──
+var _current_directive: int = 0  # CombatResolver.TacticalDirective.NONE
+var _current_skill_timing: Dictionary = {}  # hero_id -> round number (0 = auto)
+var _current_protected_slot: int = -1
+var _current_decoy_slot: int = -1
+
 # ── Army system state (v0.9.2) ──
 # armies: { army_id: int -> { id, player_id, tile_index, name, troops: Array, heroes: Array } }
 var armies: Dictionary = {}
@@ -2902,6 +2908,48 @@ func _handle_rival_base(player: Dictionary, tile: Dictionary) -> void:
 				FactionManager.mark_faction_dead(rival_fid, player["id"])
 
 
+# ═══════════════ COMMANDER TACTICAL ORDERS ═══════════════
+
+func get_player_tactical_orders() -> Dictionary:
+	## Returns current tactical orders set by the player.
+	## These are stored in session variables and set via UI before combat.
+	return {
+		"tactical_directive": _current_directive,
+		"skill_timing": _current_skill_timing.duplicate(),
+		"protected_slot": _current_protected_slot,
+		"decoy_slot": _current_decoy_slot,
+	}
+
+
+func set_tactical_directive(directive: int) -> void:
+	_current_directive = directive
+
+
+func set_skill_timing(hero_id: String, round_num: int) -> void:
+	## Set when a hero's active skill should fire.
+	## round_num: 0=auto, 1=round 1, 4=round 4, 8=round 8
+	if round_num <= 0:
+		_current_skill_timing.erase(hero_id)
+	else:
+		_current_skill_timing[hero_id] = round_num
+
+
+func set_protected_slot(slot: int) -> void:
+	_current_protected_slot = slot
+
+
+func set_decoy_slot(slot: int) -> void:
+	_current_decoy_slot = slot
+
+
+func clear_tactical_orders() -> void:
+	## Reset all tactical orders to defaults.
+	_current_directive = 0
+	_current_skill_timing.clear()
+	_current_protected_slot = -1
+	_current_decoy_slot = -1
+
+
 # ═══════════════ COMBAT ═══════════════
 
 func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String) -> bool:
@@ -2934,6 +2982,11 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 		"faction_id": faction_id,
 		"units": atk_units,
 	}
+
+	# Inject Commander Tactical Orders for human player
+	if pid == get_human_player_id():
+		var orders: Dictionary = get_player_tactical_orders()
+		attacker_data.merge(orders)
 
 	# Build defender data
 	var def_player_id: int = tile.get("owner_id", -1)
@@ -3059,6 +3112,12 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 		"faction_id": faction_id,
 		"units": atk_units,
 	}
+
+	# Inject Commander Tactical Orders for human player
+	if pid == get_human_player_id():
+		var orders: Dictionary = get_player_tactical_orders()
+		attacker_data.merge(orders)
+
 	var defender_data: Dictionary = {
 		"player_id": -1,
 		"faction_id": -1,

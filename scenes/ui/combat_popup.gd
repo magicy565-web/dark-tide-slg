@@ -1,13 +1,17 @@
-## combat_popup.gd - Battle result display for Dark Tide SLG (v0.9.1)
-## Shows combat outcome with attacker/defender info, losses, and loot
+## combat_popup.gd - Battle result display + Pre-battle Tactical Orders for Dark Tide SLG
+## Shows combat outcome with attacker/defender info, losses, and loot.
+## Also provides the Commander Tactical Orders panel shown before combat begins.
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const CombatResolver = preload("res://systems/combat/combat_resolver.gd")
 
 # ── State ──
 var _visible: bool = false
 var _queue: Array = []  # Queue of combat results to show
+var _orders_visible: bool = false
+var _orders_player_id: int = -1
 
-# ── UI refs ──
+# ── UI refs: Result popup ──
 var root: Control
 var dim_bg: ColorRect
 var popup_panel: PanelContainer
@@ -15,7 +19,39 @@ var title_label: Label
 var result_label: RichTextLabel
 var btn_dismiss: Button
 
+# ── UI refs: Tactical Orders panel ──
+var _orders_root: Control
+var _orders_dim_bg: ColorRect
+var _orders_panel: PanelContainer
+var _directive_buttons: Array = []  # Array of Button
+var _selected_directive: int = CombatResolver.TacticalDirective.NONE
+var _skill_timing_options: Dictionary = {}  # hero_id -> OptionButton
+var _protected_option: OptionButton
+var _decoy_option: OptionButton
+var _btn_confirm_orders: Button
+var _btn_skip_orders: Button
+
 var _tween: Tween = null
+var _orders_tween: Tween = null
+
+
+# placeholder: filled in by _build_orders_ui
+# ── Directive metadata for UI ──
+const _DIRECTIVE_UI: Array = [
+	{"id": CombatResolver.TacticalDirective.NONE, "label": "无指令", "desc": "不使用战术指令"},
+	{"id": CombatResolver.TacticalDirective.ALL_OUT, "label": "猛攻", "desc": "ATK+25% DEF-15% 最速先制"},
+	{"id": CombatResolver.TacticalDirective.HOLD_LINE, "label": "坚守", "desc": "DEF+25% ATK-15% 超时=我方胜"},
+	{"id": CombatResolver.TacticalDirective.GUERRILLA, "label": "游击", "desc": "后排ATK+30% 前排DEF+15% 后排被保护"},
+	{"id": CombatResolver.TacticalDirective.FOCUS_FIRE, "label": "集火", "desc": "ATK+10% 全军集火最弱敌"},
+	{"id": CombatResolver.TacticalDirective.AMBUSH, "label": "奇袭", "desc": "首回合ATK+40%先制 之后ATK-10%"},
+]
+
+const _TIMING_LABELS: Array = [
+	{"value": 0, "label": "自动"},
+	{"value": 1, "label": "立即 (第1回合)"},
+	{"value": 4, "label": "中盘 (第4回合)"},
+	{"value": 8, "label": "收割 (第8回合)"},
+]
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -25,16 +61,19 @@ var _tween: Tween = null
 func _ready() -> void:
 	layer = 6
 	_build_ui()
+	_build_orders_ui()
 	_connect_signals()
 	hide_popup()
+	_hide_orders_panel()
 
 
 func _connect_signals() -> void:
 	EventBus.combat_result.connect(_on_combat_result)
+	EventBus.tactical_orders_requested.connect(_on_tactical_orders_requested)
 
 
 # ═══════════════════════════════════════════════════════════════
-#                          BUILD UI
+#                    BUILD UI: RESULT POPUP
 # ═══════════════════════════════════════════════════════════════
 
 func _build_ui() -> void:
@@ -111,6 +150,162 @@ func _build_ui() -> void:
 
 
 # ═══════════════════════════════════════════════════════════════
+#              BUILD UI: TACTICAL ORDERS PANEL
+# ═══════════════════════════════════════════════════════════════
+
+func _build_orders_ui() -> void:
+	_orders_root = Control.new()
+	_orders_root.name = "TacticalOrdersRoot"
+	_orders_root.anchor_right = 1.0
+	_orders_root.anchor_bottom = 1.0
+	_orders_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_orders_root)
+
+	_orders_dim_bg = ColorRect.new()
+	_orders_dim_bg.anchor_right = 1.0
+	_orders_dim_bg.anchor_bottom = 1.0
+	_orders_dim_bg.color = Color(0.0, 0.0, 0.05, 0.65)
+	_orders_dim_bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	_orders_root.add_child(_orders_dim_bg)
+
+	_orders_panel = PanelContainer.new()
+	_orders_panel.anchor_left = 0.5
+	_orders_panel.anchor_right = 0.5
+	_orders_panel.anchor_top = 0.5
+	_orders_panel.anchor_bottom = 0.5
+	_orders_panel.offset_left = -320
+	_orders_panel.offset_right = 320
+	_orders_panel.offset_top = -260
+	_orders_panel.offset_bottom = 260
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.04, 0.03, 0.08, 0.97)
+	style.border_color = Color(0.2, 0.6, 0.9)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(10)
+	style.set_content_margin_all(14)
+	_orders_panel.add_theme_stylebox_override("panel", style)
+	_orders_root.add_child(_orders_panel)
+
+	var main_vbox := VBoxContainer.new()
+	main_vbox.add_theme_constant_override("separation", 6)
+	_orders_panel.add_child(main_vbox)
+
+	# Title
+	var orders_title := Label.new()
+	orders_title.text = "战术指令 - Commander Orders"
+	orders_title.add_theme_font_size_override("font_size", 20)
+	orders_title.add_theme_color_override("font_color", Color(0.3, 0.8, 1.0))
+	orders_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	main_vbox.add_child(orders_title)
+
+	main_vbox.add_child(HSeparator.new())
+
+	# Scrollable content area
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, 360)
+	main_vbox.add_child(scroll)
+
+	var content_vbox := VBoxContainer.new()
+	content_vbox.add_theme_constant_override("separation", 6)
+	content_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(content_vbox)
+
+	# ── Section 1: Directives ──
+	var dir_label := Label.new()
+	dir_label.text = "战术指令 (选择一项):"
+	dir_label.add_theme_font_size_override("font_size", 15)
+	dir_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
+	content_vbox.add_child(dir_label)
+
+	_directive_buttons.clear()
+	for i in range(_DIRECTIVE_UI.size()):
+		var d: Dictionary = _DIRECTIVE_UI[i]
+		var btn := Button.new()
+		btn.text = "%s - %s" % [d["label"], d["desc"]]
+		btn.add_theme_font_size_override("font_size", 13)
+		btn.custom_minimum_size = Vector2(580, 30)
+		btn.toggle_mode = true
+		btn.button_pressed = (i == 0)  # NONE selected by default
+		var idx: int = i
+		btn.pressed.connect(_on_directive_selected.bind(idx))
+		content_vbox.add_child(btn)
+		_directive_buttons.append(btn)
+
+	content_vbox.add_child(HSeparator.new())
+
+	# ── Section 2: Skill Timing ──
+	var timing_label := Label.new()
+	timing_label.text = "技能时机 (每个英雄):"
+	timing_label.add_theme_font_size_override("font_size", 15)
+	timing_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
+	content_vbox.add_child(timing_label)
+
+	# Placeholder: populated dynamically when orders are requested
+	var timing_container := VBoxContainer.new()
+	timing_container.name = "SkillTimingContainer"
+	timing_container.add_theme_constant_override("separation", 4)
+	content_vbox.add_child(timing_container)
+
+	content_vbox.add_child(HSeparator.new())
+
+	# ── Section 3: Formation Priority ──
+	var form_label := Label.new()
+	form_label.text = "阵型优先级:"
+	form_label.add_theme_font_size_override("font_size", 15)
+	form_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))
+	content_vbox.add_child(form_label)
+
+	var form_grid := GridContainer.new()
+	form_grid.columns = 2
+	form_grid.add_theme_constant_override("h_separation", 8)
+	form_grid.add_theme_constant_override("v_separation", 4)
+	content_vbox.add_child(form_grid)
+
+	var prot_lbl := Label.new()
+	prot_lbl.text = "重点保护 (受击-50%):"
+	prot_lbl.add_theme_font_size_override("font_size", 13)
+	form_grid.add_child(prot_lbl)
+
+	_protected_option = OptionButton.new()
+	_protected_option.add_theme_font_size_override("font_size", 13)
+	_protected_option.custom_minimum_size = Vector2(200, 28)
+	form_grid.add_child(_protected_option)
+
+	var decoy_lbl := Label.new()
+	decoy_lbl.text = "诱饵 (受击+100%):"
+	decoy_lbl.add_theme_font_size_override("font_size", 13)
+	form_grid.add_child(decoy_lbl)
+
+	_decoy_option = OptionButton.new()
+	_decoy_option.add_theme_font_size_override("font_size", 13)
+	_decoy_option.custom_minimum_size = Vector2(200, 28)
+	form_grid.add_child(_decoy_option)
+
+	# ── Buttons row ──
+	main_vbox.add_child(HSeparator.new())
+
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 12)
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	main_vbox.add_child(btn_row)
+
+	_btn_confirm_orders = Button.new()
+	_btn_confirm_orders.text = "确认出击"
+	_btn_confirm_orders.custom_minimum_size = Vector2(140, 36)
+	_btn_confirm_orders.add_theme_font_size_override("font_size", 15)
+	_btn_confirm_orders.pressed.connect(_on_confirm_orders)
+	btn_row.add_child(_btn_confirm_orders)
+
+	_btn_skip_orders = Button.new()
+	_btn_skip_orders.text = "跳过 (默认)"
+	_btn_skip_orders.custom_minimum_size = Vector2(140, 36)
+	_btn_skip_orders.add_theme_font_size_override("font_size", 15)
+	_btn_skip_orders.pressed.connect(_on_skip_orders)
+	btn_row.add_child(_btn_skip_orders)
+
+
+# ═══════════════════════════════════════════════════════════════
 #                       PUBLIC API
 # ═══════════════════════════════════════════════════════════════
 
@@ -175,6 +370,90 @@ func hide_popup() -> void:
 
 
 # ═══════════════════════════════════════════════════════════════
+#                 TACTICAL ORDERS: PUBLIC API
+# ═══════════════════════════════════════════════════════════════
+
+func show_tactical_orders(player_id: int, _tile_index: int) -> void:
+	## Display the pre-battle tactical orders panel.
+	_orders_player_id = player_id
+	_selected_directive = CombatResolver.TacticalDirective.NONE
+
+	# Reset directive button states
+	for i in range(_directive_buttons.size()):
+		_directive_buttons[i].button_pressed = (i == 0)
+
+	# Populate hero skill timing dropdowns
+	_populate_skill_timing(player_id)
+
+	# Populate protected/decoy slot dropdowns
+	_populate_formation_slots(player_id)
+
+	_show_orders_animated()
+
+
+func _populate_skill_timing(player_id: int) -> void:
+	## Build skill timing dropdown for each hero in the player's army.
+	_skill_timing_options.clear()
+	var container: VBoxContainer = _orders_panel.find_child("SkillTimingContainer", true, false)
+	if container == null:
+		return
+	# Clear existing children
+	for child in container.get_children():
+		child.queue_free()
+
+	var heroes: Array = HeroSystem.get_heroes_for_player(player_id) if HeroSystem else []
+	if heroes.is_empty():
+		var no_hero_lbl := Label.new()
+		no_hero_lbl.text = "(无英雄在军中)"
+		no_hero_lbl.add_theme_font_size_override("font_size", 12)
+		no_hero_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		container.add_child(no_hero_lbl)
+		return
+
+	for hero in heroes:
+		var hero_id: String = hero.get("id", "")
+		var hero_name: String = hero.get("name", hero_id)
+		var hbox := HBoxContainer.new()
+		hbox.add_theme_constant_override("separation", 6)
+
+		var lbl := Label.new()
+		lbl.text = hero_name + ":"
+		lbl.add_theme_font_size_override("font_size", 13)
+		lbl.custom_minimum_size = Vector2(120, 0)
+		hbox.add_child(lbl)
+
+		var opt := OptionButton.new()
+		opt.add_theme_font_size_override("font_size", 12)
+		opt.custom_minimum_size = Vector2(180, 26)
+		for t in _TIMING_LABELS:
+			opt.add_item(t["label"])
+		opt.selected = 0  # Auto by default
+		hbox.add_child(opt)
+
+		container.add_child(hbox)
+		_skill_timing_options[hero_id] = opt
+
+
+func _populate_formation_slots(player_id: int) -> void:
+	## Fill protected/decoy dropdowns with unit names from the army.
+	_protected_option.clear()
+	_decoy_option.clear()
+
+	_protected_option.add_item("无", 0)
+	_decoy_option.add_item("无", 0)
+
+	var units: Array = RecruitManager.get_combat_units(player_id) if RecruitManager else []
+	for i in range(units.size()):
+		var u: Dictionary = units[i]
+		var label: String = "Slot %d: %s (%d兵)" % [i, u.get("type", "?"), u.get("count", u.get("soldiers", 0))]
+		_protected_option.add_item(label, i + 1)
+		_decoy_option.add_item(label, i + 1)
+
+	_protected_option.selected = 0
+	_decoy_option.selected = 0
+
+
+# ═══════════════════════════════════════════════════════════════
 #                       CALLBACKS
 # ═══════════════════════════════════════════════════════════════
 
@@ -196,6 +475,58 @@ func _on_combat_result(attacker_id: int, defender_desc: String, won: bool) -> vo
 
 func _on_dismiss() -> void:
 	_hide_animated()
+
+
+func _on_tactical_orders_requested(player_id: int, tile_index: int) -> void:
+	if player_id != GameManager.get_human_player_id():
+		# AI doesn't use the UI — auto-confirm with defaults
+		EventBus.tactical_orders_confirmed.emit(player_id)
+		return
+	show_tactical_orders(player_id, tile_index)
+
+
+func _on_directive_selected(index: int) -> void:
+	## Radio-button behavior: deselect all others, select this one.
+	_selected_directive = _DIRECTIVE_UI[index]["id"]
+	for i in range(_directive_buttons.size()):
+		_directive_buttons[i].button_pressed = (i == index)
+
+
+func _on_confirm_orders() -> void:
+	## Apply selected orders to GameManager and signal combat to proceed.
+	GameManager.set_tactical_directive(_selected_directive)
+
+	# Skill timing
+	for hero_id in _skill_timing_options:
+		var opt: OptionButton = _skill_timing_options[hero_id]
+		var sel: int = opt.selected
+		if sel >= 0 and sel < _TIMING_LABELS.size():
+			var round_num: int = _TIMING_LABELS[sel]["value"]
+			GameManager.set_skill_timing(hero_id, round_num)
+
+	# Protected slot: option index 0 = none, 1+ = slot index
+	var prot_sel: int = _protected_option.selected
+	if prot_sel > 0:
+		GameManager.set_protected_slot(prot_sel - 1)
+	else:
+		GameManager.set_protected_slot(-1)
+
+	# Decoy slot
+	var decoy_sel: int = _decoy_option.selected
+	if decoy_sel > 0:
+		GameManager.set_decoy_slot(decoy_sel - 1)
+	else:
+		GameManager.set_decoy_slot(-1)
+
+	_hide_orders_panel()
+	EventBus.tactical_orders_confirmed.emit(_orders_player_id)
+
+
+func _on_skip_orders() -> void:
+	## Skip orders — clear everything and proceed.
+	GameManager.clear_tactical_orders()
+	_hide_orders_panel()
+	EventBus.tactical_orders_confirmed.emit(_orders_player_id)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -224,3 +555,23 @@ func _hide_animated() -> void:
 	_tween.tween_property(dim_bg, "modulate:a", 0.0, 0.15)
 	_tween.tween_property(popup_panel, "modulate:a", 0.0, 0.15)
 	_tween.chain().tween_callback(hide_popup)
+
+
+func _show_orders_animated() -> void:
+	_orders_visible = true
+	_orders_root.visible = true
+	_orders_dim_bg.modulate.a = 0.0
+	_orders_panel.modulate.a = 0.0
+	_orders_panel.scale = Vector2(0.85, 0.85)
+
+	if _orders_tween:
+		_orders_tween.kill()
+	_orders_tween = create_tween().set_parallel(true)
+	_orders_tween.tween_property(_orders_dim_bg, "modulate:a", 1.0, 0.2)
+	_orders_tween.tween_property(_orders_panel, "modulate:a", 1.0, 0.3)
+	_orders_tween.tween_property(_orders_panel, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _hide_orders_panel() -> void:
+	_orders_visible = false
+	_orders_root.visible = false

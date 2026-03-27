@@ -49,6 +49,8 @@ signal choice_event_triggered(player_id: int, event_data: Dictionary)
 # ── Combat ──
 signal combat_started(attacker_id: int, tile_index: int)
 signal combat_result(attacker_id: int, defender_desc: String, won: bool)
+signal tactical_orders_requested(player_id: int, tile_index: int)  # Pre-battle orders UI
+signal tactical_orders_confirmed(player_id: int)  # Orders set, proceed with combat
 
 # ── Combat演出 SFX hooks (v3.0) ──
 signal sfx_attack(unit_class: String, is_crit: bool)
@@ -177,6 +179,7 @@ signal story_event_triggered(hero_id: String, event_data: Dictionary)
 signal story_event_completed(hero_id: String, event_id: String)
 signal story_route_completed(hero_id: String, route: String)
 signal story_choice_made(hero_id: String, event_id: String, choice_index: int)
+signal story_choice_requested(hero_id: String, event_id: String, choices: Array)
 
 # ── Hero Leveling (v3.1) ──
 signal hero_leveled_up(hero_id: String, new_level: int)

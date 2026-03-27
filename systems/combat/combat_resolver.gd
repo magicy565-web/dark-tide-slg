@@ -25,6 +25,39 @@ const MORALE_ROUT_LOSS_PCT: float = 0.30
 const MORALE_ORDER_DEBUFF: int = 20
 const MORALE_ORDER_THRESHOLD: int = 76
 
+# ── Commander Tactical Orders ──
+enum TacticalDirective { NONE, ALL_OUT, HOLD_LINE, GUERRILLA, FOCUS_FIRE, AMBUSH }
+
+const DIRECTIVE_DATA: Dictionary = {
+	TacticalDirective.NONE: {"name": "无", "atk_mult": 1.0, "def_mult": 1.0},
+	TacticalDirective.ALL_OUT: {
+		"name": "猛攻", "desc": "全军ATK+25%, DEF-15%, 最速单位获得先制攻击",
+		"atk_mult": 1.25, "def_mult": 0.85, "first_strike": true,
+	},
+	TacticalDirective.HOLD_LINE: {
+		"name": "坚守", "desc": "全军DEF+25%, ATK-15%, 超时判定改为进攻方胜",
+		"atk_mult": 0.85, "def_mult": 1.25, "timeout_attacker_wins": true,
+	},
+	TacticalDirective.GUERRILLA: {
+		"name": "游击", "desc": "后排ATK+30%, 前排DEF+15%, 前排存活时后排不可被选为目标",
+		"back_atk_mult": 1.30, "front_def_mult": 1.15, "protect_back_row": true,
+	},
+	TacticalDirective.FOCUS_FIRE: {
+		"name": "集火", "desc": "全军ATK+10%, 所有单位集中攻击敌方最低HP目标",
+		"atk_mult": 1.10, "def_mult": 1.0, "focus_lowest_hp": true,
+	},
+	TacticalDirective.AMBUSH: {
+		"name": "奇袭", "desc": "第1回合ATK+40%, 之后ATK-10%, 首回合全军先制",
+		"round1_atk_mult": 1.40, "after_atk_mult": 0.90, "def_mult": 1.0, "round1_preemptive": true,
+	},
+}
+
+# Skill timing constants for hero active skills
+const SKILL_TIMING_AUTO: int = 0
+const SKILL_TIMING_ROUND1: int = 1
+const SKILL_TIMING_ROUND4: int = 4
+const SKILL_TIMING_ROUND8: int = 8
+
 # Troop type → default row ("front" or "back")
 const TROOP_DEFAULT_ROW: Dictionary = {
 	"ashigaru": "front", "samurai": "front", "cavalry": "front",
@@ -89,6 +122,19 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 
 	# -- Phase 0: Build battle state --
 	var state: Dictionary = _build_battle_state(attacker, defender, tile)
+
+	# -- Apply Commander Tactical Orders --
+	_apply_directive_modifiers(state)
+
+	# Log directive choice
+	var atk_dir: int = state.get("atk_directive", TacticalDirective.NONE)
+	if atk_dir != TacticalDirective.NONE:
+		var dir_data: Dictionary = DIRECTIVE_DATA.get(atk_dir, {})
+		log.append("[color=cyan]战术指令: %s — %s[/color]" % [dir_data.get("name", ""), dir_data.get("desc", "")])
+	var def_dir: int = state.get("def_directive", TacticalDirective.NONE)
+	if def_dir != TacticalDirective.NONE:
+		var dir_data_d: Dictionary = DIRECTIVE_DATA.get(def_dir, {})
+		log.append("[color=orange]防守方指令: %s[/color]" % dir_data_d.get("name", ""))
 
 	# Morale: Order debuff on enemies
 	if OrderManager.get_order() >= MORALE_ORDER_THRESHOLD:
@@ -181,10 +227,17 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			winner = result
 			break
 
-	# 12 rounds elapsed → defender wins
+	# 12 rounds elapsed → defender wins (unless HOLD_LINE directive)
 	if winner == "":
-		winner = "defender"
-		log.append("12回合结束，防守方胜利!")
+		if state.get("atk_directive", TacticalDirective.NONE) == TacticalDirective.HOLD_LINE:
+			winner = "attacker"
+			log.append("坚守指令: 超时判定 — 进攻方胜!")
+		elif state.get("def_directive", TacticalDirective.NONE) == TacticalDirective.HOLD_LINE:
+			winner = "defender"
+			log.append("坚守指令: 超时判定 — 防守方坚守成功!")
+		else:
+			winner = "defender"
+			log.append("12回合结束，防守方胜利!")
 
 	# -- Phase 4: Finalize --
 	return _finalize_result(state, winner, wall_destroyed, log, tile)
@@ -234,6 +287,15 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 		"barrier_used_this_round": false,
 		"atk_synergy_specials": atk_synergy_specials,
 		"def_synergy_specials": def_synergy_specials,
+		# Commander Tactical Orders
+		"atk_directive": attacker.get("tactical_directive", TacticalDirective.NONE),
+		"def_directive": defender.get("tactical_directive", TacticalDirective.NONE),
+		"atk_skill_timing": attacker.get("skill_timing", {}),  # hero_id -> round_number
+		"def_skill_timing": defender.get("skill_timing", {}),
+		"atk_protected_slot": attacker.get("protected_slot", -1),
+		"atk_decoy_slot": attacker.get("decoy_slot", -1),
+		"def_protected_slot": defender.get("protected_slot", -1),
+		"def_decoy_slot": defender.get("decoy_slot", -1),
 	}
 
 
@@ -309,6 +371,43 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 			base_atk += 2; base_def += 1
 		elif aff >= 3:
 			base_atk += 1
+
+		# Story choice combat effects — apply stat modifiers from branching story flags
+		var story_flags: Dictionary = StoryEventSystem.get_hero_flags(hero_id)
+		# Rin (凛) — path bonuses
+		if story_flags.get("rin_pure_love", false):
+			base_atk += 2; base_def += 2
+		elif story_flags.get("rin_redemption", false):
+			base_def += 4
+		elif story_flags.get("rin_dark", false):
+			base_atk += 4
+			if randf() < 0.15:
+				passives.append("refuse_orders")  # 15% skip action
+		elif story_flags.get("rin_puppet", false):
+			base_atk += 3; base_def += 1
+		# Suirei (翠玲) — path bonuses
+		if story_flags.get("suirei_guardian", false):
+			base_def += 4
+		elif story_flags.get("suirei_conqueror", false):
+			base_atk += 4
+		elif story_flags.get("suirei_ambassador", false):
+			base_def += 2; base_atk += 2
+		# Sou (蒼) — path bonuses
+		if story_flags.get("sou_scholar", false):
+			int_stat += 6
+		elif story_flags.get("sou_power", false):
+			base_atk += 4
+		elif story_flags.get("sou_forbidden", false):
+			base_atk += 5; base_def -= 1
+			if randf() < 0.10:
+				passives.append("wild_aoe")  # 10% random AoE hitting both sides
+		# Formation bonuses (endgame)
+		if story_flags.get("rin_dual_blade_formation", false):
+			base_atk *= 1.5
+		if story_flags.get("suirei_forest_formation", false):
+			base_def *= 1.3
+		if story_flags.get("sou_arcane_formation", false):
+			int_stat *= 1.4
 
 	# ── Terrain modifiers (data-driven from TERRAIN_DATA) ──
 	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
@@ -448,6 +547,43 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 
 
 # ---------------------------------------------------------------------------
+# Commander Tactical Orders — Directive Stat Modifiers
+# ---------------------------------------------------------------------------
+
+func _apply_directive_modifiers(state: Dictionary) -> void:
+	## Apply stat multipliers from tactical directives to all units on each side.
+	## AMBUSH is handled per-round in _start_of_round, not here.
+	## FOCUS_FIRE targeting is handled in _select_target.
+	for side_key in ["atk", "def"]:
+		var directive: int = state.get(side_key + "_directive", TacticalDirective.NONE)
+		if directive == TacticalDirective.NONE:
+			continue
+		var units_key: String = side_key + "_units"
+		var units: Array = state[units_key]
+
+		match directive:
+			TacticalDirective.ALL_OUT:
+				for unit in units:
+					unit["atk"] = maxf(unit["atk"] * 1.25, 0.0)
+					unit["def"] = maxf(unit["def"] * 0.85, 0.0)
+			TacticalDirective.HOLD_LINE:
+				for unit in units:
+					unit["atk"] = maxf(unit["atk"] * 0.85, 0.0)
+					unit["def"] = maxf(unit["def"] * 1.25, 0.0)
+			TacticalDirective.GUERRILLA:
+				for unit in units:
+					if unit["row"] == "back":
+						unit["atk"] = maxf(unit["atk"] * 1.30, 0.0)
+					elif unit["row"] == "front":
+						unit["def"] = maxf(unit["def"] * 1.15, 0.0)
+			TacticalDirective.FOCUS_FIRE:
+				for unit in units:
+					unit["atk"] = maxf(unit["atk"] * 1.10, 0.0)
+			TacticalDirective.AMBUSH:
+				pass  # Handled per-round in _start_of_round
+
+
+# ---------------------------------------------------------------------------
 # Siege Phase
 # ---------------------------------------------------------------------------
 
@@ -508,6 +644,26 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 
 func _start_of_round(state: Dictionary, log: Array) -> void:
 	state["barrier_used_this_round"] = false
+
+	# ── Commander Tactical Orders: per-round effects ──
+	for side_key in ["atk", "def"]:
+		var directive: int = state.get(side_key + "_directive", TacticalDirective.NONE)
+		var units: Array = state[side_key + "_units"]
+
+		if directive == TacticalDirective.AMBUSH:
+			if state["round"] == 1:
+				for unit in units:
+					if unit["is_alive"]:
+						unit["buffs"].append({"id": "ambush_r1", "duration": 1, "value": 0.40})
+				var side_name: String = "进攻方" if side_key == "atk" else "防守方"
+				log.append("%s 奇袭指令: 第1回合ATK+40%%!" % side_name)
+			elif state["round"] == 2:
+				# Remove round 1 buff and apply permanent debuff for rest of battle
+				for unit in units:
+					if unit["is_alive"]:
+						unit["buffs"].append({"id": "ambush_after", "duration": 99, "value": -0.10})
+				var side_name2: String = "进攻方" if side_key == "atk" else "防守方"
+				log.append("%s 奇袭指令: 后续回合ATK-10%%..." % side_name2)
 
 	# Slave fodder dissolution: after round 1, dissolve all slave_fodder units
 	if state["round"] >= 2:
@@ -702,11 +858,41 @@ func _build_action_queue(state: Dictionary) -> Array:
 	# Separate preemptive units
 	var preemptive: Array = []
 	var normal: Array = []
+
+	# Determine which sides have first-strike / preemptive directives this round
+	var atk_dir: int = state.get("atk_directive", TacticalDirective.NONE)
+	var def_dir: int = state.get("def_directive", TacticalDirective.NONE)
+	var atk_first_strike: bool = (atk_dir == TacticalDirective.ALL_OUT)
+	var atk_ambush_r1: bool = (atk_dir == TacticalDirective.AMBUSH and state["round"] == 1)
+	var def_first_strike: bool = (def_dir == TacticalDirective.ALL_OUT)
+	var def_ambush_r1: bool = (def_dir == TacticalDirective.AMBUSH and state["round"] == 1)
+
 	for unit in all_units:
+		var is_preemptive: bool = false
 		if "preemptive" in unit["passives"] or "preemptive_1_3" in unit["passives"]:
-			preemptive.append(unit)
+			is_preemptive = true
 		elif "reload_shot" in unit["passives"] and state["round"] == 1:
-			preemptive.append(unit)  # reload_shot gets preemptive priority round 1
+			is_preemptive = true  # reload_shot gets preemptive priority round 1
+
+		# ALL_OUT first strike: fastest unit on that side gets preemptive
+		if not is_preemptive and unit["side"] == "attacker" and atk_first_strike:
+			var fastest: Dictionary = _get_fastest_unit(state["atk_units"])
+			if not fastest.is_empty() and fastest == unit:
+				is_preemptive = true
+
+		if not is_preemptive and unit["side"] == "defender" and def_first_strike:
+			var fastest_d: Dictionary = _get_fastest_unit(state["def_units"])
+			if not fastest_d.is_empty() and fastest_d == unit:
+				is_preemptive = true
+
+		# AMBUSH round 1: all units on that side get preemptive
+		if not is_preemptive and unit["side"] == "attacker" and atk_ambush_r1:
+			is_preemptive = true
+		if not is_preemptive and unit["side"] == "defender" and def_ambush_r1:
+			is_preemptive = true
+
+		if is_preemptive:
+			preemptive.append(unit)
 		else:
 			normal.append(unit)
 
@@ -783,13 +969,22 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		_execute_aoe_attack_half(state, unit, log)
 		return
 
-	# Check hero active skill (if ready and has mana)
+	# Check hero active skill (if ready and has mana) — with skill timing orders
 	if unit["hero_id"] != "" and unit["skill_cooldown"] <= 0:
 		var skill: Dictionary = unit["active_skill"]
 		if not skill.is_empty():
-			var used: bool = _execute_active_skill(state, unit, skill, log)
-			if used:
-				return
+			var timing_key: String = "atk_skill_timing" if unit["side"] == "attacker" else "def_skill_timing"
+			var timing: Dictionary = state.get(timing_key, {})
+			var scheduled_round: int = timing.get(unit["hero_id"], 0)  # 0 = auto
+			var should_fire: bool = false
+			if scheduled_round <= 0:
+				should_fire = true  # Auto: original behavior
+			elif state["round"] == scheduled_round:
+				should_fire = true  # Scheduled round
+			if should_fire:
+				var used: bool = _execute_active_skill(state, unit, skill, log)
+				if used:
+					return
 
 	# Normal single-target attack
 	var target: Dictionary = _select_target(state, unit)
@@ -1167,6 +1362,41 @@ func _select_target(state: Dictionary, unit: Dictionary) -> Dictionary:
 	if alive_enemies.is_empty():
 		return {}
 
+	# ── Commander Tactical Orders: FOCUS_FIRE ──
+	# If the ATTACKING unit's side has FOCUS_FIRE, target the enemy with lowest soldiers
+	var unit_side_dir: int = state.get("atk_directive", TacticalDirective.NONE) if unit["side"] == "attacker" else state.get("def_directive", TacticalDirective.NONE)
+	if unit_side_dir == TacticalDirective.FOCUS_FIRE:
+		# Still respect stealth/taunt
+		var focus_targetable: Array = []
+		for enemy in alive_enemies:
+			var is_stealthed: bool = false
+			for b in enemy["buffs"]:
+				if b["id"] == "stealth" and b["duration"] > 0:
+					is_stealthed = true
+					break
+			if is_stealthed:
+				continue
+			focus_targetable.append(enemy)
+		if focus_targetable.is_empty():
+			focus_targetable = alive_enemies
+		focus_targetable.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return a["soldiers"] < b["soldiers"])
+		return focus_targetable[0]
+
+	# ── Commander Tactical Orders: GUERRILLA back-row protection ──
+	# If the ENEMY side has GUERRILLA, their back row cannot be targeted while front row lives
+	var enemy_side_dir: int = state.get("def_directive", TacticalDirective.NONE) if unit["side"] == "attacker" else state.get("atk_directive", TacticalDirective.NONE)
+	if enemy_side_dir == TacticalDirective.GUERRILLA:
+		var enemy_front_alive: Array = _get_alive_in_row(enemies, "front")
+		if not enemy_front_alive.is_empty():
+			# Remove back row from alive_enemies
+			var front_only: Array = []
+			for enemy in alive_enemies:
+				if enemy["row"] == "front":
+					front_only.append(enemy)
+			if not front_only.is_empty():
+				alive_enemies = front_only
+
 	# 1. Taunt check: must target taunter (unless unit has assassin_crit)
 	if "assassin_crit" not in unit["passives"]:
 		for enemy in alive_enemies:
@@ -1228,6 +1458,33 @@ func _select_target(state: Dictionary, unit: Dictionary) -> Dictionary:
 	if candidates.is_empty():
 		return {}
 
+	# ── Commander Tactical Orders: Protected / Decoy slot weighting ──
+	var enemy_side_key: String = "def" if unit["side"] == "attacker" else "atk"
+	var protected_slot: int = state.get(enemy_side_key + "_protected_slot", -1)
+	var decoy_slot: int = state.get(enemy_side_key + "_decoy_slot", -1)
+
+	if protected_slot >= 0 or decoy_slot >= 0:
+		# Use weighted random selection instead of pure lowest-soldiers
+		var weights: Array = []
+		var total_weight: float = 0.0
+		for c in candidates:
+			var w: float = 1.0
+			if c["slot"] == protected_slot:
+				w *= 0.5  # 50% reduced targeting weight
+			if c["slot"] == decoy_slot:
+				w *= 2.0  # +100% targeting weight
+			weights.append(w)
+			total_weight += w
+
+		# Weighted random pick
+		var roll: float = randf() * total_weight
+		var cumulative: float = 0.0
+		for i in range(candidates.size()):
+			cumulative += weights[i]
+			if roll <= cumulative:
+				return candidates[i]
+		return candidates[candidates.size() - 1]
+
 	# Pick lowest-soldiers target (focus fire)
 	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return a["soldiers"] < b["soldiers"])
@@ -1255,6 +1512,12 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 		# leadership_aura buff: ATK+value
 		if b["id"] == "leadership_aura":
 			atk += b["value"]
+		# Ambush round 1 buff: ATK × (1 + value)
+		if b["id"] == "ambush_r1" and b["duration"] > 0:
+			atk *= (1.0 + b["value"])
+		# Ambush after round 1 debuff: ATK × (1 + value) where value is negative
+		if b["id"] == "ambush_after" and b["duration"] > 0:
+			atk *= (1.0 + b["value"])
 
 	# Iron Wall buff: DEF bonus from defender's buff list
 	for b in defender_unit["buffs"]:
@@ -1713,6 +1976,17 @@ func _get_all_alive(units: Array) -> Array:
 		if unit["is_alive"] and unit["soldiers"] > 0:
 			result.append(unit)
 	return result
+
+
+func _get_fastest_unit(units: Array) -> Dictionary:
+	## Returns the alive unit with the highest SPD on the given side.
+	var fastest: Dictionary = {}
+	var best_spd: float = -1.0
+	for unit in units:
+		if unit["is_alive"] and unit["soldiers"] > 0 and unit["spd"] > best_spd:
+			best_spd = unit["spd"]
+			fastest = unit
+	return fastest
 
 
 func _get_alive_in_row(units: Array, row: String) -> Array:

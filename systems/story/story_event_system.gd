@@ -1,9 +1,12 @@
-## story_event_system.gd - Story event progression manager for all heroines (v1.0)
+## story_event_system.gd - Story event progression manager for all heroines (v2.0)
 ## Manages route branching (training/pure_love), event sequencing, triggers,
-## and integration with HeroSystem affection/capture state.
+## deep story branching with player choices, and integration with HeroSystem.
 extends Node
 
 const FactionData = preload("res://systems/faction/faction_data.gd")
+
+# ── Signals ──
+signal story_choice_requested(hero_id: String, event_id: String, choices: Array)
 
 # ── Character story data references ──
 # Lazy-loaded per character to avoid massive upfront memory cost.
@@ -12,6 +15,15 @@ var _story_cache: Dictionary = {}  # hero_id -> story data dictionary
 # ── Progression state (serialized by save system) ──
 # hero_id -> { "route": String, "current_event": int, "completed_events": Array, "flags": Dictionary }
 var story_progress: Dictionary = {}
+
+# ── Choice history (serialized by save system) ──
+# hero_id -> { event_id -> choice_index }
+var _choice_history: Dictionary = {}
+
+# ── Pending choice state ──
+# Stores events waiting for player choice resolution.
+# hero_id -> { "event_id": String, "event": Dictionary }
+var _pending_choices: Dictionary = {}
 
 # ── Reentrant guard ──
 # Prevents chain-triggering when event effects change affection/corruption
@@ -53,6 +65,8 @@ func _ready() -> void:
 func reset() -> void:
 	story_progress.clear()
 	_story_cache.clear()
+	_choice_history.clear()
+	_pending_choices.clear()
 
 
 func _connect_signals() -> void:
@@ -128,6 +142,27 @@ func set_flag(hero_id: String, flag: String, value: Variant = true) -> void:
 ## Get a story flag.
 func get_flag(hero_id: String, flag: String, default: Variant = null) -> Variant:
 	return story_progress.get(hero_id, {}).get("flags", {}).get(flag, default)
+
+
+## Get all flags for a hero. Used by combat resolver and other systems.
+func get_hero_flags(hero_id: String) -> Dictionary:
+	return story_progress.get(hero_id, {}).get("flags", {}).duplicate()
+
+
+## Clear (remove) a story flag for a hero.
+func clear_flag(hero_id: String, flag: String) -> void:
+	if story_progress.has(hero_id):
+		story_progress[hero_id]["flags"].erase(flag)
+
+
+## Get the choice history for a hero.
+func get_choice_history(hero_id: String) -> Dictionary:
+	return _choice_history.get(hero_id, {}).duplicate()
+
+
+## Check if a choice event is pending for a hero.
+func has_pending_choice(hero_id: String) -> bool:
+	return _pending_choices.has(hero_id)
 
 
 # ═══════════════ EVENT RETRIEVAL ═══════════════
@@ -224,11 +259,22 @@ func try_trigger_next(hero_id: String) -> Dictionary:
 	# Guard against reentrant calls from effect-triggered signals
 	if _processing_effects:
 		return {}
+	# Don't trigger new events while a choice is pending
+	if _pending_choices.has(hero_id):
+		return {}
 	if not check_trigger(hero_id):
 		return {}
 	var event: Dictionary = get_next_event(hero_id)
 	if event.is_empty():
 		return {}
+	# Check if event has choices — if so, store as pending and emit choice request
+	var choices: Array = event.get("choices", [])
+	if not choices.is_empty():
+		var event_id: String = event.get("id", "")
+		_pending_choices[hero_id] = {"event_id": event_id, "event": event}
+		# Emit both the local signal and EventBus signal for UI
+		story_choice_requested.emit(hero_id, event_id, choices)
+		EventBus.story_choice_requested.emit(hero_id, event_id, choices)
 	# Emit signal for UI to display the event
 	EventBus.story_event_triggered.emit(hero_id, event)
 	return event
@@ -276,6 +322,14 @@ func _evaluate_trigger(hero_id: String, trigger: Dictionary) -> bool:
 			"corruption_min":
 				if HeroSystem.hero_corruption.get(hero_id, 0) < trigger[key]:
 					return false
+			"submission_min":
+				var submission: int = int(get_flag(hero_id, "submission", 0))
+				if submission < trigger[key]:
+					return false
+			"prestige_min":
+				var prestige: int = int(get_flag(hero_id, "prestige", 0))
+				if prestige < trigger[key]:
+					return false
 			"prev_event":
 				if not is_event_completed(hero_id, trigger[key]):
 					return false
@@ -284,6 +338,37 @@ func _evaluate_trigger(hero_id: String, trigger: Dictionary) -> bool:
 				for flag_key in flag_data:
 					if get_flag(hero_id, flag_key) != flag_data[flag_key]:
 						return false
+			"requires_flag":
+				# Can be a single string or array of strings — ALL must be set (truthy)
+				var req_flags = trigger[key]
+				if req_flags is String:
+					req_flags = [req_flags]
+				for rf in req_flags:
+					if not get_flag(hero_id, rf, false):
+						return false
+			"excludes_flag":
+				# Can be a single string or array of strings — NONE may be set (truthy)
+				var exc_flags = trigger[key]
+				if exc_flags is String:
+					exc_flags = [exc_flags]
+				for ef in exc_flags:
+					if get_flag(hero_id, ef, false):
+						return false
+			"affection_or_corruption":
+				# Trigger if affection >= X OR corruption >= Y
+				var aff_threshold: int = trigger[key].get("affection_min", 999)
+				var cor_threshold: int = trigger[key].get("corruption_min", 999)
+				var aff: int = HeroSystem.hero_affection.get(hero_id, 0)
+				var cor: int = HeroSystem.hero_corruption.get(hero_id, 0)
+				if aff < aff_threshold and cor < cor_threshold:
+					return false
+			"affection_or_submission":
+				var aff_threshold2: int = trigger[key].get("affection_min", 999)
+				var sub_threshold: int = trigger[key].get("submission_min", 999)
+				var aff2: int = HeroSystem.hero_affection.get(hero_id, 0)
+				var sub: int = int(get_flag(hero_id, "submission", 0))
+				if aff2 < aff_threshold2 and sub < sub_threshold:
+					return false
 			"turn_min":
 				if GameManager.turn_number < trigger[key]:
 					return false
@@ -312,8 +397,19 @@ func _apply_event_effects(hero_id: String, event: Dictionary) -> void:
 		match key:
 			"affection":
 				var current: int = HeroSystem.hero_affection.get(hero_id, 0)
-				HeroSystem.hero_affection[hero_id] = clampi(current + effects[key], 0, 10)
+				# Respect affection cap if set (e.g. puppet path)
+				var cap: int = int(get_flag(hero_id, "affection_cap", 10))
+				HeroSystem.hero_affection[hero_id] = clampi(current + effects[key], 0, cap)
 				EventBus.hero_affection_changed.emit(hero_id, HeroSystem.hero_affection[hero_id])
+			"corruption":
+				var cur_cor: int = HeroSystem.hero_corruption.get(hero_id, 0)
+				HeroSystem.hero_corruption[hero_id] = clampi(cur_cor + effects[key], 0, 10)
+			"submission":
+				set_flag(hero_id, "submission",
+					clampi(int(get_flag(hero_id, "submission", 0)) + effects[key], 0, 10))
+			"prestige":
+				set_flag(hero_id, "prestige",
+					clampi(int(get_flag(hero_id, "prestige", 0)) + effects[key], 0, 10))
 			"training_progress":
 				set_flag(hero_id, "training_progress",
 					get_flag(hero_id, "training_progress", 0) + effects[key])
@@ -343,6 +439,15 @@ func _apply_event_effects(hero_id: String, event: Dictionary) -> void:
 				var flag_dict: Dictionary = effects[key]
 				for f in flag_dict:
 					set_flag(hero_id, f, flag_dict[f])
+			"clear_flag":
+				# Can be a single string or array of strings
+				var flags_to_clear = effects[key]
+				if flags_to_clear is String:
+					flags_to_clear = [flags_to_clear]
+				for f in flags_to_clear:
+					clear_flag(hero_id, f)
+			"set_affection_cap":
+				set_flag(hero_id, "affection_cap", effects[key])
 	_processing_effects = false  # Release guard
 	# 延迟检查：效果处理期间被跳过的事件触发，在效果完成后重新检查
 	call_deferred("_check_deferred_triggers", hero_id)
@@ -403,19 +508,40 @@ func _on_affection_changed(hero_id: String, new_value: int) -> void:
 
 
 func _on_story_choice_made(hero_id: String, event_id: String, choice_index: int) -> void:
-	var event: Dictionary = get_event_by_id(hero_id, event_id)
+	resolve_story_choice(hero_id, event_id, choice_index)
+
+
+## Called by UI when player selects a story choice.
+## Resolves the pending choice, applies the selected choice's effects, sets flags,
+## records the choice in history, and completes the event.
+func resolve_story_choice(hero_id: String, event_id: String, choice_index: int) -> void:
+	# Look up the event — prefer pending choice, fall back to event_by_id
+	var event: Dictionary = {}
+	if _pending_choices.has(hero_id) and _pending_choices[hero_id]["event_id"] == event_id:
+		event = _pending_choices[hero_id]["event"]
+		_pending_choices.erase(hero_id)
+	else:
+		event = get_event_by_id(hero_id, event_id)
 	if event.is_empty():
+		push_warning("StoryEventSystem: resolve_story_choice — event not found: %s/%s" % [hero_id, event_id])
 		return
 	var choices: Array = event.get("choices", [])
 	if choice_index < 0 or choice_index >= choices.size():
+		push_warning("StoryEventSystem: resolve_story_choice — invalid choice_index %d for %s" % [choice_index, event_id])
 		return
 	var choice: Dictionary = choices[choice_index]
+	# Record choice in history
+	if not _choice_history.has(hero_id):
+		_choice_history[hero_id] = {}
+	_choice_history[hero_id][event_id] = choice_index
+	# Set choice flag for future branching
+	set_flag(hero_id, "choice_%s" % event_id, choice_index)
 	# Apply choice-specific effects
 	var choice_effects: Dictionary = choice.get("effects", {})
 	if not choice_effects.is_empty():
 		_apply_event_effects(hero_id, {"effects": choice_effects})
-	# Set choice flag for future branching
-	set_flag(hero_id, "choice_%s" % event_id, choice_index)
+	# Now complete the current event (applies base event effects and advances)
+	complete_current_event(hero_id)
 
 
 # ═══════════════ TURN PROCESSING ═══════════════
@@ -442,11 +568,14 @@ func process_story_turn() -> void:
 func get_save_data() -> Dictionary:
 	return {
 		"story_progress": story_progress.duplicate(true),
+		"choice_history": _choice_history.duplicate(true),
 	}
 
 
 func load_save_data(data: Dictionary) -> void:
 	story_progress = data.get("story_progress", {}).duplicate(true)
+	_choice_history = data.get("choice_history", {}).duplicate(true)
+	_pending_choices.clear()
 
 
 ## Aliases for SaveManager compatibility
