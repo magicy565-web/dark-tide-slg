@@ -750,4 +750,23 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "hibiki_exclusive_ending",
+			"name": "Lv10 专属结局: 并肩的铁砧・炉火永燃",
+			"trigger": {"affection_min": 10},
+			"scene": "锻冶工房的清晨。炉火映照着两座并排的铁砧。響穿着工作围裙，手持锻锤，正在打造一件特别的作品。汗水从额角滑落，但她的表情无比专注。",
+			"dialogues": [
+				{"speaker": "響", "text": "别催！好东西急不来！"},
+				{"speaker": "主角", "text": "你从昨晚就开始锻了。"},
+				{"speaker": "響", "text": "因为这是老娘一辈子最重要的作品。"},
+				{"type": "narration", "text": "最后一锤落下。她拿起成品——一对戒指，刻着两个名字。粗犷的锻造风格，却透着不输任何精巧工艺的深情。"},
+				{"speaker": "響", "text": "一个给你，一个给老娘。从今以后——響的炉火，永远为你而燃。"},
+				{"type": "narration", "text": "她红着脸把戒指套在主角手上，动作粗暴但手指在微微发抖。"},
+				{"speaker": "響", "text": "你是老娘最好的作品。不是因为老娘锻造了你——是因为你锻造了老娘。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——響Lv10专属结局「并肩的铁砧・炉火永燃」。两块钢铁，终于合为一体。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

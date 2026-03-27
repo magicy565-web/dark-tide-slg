@@ -1106,4 +1106,23 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "sara_exclusive_ending",
+			"name": "Lv10 专属结局: 沙漠之星・绿洲永驻",
+			"trigger": {"affection_min": 10},
+			"scene": "永久贸易站的屋顶露台。沙漠的夜空繁星如钻，银河横亘天际。沙罗靠在栏杆上，金沙色的卷发在夜风中飘动。她手里握着一杯沙漠薄荷茶，琥珀色的眼睛注视着那颗最亮的商路之星。",
+			"dialogues": [
+				{"speaker": "沙罗", "text": "以前每晚我都看那颗星。它告诉我方向——下一个城镇在哪里，下一笔生意在哪里。"},
+				{"speaker": "领主", "text": "现在呢？"},
+				{"speaker": "沙罗", "text": "现在不用看了。"},
+				{"type": "narration", "text": "她转过身，将额头轻轻靠在领主的肩膀上。"},
+				{"speaker": "沙罗", "text": "沙罗把所有的路都走完了。最后一条路——到你这里为止。"},
+				{"speaker": "沙罗", "text": "不走了。哪儿也不走了。你就是我的绿洲——唯一一个不会消失的好东西。"},
+				{"type": "narration", "text": "她从发间取下最后一枚金币，放在领主掌心。这是沙漠商人最隆重的契约。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——沙罗Lv10专属结局「沙漠之星・绿洲永驻」。沙漠之女终于找到了永恒的归宿。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

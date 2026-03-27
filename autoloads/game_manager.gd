@@ -1485,10 +1485,16 @@ func begin_turn() -> void:
 	if pid == get_human_player_id():
 		StoryEventSystem.process_story_turn()
 
+	# ── Phase 5c2b: Event cooldown tick & event processing ──
+	if pid == get_human_player_id():
+		EventSystem.tick_event_cooldowns()
+		EventSystem.process_turn_start()
+
 	# ── Phase 5c3: Harem cooldown tick ──
 	if pid == get_human_player_id():
 		HeroSystem.tick_harem_cooldowns()
 		HeroSystem.tick_cooldowns()
+		HeroSystem.tick_gift_cooldowns()
 		# BUG FIX: process_prison_turn() was never called, so captured heroes never
 		# accumulated corruption and could never be recruited. Call it each turn.
 		HeroSystem.process_prison_turn()
@@ -1510,6 +1516,9 @@ func begin_turn() -> void:
 
 	# ── Phase 5e4: Light faction diplomacy tick (ceasefire, peace offers) ──
 	DiplomacyManager.tick_light_diplomacy()
+
+	# ── Phase 5e5: Reputation decay ──
+	DiplomacyManager.tick_reputation_decay()
 
 	# ── Phase 5f: Alliance AI actions ──
 	AllianceAI.tick(ThreatManager.get_threat())
@@ -2321,6 +2330,14 @@ func _grant_hero_combat_exp(pid: int, result: Dictionary, attacker_wins: bool) -
 				EventBus.message_log.emit("[color=cyan][技能] %s 解锁被动: %s[/color]" % [
 					FactionData.HEROES.get(hero_id, {}).get("name", hero_id),
 					p.get("name", p.get("passive_id", ""))])
+
+	# Shared battle affection: heroes in winning battles gain +1 affection
+	if attacker_wins:
+		for hero_id in hero_ids:
+			var current_aff: int = HeroSystem.hero_affection.get(hero_id, 0)
+			if current_aff < FactionData.AFFECTION_MAX:
+				HeroSystem.hero_affection[hero_id] = mini(current_aff + 1, FactionData.AFFECTION_MAX)
+				EventBus.hero_affection_changed.emit(hero_id, HeroSystem.hero_affection[hero_id])
 
 
 func _get_terrain_atk_modifier(terrain: String) -> float:
@@ -4084,7 +4101,7 @@ func check_win_condition() -> void:
 
 	# ── Victory Path 2: Domination (控制60%以上地图节点) ──
 	var total_tiles: int = tiles.size()
-	var domination_threshold: float = 0.60
+	var domination_threshold: float = BalanceConfig.DOMINANCE_VICTORY_PCT
 	if total_tiles > 0 and float(human_tiles) / float(total_tiles) >= domination_threshold:
 		game_active = false
 		EventBus.message_log.emit("[color=gold]═══ 支配胜利! ═══[/color]")

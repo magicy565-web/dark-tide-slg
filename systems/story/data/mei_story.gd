@@ -703,4 +703,23 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "mei_exclusive_ending",
+			"name": "Lv10 专属结局: 永恒之花・她选择了光",
+			"trigger": {"affection_min": 10},
+			"scene": "据点的枯树下。曾经只有骨骸的树枝上，不知何时开出了一朵小小的白花——那是冥用残余灵力养了整整一年的花。冥坐在树下，幽蓝的灵火在眼眶中平静地燃烧，像两盏温暖的灯。",
+			"dialogues": [
+				{"speaker": "冥", "text": "开了。花开了。"},
+				{"speaker": "主角", "text": "很美。"},
+				{"speaker": "冥", "text": "冥用了一年。只开了一朵。但是——一朵就够了。"},
+				{"type": "narration", "text": "她抬起头，灵火中映着白花和主角的身影。"},
+				{"speaker": "冥", "text": "三百年前小雪死了。但冥活着。这一年——冥活得比小雪的十六年都要满。"},
+				{"speaker": "冥", "text": "不要永眠。要和你一起看花开花落。哪怕你的一辈子对冥来说只是一瞬——那也是冥最想要的一瞬。"},
+				{"type": "narration", "text": "她握住主角的手。亡灵的手指冰凉，但掌心的灵力如同微弱的心跳——那是她为他保留的最后一丝温度。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——冥Lv10专属结局「永恒之花・她选择了光」。亡灵以凡人之姿活出了最灿烂的一生。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

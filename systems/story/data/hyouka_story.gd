@@ -588,4 +588,24 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "hyouka_exclusive_ending",
+			"name": "Lv10 专属结局: 融冰之春・永远的盾",
+			"trigger": {"affection_min": 10},
+			"scene": "春日的城堡阳台。冰華靠在栏杆上，灰蓝色的眼睛注视着远方融雪的山峦。她的表情依然平静如冰面，但嘴角有一抹极浅的弧度——那是只有最亲近的人才能察觉到的微笑。",
+			"dialogues": [
+				{"speaker": "冰華", "text": "……春天了。"},
+				{"speaker": "主角", "text": "嗯。"},
+				{"speaker": "冰華", "text": "以前……讨厌春天。冰会融化。"},
+				{"speaker": "主角", "text": "现在呢？"},
+				{"type": "narration", "text": "她转过头，灰蓝色的眼眸中映着春日的暖光。那是冰面下的温泉终于找到了出口。"},
+				{"speaker": "冰華", "text": "……现在知道了。融化不是消失。是变成了别的东西。更温暖的东西。"},
+				{"type": "narration", "text": "她伸出手，将手指轻轻搭在主角的手上。"},
+				{"speaker": "冰華", "text": "……每天都想这样。和你。一直。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——冰華Lv10专属结局「融冰之春・永远的盾」。铁壁女伯爵的冰下温泉终于涌出地面。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

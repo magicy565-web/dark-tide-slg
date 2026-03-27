@@ -534,4 +534,21 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "akane_exclusive_ending",
+			"name": "Lv10 专属结局: 血月落尽，朝阳永恒",
+			"trigger": {"affection_min": 10},
+			"scene": "数年后的古代圣地。曾经的献祭祭坛已被改建为疗养圣地的中央花园，四季花卉在阳光下盛放。朱音身着白色长衣，手持黎明的祭祀短杖，正在为孤儿们讲述星星的故事。风吹过，她转身望向远处走来的主角，露出世间最温柔的微笑。",
+			"dialogues": [
+				{"speaker": "朱音", "text": "你来了。孩子们刚好睡着了。"},
+				{"speaker": "主角", "text": "还在讲星星的故事？"},
+				{"speaker": "朱音", "text": "嗯。不过今天我讲了一个新故事——关于一个曾经迷失在月光中的祭司，如何被一碗热汤和一个人的温度所救赎。"},
+				{"type": "narration", "text": "她走到主角身边，将头轻轻靠在他的肩上。夕阳将两人的影子拉得很长。"},
+				{"speaker": "朱音", "text": "谢谢你。谢谢你让我知道——救赎不在血中，而在温度里。从今以后，每一个朝阳都是我对你的誓言。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——朱音Lv10专属结局「血月落尽，朝阳永恒」。朱音与主角的羁绊达到终极形态。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

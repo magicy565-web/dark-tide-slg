@@ -17,6 +17,13 @@ const SIEGE_DAMAGE_MULT: float = 0.5
 const CANNON_SIEGE_MULT: float = 2.0
 const WALL_DAMAGE_MULTIPLIER: float = 0.5
 const SLAVE_BASE_CAPTURE: int = 1
+const MORALE_START: int = 100
+const MORALE_PER_SOLDIER_KILLED: int = 5
+const MORALE_ALLY_ELIMINATED: int = 15
+const MORALE_ROUT_THRESHOLD: int = 0
+const MORALE_ROUT_LOSS_PCT: float = 0.30
+const MORALE_ORDER_DEBUFF: int = 20
+const MORALE_ORDER_THRESHOLD: int = 76
 
 # Troop type → default row ("front" or "back")
 const TROOP_DEFAULT_ROW: Dictionary = {
@@ -82,6 +89,13 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 
 	# -- Phase 0: Build battle state --
 	var state: Dictionary = _build_battle_state(attacker, defender, tile)
+
+	# Morale: Order debuff on enemies
+	if OrderManager.get_order() >= MORALE_ORDER_THRESHOLD:
+		for u in state["def_units"]:
+			if "morale_immune" not in u["passives"] and not u["immovable"]:
+				u["morale"] = maxi(u["morale"] - MORALE_ORDER_DEBUFF, 0)
+
 	log.append("=== 战斗开始 === 进攻方 %d 单位 vs 防守方 %d 单位" % [
 		state["atk_units"].size(), state["def_units"].size()])
 
@@ -155,6 +169,8 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 
 		for unit in queue:
 			if not unit.get("is_alive", true):
+				continue
+			if unit.get("is_routed", false):
 				continue
 			if unit["actions_this_round"] >= unit["max_actions"]:
 				continue
@@ -282,6 +298,17 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		var hero_passive: String = hdata.get("passive", "")
 		if hero_passive != "" and hero_passive not in passives:
 			passives.append(hero_passive)
+
+		# Affection combat bonuses
+		var aff: int = HeroSystem.hero_affection.get(hero_id, 0)
+		if aff >= 10:
+			base_atk += 4; base_def += 3
+		elif aff >= 8:
+			base_atk += 3; base_def += 2
+		elif aff >= 5:
+			base_atk += 2; base_def += 1
+		elif aff >= 3:
+			base_atk += 1
 
 	# ── Terrain modifiers (data-driven from TERRAIN_DATA) ──
 	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
@@ -415,6 +442,8 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		"trade_hire_used": false,
 		"blood_ritual_used": false,
 		"immovable": is_immovable,
+		"morale": MORALE_START,
+		"is_routed": false,
 	}
 
 
@@ -1373,6 +1402,13 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 	log.append("%s [%s] 受到 %d 伤害 (剩余 %d 兵)" % [
 		target["unit_type"], target["side"], damage, maxi(target["soldiers"], 0)])
 
+	# Morale: reduce for damage taken
+	if "morale_immune" not in target["passives"] and not target.get("immovable", false) and not target.get("is_routed", false):
+		var soldiers_lost: int = mini(damage, target["soldiers"] + damage)  # actual soldiers killed
+		var morale_loss: int = soldiers_lost * MORALE_PER_SOLDIER_KILLED
+		target["morale"] = maxi(target.get("morale", MORALE_START) - morale_loss, 0)
+		EventBus.unit_morale_changed.emit(target["unit_type"], target["side"], target["morale"])
+
 	# Pirate faction passive: gold_per_kill — +1 gold per soldier killed
 	var source_pid: int = source.get("player_id", -1)
 	if source_pid >= 0 and damage > 0:
@@ -1398,6 +1434,12 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 		target["soldiers"] = 0
 		target["is_alive"] = false
 		log.append("%s [%s] 被消灭!" % [target["unit_type"], target["side"]])
+
+		# Morale cascade: allies lose morale when a unit is eliminated
+		var allied_units: Array = state["atk_units"] if target["side"] == "attacker" else state["def_units"]
+		for ally in allied_units:
+			if ally["is_alive"] and ally != target and "morale_immune" not in ally["passives"] and not ally.get("immovable", false):
+				ally["morale"] = maxi(ally.get("morale", MORALE_START) - MORALE_ALLY_ELIMINATED, 0)
 
 		# Death burst: on death, deal ATK × 2 to all enemies
 		# FIX(HIGH): 清理冗余赋值，死亡爆发伤害对方阵营（即杀死自己的一方）
@@ -1446,6 +1488,21 @@ func _end_of_round(state: Dictionary, log: Array) -> String:
 			if d["duration"] > 0:
 				remaining_debuffs.append(d)
 		unit["debuffs"] = remaining_debuffs
+
+	# Morale: rout check
+	for unit in state["atk_units"] + state["def_units"]:
+		if not unit["is_alive"] or unit.get("is_routed", false):
+			continue
+		if unit.get("morale", MORALE_START) <= MORALE_ROUT_THRESHOLD:
+			if "morale_immune" not in unit["passives"] and not unit.get("immovable", false):
+				var rout_loss: int = int(float(unit["soldiers"]) * MORALE_ROUT_LOSS_PCT)
+				unit["soldiers"] = maxi(unit["soldiers"] - rout_loss, 0)
+				unit["is_routed"] = true
+				log.append("[color=yellow]%s [%s] 士气崩溃! 溃逃损失 %d 兵[/color]" % [unit["unit_type"], unit["side"], rout_loss])
+				EventBus.unit_routed.emit(unit["unit_type"], unit["side"])
+				if unit["soldiers"] <= 0:
+					unit["is_alive"] = false
+					log.append("%s [%s] 溃逃后全灭!" % [unit["unit_type"], unit["side"]])
 
 	var atk_alive: int = _count_total_soldiers(state["atk_units"])
 	var def_alive: int = _count_total_soldiers(state["def_units"])
@@ -1685,7 +1742,7 @@ func _count_alive_in_row(units: Array, row: String) -> int:
 func _count_total_soldiers(units: Array) -> int:
 	var total: int = 0
 	for unit in units:
-		if unit["is_alive"]:
+		if unit["is_alive"] and not unit.get("is_routed", false):
 			total += unit["soldiers"]
 	return total
 

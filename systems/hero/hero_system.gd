@@ -29,6 +29,9 @@ var _harem_unlocked: Dictionary = {}       # hero_id -> bool (final story comple
 # hero_id -> skill_name string
 var _second_skills: Dictionary = {}
 
+# ── Gift cooldowns (per hero, 1/turn) ──
+var _gift_cooldowns: Dictionary = {}  # hero_id -> int (remaining turns)
+
 
 func reset() -> void:
 	captured_heroes.clear()
@@ -43,6 +46,7 @@ func reset() -> void:
 	_harem_unlocked.clear()
 	_capture_in_progress.clear()
 	_second_skills.clear()
+	_gift_cooldowns.clear()
 
 
 ## Called when pirate faction is selected. Enables harem mechanics.
@@ -579,6 +583,8 @@ func train_heroine(hero_id: String) -> Dictionary:
 	cd["train"] = 3  # 3-turn cooldown
 	_harem_cooldowns[hero_id] = cd
 	EventBus.heroine_submission_changed.emit(hero_id, hero_submission[hero_id])
+	if hero_submission.get(hero_id, 0) >= FactionData.HAREM_VICTORY_SUBMISSION_MIN:
+		_harem_unlocked[hero_id] = true
 	EventBus.message_log.emit("[color=pink]%s 的调教完成，服从度 %d/10+[/color]" % [_get_hero_name(hero_id), hero_submission[hero_id]])
 	_check_harem_progress()
 	return {"success": true, "submission": hero_submission[hero_id]}
@@ -600,6 +606,84 @@ func gift_heroine(hero_id: String, gold_cost: int = 30) -> Dictionary:
 		hero_name, FactionData.SUBMISSION_PER_GIFT, hero_submission[hero_id]])
 	_check_harem_progress()
 	return {"ok": true, "desc": "赠礼成功", "submission": hero_submission[hero_id]}
+
+
+# ═══════════════ GIFT SYSTEM (好感度赠礼 v3.5) ═══════════════
+
+func can_give_gift(hero_id: String) -> bool:
+	if hero_id not in recruited_heroes:
+		return false
+	if _gift_cooldowns.get(hero_id, 0) > 0:
+		return false
+	if hero_affection.get(hero_id, 0) >= FactionData.AFFECTION_MAX:
+		return false
+	return true
+
+
+func get_gift_options(hero_id: String) -> Array:
+	## Returns available gifts with cost and whether preferred.
+	var options: Array = []
+	var pid: int = GameManager.get_human_player_id()
+	var preferred: String = FactionData.HEROES.get(hero_id, {}).get("preferred_gift", "")
+	for gift_id in FactionData.GIFT_TYPES:
+		var gt: Dictionary = FactionData.GIFT_TYPES[gift_id]
+		var can_afford: bool = ResourceManager.can_afford(pid, {"gold": gt["cost"]})
+		var affection_gain: int = gt["affection"]
+		if gift_id == preferred:
+			affection_gain += FactionData.GIFT_PREFERRED_BONUS
+		options.append({
+			"id": gift_id,
+			"name": gt["name"],
+			"cost": gt["cost"],
+			"affection": affection_gain,
+			"is_preferred": gift_id == preferred,
+			"can_afford": can_afford,
+		})
+	return options
+
+
+func give_gift(hero_id: String, gift_id: String) -> Dictionary:
+	## Give a gift to a hero. Returns {ok, desc, affection}.
+	if not can_give_gift(hero_id):
+		return {"ok": false, "desc": "无法赠礼"}
+	if not FactionData.GIFT_TYPES.has(gift_id):
+		return {"ok": false, "desc": "无效礼物"}
+	var gt: Dictionary = FactionData.GIFT_TYPES[gift_id]
+	var pid: int = GameManager.get_human_player_id()
+	if not ResourceManager.can_afford(pid, {"gold": gt["cost"]}):
+		return {"ok": false, "desc": "金币不足 (需要%d金)" % gt["cost"]}
+
+	ResourceManager.spend(pid, {"gold": gt["cost"]})
+	var gain: int = gt["affection"]
+	var preferred: String = FactionData.HEROES.get(hero_id, {}).get("preferred_gift", "")
+	if gift_id == preferred:
+		gain += FactionData.GIFT_PREFERRED_BONUS
+
+	var current: int = hero_affection.get(hero_id, 0)
+	hero_affection[hero_id] = mini(current + gain, FactionData.AFFECTION_MAX)
+	_gift_cooldowns[hero_id] = FactionData.GIFT_COOLDOWN_TURNS
+
+	var hero_name: String = _get_hero_name(hero_id)
+	var is_pref: String = " (偏好!)" if gift_id == preferred else ""
+	EventBus.hero_affection_changed.emit(hero_id, hero_affection[hero_id])
+	EventBus.message_log.emit("[color=pink]赠礼 %s → %s%s 好感+%d (当前: %d)[/color]" % [
+		gt["name"], hero_name, is_pref, gain, hero_affection[hero_id]])
+	return {"ok": true, "desc": "赠礼成功", "affection": hero_affection[hero_id]}
+
+
+func is_preferred_gift(hero_id: String, gift_id: String) -> bool:
+	return FactionData.HEROES.get(hero_id, {}).get("preferred_gift", "") == gift_id
+
+
+func tick_gift_cooldowns() -> void:
+	## Called once per turn to decrement gift cooldowns.
+	var keys_to_erase: Array = []
+	for hero_id in _gift_cooldowns:
+		_gift_cooldowns[hero_id] -= 1
+		if _gift_cooldowns[hero_id] <= 0:
+			keys_to_erase.append(hero_id)
+	for key in keys_to_erase:
+		_gift_cooldowns.erase(key)
 
 
 ## 侍寝 — unlocks at submission >= 5, costs 1 AP, 2-turn cooldown, heals player HP.
@@ -627,6 +711,8 @@ func bed_heroine(hero_id: String) -> Dictionary:
 	var heal_amount: int = 5
 	HeroLeveling.restore_hero_hp(hero_id, heal_amount)
 	EventBus.heroine_submission_changed.emit(hero_id, hero_submission[hero_id])
+	if hero_submission.get(hero_id, 0) >= FactionData.HAREM_VICTORY_SUBMISSION_MIN:
+		_harem_unlocked[hero_id] = true
 	EventBus.message_log.emit("[color=pink]与%s侍寝，服从度 %d，HP回复 +%d[/color]" % [_get_hero_name(hero_id), hero_submission[hero_id], heal_amount])
 	_check_harem_progress()
 	return {"success": true, "submission": hero_submission[hero_id], "healed": heal_amount}
@@ -699,13 +785,14 @@ func _check_harem_progress() -> void:
 		EventBus.harem_victory_achieved.emit()
 
 
-## 检查是否达成后宫胜利条件 (all recruited heroes must have final story unlocked)
+## 检查是否达成后宫胜利条件 (pirate_mode + at least 5 recruited + all recruited unlocked)
 func check_harem_victory() -> bool:
 	if not _pirate_mode: return false
+	if recruited_heroes.size() < 5: return false
 	for hid in recruited_heroes:
 		if not _harem_unlocked.get(hid, false):
 			return false
-	return recruited_heroes.size() > 0
+	return true
 
 
 ## 内部: 计算海盗建筑数量
@@ -733,6 +820,7 @@ func to_save_data() -> Dictionary:
 		"second_skills": _second_skills.duplicate(),
 		"harem_cooldowns": _harem_cooldowns.duplicate(true),
 		"harem_unlocked": _harem_unlocked.duplicate(),
+		"gift_cooldowns": _gift_cooldowns.duplicate(),
 	}
 	data["hero_leveling"] = HeroLeveling.serialize()
 	return data
@@ -755,6 +843,7 @@ func from_save_data(data: Dictionary) -> void:
 	_second_skills = data.get("second_skills", {}).duplicate()
 	_harem_cooldowns = data.get("harem_cooldowns", {}).duplicate(true)
 	_harem_unlocked = data.get("harem_unlocked", {}).duplicate()
+	_gift_cooldowns = data.get("gift_cooldowns", {}).duplicate()
 	if data.has("hero_leveling"):
 		HeroLeveling.deserialize(data["hero_leveling"])
 

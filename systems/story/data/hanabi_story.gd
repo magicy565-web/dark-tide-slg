@@ -548,4 +548,23 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "hanabi_exclusive_ending",
+			"name": "Lv10 专属结局: 一秒烟花・永不熄灭",
+			"trigger": {"affection_min": 10},
+			"scene": "盛夏夜祭。领地的天空绽放着花火亲手制作的烟花——一朵比一朵壮观。花火站在发射台旁，橙红色的头发被烟花的光芒染上七彩。她的脸上沾着火药灰，笑得像个孩子。",
+			"dialogues": [
+				{"speaker": "花火", "text": "看到了吗看到了吗！！那朵是花火新研发的七重绽放！！ドカーン！！！"},
+				{"speaker": "领主", "text": "整个领地都看到了。"},
+				{"speaker": "花火", "text": "嘻嘻……但是最后一发，只给你看哦。"},
+				{"type": "narration", "text": "她从口袋里掏出那枚刻着两人并肩图案的小烟花弹——一直留到今天。"},
+				{"speaker": "花火", "text": "花火说过，最美的烟花不需要点燃。但是——花火改主意了。因为花火想让全世界都知道——"},
+				{"type": "narration", "text": "她点燃引信。一朵小小的烟花在两人之间绽放，只有一秒钟。但那一秒，比天上所有的烟花都要璀璨。"},
+				{"speaker": "花火", "text": "——花火最温柔的ドカーン，永远只给你一个人。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——花火Lv10专属结局「一秒烟花・永不熄灭」。花火的心意如同烟花——短暂而永恒。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

@@ -770,4 +770,23 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "sou_exclusive_ending",
+			"name": "Lv10 专属结局: 白塔的黎明・永恒的伴侣",
+			"trigger": {"affection_min": 10},
+			"scene": "白塔顶层的书房。蒼坐在窗边，圆框眼镜反射着朝阳的光芒。她的面前不再堆满晦涩的魔导论文，而是一张手写的请假条——以'灵魂同步率维护'为由。",
+			"dialogues": [
+				{"speaker": "蒼", "text": "从理论上说，大魔导师每日应有十二小时用于研究。但我昨天新增了一条条例——"},
+				{"speaker": "主角", "text": "又修改条例了？"},
+				{"speaker": "蒼", "text": "大魔导师特权。'与永世契约伴侣进行灵魂同步率维护'——每日至少两小时。这是刚性需求。"},
+				{"type": "narration", "text": "她推了推眼镜，紫瞳中带着藏不住的笑意。"},
+				{"speaker": "蒼", "text": "四百年的孤独，换来了每一个清晨醒来时看到你的权利。这笔交易——"},
+				{"type": "narration", "text": "她将手放在主角的心口，感受着那一下一下的跳动。"},
+				{"speaker": "蒼", "text": "——是我做过最划算的。谢谢你让我的永恒不再孤独。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——蒼Lv10专属结局「白塔的黎明・永恒的伴侣」。四百年的大魔导师找到了永恒的归宿。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

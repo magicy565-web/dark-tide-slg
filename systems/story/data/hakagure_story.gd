@@ -642,4 +642,22 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "hakagure_exclusive_ending",
+			"name": "Lv10 专属结局: 小夜的名字・月下之声",
+			"trigger": {"affection_min": 10},
+			"scene": "宁静的月夜。小夜坐在屋檐上，银色长发在月光下如流水般垂落。她不再戴面具，不再系铃铛。脚边放着一柄短刀——不是武器，而是她用来雕刻木器的工具。她正在小小的木牌上刻字。",
+			"dialogues": [
+				{"speaker": "小夜", "text": "……刻好了。"},
+				{"type": "narration", "text": "她把木牌递给主角。上面刻着两个名字，并肩排列。笔画笨拙但认真。"},
+				{"speaker": "主角", "text": "你的字比以前好了。"},
+				{"speaker": "小夜", "text": "……练了很久。每天练。想把你的名字……刻得好看。"},
+				{"type": "narration", "text": "她把头靠在主角的肩膀上，沉默了很久。然后，她说出了迄今为止最长的一句话。"},
+				{"speaker": "小夜", "text": "叶隐……不要了。小夜……是、小夜。是你的……小夜。永远。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——叶隐Lv10专属结局「小夜的名字・月下之声」。从绝对的沉默到说出永远——小夜用一生守护一个名字。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

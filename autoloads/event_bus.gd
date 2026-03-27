@@ -56,6 +56,8 @@ signal sfx_unit_killed(side: String)
 signal sfx_hero_knockout(hero_name: String)
 signal sfx_round_start(round_num: int)
 signal sfx_battle_result(winner: String)
+signal unit_routed(unit_type: String, side: String)
+signal unit_morale_changed(unit_type: String, side: String, new_morale: int)
 signal combat_view_requested(battle_result: Dictionary)
 signal combat_view_closed()
 

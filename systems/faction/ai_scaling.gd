@@ -23,6 +23,61 @@ const AI_FACTION_KEYS: Array = ["human", "elf", "mage", "orc_ai", "pirate_ai", "
 # Tier thresholds (same as ThreatManager)
 const TIER_THRESHOLDS: Array = [0, 30, 60, 80]
 
+# ── AI Personality Types ──
+enum Personality { AGGRESSIVE, DEFENSIVE, ECONOMIC, DIPLOMATIC }
+
+const FACTION_PERSONALITY: Dictionary = {
+	"human": Personality.DEFENSIVE,
+	"elf": Personality.ECONOMIC,
+	"mage": Personality.DIPLOMATIC,
+	"orc_ai": Personality.AGGRESSIVE,
+	"pirate_ai": Personality.ECONOMIC,
+	"dark_elf_ai": Personality.AGGRESSIVE,
+}
+
+# Modifier axes per personality
+const PERSONALITY_MODS: Dictionary = {
+	Personality.AGGRESSIVE: {
+		"raid_chance_mult": 2.0,
+		"garrison_priority": 0.8,
+		"expedition_cd_mult": 0.7,
+		"peace_acceptance": 0.5,
+		"threat_decay_mult": 0.7,
+		"reinforce_mult": 1.0,
+	},
+	Personality.DEFENSIVE: {
+		"raid_chance_mult": 0.5,
+		"garrison_priority": 1.5,
+		"expedition_cd_mult": 1.2,
+		"peace_acceptance": 1.0,
+		"threat_decay_mult": 1.0,
+		"reinforce_mult": 1.3,
+	},
+	Personality.ECONOMIC: {
+		"raid_chance_mult": 0.8,
+		"garrison_priority": 1.0,
+		"expedition_cd_mult": 1.0,
+		"peace_acceptance": 1.2,
+		"threat_decay_mult": 1.3,
+		"reinforce_mult": 1.0,
+	},
+	Personality.DIPLOMATIC: {
+		"raid_chance_mult": 0.3,
+		"garrison_priority": 1.0,
+		"expedition_cd_mult": 1.5,
+		"peace_acceptance": 1.5,
+		"threat_decay_mult": 1.5,
+		"reinforce_mult": 0.8,
+	},
+}
+
+const PERSONALITY_NAMES: Dictionary = {
+	Personality.AGGRESSIVE: "好战",
+	Personality.DEFENSIVE: "防守",
+	Personality.ECONOMIC: "经济",
+	Personality.DIPLOMATIC: "外交",
+}
+
 
 func _ready() -> void:
 	pass
@@ -177,7 +232,9 @@ func process_turn() -> void:
 	for faction_key in _faction_threat:
 		# Natural decay: -1 per turn
 		if _faction_threat[faction_key] > 0:
-			change_threat(faction_key, -1)
+			var decay_mult: float = get_personality_mod(faction_key, "threat_decay_mult")
+			var decay: int = maxi(1, int(1.0 * decay_mult))
+			change_threat(faction_key, -decay)
 
 		var tier: int = get_tier(faction_key)
 
@@ -186,7 +243,8 @@ func process_turn() -> void:
 		if tier >= exp_data.get("min_tier", 2):
 			if _expedition_cd.get(faction_key, 0) <= 0:
 				_try_spawn_expedition(faction_key)
-				_expedition_cd[faction_key] = exp_data.get("interval_turns", 3)
+				var base_cd: int = exp_data.get("interval_turns", 3)
+				_expedition_cd[faction_key] = maxi(1, int(float(base_cd) * get_personality_mod(faction_key, "expedition_cd_mult")))
 			else:
 				_expedition_cd[faction_key] -= 1
 
@@ -319,6 +377,28 @@ func _faction_id_to_ai_key(faction_id: int) -> String:
 func get_all_ai_factions() -> Array:
 	## Returns all currently tracked AI faction keys.
 	return _faction_threat.keys()
+
+
+# ═══════════════ PERSONALITY QUERIES ═══════════════
+
+func get_personality(faction_key: String) -> int:
+	return FACTION_PERSONALITY.get(faction_key, Personality.DEFENSIVE)
+
+
+func get_personality_name(faction_key: String) -> String:
+	var p: int = get_personality(faction_key)
+	return PERSONALITY_NAMES.get(p, "未知")
+
+
+func get_personality_mod(faction_key: String, mod_key: String) -> float:
+	var p: int = get_personality(faction_key)
+	var mods: Dictionary = PERSONALITY_MODS.get(p, {})
+	return mods.get(mod_key, 1.0)
+
+
+func get_all_personality_mods(faction_key: String) -> Dictionary:
+	var p: int = get_personality(faction_key)
+	return PERSONALITY_MODS.get(p, {}).duplicate()
 
 
 # ═══════════════ SAVE / LOAD ═══════════════

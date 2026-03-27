@@ -6,12 +6,12 @@ extends Node
 # ═══════════════ ECONOMY (TW:W aligned) ═══════════════
 
 ## Starting resources for all factions
-const STARTING_GOLD: int = 500
+const STARTING_GOLD: int = 600
 const STARTING_FOOD: int = 150
 const STARTING_IRON: int = 80
 
 ## Income per settlement level per turn (TW:W 5-level settlement)
-const GOLD_PER_NODE_LEVEL := [30, 50, 80, 120, 180]
+const GOLD_PER_NODE_LEVEL := [40, 50, 80, 120, 180]
 const FOOD_PER_NODE_LEVEL := [10, 15, 25, 40, 60]
 const IRON_PER_NODE_LEVEL := [5, 8, 12, 18, 25]
 

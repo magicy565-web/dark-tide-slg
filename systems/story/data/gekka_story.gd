@@ -553,4 +553,21 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "gekka_exclusive_ending",
+			"name": "Lv10 专属结局: 大地的祝福・永恒之春",
+			"trigger": {"affection_min": 10},
+			"scene": "春分之日，银杏树下。月華不再是灵脉祭司，却依然能感受到脚下大地微弱的脉动。她赤脚踩在草地上，灰蓝色的眼睛在晨光中如溪水般澄澈。银色长发随风飘扬，发梢沾着露珠。",
+			"dialogues": [
+				{"speaker": "月華", "text": "大地在说话。它说——春天来了。"},
+				{"speaker": "主角", "text": "你不是说灵脉已经断了吗？"},
+				{"speaker": "月華", "text": "灵脉断了。但大地的温度还在。就像你教我的——不需要超凡的感知，只要赤脚踩在土地上，就能感受到季节的更迭。"},
+				{"type": "narration", "text": "她弯腰摘下一朵野花，别在主角的衣襟上。"},
+				{"speaker": "月華", "text": "我用一千年的永恒，换了每一个清晨醒来时看到你的权利。大地啊——你的祭司很幸福。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——月華Lv10专属结局「大地的祝福・永恒之春」。月華与主角的灵魂永远共鸣。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

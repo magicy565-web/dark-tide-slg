@@ -665,4 +665,23 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "yukino_exclusive_ending",
+			"name": "Lv10 专属结局: 晨光中的祈祷・神赐的花嫁",
+			"trigger": {"affection_min": 10},
+			"scene": "教堂的晨祷时分。阳光透过彩色玻璃窗洒在祭坛上，将雪乃的银白色长发染成七彩。她跪在祈祷台前，双手合十，浅紫色的眼眸微微闭合。但这一次，她的祈祷词变了。",
+			"dialogues": [
+				{"speaker": "雪乃", "text": "慈悲的神啊……今天的祈祷有些不同。"},
+				{"type": "narration", "text": "她睁开眼，看向站在门口的主角，露出比圣光更温暖的微笑。"},
+				{"speaker": "雪乃", "text": "过去我为迷途的灵魂祈祷，为受伤的战士祈祷，为世界的和平祈祷。但从今天开始——"},
+				{"speaker": "雪乃", "text": "我要为我身边这个人祈祷。每一个清晨，每一个黄昏。以祭司的手治愈他的伤，以爱人的心温暖他的灵魂。"},
+				{"type": "narration", "text": "她站起身，走到主角面前，将额头轻轻贴在他的胸口。"},
+				{"speaker": "雪乃", "text": "爱即是信仰，信仰即是爱。这是神教给我的最后一课——也是最好的一课。"},
+				{"type": "narration", "text": "窗外朝阳升起，金色的光芒涌入教堂，照亮了两人相拥的身影。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——雪乃Lv10专属结局「晨光中的祈祷・神赐的花嫁」。爱与信仰的完美融合。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

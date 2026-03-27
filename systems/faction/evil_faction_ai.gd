@@ -36,6 +36,9 @@ func _tick_faction(player_id: int, faction_id: int) -> void:
 		var ai_key: String = _faction_to_ai_key(faction_id)
 		var regen_bonus: int = AIScaling.get_garrison_regen_bonus(ai_key) if ai_key != "" else 0
 		var regen_rate: int = 1 + regen_bonus
+		# v3.5: Apply personality reinforce multiplier
+		var reinforce_mult: float = AIScaling.get_personality_mod(ai_key, "reinforce_mult") if ai_key != "" else 1.0
+		regen_rate = maxi(1, int(float(regen_rate) * reinforce_mult))
 		# BUG修复: 限制每回合最大驻军恢复量，防止无限制增长
 		regen_rate = mini(regen_rate, 5)
 		if tile.get("garrison", 0) < base_garrison:
@@ -58,7 +61,7 @@ func _tick_faction(player_id: int, faction_id: int) -> void:
 
 func _try_raid(player_id: int, source_tile: Dictionary, _faction_id: int) -> void:
 	## Hostile faction has 10% chance per turn to raid an adjacent player tile.
-	if randi() % 100 >= BalanceConfig.EVIL_RAID_CHANCE_PCT:
+	if randi() % 100 >= int(float(BalanceConfig.EVIL_RAID_CHANCE_PCT) * AIScaling.get_personality_mod(_faction_to_ai_key(_faction_id), "raid_chance_mult")):
 		return
 
 	if not GameManager.adjacency.has(source_tile["index"]):

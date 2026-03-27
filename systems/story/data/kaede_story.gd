@@ -823,4 +823,25 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "kaede_exclusive_ending",
+			"name": "Lv10 专属结局: 枫落归根・千夜之约",
+			"trigger": {"affection_min": 10},
+			"scene": "深秋的瞭望塔。枫叶如火，漫山遍野。枫坐在塔顶，双腿悬在边缘，紫色的瞳孔注视着远方的夕阳。她听到脚步声，耳朵微动，但没有回头——她早已认出了那个脚步。",
+			"dialogues": [
+				{"speaker": "枫", "text": "……迟了三分钟。"},
+				{"speaker": "主角", "text": "在路上摘了这个。"},
+				{"type": "narration", "text": "一片火红的枫叶。枫接过来，看了很久。"},
+				{"speaker": "枫", "text": "……和我第一天摘给你的那片一样。"},
+				{"speaker": "主角", "text": "嗯。这次换我摘给你。"},
+				{"type": "narration", "text": "她沉默了片刻。然后她靠过来，把头轻轻抵在主角的肩上。"},
+				{"speaker": "枫", "text": "我说过——你是我的光，不许消失。"},
+				{"type": "narration", "text": "她在主角的掌心写了两个字。这次不是秘密了。"},
+				{"speaker": "枫", "text": "……千夜。这是我的真名。从今以后，只有你能叫。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——枫Lv10专属结局「枫落归根・千夜之约」。影中的少女终于将真名与一生交付。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

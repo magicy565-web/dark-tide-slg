@@ -696,4 +696,23 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "shion_exclusive_ending",
+			"name": "Lv10 专属结局: 第1848条时间线・永恒观测",
+			"trigger": {"affection_min": 10},
+			"scene": "清晨的卧室。阳光透过窗帘在两人身上画出金色纹路。紫苑的笔记本漂浮在床头，自动翻到最后一页。她的圆框眼镜歪歪斜斜地挂在鼻尖上，异色双瞳慵懒地看着身旁的人。",
+			"dialogues": [
+				{"speaker": "紫苑", "text": "从概率上说，你接下来会说'早安'。概率99.2%。"},
+				{"speaker": "主角", "text": "早安。"},
+				{"speaker": "紫苑", "text": "嗯，果然。但从概率上说——你说'早安'时笑的角度每天都不一样。这个变量我永远算不准。"},
+				{"type": "narration", "text": "她用手指推了推眼镜，笑了——那种只有在真正幸福时才会出现的、不设防的笑容。"},
+				{"speaker": "紫苑", "text": "第1848条时间线——状态：正常运行中。预计持续时间：永远。误差范围：正负零。"},
+				{"type": "narration", "text": "她将脸埋进对方的胸口，声音闷闷的。"},
+				{"speaker": "紫苑", "text": "这是所有人都活着的世界。而我——不再需要独自计算了。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——紫苑Lv10专属结局「第1848条时间线・永恒观测」。时空学者找到了无需计算的幸福。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

@@ -16,10 +16,22 @@ const MANA_BASE_MAX: int = 10
 const HAREM_VICTORY_SUBMISSION_MIN: int = 7    # 所有角色服从度≥7即可触发
 const PIRATE_PRISON_CAPACITY: int = 6          # 海盗牢房容量翻倍
 const PIRATE_CORRUPTION_SPEED: float = 1.5     # 海盗腐化速度×1.5
-const PIRATE_CAPTURE_BONUS: float = 0.15       # 海盗捕获概率+15%
+const PIRATE_CAPTURE_BONUS: float = 0.08       # 海盗捕获概率+8%
 const SUBMISSION_PER_TRAINING: int = 1          # 每次调教+1服从度
 const SUBMISSION_PER_GIFT: int = 2              # 每次赠礼+2服从度
 const SUBMISSION_MAX: int = 10                  # 服从度上限
+
+# ── Gift System (好感度赠礼) ──
+const GIFT_TYPES: Dictionary = {
+	"flower": {"name": "鲜花", "cost": 15, "affection": 1},
+	"book": {"name": "典籍", "cost": 20, "affection": 1},
+	"weapon_gift": {"name": "名刀", "cost": 30, "affection": 1},
+	"jewel": {"name": "宝石", "cost": 35, "affection": 1},
+	"food_gift": {"name": "美食", "cost": 15, "affection": 1},
+	"medicine": {"name": "灵药", "cost": 25, "affection": 1},
+}
+const GIFT_PREFERRED_BONUS: int = 1  # preferred gift gives +1 extra affection
+const GIFT_COOLDOWN_TURNS: int = 1   # 1 gift per hero per turn
 
 # ── Territory Distribution (v0.8.3) ──
 # Evil factions combined = 20% of total map (55 nodes)
@@ -40,51 +52,51 @@ const EVIL_FORTRESS_IDX: Dictionary = {
 const HEROES: Dictionary = {
 	# --- Light Faction Heroes (capturable) ---
 	"rin": {"name": "凛", "faction": "human", "troop": "samurai", "atk": 7, "def": 8, "int": 5, "spd": 4, "base_hp": 30, "base_mp": 10,
-		"capture_chance": 0.5, "active": "圣光斩", "passive": "守护决心"},
+		"capture_chance": 0.5, "active": "圣光斩", "passive": "守护决心", "preferred_gift": "weapon_gift"},
 	"yukino": {"name": "雪乃", "faction": "human", "troop": "priest", "atk": 3, "def": 4, "int": 8, "spd": 5, "base_hp": 20, "base_mp": 15,
-		"capture_chance": 0.0, "join_condition": "rin_captured", "active": "治愈之光", "passive": "祝福"},
+		"capture_chance": 0.0, "join_condition": "rin_captured", "active": "治愈之光", "passive": "祝福", "preferred_gift": "book"},
 	"momiji": {"name": "红叶", "faction": "human", "troop": "cavalry", "atk": 5, "def": 5, "int": 7, "spd": 6, "base_hp": 25, "base_mp": 10,
-		"capture_chance": 0.0, "join_condition": "prestige_gte_30", "active": "突击号令", "passive": "指挥官"},
+		"capture_chance": 0.0, "join_condition": "prestige_gte_30", "active": "突击号令", "passive": "指挥官", "preferred_gift": "jewel"},
 	"hyouka": {"name": "冰华", "faction": "human", "troop": "samurai", "atk": 6, "def": 9, "int": 4, "spd": 3, "base_hp": 35, "base_mp": 8,
-		"capture_chance": 1.0, "join_condition": "temple_fortress_fall", "active": "不动如山", "passive": "圣殿之盾"},
+		"capture_chance": 1.0, "join_condition": "temple_fortress_fall", "active": "不动如山", "passive": "圣殿之盾", "preferred_gift": "weapon_gift"},
 	"suirei": {"name": "翠玲", "faction": "high_elf", "troop": "archer", "atk": 8, "def": 3, "int": 6, "spd": 7, "base_hp": 22, "base_mp": 10,
-		"capture_chance": 0.3, "active": "箭雨", "passive": "精灵之眼"},
+		"capture_chance": 0.3, "active": "箭雨", "passive": "精灵之眼", "preferred_gift": "flower"},
 	"gekka": {"name": "月华", "faction": "high_elf", "troop": "priest", "atk": 4, "def": 5, "int": 9, "spd": 4, "base_hp": 18, "base_mp": 15,
-		"capture_chance": 0.0, "join_condition": "suirei_affection_3", "active": "月光护盾", "passive": "法力涌泉"},
+		"capture_chance": 0.0, "join_condition": "suirei_affection_3", "active": "月光护盾", "passive": "法力涌泉", "preferred_gift": "book"},
 	"hakagure": {"name": "叶隐", "faction": "high_elf", "troop": "ninja", "atk": 6, "def": 4, "int": 5, "spd": 8, "base_hp": 22, "base_mp": 8,
-		"capture_chance": 0.0, "join_condition": "assassin_quest_success", "active": "影步", "passive": "隐匿"},
+		"capture_chance": 0.0, "join_condition": "assassin_quest_success", "active": "影步", "passive": "隐匿", "preferred_gift": "medicine"},
 	"sou": {"name": "蒼", "faction": "mage", "troop": "mage_unit", "atk": 9, "def": 6, "int": 9, "spd": 3, "base_hp": 25, "base_mp": 12,
-		"capture_chance": 1.0, "join_condition": "mage_hq_fall", "active": "流星火雨", "passive": "大贤者"},
+		"capture_chance": 1.0, "join_condition": "mage_hq_fall", "active": "流星火雨", "passive": "大贤者", "preferred_gift": "book"},
 	"shion": {"name": "紫苑", "faction": "mage", "troop": "mage_unit", "atk": 5, "def": 4, "int": 9, "spd": 7, "base_hp": 18, "base_mp": 12,
-		"capture_chance": 0.0, "join_condition": "sou_captured", "active": "时间减速", "passive": "时空感知"},
+		"capture_chance": 0.0, "join_condition": "sou_captured", "active": "时间减速", "passive": "时空感知", "preferred_gift": "book"},
 	"homura": {"name": "焔", "faction": "mage", "troop": "mage_unit", "atk": 8, "def": 3, "int": 7, "spd": 8, "base_hp": 22, "base_mp": 10,
-		"capture_chance": 0.4, "active": "爆裂火球", "passive": "火焰亲和"},
+		"capture_chance": 0.4, "active": "爆裂火球", "passive": "火焰亲和", "preferred_gift": "jewel"},
 	# --- Pirate / Dark Elf Heroes ---
 	"shion_pirate": {"name": "潮音", "faction": "pirate", "troop": "archer", "atk": 7, "def": 4, "int": 5, "spd": 7,
 		"base_hp": 24, "base_mp": 8,
-		"capture_chance": 0.0, "join_condition": "turn_gte_15", "active": "连射", "passive": "海风", "pirate_native": true},
+		"capture_chance": 0.0, "join_condition": "turn_gte_15", "active": "连射", "passive": "海风", "pirate_native": true, "preferred_gift": "food_gift"},
 	"youya": {"name": "妖夜", "faction": "dark_elf", "troop": "ninja", "atk": 6, "def": 3, "int": 4, "spd": 9,
 		"base_hp": 20, "base_mp": 8,
-		"capture_chance": 0.0, "join_condition": "turn_gte_10", "active": "致命一击", "passive": "夜行者"},
+		"capture_chance": 0.0, "join_condition": "turn_gte_10", "active": "致命一击", "passive": "夜行者", "preferred_gift": "medicine"},
 	# --- Neutral Leaders (6, guard neutral bases) ---
 	"hibiki": {"name": "響", "faction": "neutral", "troop": "ashigaru", "atk": 5, "def": 7, "int": 4, "spd": 5,
 		"base_hp": 28, "base_mp": 8,
-		"capture_chance": 1.0, "location": "山岳要塞", "active": "铁壁", "passive": ""},
+		"capture_chance": 1.0, "location": "山岳要塞", "active": "铁壁", "passive": "", "preferred_gift": "weapon_gift"},
 	"sara": {"name": "沙罗", "faction": "neutral", "troop": "archer", "atk": 7, "def": 3, "int": 6, "spd": 6,
 		"base_hp": 22, "base_mp": 10,
-		"capture_chance": 1.0, "location": "沙漠绿洲", "active": "沙暴", "passive": ""},
+		"capture_chance": 1.0, "location": "沙漠绿洲", "active": "沙暴", "passive": "", "preferred_gift": "jewel"},
 	"mei": {"name": "冥", "faction": "neutral", "troop": "mage_unit", "atk": 8, "def": 2, "int": 8, "spd": 4,
 		"base_hp": 18, "base_mp": 12,
-		"capture_chance": 1.0, "location": "废墟神殿", "active": "亡灵召唤", "passive": ""},
+		"capture_chance": 1.0, "location": "废墟神殿", "active": "亡灵召唤", "passive": "", "preferred_gift": "book"},
 	"kaede": {"name": "枫", "faction": "neutral", "troop": "ninja", "atk": 6, "def": 4, "int": 5, "spd": 9,
 		"base_hp": 20, "base_mp": 8,
-		"capture_chance": 1.0, "location": "隐秘森林", "active": "分身", "passive": ""},
+		"capture_chance": 1.0, "location": "隐秘森林", "active": "分身", "passive": "", "preferred_gift": "flower"},
 	"akane": {"name": "朱音", "faction": "neutral", "troop": "priest", "atk": 3, "def": 5, "int": 7, "spd": 5,
 		"base_hp": 20, "base_mp": 14,
-		"capture_chance": 1.0, "location": "古代圣地", "active": "净化", "passive": ""},
+		"capture_chance": 1.0, "location": "古代圣地", "active": "净化", "passive": "", "preferred_gift": "medicine"},
 	"hanabi": {"name": "花火", "faction": "neutral", "troop": "cannon", "atk": 9, "def": 2, "int": 5, "spd": 3,
 		"base_hp": 18, "base_mp": 8,
-		"capture_chance": 1.0, "location": "废弃矿山", "active": "集中轰炸", "passive": ""},
+		"capture_chance": 1.0, "location": "废弃矿山", "active": "集中轰炸", "passive": "", "preferred_gift": "food_gift"},
 }
 
 const FACTION_NAMES: Dictionary = {
@@ -239,7 +251,7 @@ const SHARED_UNIT_DEFS: Dictionary = {
 	"ashigaru": {"name": "足軽", "atk": 8, "def": 6, "soldiers": 12, "spd": 5, "row": "front", "food_per_soldier": 0.5, "cost_mult": 1.0, "special": "none", "tier": 1, "class": "infantry"},
 	"samurai": {"name": "武士", "atk": 11, "def": 9, "soldiers": 8, "spd": 5, "row": "front", "food_per_soldier": 0.5, "cost_mult": 2.0, "special": "counter_1_2", "tier": 2, "class": "infantry"},
 	"archer": {"name": "弓兵", "atk": 7, "def": 4, "soldiers": 10, "spd": 4, "row": "back", "food_per_soldier": 0.5, "cost_mult": 1.5, "special": "preemptive", "tier": 1, "class": "ranged"},
-	"cannon": {"name": "砲兵", "atk": 20, "def": 1, "soldiers": 6, "spd": 2, "row": "back", "food_per_soldier": 0.5, "cost_mult": 5.0, "special": "siege_x2", "tier": 2, "class": "ranged"},
+	"cannon": {"name": "砲兵", "atk": 17, "def": 3, "soldiers": 6, "spd": 2, "row": "back", "food_per_soldier": 0.5, "cost_mult": 5.0, "special": "siege_x2", "tier": 2, "class": "ranged"},
 	"cavalry": {"name": "騎兵", "atk": 14, "def": 8, "soldiers": 7, "spd": 8, "row": "front", "food_per_soldier": 0.5, "cost_mult": 2.5, "special": "charge_1_5", "tier": 2, "class": "cavalry"},
 	"ninja": {"name": "忍者", "atk": 7, "def": 4, "soldiers": 5, "spd": 9, "row": "back", "food_per_soldier": 0.5, "cost_mult": 2.5, "special": "assassinate_back", "tier": 1, "class": "infantry"},
 	"priest": {"name": "祭司", "atk": 5, "def": 3, "soldiers": 5, "spd": 4, "row": "back", "food_per_soldier": 0.5, "cost_mult": 3.0, "special": "charge_mana_1", "tier": 1, "class": "special"},
@@ -257,7 +269,7 @@ const UNIT_DEFS: Dictionary = {
 	FactionID.PIRATE: {
 		"pirate_ashigaru": {"name": "海盗散兵", "atk": 7, "def": 5, "soldiers": 10, "spd": 5, "row": "front", "food_per_soldier": 0.5, "recruit_gold": 20, "special": "escape_30", "tier": 1, "class": "infantry"},
 		"pirate_archer": {"name": "火枪手", "atk": 18, "def": 1, "soldiers": 5, "spd": 6, "row": "back", "food_per_soldier": 0.5, "recruit_gold": 60, "special": "preemptive", "tier": 1, "class": "ranged"},
-		"pirate_cannon": {"name": "炮击手", "atk": 22, "def": 1, "soldiers": 5, "spd": 2, "row": "back", "food_per_soldier": 0.5, "recruit_gold": 80, "special": "siege_x2", "tier": 2, "class": "ranged"},
+		"pirate_cannon": {"name": "炮击手", "atk": 18, "def": 3, "soldiers": 5, "spd": 2, "row": "back", "food_per_soldier": 0.5, "recruit_gold": 80, "special": "siege_x2", "tier": 2, "class": "ranged"},
 	},
 	FactionID.DARK_ELF: {
 		"de_samurai": {"name": "暗精灵战士", "atk": 11, "def": 7, "soldiers": 7, "spd": 6, "row": "front", "food_per_soldier": 0.5, "recruit_gold": 36, "special": "extra_action", "tier": 1, "class": "infantry"},

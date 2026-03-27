@@ -789,4 +789,23 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "homura_exclusive_ending",
+			"name": "Lv10 专属结局: 永不熄灭的火焰",
+			"trigger": {"affection_min": 10},
+			"scene": "黎明时分的训练场。焔像往常一样在晨跑，红色的短发在朝阳下燃烧般耀眼。她看到主角后猛地加速冲过来，一个熊抱差点把人撞倒。",
+			"dialogues": [
+				{"speaker": "焔", "text": "早安！！今天也全力以赴！！"},
+				{"speaker": "主角", "text": "每天都这么精力充沛……"},
+				{"speaker": "焔", "text": "当然！因为焔有要守护的人了！这份火焰永远不会熄灭！！"},
+				{"type": "narration", "text": "她握住主角的手，红橘色的眼睛在晨光中灿若星辰。缠着绷带的手掌粗糙而温暖。"},
+				{"speaker": "焔", "text": "从今以后的每一天——都要这样吵吵闹闹地一起走下去。这是焔——不对——这是我最大火力的誓言！！"},
+				{"type": "narration", "text": "她伸出拳头，虎牙笑容灿烂得如同正午的太阳。"},
+				{"speaker": "焔", "text": "走吧！！今天也一起——并肩燃烧！！"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——焔Lv10专属结局「永不熄灭的火焰」。焔以最焔的方式守护唯一的人。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

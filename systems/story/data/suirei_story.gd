@@ -560,4 +560,25 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "suirei_exclusive_ending",
+			"name": "Lv10 专属结局: 银月与晨曦・永恒之弓",
+			"trigger": {"affection_min": 10},
+			"scene": "清晨的训练场。翠玲站在靶场中央，翠风弓在手，长耳朵在晨风中轻轻颤动。她拉满弓弦，瞄准远方——然后松开手指，箭矢划出完美的弧线，正中靶心。",
+			"dialogues": [
+				{"speaker": "翠玲", "text": "第一万零四次确认命中。无一脱靶——嗯，在遇到你之前是这样。"},
+				{"speaker": "主角", "text": "遇到我之后呢？"},
+				{"speaker": "翠玲", "text": "遇到你之后……射偏了一次。因为你突然出现在训练场，我——分心了。"},
+				{"type": "narration", "text": "她的耳尖瞬间变红，连忙补充。"},
+				{"speaker": "翠玲", "text": "当然那完全是你的错！精灵的注意力不可能被——算了。"},
+				{"type": "narration", "text": "她放下弓，走到主角面前。三百七十二年的精灵此刻柔软得像初恋的少女。"},
+				{"speaker": "翠玲", "text": "我放弃了永恒，选择和你走这短暂而璀璨的一程。最完美的瞬间不是拉弓——而是放手之后，不知箭飞向何方的精彩。"},
+				{"type": "narration", "text": "她踮起脚尖，在主角唇上印下一吻。耳尖红得像被晨曦点燃。"},
+				{"speaker": "翠玲", "text": "……晚上见。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——翠玲Lv10专属结局「银月与晨曦・永恒之弓」。精灵放弃永恒，选择了短暂而璀璨的人生。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

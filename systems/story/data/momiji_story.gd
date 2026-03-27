@@ -530,4 +530,23 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "momiji_exclusive_ending",
+			"name": "Lv10 专属结局: 永不结算的幸福",
+			"trigger": {"affection_min": 10},
+			"scene": "贸易站的阳台。清晨阳光洒在堆满账本的桌面上。红叶端着两杯热茶走出来，琥珀色的眼睛在朝阳中闪烁如蜜酒。无名指上的银戒折射出细碎的光。",
+			"dialogues": [
+				{"speaker": "红叶", "text": "早安，我的永久合伙人。今天的第一笔交易——一杯热茶换一个早安吻。"},
+				{"speaker": "主角", "text": "利润率不高。"},
+				{"speaker": "红叶", "text": "利润率？这是一本万利好吗。"},
+				{"type": "narration", "text": "她把茶递过来，顺势偷了一个吻。然后红着脸装作什么都没发生，翻开了今天的账本。"},
+				{"speaker": "红叶", "text": "曾经我觉得——最好的交易是以最小的代价获得最大的回报。"},
+				{"type": "narration", "text": "她放下笔，转过身，将手贴在主角手上，让两枚戒指相碰。"},
+				{"speaker": "红叶", "text": "现在我知道了——最好的交易是把所有都给出去，然后发现对方也给了你所有。这笔账——永不结算。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——红叶Lv10专属结局「永不结算的幸福」。沙漠商人找到了世间最珍贵的无价之宝。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }

@@ -29,6 +29,10 @@ var _temp_soldier_batches: Array = []
 # ── Pending event queue (events rolled, awaiting player choices) ──
 var _pending_events: Array = []
 
+# ── Event cooldowns (prevents same event firing too frequently) ──
+var _event_cooldowns: Dictionary = {}  # event_id -> int (turns remaining)
+const EVENT_COOLDOWN_TURNS: int = 5
+
 
 func _ready() -> void:
 	_register_events()
@@ -43,6 +47,7 @@ func reset() -> void:
 	_immobile_this_turn = false
 	_temp_soldier_batches.clear()
 	_pending_events.clear()
+	_event_cooldowns.clear()
 	_world_events.clear()
 	_world_event_triggered_ids.clear()
 
@@ -279,6 +284,9 @@ func roll_events(max_events: int = 2) -> Array:
 		# Skip non-repeatable events already triggered this game
 		if not event.get("repeatable", false) and _triggered_ids.has(event["id"]):
 			continue
+		# Skip events still on cooldown
+		if _event_cooldowns.get(event["id"], 0) > 0:
+			continue
 		if not check_condition(event):
 			# BUG修复: 不满足条件的非重复事件不应标记为已触发，否则条件
 			# 后续满足时也无法触发（如faction_orc事件在选择兽人后永远无法触发）
@@ -293,7 +301,21 @@ func roll_events(max_events: int = 2) -> Array:
 		# Mark non-repeatable events as used
 		if not ev.get("repeatable", false):
 			_triggered_ids[ev["id"]] = true
+		# Set cooldown for repeatable events
+		if ev.get("repeatable", false):
+			_event_cooldowns[ev["id"]] = EVENT_COOLDOWN_TURNS
 	return triggered
+
+
+func tick_event_cooldowns() -> void:
+	## Decrement all event cooldowns by 1. Called once per turn.
+	var keys_to_erase: Array = []
+	for event_id in _event_cooldowns:
+		_event_cooldowns[event_id] -= 1
+		if _event_cooldowns[event_id] <= 0:
+			keys_to_erase.append(event_id)
+	for key in keys_to_erase:
+		_event_cooldowns.erase(key)
 
 
 ## Returns true if the player is immobilised this turn by an event effect.
@@ -756,6 +778,7 @@ func to_save_data() -> Dictionary:
 		"immobile_this_turn": _immobile_this_turn,
 		"temp_soldier_batches": _temp_soldier_batches.duplicate(true),
 		"world_event_triggered_ids": _world_event_triggered_ids.duplicate(true),
+		"event_cooldowns": _event_cooldowns.duplicate(true),
 	}
 
 
@@ -767,5 +790,6 @@ func from_save_data(data: Dictionary) -> void:
 	_immobile_this_turn = data.get("immobile_this_turn", false)
 	_temp_soldier_batches = data.get("temp_soldier_batches", []).duplicate(true)
 	_world_event_triggered_ids = data.get("world_event_triggered_ids", {}).duplicate(true)
+	_event_cooldowns = data.get("event_cooldowns", {}).duplicate(true)
 	# Re-register world events from data file so check_world_events() works
 	register_world_events()

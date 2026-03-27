@@ -18,6 +18,11 @@ var _light_ceasefire_turns: int = 0  # Remaining turns of light ceasefire
 var _light_extort_cooldown: int = 0  # Cooldown for light extortion
 var _pending_light_peace: Dictionary = {}  # {"active": bool, "gold": int} — pending peace offer from light
 
+# ── Reputation System (v3.5) ──
+# { faction_key: int } — reputation per faction, -100 to +100
+var _reputation: Dictionary = {}
+const REPUTATION_DECAY_RATE: int = 1  # decay 1 point toward 0 per turn
+
 func _ready() -> void:
 	pass
 
@@ -28,6 +33,7 @@ func reset() -> void:
 	_light_ceasefire_turns = 0
 	_light_extort_cooldown = 0
 	_pending_light_peace = {}
+	_reputation.clear()
 
 func init_player(player_id: int) -> void:
 	_relations[player_id] = {}
@@ -35,6 +41,10 @@ func init_player(player_id: int) -> void:
 	for fid in [FactionData.FactionID.ORC, FactionData.FactionID.PIRATE, FactionData.FactionID.DARK_ELF]:
 		if fid != GameManager.get_player_faction(player_id):
 			_relations[player_id][fid] = {"hostile": false, "recruited": false, "method": "", "rebellion_turns": 0}
+	# Initialize reputation for all factions
+	for key in ["human", "elf", "mage", "orc_ai", "pirate_ai", "dark_elf_ai"]:
+		if not _reputation.has(key):
+			_reputation[key] = 0
 
 func mark_hostile(player_id: int, faction_id: int) -> void:
 	## Called when player attacks a faction's outpost. Locks out diplomacy.
@@ -98,6 +108,10 @@ func recruit_by_diplomacy(player_id: int, faction_id: int) -> bool:
 	var ai_key: String = _faction_to_ai_key(faction_id)
 	if ai_key != "":
 		AIScaling.on_treaty_signed(ai_key)
+	# Reputation boost for diplomatic recruitment
+	var rep_key: String = _faction_to_ai_key(faction_id)
+	if rep_key != "":
+		change_reputation(rep_key, 30)
 	return true
 
 func recruit_by_conquest(player_id: int, faction_id: int) -> void:
@@ -115,6 +129,10 @@ func recruit_by_conquest(player_id: int, faction_id: int) -> void:
 	var fname: String = _get_faction_name(faction_id)
 	EventBus.message_log.emit("[color=yellow]武力征服 %s! 秩序-8, 据点可能叛乱[/color]" % fname)
 	EventBus.faction_recruited.emit(player_id, faction_id)
+	# Reputation: conquest penalty
+	var rep_key: String = _faction_to_ai_key(faction_id)
+	if rep_key != "":
+		change_reputation(rep_key, -20)
 
 func tick_rebellion(player_id: int) -> void:
 	## Called each turn. Check for rebellion in conquered faction's outposts.
@@ -203,6 +221,54 @@ func _faction_to_ai_key(faction_id: int) -> String:
 		FactionData.FactionID.PIRATE: return "pirate_ai"
 		FactionData.FactionID.DARK_ELF: return "dark_elf_ai"
 	return ""
+
+
+# ═══════════════ REPUTATION SYSTEM (v3.5) ═══════════════
+
+func get_reputation(faction_key: String) -> int:
+	return _reputation.get(faction_key, 0)
+
+
+func change_reputation(faction_key: String, delta: int) -> void:
+	var old_val: int = _reputation.get(faction_key, 0)
+	_reputation[faction_key] = clampi(old_val + delta, -100, 100)
+	if _reputation[faction_key] != old_val:
+		EventBus.message_log.emit("[声望] %s: %d → %d" % [faction_key, old_val, _reputation[faction_key]])
+
+
+func get_reputation_level(faction_key: String) -> String:
+	var rep: int = get_reputation(faction_key)
+	if rep < -50:
+		return "敌对"
+	elif rep < -20:
+		return "警惕"
+	elif rep <= 30:
+		return "中立"
+	elif rep <= 80:
+		return "友好"
+	else:
+		return "盟友"
+
+
+func is_reputation_hostile(faction_key: String) -> bool:
+	return get_reputation(faction_key) < -50
+
+
+func is_reputation_friendly(faction_key: String) -> bool:
+	return get_reputation(faction_key) > 30
+
+
+func get_all_reputations() -> Dictionary:
+	return _reputation.duplicate()
+
+
+func tick_reputation_decay() -> void:
+	## Natural decay: reputation moves 1 point toward 0 each turn.
+	for key in _reputation:
+		if _reputation[key] > 0:
+			_reputation[key] -= REPUTATION_DECAY_RATE
+		elif _reputation[key] < 0:
+			_reputation[key] += REPUTATION_DECAY_RATE
 
 
 # ═══════════════ CEASEFIRE (ORC-ONLY) ═══════════════
@@ -850,6 +916,7 @@ func to_save_data() -> Dictionary:
 		"light_ceasefire_turns": _light_ceasefire_turns,
 		"light_extort_cooldown": _light_extort_cooldown,
 		"pending_light_peace": _pending_light_peace.duplicate(true),
+		"reputation": _reputation.duplicate(),
 	}
 
 
@@ -904,3 +971,7 @@ func from_save_data(data: Dictionary) -> void:
 	_light_ceasefire_turns = data.get("light_ceasefire_turns", 0)
 	_light_extort_cooldown = data.get("light_extort_cooldown", 0)
 	_pending_light_peace = data.get("pending_light_peace", {}).duplicate(true)
+	_reputation = data.get("reputation", {}).duplicate()
+	# Fix reputation int values after JSON round-trip
+	for key in _reputation:
+		_reputation[key] = int(_reputation[key])

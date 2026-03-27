@@ -533,4 +533,23 @@ const EVENTS: Dictionary = {
 			"effects": {"affection": 1},
 		},
 	],
+	"exclusive_ending": [
+		{
+			"id": "rin_exclusive_ending",
+			"name": "Lv10 专属结局: 白刃的誓约・并肩的黎明",
+			"trigger": {"affection_min": 10},
+			"scene": "黎明的城墙上。凛身着全副骑士铠甲，长剑插在身旁的石缝中。她面朝东方，金色的瞳孔映着地平线渐渐亮起的光。这是她每天的习惯——在日出时为爱人祈祷。",
+			"dialogues": [
+				{"speaker": "凛", "text": "……早安。又在偷看我祈祷吗？"},
+				{"speaker": "主角", "text": "你的祈祷词里有我的名字。"},
+				{"speaker": "凛", "text": "当——当然有！骑士为守护之人祈祷是……是职责！不是因为……"},
+				{"type": "narration", "text": "她的脸红得像朝霞。但她没有别过头，而是深吸一口气，直视着主角。"},
+				{"speaker": "凛", "text": "不。不是职责。是因为——你是我的全部意义。剑为你而挥，盾为你而举，心为你而跳。"},
+				{"type": "narration", "text": "她摘下手套，伸出手。那双握过无数次剑柄的手，此刻温柔得像晨光。"},
+				{"speaker": "凛", "text": "今天也请让我守护你——以骑士之剑，以爱人之心。直到黎明不再来临的那一天。"},
+			],
+			"system_prompt": "解锁「exclusive_ending」——凛Lv10专属结局「白刃的誓约・并肩的黎明」。凛已成为最忠诚的伴侣与骑士。",
+			"effects": {"affection": 1, "unlock": "exclusive_ending"},
+		},
+	],
 }
