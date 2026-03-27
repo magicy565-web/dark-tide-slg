@@ -62,6 +62,8 @@ signal unit_routed(unit_type: String, side: String)
 signal unit_morale_changed(unit_type: String, side: String, new_morale: int)
 signal combat_view_requested(battle_result: Dictionary)
 signal combat_view_closed()
+signal combat_intervention_phase(state: Dictionary)
+signal combat_intervention_chosen(intervention_type: int, target: Variant)
 
 # ── Fog of war ──
 signal fog_updated(player_id: int)
@@ -196,3 +198,7 @@ signal treaty_expired(player_id: int, treaty_type: String, target_faction: int)
 signal tribute_received(player_id: int, from_faction: int, gold: int)
 signal light_peace_offered(gold_offered: int)
 signal light_extorted(player_id: int, gold: int)
+
+# ── Tile Development Path (v3.5) ──
+signal tile_path_chosen(tile_idx: int, path: int)
+signal tile_building_built(tile_idx: int, building_id: String)

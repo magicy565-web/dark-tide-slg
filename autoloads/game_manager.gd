@@ -1433,6 +1433,15 @@ func begin_turn() -> void:
 		ThreatManager.check_dominance(count_tiles_owned(pid), tiles.size())
 		OrderManager.tick_turn()
 
+		# ── Phase 4a: Tile Development Path — per-turn order/prestige bonuses ──
+		for tidx in get_cached_owned_tiles(pid):
+			var td_effects: Dictionary = TileDevelopment.get_tile_path_effects(tidx)
+			var td_order: int = int(td_effects.get("order_bonus", 0))
+			if td_order > 0:
+				var t: Dictionary = tiles[tidx]
+				var cur_po: float = t.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+				t["public_order"] = minf(cur_po + td_order, 100.0)
+
 	# ── Phase 4b: Troop per-turn passive effects (regen, self_destruct, etc.) ──
 	_tick_troop_passives(pid)
 

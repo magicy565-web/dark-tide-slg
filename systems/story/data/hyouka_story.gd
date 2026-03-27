@@ -132,12 +132,42 @@ const EVENTS: Dictionary = {
 				]
 			},
 			"system_prompt": "冰華的调教进度 [4/10]。铁壁出现裂缝。身体开始产生不可压制的反应，沉默的防线正在被瓦解。",
+			"choices": [
+				{
+					"label": "尊重她的沉默，以行动代替言语",
+					"description": "不强迫她说话。每天默默送饭、整理房间、在她身边安静地待着。用时间和耐心证明你不是敌人。城墙不需要被攻破——只需要等待它自己打开门。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"hyouka_patient_thaw": true},
+					},
+				},
+				{
+					"label": "带她去战场，让她以盾守护",
+					"description": "给她一面盾牌和一个使命——守护你的侧翼。冰華是圣殿守护者，她的存在意义是'守护'。与其瓦解她的城墙，不如给城墙一个值得守护的对象。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"hyouka_shield_duty": true},
+					},
+				},
+				{
+					"label": "强行打开城墙，暴露她的感情",
+					"description": "用持续的、不可回避的亲密接触迫使冰華面对自己被冻结的情感。粗暴但有效——城墙一旦崩塌就无法再建。",
+					"effects": {
+						"corruption": 3,
+						"set_flag": {"hyouka_forced_thaw": true},
+					},
+				},
+			],
 			"effects": {"training_progress": 1},
 		},
 		{
-			"id": "hyouka_training_03",
-			"name": "调教 Stage 03: 顺从（崩塌的城墙）",
-			"trigger": {"prev_event": "hyouka_training_02", "corruption_min": 4, "turn_min": 6},
+			"id": "hyouka_training_03a",
+			"name": "调教 Stage 03a: 耐心的融化（等待的守护）",
+			"trigger": {
+				"prev_event": "hyouka_training_02",
+				"requires_flag": "hyouka_patient_thaw",
+				"corruption_min": 4, "turn_min": 6,
+			},
 			"scene": "冰華被转移到了一间稍大的房间。有窗户，有木床，有桌椅。手铐被换成了脚链——长度足够让她在房间内自由活动，但无法靠近窗户。 她坐在窗户够不到的椅子上，注视着那扇透进阳光的窗。灰蓝色的双眸中映着天空的颜色，但看不出她在想什么。 变化是细微的。她不再保持那种永远笔直的坐姿了。肩膀微微前倾，双手放在膝盖上——不是端正地放置，而是自然地搭着。这是她的身体第一次展现出\"放松\"的痕迹。 脖子上多了一条细细的皮质项圈。冰華没有试图取下它。也没有表示过在意它的存在。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官推门而入"},
@@ -206,13 +236,113 @@ const EVENTS: Dictionary = {
 					{"type": "narration", "text": "三个字。这是冰華第一次主动要求另一个人的存在。城墙崩塌了，废墟之下，露出了一直被掩埋的东西。"},
 				]
 			},
-			"system_prompt": "冰華的调教进度 [7/10]。城墙已崩。冰華开始主动回应触碰，并发出了真实的声音。沉默的铁壁正在被重塑。",
+			"system_prompt": "冰華の耐心之路。城墙开始自己打开门。冰華的沉默从防御变成了信任的表现。",
+			"choices": [
+				{
+					"label": "让她成为你的近卫",
+					"description": "正式任命冰華为贴身护卫。给她一个名分和归属——不是囚犯，而是守护者。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"hyouka_guardian_bond": true},
+					},
+				},
+				{
+					"label": "打破最后的壁垒——让她学会表达",
+					"description": "不满足于她的沉默式信任。通过持续的对话训练让她学会用语言表达情感。过程可能让她痛苦——被冻结的情感突然流动会带来巨大的冲击。",
+					"effects": {
+						"affection": 1, "corruption": 1,
+						"set_flag": {"hyouka_voice_training": true},
+					},
+				},
+			],
+			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "hyouka_training_03b",
+			"name": "调教 Stage 03b: 盾之使命（战场的守护者）",
+			"trigger": {
+				"prev_event": "hyouka_training_02",
+				"requires_flag": "hyouka_shield_duty",
+				"corruption_min": 4, "turn_min": 6,
+			},
+			"scene": "战场后方。冰華身着临时配备的轻甲，左手持盾站在指挥官身侧。她的脸上依然没有表情，但站位——完美的站位——说明了一切。她像一面移动的城墙，将所有可能的攻击角度都纳入了防御范围。",
+			"dialogues": [
+				{"type": "action", "text": "一支流矢射向指挥官方向。冰華的盾在箭矢到达前精确地挡在了正确的位置"},
+				{"speaker": "冰華", "text": "…………"},
+				{"type": "narration", "text": "没有一句话。但她的行动比任何语言都清晰——'我在守护你'。"},
+				{"type": "action", "text": "战斗结束后，指挥官向她道谢"},
+				{"type": "narration", "text": "冰華垂下眼帘。盾牌上多了三道新的刮痕——那是替指挥官挡下的攻击。"},
+				{"speaker": "冰華", "text": "……盾的职责。"},
+				{"type": "narration", "text": "但她握盾的手在微微颤抖。不是恐惧——是某种被压抑的、不被她自己允许存在的感情。"},
+			],
+			"system_prompt": "冰華の盾之路。城墙找到了新的守护对象。",
+			"choices": [
+				{
+					"label": "解除封印，恢复她的全部战力",
+					"description": "信任冰華的忠诚，解除全部限制。她将恢复圣殿守护者的全部力量——包括冰之术式。你的侧翼将变成不可攻破的铁壁。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"hyouka_full_guardian": true},
+					},
+				},
+				{
+					"label": "让她守护更多人——成为军团的盾",
+					"description": "不仅仅守护你，而是让冰華成为整支军队的守护核心。她的防御力将分散给全军——个人防御降低，但全体受益。对冰華来说，这意味着放弃'只守护一人'的执念。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"hyouka_army_shield": true},
+					},
+				},
+			],
+			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "hyouka_training_03c",
+			"name": "调教 Stage 03c: 破碎的冰（强制的融化）",
+			"trigger": {
+				"prev_event": "hyouka_training_02",
+				"requires_flag": "hyouka_forced_thaw",
+				"corruption_min": 4, "turn_min": 6,
+			},
+			"scene": "冰華的房间。她蜷缩在床角，双臂紧紧环抱自己。项圈上的铃铛随着她的颤抖发出细碎的响声。灰蓝色的眼睛里——空洞。城墙被强行拆除后，里面什么都没有了。",
+			"dialogues": [
+				{"type": "action", "text": "指挥官进入房间"},
+				{"type": "narration", "text": "冰華的身体条件反射地绷紧了。然后又慢慢松弛下来——不是因为放松，而是因为已经知道反抗没有意义。"},
+				{"speaker": "冰華", "text": "……你来了。"},
+				{"type": "narration", "text": "声音平板，没有任何情感。但如果仔细看，她的手指在被子下面在发抖。"},
+				{"speaker": "冰華", "text": "……要做什么。告诉我。"},
+				{"type": "narration", "text": "曾经需要十秒才能说一个字的冰華，现在能流利地说话了。但这些话空洞得像是别人放进她嘴里的。城墙没了，但城墙后面的人也跟着消失了。"},
+			],
+			"system_prompt": "冰華の破碎之路。城墙被暴力拆除。冰華获得了语言，但失去了自我。",
+			"choices": [
+				{
+					"label": "后退一步——给她重建的机会",
+					"description": "意识到过分了。减少接触频率，给她独处的时间和空间。让被破碎的冰有机会重新凝结——这次凝结的形状可能和从前不同。",
+					"effects": {
+						"affection": 2, "corruption": -2,
+						"set_flag": {"hyouka_rebuild_ice": true},
+						"clear_flag": "hyouka_forced_thaw",
+					},
+				},
+				{
+					"label": "填满空白——用你的意志重塑她",
+					"description": "既然城墙里面空了，就用你的命令来填满它。冰華将成为完美的服从者——但再也不会拥有自己的意志。",
+					"effects": {
+						"corruption": 3,
+						"set_flag": {"hyouka_hollow_ice": true},
+					},
+				},
+			],
 			"effects": {"training_progress": 1},
 		},
 		{
 			"id": "hyouka_training_04",
 			"name": "调教 Stage 04: 调教完毕（融化的坚冰）",
-			"trigger": {"prev_event": "hyouka_training_03", "corruption_min": 7, "turn_min": 10},
+			"trigger": {
+				"prev_event": "hyouka_training_03a",
+				"corruption_min": 7, "turn_min": 10,
+				"excludes_flag": ["hyouka_forced_thaw", "hyouka_shield_duty"],
+			},
 			"scene": "冰華的房间变得整洁而温暖。床铺上有了厚实的被褥，桌上摆着一套茶具——那是她自己要求的，也是她第一次主动要求任何东西。 手铐和脚链早已撤除。项圈还在她的脖子上，上面新添了一枚银色铭牌。冰華偶尔会伸手触碰那枚铭牌——无意识地，像人会无意识地碰触某件重要之物。 她穿着一件深蓝色的简洁长裙，银白色的短发被梳理得整齐。她坐在桌旁，双手捧着一杯热茶，注视着袅袅上升的蒸汽。 最大的变化在她的面容。那张曾经冰封万里的脸上，多了一种极其微妙的柔和。不是笑容——冰華仍然很少笑——而是眉心的纹路舒展了，唇角的线条不再是一条僵硬的直线。像是永冻土在春天到来时，表层开始松软。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官推门而入"},
@@ -289,6 +419,92 @@ const EVENTS: Dictionary = {
 			},
 			"system_prompt": "冰華的调教进度 [10/10]。调教完毕。冰華的铁壁已彻底融化重铸。她的沉默不再是城墙，而是只为一人开口的忠诚。解锁称号「融冰之声」。",
 			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "hyouka_training_04b",
+			"name": "调教 Stage 04b: 绝对防线（不破之盾）",
+			"trigger": {
+				"prev_event": "hyouka_training_03b",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "hyouka_full_guardian",
+			},
+			"scene": "冰華站在指挥官身侧，全副武装。她的盾牌上新刻了一个纹章——不是圣殿骑士团的，而是指挥官的。",
+			"dialogues": [
+				{"speaker": "冰華", "text": "……我的盾。你的盾。"},
+				{"type": "narration", "text": "三个字概括了一切。冰華找到了新的守护对象，她的战斗力以此为核心完全释放。"},
+			],
+			"system_prompt": "近卫之路完成。冰華获得永久DEF+5——不可逾越的铁壁。解锁被动技能「绝对守护」——指挥官相邻单位时，指挥官受到的伤害减半。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"hyouka_absolute_guardian": true},
+				"unlock_skill": "absolute_guard",
+			},
+		},
+		{
+			"id": "hyouka_training_04b_alt",
+			"name": "调教 Stage 04b（军盾）: 全军之盾",
+			"trigger": {
+				"prev_event": "hyouka_training_03b",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "hyouka_army_shield",
+			},
+			"scene": "阵地前方。冰華站在全军最前列，身后是数百名士兵。她举起巨盾，一面覆盖了三个人宽度的铁壁。",
+			"dialogues": [
+				{"speaker": "冰華", "text": "……所有人。我身后。"},
+				{"type": "narration", "text": "士兵们自发地聚拢到她的盾影之下。冰華的守护不再只属于一个人——她选择成为所有人的城墙。"},
+				{"type": "narration", "text": "但在夜深人静时，她偶尔会望向指挥官的方向，灰蓝色的眼中有一丝无法诉说的遗憾——'如果只守护一个人就好了'。"},
+			],
+			"system_prompt": "军盾之路完成。冰華获得永久DEF+3——分散式防御。解锁主动技能「铁壁阵」——全队DEF+2持续3回合，但冰華自身DEF-1。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"hyouka_army_wall": true},
+				"unlock_skill": "iron_wall_formation",
+			},
+		},
+		{
+			"id": "hyouka_training_04c",
+			"name": "调教 Stage 04c: 空壳之冰",
+			"trigger": {
+				"prev_event": "hyouka_training_03c",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "hyouka_hollow_ice",
+			},
+			"scene": "冰華站在房间中央，姿态完美，表情完美，一切都完美——完美到令人不寒而栗。",
+			"dialogues": [
+				{"speaker": "冰華", "text": "主人。今天的命令是什么。"},
+				{"type": "narration", "text": "她的语言能力完全恢复了——甚至超过了正常水平。但每一个字都像是从模具里倒出来的，精准而空洞。"},
+				{"type": "narration", "text": "圣殿守护者的战斗力还在。甚至更强了——因为没有了感情的干扰，她的防御变得绝对理性、绝对精准。但冰華——那个会在深夜无人时低声哼歌的冰華——已经不在了。"},
+			],
+			"system_prompt": "空壳之路完成。冰華获得永久DEF+4, ATK+2——无情的完美战机。但无法触发任何纯爱事件。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"hyouka_hollow_final": true},
+			},
+		},
+		{
+			"id": "hyouka_training_04c_alt",
+			"name": "调教 Stage 04c（重建）: 新生之冰",
+			"trigger": {
+				"prev_event": "hyouka_training_03c",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "hyouka_rebuild_ice",
+				"excludes_flag": ["hyouka_hollow_ice"],
+			},
+			"scene": "冰華独自坐在花园里。她面前是一个小小的冰雕——是她用恢复的些许冰之魔力捏的。形状歪歪扭扭，看不出是什么。但她注视着它，眼中有光。",
+			"dialogues": [
+				{"type": "action", "text": "指挥官在她身旁坐下"},
+				{"speaker": "冰華", "text": "……这是盾。"},
+				{"type": "narration", "text": "她指着那个歪歪扭扭的冰雕。确实有点像盾。如果歪着头看的话。"},
+				{"speaker": "冰華", "text": "……以前的盾碎了。所以我做了一个新的。"},
+				{"type": "narration", "text": "她的声音还是很轻，但不再空洞。那是一种从废墟中重建的、脆弱但真实的情感。"},
+				{"speaker": "冰華", "text": "……不完美。但是——我的。"},
+			],
+			"system_prompt": "重建之路完成。冰華获得永久DEF+3, ATK+1——从破碎中重建的坚韧。解锁被动技能「重铸之盾」——受到致命伤害时有20%概率存活（保留1HP）。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"hyouka_rebuild_final": true},
+				"unlock_skill": "reforged_shield",
+			},
 		},
 	],
 	"pure_love": [

@@ -119,6 +119,32 @@ const EVENTS: Dictionary = {
 				{"speaker": "沙罗（低声哼唱）", "text": "……风沙带不走的，月亮也留不住……沙漠的孩子啊，永远没有家……"},
 			],
 			"system_prompt": "敌对路线进度 [5/13] —— 沙罗已加入（俘虏状态）",
+			"choices": [
+				{
+					"label": "以诚待商——提出合作协议",
+					"description": "不把她当囚犯，而是当商业伙伴。提出一份正式的合作协议：她提供商路知识，你保证她的安全和自由。风险是她可能利用自由逃跑——但也可能赢得一个真正的盟友。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"sara_trade_partner": true},
+					},
+				},
+				{
+					"label": "用她最在意的东西要挟",
+					"description": "调查发现沙罗一直在秘密资助她被流放的故乡部族。用这个情报要挟她完全配合——触碰她最深的伤疤来获得控制权。",
+					"effects": {
+						"corruption": 2,
+						"set_flag": {"sara_leverage_homeland": true},
+					},
+				},
+				{
+					"label": "彻底剥夺她的一切筹码",
+					"description": "没收她所有的装饰和物品，换上囚服，切断她与外界的一切联系。让这位精明的商人体会完全没有筹码的绝望。",
+					"effects": {
+						"corruption": 3,
+						"set_flag": {"sara_strip_all": true},
+					},
+				},
+			],
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -872,6 +898,31 @@ const EVENTS: Dictionary = {
 				{"type": "action", "text": "领主回头，沙罗已经埋头看账本了，耳根微微泛红"},
 			],
 			"system_prompt": "中立路线进度 [6/13] —— 沙罗已加入，纯爱路线开始",
+			"choices": [
+				{
+					"label": "帮她重建故乡的商路",
+					"description": "提出一个联合计划——用你的军事力量保护商路，帮沙罗重建被毁的故乡贸易网络。这会消耗大量资源，但沙罗可能会为此放下所有戒备。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"sara_rebuild_route": true},
+					},
+				},
+				{
+					"label": "邀请她参与军事决策",
+					"description": "不仅是商业伙伴。让沙罗参与你的军事会议——她对沙漠地形的了解是无价的情报资源。但这意味着暴露你的战略弱点给一个你不完全信任的人。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"sara_strategist": true},
+					},
+				},
+				{
+					"label": "保持纯商业关系",
+					"description": "不越界。公事公办，账目分明。沙罗或许会失望，但这确保了关系的稳定和可控——不会因为感情而影响判断。",
+					"effects": {
+						"set_flag": {"sara_business_only": true},
+					},
+				},
+			],
 			"effects": {"affection": 1},
 		},
 		{
@@ -1104,6 +1155,111 @@ const EVENTS: Dictionary = {
 			},
 			"system_prompt": "中立路线进度 [13/13] —— 沙罗 中立路线完成，永久贸易站建成，转为 忠诚・恋人状态",
 			"effects": {"affection": 1},
+		},
+		{
+			"id": "sara_branch_resolution_trade",
+			"name": "分支解决: 商路重建者",
+			"trigger": {
+				"requires_flag": "sara_trade_partner",
+				"affection_min": 8,
+			},
+			"scene": "新建的沙漠贸易中心。沙罗站在阳台上，俯瞰着她和领主共同建造的商业帝国。驼队在晨光中出发，每一条路线都是他们一起规划的。",
+			"dialogues": [
+				{"speaker": "沙罗", "text": "你知道吗……我以前觉得，所有的关系最终都是交易。给予和获取，永远要算清楚。"},
+				{"type": "narration", "text": "她转过身，琥珀色的眼中有一种前所未有的柔软。"},
+				{"speaker": "沙罗", "text": "但和你在一起……账目怎么也算不平。因为你给的太多了——多到我的账本记不下。"},
+				{"type": "narration", "text": "她从发间取下那枚最古老的金币。"},
+				{"speaker": "沙罗", "text": "所以我决定——不算了。这是沙罗做过的最不划算的交易——也是最好的。"},
+			],
+			"system_prompt": "商路重建之路完成。沙罗获得永久ATK+2, DEF+2。解锁被动技能「商路之利」——每回合恢复少量金币。解锁贸易中心建筑。",
+			"effects": {
+				"set_flag": {"sara_trade_bond": true},
+				"unlock_skill": "trade_route_profit",
+			},
+		},
+		{
+			"id": "sara_branch_resolution_strategist",
+			"name": "分支解决: 沙漠军师",
+			"trigger": {
+				"requires_flag": "sara_strategist",
+				"affection_min": 8,
+			},
+			"scene": "军事会议室。沙罗站在沙盘前，用弯匕首指点着地形。在座的将领们从最初的怀疑变成了尊敬——她的沙漠战术建议已经帮他们赢了三场关键战斗。",
+			"dialogues": [
+				{"speaker": "沙罗", "text": "敌军从西面进入沙谷的话，午后的风向会改变。在这里——"},
+				{"type": "action", "text": "她用匕首在沙盘上画了一条线"},
+				{"speaker": "沙罗", "text": "——布置诱饵。等风一起，从南侧迂回包抄。沙暴会掩护你们的行动。"},
+				{"type": "narration", "text": "会议结束后，她独自留在沙盘前。手指无意识地在沙上画着什么——领主的名字。她发现后赶紧抹掉。"},
+				{"speaker": "沙罗（自言自语）", "text": "……什么时候变成这样了。沙罗啊沙罗，你果然是个赔本的商人。"},
+			],
+			"system_prompt": "军师之路完成。沙罗获得永久INT+4——沙漠战术大师。解锁主动技能「沙暴诡计」——降低目标命中率3回合，对沙漠地形单位效果翻倍。",
+			"effects": {
+				"set_flag": {"sara_desert_strategist": true},
+				"unlock_skill": "sandstorm_tactics",
+			},
+		},
+		{
+			"id": "sara_branch_resolution_business",
+			"name": "分支解决: 纯粹的商业关系",
+			"trigger": {
+				"requires_flag": "sara_business_only",
+				"affection_min": 8,
+			},
+			"scene": "深夜的仓库。沙罗独自盘点货物，油灯的光在她脸上投下忽明忽暗的影子。账本翻到最后一页，利润数字漂亮得无可挑剔。",
+			"dialogues": [
+				{"type": "narration", "text": "沙罗合上账本，靠在椅背上。一切都很好——生意兴隆，账目清晰，关系明确。这正是她想要的。"},
+				{"type": "narration", "text": "但她的手无意识地摸向发间——那里曾经有一枚她想送给某人的金币。"},
+				{"speaker": "沙罗（低声）", "text": "……果然。最赔本的买卖，就是不敢开口的那种。"},
+				{"type": "narration", "text": "她拿起笔，在账本最后写了一行小字：'亏损项——无法量化。'"},
+			],
+			"system_prompt": "商业之路完成。沙罗获得永久ATK+3, DEF+1——独立而精干的商人战士。解锁被动技能「精算」——战斗胜利时额外获得资源。但好感度上限锁定为8。",
+			"effects": {
+				"set_flag": {"sara_pure_business": true},
+				"set_affection_cap": 8,
+				"unlock_skill": "precise_calculation",
+			},
+		},
+		{
+			"id": "sara_branch_resolution_leverage",
+			"name": "分支解决: 故乡的锁链",
+			"trigger": {
+				"requires_flag": "sara_leverage_homeland",
+				"affection_min": 5,
+			},
+			"scene": "沙罗的房间。她坐在窗边，手中握着一只粗陶花瓶——里面插着来自故乡的干花。她的眼中没有了平时的精明和算计，只剩下疲惫。",
+			"dialogues": [
+				{"speaker": "沙罗", "text": "……你赢了。用的还是我最不愿意面对的东西。"},
+				{"type": "narration", "text": "她没有看领主。琥珀色的眼睛注视着干花，像在看一个回不去的故乡。"},
+				{"speaker": "沙罗", "text": "我的部族……他们什么都不知道。以为沙罗只是出门做生意去了。不知道我是被……"},
+				{"type": "narration", "text": "她的声音哽住了。然后她笑了——那种笑比哭还难看。"},
+				{"speaker": "沙罗", "text": "行吧。你要什么。商路情报？战术配合？还是——别的什么。只要你不动我的族人——沙罗什么都给你。"},
+			],
+			"system_prompt": "要挟之路完成。沙罗获得永久ATK+4——被迫释放的全部战力。但好感度每回合自然衰减。解锁被动技能「绝望之刃」——HP越低ATK越高。",
+			"effects": {
+				"set_flag": {"sara_chained_homeland": true},
+				"unlock_skill": "desperate_blade",
+			},
+		},
+		{
+			"id": "sara_branch_resolution_stripped",
+			"name": "分支解决: 失去一切的商人",
+			"trigger": {
+				"requires_flag": "sara_strip_all",
+				"affection_min": 5,
+			},
+			"scene": "空荡荡的石室。沙罗穿着粗布囚服蜷缩在角落，金沙色的卷发散乱地垂在肩上。没有金饰，没有丝绸，没有任何可以让她扮演'精明商人'的道具。",
+			"dialogues": [
+				{"type": "narration", "text": "剥去一切之后的沙罗，看起来出人意料地年轻。没有了商人的面具，她只是一个被流放的、失去了一切的沙漠女孩。"},
+				{"speaker": "沙罗", "text": "……你满意了？"},
+				{"type": "narration", "text": "她的声音沙哑，没有了平时的妖娆和算计。"},
+				{"speaker": "沙罗", "text": "丝绸没了。金币没了。商队没了。连沙罗的笑容都没了。你还想要什么——沙罗已经什么都没有了。"},
+				{"type": "narration", "text": "但在最深的绝望中，她的眼中仍有一丝不灭的光——沙漠人的韧性，比任何金饰都坚固。"},
+			],
+			"system_prompt": "剥夺之路完成。沙罗获得永久ATK+5, DEF-2——破釜沉舟的绝境战力。解锁主动技能「沙漠之怒」——单次爆发性AoE伤害，使用后自身眩晕1回合。",
+			"effects": {
+				"set_flag": {"sara_stripped_final": true},
+				"unlock_skill": "desert_fury",
+			},
 		},
 	],
 	"exclusive_ending": [

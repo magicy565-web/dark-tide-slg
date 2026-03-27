@@ -145,7 +145,33 @@ const EVENTS: Dictionary = {
 				{"type": "narration", "text": "漫长的沉默。朱音的微笑终于维持不住了，嘴角剧烈地颤抖。"},
 				{"speaker": "朱音", "text": "……请你出去。"},
 			],
-			"system_prompt": "朱音信仰动摇值+15。她的心理防线出现了严重裂痕。继续施压或给予安慰都会产生不同效果。",
+			"choices": [
+				{
+					"label": "给予温柔的安慰",
+					"description": "坐在她身边，不说话，只是安静地陪伴。让她知道即使信仰崩塌，也有人在身旁。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"akane_compassion_path": true},
+					},
+				},
+				{
+					"label": "彻底瓦解她的信仰",
+					"description": "趁她最脆弱时继续施压，用逻辑和事实将血月教义撕碎。快速但残忍。",
+					"effects": {
+						"corruption": 2,
+						"set_flag": {"akane_shatter_path": true},
+					},
+				},
+				{
+					"label": "提议改革而非否定",
+					"description": "告诉她信仰本身没有错，错的是献祭的方式。帮她找到不需要流血的新教义。",
+					"effects": {
+						"affection": 1, "prestige": 1,
+						"set_flag": {"akane_reform_path": true},
+					},
+				},
+			],
+			"system_prompt": "朱音信仰动摇值+15。她的心理防线出现了严重裂痕。第一个关键选择——你对她信仰的态度将决定朱音未来的道路。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -189,7 +215,33 @@ const EVENTS: Dictionary = {
 				{"speaker": "主角", "text": "现在才明白这个？"},
 				{"speaker": "朱音", "text": "不。我一直都知道。只是我终于……不再骗自己了。"},
 			],
-			"system_prompt": "朱音信仰动摇值达到最大。旧信仰已完全崩塌。进入重塑阶段。",
+			"choices": [
+				{
+					"label": "引导她为逝者赎罪",
+					"description": "鼓励朱音将余生用于治愈伤者、抚养战争孤儿，用行动弥补过去的罪孽。防御型成长路线。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"akane_atonement": true},
+					},
+				},
+				{
+					"label": "将血月之力据为己用",
+					"description": "告诉朱音她的力量本身无善恶，引导她将血之魔法作为战争武器，不再需要信仰的外衣。攻击型成长路线。",
+					"effects": {
+						"corruption": 2,
+						"set_flag": {"akane_weapon": true},
+					},
+				},
+				{
+					"label": "让她自己选择",
+					"description": "不给建议。告诉她无论走哪条路，你都会在身边。她必须为自己做决定。平衡但不确定。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"akane_freewill": true},
+					},
+				},
+			],
+			"system_prompt": "朱音信仰动摇值达到最大。旧信仰已完全崩塌。第二个关键选择——你将如何帮助她重建自我？这将决定朱音的最终形态。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -311,7 +363,33 @@ const EVENTS: Dictionary = {
 				{"type": "narration", "text": "她转向主角，眼神中带着某种近乎恳求的东西。"},
 				{"speaker": "朱音", "text": "你愿意相信吗？"},
 			],
-			"system_prompt": "第二步完成：见证献祭仪式。消耗3名奴隶。选择「我相信」（朱音好感+10）或「我不确定」（好感+5，朱音沉默）。无论选择如何，任务继续。",
+			"choices": [
+				{
+					"label": "我相信",
+					"description": "接受她的信仰，至少在她面前表现出理解。这会让她深深信任你，但也意味着默认献祭的正当性。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"akane_accepted_faith": true},
+					},
+				},
+				{
+					"label": "我不确定",
+					"description": "诚实地表达困惑。不否认也不肯定。朱音会沉默，但会记住你的诚实。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"akane_honest_doubt": true},
+					},
+				},
+				{
+					"label": "这不是救赎，是谋杀",
+					"description": "直接否定献祭的意义。朱音会愤怒，但这颗种子迟早会在她心中生根。极高风险但可能带来最深的觉醒。",
+					"effects": {
+						"affection": -1, "corruption": 1,
+						"set_flag": {"akane_confronted": true},
+					},
+				},
+			],
+			"system_prompt": "第二步完成：见证献祭仪式。消耗3名奴隶。你对献祭的态度将影响朱音对你的信任方式和未来的觉醒深度。",
 			"effects": {"affection": 1},
 		},
 		{
@@ -461,7 +539,25 @@ const EVENTS: Dictionary = {
 				{"speaker": "朱音", "text": "不想。但我不回去的话……那些信徒怎么办？他们的信仰——"},
 				{"speaker": "主角", "text": "他们的信仰是他们的。你的人生是你的。"},
 			],
-			"system_prompt": "关键抉择：朱音好感度+15。她正在\"责任\"与\"自我\"之间挣扎。后续事件将决定她的最终选择。",
+			"choices": [
+				{
+					"label": "你应该回去",
+					"description": "尊重她的职责，告诉她信徒需要她。这是无私的——但她可能会永远离开。朱音获得防御型信念加成。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"akane_duty_first": true},
+					},
+				},
+				{
+					"label": "留下来，和我在一起",
+					"description": "直接表达你的心意。她会留下，但内疚会成为她心中永远的刺。攻击型激情加成。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"akane_love_first": true},
+					},
+				},
+			],
+			"system_prompt": "关键抉择：朱音好感度+15。她正在\"责任\"与\"自我\"之间挣扎。你的选择将决定她最终是守护者还是战斗者。",
 			"effects": {"affection": 1},
 		},
 		{

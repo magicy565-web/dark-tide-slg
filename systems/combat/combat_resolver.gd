@@ -126,6 +126,19 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	# -- Apply Commander Tactical Orders --
 	_apply_directive_modifiers(state)
 
+	# -- Initialize Commander Intervention System --
+	var interventions_enabled: bool = attacker.get("player_controlled", false)
+	if interventions_enabled:
+		CommanderIntervention.initialize_for_battle(
+			state["atk_units"],
+			_get_hero_list(state["atk_units"])
+		)
+		state["interventions_enabled"] = true
+		log.append("[color=cyan]指挥点数: %d/%d — 战斗中可使用指挥干预![/color]" % [
+			CommanderIntervention.get_current_cp(), CommanderIntervention.get_max_cp()])
+	else:
+		state["interventions_enabled"] = false
+
 	# Log directive choice
 	var atk_dir: int = state.get("atk_directive", TacticalDirective.NONE)
 	if atk_dir != TacticalDirective.NONE:
@@ -144,6 +157,44 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 
 	log.append("=== 战斗开始 === 进攻方 %d 单位 vs 防守方 %d 单位" % [
 		state["atk_units"].size(), state["def_units"].size()])
+
+	# Log counter matchup analysis
+	var _has_counter_info: bool = false
+	for atk_u in state["atk_units"]:
+		if not atk_u["is_alive"]:
+			continue
+		for def_u in state["def_units"]:
+			if not def_u["is_alive"]:
+				continue
+			var c: Dictionary = CounterMatrix.get_counter(atk_u["unit_type"], def_u["unit_type"])
+			if c["advantage"] == "hard_counter":
+				if not _has_counter_info:
+					log.append("=== 兵种克制分析 ===")
+					_has_counter_info = true
+				log.append("[color=green]★ %s 硬克 %s: %s[/color]" % [atk_u["unit_type"], def_u["unit_type"], c["label"]])
+			elif c["advantage"] == "weak":
+				if not _has_counter_info:
+					log.append("=== 兵种克制分析 ===")
+					_has_counter_info = true
+				log.append("[color=red]✗ %s 被克 %s: %s[/color]" % [atk_u["unit_type"], def_u["unit_type"], c["label"]])
+	# Also check defender-side counters
+	for def_u in state["def_units"]:
+		if not def_u["is_alive"]:
+			continue
+		for atk_u in state["atk_units"]:
+			if not atk_u["is_alive"]:
+				continue
+			var c2: Dictionary = CounterMatrix.get_counter(def_u["unit_type"], atk_u["unit_type"])
+			if c2["advantage"] == "hard_counter":
+				if not _has_counter_info:
+					log.append("=== 兵种克制分析 ===")
+					_has_counter_info = true
+				log.append("[color=green]★ %s 硬克 %s: %s[/color]" % [def_u["unit_type"], atk_u["unit_type"], c2["label"]])
+			elif c2["advantage"] == "weak":
+				if not _has_counter_info:
+					log.append("=== 兵种克制分析 ===")
+					_has_counter_info = true
+				log.append("[color=red]✗ %s 被克 %s: %s[/color]" % [def_u["unit_type"], atk_u["unit_type"], c2["label"]])
 
 	# -- Phase 1: Wall / Siege --
 	var tile_idx: int = tile.get("index", -1)
@@ -211,6 +262,23 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		log.append("--- 第 %d 回合 ---" % round_num)
 
 		_start_of_round(state, log)
+
+		# -- Commander Intervention Phase --
+		if state.get("interventions_enabled", false):
+			CommanderIntervention.tick_cooldowns()
+			var pending: Array = state.get("pending_interventions", [])
+			for intervention in pending:
+				if intervention.get("round", -1) == round_num:
+					CommanderIntervention.execute(
+						intervention["type"], state, intervention.get("target", null), log)
+			# Emit signal for UI to collect player decisions
+			if CommanderIntervention.get_current_cp() > 0:
+				var available: Array = CommanderIntervention.get_available_interventions()
+				if not available.is_empty():
+					state["intervention_options"] = available
+					state["intervention_cp"] = CommanderIntervention.get_current_cp()
+					EventBus.combat_intervention_phase.emit(state)
+
 		var queue: Array = _build_action_queue(state)
 
 		for unit in queue:
@@ -449,6 +517,179 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		elif story_flags.get("hakagure_unleash", false):
 			base_atk += 6; base_def -= 2
 			passives.append("hakagure_instant_kill")  # 25% instant kill on ≤2 soldiers
+		# Akane (茜/朱音) — path bonuses
+		if story_flags.get("akane_atonement", false):
+			base_def += 5
+			passives.append("akane_heal_ally_3")  # heal nearest ally 3 HP per round
+		elif story_flags.get("akane_weapon", false):
+			base_atk += 5
+			passives.append("akane_blood_sacrifice")  # consume 2 own HP for +3 ATK per round
+		elif story_flags.get("akane_freewill", false):
+			base_atk += 3; base_def += 2
+			passives.append("akane_faith_shield")  # 20% chance negate lethal damage once
+		elif story_flags.get("akane_duty_first", false):
+			base_def += 4; base_atk += 1
+		elif story_flags.get("akane_love_first", false):
+			base_atk += 4; base_def += 1
+		# Hanabi (花火) — path bonuses
+		if story_flags.get("hanabi_devoted_flame", false):
+			base_atk += 5
+			passives.append("hanabi_protect_explosion")  # if ally takes lethal hit, 30% counter-explode
+		elif story_flags.get("hanabi_arsenal_path", false):
+			base_atk += 3; base_def += 3
+			passives.append("hanabi_siege_bonus_50")  # +50% siege damage
+		elif story_flags.get("hanabi_mature_path", false):
+			base_atk += 3; base_def += 2
+			passives.append("hanabi_stable_cannon")  # cannon self-destruct rate halved
+		elif story_flags.get("hanabi_engineer_bond", false):
+			base_atk += 4; base_def += 1
+		elif story_flags.get("hanabi_protected", false):
+			base_def += 4; base_atk += 1
+			passives.append("hanabi_workshop_output")  # +25% equipment production
+		# Hibiki (響) — path bonuses
+		if story_flags.get("hibiki_reforge_path", false):
+			base_def += 5
+			passives.append("hibiki_iron_wall")  # reduce first 2 damage taken each round to 0
+		elif story_flags.get("hibiki_balance_path", false):
+			base_atk += 3; base_def += 3
+			passives.append("hibiki_tempered_steel")  # +1 ATK and +1 DEF each round (max 3 stacks)
+		elif story_flags.get("hibiki_broken_anvil", false):
+			base_atk += 6; base_def -= 1
+			if randf() < 0.10:
+				passives.append("refuse_orders")  # 10% skip action from rage
+		elif story_flags.get("hibiki_master_smith", false):
+			base_def += 4; base_atk += 2
+			passives.append("hibiki_equipment_bonus")  # all allies +1 DEF from superior gear
+		elif story_flags.get("hibiki_frontline", false):
+			base_atk += 5; base_def += 1
+			passives.append("hibiki_hammer_stun")  # 15% stun on attack
+		# Kaede (楓) — path bonuses
+		if story_flags.get("kaede_righteous_bond", false):
+			base_def += 4; spd += 2
+			passives.append("kaede_shadow_guard")  # intercept first attack on lowest HP ally
+		elif story_flags.get("kaede_pragmatic_bond", false):
+			base_atk += 5; spd += 1
+			passives.append("kaede_assassinate")  # 20% chance to bypass DEF on attack
+		elif story_flags.get("kaede_shared_pain", false):
+			base_atk += 3; base_def += 2; spd += 1
+			passives.append("kaede_intel_bonus")  # reveal enemy stats at battle start
+		elif story_flags.get("kaede_solo_mission", false):
+			base_atk += 4; spd += 3
+			passives.append("kaede_lone_wolf")  # +2 ATK when no adjacent allies
+		elif story_flags.get("kaede_team_mission", false):
+			base_atk += 3; base_def += 2; spd += 1
+			passives.append("kaede_coordinated_strike")  # adjacent allies +1 ATK
+		# Mei (冥) — path bonuses
+		if story_flags.get("mei_past_seeker", false):
+			base_def += 4; int_stat += 3
+			passives.append("mei_soul_mend")  # heal all allies 1 HP per round
+		elif story_flags.get("mei_embrace_death", false):
+			base_atk += 5; int_stat += 3
+			passives.append("mei_death_aura")  # enemies in range take 1 damage per round
+		elif story_flags.get("mei_dual_existence", false):
+			base_atk += 3; base_def += 2; int_stat += 2
+			passives.append("mei_life_death_cycle")  # 15% chance revive 1 fallen ally as skeleton
+		elif story_flags.get("mei_sacrifice_bond", false):
+			base_def += 5; int_stat += 2
+			passives.append("mei_eternal_guard")  # take lethal damage for master once per battle
+		elif story_flags.get("mei_sealed_heart", false):
+			base_atk += 3; base_def += 3; int_stat += 1
+		elif story_flags.get("mei_legion_anchor", false):
+			base_atk += 5; int_stat += 2
+			passives.append("mei_undead_surge")  # summon 2 skeleton soldiers per round
+			if randf() < 0.10:
+				passives.append("mei_berserk_undead")  # 10% chance skeletons attack both sides
+
+		# Homura (焔) — path bonuses
+		if story_flags.get("homura_unleashed_flame", false):
+			base_atk += 4; int_stat += 2
+			passives.append("homura_wildfire")  # 15% chance AoE splash to adjacent enemies
+		elif story_flags.get("homura_precision_flame", false):
+			base_atk += 2; int_stat += 3
+			passives.append("homura_focused_burn")  # +30% single-target damage
+		elif story_flags.get("homura_tactical_flame_final", false):
+			int_stat += 4; base_atk -= 1
+			passives.append("homura_precision_blaze")  # single-target high damage, no friendly fire
+		elif story_flags.get("homura_hybrid_flame_final", false):
+			base_atk += 2; int_stat += 2
+			passives.append("homura_chaos_flame")  # random single-target or AoE each round
+		elif story_flags.get("homura_ashes_final", false):
+			base_atk += 5
+			if randf() < 0.10:
+				passives.append("wild_aoe")  # 10% random AoE hitting both sides
+		elif story_flags.get("homura_ember_reborn", false):
+			base_atk += 2; base_def += 3
+			passives.append("homura_undying_ember")  # survive lethal once per battle
+
+		# Hyouka (冰華) — path bonuses
+		if story_flags.get("hyouka_guardian_bond", false):
+			base_def += 4; base_atk += 1
+			passives.append("hyouka_bodyguard")  # intercept damage to adjacent commander
+		elif story_flags.get("hyouka_voice_training", false):
+			base_def += 3; base_atk += 2
+			passives.append("hyouka_rally_cry")  # adjacent allies +1 DEF
+		elif story_flags.get("hyouka_absolute_guardian", false):
+			base_def += 5
+			passives.append("hyouka_absolute_guard")  # halve damage to adjacent commander
+		elif story_flags.get("hyouka_army_wall", false):
+			base_def += 3
+			passives.append("hyouka_iron_wall_formation")  # all allies +2 DEF for 3 rounds (active)
+		elif story_flags.get("hyouka_full_guardian", false):
+			base_def += 5; base_atk += 1
+		elif story_flags.get("hyouka_hollow_final", false):
+			base_def += 4; base_atk += 2
+		elif story_flags.get("hyouka_rebuild_final", false):
+			base_def += 3; base_atk += 1
+			passives.append("hyouka_reforged_shield")  # 20% survive lethal (1 HP)
+
+		# Sara (沙罗) — path bonuses
+		if story_flags.get("sara_trade_bond", false):
+			base_atk += 2; base_def += 2
+			passives.append("sara_trade_profit")  # gain gold each round
+		elif story_flags.get("sara_desert_strategist", false):
+			int_stat += 4
+			passives.append("sara_sandstorm_tactics")  # reduce target hit rate 3 rounds
+		elif story_flags.get("sara_pure_business", false):
+			base_atk += 3; base_def += 1
+			passives.append("sara_precise_calc")  # bonus resources on victory
+		elif story_flags.get("sara_chained_homeland", false):
+			base_atk += 4
+			passives.append("sara_desperate_blade")  # ATK increases as HP decreases
+		elif story_flags.get("sara_stripped_final", false):
+			base_atk += 5; base_def -= 2
+			passives.append("sara_desert_fury")  # AoE burst, self-stun 1 round
+		elif story_flags.get("sara_trade_partner", false):
+			base_atk += 1; base_def += 1
+			passives.append("sara_trade_bonus_10")  # +10% gold bonus
+		elif story_flags.get("sara_leverage_homeland", false):
+			base_atk += 3
+
+		# Shion (紫苑) — path bonuses
+		if story_flags.get("shion_prophet", false):
+			int_stat += 6
+			passives.append("shion_timeline_intervention")  # predict enemy next action
+			if randf() < 0.05:
+				passives.append("shion_foresight_terror")  # 5% freeze from visions
+		elif story_flags.get("shion_peaceful_scholar", false):
+			int_stat += 3; base_def += 2
+			passives.append("shion_observer_calm")  # immune to fear/confusion
+		elif story_flags.get("shion_ordinary_final", false):
+			base_atk += 2; base_def += 2; int_stat += 1
+			passives.append("shion_carefree_heart")  # immune to mental debuffs, adj ally morale+1
+		elif story_flags.get("shion_rebuilt_genius", false):
+			int_stat += 4; base_atk += 1
+			passives.append("shion_probability_correction")  # grant 30% evasion to 1 ally, 2 rounds
+		elif story_flags.get("shion_emotion_research", false):
+			int_stat += 3; base_atk += 1
+		elif story_flags.get("shion_gut_choice", false):
+			int_stat += 2; base_atk += 2
+			passives.append("shion_intuition_dodge")  # 10% dodge any attack
+		elif story_flags.get("shion_full_foresight", false):
+			int_stat += 5
+			if randf() < 0.05:
+				passives.append("shion_foresight_terror")
+		elif story_flags.get("shion_slow_rebuild", false):
+			int_stat += 3; base_def += 1
 
 	# ── Terrain modifiers (data-driven from TERRAIN_DATA) ──
 	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
@@ -1088,6 +1329,11 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 
 	var damage: int = _calculate_damage(unit, target, state)
 
+	# Log unit counter advantage/disadvantage
+	var _action_counter: Dictionary = CounterMatrix.get_counter(unit["unit_type"], target["unit_type"])
+	if _action_counter["advantage"] != "neutral":
+		log.append("  克制: %s (%s, 伤害x%.0f%%)" % [_action_counter["label"], _action_counter["advantage"], _action_counter["atk_mult"] * 100])
+
 	# Charge bonus: first attack ×1.5
 	if "charge_1_5" in unit["passives"] and not unit["has_charged"]:
 		damage = int(float(damage) * 1.5)
@@ -1196,6 +1442,10 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 	if target["is_alive"] and ("counter_1_2" in target["passives"] or "counter_defend" in target["passives"]):
 		var counter_dmg: int = _calculate_damage(target, unit, state)
 		counter_dmg = int(float(counter_dmg) * 1.2)
+		# Counter matrix defense modifier: original attacker may take less/more counter damage
+		var _ca_counter: Dictionary = CounterMatrix.get_counter(unit["unit_type"], target["unit_type"])
+		if _ca_counter["def_mult"] != 1.0:
+			counter_dmg = int(float(counter_dmg) * _ca_counter["def_mult"])
 		log.append("%s [%s] 反击! 伤害 %d" % [target["unit_type"], target["side"], counter_dmg])
 		_apply_damage_to_unit(state, unit, counter_dmg, target, log)
 
@@ -1470,6 +1720,19 @@ func _select_target(state: Dictionary, unit: Dictionary) -> Dictionary:
 	if alive_enemies.is_empty():
 		return {}
 
+	# Commander Intervention: forced target override
+	var forced: int = state.get("forced_target", -1)
+	if forced >= 0 and state.get("forced_target_duration", 0) > 0:
+		var enemies_list: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
+		if forced < enemies_list.size() and enemies_list[forced]["is_alive"]:
+			return enemies_list[forced]
+	# Commander Intervention: bait target override (for enemy targeting)
+	var bait: int = state.get("bait_target", -1)
+	if bait >= 0 and state.get("bait_duration", 0) > 0 and unit["side"] == "defender":
+		var atk_units_list: Array = state["atk_units"]
+		if bait < atk_units_list.size() and atk_units_list[bait]["is_alive"]:
+			return atk_units_list[bait]
+
 	# ── Commander Tactical Orders: FOCUS_FIRE ──
 	# If the ATTACKING unit's side has FOCUS_FIRE, target the enemy with lowest soldiers
 	var unit_side_dir: int = state.get("atk_directive", TacticalDirective.NONE) if unit["side"] == "attacker" else state.get("def_directive", TacticalDirective.NONE)
@@ -1714,6 +1977,11 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 	# Core formula from design doc
 	var base_damage: float = float(soldiers) * maxf(1.0, atk - def_val) / 10.0
 
+	# Apply unit counter matrix (atk_mult: attacker deals more/less damage)
+	var _counter_info: Dictionary = CounterMatrix.get_counter(attacker_unit["unit_type"], defender_unit["unit_type"])
+	if _counter_info["atk_mult"] != 1.0:
+		base_damage *= _counter_info["atk_mult"]
+
 	# FIX(MAJOR): 护盾buff改为取最强护盾生效，不再乘法叠加；使用后标记移除
 	var best_shield_idx: int = -1
 	var best_shield_val: float = 0.0
@@ -1838,6 +2106,16 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 # ---------------------------------------------------------------------------
 
 func _end_of_round(state: Dictionary, log: Array) -> String:
+	# Decrement intervention effect durations
+	if state.get("forced_target_duration", 0) > 0:
+		state["forced_target_duration"] -= 1
+		if state["forced_target_duration"] <= 0:
+			state.erase("forced_target")
+	if state.get("bait_duration", 0) > 0:
+		state["bait_duration"] -= 1
+		if state["bait_duration"] <= 0:
+			state.erase("bait_target")
+
 	# Tick down buffs/debuffs at end of round so duration=1 buffs last the full round
 	for unit in state["atk_units"] + state["def_units"]:
 		if not unit["is_alive"]:
@@ -1976,6 +2254,11 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		"gold_bonus_flags": gold_bonus_flags,
 	}
 
+	# Restore retreated units (they survive with their soldiers intact)
+	if state.get("interventions_enabled", false):
+		combat_result["retreated_units"] = CommanderIntervention.get_retreated_units()
+		combat_result["interventions_used"] = CommanderIntervention.get_battle_report()
+
 	return combat_result
 
 
@@ -2097,6 +2380,14 @@ func _get_highest_int(units: Array) -> int:
 	for unit in units:
 		best = maxi(best, int(unit["int_stat"]))
 	return best
+
+
+func _get_hero_list(units: Array) -> Array:
+	var heroes: Array = []
+	for unit in units:
+		if unit["hero_id"] != "":
+			heroes.append({"id": unit["hero_id"], "passives": unit["passives"]})
+	return heroes
 
 
 func _get_all_alive(units: Array) -> Array:

@@ -217,6 +217,7 @@ func _collect_save_data() -> Dictionary:
 		# NOTE: hero_leveling is serialized inside HeroSystem.to_save_data()["hero_leveling"]
 		# so we no longer duplicate it at the top level to avoid double-serialize/deserialize.
 		"hero_leveling": HeroLeveling.serialize(),  # kept for backward compat on load
+		"tile_development": TileDevelopment.to_save_data(),
 	}
 
 
@@ -336,6 +337,10 @@ func _apply_save_data(data: Dictionary) -> void:
 	# (i.e., for saves where "heroes" key lacks "hero_leveling" but top-level has it).
 	if data.has("hero_leveling") and not data.get("heroes", {}).has("hero_leveling"):
 		HeroLeveling.deserialize(data.get("hero_leveling", {}))
+
+	# 4e. Restore tile development state (v3.5+)
+	if data.has("tile_development"):
+		TileDevelopment.from_save_data(data.get("tile_development", {}))
 
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()

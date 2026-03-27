@@ -174,7 +174,25 @@ const EVENTS: Dictionary = {
 					{"speaker": "夜晚军帐中，领主为花火全身涂抹烧伤药膏。花火起初拼命挣扎（\"不要碰花火！花火自己来！\"），但伤口太痛，渐渐软下来。她咬着嘴唇忍痛的模样与平时的狂暴判若两人。领主第一次看到她完整的身体——矮小，到处是旧伤疤，但肌肉结实，手指上满是老茧。花火不安地缩成一团", "text": "不要看……花火的身体都是伤疤……很难看的……"},
 				]
 			},
-			"system_prompt": "忠诚度+15。花火受伤恢复中，暂时无法参战（3回合）。亲密度解锁。",
+			"choices": [
+				{
+					"label": "禁止她再上前线",
+					"description": "她太重要了，不能让她再冒险。花火会在后方专注研发，防御型装备产出大幅提升，但她会觉得自己被排斥在外。",
+					"effects": {
+						"affection": -1,
+						"set_flag": {"hanabi_protected": true},
+					},
+				},
+				{
+					"label": "为她改良花火大筒",
+					"description": "和她一起分析炸膛原因，承诺共同改进。花火大筒将获得安全升级，她也会因为被认真对待而更加信任你。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"hanabi_engineer_bond": true},
+					},
+				},
+			],
+			"system_prompt": "忠诚度+15。花火受伤恢复中，暂时无法参战（3回合）。第二个关键选择——保护她还是和她并肩改进？决定花火的后续战斗定位。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -221,7 +239,33 @@ const EVENTS: Dictionary = {
 				{"type": "narration", "text": "手雷掉在地上，花火蹲下来，抱住膝盖。"},
 				{"speaker": "花火", "text": "……花火不喜欢你对别人也那么温柔。花火知道这样不对。但是花火控制不住。花火的心……也会爆炸的。"},
 			],
-			"system_prompt": "忠诚度+10。花火的独占欲觉醒。选择安抚方式将影响后续剧情走向。",
+			"choices": [
+				{
+					"label": "温柔地抱住她",
+					"description": "接受她的独占欲，告诉她你理解。花火会变得更依赖你，战斗中为保护你而爆发惊人力量。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"hanabi_devoted_flame": true},
+					},
+				},
+				{
+					"label": "把她的愤怒引导到工作上",
+					"description": "告诉她与其炸墙，不如把这份激情倾注到造出更强的武器上。花火会成为无与伦比的军工天才，但情感上保持距离。",
+					"effects": {
+						"prestige": 2,
+						"set_flag": {"hanabi_arsenal_path": true},
+					},
+				},
+				{
+					"label": "直接告诉她这样不对",
+					"description": "严厉但诚实地指出独占欲会伤害彼此。花火会哭，但最终学会更成熟的感情方式。平衡型成长。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"hanabi_mature_path": true},
+					},
+				},
+			],
+			"system_prompt": "忠诚度+10。花火的独占欲觉醒。第一个关键选择——你对花火情感的回应方式将决定她的战斗风格和人格成长。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -452,7 +496,25 @@ const EVENTS: Dictionary = {
 				{"type": "narration", "text": "花火的眼眶红了，但这次她没有躲。她轻轻靠过来，额头抵在领主的手臂上。"},
 				{"speaker": "花火", "text": "……下雨天花火不喜欢一个人。以后下雨天……你能来陪花火吗？"},
 			],
-			"system_prompt": "花火敞开心扉。好感度大幅上升。花火过去的经历被揭示。下雨天花火情绪会波动，可触发特殊对话。",
+			"choices": [
+				{
+					"label": "每次都来",
+					"description": "答应她，无论多忙都会在雨天陪伴。花火的安全感会转化为稳定的战斗表现。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"hanabi_rainy_promise": true},
+					},
+				},
+				{
+					"label": "教她独处的力量",
+					"description": "告诉她独处不是孤独，是与自己对话的时间。花火会学会在安静中找到灵感，研发能力大幅提升。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"hanabi_inner_strength": true},
+					},
+				},
+			],
+			"system_prompt": "花火敞开心扉。好感度大幅上升。花火过去的经历被揭示。你的选择将决定花火是依靠你的温暖还是找到自己的内在力量。",
 			"effects": {"affection": 1},
 		},
 		{

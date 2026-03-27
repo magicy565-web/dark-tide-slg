@@ -180,7 +180,33 @@ const EVENTS: Dictionary = {
 				{"speaker": "響", "text": "……老娘不是……不该是这样的……"},
 				{"type": "narration", "text": "她缓缓捡起地上的衣裙，手指颤抖着，像是在触碰某种灼热的禁忌。"},
 			],
-			"system_prompt": "敌对路线进度 [8/13] — 響的心理防线出现严重裂痕，身份认同危机开始浮现。",
+			"choices": [
+				{
+					"label": "归还铁砧碎片",
+					"description": "将折断的「铁砧」锤柄碎片交给她，让她自己决定是否重新锻造。尊重她的锻造者身份。防御型成长——她会以守护者的方式重生。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"hibiki_reforge_path": true},
+					},
+				},
+				{
+					"label": "教她接受两面性",
+					"description": "告诉她战士和女人并不矛盾。她可以同时握锤子和穿裙子。平衡型成长——她的力量来自接受完整的自己。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"hibiki_balance_path": true},
+					},
+				},
+				{
+					"label": "彻底摧毁旧身份",
+					"description": "销毁所有矮人锻造工具，告诉她旧的響已经死了。残忍但高效——她会在愤怒中超越极限，攻击力暴涨。",
+					"effects": {
+						"corruption": 3,
+						"set_flag": {"hibiki_broken_anvil": true},
+					},
+				},
+			],
+			"system_prompt": "敌对路线进度 [8/13] — 響的心理防线出现严重裂痕。第一个关键选择——你如何对待她的身份危机将决定響的战斗风格。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -269,7 +295,25 @@ const EVENTS: Dictionary = {
 					{"type": "narration", "text": "她咬着嘴唇，在月光下露出一个复杂的表情——像是在旧的模具被打碎后，正在接受一种新的形态。"},
 				]
 			},
-			"system_prompt": "敌对路线进度 [11/13] — 響主动回应感情，对自身转变不再完全抗拒。第三次H事件完成。",
+			"choices": [
+				{
+					"label": "让她重回锻炉主位",
+					"description": "提拔響为军队总锻造师，给予她完整的锻造权限和矮人学徒。她会以铁匠的身份重获尊严，装备产出大幅提升。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"hibiki_master_smith": true},
+					},
+				},
+				{
+					"label": "带她上战场",
+					"description": "给她一把新战锤，让她重新站在前线。她会证明自己既能穿裙子也能挥锤子——战斗中的她将无比凶猛。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"hibiki_frontline": true},
+					},
+				},
+			],
+			"system_prompt": "敌对路线进度 [11/13] — 響主动回应感情。第二个关键选择——让她做铁匠还是战士？决定響的最终战斗定位。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -627,7 +671,25 @@ const EVENTS: Dictionary = {
 				{"type": "action", "text": "两人开始并肩锻造，锤声叮叮当当。间隙中，響偷偷伸手确认了一下发簪还在不在，然后若无其事地继续锤铁。"},
 				{"type": "action", "text": "玩家看在眼里，没有说破。"},
 			],
-			"system_prompt": "事件「炉火正旺」完成。響 好感度 +5。響开始接受自己的另一面。",
+			"choices": [
+				{
+					"label": "送她一套锻造与梳妆兼用的工具",
+					"description": "定制一套既能锻铁也能整理仪容的精巧工具组。告诉她这两件事本来就可以用同样的双手完成。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"hibiki_dual_nature": true},
+					},
+				},
+				{
+					"label": "认真夸奖她的发簪工艺",
+					"description": "以专业角度评价她打造的发簪，肯定她不只是武器锻造师，也是首饰艺术家。她的锻造技能将延伸至特殊装备。",
+					"effects": {
+						"affection": 1, "prestige": 1,
+						"set_flag": {"hibiki_artisan": true},
+					},
+				},
+			],
+			"system_prompt": "事件「炉火正旺」完成。響 好感度 +5。響开始接受自己的另一面。你的回应将决定她如何整合铁匠与女人的双重身份。",
 			"effects": {"affection": 1},
 		},
 		{

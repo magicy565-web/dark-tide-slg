@@ -164,7 +164,33 @@ const EVENTS: Dictionary = {
 				{"speaker": "指挥官", "text": "我会帮你找到你姐姐。"},
 				{"type": "narration", "text": "枫：（没有转身）\"……为什么。你到底图什么。\""},
 			],
-			"system_prompt": "审讯获得暗精灵营地部分情报。枫好感度+6。她开始动摇对指挥官的敌意。",
+			"choices": [
+				{
+					"label": "我不图什么。因为这是对的。",
+					"description": "不要求任何回报，以正义本身作为理由。枫会被这种纯粹打动，发展出深度信任。防御型忠诚——她将成为无条件守护你的暗影。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"kaede_righteous_bond": true},
+					},
+				},
+				{
+					"label": "你的刀和你的情报，都是我需要的",
+					"description": "坦率地承认你需要她的能力。枫反而会欣赏这种诚实——比虚伪的善意更让她安心。攻击型协作——她将成为最锋利的暗刃。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"kaede_pragmatic_bond": true},
+					},
+				},
+				{
+					"label": "因为我也失去过重要的人",
+					"description": "分享你自己的痛苦经历。枫会理解你不是在施舍同情，而是真正懂得失去的感觉。平衡型羁绊——解锁独特的情报协作战术。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"kaede_shared_pain": true},
+					},
+				},
+			],
+			"system_prompt": "审讯获得暗精灵营地部分情报。枫好感度+6。第一个关键选择——你帮助她的动机将决定枫对你的信任方式和战斗协作风格。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -209,7 +235,25 @@ const EVENTS: Dictionary = {
 				{"type": "narration", "text": "她转身往门口走，到门边时停了一步。"},
 				{"speaker": "枫", "text": "……谢谢。"},
 			],
-			"system_prompt": "奴隶营突袭作战计划制定中。枫好感度+7。下一事件将进行潜入任务。",
+			"choices": [
+				{
+					"label": "听从枫的计划——她单独潜入",
+					"description": "信任枫的判断和能力。单独潜入成功率更高但风险致命。枫会因为被完全信任而产生深层羁绊——解锁最高级影步技能。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"kaede_solo_mission": true},
+					},
+				},
+				{
+					"label": "坚持联合作战——你亲自带队接应",
+					"description": "不让她独自承担一切。正面进攻加潜入的混合战术。枫会明白她不再是一个人——解锁协同战术加成。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"kaede_team_mission": true},
+					},
+				},
+			],
+			"system_prompt": "奴隶营突袭作战计划制定中。枫好感度+7。第二个关键选择——救援方式将决定枫的战斗风格是独行还是协作。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -714,7 +758,25 @@ const EVENTS: Dictionary = {
 				{"type": "narration", "text": "枫看了指挥官一眼，在月光下极其罕见地露出一个微小的表情变化——嘴角上扬了一毫米。"},
 				{"speaker": "枫", "text": "……因为习惯了。不想让你停。"},
 			],
-			"system_prompt": "枫好感度+7。默契达到新阶段——无言的理解比任何告白都珍贵。",
+			"choices": [
+				{
+					"label": "教她更多你的暗号体系",
+					"description": "建立只属于两人的完整信号系统。在战场上你们将拥有无人能破解的通讯优势——但这种深度绑定意味着离开彼此都会变弱。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"kaede_bonded_shadow": true},
+					},
+				},
+				{
+					"label": "让她训练更多侦察兵",
+					"description": "鼓励枫将她的技能传授给其他人。她的影步战术会弱化（不再独一无二），但全军侦察能力大幅提升。更大格局的选择。",
+					"effects": {
+						"affection": 1, "prestige": 1,
+						"set_flag": {"kaede_shadow_school": true},
+					},
+				},
+			],
+			"system_prompt": "枫好感度+7。默契达到新阶段。你的选择将决定枫是你的专属暗影还是暗影部队的统帅。",
 			"effects": {"affection": 1},
 		},
 		{

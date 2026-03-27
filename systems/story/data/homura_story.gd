@@ -153,12 +153,42 @@ const EVENTS: Dictionary = {
 				]
 			},
 			"system_prompt": "焔的调教进度 [4/10]。野兽的嘶吼开始变调。焔的战斗意志依然顽强，但她的身体已经学会了战斗以外的语言，而她的头脑还无法理解。",
+			"choices": [
+				{
+					"label": "解开枷锁，邀请她对练",
+					"description": "将焔当作战士来对待，解开部分封印，允许她用体术与你对练。认可她的战斗本能，用武力赢得她的敬意。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"homura_respect_flame": true},
+					},
+				},
+				{
+					"label": "控制火种，引导她的力量",
+					"description": "不解开封印，但给她火焰理论的书籍和魔法笔记。引导她将暴走的火焰转化为可控的精密魔法——改变她的战斗方式。",
+					"effects": {
+						"corruption": 1,
+						"set_flag": {"homura_controlled_burn": true},
+					},
+				},
+				{
+					"label": "完全压制，熄灭她的反抗",
+					"description": "加强能量枷锁，剥夺她所有发泄的途径。用绝对的力量差距碾碎她的战意，让她从野兽变成服从的工具。",
+					"effects": {
+						"corruption": 3,
+						"set_flag": {"homura_extinguish": true},
+					},
+				},
+			],
 			"effects": {"training_progress": 1},
 		},
 		{
-			"id": "homura_training_03",
-			"name": "调教 Stage 03: 热度的转化（燃烧的方向改变）",
-			"trigger": {"prev_event": "homura_training_02", "corruption_min": 4, "turn_min": 6},
+			"id": "homura_training_03a",
+			"name": "调教 Stage 03a: 热度的转化——战友之焔",
+			"trigger": {
+				"prev_event": "homura_training_02",
+				"requires_flag": "homura_respect_flame",
+				"corruption_min": 4, "turn_min": 6,
+			},
 			"scene": "牢房的条件改善了一些。灭火符文依然覆盖着墙壁，但枷锁换成了更轻便的单手环——只锁住焔的左手腕，连着一条较长的链子，允许她在牢房内自由活动。 角落里多了一个沙袋——是指挥官命人挂上去的。沙袋的表面已经被打得千疮百孔，填充物从裂口中漏出来。焔显然每天都在用它发泄多余的精力。地上散落着碎布和沙砾。 焔正盘腿坐在简陋的床铺上，右手缠着新的绷带——是她自己要来的。她在做一件让看守目瞪口呆的事情：安静地坐着。焔这个人安静下来的场景比爆裂火球不爆炸还稀罕。 她的表情也变了。不再是纯粹的暴怒和困惑，而是一种——思考。虽然焔式的思考看起来就是皱着眉头瞪着空气，像在跟虚空中的对手对峙。但对于一个据说生活智商为负数的战斗狂来说，这已经是巨大的进步了。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官进入牢房"},
@@ -238,13 +268,118 @@ const EVENTS: Dictionary = {
 					{"type": "narration", "text": "这是她第一次没有用\"赢回来\"而是用\"继续\"。"},
 				]
 			},
-			"system_prompt": "焔的调教进度 [7/10]。火焰没有熄灭——而是改变了燃烧的方向。焔开始将指挥官视为\"最强的对手\"，并以自己的方式接纳了这种关系。",
+			"system_prompt": "焔の戦友之路。焔将你视为唯一认可的强者，火焰不再是野火而是并肩的业火。",
+			"choices": [
+				{
+					"label": "解除全部封印，让她自由战斗",
+					"description": "信任焔的忠诚，解除一切火焰封印。她将恢复全部战斗力，但失控的风险也将由你承担。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"homura_unleashed_flame": true},
+					},
+				},
+				{
+					"label": "保留部分封印，教她精准控火",
+					"description": "不解除全部封印，而是教她在受限条件下精准控制火焰。牺牲爆发力换取可控性——对焔来说是一种全新的修行。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"homura_precision_flame": true},
+					},
+				},
+			],
+			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "homura_training_03b",
+			"name": "调教 Stage 03b: 冷焰——控制之路",
+			"trigger": {
+				"prev_event": "homura_training_02",
+				"requires_flag": "homura_controlled_burn",
+				"corruption_min": 4, "turn_min": 6,
+			},
+			"scene": "焔的牢房变成了半个书房。墙角堆着指挥官送来的火焰理论典籍——大部分被焔翻得皱巴巴的，有些页面还有焦痕。她坐在地上，眉头紧皱地盯着一本翻开的书。令人惊讶的是她真的在读。",
+			"dialogues": [
+				{"type": "action", "text": "指挥官进入牢房"},
+				{"speaker": "焔", "text": "……这本破书说的什么东西！'火焰的本质不是破坏而是转化'？？转化个屁！火就是用来炸的！！"},
+				{"type": "narration", "text": "她把书往地上一摔，然后又心虚地捡起来——显然她已经意识到这些书确实有用。"},
+				{"speaker": "焔", "text": "不过……有一招我确实学会了。你看！"},
+				{"type": "action", "text": "焔集中精神，指尖亮起一朵极小的火苗——稳定的、不爆炸的火苗"},
+				{"speaker": "焔", "text": "以前我只会砰砰砰地炸！但这个——小小的——不会爆——"},
+				{"type": "narration", "text": "火苗像蜡烛一样平静地燃烧了三秒，然后砰地一声炸成了一团小火球。"},
+				{"speaker": "焔", "text": "啊！！又——又炸了！！可恶！！昨天明明成功了五秒的！！"},
+				{"type": "narration", "text": "但她的眼中不再只有对破坏的渴望。还有一种全新的东西——对技艺的追求。"},
+			],
+			"system_prompt": "焔の控制之路。从暴走到精控，火焰法师正在蜕变。但精密的控制违反她的本能——这条路充满痛苦。",
+			"choices": [
+				{
+					"label": "继续精控训练，打造战术型法师",
+					"description": "将焔培养成精准打击型法师。她会失去部分爆发力，但获得持续输出和范围控制的能力。焔会很痛苦——这违反她的天性。",
+					"effects": {
+						"corruption": 1,
+						"set_flag": {"homura_tactical_flame": true},
+					},
+				},
+				{
+					"label": "融合两种风格，让她找到自己的答案",
+					"description": "不强制精控，允许焔在暴走和控制之间找到自己的平衡点。结果不可预测——可能创造全新的战斗风格，也可能两头不到岸。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"homura_hybrid_flame": true},
+					},
+				},
+			],
+			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "homura_training_03c",
+			"name": "调教 Stage 03c: 灰烬——压制之路",
+			"trigger": {
+				"prev_event": "homura_training_02",
+				"requires_flag": "homura_extinguish",
+				"corruption_min": 4, "turn_min": 6,
+			},
+			"scene": "能量抑制牢房被加固了三层封印。焔蜷缩在角落里，曾经张扬的红色头发无力地垂在肩上。枷锁把她的双手固定在背后，魔力抑制回路的强度提高到了极限。她已经很久没有吼叫了。",
+			"dialogues": [
+				{"type": "action", "text": "指挥官进入牢房"},
+				{"type": "narration", "text": "焔缓缓抬起头。红橘色的眼睛还在，但火焰变得极其微弱，像快要熄灭的炭火。"},
+				{"speaker": "焔", "text": "……又来了。"},
+				{"type": "narration", "text": "没有怒吼，没有挑衅。只有一个被彻底消耗的战士的疲惫。"},
+				{"speaker": "焔", "text": "你想要什么……就说吧。我——我打不动了。"},
+				{"type": "narration", "text": "但在她垂下的眼睫下，瞳孔深处仍有一点不肯熄灭的微光。焔的本质是火——即使被压到极限，也不可能真正熄灭。"},
+				{"speaker": "焔", "text": "……蒼老师说过。火被水浇灭了，只要有一点火星子……就能重新烧起来。"},
+				{"type": "narration", "text": "她的声音极轻，但那句话像是一个不屈的誓言。"},
+			],
+			"system_prompt": "焔の压制之路。野兽被彻底压制，但灰烬下的余烬不肯熄灭。她的力量可以被重塑为绝对服从的武器——但代价是焔不再是焔。",
+			"choices": [
+				{
+					"label": "给她一线希望——微弱的火焰",
+					"description": "在极限压制后给予一点点温暖。允许她每天点燃一次指尖的小火苗。这种残忍后的仁慈可能让她彻底依赖你——也可能让余烬重燃。",
+					"effects": {
+						"affection": 2,
+						"corruption": -1,
+						"set_flag": {"homura_ember_hope": true},
+						"clear_flag": "homura_extinguish",
+					},
+				},
+				{
+					"label": "彻底熄灭——制造完美的武器",
+					"description": "继续压制直到最后一点反抗消失。焔将成为一件纯粹的战争工具——服从、高效、不再失控。但那个大吼大叫的战斗疯子也将永远消失。",
+					"effects": {
+						"corruption": 3,
+						"set_flag": {"homura_ashes": true},
+					},
+				},
+			],
 			"effects": {"training_progress": 1},
 		},
 		{
 			"id": "homura_training_04",
 			"name": "调教 Stage 04: 忠犬之焔（永恒的战友）",
-			"trigger": {"prev_event": "homura_training_03", "corruption_min": 7, "turn_min": 10},
+			"trigger": {
+				"prev_event": "homura_training_03a",
+				"corruption_min": 7, "turn_min": 10,
+				"excludes_flag": ["homura_controlled_burn", "homura_extinguish"],
+			},
 			"scene": "焔不再住在牢房里了。她被转移到了靠近训练场的一间武装宿舍——与其说是\"转移\"，不如说她自己吵着闹着非要搬过来的，理由是\"离训练场近才方便修行\"。 宿舍里一塌糊涂。床铺上堆满了各种武器保养工具，桌子上散落着烧焦的魔法笔记——是焔试图在没有火焰能力的情况下自创新招式的潦草记录。墙上被她用木炭画满了爆炸的图案和\"必胜\"两个歪歪扭扭的大字。唯一整齐的地方是门口——她把那里清理得干干净净，\"因为指挥官每次都从门口进来\"。 枷锁已经完全解除了。取而代之的是焔右手腕上的一条红色编织手环，上面嵌着一颗小小的魔力抑制珠——理论上可以限制她的火焰输出。但所有人都知道，以焔的实力，如果她真的想挣脱，这颗珠子撑不过三秒。 她自己选择戴着。 此刻的焔蹲在训练场边缘，正在往短杖「业火」上缠新的绷带。她已经被允许使用武器了——当然仅限于体术范畴，魔力输出依然受限。但焔完全不在乎，她能把一根短杖当铁锤使，照样打得训练兵哭爹喊娘。 她的状态比被捕时好了太多。红色双马尾重新扎了起来，冲天的发型张扬得像两团火苗。脸上的煤灰洗干净后露出意外白皙的皮肤——虽然很快又在训练中沾上了新的灰尘。红黑外套换了一件新的，依然大敞着，露出黑色束胸裹着的腹肌和单肩甲。 唯一的变化是她的眼神。那双亮红橘色的眼睛还是在烧——但不再是无差别的野火。那是认准了方向的、有目标的、燃烧着忠诚的火焰。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官来到训练场"},
@@ -322,6 +457,103 @@ const EVENTS: Dictionary = {
 			},
 			"system_prompt": "焔的调教进度 [10/10]。调教完毕。焔以自己的方式完成了\"驯服\"——与其说被驯服，不如说她将指挥官认定为此生唯一的\"强者\"，并以战斗法师的全部热情宣誓效忠。解锁称号「驯服的業火」。",
 			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "homura_training_04b",
+			"name": "调教 Stage 04b: 精密之焔（戦術型法师）",
+			"trigger": {
+				"prev_event": "homura_training_03b",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "homura_tactical_flame",
+			},
+			"scene": "训练场。焔站在标靶前，手中的短杖「业火」发出稳定的橙色光芒——不再是暴走的野火，而是经过压缩的精准火焰。她的额头满是汗水，嘴唇紧抿。",
+			"dialogues": [
+				{"type": "action", "text": "焔深呼吸，释放出一道极细的火线，精确命中三十米外标靶的中心"},
+				{"speaker": "焔", "text": "……中了。"},
+				{"type": "narration", "text": "没有欢呼。没有\"砰砰砰\"。这不像焔——又确实是焔。她转过头，红橘色的眼睛里有疲惫，也有一种苦涩的成就感。"},
+				{"speaker": "焔", "text": "指挥官……我做到了。虽然——说实话——每次压住火焰的时候……心里好像有什么在叫。在说'放开我，让我烧吧'。"},
+				{"type": "narration", "text": "她低头看着自己的手。指尖有被反复灼伤又愈合的疤痕。"},
+				{"speaker": "焔", "text": "但是。如果这样能更有用的话——焔愿意。为了你。"},
+			],
+			"system_prompt": "精控之路完成。焔获得永久INT+4——精密火焰术式。但ATK-1——压制本能的代价。解锁主动技能「精准灼射」——单体高伤害，无误伤。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"homura_tactical_flame_final": true},
+				"unlock_skill": "precision_blaze",
+			},
+		},
+		{
+			"id": "homura_training_04b_alt",
+			"name": "调教 Stage 04b（混合型）: 混沌之焔",
+			"trigger": {
+				"prev_event": "homura_training_03b",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "homura_hybrid_flame",
+			},
+			"scene": "训练场。焔站在一片焦黑的空地中央，周围的标靶有些被精准击穿，有些被暴力轰碎。她在笑——那种发自内心的、战斗狂特有的笑。",
+			"dialogues": [
+				{"speaker": "焔", "text": "我找到了！！自己的答案！！"},
+				{"type": "narration", "text": "她举起短杖，指尖亮起一朵小火苗——然后火苗猛地膨胀，变成一团旋转的火球，最后又压缩回一点。在暴走和控制之间自由切换。"},
+				{"speaker": "焔", "text": "不用选！精控也好暴走也好——都是火！！火就是焔！！焔就是火！！"},
+				{"type": "narration", "text": "她的战斗风格变得不可预测——时而精准如手术刀，时而暴烈如火山。敌人永远不知道下一秒面对的是哪种焔。"},
+				{"speaker": "焔", "text": "谢谢你——让我自己找到答案。虽然过程好痛苦——但结果！超棒的！！"},
+			],
+			"system_prompt": "混合之路完成。焔获得永久ATK+2, INT+2——兼具爆发与精控。解锁主动技能「混沌炎舞」——随机切换单体精准和范围爆破，效果不可预测但期望伤害极高。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"homura_hybrid_flame_final": true},
+				"unlock_skill": "chaos_flame_dance",
+			},
+		},
+		{
+			"id": "homura_training_04c",
+			"name": "调教 Stage 04c: 灰烬——服从之焔",
+			"trigger": {
+				"prev_event": "homura_training_03c",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "homura_ashes",
+			},
+			"scene": "焔跪在指挥官面前。红色的头发被剪短了——是她自己剪的，说'长头发会碍事'。红橘色的眼睛像蒙了一层灰的炭火——还在烧，但没有温度。",
+			"dialogues": [
+				{"speaker": "焔", "text": "……命令。"},
+				{"type": "narration", "text": "一个字。曾经那个一句话能说一百个字的焔，现在只用一个字和世界交流。"},
+				{"type": "action", "text": "指挥官看着她"},
+				{"speaker": "焔", "text": "焔是武器。武器不需要说话。只需要——燃烧。"},
+				{"type": "narration", "text": "她的声音平板而空洞。但偶尔——极偶尔——当她以为没人注意的时候，她的手指会无意识地做出爆裂火球的起手式，然后在中途停住。"},
+			],
+			"system_prompt": "灰烬之路完成。焔获得永久ATK+5——无限制战争武器。但每回合10%概率暴走攻击随机目标。解锁主动技能「灰烬爆发」——全体AoE巨额伤害，包括友军。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"homura_ashes_final": true},
+				"unlock_skill": "ash_eruption",
+			},
+		},
+		{
+			"id": "homura_training_04c_alt",
+			"name": "调教 Stage 04c（余烬）: 重燃之焔",
+			"trigger": {
+				"prev_event": "homura_training_03c",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "homura_ember_hope",
+				"excludes_flag": ["homura_ashes"],
+			},
+			"scene": "牢房里，焔每天被允许点燃一次指尖的火苗。她蹲在角落，看着那朵微弱的小火焰，看了很久很久。",
+			"dialogues": [
+				{"type": "action", "text": "指挥官进入牢房"},
+				{"speaker": "焔", "text": "……你看。"},
+				{"type": "narration", "text": "她伸出手指。一朵极小的火苗在指尖跳动，像一颗微弱的心跳。"},
+				{"speaker": "焔", "text": "以前我觉得火就该大。越大越好。烧光一切才是火的意义。"},
+				{"type": "narration", "text": "她的声音沙哑但平静——一种经历过绝望后重建的平静。"},
+				{"speaker": "焔", "text": "但这朵小火……每天只有一次……我开始觉得——小小的火，也很好。"},
+				{"type": "narration", "text": "她抬起头。红橘色的眼中有泪光，但火焰——正在重新燃起。"},
+				{"speaker": "焔", "text": "谢谢你……没有让我彻底熄灭。"},
+			],
+			"system_prompt": "余烬重燃之路完成。焔获得永久ATK+2, DEF+3——从灰烬中重生的火焰更加坚韧。解锁被动技能「不灭の余烬」——濒死时自动回复，一场战斗一次。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"homura_ember_reborn": true},
+				"unlock_skill": "undying_ember",
+			},
 		},
 	],
 	"pure_love": [

@@ -164,12 +164,42 @@ const EVENTS: Dictionary = {
 				]
 			},
 			"system_prompt": "紫苑的调教进度 [4/10]。学者试图用\"研究\"来隔离快感，但观测者效应的反馈循环正在将她拖入更深的泥沼。她的理性外壳仍在，但内部已经开始动摇。",
+			"choices": [
+				{
+					"label": "给她纸笔和研究自由",
+					"description": "允许紫苑继续她的时空研究——在封印条件下。她的头脑是她最大的武器，也是她最大的安全感来源。让她保持理性，用学术来建立新的信任关系。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"shion_research_freedom": true},
+					},
+				},
+				{
+					"label": "部分解除封印，恢复她的预知能力",
+					"description": "冒险解除部分反时空封印，让紫苑恢复有限的未来视。她将能预见短期未来——但也可能看到令她崩溃的真相。知识是把双刃剑。",
+					"effects": {
+						"affection": 1, "corruption": 1,
+						"set_flag": {"shion_partial_unseal": true},
+					},
+				},
+				{
+					"label": "彻底摧毁她的计算能力",
+					"description": "加强封印，不只封锁时空感知，还干扰她的逻辑思维能力。没有了概率计算，紫苑将被迫直面无法量化的恐惧——和感情。",
+					"effects": {
+						"corruption": 3,
+						"set_flag": {"shion_logic_break": true},
+					},
+				},
+			],
 			"effects": {"training_progress": 1},
 		},
 		{
-			"id": "shion_training_03",
-			"name": "调教 Stage 03: 正确的时间线（选择屈服）",
-			"trigger": {"prev_event": "shion_training_02", "corruption_min": 4, "turn_min": 6},
+			"id": "shion_training_03a",
+			"name": "调教 Stage 03a: 正确的时间线——学者之路",
+			"trigger": {
+				"prev_event": "shion_training_02",
+				"requires_flag": "shion_research_freedom",
+				"corruption_min": 4, "turn_min": 6,
+			},
 			"scene": "封印室再度发生了变化。反时空符文的光芒被调暗了三成——不是因为仁慈，而是因为紫苑的时空感知已经不再需要那么强的压制了。她的能力并没有恢复，但她已经不再拼命尝试激活它了。 紫苑坐在行军床上，身上裹着一件柔软的灰色罩衫——比学者袍更轻便，也更容易被脱去。她的紫色长发没有扎起，松散地垂在肩后，发尾缠绕着一缕干涸的墨迹。那副圆框眼镜端正地架在鼻梁上，镜片上的裂纹仍在，但她似乎已经习惯了透过裂缝看世界。 最大的变化在于她面前的纸页。之前的\"实验记录\"被一种新的文字取代了——不再是冰冷的数据表格，而是一段段带有思辨性的笔记，字迹比从前更加潦草，像是思维奔涌时来不及被手指捕捉。 其中一页的标题写着：\"关于'正确时间线'之重新定义——紫苑·克罗诺维亚第四十七号思考手记\"。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官进入封印室时，紫苑正盘腿坐在床上，手指在膝盖上有节奏地敲击着"},
@@ -240,13 +270,118 @@ const EVENTS: Dictionary = {
 					{"speaker": "紫苑", "text": "因为出口……也许就在你身边。"},
 				]
 			},
-			"system_prompt": "紫苑的调教进度 [7/10]。时空学者不再抵抗，她将屈服重新定义为\"选择正确的时间线\"。理性的外壳变成了包装顺从的精美容器。",
+			"system_prompt": "紫苑の学者之路。时空学者不再抵抗，她将屈服重新定义为\"选择正确的时间线\"。",
+			"choices": [
+				{
+					"label": "成为她的新课题——让她研究'感情'",
+					"description": "让紫苑将她对你的感情作为学术课题来研究。她会用理性的框架去理解非理性的情感——过程奇特但真实。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"shion_emotion_research": true},
+					},
+				},
+				{
+					"label": "让她面对不可计算的选择",
+					"description": "给她一个无法用概率解决的道德困境——强迫她放弃计算，用直觉做出选择。对紫苑来说这比任何酷刑都痛苦——但也可能让她第一次真正成长。",
+					"effects": {
+						"affection": 1, "corruption": 1,
+						"set_flag": {"shion_gut_choice": true},
+					},
+				},
+			],
+			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "shion_training_03b",
+			"name": "调教 Stage 03b: 预见的代价——先知之路",
+			"trigger": {
+				"prev_event": "shion_training_02",
+				"requires_flag": "shion_partial_unseal",
+				"corruption_min": 4, "turn_min": 6,
+			},
+			"scene": "封印室的符文被调暗了。紫苑坐在术式椅上，她的右眼——金色的那只——重新开始闪烁。她可以看到片段式的未来了。但这些片段零碎、混乱，像打碎的万花筒。",
+			"dialogues": [
+				{"speaker": "紫苑", "text": "我……我能看到了。一点点。像碎片……"},
+				{"type": "narration", "text": "她的右眼金光闪烁，瞳孔中映出不属于此刻的画面。"},
+				{"speaker": "紫苑", "text": "三分钟后你会说'你还好吗'。概率……87%。不——73%。不——数据太碎了——"},
+				{"type": "narration", "text": "她的手指开始颤抖。恢复的预知不是完整的——而是扭曲的。她能看到可能性，但无法确定哪个是真实的。"},
+				{"speaker": "紫苑", "text": "而且……我看到了一些……不想看到的东西。"},
+				{"type": "narration", "text": "她的脸色变得苍白。"},
+				{"speaker": "紫苑", "text": "在其中一条时间线里……你——"},
+				{"type": "narration", "text": "她突然闭嘴，用力闭上了右眼。"},
+				{"speaker": "紫苑", "text": "我不要说。知道未来的代价……比我想象的大得多。"},
+			],
+			"system_prompt": "紫苑の先知之路。预知能力部分恢复，但碎片式的未来视带来了新的痛苦。",
+			"choices": [
+				{
+					"label": "让她继续看——承受预知的全部重量",
+					"description": "不重新封印。让紫苑面对恢复的预知带来的一切——包括她不想看到的未来。知识的重担可能压垮她，也可能让她更强。",
+					"effects": {
+						"corruption": 1,
+						"set_flag": {"shion_full_foresight": true},
+					},
+				},
+				{
+					"label": "重新封印——保护她免受预知之苦",
+					"description": "发现预知带来的痛苦后，重新加强封印。紫苑会失去刚恢复的能力，但也免受预知的折磨。她可能会恨你——也可能会感谢你。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"shion_sealed_mercy": true},
+						"clear_flag": "shion_partial_unseal",
+					},
+				},
+			],
+			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "shion_training_03c",
+			"name": "调教 Stage 03c: 空白的头脑——感性之路",
+			"trigger": {
+				"prev_event": "shion_training_02",
+				"requires_flag": "shion_logic_break",
+				"corruption_min": 4, "turn_min": 6,
+			},
+			"scene": "封印室。增强后的封印不仅屏蔽了时空感知，还干扰了紫苑的高速思维。她坐在行军床上，异色双瞳失去了焦距。那些平时像瀑布一样奔涌的数字和概率——全部消失了。",
+			"dialogues": [
+				{"type": "action", "text": "指挥官进入封印室"},
+				{"speaker": "紫苑", "text": "……你来了。"},
+				{"type": "narration", "text": "没有时间计算。没有概率预测。只是一句简单的陈述。"},
+				{"speaker": "紫苑", "text": "我……脑子里很安静。以前从来没有这么安静过。"},
+				{"type": "narration", "text": "她的声音带着茫然和——某种奇异的放松。十七年来第一次，她的大脑不再超负荷运转。"},
+				{"speaker": "紫苑", "text": "没有概率了。没有模型了。我不知道接下来会发生什么。"},
+				{"type": "narration", "text": "她抬起头，异色双瞳中有恐惧，也有一种说不清的解脱。"},
+				{"speaker": "紫苑", "text": "但是……这种感觉……不算太坏。就像——放下了一个背了很久的重物。"},
+			],
+			"system_prompt": "紫苑の感性之路。逻辑被剥夺后，紫苑第一次体验到不需要计算的世界。",
+			"choices": [
+				{
+					"label": "慢慢恢复她的思维能力",
+					"description": "逐步减弱干扰封印，让紫苑的思维能力缓慢恢复。她会保留这段'空白'期间学到的感性直觉，同时重建理性能力。但过程漫长且痛苦。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"shion_slow_rebuild": true},
+						"clear_flag": "shion_logic_break",
+					},
+				},
+				{
+					"label": "保持现状——让她做一个普通女孩",
+					"description": "不恢复封印。紫苑将永远失去天才级的计算能力，成为一个普通的、会哭会笑的十七岁少女。她会获得'正常的人生'——但世界也将失去一位不可替代的时空学者。",
+					"effects": {
+						"corruption": 2,
+						"set_flag": {"shion_ordinary_girl": true},
+					},
+				},
+			],
 			"effects": {"training_progress": 1},
 		},
 		{
 			"id": "shion_training_04",
 			"name": "调教 Stage 04: 永恒的观测（时间的奴隶）",
-			"trigger": {"prev_event": "shion_training_03", "corruption_min": 7, "turn_min": 10},
+			"trigger": {
+				"prev_event": "shion_training_03a",
+				"corruption_min": 7, "turn_min": 10,
+				"excludes_flag": ["shion_partial_unseal", "shion_logic_break"],
+			},
 			"scene": "紫苑不再住在封印室了。她被转移到了主塔的一间学者书房——三面墙都是书架，堆满了从白塔带回的时空理论典籍和她自己的笔记。第四面墙是一扇落地窗，可以俯瞰整个要塞。 房间中央的大书桌上铺满了纸稿，墨水瓶排成整齐的一列，各色笔管插在铜质笔筒里。一切都整理得一丝不苟——紫苑过去的书桌永远乱成一团，但现在她以一种近乎虔诚的态度维持着秩序。 紫苑站在窗前，穿着一件改良过的深紫色学者袍。剪裁比白塔制式更加贴身，腰间系着一条银色细链——链子的另一端连接着一枚精致的怀表形吊坠，上面刻着指挥官的纹章。她的紫色长发被编成松散的辫子垂在胸前，发梢系着一枚银色发饰。 她的异色双瞳恢复了某种光泽——不是曾经观测1847条时间线时的灼热，而是一种更加聚焦的、温柔的光芒。她的时空感知从未恢复，但她看起来并不在意了。 圆框眼镜被换成了新的——镜框是银色的，由指挥官命人打造。她偶尔会用手指摸一摸镜框的边缘，嘴角会浮现极其细微的笑意。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官推开书房的门"},
@@ -318,6 +453,100 @@ const EVENTS: Dictionary = {
 			},
 			"system_prompt": "紫苑的调教进度 [10/10]。调教完毕。时空学者将全部的观测能力聚焦于一人，用概率和数据编织出一套完美的服从体系。她不再追寻1847条时间线——她的整个宇宙已经坍缩为一个点。解锁称号「时间线的囚徒」。",
 			"effects": {"training_progress": 1},
+		},
+		{
+			"id": "shion_training_04b",
+			"name": "调教 Stage 04b: 预言者——先知の重荷",
+			"trigger": {
+				"prev_event": "shion_training_03b",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "shion_full_foresight",
+			},
+			"scene": "紫苑的书房。她坐在窗前，右眼金光闪烁不断。墙上贴满了她写的未来碎片——有些已经成真，有些被划掉。她的黑眼圈深得吓人。",
+			"dialogues": [
+				{"speaker": "紫苑", "text": "我看到了一千七百种明天。其中四百三十二种里，有人会死。"},
+				{"type": "narration", "text": "她的声音平静得可怕。"},
+				{"speaker": "紫苑", "text": "我知道哪些可以避免——但每次避免一个，就会催生三个新的分支。这就是预知者的诅咒。"},
+				{"type": "narration", "text": "她摘下眼镜揉了揉眼睛。金色的右瞳在黑暗中散发着幽微的光。"},
+				{"speaker": "紫苑", "text": "但至少……我能保护你。在我看到的所有时间线里——你活着的那些——我都会去守护。"},
+			],
+			"system_prompt": "先知之路完成。紫苑获得永久INT+6——时空预知的战术大师。但每回合5%概率'预见灾难'，自身陷入恐惧1回合。解锁主动技能「时间线干涉」——预知敌人下一回合行动并反制。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"shion_prophet": true},
+				"unlock_skill": "timeline_intervention",
+			},
+		},
+		{
+			"id": "shion_training_04b_alt",
+			"name": "调教 Stage 04b（封印慈悲）: 安宁的学者",
+			"trigger": {
+				"prev_event": "shion_training_03b",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "shion_sealed_mercy",
+				"excludes_flag": ["shion_full_foresight"],
+			},
+			"scene": "紫苑的书房。没有了预知的负担，她看起来比任何时候都平静。她在写一本新书——不是时空理论，而是一本关于'观测者与被观测者之间的关系'的哲学论文。",
+			"dialogues": [
+				{"speaker": "紫苑", "text": "你重新封印了我的预知。从概率上说……我应该恨你。"},
+				{"type": "narration", "text": "她合上手中的书，异色双瞳平静而温柔。"},
+				{"speaker": "紫苑", "text": "但从概率上说——谢谢你。那些未来……太重了。我以为我承受得住。"},
+				{"type": "narration", "text": "她摘下眼镜擦拭镜片，银色镜框在光线中闪烁。"},
+				{"speaker": "紫苑", "text": "现在我可以专注于眼前的事了。比如——把这本书写完。比如——和你一起喝茶。"},
+			],
+			"system_prompt": "封印慈悲之路完成。紫苑获得永久INT+3, DEF+2——平静而坚韧的学者。解锁被动技能「观测者的平静」——免疫恐惧和混乱状态异常。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"shion_peaceful_scholar": true},
+				"unlock_skill": "observer_calm",
+			},
+		},
+		{
+			"id": "shion_training_04c",
+			"name": "调教 Stage 04c: 空白的天才——感性的少女",
+			"trigger": {
+				"prev_event": "shion_training_03c",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "shion_ordinary_girl",
+			},
+			"scene": "紫苑坐在花园的长椅上，双脚晃荡着——像一个普通的十七岁少女。她在看蝴蝶。认真地、专注地、像第一次看到蝴蝶一样。",
+			"dialogues": [
+				{"speaker": "紫苑", "text": "……蝴蝶好漂亮。以前我只会计算它们的飞行轨迹和翅膀振动频率。"},
+				{"type": "narration", "text": "她转过头，异色双瞳中没有了数据的洪流。只有单纯的、少女的惊奇。"},
+				{"speaker": "紫苑", "text": "但现在……我只是觉得——好漂亮。这就够了吧？不需要计算为什么漂亮。"},
+				{"type": "narration", "text": "她笑了——那是一个完全没有防备的、天真的笑容。曾经隐藏在天才外壳下的少女，终于走到了阳光下。"},
+				{"speaker": "紫苑", "text": "谢谢你。虽然我不知道该不该谢你——但……现在的我，比以前快乐。"},
+			],
+			"system_prompt": "普通少女之路完成。紫苑获得永久ATK+2, DEF+2, INT+1——平衡但不突出。解锁被动技能「无忧之心」——免疫所有负面精神效果，且相邻友军士气+1。但无法使用任何时空系技能。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"shion_ordinary_final": true},
+				"unlock_skill": "carefree_heart",
+			},
+		},
+		{
+			"id": "shion_training_04c_alt",
+			"name": "调教 Stage 04c（重建）: 重组的天才",
+			"trigger": {
+				"prev_event": "shion_training_03c",
+				"corruption_min": 7, "turn_min": 10,
+				"requires_flag": "shion_slow_rebuild",
+				"excludes_flag": ["shion_ordinary_girl"],
+			},
+			"scene": "紫苑的书房。她坐在堆满笔记的桌前，手指在空中划过——老习惯回来了。但这次不是疯狂地计算，而是有节奏地、从容地推演。",
+			"dialogues": [
+				{"speaker": "紫苑", "text": "思维恢复了大约73%。剩下的……可能永远回不来了。"},
+				{"type": "narration", "text": "她扶了扶眼镜，嘴角微微上扬。"},
+				{"speaker": "紫苑", "text": "但奇怪的是——失去的那27%，好像被别的东西填上了。以前我只会用数字理解世界。现在……"},
+				{"type": "narration", "text": "她伸出手，轻轻碰了碰窗台上的花。"},
+				{"speaker": "紫苑", "text": "我能感受到'好看'了。不是因为颜色频率或者花瓣对称性——而是单纯的——好看。从概率上说，这种变化不可逆。从概率上说——我很开心。"},
+			],
+			"system_prompt": "重建之路完成。紫苑获得永久INT+4, ATK+1——理性与感性融合的新型天才。解锁主动技能「概率修正」——为一个友军单位增加30%闪避率，持续2回合。",
+			"effects": {
+				"training_progress": 1,
+				"set_flag": {"shion_rebuilt_genius": true},
+				"unlock_skill": "probability_correction",
+			},
 		},
 	],
 	"pure_love": [

@@ -218,7 +218,33 @@ const EVENTS: Dictionary = {
 				{"speaker": "冥", "text": "那就和之前不一样了。虽然是同一个字。"},
 				{"type": "action", "text": "她的嘴角似乎动了一下——那或许是四百年来第一个近似于微笑的表情，但转瞬即逝"},
 			],
-			"system_prompt": "⚡ 关键事件：冥接受了领主赐予的名字。虽然字面相同，但意义从\"亡灵的代号\"转变为\"被赋予的名字\"——这对冥而言是身份认同的重大转折。好感度：6 → 9。冥开始将领主视为特殊存在。",
+			"choices": [
+				{
+					"label": "帮助她寻找生前的名字",
+					"description": "承诺调查她的前世身份，寻找永安城的记录。冥会因为对过去的执着而激发更深层的记忆——但也可能唤醒痛苦的真相。防御/治愈型路线。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"mei_past_seeker": true},
+					},
+				},
+				{
+					"label": "告诉她过去不重要，现在才重要",
+					"description": "引导冥放下对前世的执念，专注于现在的存在。她会成为更强大的亡灵法师，但永远失去恢复人性的可能。攻击型路线。",
+					"effects": {
+						"corruption": 1,
+						"set_flag": {"mei_embrace_death": true},
+					},
+				},
+				{
+					"label": "同时接受她的两个身份",
+					"description": "告诉冥她既是曾经活过的少女，也是现在的亡灵。两个自己都是真实的。最难的路——她必须同时承受生与死的重量。平衡型路线。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"mei_dual_existence": true},
+					},
+				},
+			],
+			"system_prompt": "关键事件：冥接受了领主赐予的名字。第一个关键选择——你如何定义冥的存在将决定她走向人性回归还是亡灵升华。好感度：6 → 9。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -269,7 +295,33 @@ const EVENTS: Dictionary = {
 				{"speaker": "冥", "text": "…………"},
 				{"speaker": "冥", "text": "好痛……原来感情这么痛的吗……活着的时候也这么痛吗……"},
 			],
-			"system_prompt": "⚠ 紧急事件：冥试图自我毁灭灵核！必须立即阻止。选择：【握住她的手】→ 进入事件13。冥的灵核状态不稳定——如果不干预，她将永久消亡。",
+			"choices": [
+				{
+					"label": "握住她的手——用身体承受灵力灼烧",
+					"description": "不惜以永久的伤疤为代价阻止她。冥会被这种牺牲彻底震撼——解锁最深层的情感羁绊。她会誓死守护你，DEF大幅提升。",
+					"effects": {
+						"affection": 3,
+						"set_flag": {"mei_sacrifice_bond": true},
+					},
+				},
+				{
+					"label": "用封印术强行压制灵核",
+					"description": "理性的选择。使用圣物封印她的自毁冲动。冥会被拯救但也会被再次束缚——她的力量被稳定在可控范围内，攻防平衡。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"mei_sealed_heart": true},
+					},
+				},
+				{
+					"label": "命令她的亡灵军团包围她",
+					"description": "唤醒她对亡灵们的责任感——那些跟随她三百年的灵魂也在等着她。冥会因为牵挂而放弃自毁，但情感上的痛苦不会消失。高攻击但不稳定。",
+					"effects": {
+						"corruption": 1,
+						"set_flag": {"mei_legion_anchor": true},
+					},
+				},
+			],
+			"system_prompt": "紧急事件：冥试图自我毁灭灵核！第二个关键选择——你如何挽留她将决定冥的最终战斗形态和情感稳定性。",
 			"effects": {"training_progress": 1},
 		},
 		{
@@ -512,7 +564,25 @@ const EVENTS: Dictionary = {
 				{"type": "narration", "text": "事后，她蜷缩在玩家怀里，手依然按在玩家胸口。"},
 				{"type": "narration", "text": "冥：「不要停下来……心跳。永远不要停。」"},
 			],
-			"system_prompt": "冥的好感度：+8 关系进展：冥第一次主动寻求身体接触 冥的状态：「微光」->「脉动」——情感加速觉醒 注意：冥对玩家的依赖度显著上升",
+			"choices": [
+				{
+					"label": "握住她的手，不松开",
+					"description": "回应她的触碰。冥会将这份温度视为锚点，加速情感觉醒。但过快的觉醒可能导致不稳定——解锁更深的羁绊但也解锁执念风险。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"mei_warmth_anchor": true},
+					},
+				},
+				{
+					"label": "引导她用亡灵魔法感知温度",
+					"description": "教她通过灵力感应来\"翻译\"感觉。冥会以理性的方式理解情感——更稳定，但也更抽离。解锁法术增幅型路线。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"mei_arcane_feeling": true},
+					},
+				},
+			],
+			"system_prompt": "冥的好感度：+8。关系进展：冥第一次主动寻求身体接触。你的回应方式将决定冥的情感觉醒是感性驱动还是理性驱动。",
 			"effects": {"affection": 1},
 		},
 		{
@@ -598,7 +668,25 @@ const EVENTS: Dictionary = {
 				{"type": "action", "text": "她跪在地上，抱着玩家的腰，哭得像三百年前那个十六岁的小女孩。"},
 				{"type": "narration", "text": "冥：「对不起……对不起。我只是太害怕了……」"},
 			],
-			"system_prompt": "冥的好感度：+5 冥的「病娇」特性觉醒——源于生前失去一切的创伤 冥的状态：「萌芽」->「执念」——情感强烈但不稳定 提示：正确引导可帮助冥走出执念",
+			"choices": [
+				{
+					"label": "严厉地告诉她不能伤害别人",
+					"description": "设立明确的底线。冥会痛苦但最终学会克制执念——情感趋于稳定，防御型成长。她会成为冷静的守护者。",
+					"effects": {
+						"affection": 1,
+						"set_flag": {"mei_controlled_love": true},
+					},
+				},
+				{
+					"label": "接受她的执念",
+					"description": "告诉冥你理解她等了四百年。执念不是错——但你们要一起学会和它共处。冥的攻击力暴涨，但情感始终不稳定。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"mei_accepted_obsession": true},
+					},
+				},
+			],
+			"system_prompt": "冥的好感度：+5。冥的「病娇」特性觉醒——源于生前失去一切的创伤。第二个关键选择——你是帮她克制执念还是拥抱执念？决定冥的最终心理状态和战斗风格。",
 			"effects": {"affection": 1},
 		},
 		{

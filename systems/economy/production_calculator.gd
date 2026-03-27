@@ -82,6 +82,38 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 			if income.has(station_type):
 				income[station_type] += station_output
 
+		# ── Tile Development Path modifiers ──
+		var tile_idx: int = tile.get("index", -1)
+		if tile_idx >= 0:
+			var tile_dev_effects: Dictionary = TileDevelopment.get_tile_path_effects(tile_idx)
+			income["gold"] += int(tile_dev_effects.get("gold_per_turn", 0))
+			income["gold"] += int(tile_dev_effects.get("gold_bonus", 0))
+			if tile_dev_effects.has("gold_mult"):
+				g = int(float(g) * tile_dev_effects["gold_mult"])
+				# Adjust income by the penalty amount (g was already added at full value)
+				income["gold"] -= int(float(base.get("gold", 0)) * tile_mult * gold_base_mult * tile_order_mult) - g
+			income["iron"] += int(tile_dev_effects.get("iron_per_turn", 0))
+			income["iron"] += int(tile_dev_effects.get("iron_bonus", 0))
+			if tile_dev_effects.has("iron_mult"):
+				var ir_adj: int = int(float(ir) * tile_dev_effects["iron_mult"])
+				income["iron"] -= ir - ir_adj
+			income["food"] += int(tile_dev_effects.get("food_per_turn", 0))
+			if tile_dev_effects.has("food_mult"):
+				var f_adj: int = int(float(f) * tile_dev_effects["food_mult"])
+				income["food"] -= f - f_adj
+			income["prestige"] += int(tile_dev_effects.get("prestige_per_turn", 0))
+
+			# Adjacent tile spillover effects from neighboring tiles
+			var adj_tiles: Array = GameManager.adjacency.get(tile_idx, [])
+			for adj_idx in adj_tiles:
+				var adj_effects: Dictionary = TileDevelopment.get_adjacent_effects(adj_idx)
+				if adj_effects.has("gold_mult_adjacent"):
+					income["gold"] = int(float(income["gold"]) * adj_effects["gold_mult_adjacent"])
+				if adj_effects.has("order_per_turn_adjacent"):
+					# Apply order bonus to this tile's public order
+					var cur_order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+					tile["public_order"] = minf(cur_order + adj_effects["order_per_turn_adjacent"], 100.0)
+
 	# ── Global building effects (recruit_discount, supply_penalty_reduction) ──
 	var global_bld: Dictionary = BuildingRegistry.get_all_player_building_effects(player_id)
 	cached_recruit_discount = int(global_bld.get("recruit_discount", 0))
