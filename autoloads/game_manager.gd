@@ -360,7 +360,7 @@ func get_population_cap(player_id: int) -> int:
 
 func calculate_action_points(player_id: int) -> int:
 	var owned: int = count_tiles_owned(player_id)
-	var ap: int = BASE_AP + owned / AP_PER_TILES
+	var ap: int = BASE_AP + owned / AP_PER_TILES + NgPlusManager.get_bonus_ap()
 	return mini(ap, MAX_AP)
 
 
@@ -1006,6 +1006,9 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	ResearchManager.init_player(0)
 	if chosen_faction == FactionData.FactionID.ORC:
 		OrcMechanic.init_player(0)
+
+	# Apply NG+ carry-over bonuses
+	NgPlusManager.apply_bonuses(0)
 
 	# Capture starting tiles for human
 	var human_zone_key: String = _faction_zone_key(chosen_faction)
@@ -4096,6 +4099,7 @@ func check_win_condition() -> void:
 		game_active = false
 		EventBus.message_log.emit("[color=gold]═══ 征服胜利! ═══[/color]")
 		EventBus.message_log.emit("[color=gold]所有光明联盟要塞已被攻占! 暗潮统治大陆![/color]")
+		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
 		return
 
@@ -4107,6 +4111,7 @@ func check_win_condition() -> void:
 		EventBus.message_log.emit("[color=gold]═══ 支配胜利! ═══[/color]")
 		EventBus.message_log.emit("[color=gold]控制了 %d/%d 个节点 (%.0f%%), 无人可以抵挡暗潮![/color]" % [
 			human_tiles, total_tiles, float(human_tiles) / float(total_tiles) * 100.0])
+		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
 		return
 
@@ -4135,6 +4140,7 @@ func check_win_condition() -> void:
 		game_active = false
 		EventBus.message_log.emit("[color=purple]═══ 暗影统治! ═══[/color]")
 		EventBus.message_log.emit("[color=purple]威胁值达到极限, 终极兵器已觉醒! 大陆在暗潮中沉沦![/color]")
+		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
 		return
 
@@ -4144,6 +4150,7 @@ func check_win_condition() -> void:
 		EventBus.message_log.emit("[color=pink]═══ 后宫胜利! ═══[/color]")
 		EventBus.message_log.emit("[color=pink]所有角色都已臣服于你的魅力! 海盗王的后宫建立完成![/color]")
 		EventBus.message_log.emit("[color=pink]大陆上每一位女性都将成为你的收藏...[/color]")
+		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
 		return
 

@@ -205,6 +205,62 @@ func _register_events() -> void:
 		]
 	})
 
+	# === NEW SYSTEM EVENTS (21-26) - repeatable, leverage morale/reputation/gifts/AI ===
+	_events.append({
+		"id": "morale_surge", "name": "士气高涨",
+		"desc": "连胜的消息传遍领地，士兵们斗志昂扬。",
+		"condition": "order_above_60", "repeatable": true,
+		"choices": [
+			{"text": "举行庆功宴 (-30金, 秩序+5)", "effects": {"gold": -30, "order": 5}},
+			{"text": "趁势进军 (+3兵力)", "effects": {"soldiers": 3}},
+		]
+	})
+	_events.append({
+		"id": "reputation_crisis", "name": "声望危机",
+		"desc": "你的残暴行径引起周边势力的恐惧与敌意。",
+		"condition": "reputation_below_minus30", "repeatable": true,
+		"choices": [
+			{"text": "派遣使者修复关系 (-50金, 声望+15)", "effects": {"gold": -50, "reputation_all": 15}},
+			{"text": "无视流言 (威胁+10)", "effects": {"threat": 10}},
+		]
+	})
+	_events.append({
+		"id": "foreign_caravan", "name": "异族商队",
+		"desc": "一支来自远方的商队请求通行和贸易。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "友好贸易 (-20金, 声望+10, +随机道具)", "effects": {"gold": -20, "reputation_all": 10, "item": "random"}},
+			{"text": "劫掠商队 (+80金, 声望-15)", "effects": {"gold": 80, "reputation_all": -15}},
+		]
+	})
+	_events.append({
+		"id": "deserters", "name": "叛逃士兵",
+		"desc": "一群敌方逃兵请求庇护。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "收编 (+4兵力, 秩序-3)", "effects": {"soldiers": 4, "order": -3}},
+			{"text": "拒绝 (秩序+2)", "effects": {"order": 2}},
+		]
+	})
+	_events.append({
+		"id": "hero_letter", "name": "英雄密信",
+		"desc": "牢中的俘虏托人带来一封信。",
+		"condition": "has_prisoners", "repeatable": true,
+		"choices": [
+			{"text": "接受请求 (腐化+2)", "effects": {"corruption_boost": 2}},
+			{"text": "无视 (威望+2)", "effects": {"prestige": 2}},
+		]
+	})
+	_events.append({
+		"id": "storm", "name": "暴风雨来袭",
+		"desc": "一场猛烈的风暴席卷领地。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "加固防御 (-20铁, 所有据点+5城防)", "effects": {"iron": -20, "wall_boost": 5}},
+			{"text": "趁风突袭 (+5兵力, -10粮)", "effects": {"soldiers": 5, "food": -10}},
+		]
+	})
+
 	# === LIGHT COUNTER EVENTS (17-20) - once per game ===
 	_events.append({
 		"id": "knight_patrol", "name": "女骑士巡逻",
@@ -270,6 +326,16 @@ func check_condition(event: Dictionary) -> bool:
 			return ThreatManager.get_threat() >= 50
 		"threat_gte_80":
 			return ThreatManager.get_threat() >= 80
+		"order_above_60":
+			return OrderManager.get_order() >= 60
+		"reputation_below_minus30":
+			var reps: Dictionary = DiplomacyManager.get_all_reputations()
+			for faction_key in reps:
+				if reps[faction_key] < -30:
+					return true
+			return false
+		"has_prisoners":
+			return HeroSystem.captured_heroes.size() > 0
 	return false
 
 
@@ -708,6 +774,28 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 			ResourceManager.apply_delta(pid, {"prestige": 5})
 			EventBus.message_log.emit("无可用NPC, 转化为 +5威望")
 		result["applied"].append("special_npc: +1")
+
+	# Reputation changes for all factions via DiplomacyManager
+	if effects.has("reputation_all"):
+		var reps: Dictionary = DiplomacyManager.get_all_reputations()
+		for faction_key in reps:
+			DiplomacyManager.change_reputation(faction_key, effects["reputation_all"])
+		result["applied"].append("reputation_all: %+d" % effects["reputation_all"])
+
+	# Corruption boost for all captured heroes
+	if effects.has("corruption_boost"):
+		var boost_val: int = effects["corruption_boost"]
+		for hid in HeroSystem.captured_heroes:
+			HeroSystem.hero_corruption[hid] = HeroSystem.hero_corruption.get(hid, 0) + boost_val
+		result["applied"].append("corruption_boost: +%d (all prisoners)" % boost_val)
+
+	# Wall boost: repair all light-faction walls
+	if effects.has("wall_boost"):
+		var boost_amount: int = effects["wall_boost"]
+		for tile in GameManager.tiles:
+			if LightFactionAI.has_wall(tile["index"]):
+				LightFactionAI.repair_wall(tile["index"], boost_amount)
+		result["applied"].append("wall_boost: +%d (all walls)" % boost_amount)
 
 	EventBus.event_choice_made.emit(event_id, choice_index)
 	return result

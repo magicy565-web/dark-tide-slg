@@ -178,11 +178,11 @@ func get_stat_multipliers(faction_key: String) -> Dictionary:
 
 
 func get_atk_multiplier(faction_key: String) -> float:
-	return get_stat_multipliers(faction_key).get("atk_mult", 1.0)
+	return get_stat_multipliers(faction_key).get("atk_mult", 1.0) * NgPlusManager.get_ai_stat_mult()
 
 
 func get_def_multiplier(faction_key: String) -> float:
-	return get_stat_multipliers(faction_key).get("def_mult", 1.0)
+	return get_stat_multipliers(faction_key).get("def_mult", 1.0) * NgPlusManager.get_ai_stat_mult()
 
 
 func get_hp_multiplier(faction_key: String) -> float:

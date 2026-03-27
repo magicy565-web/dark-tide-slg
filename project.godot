@@ -53,6 +53,7 @@ AudioManager="*res://autoloads/audio_manager.gd"
 TutorialManager="*res://systems/tutorial/tutorial_manager.gd"
 StoryEventSystem="*res://systems/story/story_event_system.gd"
 StoryDialog="*res://scenes/ui/story_dialog.gd"
+NgPlusManager="*res://systems/ngplus/ngplus_manager.gd"
 
 [display]
 

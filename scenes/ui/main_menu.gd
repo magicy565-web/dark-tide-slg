@@ -197,6 +197,16 @@ func _build_title_panel() -> void:
 	version_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(version_label)
 
+	# NG+ indicator
+	if NgPlusManager.is_ngplus():
+		var ngplus_label := Label.new()
+		ngplus_label.text = "NG+%d  (Total Wins: %d)" % [NgPlusManager.get_level(), NgPlusManager.get_total_wins()]
+		_apply_font_to_label(ngplus_label)
+		ngplus_label.add_theme_font_size_override("font_size", 13)
+		ngplus_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.15))
+		ngplus_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		vbox.add_child(ngplus_label)
+
 
 func _build_faction_panel() -> void:
 	# PLACEHOLDER - filled in by _build_faction_panel_content
