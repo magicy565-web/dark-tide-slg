@@ -17,6 +17,8 @@ var btn_close: Button
 var content_scroll: ScrollContainer
 var content_container: VBoxContainer
 var _content_nodes: Array = []
+var _gift_option_btn: OptionButton = null
+var _gift_give_btn: Button = null
 
 # ═══════════════ LIFECYCLE ═══════════════
 
@@ -207,6 +209,39 @@ func _refresh() -> void:
 	rl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 	_add(rl)
 
+	# ── Gift Giving ──
+	if _hero_id in HeroSystem.recruited_heroes:
+		var can_gift: bool = HeroSystem.can_give_gift(_hero_id)
+		var gift_options: Array = HeroSystem.get_gift_options(_hero_id)
+		var gift_row := HBoxContainer.new()
+		gift_row.add_theme_constant_override("separation", 8)
+		_add(gift_row)
+		_gift_option_btn = OptionButton.new()
+		_gift_option_btn.custom_minimum_size = Vector2(200, 28)
+		_gift_option_btn.add_theme_font_size_override("font_size", 12)
+		for i in range(gift_options.size()):
+			var g: Dictionary = gift_options[i]
+			var pref_tag: String = " [偏好!]" if g.get("is_preferred", false) else ""
+			_gift_option_btn.add_item("%s (%d金)%s" % [g.get("name", "?"), g.get("cost", 0), pref_tag], i)
+			_gift_option_btn.set_item_metadata(i, g.get("id", ""))
+			if not g.get("can_afford", false):
+				_gift_option_btn.set_item_disabled(i, true)
+		_gift_option_btn.disabled = not can_gift or gift_options.is_empty()
+		gift_row.add_child(_gift_option_btn)
+		_gift_give_btn = Button.new()
+		_gift_give_btn.text = "赠礼"
+		_gift_give_btn.custom_minimum_size = Vector2(56, 28)
+		_gift_give_btn.add_theme_font_size_override("font_size", 12)
+		_gift_give_btn.disabled = not can_gift or gift_options.is_empty()
+		_gift_give_btn.pressed.connect(_on_give_gift)
+		gift_row.add_child(_gift_give_btn)
+		if not can_gift:
+			var gift_hint := Label.new()
+			gift_hint.text = "冷却中" if _hero_id in HeroSystem.recruited_heroes else ""
+			gift_hint.add_theme_font_size_override("font_size", 11)
+			gift_hint.add_theme_color_override("font_color", Color(0.6, 0.4, 0.4))
+			gift_row.add_child(gift_hint)
+
 	# ── Submission (pirate faction only) ──
 	var _pid: int = GameManager.get_human_player_id()
 	var _faction_id: int = GameManager.get_player_faction(_pid)
@@ -383,6 +418,20 @@ func _add_stat(name: String, total: int, base: int, lvl: int, eq: int, color: Co
 	row.add_child(bl)
 
 # ═══════════════ CALLBACKS ═══════════════
+
+func _on_give_gift() -> void:
+	if _gift_option_btn == null or _hero_id == "":
+		return
+	var selected_idx: int = _gift_option_btn.get_selected_id()
+	var gift_id: String = _gift_option_btn.get_item_metadata(selected_idx)
+	if gift_id == "":
+		return
+	var result: Dictionary = HeroSystem.give_gift(_hero_id, gift_id)
+	if result.get("ok", false):
+		EventBus.message_log.emit("赠礼成功!")
+	else:
+		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("desc", "赠礼失败"))
+	_refresh()
 
 func _on_unequip(hero_id: String, slot_key: String) -> void:
 	var result: Dictionary = HeroSystem.unequip_item(hero_id, slot_key)

@@ -192,6 +192,12 @@ func _build_evil_factions() -> void:
 
 		var card := _build_faction_card(fname, status_text, status_color, _get_evil_faction_color(fid))
 
+		# Reputation display
+		var faction_key: String = _get_faction_key(fid)
+		if faction_key != "":
+			var rep_lbl := _build_reputation_label(faction_key)
+			card.get_child(0).add_child(rep_lbl)
+
 		# Show active treaties
 		var active_treaties: Array = DiplomacyManager.get_active_treaties(pid)
 		for treaty in active_treaties:
@@ -318,6 +324,11 @@ func _build_light_factions() -> void:
 	for lfid in FactionData.LIGHT_FACTION_NAMES:
 		var fname: String = FactionData.LIGHT_FACTION_NAMES[lfid]
 		var sub_card := _build_faction_card(fname, "Hostile", Color(1.0, 0.5, 0.3), Color(0.4, 0.6, 1.0))
+		# Reputation display for light factions
+		var light_key: String = _get_light_faction_key(lfid)
+		if light_key != "":
+			var rep_lbl := _build_reputation_label(light_key)
+			sub_card.get_child(0).add_child(rep_lbl)
 		content_container.add_child(sub_card); _faction_nodes.append(sub_card)
 
 func _build_neutral_factions() -> void:
@@ -491,3 +502,38 @@ func _get_evil_faction_color(fid: int) -> Color:
 		FactionData.FactionID.PIRATE: return Color(0.4, 0.6, 0.9)
 		FactionData.FactionID.DARK_ELF: return Color(0.6, 0.3, 0.8)
 	return Color(0.7, 0.7, 0.75)
+
+func _get_faction_key(fid: int) -> String:
+	match fid:
+		FactionData.FactionID.ORC: return "orc_ai"
+		FactionData.FactionID.PIRATE: return "pirate_ai"
+		FactionData.FactionID.DARK_ELF: return "dark_elf_ai"
+	return ""
+
+func _get_light_faction_key(lfid) -> String:
+	var name_lower: String = FactionData.LIGHT_FACTION_NAMES.get(lfid, "").to_lower()
+	if "human" in name_lower: return "human"
+	if "elf" in name_lower or "elves" in name_lower: return "elf"
+	if "mage" in name_lower: return "mage"
+	return ""
+
+func _build_reputation_label(faction_key: String) -> Label:
+	var rep: int = DiplomacyManager.get_reputation(faction_key)
+	var level: String = DiplomacyManager.get_reputation_level(faction_key)
+	var rep_lbl := Label.new()
+	var sign: String = "+" if rep >= 0 else ""
+	var level_cn: String
+	var rep_color: Color
+	if rep > 30:
+		level_cn = "友好"
+		rep_color = Color(0.3, 0.9, 0.4)
+	elif rep < -20:
+		level_cn = "敌对"
+		rep_color = Color(1.0, 0.4, 0.3)
+	else:
+		level_cn = "中立"
+		rep_color = Color(1.0, 0.9, 0.3)
+	rep_lbl.text = "声望: %s%d (%s)" % [sign, rep, level_cn]
+	rep_lbl.add_theme_font_size_override("font_size", 12)
+	rep_lbl.add_theme_color_override("font_color", rep_color)
+	return rep_lbl

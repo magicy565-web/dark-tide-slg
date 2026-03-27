@@ -479,9 +479,9 @@ func _create_card(pos: Vector2) -> PanelContainer:
 
 	var morale_lbl := Label.new()
 	morale_lbl.name = "MoraleLabel"
-	morale_lbl.text = ""
+	morale_lbl.text = "士气: 100"
 	morale_lbl.add_theme_font_size_override("font_size", 9)
-	morale_lbl.add_theme_color_override("font_color", Color(0.6, 0.5, 0.3))
+	morale_lbl.add_theme_color_override("font_color", Color(0.2, 0.8, 0.2))
 	bot_row.add_child(morale_lbl)
 
 	# Death/capture overlay (hidden by default)
@@ -733,6 +733,7 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 		var bar_fill: ColorRect = bar_container.get_node("BarFill")
 		var stats_lbl: Label = vbox.get_node("Stats")
 		var passive_lbl: Label = vbox.get_child(5).get_child(0)
+		var morale_lbl: Label = vbox.get_child(5).get_child(2)
 		var overlay: Label = card.get_node("OverlayLabel")
 		overlay.visible = false
 		card.modulate = Color.WHITE
@@ -748,6 +749,7 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 			count_lbl.text = ""
 			stats_lbl.text = ""
 			passive_lbl.text = ""
+			morale_lbl.text = ""
 			bar_fill.size.x = 0
 			bar_ghost.size.x = 0
 			class_tab.color = Color(0.18, 0.18, 0.18)
@@ -783,6 +785,20 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 			stats_lbl.text = "ATK:%d DEF:%d SPD:%d" % [unit.get("atk", 0), unit.get("def", 0), unit.get("spd", 0)]
 			var passive_name: String = unit.get("passive", "")
 			passive_lbl.text = passive_name if passive_name != "" else ""
+
+			var unit_morale: int = unit.get("morale", 100)
+			var unit_routed: bool = unit.get("is_routed", false)
+			if unit_routed:
+				morale_lbl.text = "溃逃!"
+				morale_lbl.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+			else:
+				morale_lbl.text = "士气: %d" % unit_morale
+				if unit_morale >= 70:
+					morale_lbl.add_theme_color_override("font_color", Color(0.2, 0.8, 0.2))
+				elif unit_morale >= 30:
+					morale_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 0.2))
+				else:
+					morale_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
 
 func _update_card_soldiers(side: String, slot_idx: int, soldiers: int, max_soldiers: int) -> void:
 	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
@@ -821,6 +837,26 @@ func _update_card_soldiers(side: String, slot_idx: int, soldiers: int, max_soldi
 
 	if soldiers <= 0:
 		_play_kill_cutscene(side, slot_idx)
+
+func _update_card_morale(side: String, slot_idx: int, morale: int, is_routed: bool) -> void:
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	if not cards.has(slot_idx):
+		return
+	var card: PanelContainer = cards[slot_idx]
+	var vbox: VBoxContainer = card.get_child(0).get_child(0)
+	var morale_lbl: Label = vbox.get_child(5).get_child(2)
+
+	if is_routed:
+		morale_lbl.text = "溃逃!"
+		morale_lbl.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+	else:
+		morale_lbl.text = "士气: %d" % morale
+		if morale >= 70:
+			morale_lbl.add_theme_color_override("font_color", Color(0.2, 0.8, 0.2))
+		elif morale >= 30:
+			morale_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 0.2))
+		else:
+			morale_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
 
 func _apply_death_overlay(side: String, slot_idx: int) -> void:
 	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
@@ -1893,6 +1929,10 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			log_line = "[color=#dda]%s[/color] → %s [color=%s](-%d troops)[/color]" % [desc, target_name, dmg_color, damage]
 			if target_slot >= 0:
 				_update_card_soldiers(target_side, target_slot, remaining, max_s)
+				var entry_morale: int = entry.get("target_morale", -1)
+				var entry_routed: bool = entry.get("target_is_routed", false)
+				if entry_morale >= 0:
+					_update_card_morale(target_side, target_slot, entry_morale, entry_routed)
 				_animate_attack(side, slot_idx, target_side, target_slot, damage, max_s, is_aoe)
 
 				# AoE: check for additional targets in same log batch

@@ -353,10 +353,21 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 	var int_val: int = combat_stats.get("int", hero_def.get("base_int", 0))
 	var spd: int = combat_stats.get("spd", hero_def.get("base_spd", 0))
 
-	var stats_lbl := Label.new()
-	stats_lbl.text = "ATK:%d  DEF:%d  INT:%d  SPD:%d" % [atk, def_val, int_val, spd]
-	stats_lbl.add_theme_font_size_override("font_size", 12)
-	stats_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+	var aff_bonuses: Dictionary = _get_affection_bonuses(hero_id)
+	var stats_lbl := RichTextLabel.new()
+	stats_lbl.bbcode_enabled = true
+	stats_lbl.fit_content = true
+	stats_lbl.scroll_active = false
+	stats_lbl.custom_minimum_size = Vector2(0, 18)
+	stats_lbl.add_theme_font_size_override("normal_font_size", 12)
+	var stats_text: String = ""
+	stats_text += _format_stat_with_bonus("ATK", atk, aff_bonuses["atk"])
+	stats_text += "  " + _format_stat_with_bonus("DEF", def_val, aff_bonuses["def"])
+	stats_text += "  INT:%d  SPD:%d" % [int_val, spd]
+	if aff_bonuses["atk"] > 0 or aff_bonuses["def"] > 0:
+		stats_text = stats_text.replace("(+", "[color=lime](+").replace(")", ")[/color]")
+	stats_lbl.clear()
+	stats_lbl.append_text("[color=#b3b3bf]%s[/color]" % stats_text)
 	info_vbox.add_child(stats_lbl)
 
 	# Affection / corruption
@@ -482,10 +493,11 @@ func _refresh_detail() -> void:
 	var int_val: int = combat_stats.get("int", hero_def.get("base_int", 0))
 	var spd: int = combat_stats.get("spd", hero_def.get("base_spd", 0))
 
-	_add_stat_row("ATK", atk, Color(1.0, 0.5, 0.3))
-	_add_stat_row("DEF", def_val, Color(0.3, 0.7, 1.0))
-	_add_stat_row("INT", int_val, Color(0.7, 0.4, 1.0))
-	_add_stat_row("SPD", spd, Color(0.3, 1.0, 0.5))
+	var detail_aff_bonuses: Dictionary = _get_affection_bonuses(_selected_hero_id)
+	_add_stat_row("ATK", atk, Color(1.0, 0.5, 0.3), detail_aff_bonuses["atk"])
+	_add_stat_row("DEF", def_val, Color(0.3, 0.7, 1.0), detail_aff_bonuses["def"])
+	_add_stat_row("INT", int_val, Color(0.7, 0.4, 1.0), 0)
+	_add_stat_row("SPD", spd, Color(0.3, 1.0, 0.5), 0)
 
 	# Skill section
 	var sep2 := HSeparator.new()
@@ -771,7 +783,7 @@ func _on_hero_affection_changed(_hero_id: String, _val: int) -> void:
 #                          HELPERS
 # ═══════════════════════════════════════════════════════════════
 
-func _add_stat_row(stat_name: String, value: int, color: Color) -> void:
+func _add_stat_row(stat_name: String, value: int, color: Color, bonus: int = 0) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	detail_container.add_child(row)
@@ -798,10 +810,20 @@ func _add_stat_row(stat_name: String, value: int, color: Color) -> void:
 	row.add_child(bar_fill)
 
 	var val_lbl := Label.new()
-	val_lbl.text = str(value)
+	if bonus > 0:
+		val_lbl.text = "%d(+%d)" % [value, bonus]
+	else:
+		val_lbl.text = str(value)
 	val_lbl.add_theme_font_size_override("font_size", 13)
 	val_lbl.add_theme_color_override("font_color", color)
 	row.add_child(val_lbl)
+
+	if bonus > 0:
+		var bonus_lbl := Label.new()
+		bonus_lbl.text = " +%d" % bonus
+		bonus_lbl.add_theme_font_size_override("font_size", 11)
+		bonus_lbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+		row.add_child(bonus_lbl)
 
 
 func _make_tab_button(text: String) -> Button:
@@ -837,3 +859,22 @@ func _get_rarity_color(rarity: String) -> Color:
 		"rare": return Color(0.4, 0.6, 1.0)
 		"common": return Color(0.7, 0.7, 0.75)
 		_: return Color(0.7, 0.7, 0.75)
+
+func _get_affection_bonuses(hero_id: String) -> Dictionary:
+	var aff: int = HeroSystem.hero_affection.get(hero_id, 0) if "hero_affection" in HeroSystem else 0
+	var atk_bonus: int = 0
+	var def_bonus: int = 0
+	if aff >= 10:
+		atk_bonus = 4; def_bonus = 3
+	elif aff >= 8:
+		atk_bonus = 3; def_bonus = 2
+	elif aff >= 5:
+		atk_bonus = 2; def_bonus = 1
+	elif aff >= 3:
+		atk_bonus = 1
+	return {"atk": atk_bonus, "def": def_bonus}
+
+func _format_stat_with_bonus(stat_name: String, base_val: int, bonus: int) -> String:
+	if bonus > 0:
+		return "%s:%d(+%d)" % [stat_name, base_val, bonus]
+	return "%s:%d" % [stat_name, base_val]

@@ -33,6 +33,7 @@ func _connect_signals() -> void:
 	EventBus.rebellion_occurred.connect(_on_rebellion)
 	EventBus.relic_selected.connect(_on_relic)
 	EventBus.ai_threat_changed.connect(_on_ai_threat)
+	EventBus.unit_routed.connect(_on_unit_routed)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -155,3 +156,8 @@ func _on_relic(_pid: int, relic_id: String) -> void:
 func _on_ai_threat(faction_key: String, _threat: int, new_tier: int) -> void:
 	if new_tier >= 2:
 		show_notification("%s faction reached threat level %d!" % [faction_key, new_tier], Color(1.0, 0.4, 0.3), 5.0)
+
+
+func _on_unit_routed(unit_type: String, side: String) -> void:
+	var side_name: String = "我方" if side == "attacker" else "敌方"
+	show_notification("%s %s 士气崩溃溃逃!" % [side_name, unit_type], Color(1.0, 0.3, 0.2), 3.0)
