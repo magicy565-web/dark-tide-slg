@@ -27,9 +27,13 @@ func _load_map_assets() -> void:
 	_map_decoration_tex = _safe_tex_load("res://assets/map/map_decorations/map_sprites.png")
 	# Military icon for army markers
 	_military_icon_tex = _safe_tex_load("res://assets/map/actions/military_army.png")
-	# Terrain textures
+	# Terrain textures — prefer HD pixel-art tiles, fall back to simple textures
 	for tname in ["plains","forest","mountain","swamp","coastal","fortress_wall","river","ruins","wasteland","volcanic"]:
-		_terrain_textures[tname] = _safe_tex_load("res://assets/map/terrain/terrain_%s.png" % tname)
+		var hd_terrain: Texture2D = _safe_tex_load("res://assets/map/terrain_hd/terrain_%s.png" % tname)
+		if hd_terrain:
+			_terrain_textures[tname] = hd_terrain
+		else:
+			_terrain_textures[tname] = _safe_tex_load("res://assets/map/terrain/terrain_%s.png" % tname)
 	# Settlement/building icons — prefer HD territory art, fall back to pixel icons
 	for sname in ["fortress","village","watchtower","trading_post","beacon","ruins","port","gate","bandit","crystal_mine","horse_ranch","gunpowder","shadow_rift","stronghold","event"]:
 		var hd: Texture2D = _safe_tex_load("res://assets/map/settlements_hd/settlement_%s.png" % sname)
@@ -37,13 +41,17 @@ func _load_map_assets() -> void:
 			_settlement_textures[sname] = hd
 		else:
 			_settlement_textures[sname] = _safe_tex_load("res://assets/map/settlements/settlement_%s.png" % sname)
-	# Faction crests (including bandit/neutral fallbacks)
-	for fname in ["orc","pirate","dark_elf","human","high_elf","mage"]:
-		_crest_textures[fname] = _safe_tex_load("res://assets/map/crests/crest_%s.png" % fname)
-	# Bandit and neutral don't have dedicated crests; use orc crest tinted as fallback
-	if not _crest_textures.has("bandit") or _crest_textures.get("bandit") == null:
+	# Faction crests — prefer HD ornate shields, fall back to simple crests
+	for fname in ["orc","pirate","dark_elf","human","high_elf","mage","bandit","neutral"]:
+		var hd_crest: Texture2D = _safe_tex_load("res://assets/map/crests_hd/crest_%s.png" % fname)
+		if hd_crest:
+			_crest_textures[fname] = hd_crest
+		else:
+			_crest_textures[fname] = _safe_tex_load("res://assets/map/crests/crest_%s.png" % fname)
+	# Bandit/neutral fallbacks if still missing
+	if not _crest_textures.get("bandit"):
 		_crest_textures["bandit"] = _crest_textures.get("orc")
-	if not _crest_textures.has("neutral") or _crest_textures.get("neutral") == null:
+	if not _crest_textures.has("neutral"):
 		_crest_textures["neutral"] = null  # Neutral deliberately has no crest
 
 func _select_faction_background() -> void:
