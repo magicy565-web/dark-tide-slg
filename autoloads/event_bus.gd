@@ -15,6 +15,7 @@ signal player_arrived(player_id: int, tile_index: int)
 # ── Resource changes ──
 signal resources_changed(player_id: int)
 signal army_changed(player_id: int, new_count: int)
+signal ap_changed(player_id: int, new_ap: int)
 
 # LEGACY: connected in hud.gd for backward compat (never emitted — triggers _update_player_info)
 signal gold_changed(player_id: int, new_amount: int)
