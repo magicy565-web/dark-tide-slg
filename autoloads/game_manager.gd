@@ -2006,6 +2006,198 @@ func get_army_soldier_count(army_id: int) -> int:
 	return total
 
 
+## Merge two armies on the same tile (free action, no AP cost)
+func action_merge_armies(source_id: int, target_id: int) -> bool:
+	if not armies.has(source_id) or not armies.has(target_id):
+		EventBus.message_log.emit("Invalid army!")
+		return false
+	var source: Dictionary = armies[source_id]
+	var target: Dictionary = armies[target_id]
+	if source["tile_index"] != target["tile_index"]:
+		EventBus.message_log.emit("军队必须在同一领地才能合并!")
+		return false
+	if source["player_id"] != target["player_id"]:
+		return false
+
+	# Transfer troops from source to target
+	var max_troops: int = get_effective_max_troops(target["player_id"])
+	for troop in source.get("troops", []):
+		if target.get("troops", []).size() >= max_troops:
+			EventBus.message_log.emit("目标军队编制已满! 部分兵种留在原军队")
+			break
+		target["troops"].append(troop)
+
+	# Transfer heroes
+	for hero_id in source.get("heroes", []):
+		if target.get("heroes", []).size() < MAX_HEROES_PER_ARMY:
+			target["heroes"].append(hero_id)
+
+	# Remove source if empty
+	if source.get("troops", []).is_empty():
+		armies.erase(source_id)
+		EventBus.message_log.emit("军队合并完成: %s -> %s" % [source["name"], target["name"]])
+	else:
+		EventBus.message_log.emit("部分兵力合并到 %s (部分兵种超编留原地)" % target["name"])
+
+	sync_player_army(target["player_id"])
+	return true
+
+
+## Split an army: move half the troops to a new army on the same tile
+func action_split_army(army_id: int) -> bool:
+	if not armies.has(army_id):
+		return false
+	var army: Dictionary = armies[army_id]
+	var pid: int = army["player_id"]
+	var troops: Array = army.get("troops", [])
+
+	if troops.size() < 2:
+		EventBus.message_log.emit("兵力不足, 无法分割!")
+		return false
+
+	# Check army cap
+	var current_count: int = get_player_armies(pid).size()
+	var max_cap: int = get_max_armies(pid)
+	if current_count >= max_cap:
+		EventBus.message_log.emit("军队数量已达上限 (%d/%d)!" % [current_count, max_cap])
+		return false
+
+	# Create new army on same tile
+	var new_name: String = army["name"] + "分队"
+	var new_id: int = create_army(pid, army["tile_index"], new_name)
+	if new_id <= 0:
+		EventBus.message_log.emit("分割失败!")
+		return false
+
+	# Move half the troops to new army
+	var split_count: int = troops.size() / 2
+	var new_army: Dictionary = armies[new_id]
+	new_army["troops"] = []
+	for i in range(split_count):
+		new_army["troops"].append(troops.pop_back())
+
+	EventBus.message_log.emit("军队分割: %s -> %s (%d个编队)" % [army["name"], new_name, split_count])
+	sync_player_army(pid)
+	return true
+
+
+## Reinforce an army at owned tile: restore depleted units (1 AP)
+func action_reinforce_army(player_id: int, army_id: int) -> bool:
+	if not armies.has(army_id):
+		return false
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.get("ap", 0) < 1:
+		EventBus.message_log.emit("行動力不足!")
+		return false
+	var army: Dictionary = armies[army_id]
+	if army["player_id"] != player_id:
+		return false
+	var tile_idx: int = army.get("tile_index", -1)
+	if tile_idx < 0 or tiles[tile_idx]["owner_id"] != player_id:
+		EventBus.message_log.emit("军队必须在己方领地!")
+		return false
+
+	# Reinforce: restore each depleted troop by up to 2 soldiers
+	var total_restored: int = 0
+	var troops: Array = army.get("troops", [])
+	for troop in troops:
+		var current: int = troop.get("soldiers", 0)
+		var max_sol: int = troop.get("max_soldiers", current)
+		if current < max_sol:
+			var restore: int = mini(2, max_sol - current)
+			# Cost: 5 gold + 2 food per soldier restored
+			var cost: Dictionary = {"gold": restore * 5, "food": restore * 2}
+			if ResourceManager.can_afford(player_id, cost):
+				ResourceManager.apply_delta(player_id, {"gold": -cost["gold"], "food": -cost["food"]})
+				troop["soldiers"] = current + restore
+				total_restored += restore
+
+	if total_restored > 0:
+		player["ap"] -= 1
+		EventBus.message_log.emit("军队补充: +%d兵 (消耗金%d 粮%d)" % [total_restored, total_restored * 5, total_restored * 2])
+		sync_player_army(player_id)
+		EventBus.ap_changed.emit(player_id, player["ap"])
+		return true
+	else:
+		EventBus.message_log.emit("所有部队已满编或资源不足!")
+		return false
+
+
+## Upgrade a troop type in army (e.g., ashigaru -> samurai) — 1 AP + resources
+func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> bool:
+	if not armies.has(army_id):
+		return false
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.get("ap", 0) < 1:
+		EventBus.message_log.emit("行動力不足!")
+		return false
+	var army: Dictionary = armies[army_id]
+	var troops: Array = army.get("troops", [])
+	if troop_index < 0 or troop_index >= troops.size():
+		return false
+
+	var troop: Dictionary = troops[troop_index]
+	var current_id: String = troop.get("troop_id", "")
+
+	# Get upgrade path
+	var upgrade_id: String = _get_troop_upgrade(current_id)
+	if upgrade_id == "":
+		EventBus.message_log.emit("该兵种无法升级!")
+		return false
+
+	# Upgrade cost
+	var cost: Dictionary = {"gold": 40, "iron": 15}
+	if not ResourceManager.can_afford(player_id, cost):
+		EventBus.message_log.emit("资源不足! 需要金%d 铁%d" % [cost["gold"], cost["iron"]])
+		return false
+
+	# Apply upgrade
+	ResourceManager.apply_delta(player_id, {"gold": -cost["gold"], "iron": -cost["iron"]})
+	var new_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
+	if new_data.is_empty():
+		return false
+
+	var old_name: String = troop.get("name", current_id)
+	troop["troop_id"] = upgrade_id
+	troop["name"] = new_data.get("name", upgrade_id)
+	troop["atk"] = new_data.get("atk", troop["atk"])
+	troop["def"] = new_data.get("def", troop["def"])
+	troop["spd"] = new_data.get("spd", troop.get("spd", 5))
+	troop["max_soldiers"] = new_data.get("max_soldiers", troop["max_soldiers"])
+	if new_data.has("passive"):
+		troop["passive"] = new_data["passive"]
+
+	player["ap"] -= 1
+	EventBus.message_log.emit("兵种升格: %s -> %s (金-%d 铁-%d)" % [old_name, troop["name"], cost["gold"], cost["iron"]])
+	EventBus.ap_changed.emit(player_id, player["ap"])
+	return true
+
+
+## Get the upgrade path for a troop type
+func _get_troop_upgrade(troop_id: String) -> String:
+	# Upgrade paths: T1 -> T2 -> T3
+	var upgrade_table: Dictionary = {
+		# Orc upgrades
+		"orc_ashigaru": "orc_samurai",
+		"orc_samurai": "orc_cavalry",
+		# Pirate upgrades
+		"pirate_ashigaru": "pirate_archer",
+		"pirate_archer": "pirate_cannon",
+		# Dark Elf upgrades
+		"de_samurai": "de_ninja",
+		"de_ninja": "de_cavalry",
+		# Generic upgrades
+		"ashigaru": "samurai",
+		"samurai": "cavalry",
+		"archer": "ninja",
+		"militia": "knight",
+		# Human upgrades (for conquered units)
+		"human_ashigaru": "human_samurai",
+		"human_samurai": "human_cavalry",
+	}
+	return upgrade_table.get(troop_id, "")
+
+
 func get_army_deployable_tiles(army_id: int) -> Array:
 	## Returns adjacent owned tiles where this army can deploy (move) to.
 	if not armies.has(army_id):

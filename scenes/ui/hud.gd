@@ -72,6 +72,9 @@ var btn_buy_slave: Button
 var btn_hero: Button
 var btn_research: Button
 var btn_quest_journal: Button
+var btn_guard: Button
+var btn_interrogate: Button
+var btn_reinforce: Button
 
 # ── UI refs: center target selector ──
 var target_panel: PanelContainer
@@ -87,6 +90,9 @@ var btn_upgrade: Button
 var btn_build: Button
 var btn_army_view: Button
 var btn_tile_dev: Button
+var btn_merge_army: Button
+var btn_split_army: Button
+var btn_upgrade_troop: Button
 var _tile_dev_panel: Node = null
 
 # ── UI refs: item panel ──
@@ -325,6 +331,18 @@ func _build_action_panel(parent: Control) -> void:
 	btn_explore.pressed.connect(_on_explore_pressed)
 	vbox.add_child(btn_explore)
 
+	btn_guard = _make_button("Guard (1AP)")
+	btn_guard.pressed.connect(_on_guard_pressed)
+	vbox.add_child(btn_guard)
+
+	btn_interrogate = _make_button("Interrogate (1AP)")
+	btn_interrogate.pressed.connect(_on_interrogate_pressed)
+	vbox.add_child(btn_interrogate)
+
+	btn_reinforce = _make_button("Reinforce (1AP)")
+	btn_reinforce.pressed.connect(_on_reinforce_pressed)
+	vbox.add_child(btn_reinforce)
+
 	# Separator
 	var sep := HSeparator.new()
 	sep.add_theme_constant_override("separation", 8)
@@ -391,7 +409,7 @@ func _build_action_panel(parent: Control) -> void:
 func _build_domestic_sub_panel(parent: Control) -> void:
 	domestic_panel = PanelContainer.new()
 	domestic_panel.position = Vector2(220, 60)
-	domestic_panel.size = Vector2(160, 196)
+	domestic_panel.size = Vector2(160, 330)
 	domestic_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	domestic_panel.visible = false
 	domestic_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.08, 0.06, 0.14, 0.92)))
@@ -423,6 +441,21 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 	btn_army_view.custom_minimum_size = Vector2(140, 30)
 	btn_army_view.pressed.connect(_on_army_view)
 	vbox.add_child(btn_army_view)
+
+	btn_merge_army = _make_button("Merge Armies")
+	btn_merge_army.custom_minimum_size = Vector2(140, 30)
+	btn_merge_army.pressed.connect(_on_merge_army)
+	vbox.add_child(btn_merge_army)
+
+	btn_split_army = _make_button("Split Army")
+	btn_split_army.custom_minimum_size = Vector2(140, 30)
+	btn_split_army.pressed.connect(_on_split_army)
+	vbox.add_child(btn_split_army)
+
+	btn_upgrade_troop = _make_button("Upgrade Troop (昇格)")
+	btn_upgrade_troop.custom_minimum_size = Vector2(140, 30)
+	btn_upgrade_troop.pressed.connect(_on_upgrade_troop)
+	vbox.add_child(btn_upgrade_troop)
 
 	btn_tile_dev = _make_button("Dev Path (Undeveloped)")
 	btn_tile_dev.custom_minimum_size = Vector2(140, 30)
@@ -912,6 +945,94 @@ func _on_explore_target(tile_index: int) -> void:
 	_after_action()
 
 
+func _on_guard_pressed() -> void:
+	if _current_mode == ActionMode.EXPLORE:
+		_close_target_panel()
+	_current_mode = ActionMode.EXPLORE  # Reuse explore mode for territory selection
+	var pid: int = GameManager.get_human_player_id()
+	var owned_tiles: Array = GameManager.get_domestic_tiles(pid)
+
+	_show_target_panel("Guard Territory - Select")
+
+	if owned_tiles.is_empty():
+		_add_target_label("(No territories to guard)")
+		return
+
+	for tile in owned_tiles:
+		var tidx: int = tile["index"]
+		var is_guarded: bool = GameManager._guard_timers.get(tidx, 0) > 0
+		var label_text: String = "%s (Lv%d)" % [tile["name"], tile["level"]]
+		if is_guarded:
+			label_text += " [Guarding]"
+		_add_target_button(label_text, _on_guard_target.bind(tidx), is_guarded)
+
+
+func _on_guard_target(tile_index: int) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	if GameManager.has_method("action_guard_territory"):
+		GameManager.action_guard_territory(pid, tile_index)
+	_close_target_panel()
+	_after_action()
+
+
+func _on_interrogate_pressed() -> void:
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "interrogate"
+
+	_show_target_panel("Interrogate Prisoner - Select")
+
+	if HeroSystem.captured_heroes.is_empty():
+		_add_target_label("(No prisoners)")
+		return
+
+	for hero_id in HeroSystem.captured_heroes:
+		var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+		var hero_name: String = hero_data.get("name", hero_id)
+		var corruption: int = HeroSystem.hero_corruption.get(hero_id, 0)
+		var label_text: String = "%s (Corruption: %d/100)" % [hero_name, corruption]
+		_add_target_button(label_text, _on_interrogate_target.bind(hero_id))
+
+
+func _on_interrogate_target(hero_id: String) -> void:
+	GameManager.action_interrogate_hero(hero_id)
+	_close_target_panel()
+	_after_action()
+
+
+func _on_reinforce_pressed() -> void:
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "reinforce"
+
+	var pid: int = GameManager.get_human_player_id()
+	var armies: Array = GameManager.get_player_armies(pid)
+
+	_show_target_panel("Reinforce Army - Select")
+
+	if armies.is_empty():
+		_add_target_label("(No armies)")
+		return
+
+	for army in armies:
+		var soldiers: int = GameManager.get_army_soldier_count(army["id"])
+		var tile_idx: int = army.get("tile_index", -1)
+		# Only allow reinforcement on owned tiles
+		var can_reinforce: bool = false
+		if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+			can_reinforce = GameManager.tiles[tile_idx]["owner_id"] == pid
+		var tile_name: String = GameManager.tiles[tile_idx]["name"] if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "???"
+		var label_text: String = "%s (Troops:%d) @%s" % [army["name"], soldiers, tile_name]
+		if not can_reinforce:
+			label_text += " [Not on owned tile]"
+		_add_target_button(label_text, _on_reinforce_target.bind(army["id"]), not can_reinforce)
+
+
+func _on_reinforce_target(army_id: int) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	GameManager.action_reinforce_army(pid, army_id)
+	_close_target_panel()
+	_after_action()
+
+
 # ═══════════════════════════════════════════════════════════════
 #             DOMESTIC SUB-MENU CALLBACKS
 # ═══════════════════════════════════════════════════════════════
@@ -1103,6 +1224,130 @@ func _get_selected_owned_tile(pid: int) -> int:
 	if pos >= 0 and pos < GameManager.tiles.size() and GameManager.tiles[pos]["owner_id"] == pid:
 		return pos
 	return -1
+
+
+var _merge_source_id: int = -1
+
+func _on_merge_army() -> void:
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "merge"
+	domestic_panel.visible = false
+
+	var pid: int = GameManager.get_human_player_id()
+	var armies: Array = GameManager.get_player_armies(pid)
+
+	_show_target_panel("Merge - Select Source Army")
+
+	if armies.size() < 2:
+		_add_target_label("(Need at least 2 armies to merge)")
+		return
+
+	for army in armies:
+		var soldiers: int = GameManager.get_army_soldier_count(army["id"])
+		var tile_idx: int = army.get("tile_index", -1)
+		var tile_name: String = GameManager.tiles[tile_idx]["name"] if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "???"
+		var label_text: String = "%s (Troops:%d) @%s" % [army["name"], soldiers, tile_name]
+		_add_target_button(label_text, _on_merge_source.bind(army["id"]))
+
+
+func _on_merge_source(army_id: int) -> void:
+	_merge_source_id = army_id
+	var pid: int = GameManager.get_human_player_id()
+	var armies: Array = GameManager.get_player_armies(pid)
+	var source: Dictionary = GameManager.get_army(army_id)
+	var source_tile: int = source.get("tile_index", -1)
+
+	_show_target_panel("Merge %s -> Select Target" % source["name"])
+
+	for army in armies:
+		if army["id"] == army_id:
+			continue
+		# Can only merge armies on the same tile
+		var same_tile: bool = army.get("tile_index", -1) == source_tile
+		var soldiers: int = GameManager.get_army_soldier_count(army["id"])
+		var tile_name: String = ""
+		var atile: int = army.get("tile_index", -1)
+		if atile >= 0 and atile < GameManager.tiles.size():
+			tile_name = GameManager.tiles[atile]["name"]
+		var label_text: String = "%s (Troops:%d) @%s" % [army["name"], soldiers, tile_name]
+		if not same_tile:
+			label_text += " [Different tile]"
+		_add_target_button(label_text, _on_merge_target.bind(army["id"]), not same_tile)
+
+
+func _on_merge_target(target_army_id: int) -> void:
+	GameManager.action_merge_armies(_merge_source_id, target_army_id)
+	_merge_source_id = -1
+	_close_target_panel()
+	_after_action()
+
+
+func _on_split_army() -> void:
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "split"
+	domestic_panel.visible = false
+
+	var pid: int = GameManager.get_human_player_id()
+	var armies: Array = GameManager.get_player_armies(pid)
+	var max_armies: int = GameManager.get_max_armies(pid)
+
+	_show_target_panel("Split - Select Army")
+
+	if armies.size() >= max_armies:
+		_add_target_label("(Army limit reached: %d/%d)" % [armies.size(), max_armies])
+		return
+
+	for army in armies:
+		var soldiers: int = GameManager.get_army_soldier_count(army["id"])
+		var troop_count: int = army.get("troops", []).size()
+		var label_text: String = "%s (%d troops, %d soldiers)" % [army["name"], troop_count, soldiers]
+		_add_target_button(label_text, _on_split_target.bind(army["id"]), troop_count < 2)
+
+
+func _on_split_target(army_id: int) -> void:
+	GameManager.action_split_army(army_id)
+	_close_target_panel()
+	_after_action()
+
+
+func _on_upgrade_troop() -> void:
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "upgrade_troop"
+	domestic_panel.visible = false
+
+	var pid: int = GameManager.get_human_player_id()
+	var armies: Array = GameManager.get_player_armies(pid)
+
+	_show_target_panel("Upgrade Troop (昇格) - Select")
+
+	var found: bool = false
+	for army in armies:
+		var troops: Array = army.get("troops", [])
+		for i in range(troops.size()):
+			var troop: Dictionary = troops[i]
+			var current_id: String = troop.get("troop_id", "")
+			var upgrade_id: String = GameManager._get_troop_upgrade(current_id)
+			if upgrade_id == "":
+				continue
+			var upgrade_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
+			var label_text: String = "%s -> %s (40g 15iron)" % [
+				troop.get("name", current_id),
+				upgrade_data.get("name", upgrade_id)
+			]
+			label_text += " [%s]" % army["name"]
+			var can_afford: bool = ResourceManager.can_afford(pid, {"gold": 40, "iron": 15})
+			_add_target_button(label_text, _on_upgrade_troop_confirm.bind(army["id"], i), not can_afford)
+			found = true
+
+	if not found:
+		_add_target_label("(No troops can be upgraded)")
+
+
+func _on_upgrade_troop_confirm(army_id: int, troop_index: int) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	GameManager.action_upgrade_troop(pid, army_id, troop_index)
+	_close_target_panel()
+	_after_action()
 
 
 func _on_domestic_upgrade() -> void:
