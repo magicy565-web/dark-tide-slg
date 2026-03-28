@@ -239,15 +239,17 @@ func _on_march_mode_selected(index: int) -> void:
 		return
 	var mode: int = march_dropdown.get_item_id(index)
 	# Delegate to SupplySystem (expected as sibling or autoload)
-	if SupplySystem and SupplySystem.has_method("set_march_mode"):
-		SupplySystem.set_march_mode(_selected_army_id, mode)
+	var _ss = get_tree().root.get_node_or_null("SupplySystem")
+	if _ss and _ss.has_method("set_march_mode"):
+		_ss.set_march_mode(_selected_army_id, mode)
 	elif EventBus:
 		EventBus.message_log.emit("[补给] 设置行军模式: %s" % march_dropdown.get_item_text(index))
 
 func _refresh_march_dropdown(army_id: int) -> void:
 	var current_mode: int = 0
-	if SupplySystem and SupplySystem.has_method("get_march_mode"):
-		current_mode = SupplySystem.get_march_mode(army_id)
+	var _ss = get_tree().root.get_node_or_null("SupplySystem")
+	if _ss and _ss.has_method("get_march_mode"):
+		current_mode = _ss.get_march_mode(army_id)
 	for i in range(march_dropdown.item_count):
 		if march_dropdown.get_item_id(i) == current_mode:
 			march_dropdown.select(i)

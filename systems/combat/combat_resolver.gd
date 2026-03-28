@@ -26,7 +26,7 @@ const MORALE_ORDER_DEBUFF: int = 20
 const MORALE_ORDER_THRESHOLD: int = 76
 
 # ── Commander Tactical Orders ──
-enum TacticalDirective { NONE, ALL_OUT, HOLD_LINE, GUERRILLA, FOCUS_FIRE, AMBUSH }
+enum TacticalDirective { NONE, ALL_OUT, HOLD_LINE, GUERRILLA, FOCUS_FIRE, AMBUSH, DUEL, RETREAT }
 
 const DIRECTIVE_DATA: Dictionary = {
 	TacticalDirective.NONE: {"name": "无", "atk_mult": 1.0, "def_mult": 1.0},
@@ -49,6 +49,14 @@ const DIRECTIVE_DATA: Dictionary = {
 	TacticalDirective.AMBUSH: {
 		"name": "奇袭", "desc": "第1回合ATK+40%, 之后ATK-10%, 首回合全军先制",
 		"round1_atk_mult": 1.40, "after_atk_mult": 0.90, "def_mult": 1.0, "round1_preemptive": true,
+	},
+	TacticalDirective.DUEL: {
+		"name": "一骑打", "desc": "英雄单挑, 胜者全军ATK+20%",
+		"atk_mult": 1.0, "def_mult": 1.0, "duel_mode": true,
+	},
+	TacticalDirective.RETREAT: {
+		"name": "撤退", "desc": "全军撤退: 后卫承受伤害, 主力保全(损失20%兵力)",
+		"atk_mult": 0.5, "def_mult": 0.5, "retreat_mode": true,
 	},
 }
 
@@ -168,6 +176,55 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	if def_dir != TacticalDirective.NONE:
 		var dir_data_d: Dictionary = DIRECTIVE_DATA.get(def_dir, {})
 		log.append("[color=orange]防守方指令: %s[/color]" % dir_data_d.get("name", ""))
+
+	# -- Check for full retreat (全軍撤退, Rance 07 RETREAT) --
+	var atk_retreat: bool = (state.get("atk_directive", TacticalDirective.NONE) == TacticalDirective.RETREAT)
+	var def_retreat: bool = (state.get("def_directive", TacticalDirective.NONE) == TacticalDirective.RETREAT)
+
+	if atk_retreat:
+		log.append("[color=yellow]进攻方下令全军撤退![/color]")
+		# Rearguard takes heavy damage, main force escapes
+		var total_atk_soldiers: int = 0
+		for u in state["atk_units"]:
+			total_atk_soldiers += u["soldiers"]
+		var retreat_loss: int = maxi(1, int(float(total_atk_soldiers) * 0.20))
+		# Slowest unit is rearguard — takes most losses
+		var sorted_units: Array = state["atk_units"].duplicate()
+		sorted_units.sort_custom(func(a, b): return a["spd"] < b["spd"])
+		var remaining_loss: int = retreat_loss
+		for u in sorted_units:
+			if remaining_loss <= 0:
+				break
+			var unit_loss: int = mini(remaining_loss, u["soldiers"])
+			u["soldiers"] -= unit_loss
+			remaining_loss -= unit_loss
+			if u["soldiers"] <= 0:
+				u["is_alive"] = false
+			log.append("  %s 殿后: 损失 %d 兵" % [u["unit_type"], unit_loss])
+		# Defender takes no losses in a retreat
+		log.append("主力成功撤退! 总损失 %d 兵" % retreat_loss)
+		return _finalize_result(state, "defender", false, log, tile)
+
+	if def_retreat:
+		log.append("[color=yellow]防守方下令全军撤退![/color]")
+		var total_def_soldiers: int = 0
+		for u in state["def_units"]:
+			total_def_soldiers += u["soldiers"]
+		var def_retreat_loss: int = maxi(1, int(float(total_def_soldiers) * 0.20))
+		var def_sorted: Array = state["def_units"].duplicate()
+		def_sorted.sort_custom(func(a, b): return a["spd"] < b["spd"])
+		var def_remaining_loss: int = def_retreat_loss
+		for u in def_sorted:
+			if def_remaining_loss <= 0:
+				break
+			var unit_loss: int = mini(def_remaining_loss, u["soldiers"])
+			u["soldiers"] -= unit_loss
+			def_remaining_loss -= unit_loss
+			if u["soldiers"] <= 0:
+				u["is_alive"] = false
+			log.append("  %s 殿后: 损失 %d 兵" % [u["unit_type"], unit_loss])
+		log.append("防守方撤退! 总损失 %d 兵" % def_retreat_loss)
+		return _finalize_result(state, "attacker", false, log, tile)
 
 	# Morale: Order debuff on enemies
 	if OrderManager.get_order() >= MORALE_ORDER_THRESHOLD:
@@ -361,6 +418,16 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 
 	var atk_units: Array = _assign_to_slots(raw_atk, atk_pid, "attacker", tile)
 	var def_units: Array = _assign_to_slots(raw_def, def_pid, "defender", tile)
+
+	# Territory effect bonuses: apply flat ATK/DEF/SPD to all attacker units
+	var _te_atk_b: int = attacker.get("territory_atk_bonus", 0)
+	var _te_def_b: int = attacker.get("territory_def_bonus", 0)
+	var _te_spd_b: int = attacker.get("territory_spd_bonus", 0)
+	if _te_atk_b > 0 or _te_def_b > 0 or _te_spd_b > 0:
+		for _te_u in atk_units:
+			_te_u["atk"] = _te_u["atk"] + float(_te_atk_b)
+			_te_u["def"] = _te_u["def"] + float(_te_def_b)
+			_te_u["spd"] = _te_u["spd"] + float(_te_spd_b)
 
 	# v4.6: command_bonus — if any unit has command_bonus, SPD+2 to all same-side units
 	var _atk_has_cmd: bool = false

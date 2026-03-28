@@ -152,6 +152,63 @@ func release_hero(hero_id: String) -> bool:
 	return true
 
 
+## Interrogate a captured hero for resources/intel (消耗1AP, Rance 07 尋問)
+## Returns: { "ok": bool, "result": String, "rewards": Dictionary }
+func interrogate_hero(hero_id: String) -> Dictionary:
+	if hero_id not in captured_heroes:
+		return {"ok": false, "result": "未被俘虏"}
+	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+	var corruption: int = hero_corruption.get(hero_id, 0)
+
+	# Interrogation outcomes based on corruption level
+	var rewards: Dictionary = {}
+	var result_text: String = ""
+	var roll: float = randf()
+
+	if corruption < 20:
+		# Low corruption — hero resists, small reward
+		if roll < 0.4:
+			rewards = {"gold": randi_range(10, 30)}
+			result_text = "%s 勉强透露了一些情报 (金+%d)" % [_get_hero_name(hero_id), rewards["gold"]]
+		elif roll < 0.7:
+			result_text = "%s 紧咬牙关,什么都不说" % _get_hero_name(hero_id)
+		else:
+			# Backfire: hero gets defiant, corruption -5
+			hero_corruption[hero_id] = maxi(corruption - 5, 0)
+			result_text = "[color=red]%s 顽强抵抗! 意志反而更坚定了 (腐化-5)[/color]" % _get_hero_name(hero_id)
+	elif corruption < 50:
+		# Medium corruption — decent chance of intel
+		if roll < 0.3:
+			rewards = {"gold": randi_range(20, 50), "iron": randi_range(5, 15)}
+			result_text = "%s 供出了资源藏匿点 (金+%d, 铁+%d)" % [_get_hero_name(hero_id), rewards["gold"], rewards["iron"]]
+		elif roll < 0.6:
+			# Intel: reveal a random hidden tile
+			rewards = {"reveal_tiles": 2}
+			result_text = "%s 透露了敌方据点信息 (揭示2个区域)" % _get_hero_name(hero_id)
+		elif roll < 0.85:
+			rewards = {"prestige": randi_range(2, 5)}
+			result_text = "%s 供认了战略情报 (威望+%d)" % [_get_hero_name(hero_id), rewards["prestige"]]
+		else:
+			result_text = "%s 尝试误导你的审讯" % _get_hero_name(hero_id)
+	else:
+		# High corruption — hero is broken, always gives something
+		if roll < 0.35:
+			rewards = {"gold": randi_range(40, 80), "food": randi_range(20, 40)}
+			result_text = "%s 全盘招供: 资源坐标 (金+%d, 粮+%d)" % [_get_hero_name(hero_id), rewards["gold"], rewards["food"]]
+		elif roll < 0.65:
+			rewards = {"soldiers": randi_range(3, 8)}
+			result_text = "%s 说服部下投降 (+%d兵)" % [_get_hero_name(hero_id), rewards["soldiers"]]
+		else:
+			rewards = {"prestige": randi_range(3, 8), "gold": randi_range(20, 40)}
+			result_text = "%s 已完全屈服, 提供一切情报 (威望+%d, 金+%d)" % [_get_hero_name(hero_id), rewards["prestige"], rewards["gold"]]
+
+	# Interrogation always increases corruption slightly (+3)
+	hero_corruption[hero_id] = mini(corruption + 3, 100)
+
+	EventBus.message_log.emit("[尋問] " + result_text)
+	return {"ok": true, "result": result_text, "rewards": rewards}
+
+
 # ═══════════════ AFFECTION ═══════════════
 
 ## Add affection after shared battle

@@ -259,6 +259,7 @@ var _had_combat_this_turn: bool = false
 var _prev_turn_had_combat: bool = false
 var _ap_purchases_this_turn: int = 0
 var _turn_cache: Dictionary = {}
+var _active_territory_effects: Dictionary = {}  # Cached per-turn territory effects
 
 # ── Commander Tactical Orders (player session state) ──
 var _current_directive: int = 0  # CombatResolver.TacticalDirective.NONE
@@ -1319,6 +1320,30 @@ func get_cached_building_effects(pid: int) -> Dictionary:
 	return BuildingRegistry.get_all_player_building_effects(pid)
 
 
+
+## Calculate territory adjacency synergy bonus (控制相邻领地的协同加成)
+func _calculate_adjacency_synergy(pid: int) -> Dictionary:
+	var bonus: Dictionary = {"gold": 0, "food": 0, "iron": 0}
+	var owned_set: Dictionary = {}
+	for tidx in get_cached_owned_tiles(pid):
+		owned_set[tidx] = true
+
+	# For each owned tile, count how many adjacent tiles are also owned
+	var total_adj_pairs: int = 0
+	for tidx in owned_set:
+		if not adjacency.has(tidx):
+			continue
+		for nb in adjacency[tidx]:
+			if owned_set.has(nb):
+				total_adj_pairs += 1
+	# Each pair counted twice (A->B and B->A), so divide by 2
+	total_adj_pairs = total_adj_pairs / 2
+
+	# Each adjacency pair gives +2 gold, +1 food
+	bonus["gold"] = total_adj_pairs * 2
+	bonus["food"] = total_adj_pairs * 1
+	return bonus
+
 # ═══════════════ TURN MANAGEMENT ═══════════════
 
 func begin_turn() -> void:
@@ -1332,6 +1357,17 @@ func begin_turn() -> void:
 
 	# ── Phase 0: Build per-turn cache ──
 	_build_turn_cache()
+
+	# ── Territory Effects (国効果) evaluation ──
+	_active_territory_effects = _evaluate_territory_effects(pid)
+	if pid == get_human_player_id():
+		var active_ids: Array = _active_territory_effects.get("_active_ids", [])
+		if not active_ids.is_empty():
+			var eff_names: Array = []
+			for eid in active_ids:
+				var eff_data: Dictionary = BalanceConfig.TERRITORY_EFFECTS.get(eid, {})
+				eff_names.append("[color=cyan]%s[/color]" % eff_data.get("name", eid))
+			EventBus.message_log.emit("领地效果: %s" % ", ".join(eff_names))
 
 	# Auto-save at turn start
 	if pid == get_human_player_id():
@@ -1373,6 +1409,26 @@ func begin_turn() -> void:
 		income["gold"] = income.get("gold", 0) + gold_bonus
 
 	# ── Taming synergy: Goblin build discount (建造-20%) applied elsewhere ──
+
+	# ── Territory adjacency synergy ──
+	var synergy: Dictionary = _calculate_adjacency_synergy(pid)
+	if synergy["gold"] > 0 or synergy["food"] > 0:
+		income["gold"] += synergy["gold"]
+		income["food"] += synergy["food"]
+		if pid == get_human_player_id() and (synergy["gold"] > 0 or synergy["food"] > 0):
+			EventBus.message_log.emit("[color=cyan]领地协同: 金+%d 粮+%d[/color]" % [synergy["gold"], synergy["food"]])
+
+	# ── Territory effect income bonuses (国効果) ──
+	if _active_territory_effects.get("gold_income_pct", 0.0) > 0.0:
+		income["gold"] = int(float(income["gold"]) * (1.0 + _active_territory_effects["gold_income_pct"]))
+	if _active_territory_effects.get("food_income_pct", 0.0) > 0.0:
+		income["food"] = int(float(income["food"]) * (1.0 + _active_territory_effects["food_income_pct"]))
+	if _active_territory_effects.get("iron_income_pct", 0.0) > 0.0:
+		income["iron"] = int(float(income["iron"]) * (1.0 + _active_territory_effects["iron_income_pct"]))
+	# Prestige per turn from territory effects
+	var te_prestige: int = _active_territory_effects.get("prestige_per_turn", 0)
+	if te_prestige > 0:
+		income["prestige"] = income.get("prestige", 0) + te_prestige
 
 	# ── Phase 2b: Recalculate research speed (building effects may have changed) ──
 	ResearchManager.update_research_speed(pid)
@@ -1436,6 +1492,10 @@ func begin_turn() -> void:
 	# ── Phase 4: Threat decay & timers ──
 	if pid == get_human_player_id():
 		ThreatManager.tick_decay()
+		# Territory effect: threat decay bonus
+		var te_threat_bonus: int = _active_territory_effects.get("threat_decay_bonus", 0)
+		if te_threat_bonus > 0:
+			ThreatManager.change_threat(-te_threat_bonus)
 		# BUG FIX: tick_timers() was never called, causing expeditions/bosses to
 		# fire every eligible turn instead of on their intended interval (3/5 turns).
 		ThreatManager.tick_timers()
@@ -1632,6 +1692,16 @@ func begin_turn() -> void:
 	EventBus.hide_event_popup.emit()
 	EventBus.turn_started.emit(pid)
 	EventBus.message_log.emit("══ %s 的回合 (第%d回合, AP:%d) ══" % [player["name"], turn_number, player["ap"]])
+
+	# Turn limit warning (ターン制限)
+	if pid == get_human_player_id() and BalanceConfig.TURN_LIMIT > 0:
+		var remaining: int = BalanceConfig.TURN_LIMIT - turn_number
+		if remaining <= 0:
+			EventBus.message_log.emit("[color=red][b]回合超限! 下回合将判定失败![/b][/color]")
+		elif remaining <= BalanceConfig.TURN_LIMIT_WARNING:
+			EventBus.message_log.emit("[color=yellow]剩余回合: %d/%d — 加快进攻节奏![/color]" % [remaining, BalanceConfig.TURN_LIMIT])
+		elif remaining <= BalanceConfig.TURN_LIMIT_WARNING * 2:
+			EventBus.message_log.emit("剩余回合: %d/%d" % [remaining, BalanceConfig.TURN_LIMIT])
 
 	if player["is_ai"]:
 		run_ai_turn()
@@ -3099,6 +3169,15 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 		"units": atk_units,
 	}
 
+	# Territory effect combat bonuses
+	var te_atk: int = _active_territory_effects.get("atk_bonus", 0)
+	var te_def: int = _active_territory_effects.get("def_bonus", 0)
+	var te_spd: int = _active_territory_effects.get("spd_bonus", 0)
+	if te_atk > 0 or te_def > 0 or te_spd > 0:
+		attacker_data["territory_atk_bonus"] = te_atk
+		attacker_data["territory_def_bonus"] = te_def
+		attacker_data["territory_spd_bonus"] = te_spd
+
 	# Inject Commander Tactical Orders for human player
 	if pid == get_human_player_id():
 		var orders: Dictionary = get_player_tactical_orders()
@@ -3202,6 +3281,38 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 		# ── 战斗战利品掉落 (v3.5) ──
 		if pid == get_human_player_id():
 			ItemManager.grant_random_loot(pid)
+			# Enhanced Rance 07-style battle drops
+			var drop_roll: float = randf()
+			var drop_chance: float = 0.15  # 15% base
+			# Higher chance vs strongholds/fortresses
+			if tile["type"] == TileType.LIGHT_STRONGHOLD or tile["type"] == TileType.CORE_FORTRESS:
+				drop_chance += 0.15
+			# Higher chance if we have more soldiers killed (tougher fight = better loot)
+			if defender_losses > 10:
+				drop_chance += 0.10
+			if drop_roll < drop_chance:
+				var rare_roll: float = randf()
+				var loot_msg: String = ""
+				if rare_roll < 0.10:
+					# Rare drop: equipment for heroes
+					var rare_items: Array = ["shadow_blade", "iron_shield", "war_banner", "healing_scroll", "siege_ram"]
+					var item_id: String = rare_items[randi() % rare_items.size()]
+					ItemManager.add_item(pid, item_id)
+					loot_msg = "[color=purple]稀有战利品: %s[/color]" % item_id
+				elif rare_roll < 0.40:
+					# Uncommon: strategic resources
+					var res_types: Array = ["magic_crystal", "war_horse", "gunpowder", "shadow_essence"]
+					var res_type: String = res_types[randi() % res_types.size()]
+					var res_amt: int = randi_range(1, 3)
+					ResourceManager.apply_delta(pid, {res_type: res_amt})
+					loot_msg = "[color=blue]战利品: %s ×%d[/color]" % [res_type, res_amt]
+				else:
+					# Common: bonus gold/iron
+					var bonus_gold: int = randi_range(10, 30)
+					var bonus_iron: int = randi_range(3, 10)
+					ResourceManager.apply_delta(pid, {"gold": bonus_gold, "iron": bonus_iron})
+					loot_msg = "战利品: 金+%d, 铁+%d" % [bonus_gold, bonus_iron]
+				EventBus.message_log.emit(loot_msg)
 		EventBus.combat_result.emit(pid, defender_desc, true)
 		return true
 	else:
@@ -4205,6 +4316,51 @@ func action_diplomacy(player_id: int, neutral_faction_id: int) -> bool:
 	return true
 
 
+## Interrogate a captured hero (1 AP) — Rance 07 尋問 system
+func action_interrogate_hero(hero_id: String) -> bool:
+	var pid: int = get_human_player_id()
+	var player: Dictionary = get_player_by_id(pid)
+	if player.get("ap", 0) < 1:
+		EventBus.message_log.emit("行動力不足!")
+		return false
+
+	var result: Dictionary = HeroSystem.interrogate_hero(hero_id)
+	if not result["ok"]:
+		EventBus.message_log.emit(result["result"])
+		return false
+
+	player["ap"] -= 1
+
+	# Apply rewards
+	var rewards: Dictionary = result.get("rewards", {})
+	var delta: Dictionary = {}
+	for key in ["gold", "food", "iron", "prestige"]:
+		if rewards.has(key):
+			delta[key] = rewards[key]
+	if not delta.is_empty():
+		ResourceManager.apply_delta(pid, delta)
+
+	# Special rewards
+	if rewards.has("soldiers"):
+		ResourceManager.add_army(pid, rewards["soldiers"])
+		sync_player_army(pid)
+
+	if rewards.has("reveal_tiles"):
+		var hidden_tiles: Array = []
+		for i in range(tiles.size()):
+			if not tiles[i].get("revealed", {}).get(pid, false):
+				hidden_tiles.append(i)
+		hidden_tiles.shuffle()
+		var reveal_count: int = mini(rewards["reveal_tiles"], hidden_tiles.size())
+		for i in range(reveal_count):
+			tiles[hidden_tiles[i]]["revealed"][pid] = true
+		if reveal_count > 0:
+			EventBus.message_log.emit("揭示了 %d 个未知区域!" % reveal_count)
+
+	EventBus.ap_changed.emit(pid, player["ap"])
+	return true
+
+
 func action_explore(player_id: int, target_tile_index: int) -> bool:
 	## Explore an owned tile. Can trigger events, find items, reveal fog. Costs 1 AP.
 	var player: Dictionary = get_player_by_id(player_id)
@@ -4266,6 +4422,14 @@ func check_win_condition() -> void:
 	var human_faction: int = _player_factions.get(human_id, -1)
 	var human_tiles: int = count_tiles_owned(human_id)
 
+	# ── Defeat: Turn Limit Exceeded (ターン制限) ──
+	if BalanceConfig.TURN_LIMIT > 0 and turn_number > BalanceConfig.TURN_LIMIT:
+		game_active = false
+		EventBus.message_log.emit("[color=red]═══ 回合超限! ═══[/color]")
+		EventBus.message_log.emit("[color=red]暗潮势力未能在%d回合内完成目标, 光明联盟集结反攻![/color]" % BalanceConfig.TURN_LIMIT)
+		EventBus.game_over.emit(-1)
+		return
+
 	# ── Victory Path 1: Conquest (攻占所有光明联盟要塞) ──
 	var total_sh: int = 0
 	var human_sh: int = 0
@@ -4279,6 +4443,13 @@ func check_win_condition() -> void:
 		game_active = false
 		EventBus.message_log.emit("[color=gold]═══ 征服胜利! ═══[/color]")
 		EventBus.message_log.emit("[color=gold]所有光明联盟要塞已被攻占! 暗潮统治大陆![/color]")
+		# Speed clear bonus
+		if BalanceConfig.TURN_LIMIT > 0:
+			var turns_saved: int = maxi(0, BalanceConfig.TURN_LIMIT - turn_number)
+			var speed_bonus: int = turns_saved * BalanceConfig.SPEED_CLEAR_BONUS_PER_TURN
+			if speed_bonus > 0:
+				ResourceManager.apply_delta(human_id, {"prestige": speed_bonus})
+				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
 		return
@@ -4291,6 +4462,13 @@ func check_win_condition() -> void:
 		EventBus.message_log.emit("[color=gold]═══ 支配胜利! ═══[/color]")
 		EventBus.message_log.emit("[color=gold]控制了 %d/%d 个节点 (%.0f%%), 无人可以抵挡暗潮![/color]" % [
 			human_tiles, total_tiles, float(human_tiles) / float(total_tiles) * 100.0])
+		# Speed clear bonus
+		if BalanceConfig.TURN_LIMIT > 0:
+			var turns_saved: int = maxi(0, BalanceConfig.TURN_LIMIT - turn_number)
+			var speed_bonus: int = turns_saved * BalanceConfig.SPEED_CLEAR_BONUS_PER_TURN
+			if speed_bonus > 0:
+				ResourceManager.apply_delta(human_id, {"prestige": speed_bonus})
+				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
 		return
@@ -4320,6 +4498,13 @@ func check_win_condition() -> void:
 		game_active = false
 		EventBus.message_log.emit("[color=purple]═══ 暗影统治! ═══[/color]")
 		EventBus.message_log.emit("[color=purple]威胁值达到极限, 终极兵器已觉醒! 大陆在暗潮中沉沦![/color]")
+		# Speed clear bonus
+		if BalanceConfig.TURN_LIMIT > 0:
+			var turns_saved: int = maxi(0, BalanceConfig.TURN_LIMIT - turn_number)
+			var speed_bonus: int = turns_saved * BalanceConfig.SPEED_CLEAR_BONUS_PER_TURN
+			if speed_bonus > 0:
+				ResourceManager.apply_delta(human_id, {"prestige": speed_bonus})
+				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
 		return
@@ -4330,6 +4515,13 @@ func check_win_condition() -> void:
 		EventBus.message_log.emit("[color=pink]═══ 后宫胜利! ═══[/color]")
 		EventBus.message_log.emit("[color=pink]所有角色都已臣服于你的魅力! 海盗王的后宫建立完成![/color]")
 		EventBus.message_log.emit("[color=pink]大陆上每一位女性都将成为你的收藏...[/color]")
+		# Speed clear bonus
+		if BalanceConfig.TURN_LIMIT > 0:
+			var turns_saved: int = maxi(0, BalanceConfig.TURN_LIMIT - turn_number)
+			var speed_bonus: int = turns_saved * BalanceConfig.SPEED_CLEAR_BONUS_PER_TURN
+			if speed_bonus > 0:
+				ResourceManager.apply_delta(human_id, {"prestige": speed_bonus})
+				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
 		return
@@ -4353,6 +4545,52 @@ func check_win_condition() -> void:
 		game_active = false
 		EventBus.message_log.emit("[color=red]所有暗黑势力已被光明联盟消灭...[/color]")
 		EventBus.game_over.emit(-1)
+
+
+# ═══════════════ TERRITORY EFFECTS (国効果) ═══════════════
+
+func _evaluate_territory_effects(pid: int) -> Dictionary:
+	var result: Dictionary = {}
+	var active_effects: Array = []
+	var owned: Array = get_cached_owned_tiles(pid)
+
+	# Count tiles by type
+	var type_counts: Dictionary = {}
+	for tidx in owned:
+		var ttype: int = tiles[tidx]["type"]
+		type_counts[ttype] = type_counts.get(ttype, 0) + 1
+
+	for effect_id in BalanceConfig.TERRITORY_EFFECTS:
+		var eff: Dictionary = BalanceConfig.TERRITORY_EFFECTS[effect_id]
+		var qualifies: bool = false
+		var multiplier: int = 1
+
+		if eff.get("per_tile", false):
+			# Per-tile effect (e.g., core fortress: each one adds bonus)
+			if effect_id == "core_fortress_control":
+				var count: int = type_counts.get(TileType.CORE_FORTRESS, 0)
+				if count > 0:
+					qualifies = true
+					multiplier = count
+		elif eff.has("required_type"):
+			var req_count: int = eff["required_count"]
+			var actual: int = type_counts.get(eff["required_type"], 0)
+			if actual >= req_count:
+				qualifies = true
+
+		if qualifies:
+			active_effects.append(effect_id)
+			var effects: Dictionary = eff["effect"]
+			for key in effects:
+				if key.ends_with("_pct"):
+					result[key] = result.get(key, 0.0) + float(effects[key]) * multiplier
+				elif effects[key] is bool:
+					result[key] = true
+				else:
+					result[key] = result.get(key, 0) + int(effects[key]) * multiplier
+
+	result["_active_ids"] = active_effects
+	return result
 
 
 # ═══════════════ AI ═══════════════

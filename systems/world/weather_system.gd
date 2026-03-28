@@ -300,11 +300,11 @@ func advance_turn() -> void:
 	if season_turn >= TURNS_PER_SEASON:
 		season_turn = 0
 		var prev_season := current_season
-		current_season = ((current_season as int + 1) % 4) as Season
+		current_season = int((int(current_season) + 1) % 4) as Season
 		season_changed_flag = true
 		var sdata := get_current_season()
 		if EventBus:
-			EventBus.season_changed.emit(current_season as int, sdata)
+			EventBus.season_changed.emit(int(current_season), sdata)
 		if current_season != prev_season:
 			_log("Season changed to %s" % sdata.get("name", ""))
 
@@ -313,7 +313,7 @@ func advance_turn() -> void:
 	current_weather = _roll_weather()
 	var wdata := get_current_weather()
 	if EventBus:
-		EventBus.weather_changed.emit(current_weather as int, wdata)
+		EventBus.weather_changed.emit(int(current_weather), wdata)
 	if current_weather != prev_weather or season_changed_flag:
 		_log("Weather: %s" % wdata.get("name", ""))
 

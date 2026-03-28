@@ -252,9 +252,10 @@ func _refresh() -> void:
 func _refresh_intel_bars() -> void:
 	var intel: int = 0
 	var counter: int = 0
-	if EspionageSystem:
-		intel = EspionageSystem.get_intel(_player_id)
-		counter = EspionageSystem.get_counter_intel(_player_id)
+	var _es = get_tree().root.get_node_or_null("EspionageSystem")
+	if _es:
+		intel = _es.get_intel(_player_id)
+		counter = _es.get_counter_intel(_player_id)
 	intel_label.text = "情报: %d/100" % intel
 	intel_bar_fill.anchor_right = intel / 100.0
 	counter_label.text = "反谍: %d/100" % counter
@@ -267,9 +268,10 @@ func _refresh_cards() -> void:
 
 	var cooldowns: Dictionary = {}
 	var intel: int = 0
-	if EspionageSystem:
-		cooldowns = EspionageSystem.get_operation_cooldowns(_player_id)
-		intel = EspionageSystem.get_intel(_player_id)
+	var _es = get_tree().root.get_node_or_null("EspionageSystem")
+	if _es:
+		cooldowns = _es.get_operation_cooldowns(_player_id)
+		intel = _es.get_intel(_player_id)
 
 	for op_type in EspionageSystem.OPERATION_DEFS:
 		var op_def: Dictionary = EspionageSystem.OPERATION_DEFS[op_type]
@@ -394,8 +396,9 @@ func _on_card_hover(card: PanelContainer, entering: bool) -> void:
 		card.add_theme_stylebox_override("panel", _make_panel_style(CARD_BG, CARD_BORDER, 1))
 
 func _on_invest() -> void:
-	if EspionageSystem:
-		EspionageSystem.invest_in_intel(_player_id, EspionageSystem.INTEL_COST_PER_POINT)
+	var _es = get_tree().root.get_node_or_null("EspionageSystem")
+	if _es:
+		_es.invest_in_intel(_player_id, EspionageSystem.INTEL_COST_PER_POINT)
 		_refresh()
 
 func _on_close() -> void:
@@ -459,8 +462,9 @@ func _on_target_chosen(target: int) -> void:
 	if _pending_op < 0:
 		return
 	_clear_target_popup()
-	if EspionageSystem:
-		var result: Dictionary = EspionageSystem.execute_operation(_player_id, _pending_op, target)
+	var _es = get_tree().root.get_node_or_null("EspionageSystem")
+	if _es:
+		var result: Dictionary = _es.execute_operation(_player_id, _pending_op, target)
 		_add_result_to_log(result)
 	_pending_op = -1
 	_refresh()

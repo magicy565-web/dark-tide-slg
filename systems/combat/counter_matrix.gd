@@ -6,8 +6,8 @@
 ## - Hard counters give +50% damage dealt / -30% damage taken (dominant but beatable with numbers)
 ## - Neutral matchups have no modifier
 ## - Synergy counters: some units TOGETHER counter things neither could alone
-extends RefCounted
 class_name CounterMatrix
+extends RefCounted
 
 ## Troop base types for counter lookup
 ## Maps specific unit_type strings to their base archetype

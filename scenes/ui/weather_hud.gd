@@ -155,7 +155,7 @@ func _build_tooltip() -> void:
 			"cavalry_charge_disabled", "fire_attacks_nullified", "naval_blocked",
 			"ambush_bonus", "attrition_exposed", "food_mult", "supply_convoy_loss_chance"]:
 		var val = w.get(key, 0)
-		var dominated := (val is float and val != 1.0 and val != 0.0) or (val is int and val != 0) or (val is bool and val)
+		var dominated: bool = (val is float and val != 1.0 and val != 0.0) or (val is int and val != 0) or (val is bool and val)
 		if dominated:
 			lines.append("  %s: %s" % [key, str(val)])
 	tooltip_label.text = "\n".join(lines)

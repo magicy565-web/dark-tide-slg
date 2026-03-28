@@ -10,8 +10,8 @@
 ##   REBEL        — 2 rebel uprising troops
 ##   WANDERER     — 3 wandering band troops
 ##   HERO_BOUND   — 10 light hero exclusive troops (NEW)
-extends RefCounted
 class_name TroopRegistry
+extends RefCounted
 
 # ─── Mirror GameData enums as int constants (avoid circular preload) ────────
 # TroopClass ordinals

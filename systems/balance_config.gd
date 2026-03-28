@@ -612,3 +612,69 @@ const EVENT_CHAIN_DELAY_MAX: int = 4
 ## Event consequence escalation
 const EVENT_CHAIN_REWARD_ESCALATION: float = 1.25      # 连锁事件奖励提高25%
 const EVENT_CHAIN_RISK_ESCALATION: float = 1.30        # 连锁事件风险提高30%
+
+# ═══════════════ TERRITORY EFFECTS (国効果 — SR07 aligned) ═══════════════
+
+## Controlling specific tile types grants faction-wide passive bonuses.
+## Format: effect_id -> { "name": String, "desc": String, ... "effect": Dictionary }
+## effect_type can be: "atk_bonus", "def_bonus", "gold_income_pct", "food_income_pct",
+##   "iron_income_pct", "garrison_bonus_pct", "morale_boost", "research_speed_pct",
+##   "spd_bonus", "reveal_all", "threat_decay_bonus", "prestige_per_turn", "pop_bonus"
+const TERRITORY_EFFECTS: Dictionary = {
+	# Core Fortress effects (controlling these is like Rance 07's key provinces)
+	"core_fortress_control": {
+		"name": "要塞掌控", "desc": "每座核心要塞: 全军ATK+1, DEF+1",
+		"per_tile": true, "effect": {"atk_bonus": 1, "def_bonus": 1},
+	},
+	# Tile type effects
+	"mine_network": {
+		"name": "矿脉网络", "desc": "控制3+矿场: 铁产量+30%",
+		"required_type": 3, "required_count": 3,
+		"effect": {"iron_income_pct": 0.30},
+	},
+	"granary_chain": {
+		"name": "粮仓连锁", "desc": "控制3+农场: 粮产量+30%, 兵力上限+5",
+		"required_type": 4, "required_count": 3,
+		"effect": {"food_income_pct": 0.30, "pop_bonus": 5},
+	},
+	"trade_empire": {
+		"name": "贸易帝国", "desc": "控制2+交易站: 金产量+25%",
+		"required_type": 11, "required_count": 2,
+		"effect": {"gold_income_pct": 0.25},
+	},
+	"naval_dominion": {
+		"name": "制海权", "desc": "控制2+港口: 全军SPD+1, 粮+15%",
+		"required_type": 14, "required_count": 2,
+		"effect": {"spd_bonus": 1, "food_income_pct": 0.15},
+	},
+	"watchtower_network": {
+		"name": "瞭望网络", "desc": "控制3+瞭望塔: 视野全开, 威胁-2/回合",
+		"required_type": 12, "required_count": 3,
+		"effect": {"reveal_all": true, "threat_decay_bonus": 2},
+	},
+	"chokepoint_fortress": {
+		"name": "关隘壁垒", "desc": "控制2+关隘: 全据点驻防+20%",
+		"required_type": 15, "required_count": 2,
+		"effect": {"garrison_bonus_pct": 0.20},
+	},
+	"ruins_scholar": {
+		"name": "遗迹学者", "desc": "控制2+遗迹: 研究速度+20%, 探索奖励+1",
+		"required_type": 13, "required_count": 2,
+		"effect": {"research_speed_pct": 0.20, "explore_bonus": 1},
+	},
+	"light_conquest": {
+		"name": "光明征服者", "desc": "控制5+光明据点: 威望+3/回合, 全军士气+10",
+		"required_type": 0, "required_count": 5,
+		"effect": {"prestige_per_turn": 3, "morale_boost": 10},
+	},
+}
+
+# ═══════════════ TURN LIMIT (ターン制限 — SR07 aligned) ═══════════════
+
+## Maximum turns before defeat. Rance 07 has ~50 turns depending on difficulty.
+## 0 = no turn limit (sandbox mode)
+const TURN_LIMIT: int = 60
+## Warning threshold: start showing urgency messages
+const TURN_LIMIT_WARNING: int = 10
+## Bonus scoring for finishing early
+const SPEED_CLEAR_BONUS_PER_TURN: int = 50

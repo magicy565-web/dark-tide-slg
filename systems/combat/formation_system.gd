@@ -1,8 +1,8 @@
 ## formation_system.gd — Formation Synergy & Advanced Battle Tactics (v1.0)
 ## Auto-detects army composition bonuses, formation clashes, and mid-battle combos.
 ## Integrated with EventBus signals for UI/audio hooks.
-extends RefCounted
 class_name FormationSystem
+extends RefCounted
 
 # ─── Formation IDs ───────────────────────────────────────────────────────────
 enum FormationID {

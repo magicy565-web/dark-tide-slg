@@ -937,7 +937,7 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 		var boosted_hero: String = ""
 		# Apply to first recruited hero
 		if HeroSystem.has_method("get_recruited_heroes"):
-			var recruited: Array = HeroSystem.get_recruited_heroes()
+			var recruited: Array = HeroSystem.get_recruited_heroes(pid)
 			if not recruited.is_empty():
 				boosted_hero = recruited[0]
 				if HeroSystem.has_method("modify_hero_stat"):
