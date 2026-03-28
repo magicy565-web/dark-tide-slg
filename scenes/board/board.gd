@@ -11,6 +11,7 @@ var _crest_textures: Dictionary = {}
 var _map_bg_texture: Texture2D = null
 var _map_bg_variants: Array = []  # Alternative background textures
 var _map_decoration_tex: Texture2D = null  # Map decoration sprite sheet
+var _deco_textures: Dictionary = {}  # Extracted decoration sprites by terrain/type
 var _military_icon_tex: Texture2D = null  # Military army icon for 3D markers
 
 func _load_map_assets() -> void:
@@ -25,6 +26,9 @@ func _load_map_assets() -> void:
 	_select_faction_background()
 	# Map decoration sprites
 	_map_decoration_tex = _safe_tex_load("res://assets/map/map_decorations/map_sprites.png")
+	# Individual decoration sprites for inter-tile placement
+	for dname in ["trees", "castle", "dock", "mountains", "village", "crystal", "bridge", "skull_cave", "ruins_arch", "watchtower"]:
+		_deco_textures[dname] = _safe_tex_load("res://assets/map/decorations/%s.png" % dname)
 	# Military icon for army markers
 	_military_icon_tex = _safe_tex_load("res://assets/map/actions/military_army.png")
 	# Terrain textures — prefer HD pixel-art tiles, fall back to simple textures
@@ -1460,70 +1464,45 @@ func _build_inter_tile_decorations() -> void:
 			deco_count += 1
 
 func _place_edge_decoration(pos: Vector3, terrain_a: int, terrain_b: int) -> void:
-	## Place a small decoration appropriate for the terrain transition.
+	## Place a decoration sprite appropriate for the terrain transition.
 	var dominant: int = terrain_a if randf() < 0.6 else terrain_b
+	var deco_key: String = ""
+	var deco_scale: float = 0.4 + randf() * 0.2
 	match dominant:
 		FactionData.TerrainType.FOREST:
-			# Small bush/shrub
-			var bush := MeshInstance3D.new()
-			var sm := SphereMesh.new()
-			sm.radius = 0.08 + randf() * 0.06
-			sm.height = sm.radius * 1.5
-			bush.mesh = sm
-			bush.material_override = _make_mat(Color(0.15 + randf() * 0.08, 0.3 + randf() * 0.12, 0.08))
-			bush.position = pos
-			bush.name = "EdgeDeco"
-			add_child(bush)
+			deco_key = "trees"
 		FactionData.TerrainType.MOUNTAIN, FactionData.TerrainType.VOLCANIC:
-			# Small rock
-			var rock := MeshInstance3D.new()
-			var sm := SphereMesh.new()
-			sm.radius = 0.05 + randf() * 0.04
-			sm.height = sm.radius * 1.2
-			rock.mesh = sm
-			rock.material_override = _make_mat(Color(0.4 + randf() * 0.1, 0.38, 0.35))
-			rock.position = pos
-			rock.scale = Vector3(1.0 + randf() * 0.4, 0.5 + randf() * 0.3, 1.0 + randf() * 0.3)
-			rock.name = "EdgeDeco"
-			add_child(rock)
+			deco_key = "mountains"
 		FactionData.TerrainType.WASTELAND, FactionData.TerrainType.RUINS:
-			# Bone/debris
-			var debris := _make_box_mesh(
-				Vector3(0.06 + randf() * 0.04, 0.02, 0.02),
-				Color(0.6 + randf() * 0.15, 0.55, 0.45))
-			debris.position = pos
-			debris.rotation.y = randf() * TAU
-			debris.name = "EdgeDeco"
-			add_child(debris)
-		FactionData.TerrainType.SWAMP, FactionData.TerrainType.RIVER, FactionData.TerrainType.COASTAL:
-			# Small puddle/water patch
-			var puddle := MeshInstance3D.new()
-			var cm := CylinderMesh.new()
-			cm.top_radius = 0.1 + randf() * 0.08
-			cm.bottom_radius = cm.top_radius
-			cm.height = 0.01
-			cm.radial_segments = 8
-			puddle.mesh = cm
-			var pm := StandardMaterial3D.new()
-			pm.albedo_color = Color(0.1, 0.25, 0.45, 0.5)
-			pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			pm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			puddle.material_override = pm
-			puddle.position = pos
-			puddle.name = "EdgeDeco"
-			add_child(puddle)
+			deco_key = "ruins_arch" if randf() < 0.4 else "skull_cave"
+		FactionData.TerrainType.SWAMP, FactionData.TerrainType.RIVER:
+			deco_key = "bridge"
+		FactionData.TerrainType.COASTAL:
+			deco_key = "dock"
+		FactionData.TerrainType.FORTRESS_WALL:
+			deco_key = "watchtower"
 		_:
-			# Grass tuft for plains and generic terrain
-			var tuft := MeshInstance3D.new()
-			var sm := SphereMesh.new()
-			sm.radius = 0.04 + randf() * 0.03
-			sm.height = sm.radius * 1.4
-			tuft.mesh = sm
-			tuft.material_override = _make_mat(Color(0.3 + randf() * 0.1, 0.45 + randf() * 0.1, 0.2))
-			tuft.position = pos
-			tuft.scale = Vector3(1, 0.4, 1)
-			tuft.name = "EdgeDeco"
-			add_child(tuft)
+			deco_key = "trees"
+			deco_scale = 0.3 + randf() * 0.15
+	var tex: Texture2D = _deco_textures.get(deco_key)
+	if tex:
+		var spr := Sprite3D.new()
+		spr.texture = tex
+		spr.pixel_size = 0.002 * deco_scale
+		spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		spr.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		spr.transparent = true
+		spr.position = pos + Vector3(0, 0.15 * deco_scale, 0)
+		spr.name = "EdgeDeco"
+		add_child(spr)
+	else:
+		var fb := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.06 + randf() * 0.04; sm.height = sm.radius * 1.4
+		fb.mesh = sm
+		fb.material_override = _make_mat(Color(0.25, 0.35, 0.2))
+		fb.position = pos; fb.name = "EdgeDeco"
+		add_child(fb)
 
 # ═══════════════ AMBIENT PARTICLES ═══════════════
 func _setup_ambient_particles() -> void:
