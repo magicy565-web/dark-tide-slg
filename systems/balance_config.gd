@@ -613,6 +613,117 @@ const EVENT_CHAIN_DELAY_MAX: int = 4
 const EVENT_CHAIN_REWARD_ESCALATION: float = 1.25      # 连锁事件奖励提高25%
 const EVENT_CHAIN_RISK_ESCALATION: float = 1.30        # 连锁事件风险提高30%
 
+# ═══════════════ TIMED STORY WINDOWS (限时剧情窗口 — SR07 aligned) ═══════════════
+## Sengoku Rance-style timed events: miss the turn window, miss the content.
+## Each entry: id, title, turn_range, conditions, rewards, narrative_text,
+##   miss_consequence, priority (1-3, higher = more important).
+## Condition keys: tile_control (int), army_strength (int), prestige_min (int),
+##   hero_required (String), faction_state (String), tile_type_count (dict),
+##   resource_min (dict), espionage_level (int), tile_index_owned (int).
+
+const TIMED_STORY_WINDOWS: Array = [
+	{
+		"id": "merchant_caravan",
+		"title": "商队来访",
+		"turn_range": [5, 10],
+		"conditions": {},
+		"rewards": {"gold": 60, "food": 20},
+		"narrative_text": "一支来自远方的商队途经你的领地，带来了丰厚的贸易品。",
+		"miss_consequence": {"type": "nothing"},
+		"priority": 1,
+	},
+	{
+		"id": "border_refugees",
+		"title": "边境流民",
+		"turn_range": [8, 15],
+		"conditions": {"tile_control": 5},
+		"rewards": {"soldiers": 8, "food": 30},
+		"narrative_text": "战火波及边境，大批流民涌入你的领地寻求庇护。收容他们可以充实军力。",
+		"miss_consequence": {"type": "enemy_buff", "buff_type": "atk_pct", "value": 5, "duration": 5, "desc": "流民投靠敌方，敌军ATK+5% 5回合"},
+		"priority": 2,
+	},
+	{
+		"id": "ancient_ruins_expedition",
+		"title": "远古遗迹探险",
+		"turn_range": [12, 20],
+		"conditions": {"tile_index_owned": 27},
+		"rewards": {"prestige": 25, "troop_unlock": "ruins_guardian"},
+		"narrative_text": "在第27号地块发现了远古遗迹入口。派遣精锐探索，可能解锁失落的守卫兵种。",
+		"miss_consequence": {"type": "enemy_buff", "buff_type": "def_pct", "value": 10, "duration": 8, "desc": "敌方先一步探索遗迹，获得守卫兵种，DEF+10% 8回合"},
+		"priority": 3,
+	},
+	{
+		"id": "alliance_proposal",
+		"title": "同盟提案",
+		"turn_range": [10, 18],
+		"conditions": {"prestige_min": 100},
+		"rewards": {"hero_recruit": "wandering_knight", "gold": 100},
+		"narrative_text": "你的威望远播，一位流浪骑士慕名而来，愿意为你效力，并带来了一笔可观的赞助金。",
+		"miss_consequence": {"type": "hero_lost", "desc": "流浪骑士转投敌方阵营"},
+		"priority": 3,
+	},
+	{
+		"id": "dark_ritual_warning",
+		"title": "暗黑仪式预警",
+		"turn_range": [20, 30],
+		"conditions": {"espionage_level": 2},
+		"rewards": {"prestige": 20, "gold": 50, "enemy_debuff": {"type": "atk_pct", "value": -10, "duration": 5}},
+		"narrative_text": "间谍网络截获情报：敌方正在筹备大规模暗黑仪式。提前干预可以削弱其力量。",
+		"miss_consequence": {"type": "enemy_buff", "buff_type": "atk_pct", "value": 20, "duration": 10, "desc": "暗黑仪式完成，敌军ATK+20% 10回合"},
+		"priority": 3,
+	},
+	{
+		"id": "harvest_festival",
+		"title": "丰收祭典",
+		"turn_range": [15, 25],
+		"conditions": {"tile_type_count": {"type": 4, "count": 3}},
+		"rewards": {"food": 80, "gold": 40, "order": 10},
+		"narrative_text": "农场连年丰收，百姓欢庆丰收祭典。举国上下士气高涨，粮仓满溢。",
+		"miss_consequence": {"type": "resource_loss", "food": -30, "desc": "错过丰收季，粮草减少30"},
+		"priority": 2,
+	},
+	{
+		"id": "weapon_smiths_offer",
+		"title": "锻造大师来访",
+		"turn_range": [18, 28],
+		"conditions": {"tile_type_count": {"type": 3, "count": 2}, "resource_min": {"iron": 100}},
+		"rewards": {"iron": -50, "army_atk_buff": {"type": "atk_pct", "value": 10, "duration": 10}},
+		"narrative_text": "一位传奇锻造大师途经你的领地，愿以精铁为材，为全军锻造利刃。",
+		"miss_consequence": {"type": "nothing"},
+		"priority": 2,
+	},
+	{
+		"id": "final_prophecy",
+		"title": "终焉预言",
+		"turn_range": [40, 50],
+		"conditions": {"tile_control": 30},
+		"rewards": {"prestige": 80, "troop_unlock": "prophecy_vanguard"},
+		"narrative_text": "先知现身，宣告终焉之战的预言。只有控制足够疆域的霸者，才能获得天命之兵。",
+		"miss_consequence": {"type": "enemy_buff", "buff_type": "atk_pct", "value": 25, "duration": 15, "desc": "预言应验于敌方，敌军获得终焉之力，ATK+25% 15回合"},
+		"priority": 3,
+	},
+	{
+		"id": "pirate_king_negotiation",
+		"title": "海盗王谈判",
+		"turn_range": [12, 22],
+		"conditions": {"tile_type_count": {"type": 14, "count": 2}},
+		"rewards": {"gold": 80, "troop_unlock": "corsair_fleet"},
+		"narrative_text": "海盗王派遣使者前来谈判。控制港口的你有资格与其交涉，换取海上力量。",
+		"miss_consequence": {"type": "resource_loss", "gold": -40, "food": -20, "desc": "海盗王发动突袭，掠夺金40粮20"},
+		"priority": 2,
+	},
+	{
+		"id": "scholar_conclave",
+		"title": "学者议会",
+		"turn_range": [25, 35],
+		"conditions": {"prestige_min": 200},
+		"rewards": {"research_bonus": 50, "hero_xp": 30},
+		"narrative_text": "各地学者齐聚你的领地，召开学术盛会。你的威望吸引了最杰出的智者。",
+		"miss_consequence": {"type": "nothing"},
+		"priority": 1,
+	},
+]
+
 # ═══════════════ TERRITORY EFFECTS (国効果 — SR07 aligned) ═══════════════
 
 ## Controlling specific tile types grants faction-wide passive bonuses.
@@ -668,6 +779,135 @@ const TERRITORY_EFFECTS: Dictionary = {
 		"effect": {"prestige_per_turn": 3, "morale_boost": 10},
 	},
 }
+
+# ═══════════════ HIDDEN HEROES (秘密英雄 — SR07 aligned) ═══════════════
+
+## Hidden heroes unlockable through specific in-game conditions.
+## unlock_type: tile_capture | turn_and_tiles | corruption_check | tile_type_count |
+##              battle_count | prestige | compound | tile_set
+## hero_template: stats used to create the hero when discovered.
+const HIDDEN_HEROES: Array = [
+	{
+		"id": "shadow_blade",
+		"name": "影刃·零",
+		"unlock_type": "tile_capture",
+		"unlock_params": {"tile_index": 27},
+		"hero_template": {
+			"atk": 9, "def": 4, "spd": 10, "hp": 22, "int": 6,
+			"troop_type": "assassin",
+			"active": "shadow_strike",
+			"passive": "stealth",
+			"capture_chance": 0.0,
+		},
+		"reveal_message": "遗迹深处的封印被打破，一道黑影掠过——影刃·零现身效忠!",
+		"hint": "据说某处遗迹封印着一位上古刺客……",
+	},
+	{
+		"id": "ancient_sage",
+		"name": "太古贤者·摩根",
+		"unlock_type": "turn_and_tiles",
+		"unlock_params": {"min_turn": 20, "min_tiles": 15},
+		"hero_template": {
+			"atk": 3, "def": 6, "spd": 4, "hp": 18, "int": 12,
+			"troop_type": "mage",
+			"active": "arcane_storm",
+			"passive": "wisdom_aura",
+			"capture_chance": 0.0,
+		},
+		"reveal_message": "你的征服引起了太古贤者的注意——摩根从隐居中现身，愿为你出谋划策!",
+		"hint": "传闻一位隐世贤者只在霸业初成时现身……",
+	},
+	{
+		"id": "fallen_knight",
+		"name": "堕落骑士·加隆",
+		"unlock_type": "corruption_check",
+		"unlock_params": {"min_corruption": 40},
+		"hero_template": {
+			"atk": 8, "def": 8, "spd": 5, "hp": 28, "int": 3,
+			"troop_type": "heavy_cavalry",
+			"active": "dark_charge",
+			"passive": "unyielding",
+			"capture_chance": 0.0,
+		},
+		"reveal_message": "深渊的腐化吸引了一位堕落骑士——加隆拖着残破的战旗前来投奔!",
+		"hint": "黑暗的力量或许能唤醒沉眠的亡魂骑士……",
+	},
+	{
+		"id": "sea_phantom",
+		"name": "海幽灵·莉薇娅",
+		"unlock_type": "tile_type_count",
+		"unlock_params": {"tile_type": 14, "min_count": 3},
+		"hero_template": {
+			"atk": 7, "def": 5, "spd": 9, "hp": 20, "int": 7,
+			"troop_type": "pirate",
+			"active": "tidal_wave",
+			"passive": "sea_legs",
+			"capture_chance": 0.0,
+		},
+		"reveal_message": "制海权的确立引来了传说中的海幽灵——莉薇娅的幽灵船靠岸了!",
+		"hint": "掌控足够多的港口，或许能召唤海上的传说……",
+	},
+	{
+		"id": "iron_general",
+		"name": "铁壁将军·赫尔曼",
+		"unlock_type": "battle_count",
+		"unlock_params": {"min_battles_won": 10},
+		"hero_template": {
+			"atk": 7, "def": 10, "spd": 3, "hp": 32, "int": 5,
+			"troop_type": "heavy_infantry",
+			"active": "iron_wall",
+			"passive": "fortify",
+			"capture_chance": 0.0,
+		},
+		"reveal_message": "你的赫赫战功传遍大陆——铁壁将军赫尔曼慕名来投!",
+		"hint": "身经百战的指挥官才能赢得铁壁将军的尊重……",
+	},
+	{
+		"id": "dark_priestess",
+		"name": "暗黑祭司·赛琳娜",
+		"unlock_type": "prestige",
+		"unlock_params": {"min_prestige": 300},
+		"hero_template": {
+			"atk": 5, "def": 6, "spd": 6, "hp": 20, "int": 11,
+			"troop_type": "priest",
+			"active": "dark_ritual",
+			"passive": "life_drain",
+			"capture_chance": 0.0,
+		},
+		"reveal_message": "你的威望震动了暗界——暗黑祭司赛琳娜奉上效忠之礼!",
+		"hint": "积累足够的威望，暗界的信徒自会前来朝拜……",
+	},
+	{
+		"id": "twin_assassins",
+		"name": "双子刺客·影与风",
+		"unlock_type": "compound",
+		"unlock_params": {"min_intel": 60, "tile_index": 42},
+		"hero_template": {
+			"atk": 10, "def": 3, "spd": 11, "hp": 16, "int": 8,
+			"troop_type": "ninja",
+			"active": "twin_blade_dance",
+			"passive": "evasion",
+			"capture_chance": 0.0,
+		},
+		"reveal_message": "情报网触及了暗影之地——双子刺客影与风从黑暗中现身!",
+		"hint": "完善的情报网络加上特定据点的控制，能找到隐藏的刺客组织……",
+	},
+	{
+		"id": "dragon_rider",
+		"name": "龙骑士·阿尔贡",
+		"unlock_type": "tile_set",
+		"unlock_params": {"terrain_type": 2, "require_all": false, "min_count": 4},
+		"hero_template": {
+			"atk": 11, "def": 7, "spd": 8, "hp": 30, "int": 5,
+			"troop_type": "dragon_rider",
+			"active": "dragon_breath",
+			"passive": "flying",
+			"capture_chance": 0.0,
+		},
+		"reveal_message": "群山之巅传来龙吟——你对山脉的统治唤醒了龙骑士阿尔贡!",
+		"hint": "征服足够多的山地领域，或许能惊醒沉睡的巨龙……",
+	},
+]
 
 # ═══════════════ TURN LIMIT (ターン制限 — SR07 aligned) ═══════════════
 

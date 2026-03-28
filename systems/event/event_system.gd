@@ -58,6 +58,8 @@ func reset() -> void:
 	_world_event_triggered_ids.clear()
 	_event_chain_history.clear()
 	_pending_chain_events.clear()
+	_active_story_windows.clear()
+	_story_window_notifications.clear()
 
 
 # ═══════════════ EVENT REGISTRATION ═══════════════
@@ -1014,6 +1016,308 @@ func _apply_reveal(player_id: int, count: int) -> void:
 		EventBus.message_log.emit("揭示了 %d 格迷雾" % revealed_count)
 
 
+# ═══════════════ TIMED STORY WINDOWS (限時劇情窗口) ═══════════════
+# Sengoku Rance-style timed events: miss the turn window, miss the content.
+# Status: "pending" → "triggered" (rewards applied) or "expired" (miss applied).
+
+var _active_story_windows: Dictionary = {}  # window_id -> { "status": String, "triggered_turn": int }
+var _story_window_notifications: Array = []  # pending notifications for UI
+
+
+func _init_story_windows() -> void:
+	## Initialize all timed story windows as pending.
+	_active_story_windows.clear()
+	for w in BalanceConfig.TIMED_STORY_WINDOWS:
+		_active_story_windows[w["id"]] = {"status": "pending", "triggered_turn": -1}
+
+
+func check_timed_story_windows(player_id: int, current_turn: int) -> void:
+	## Check all timed story windows. Trigger eligible ones, expire missed ones.
+	if _active_story_windows.is_empty():
+		_init_story_windows()
+
+	for w in BalanceConfig.TIMED_STORY_WINDOWS:
+		var wid: String = w["id"]
+		var status: String = _active_story_windows.get(wid, {}).get("status", "pending")
+		if status != "pending":
+			continue
+
+		var turn_min: int = w["turn_range"][0]
+		var turn_max: int = w["turn_range"][1]
+
+		# Window expired — apply miss consequence
+		if current_turn > turn_max:
+			_apply_miss_consequence(player_id, w)
+			_active_story_windows[wid] = {"status": "expired", "triggered_turn": current_turn}
+			_story_window_notifications.append({
+				"type": "expired",
+				"id": wid,
+				"title": w["title"],
+				"desc": w.get("miss_consequence", {}).get("desc", "窗口已过期"),
+				"priority": w.get("priority", 1),
+			})
+			EventBus.message_log.emit("[color=red][限时事件过期] %s — %s[/color]" % [
+				w["title"], w.get("miss_consequence", {}).get("desc", "机会已失")])
+			continue
+
+		# Not yet in window
+		if current_turn < turn_min:
+			continue
+
+		# In window — check conditions
+		if not _check_story_window_conditions(player_id, w.get("conditions", {})):
+			continue
+
+		# All conditions met — trigger the window
+		_apply_story_window_rewards(player_id, w)
+		_active_story_windows[wid] = {"status": "triggered", "triggered_turn": current_turn}
+		_story_window_notifications.append({
+			"type": "triggered",
+			"id": wid,
+			"title": w["title"],
+			"desc": w.get("narrative_text", ""),
+			"priority": w.get("priority", 1),
+		})
+		EventBus.message_log.emit("[color=green][限时事件触发] %s[/color]" % w["title"])
+		if EventBus.has_signal("show_event_popup"):
+			EventBus.show_event_popup.emit(w["title"], w.get("narrative_text", ""), [])
+
+
+func get_story_window_status() -> Dictionary:
+	## Returns current status of all timed story windows.
+	return _active_story_windows.duplicate(true)
+
+
+func get_pending_story_notifications() -> Array:
+	## Returns and clears pending story window notifications.
+	var result: Array = _story_window_notifications.duplicate(true)
+	_story_window_notifications.clear()
+	return result
+
+
+func get_active_windows_hint(current_turn: int) -> Array:
+	## Returns vague hints about currently available windows (creates urgency).
+	var hints: Array = []
+	for w in BalanceConfig.TIMED_STORY_WINDOWS:
+		var wid: String = w["id"]
+		var status: String = _active_story_windows.get(wid, {}).get("status", "pending")
+		if status != "pending":
+			continue
+		var turn_min: int = w["turn_range"][0]
+		var turn_max: int = w["turn_range"][1]
+		# Only hint about windows that are active or imminent (within 3 turns)
+		if current_turn >= turn_min and current_turn <= turn_max:
+			var remaining: int = turn_max - current_turn
+			var urgency: String = "充裕" if remaining > 5 else ("紧迫" if remaining > 2 else "即将过期")
+			hints.append({
+				"priority": w.get("priority", 1),
+				"hint": _get_vague_hint(w),
+				"urgency": urgency,
+				"turns_remaining": remaining,
+			})
+		elif current_turn >= turn_min - 3 and current_turn < turn_min:
+			hints.append({
+				"priority": w.get("priority", 1),
+				"hint": "隐约感到有事即将发生...",
+				"urgency": "预兆",
+				"turns_remaining": turn_max - current_turn,
+			})
+	# Sort by priority descending
+	hints.sort_custom(func(a, b): return a["priority"] > b["priority"])
+	return hints
+
+
+func _get_vague_hint(window: Dictionary) -> String:
+	## Generate a vague hint for a timed window without spoiling details.
+	var wid: String = window["id"]
+	match wid:
+		"merchant_caravan":
+			return "远方传来商队的铃铛声..."
+		"border_refugees":
+			return "边境隐约传来求救的呼声..."
+		"ancient_ruins_expedition":
+			return "某处遗迹散发着古老的气息..."
+		"alliance_proposal":
+			return "一位实力强大的武者似乎在关注你..."
+		"dark_ritual_warning":
+			return "暗影中涌动着不祥的能量..."
+		"harvest_festival":
+			return "田野中弥漫着丰收的气息..."
+		"weapon_smiths_offer":
+			return "锻造的火焰在远方闪耀..."
+		"final_prophecy":
+			return "天际出现了奇异的星象..."
+		"pirate_king_negotiation":
+			return "海面上出现了海盗王的旗帜..."
+		"scholar_conclave":
+			return "各地学者似乎在筹备一场盛会..."
+	return "命运的齿轮正在转动..."
+
+
+# ── Timed Story Window Condition Helpers ──
+
+func _check_story_window_conditions(player_id: int, conditions: Dictionary) -> bool:
+	## Check all conditions for a timed story window. Returns true if ALL are met.
+	if conditions.is_empty():
+		return true
+
+	for key in conditions:
+		match key:
+			"tile_control":
+				if _count_player_tiles(player_id) < conditions[key]:
+					return false
+			"army_strength":
+				if ResourceManager.get_army(player_id) < conditions[key]:
+					return false
+			"prestige_min":
+				if ResourceManager.get_resource(player_id, "prestige") < conditions[key]:
+					return false
+			"hero_required":
+				if not HeroSystem.has_method("is_hero_recruited"):
+					return false
+				if not HeroSystem.is_hero_recruited(conditions[key]):
+					return false
+			"faction_state":
+				if not FactionManager.has_method("get_faction_state"):
+					return false
+				if FactionManager.get_faction_state(player_id) != conditions[key]:
+					return false
+			"tile_type_count":
+				var req: Dictionary = conditions[key]
+				var req_type: int = req.get("type", -1)
+				var req_count: int = req.get("count", 1)
+				if _count_player_tiles_of_type(player_id, req_type) < req_count:
+					return false
+			"resource_min":
+				var res_reqs: Dictionary = conditions[key]
+				for res_key in res_reqs:
+					if ResourceManager.get_resource(player_id, res_key) < res_reqs[res_key]:
+						return false
+			"espionage_level":
+				# Check via spy/intel system; fallback to prestige-based approximation
+				var esp_level: int = 0
+				if GameManager.has_method("get_espionage_level"):
+					esp_level = GameManager.get_espionage_level(player_id)
+				else:
+					# Approximate: prestige / 50 as espionage tier
+					esp_level = int(ResourceManager.get_resource(player_id, "prestige") / 50)
+				if esp_level < conditions[key]:
+					return false
+			"tile_index_owned":
+				var tidx: int = conditions[key]
+				if tidx < 0 or tidx >= GameManager.tiles.size():
+					return false
+				if GameManager.tiles[tidx].get("owner_id", -1) != player_id:
+					return false
+	return true
+
+
+func _count_player_tiles(player_id: int) -> int:
+	var count: int = 0
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) == player_id:
+			count += 1
+	return count
+
+
+func _count_player_tiles_of_type(player_id: int, tile_type: int) -> int:
+	var count: int = 0
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) == player_id and tile.get("type", -1) == tile_type:
+			count += 1
+	return count
+
+
+# ── Timed Story Window Reward Application ──
+
+func _apply_story_window_rewards(player_id: int, window: Dictionary) -> void:
+	var rewards: Dictionary = window.get("rewards", {})
+	var res_delta: Dictionary = {}
+
+	for key in rewards:
+		match key:
+			"gold", "food", "iron", "prestige":
+				res_delta[key] = rewards[key]
+			"soldiers":
+				if rewards[key] > 0:
+					ResourceManager.add_army(player_id, rewards[key])
+				else:
+					ResourceManager.remove_army(player_id, -rewards[key])
+				EventBus.message_log.emit("[color=green]  奖励: 兵力%+d[/color]" % rewards[key])
+			"order":
+				OrderManager.change_order(rewards[key])
+				EventBus.message_log.emit("[color=green]  奖励: 秩序%+d[/color]" % rewards[key])
+			"hero_recruit":
+				EventBus.message_log.emit("[color=green]  奖励: 英雄 %s 加入![/color]" % rewards[key])
+				if HeroSystem.has_method("force_recruit_hero"):
+					HeroSystem.force_recruit_hero(player_id, rewards[key])
+			"troop_unlock":
+				EventBus.message_log.emit("[color=green]  奖励: 解锁兵种 %s![/color]" % rewards[key])
+				if RecruitManager.has_method("unlock_troop"):
+					RecruitManager.unlock_troop(player_id, rewards[key])
+			"army_atk_buff":
+				var buff: Dictionary = rewards[key]
+				BuffManager.add_buff(player_id, "story_%s" % window["id"], buff.get("type", "atk_pct"), buff.get("value", 0), buff.get("duration", 5), "story_window")
+				EventBus.message_log.emit("[color=green]  奖励: 全军ATK+%d%% %d回合[/color]" % [buff.get("value", 0), buff.get("duration", 5)])
+			"enemy_debuff":
+				var debuff: Dictionary = rewards[key]
+				var ai_ids: Array = GameManager.get_ai_player_ids() if GameManager.has_method("get_ai_player_ids") else []
+				for ai_id in ai_ids:
+					BuffManager.add_buff(ai_id, "story_debuff_%s" % window["id"], debuff.get("type", "atk_pct"), debuff.get("value", 0), debuff.get("duration", 5), "story_window")
+				EventBus.message_log.emit("[color=green]  奖励: 敌军被削弱![/color]")
+			"research_bonus":
+				if ResearchManager.has_method("add_bonus_points"):
+					ResearchManager.add_bonus_points(rewards[key])
+				else:
+					# Fallback: grant prestige equivalent
+					res_delta["prestige"] = res_delta.get("prestige", 0) + int(rewards[key] / 2)
+				EventBus.message_log.emit("[color=green]  奖励: 研究进度+%d[/color]" % rewards[key])
+			"hero_xp":
+				if HeroSystem.has_method("grant_xp_all"):
+					HeroSystem.grant_xp_all(player_id, rewards[key])
+				EventBus.message_log.emit("[color=green]  奖励: 全英雄经验+%d[/color]" % rewards[key])
+
+	if not res_delta.is_empty():
+		ResourceManager.apply_delta(player_id, res_delta)
+		var parts: Array = []
+		for k in res_delta:
+			parts.append("%s%+d" % [k, res_delta[k]])
+		EventBus.message_log.emit("[color=green]  奖励: %s[/color]" % ", ".join(parts))
+
+
+# ── Timed Story Window Miss Consequence Application ──
+
+func _apply_miss_consequence(player_id: int, window: Dictionary) -> void:
+	var consequence: Dictionary = window.get("miss_consequence", {})
+	var ctype: String = consequence.get("type", "nothing")
+
+	match ctype:
+		"nothing":
+			pass
+		"enemy_buff":
+			var ai_ids: Array = GameManager.get_ai_player_ids() if GameManager.has_method("get_ai_player_ids") else []
+			for ai_id in ai_ids:
+				BuffManager.add_buff(ai_id, "missed_%s" % window["id"],
+					consequence.get("buff_type", "atk_pct"),
+					consequence.get("value", 10),
+					consequence.get("duration", 5),
+					"story_window_miss")
+		"resource_loss":
+			var res_delta: Dictionary = {}
+			for key in ["gold", "food", "iron", "prestige"]:
+				if consequence.has(key):
+					res_delta[key] = consequence[key]
+			if not res_delta.is_empty():
+				ResourceManager.apply_delta(player_id, res_delta)
+		"hero_lost":
+			EventBus.message_log.emit("[color=red]  %s[/color]" % consequence.get("desc", "英雄流失"))
+			# Apply a compensatory enemy buff (the hero strengthens them)
+			var ai_ids: Array = GameManager.get_ai_player_ids() if GameManager.has_method("get_ai_player_ids") else []
+			for ai_id in ai_ids:
+				BuffManager.add_buff(ai_id, "missed_hero_%s" % window["id"],
+					"atk_pct", 5, 8, "story_window_miss")
+
+
 # ═══════════════ SAVE / LOAD ═══════════════
 
 func to_save_data() -> Dictionary:
@@ -1028,6 +1332,7 @@ func to_save_data() -> Dictionary:
 		"event_cooldowns": _event_cooldowns.duplicate(true),
 		"event_chain_history": _event_chain_history.duplicate(true),
 		"pending_chain_events": _pending_chain_events.duplicate(true),
+		"active_story_windows": _active_story_windows.duplicate(true),
 	}
 
 
@@ -1042,5 +1347,7 @@ func from_save_data(data: Dictionary) -> void:
 	_event_cooldowns = data.get("event_cooldowns", {}).duplicate(true)
 	_event_chain_history = data.get("event_chain_history", {}).duplicate(true)
 	_pending_chain_events = data.get("pending_chain_events", []).duplicate(true)
+	_active_story_windows = data.get("active_story_windows", {}).duplicate(true)
+	_story_window_notifications.clear()
 	# Re-register world events from data file so check_world_events() works
 	register_world_events()

@@ -32,6 +32,12 @@ var _second_skills: Dictionary = {}
 # ── Gift cooldowns (per hero, 1/turn) ──
 var _gift_cooldowns: Dictionary = {}  # hero_id -> int (remaining turns)
 
+# ── Hidden Heroes (秘密英雄) state ──
+var _discovered_hidden_heroes: Array = []     # hero_id strings already discovered
+var _hidden_hero_notifications: Array = []    # pending reveal notifications
+var _battles_won_count: int = 0               # total battles won (for iron_general unlock)
+var _hidden_hero_data: Dictionary = {}        # hero_id -> hero data dict (runtime registry)
+
 
 func reset() -> void:
 	captured_heroes.clear()
@@ -47,6 +53,10 @@ func reset() -> void:
 	_capture_in_progress.clear()
 	_second_skills.clear()
 	_gift_cooldowns.clear()
+	_discovered_hidden_heroes.clear()
+	_hidden_hero_notifications.clear()
+	_battles_won_count = 0
+	_hidden_hero_data.clear()
 
 
 ## Called when pirate faction is selected. Enables harem mechanics.
@@ -75,7 +85,7 @@ func attempt_capture(hero_id: String, capture_chance: float = -1.0) -> bool:
 		return false
 	# Use hero's default capture chance if not overridden
 	if capture_chance < 0.0:
-		var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+		var hero_data: Dictionary = _get_hero_data(hero_id)
 		capture_chance = hero_data.get("capture_chance", 0.5)
 	# Pirate capture bonus
 	if _pirate_mode:
@@ -157,7 +167,7 @@ func release_hero(hero_id: String) -> bool:
 func interrogate_hero(hero_id: String) -> Dictionary:
 	if hero_id not in captured_heroes:
 		return {"ok": false, "result": "未被俘虏"}
-	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+	var hero_data: Dictionary = _get_hero_data(hero_id)
 	var corruption: int = hero_corruption.get(hero_id, 0)
 
 	# Interrogation outcomes based on corruption level
@@ -255,7 +265,7 @@ func get_recruited_heroes(_player_id: int) -> Array:
 	## The _player_id parameter is kept for API compatibility.
 	var result: Array = []
 	for hid in recruited_heroes:
-		var hero: Dictionary = FactionData.HEROES.get(hid, {})
+		var hero: Dictionary = _get_hero_data(hid)
 		if not hero.is_empty():
 			result.append(hid)
 	return result
@@ -301,7 +311,7 @@ func recruit_hero(hero_id: String) -> bool:
 
 ## Get hero battle stats (commander stats for combat system)
 func get_hero_combat_stats(hero_id: String) -> Dictionary:
-	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+	var hero_data: Dictionary = _get_hero_data(hero_id)
 	if hero_data.is_empty():
 		push_warning("HeroSystem: get_hero_combat_stats called with unknown hero_id='%s'" % hero_id)
 		return {}
@@ -498,7 +508,7 @@ func is_skill_ready(hero_id: String) -> bool:
 
 func use_skill(hero_id: String) -> void:
 	## Mark a skill as used, putting it on cooldown.
-	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+	var hero_data: Dictionary = _get_hero_data(hero_id)
 	var skill_name: String = hero_data.get("active", "")
 	var skill_def: Dictionary = FactionData.HERO_SKILL_DEFS.get(skill_name, {})
 	var cooldown: int = skill_def.get("cooldown", 3)
@@ -507,7 +517,7 @@ func use_skill(hero_id: String) -> void:
 
 func get_hero_skill_data(hero_id: String) -> Dictionary:
 	## Returns full skill data for a recruited hero, including readiness.
-	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+	var hero_data: Dictionary = _get_hero_data(hero_id)
 	var skill_name: String = hero_data.get("active", "")
 	if skill_name == "":
 		return {}
@@ -544,7 +554,7 @@ func apply_skill_in_combat(hero_id: String) -> Dictionary:
 	## Calculates and returns the combat effect of using this hero's active skill.
 	## Returns { "type": str, "value": float, "buff_type": str, "duration": int, "desc": str }
 	## Caller is responsible for applying the effect to combat state.
-	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+	var hero_data: Dictionary = _get_hero_data(hero_id)
 	var skill_name: String = hero_data.get("active", "")
 	var skill_def: Dictionary = FactionData.HERO_SKILL_DEFS.get(skill_name, {})
 	if skill_def.is_empty():
@@ -675,7 +685,7 @@ func get_gift_options(hero_id: String) -> Array:
 	## Returns available gifts with cost and whether preferred.
 	var options: Array = []
 	var pid: int = GameManager.get_human_player_id()
-	var preferred: String = FactionData.HEROES.get(hero_id, {}).get("preferred_gift", "")
+	var preferred: String = _get_hero_data(hero_id).get("preferred_gift", "")
 	for gift_id in FactionData.GIFT_TYPES:
 		var gt: Dictionary = FactionData.GIFT_TYPES[gift_id]
 		var can_afford: bool = ResourceManager.can_afford(pid, {"gold": gt["cost"]})
@@ -706,7 +716,7 @@ func give_gift(hero_id: String, gift_id: String) -> Dictionary:
 
 	ResourceManager.spend(pid, {"gold": gt["cost"]})
 	var gain: int = gt["affection"]
-	var preferred: String = FactionData.HEROES.get(hero_id, {}).get("preferred_gift", "")
+	var preferred: String = _get_hero_data(hero_id).get("preferred_gift", "")
 	if gift_id == preferred:
 		gain += FactionData.GIFT_PREFERRED_BONUS
 
@@ -723,7 +733,7 @@ func give_gift(hero_id: String, gift_id: String) -> Dictionary:
 
 
 func is_preferred_gift(hero_id: String, gift_id: String) -> bool:
-	return FactionData.HEROES.get(hero_id, {}).get("preferred_gift", "") == gift_id
+	return _get_hero_data(hero_id).get("preferred_gift", "") == gift_id
 
 
 func tick_gift_cooldowns() -> void:
@@ -856,6 +866,171 @@ func _count_pirate_building(building_id: String) -> int:
 	return count
 
 
+# ═══════════════ HIDDEN HEROES (秘密英雄) ═══════════════
+
+## Record a battle victory for hidden hero unlock tracking.
+func record_battle_victory() -> void:
+	_battles_won_count += 1
+
+
+## Check all hidden hero conditions against current game state.
+## Newly discovered heroes are added to the player's roster directly.
+func check_hidden_hero_conditions(player_id: int) -> void:
+	for entry in BalanceConfig.HIDDEN_HEROES:
+		var hero_id: String = entry["id"]
+		if hero_id in _discovered_hidden_heroes:
+			continue
+		if _check_single_hidden_hero(player_id, entry):
+			_discover_hidden_hero(player_id, entry)
+
+
+## Returns and clears pending hidden hero notifications.
+func get_pending_hidden_hero_notifications() -> Array:
+	var result: Array = _hidden_hero_notifications.duplicate()
+	_hidden_hero_notifications.clear()
+	return result
+
+
+## Check if a specific hidden hero has been discovered.
+func is_hidden_hero_discovered(hero_id: String) -> bool:
+	return hero_id in _discovered_hidden_heroes
+
+
+## Returns vague hints about undiscovered hidden heroes (no exact conditions).
+func get_hidden_heroes_progress() -> Array:
+	var progress: Array = []
+	for entry in BalanceConfig.HIDDEN_HEROES:
+		var hero_id: String = entry["id"]
+		var discovered: bool = hero_id in _discovered_hidden_heroes
+		progress.append({
+			"id": hero_id,
+			"discovered": discovered,
+			"name": entry["name"] if discovered else "???",
+			"hint": "" if discovered else entry.get("hint", "条件未知"),
+		})
+	return progress
+
+
+## Internal: check a single hidden hero's unlock condition.
+func _check_single_hidden_hero(player_id: int, entry: Dictionary) -> bool:
+	var unlock_type: String = entry["unlock_type"]
+	var params: Dictionary = entry["unlock_params"]
+
+	match unlock_type:
+		"tile_capture":
+			var tile_idx: int = params["tile_index"]
+			if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+				return false
+			return GameManager.tiles[tile_idx].get("owner_id", -1) == player_id
+
+		"turn_and_tiles":
+			var min_turn: int = params["min_turn"]
+			var min_tiles: int = params["min_tiles"]
+			if GameManager.turn_number < min_turn:
+				return false
+			return GameManager.count_tiles_owned(player_id) >= min_tiles
+
+		"corruption_check":
+			var min_corruption: int = params["min_corruption"]
+			for hid in recruited_heroes:
+				var corruption_val: int = hero_corruption.get(hid, 0)
+				if corruption_val >= min_corruption:
+					return true
+			# Also check captured heroes in prison
+			for hid in captured_heroes:
+				var corruption_val: int = hero_corruption.get(hid, 0)
+				if corruption_val >= min_corruption:
+					return true
+			return false
+
+		"tile_type_count":
+			var tile_type: int = params["tile_type"]
+			var min_count: int = params["min_count"]
+			var count: int = 0
+			for tile in GameManager.tiles:
+				if tile.get("owner_id", -1) == player_id and tile.get("type", -1) == tile_type:
+					count += 1
+			return count >= min_count
+
+		"battle_count":
+			var min_battles: int = params["min_battles_won"]
+			return _battles_won_count >= min_battles
+
+		"prestige":
+			var min_prestige: int = params["min_prestige"]
+			return ResourceManager.get_resource(player_id, "prestige") >= min_prestige
+
+		"compound":
+			# Requires both intel level AND tile ownership
+			var min_intel: int = params.get("min_intel", 0)
+			var tile_idx: int = params.get("tile_index", -1)
+			var intel_ok: bool = true
+			if min_intel > 0:
+				var espionage_node: Node = get_node_or_null("/root/EspionageSystem")
+				if espionage_node and espionage_node.has_method("get_intel"):
+					intel_ok = espionage_node.get_intel(player_id) >= min_intel
+				else:
+					intel_ok = false
+			var tile_ok: bool = true
+			if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+				tile_ok = GameManager.tiles[tile_idx].get("owner_id", -1) == player_id
+			elif tile_idx >= 0:
+				tile_ok = false
+			return intel_ok and tile_ok
+
+		"tile_set":
+			# Requires controlling N tiles with a specific terrain type
+			var terrain_type: int = params.get("terrain_type", -1)
+			var min_count: int = params.get("min_count", 1)
+			var count: int = 0
+			for tile in GameManager.tiles:
+				if tile.get("owner_id", -1) == player_id and tile.get("terrain", -1) == terrain_type:
+					count += 1
+			return count >= min_count
+
+	return false
+
+
+## Internal: discover a hidden hero and add them to roster.
+func _discover_hidden_hero(player_id: int, entry: Dictionary) -> void:
+	var hero_id: String = entry["id"]
+	_discovered_hidden_heroes.append(hero_id)
+	recruited_heroes.append(hero_id)
+	hero_affection[hero_id] = 0
+	_ensure_equip_slots(hero_id)
+
+	# Register hero template into runtime registry so combat stats resolve
+	var template: Dictionary = entry["hero_template"]
+	_hidden_hero_data[hero_id] = {
+		"name": entry["name"],
+		"atk": template.get("atk", 5),
+		"def": template.get("def", 5),
+		"spd": template.get("spd", 5),
+		"base_hp": template.get("hp", 20),
+		"int": template.get("int", 5),
+		"troop": template.get("troop_type", "infantry"),
+		"active": template.get("active", ""),
+		"passive": template.get("passive", ""),
+		"capture_chance": template.get("capture_chance", 0.0),
+	}
+
+	# Initialize hero leveling
+	HeroLeveling.init_hero(hero_id)
+
+	# Create notification
+	var notification: Dictionary = {
+		"hero_id": hero_id,
+		"hero_name": entry["name"],
+		"message": entry.get("reveal_message", "%s 加入了你的阵营!" % entry["name"]),
+	}
+	_hidden_hero_notifications.append(notification)
+
+	# Emit events
+	EventBus.hero_recruited.emit(hero_id)
+	EventBus.message_log.emit("[color=gold]═══ 秘密英雄发现: %s ═══[/color]" % entry["name"])
+	EventBus.message_log.emit("[color=yellow]%s[/color]" % notification["message"])
+
+
 # ═══════════════ SERIALIZATION ═══════════════
 
 func to_save_data() -> Dictionary:
@@ -872,6 +1047,8 @@ func to_save_data() -> Dictionary:
 		"harem_cooldowns": _harem_cooldowns.duplicate(true),
 		"harem_unlocked": _harem_unlocked.duplicate(),
 		"gift_cooldowns": _gift_cooldowns.duplicate(),
+		"discovered_hidden_heroes": _discovered_hidden_heroes.duplicate(),
+		"battles_won_count": _battles_won_count,
 	}
 	data["hero_leveling"] = HeroLeveling.serialize()
 	return data
@@ -908,6 +1085,25 @@ func from_save_data(data: Dictionary) -> void:
 	_harem_cooldowns = data.get("harem_cooldowns", {}).duplicate(true)
 	_harem_unlocked = data.get("harem_unlocked", {}).duplicate()
 	_gift_cooldowns = data.get("gift_cooldowns", {}).duplicate()
+	_discovered_hidden_heroes = data.get("discovered_hidden_heroes", []).duplicate()
+	_battles_won_count = data.get("battles_won_count", 0)
+	# Re-register discovered hidden hero templates into runtime registry
+	_hidden_hero_data.clear()
+	for entry in BalanceConfig.HIDDEN_HEROES:
+		if entry["id"] in _discovered_hidden_heroes:
+			var template: Dictionary = entry["hero_template"]
+			_hidden_hero_data[entry["id"]] = {
+				"name": entry["name"],
+				"atk": template.get("atk", 5),
+				"def": template.get("def", 5),
+				"spd": template.get("spd", 5),
+				"base_hp": template.get("hp", 20),
+				"int": template.get("int", 5),
+				"troop": template.get("troop_type", "infantry"),
+				"active": template.get("active", ""),
+				"passive": template.get("passive", ""),
+				"capture_chance": template.get("capture_chance", 0.0),
+			}
 	if data.has("hero_leveling"):
 		HeroLeveling.deserialize(data["hero_leveling"])
 
@@ -916,7 +1112,7 @@ func from_save_data(data: Dictionary) -> void:
 
 func _unlock_second_skill(hero_id: String) -> void:
 	## 好感度达到7时，解锁英雄的第二主动技能并加入可用技能列表
-	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+	var hero_data: Dictionary = _get_hero_data(hero_id)
 	# NOTE: FactionData.HEROES does not currently define a secondary skill key.
 	# This is a placeholder for future implementation. When secondary skills are
 	# added to FactionData.HEROES, use the appropriate key here (e.g., "active_2").
@@ -935,5 +1131,13 @@ func _unlock_second_skill(hero_id: String) -> void:
 	EventBus.message_log.emit("[技能] %s 解锁第二主动技能: %s" % [_get_hero_name(hero_id), second_skill])
 
 
+func _get_hero_data(hero_id: String) -> Dictionary:
+	## Lookup hero data from FactionData.HEROES or hidden hero runtime registry.
+	var data: Dictionary = _get_hero_data(hero_id)
+	if data.is_empty():
+		data = _hidden_hero_data.get(hero_id, {})
+	return data
+
+
 func _get_hero_name(hero_id: String) -> String:
-	return FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
+	return _get_hero_data(hero_id).get("name", hero_id)

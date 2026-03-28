@@ -1485,6 +1485,10 @@ func begin_turn() -> void:
 	if pid == get_human_player_id():
 		turn_number += 1
 
+	# ── Phase 0b: Timed Story Windows check (限時劇情窗口) ──
+	if pid == get_human_player_id():
+		EventSystem.check_timed_story_windows(pid, turn_number)
+
 	# ── Phase 1: Faction tick ──
 	FactionManager.tick_faction(pid, faction_id, _prev_turn_had_combat)
 
@@ -1814,6 +1818,10 @@ func begin_turn() -> void:
 			EventBus.message_log.emit("[color=yellow]剩余回合: %d/%d — 加快进攻节奏![/color]" % [remaining, BalanceConfig.TURN_LIMIT])
 		elif remaining <= BalanceConfig.TURN_LIMIT_WARNING * 2:
 			EventBus.message_log.emit("剩余回合: %d/%d" % [remaining, BalanceConfig.TURN_LIMIT])
+
+	# ── Hidden Heroes check (秘密英雄 — turn start) ──
+	if pid == get_human_player_id():
+		HeroSystem.check_hidden_hero_conditions(pid)
 
 	if player["is_ai"]:
 		run_ai_turn()
@@ -2755,6 +2763,11 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	# ── 英雄经验 (v3.1) ──
 	_grant_hero_combat_exp(pid, result, won)
 
+	# ── Hidden Heroes: record battle victory and check conditions ──
+	if won and pid == get_human_player_id():
+		HeroSystem.record_battle_victory()
+		HeroSystem.check_hidden_hero_conditions(pid)
+
 	# ── 战斗战利品掉落 (v3.5) ──
 	if won and pid == get_human_player_id():
 		ItemManager.grant_random_loot(pid)
@@ -3539,6 +3552,11 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	# ── 英雄经验 (v3.1) ──
 	_grant_hero_combat_exp(pid, result, attacker_wins)
 
+	# ── Hidden Heroes: record battle victory and check conditions ──
+	if attacker_wins and pid == get_human_player_id():
+		HeroSystem.record_battle_victory()
+		HeroSystem.check_hidden_hero_conditions(pid)
+
 	# 防守方英雄也获得经验：胜利获得全额，失败获得50%（从战斗中学习）
 	if def_player_id >= 0 and def_player_id != pid:
 		var defender_wins: bool = not attacker_wins
@@ -3685,6 +3703,11 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 	# ── 英雄经验 (v3.1) ──
 	_grant_hero_combat_exp(pid, result, attacker_wins)
 
+	# ── Hidden Heroes: record battle victory and check conditions ──
+	if attacker_wins and pid == get_human_player_id():
+		HeroSystem.record_battle_victory()
+		HeroSystem.check_hidden_hero_conditions(pid)
+
 	# Dissolve slave_fodder
 	if result.get("slave_fodder_dissolved", 0) > 0:
 		CombatAbilities.dissolve_slave_fodder(pid)
@@ -3762,6 +3785,9 @@ func _capture_tile(player: Dictionary, tile: Dictionary) -> void:
 	NeutralFactionAI.on_tile_captured(tile["index"], player["id"])
 	# Territory conquest events (領地征服事件)
 	_check_conquest_events(player["id"], tile["index"])
+	# Hidden Heroes check after tile capture (秘密英雄)
+	if player["id"] == get_human_player_id():
+		HeroSystem.check_hidden_hero_conditions(player["id"])
 	# Post-conquest choice (occupy / pillage / plunder)
 	_show_conquest_choice(player, tile)
 
