@@ -5,6 +5,7 @@ extends CanvasLayer
 
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
+const ChibiLoader = preload("res://systems/combat/chibi_sprite_loader.gd")
 
 ## Archetype display names for counter indicator labels
 const ARCHETYPE_LABELS := {
@@ -121,6 +122,12 @@ var _dot_timers: Dictionary = {}  # side -> slot -> float (accumulator for DoT p
 
 # ── Unit tracking (side -> slot -> dict with live data) ──
 var _live_units: Dictionary = {"attacker": {}, "defender": {}}
+
+# ── Chibi sprite refs (side -> slot -> TextureRect) ──
+var _chibi_sprites: Dictionary = {"attacker": {}, "defender": {}}
+# ── Chibi hero mapping (side -> slot -> hero_id string) ──
+var _chibi_hero_map: Dictionary = {"attacker": {}, "defender": {}}
+const CHIBI_SIZE := Vector2(48, 48)
 
 # ── UI refs ──
 var root: Control
@@ -517,6 +524,19 @@ func _create_card(pos: Vector2) -> PanelContainer:
 	overlay_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(overlay_lbl)
 
+	# Chibi sprite overlay (top-right corner of card, semi-transparent)
+	var chibi_rect := TextureRect.new()
+	chibi_rect.name = "ChibiSprite"
+	chibi_rect.custom_minimum_size = CHIBI_SIZE
+	chibi_rect.size = CHIBI_SIZE
+	chibi_rect.position = Vector2(CARD_W - CHIBI_SIZE.x - 2, 2)
+	chibi_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chibi_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chibi_rect.modulate = Color(1, 1, 1, 0.85)
+	chibi_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chibi_rect.visible = false
+	panel.add_child(chibi_rect)
+
 	# Tooltip shows counter summary on hover
 	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	panel.tooltip_text = ""
@@ -861,6 +881,28 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 				card.tooltip_text = "\n".join(tip_lines)
 			else:
 				card.tooltip_text = ""
+
+		# ── Chibi sprite loading ──
+		var chibi_rect: TextureRect = card.get_node_or_null("ChibiSprite")
+		if chibi_rect:
+			if unit.is_empty():
+				chibi_rect.visible = false
+				chibi_rect.texture = null
+				_chibi_sprites[side].erase(slot_idx)
+				_chibi_hero_map[side].erase(slot_idx)
+			else:
+				var cmd_id: String = str(unit.get("commander_id", ""))
+				if cmd_id != "" and ChibiLoader.has_chibi(cmd_id):
+					var idle_tex := ChibiLoader.load_state(cmd_id, "idle")
+					if idle_tex:
+						chibi_rect.texture = idle_tex
+						chibi_rect.visible = true
+						_chibi_sprites[side][slot_idx] = chibi_rect
+						_chibi_hero_map[side][slot_idx] = cmd_id
+					else:
+						chibi_rect.visible = false
+				else:
+					chibi_rect.visible = false
 
 func _update_card_soldiers(side: String, slot_idx: int, soldiers: int, max_soldiers: int) -> void:
 	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
@@ -1989,6 +2031,10 @@ func _on_close() -> void:
 	if _vs_tween and _vs_tween.is_valid():
 		_vs_tween.kill()
 		_vs_tween = null
+	# Clean up chibi sprite refs
+	_chibi_sprites = {"attacker": {}, "defender": {}}
+	_chibi_hero_map = {"attacker": {}, "defender": {}}
+	ChibiLoader.clear_cache()
 	combat_view_closed.emit()
 
 func _on_speed_toggle() -> void:
@@ -2043,6 +2089,9 @@ func _apply_log_entry(entry: Dictionary) -> void:
 				if entry_morale >= 0:
 					_update_card_morale(target_side, target_slot, entry_morale, entry_routed)
 				_animate_attack(side, slot_idx, target_side, target_slot, damage, max_s, is_aoe)
+				# Chibi: attacker shows attack pose, target shows hurt pose
+				_set_chibi_state(side, slot_idx, "attack", 0.6)
+				_set_chibi_state(target_side, target_slot, "hurt", 0.5)
 
 				# AoE: check for additional targets in same log batch
 				if is_aoe:
@@ -2074,6 +2123,8 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			if slot_idx >= 0:
 				_glow_card(side, slot_idx)
 				_show_passive_banner(desc, side)
+				# Chibi: caster shows cast pose
+				_set_chibi_state(side, slot_idx, "cast", 0.8)
 				# Ability-type visual effects
 				var ability_type: String = entry.get("ability_type", "")
 				if ability_type == "":
@@ -2098,6 +2149,8 @@ func _apply_log_entry(entry: Dictionary) -> void:
 		"death":
 			log_line = "[color=#f44][Annihilate][/color] %s" % desc
 			if slot_idx >= 0:
+				# Chibi: show defeated pose
+				_chibi_defeat(side, slot_idx)
 				# Kill cutscene handles death overlay
 				if not _is_finishing:
 					_play_kill_cutscene(side, slot_idx)
@@ -2133,10 +2186,12 @@ func _finish_playback() -> void:
 		result_label.text = "ATTACKER WINS!"
 		result_label.add_theme_color_override("font_color", Color(1, 0.88, 0.3))
 		_screen_flash_effect(Color(1, 0.9, 0.5, 0.15), 0.5)
+		_chibi_victory("attacker")
 	elif winner == "defender":
 		result_label.text = "DEFENDER WINS!"
 		result_label.add_theme_color_override("font_color", Color(0.5, 0.7, 1))
 		_screen_flash_effect(Color(0.3, 0.5, 1.0, 0.1), 0.5)
+		_chibi_victory("defender")
 	else:
 		result_label.text = "BATTLE END"
 		result_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
@@ -2179,6 +2234,54 @@ func _finish_playback() -> void:
 		if slot < def_final.size() and def_final[slot] != null:
 			if def_final[slot].get("soldiers", 0) <= 0:
 				_apply_death_overlay("defender", slot)
+
+# ═══════════════════════════════════════════════════════════
+#                   CHIBI SPRITE HELPERS
+# ═══════════════════════════════════════════════════════════
+
+## Swap a card's chibi sprite to the given state, then revert to idle after delay.
+func _set_chibi_state(side: String, slot_idx: int, state: String, revert_delay: float = 0.5) -> void:
+	if not _chibi_sprites.has(side) or not _chibi_sprites[side].has(slot_idx):
+		return
+	var hero_id: String = _chibi_hero_map[side].get(slot_idx, "")
+	if hero_id.is_empty():
+		return
+	var chibi_rect: TextureRect = _chibi_sprites[side][slot_idx]
+	if chibi_rect == null or not is_instance_valid(chibi_rect):
+		return
+
+	var tex := ChibiLoader.load_state(hero_id, state)
+	if tex:
+		chibi_rect.texture = tex
+		# Revert to idle after delay (unless it's a permanent state like defeated)
+		if state != "defeated" and state != "defeat" and revert_delay > 0.0:
+			var tw := create_tween()
+			tw.tween_interval(revert_delay / _speed_mult)
+			tw.tween_callback(func():
+				if is_instance_valid(chibi_rect) and _chibi_hero_map[side].get(slot_idx, "") == hero_id:
+					var idle_tex := ChibiLoader.load_state(hero_id, "idle")
+					if idle_tex:
+						chibi_rect.texture = idle_tex
+			)
+
+## Hide chibi sprite (for death/defeat permanent state change).
+func _chibi_defeat(side: String, slot_idx: int) -> void:
+	_set_chibi_state(side, slot_idx, "defeated", 0.0)  # no revert
+	# Fade out the chibi
+	if _chibi_sprites.has(side) and _chibi_sprites[side].has(slot_idx):
+		var chibi_rect: TextureRect = _chibi_sprites[side][slot_idx]
+		if chibi_rect and is_instance_valid(chibi_rect):
+			var tw := create_tween()
+			tw.tween_interval(0.3 / _speed_mult)
+			tw.tween_property(chibi_rect, "modulate:a", 0.3, 0.5 / _speed_mult)
+
+## Show victory pose for all surviving units on a side.
+func _chibi_victory(side: String) -> void:
+	if not _chibi_sprites.has(side):
+		return
+	for slot_idx in _chibi_sprites[side].keys():
+		_set_chibi_state(side, slot_idx, "victory", 0.0)  # no revert, stay in victory
+
 # ═══════════════════════════════════════════════════════════
 #                        HELPERS
 # ═══════════════════════════════════════════════════════════
