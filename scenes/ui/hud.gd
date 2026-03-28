@@ -410,6 +410,10 @@ func _build_action_panel(parent: Control) -> void:
 	btn_quest_journal.pressed.connect(_on_quest_journal_pressed)
 	vbox.add_child(btn_quest_journal)
 
+	var btn_event_mgr := _make_button("Event Mgr (E)")
+	btn_event_mgr.pressed.connect(_on_event_manager_pressed)
+	vbox.add_child(btn_event_mgr)
+
 	# Save/Load buttons (free actions)
 	var btn_save := _make_button("Save (F5)")
 	btn_save.pressed.connect(_on_save_pressed)
@@ -1592,6 +1596,12 @@ func _on_quest_journal_pressed() -> void:
 	var quest_panel = get_tree().get_root().find_child("QuestJournalPanel", true, false)
 	if quest_panel and quest_panel.has_method("show_panel"):
 		quest_panel.show_panel()
+
+
+func _on_event_manager_pressed() -> void:
+	var event_panel = get_tree().get_root().find_child("EventManagerPanel", true, false)
+	if event_panel and event_panel.has_method("toggle_panel"):
+		event_panel.toggle_panel()
 
 
 func _on_research_pressed() -> void:

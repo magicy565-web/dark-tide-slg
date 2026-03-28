@@ -245,3 +245,8 @@ signal unit_promoted_elite(unit_id: String, troop_id: String)
 
 # ── Tile Combat Bonuses (v4.3) ──
 signal tile_combat_bonus_applied(tile_idx: int, path: int, bonuses: Dictionary)
+
+# ── Hidden Hero & Story Window Notifications (v4.4) ──
+signal hidden_hero_discovered(hero_id: String, hero_name: String, message: String)
+signal story_window_triggered(window_id: String, title: String, narrative: String)
+signal story_window_expired(window_id: String, title: String, consequence: String)

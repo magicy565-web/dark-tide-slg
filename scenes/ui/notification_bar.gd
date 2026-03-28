@@ -34,6 +34,9 @@ func _connect_signals() -> void:
 	EventBus.relic_selected.connect(_on_relic)
 	EventBus.ai_threat_changed.connect(_on_ai_threat)
 	EventBus.unit_routed.connect(_on_unit_routed)
+	EventBus.hidden_hero_discovered.connect(_on_hidden_hero_discovered)
+	EventBus.story_window_triggered.connect(_on_story_window_triggered)
+	EventBus.story_window_expired.connect(_on_story_window_expired)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -161,3 +164,15 @@ func _on_ai_threat(faction_key: String, _threat: int, new_tier: int) -> void:
 func _on_unit_routed(unit_type: String, side: String) -> void:
 	var side_name: String = "我方" if side == "attacker" else "敌方"
 	show_notification("%s %s 士气崩溃溃逃!" % [side_name, unit_type], Color(1.0, 0.3, 0.2), 3.0)
+
+
+func _on_hidden_hero_discovered(hero_id: String, hero_name: String, message: String) -> void:
+	show_notification("发现隐藏英雄: %s! %s" % [hero_name, message], Color(0.7, 0.4, 1.0), 5.0)
+
+
+func _on_story_window_triggered(window_id: String, title: String, narrative: String) -> void:
+	show_notification("限时事件触发: %s" % title, Color(0.3, 0.9, 0.4), 5.0)
+
+
+func _on_story_window_expired(window_id: String, title: String, consequence: String) -> void:
+	show_notification("事件已过期: %s — %s" % [title, consequence], Color(1.0, 0.3, 0.2), 5.0)

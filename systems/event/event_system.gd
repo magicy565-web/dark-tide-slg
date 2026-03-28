@@ -1056,6 +1056,7 @@ func check_timed_story_windows(player_id: int, current_turn: int) -> void:
 				"desc": w.get("miss_consequence", {}).get("desc", "窗口已过期"),
 				"priority": w.get("priority", 1),
 			})
+			EventBus.story_window_expired.emit(wid, w["title"], w.get("miss_consequence", {}).get("desc", "机会已失"))
 			EventBus.message_log.emit("[color=red][限时事件过期] %s — %s[/color]" % [
 				w["title"], w.get("miss_consequence", {}).get("desc", "机会已失")])
 			continue
@@ -1078,6 +1079,7 @@ func check_timed_story_windows(player_id: int, current_turn: int) -> void:
 			"desc": w.get("narrative_text", ""),
 			"priority": w.get("priority", 1),
 		})
+		EventBus.story_window_triggered.emit(wid, w["title"], w.get("narrative_text", ""))
 		EventBus.message_log.emit("[color=green][限时事件触发] %s[/color]" % w["title"])
 		if EventBus.has_signal("show_event_popup"):
 			EventBus.show_event_popup.emit(w["title"], w.get("narrative_text", ""), [])

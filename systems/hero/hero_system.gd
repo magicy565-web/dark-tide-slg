@@ -1027,6 +1027,7 @@ func _discover_hidden_hero(player_id: int, entry: Dictionary) -> void:
 
 	# Emit events
 	EventBus.hero_recruited.emit(hero_id)
+	EventBus.hidden_hero_discovered.emit(hero_id, entry["name"], notification["message"])
 	EventBus.message_log.emit("[color=gold]═══ 秘密英雄发现: %s ═══[/color]" % entry["name"])
 	EventBus.message_log.emit("[color=yellow]%s[/color]" % notification["message"])
 

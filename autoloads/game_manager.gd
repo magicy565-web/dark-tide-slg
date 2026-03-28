@@ -262,6 +262,12 @@ var _turn_cache: Dictionary = {}
 var _active_territory_effects: Dictionary = {}  # Cached per-turn territory effects
 
 # ── Commander Tactical Orders (player session state) ──
+# ── Pending random event choice (human player popup) ──
+var _pending_choice_event: Dictionary = {}   # The event dict awaiting player choice
+var _pending_choice_player: Dictionary = {}  # The player dict for that event
+var _pending_event_queue: Array = []         # Queue of {event, player} if popup is busy
+var _event_choice_connected: bool = false    # Guard against duplicate signal connections
+
 var _current_directive: int = 0  # CombatResolver.TacticalDirective.NONE
 var _current_skill_timing: Dictionary = {}  # hero_id -> round number (0 = auto)
 var _current_protected_slot: int = -1
@@ -372,7 +378,9 @@ func _apply_slot_preferences_to_units(units: Array, prefs: Dictionary) -> void:
 
 
 func _ready() -> void:
-	pass
+	if not _event_choice_connected:
+		EventBus.event_choice_selected.connect(_on_random_event_choice)
+		_event_choice_connected = true
 
 
 # ═══════════════ PLAYER HELPERS ═══════════════
@@ -4288,12 +4296,9 @@ func _trigger_event(player: Dictionary, _tile: Dictionary) -> void:
 	if player.get("is_ai", true):
 		_apply_choice_event(player, event, "a")
 	else:
-		# For human player: emit choice event and auto-pick A for now
-		# (full UI popup integration would connect to show_event_popup)
+		# Human player: show popup and wait for choice
 		EventBus.choice_event_triggered.emit(player["id"], event)
-		EventBus.message_log.emit("  选项A: %s" % event.get("option_a", {}).get("label", ""))
-		EventBus.message_log.emit("  选项B: %s" % event.get("option_b", {}).get("label", ""))
-		_apply_choice_event(player, event, "a")
+		_show_random_event_popup(player, event)
 
 
 func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) -> void:
@@ -4456,6 +4461,68 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 				EventBus.message_log.emit("每回合军队变化 %d, 持续 %d 回合" % [value, effects.get("duration", 3)])
 			_:
 				print("[WARNING] Unknown event effect key: %s = %s" % [key, str(value)])
+
+
+# ── Random event popup helpers ──
+
+func _show_random_event_popup(player: Dictionary, event: Dictionary) -> void:
+	## Format event data and show popup, or queue if popup is already active.
+	var title: String = event.get("name", "Event")
+	var description: String = event.get("desc", "")
+	var choices: Array = _format_event_choices(event)
+
+	if not _pending_choice_event.is_empty():
+		# Popup already showing another event — queue this one
+		_pending_event_queue.append({"event": event, "player": player})
+		return
+
+	_pending_choice_event = event
+	_pending_choice_player = player
+	EventBus.show_event_popup.emit(title, description, choices)
+
+
+func _format_event_choices(event: Dictionary) -> Array:
+	## Convert option_a/option_b format into choices array for EventPopup.
+	var choices: Array = []
+	if event.has("option_a"):
+		choices.append({"text": event["option_a"].get("label", "Option A")})
+	if event.has("option_b"):
+		choices.append({"text": event["option_b"].get("label", "Option B")})
+	# Also support events that already use a choices array
+	if choices.is_empty() and event.has("choices"):
+		for c in event["choices"]:
+			if c is Dictionary:
+				choices.append({"text": c.get("text", "...")})
+			else:
+				choices.append({"text": str(c)})
+	return choices
+
+
+func _on_random_event_choice(choice_index: int) -> void:
+	## Called when the human player picks a choice from the EventPopup.
+	if _pending_choice_event.is_empty():
+		return  # No pending random event — might be a conquest popup
+
+	var event: Dictionary = _pending_choice_event
+	var player: Dictionary = _pending_choice_player
+	_pending_choice_event = {}
+	_pending_choice_player = {}
+
+	# Map popup index to choice key
+	var choice_key: String = "a"
+	if event.has("choices") and not event.has("option_a"):
+		# choices-array format: index maps directly
+		choice_key = "a" if choice_index <= 0 else "b"
+	else:
+		choice_key = "a" if choice_index <= 0 else "b"
+
+	_apply_choice_event(player, event, choice_key)
+
+	# Process queued events
+	if not _pending_event_queue.is_empty():
+		var next: Dictionary = _pending_event_queue.pop_front()
+		# Use call_deferred so the popup has time to close before reopening
+		call_deferred("_show_random_event_popup", next["player"], next["event"])
 
 
 # ═══════════════ ITEMS ═══════════════
@@ -5486,3 +5553,74 @@ func _get_tile_dict(tile_index: int) -> Dictionary:
 	if tile_index >= 0 and tile_index < tiles.size():
 		return tiles[tile_index]
 	return {}
+
+
+# ═══════════════ RANDOM EVENT POPUP (Human Player Choice UI) ═══════════════
+
+func _show_random_event_popup(player: Dictionary, event: Dictionary) -> void:
+	## Format and display a random event via EventPopup for the human player.
+	if not _pending_choice_event.is_empty():
+		# Another event popup is active — queue this one
+		_pending_event_queue.append({"event": event, "player": player})
+		return
+
+	_pending_choice_event = event
+	_pending_choice_player = player
+
+	var title: String = event.get("name", "未知事件")
+	var desc: String = event.get("desc", "")
+	var choices: Array = _format_event_choices(event)
+	EventBus.show_event_popup.emit(title, desc, choices)
+
+
+func _format_event_choices(event: Dictionary) -> Array:
+	## Convert event choice data into EventPopup-compatible array format.
+	## Handles both "choices" array format and "option_a"/"option_b" format.
+	if event.has("choices") and event["choices"] is Array and event["choices"].size() > 0:
+		var result: Array = []
+		for c in event["choices"]:
+			if c is Dictionary:
+				result.append({"text": c.get("text", "选择")})
+			else:
+				result.append({"text": str(c)})
+		return result
+
+	# Fallback: option_a / option_b format
+	var result: Array = []
+	if event.has("option_a"):
+		var oa: Dictionary = event["option_a"]
+		result.append({"text": oa.get("label", "选项A")})
+	if event.has("option_b"):
+		var ob: Dictionary = event["option_b"]
+		result.append({"text": ob.get("label", "选项B")})
+
+	if result.is_empty():
+		result.append({"text": "确认"})
+	return result
+
+
+func _on_random_event_choice(choice_index: int) -> void:
+	## Callback when the human player selects a choice in the EventPopup.
+	if _pending_choice_event.is_empty():
+		return  # Not our event (might be conquest/world event)
+
+	var event: Dictionary = _pending_choice_event
+	var player: Dictionary = _pending_choice_player
+	_pending_choice_event = {}
+	_pending_choice_player = {}
+
+	# Map choice index to "a"/"b" or apply via event_system
+	if event.has("choices") and event["choices"] is Array:
+		# Use event_system's apply_choice
+		var event_id: String = event.get("id", "")
+		if event_id != "" and EventSystem:
+			EventSystem.apply_choice(event_id, choice_index)
+	else:
+		# option_a / option_b format
+		var choice_key: String = "a" if choice_index == 0 else "b"
+		_apply_choice_event(player, event, choice_key)
+
+	# Process queued events
+	if not _pending_event_queue.is_empty():
+		var next: Dictionary = _pending_event_queue.pop_front()
+		call_deferred("_show_random_event_popup", next["player"], next["event"])
