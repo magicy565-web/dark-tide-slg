@@ -133,10 +133,26 @@ func _refresh() -> void:
 	var affection: int = HeroSystem.hero_affection.get(_hero_id, 0)
 
 	# ── Portrait area & Name ──
-	var portrait := ColorRect.new()
-	portrait.custom_minimum_size = Vector2(0, 60)
-	portrait.color = Color(0.1, 0.08, 0.14, 0.8)
-	_add(portrait)
+	var portrait_path: String = FactionData.HERO_PORTRAITS.get(_hero_id, "")
+	if portrait_path != "" and ResourceLoader.exists(portrait_path):
+		var portrait_tex: Texture2D = load(portrait_path)
+		if portrait_tex != null:
+			var portrait := TextureRect.new()
+			portrait.texture = portrait_tex
+			portrait.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			portrait.custom_minimum_size = Vector2(0, 180)
+			_add(portrait)
+		else:
+			var portrait := ColorRect.new()
+			portrait.custom_minimum_size = Vector2(0, 60)
+			portrait.color = Color(0.1, 0.08, 0.14, 0.8)
+			_add(portrait)
+	else:
+		var portrait := ColorRect.new()
+		portrait.custom_minimum_size = Vector2(0, 60)
+		portrait.color = Color(0.1, 0.08, 0.14, 0.8)
+		_add(portrait)
 	var nl := Label.new()
 	nl.text = hero_def.get("name", _hero_id)
 	nl.add_theme_font_size_override("font_size", 20)
@@ -361,6 +377,20 @@ func _refresh() -> void:
 	snl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
 	sr.add_child(snl)
 	if eid != "":
+		# Equipped item icon
+		var eq_data: Dictionary = FactionData.EQUIPMENT_DEFS.get(eid, {})
+		var equipped_icon_name: String = eq_data.get("icon", "")
+		if equipped_icon_name != "":
+			var equipped_icon_path: String = ItemManager.get_icon_path(equipped_icon_name)
+			if equipped_icon_path != "":
+				var equipped_icon_tex: Texture2D = load(equipped_icon_path)
+				if equipped_icon_tex != null:
+					var equipped_icon := TextureRect.new()
+					equipped_icon.texture = equipped_icon_tex
+					equipped_icon.expand_mode = TextureRect.EXPAND_FIT_HEIGHT_PROPORTIONAL
+					equipped_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+					equipped_icon.custom_minimum_size = Vector2(28, 28)
+					sr.add_child(equipped_icon)
 		var enl := Label.new()
 		enl.text = ei.get("name", eid)
 		enl.add_theme_font_size_override("font_size", 13)
@@ -585,6 +615,19 @@ func _show_equip_picker(hero_id: String, slot_key: String) -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
 		list_vbox.add_child(row)
+		# Equipment icon in picker
+		var eq_icon_name: String = eq_def.get("icon", "")
+		if eq_icon_name != "":
+			var eq_icon_path: String = ItemManager.get_icon_path(eq_icon_name)
+			if eq_icon_path != "":
+				var eq_icon_tex: Texture2D = load(eq_icon_path)
+				if eq_icon_tex != null:
+					var eq_icon := TextureRect.new()
+					eq_icon.texture = eq_icon_tex
+					eq_icon.expand_mode = TextureRect.EXPAND_FIT_HEIGHT_PROPORTIONAL
+					eq_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+					eq_icon.custom_minimum_size = Vector2(28, 28)
+					row.add_child(eq_icon)
 		var name_lbl := Label.new()
 		name_lbl.text = eq.get("name", eq_id)
 		name_lbl.add_theme_font_size_override("font_size", 13)

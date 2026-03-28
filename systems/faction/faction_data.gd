@@ -48,6 +48,28 @@ const EVIL_FORTRESS_IDX: Dictionary = {
 	"dark_elf": 7,  # 永夜暗城
 }
 
+# ── Hero Portrait Paths (maps hero_id to design portrait asset) ──
+const HERO_PORTRAITS: Dictionary = {
+	"rin": "res://assets/characters/designs/01_rin_A.png",
+	"yukino": "res://assets/characters/designs/02_yukino_A.png",
+	"momiji": "res://assets/characters/designs/03_momiji_C.png",
+	"hyouka": "res://assets/characters/designs/04_hyouka_B.png",
+	"suirei": "res://assets/characters/designs/05_suirei_B.png",
+	"gekka": "res://assets/characters/designs/06_gekka_A.png",
+	"hakagure": "res://assets/characters/designs/07_hakagure_B.png",
+	"sou": "res://assets/characters/designs/08_sou_C.png",
+	"shion": "res://assets/characters/designs/09_shion_A.png",
+	"homura": "res://assets/characters/designs/10_homura_A.png",
+	"shion_pirate": "res://assets/characters/designs/11_shion_pirate_D.png",
+	"youya": "res://assets/characters/designs/12_youya_C.png",
+	"hibiki": "res://assets/characters/designs/13_hibiki_A.png",
+	"sara": "res://assets/characters/designs/14_sara_C.png",
+	"mei": "res://assets/characters/designs/15_mei_C.png",
+	"kaede": "res://assets/characters/designs/16_kaede_B.png",
+	"akane": "res://assets/characters/designs/17_akane_B.png",
+	"hanabi": "res://assets/characters/designs/18_hanabi_D.png",
+}
+
 # ── Hero Roster (18 heroes from design doc 02_角色设定) ──
 const HEROES: Dictionary = {
 	# --- Light Faction Heroes (capturable) ---
@@ -692,21 +714,22 @@ const PRESTIGE_SOURCES: Dictionary = {
 }
 
 # ── Item Definitions (consumables) ──
+# Icon convention: "res://assets/icons/items/<icon_file>.png"
 const ITEM_DEFS: Dictionary = {
-	"attack_totem": {"name": "攻击图腾", "desc": "下次战斗攻击+30%", "type": "consumable", "effect": {"atk_mult": 1.3}, "weight": 5},
-	"iron_shield": {"name": "铁壁盾牌", "desc": "下次战斗防御+30%", "type": "consumable", "effect": {"def_mult": 1.3}, "weight": 5},
-	"march_order": {"name": "急行军令", "desc": "本回合骰子+2", "type": "consumable", "effect": {"dice_bonus": 2}, "weight": 10},
-	"gold_pouch": {"name": "金币袋", "desc": "立即+50金币", "type": "consumable", "effect": {"gold": 50}, "weight": 15},
-	"ration_pack": {"name": "军粮包", "desc": "立即+10粮草", "type": "consumable", "effect": {"food": 10}, "weight": 15},
-	"iron_ore": {"name": "铁矿石", "desc": "立即+8铁矿", "type": "consumable", "effect": {"iron": 8}, "weight": 10},
-	"heal_potion": {"name": "治愈药剂", "desc": "恢复3兵力", "type": "consumable", "effect": {"heal": 3}, "weight": 10},
-	"slave_shackle": {"name": "奴隶枷锁", "desc": "下次战斗必定俘获1奴隶", "type": "consumable", "effect": {"guaranteed_slave": 1}, "weight": 5},
-	"mana_jammer_crafted": {"name": "法力干扰器", "desc": "魔法师屏障/法术效果减半(5回合)", "type": "consumable", "effect": {"mage_weaken": 0.5}, "weight": 0},
-	"blast_barrel_crafted": {"name": "爆破桶", "desc": "攻城时直接削减15城防", "type": "consumable", "effect": {"wall_damage": 15}, "weight": 0},
+	"attack_totem": {"name": "攻击图腾", "desc": "下次战斗攻击+30%", "type": "consumable", "effect": {"atk_mult": 1.3}, "weight": 5, "icon": "attack_totem"},
+	"iron_shield": {"name": "铁壁盾牌", "desc": "下次战斗防御+30%", "type": "consumable", "effect": {"def_mult": 1.3}, "weight": 5, "icon": "iron_shield"},
+	"march_order": {"name": "急行军令", "desc": "本回合骰子+2", "type": "consumable", "effect": {"dice_bonus": 2}, "weight": 10, "icon": "march_order"},
+	"gold_pouch": {"name": "金币袋", "desc": "立即+50金币", "type": "consumable", "effect": {"gold": 50}, "weight": 15, "icon": "gold_pouch"},
+	"ration_pack": {"name": "军粮包", "desc": "立即+10粮草", "type": "consumable", "effect": {"food": 10}, "weight": 15, "icon": "ration_pack"},
+	"iron_ore": {"name": "铁矿石", "desc": "立即+8铁矿", "type": "consumable", "effect": {"iron": 8}, "weight": 10, "icon": "iron_ore_item"},
+	"heal_potion": {"name": "治愈药剂", "desc": "恢复3兵力", "type": "consumable", "effect": {"heal": 3}, "weight": 10, "icon": "heal_potion"},
+	"slave_shackle": {"name": "奴隶枷锁", "desc": "下次战斗必定俘获1奴隶", "type": "consumable", "effect": {"guaranteed_slave": 1}, "weight": 5, "icon": "slave_shackle"},
+	"mana_jammer_crafted": {"name": "法力干扰器", "desc": "魔法师屏障/法术效果减半(5回合)", "type": "consumable", "effect": {"mage_weaken": 0.5}, "weight": 0, "icon": "mana_jammer"},
+	"blast_barrel_crafted": {"name": "爆破桶", "desc": "攻城时直接削减15城防", "type": "consumable", "effect": {"wall_damage": 15}, "weight": 0, "icon": "blast_barrel"},
 	# v0.8.9: Quest reward items
-	"refined_iron_weapon": {"name": "精铁武器", "desc": "下次战斗攻击+20%", "type": "consumable", "effect": {"atk_mult": 1.2}, "weight": 0},
-	"bomb_barrel": {"name": "地精爆破桶", "desc": "攻城时削减20城防", "type": "consumable", "effect": {"wall_damage": 20}, "weight": 0},
-	"legendary_random": {"name": "传说宝箱", "desc": "打开后获得一件随机传奇装备", "type": "consumable", "effect": {"grant_legendary": true}, "weight": 0},
+	"refined_iron_weapon": {"name": "精铁武器", "desc": "下次战斗攻击+20%", "type": "consumable", "effect": {"atk_mult": 1.2}, "weight": 0, "icon": "refined_iron_weapon"},
+	"bomb_barrel": {"name": "地精爆破桶", "desc": "攻城时削减20城防", "type": "consumable", "effect": {"wall_damage": 20}, "weight": 0, "icon": "goblin_blast_barrel"},
+	"legendary_random": {"name": "传说宝箱", "desc": "打开后获得一件随机传奇装备", "type": "consumable", "effect": {"grant_legendary": true}, "weight": 0, "icon": "legendary_random"},
 }
 
 # ── Equipment Definitions (v0.8.7) ──
@@ -726,7 +749,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"desc": "ATK+3, 击杀恢复1兵",
 		"stats": {"atk": 3},
 		"passive": "kill_heal",  # On kill: restore 1 soldier
-		"drop_weight": 10,
+		"drop_weight": 10, "icon": "blood_moon_blade",
 	},
 	"iron_wall_shield": {
 		"name": "铁壁之盾", "slot": EquipSlot.ARMOR, "rarity": "rare",
@@ -734,14 +757,14 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {"def": 2},
 		"passive": "node_wall_bonus",  # +5 wall HP at hero's node
 		"passive_value": 5,
-		"drop_weight": 30,
+		"drop_weight": 30, "icon": "iron_wall_shield",
 	},
 	"gale_boots": {
 		"name": "疾风之靴", "slot": EquipSlot.ACCESSORY, "rarity": "rare",
 		"desc": "SPD+2",
 		"stats": {"spd": 2},
 		"passive": "none",
-		"drop_weight": 30,
+		"drop_weight": 30, "icon": "gale_boots",
 	},
 	"slave_shackle_equip": {
 		"name": "奴隶枷锁", "slot": EquipSlot.ACCESSORY, "rarity": "common",
@@ -749,7 +772,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {},
 		"passive": "capture_bonus",  # +10% capture rate
 		"passive_value": 0.1,
-		"drop_weight": 60,
+		"drop_weight": 60, "icon": "slave_shackle_equip",
 	},
 	"mana_orb": {
 		"name": "法力宝珠", "slot": EquipSlot.ACCESSORY, "rarity": "rare",
@@ -757,7 +780,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {},
 		"passive": "mana_bonus",  # +3 max mana (for mage interactions)
 		"passive_value": 3,
-		"drop_weight": 30,
+		"drop_weight": 30, "icon": "mana_orb",
 	},
 	"war_totem": {
 		"name": "战力图腾", "slot": EquipSlot.WEAPON, "rarity": "rare",
@@ -765,7 +788,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {"atk": 1},
 		"passive": "one_battle_power",  # +30% army power for 1 battle
 		"passive_value": 0.3,
-		"drop_weight": 30,
+		"drop_weight": 30, "icon": "war_totem",
 	},
 	"garrison_banner": {
 		"name": "驻军旗帜", "slot": EquipSlot.ACCESSORY, "rarity": "rare",
@@ -773,7 +796,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {},
 		"passive": "garrison_bonus",  # All nodes +1 garrison cap
 		"passive_value": 1,
-		"drop_weight": 30,
+		"drop_weight": 30, "icon": "garrison_banner",
 	},
 	"counter_tactics": {
 		"name": "克制战术", "slot": EquipSlot.ACCESSORY, "rarity": "legendary",
@@ -781,7 +804,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {},
 		"passive": "rps_bonus",  # Unit type advantage +15%
 		"passive_value": 0.15,
-		"drop_weight": 10,
+		"drop_weight": 10, "icon": "counter_tactics",
 	},
 	"slave_chain": {
 		"name": "奴隶锁链", "slot": EquipSlot.ACCESSORY, "rarity": "rare",
@@ -789,7 +812,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {},
 		"passive": "slave_chain_bonus",
 		"passive_value": 0.15,
-		"drop_weight": 0,
+		"drop_weight": 0, "icon": "slave_chain",
 	},
 	"cursed_pickaxe": {
 		"name": "诅咒矿镐", "slot": EquipSlot.WEAPON, "rarity": "rare",
@@ -797,7 +820,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {"atk": 2},
 		"passive": "iron_income_bonus",
 		"passive_value": 3,
-		"drop_weight": 0,
+		"drop_weight": 0, "icon": "cursed_pickaxe",
 	},
 	"dragon_egg": {
 		"name": "龙之卵", "slot": EquipSlot.ACCESSORY, "rarity": "legendary",
@@ -805,7 +828,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {"atk": 3, "def": 2},
 		"passive": "dragon_power",
 		"passive_value": 1.0,
-		"drop_weight": 0,
+		"drop_weight": 0, "icon": "dragon_egg",
 	},
 	"blood_oath_ring": {
 		"name": "血誓之戒", "slot": EquipSlot.ACCESSORY, "rarity": "legendary",
@@ -813,7 +836,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {},
 		"passive": "blood_oath",
 		"passive_value": 0.5,
-		"drop_weight": 0,
+		"drop_weight": 0, "icon": "blood_oath_ring",
 	},
 	"ghost_lantern": {
 		"name": "幽魂灯笼", "slot": EquipSlot.ACCESSORY, "rarity": "rare",
@@ -821,7 +844,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {"def": 1},
 		"passive": "ghost_shield",
 		"passive_value": 1.0,
-		"drop_weight": 0,
+		"drop_weight": 0, "icon": "ghost_lantern",
 	},
 	"ancient_weapon_reforged": {
 		"name": "重铸·远古神兵", "slot": EquipSlot.WEAPON, "rarity": "legendary",
@@ -829,7 +852,7 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {"atk": 6},
 		"passive": "kill_heal_2",
 		"passive_value": 2.0,
-		"drop_weight": 0,
+		"drop_weight": 0, "icon": "ancient_weapon_reforged",
 	},
 	"dragon_slayer_sword": {
 		"name": "屠龙剑", "slot": EquipSlot.WEAPON, "rarity": "legendary",
@@ -837,14 +860,14 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"stats": {"atk": 7},
 		"passive": "dragon_slayer",
 		"passive_value": 1.0,
-		"drop_weight": 0,
+		"drop_weight": 0, "icon": "dragon_slayer_sword",
 	},
 	"rare_weapon": {
 		"name": "海盗秘藏武器", "slot": EquipSlot.WEAPON, "rarity": "rare",
 		"desc": "ATK+3, SPD+1",
 		"stats": {"atk": 3, "spd": 1},
 		"passive": "none",
-		"drop_weight": 0,
+		"drop_weight": 0, "icon": "rare_weapon",
 	},
 }
 

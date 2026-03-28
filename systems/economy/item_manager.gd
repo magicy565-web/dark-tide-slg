@@ -283,6 +283,17 @@ func grant_random_loot(player_id: int) -> String:
 
 # ═══════════════ INTERNAL HELPERS ═══════════════
 
+const ITEM_ICON_DIR: String = "res://assets/icons/items/"
+
+static func get_icon_path(icon_name: String) -> String:
+	## Resolve icon name to full path. Returns "" if no icon asset exists.
+	if icon_name == "":
+		return ""
+	var path: String = ITEM_ICON_DIR + icon_name + ".png"
+	if ResourceLoader.exists(path):
+		return path
+	return ""
+
 func _get_item_name(item_id: String) -> String:
 	if FactionData.ITEM_DEFS.has(item_id):
 		return FactionData.ITEM_DEFS[item_id].get("name", item_id)
@@ -300,6 +311,7 @@ func _get_item_display(item_id: String) -> Dictionary:
 			"name": def_data.get("name", item_id),
 			"desc": def_data.get("desc", ""),
 			"type": "consumable",
+			"icon": def_data.get("icon", ""),
 		}
 	elif FactionData.EQUIPMENT_DEFS.has(item_id):
 		var def_data: Dictionary = FactionData.EQUIPMENT_DEFS[item_id]
@@ -309,8 +321,9 @@ func _get_item_display(item_id: String) -> Dictionary:
 			"desc": def_data.get("desc", ""),
 			"type": "equipment",
 			"rarity": def_data.get("rarity", "common"),
+			"icon": def_data.get("icon", ""),
 		}
-	return {"item_id": item_id, "name": item_id, "desc": "", "type": "unknown"}
+	return {"item_id": item_id, "name": item_id, "desc": "", "type": "unknown", "icon": ""}
 
 
 # ═══════════════ SAVE / LOAD ═══════════════

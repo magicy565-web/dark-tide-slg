@@ -209,6 +209,22 @@ func _build_item_row(item: Dictionary, index: int) -> PanelContainer:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 10)
 	card.add_child(hbox)
+	# Item icon
+	var icon_name: String = item.get("icon", "")
+	var icon_path: String = ItemManager.get_icon_path(icon_name) if icon_name != "" else ""
+	if icon_path != "":
+		var icon_tex: Texture2D = load(icon_path)
+		if icon_tex != null:
+			var icon_rect := TextureRect.new()
+			icon_rect.texture = icon_tex
+			icon_rect.expand_mode = TextureRect.EXPAND_FIT_HEIGHT_PROPORTIONAL
+			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon_rect.custom_minimum_size = Vector2(36, 36)
+			hbox.add_child(icon_rect)
+		else:
+			hbox.add_child(_make_icon_placeholder(item))
+	else:
+		hbox.add_child(_make_icon_placeholder(item))
 	var name_lbl := Label.new()
 	name_lbl.text = item.get("name", "???")
 	name_lbl.add_theme_font_size_override("font_size", 14)
@@ -286,6 +302,18 @@ func _refresh_detail(item: Dictionary) -> void:
 	for child in detail_container.get_children(): child.queue_free()
 	var item_id: String = item.get("item_id", "")
 	var item_type: String = item.get("type", "unknown")
+	# Detail icon (larger)
+	var detail_icon_name: String = item.get("icon", "")
+	var detail_icon_path: String = ItemManager.get_icon_path(detail_icon_name) if detail_icon_name != "" else ""
+	if detail_icon_path != "":
+		var detail_icon_tex: Texture2D = load(detail_icon_path)
+		if detail_icon_tex != null:
+			var detail_icon := TextureRect.new()
+			detail_icon.texture = detail_icon_tex
+			detail_icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			detail_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			detail_icon.custom_minimum_size = Vector2(0, 80)
+			detail_container.add_child(detail_icon)
 	var nl := Label.new()
 	nl.text = item.get("name", "???"); nl.add_theme_font_size_override("font_size", 18)
 	nl.add_theme_color_override("font_color", _get_rarity_color(item.get("rarity", "common")))
@@ -416,3 +444,13 @@ func _get_rarity_color(rarity: String) -> Color:
 		"legendary": return Color(1.0, 0.7, 0.1)
 		"rare": return Color(0.4, 0.6, 1.0)
 	return Color(0.7, 0.7, 0.75)
+
+func _make_icon_placeholder(item: Dictionary) -> ColorRect:
+	var placeholder := ColorRect.new()
+	placeholder.custom_minimum_size = Vector2(36, 36)
+	var tt: String = item.get("type", "unknown")
+	match tt:
+		"consumable": placeholder.color = Color(0.2, 0.35, 0.2, 0.8)
+		"equipment": placeholder.color = Color(0.2, 0.2, 0.4, 0.8)
+		_: placeholder.color = Color(0.2, 0.2, 0.2, 0.8)
+	return placeholder

@@ -330,7 +330,29 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 	hbox.add_theme_constant_override("separation", 12)
 	card.add_child(hbox)
 
-	# Left: portrait placeholder + basic info
+	# Left: portrait thumbnail
+	var portrait_path: String = FactionData.HERO_PORTRAITS.get(hero_id, "") if "HERO_PORTRAITS" in FactionData else ""
+	if portrait_path != "" and ResourceLoader.exists(portrait_path):
+		var portrait_tex: Texture2D = load(portrait_path)
+		if portrait_tex != null:
+			var portrait := TextureRect.new()
+			portrait.texture = portrait_tex
+			portrait.expand_mode = TextureRect.EXPAND_FIT_HEIGHT_PROPORTIONAL
+			portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			portrait.custom_minimum_size = Vector2(56, 56)
+			hbox.add_child(portrait)
+		else:
+			var portrait_placeholder := ColorRect.new()
+			portrait_placeholder.custom_minimum_size = Vector2(56, 56)
+			portrait_placeholder.color = _get_faction_color(hero_def.get("faction", "")) * 0.4
+			hbox.add_child(portrait_placeholder)
+	else:
+		var portrait_placeholder := ColorRect.new()
+		portrait_placeholder.custom_minimum_size = Vector2(56, 56)
+		portrait_placeholder.color = _get_faction_color(hero_def.get("faction", "")) * 0.4
+		hbox.add_child(portrait_placeholder)
+
+	# Info column
 	var info_vbox := VBoxContainer.new()
 	info_vbox.add_theme_constant_override("separation", 2)
 	info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -468,6 +490,18 @@ func _refresh_detail() -> void:
 	name_lbl.add_theme_font_size_override("font_size", 20)
 	name_lbl.add_theme_color_override("font_color", _get_faction_color(hero_def.get("faction", "")))
 	detail_container.add_child(name_lbl)
+
+	# Portrait in detail view
+	var detail_portrait_path: String = FactionData.HERO_PORTRAITS.get(_selected_hero_id, "") if "HERO_PORTRAITS" in FactionData else ""
+	if detail_portrait_path != "" and ResourceLoader.exists(detail_portrait_path):
+		var detail_portrait_tex: Texture2D = load(detail_portrait_path)
+		if detail_portrait_tex != null:
+			var detail_portrait := TextureRect.new()
+			detail_portrait.texture = detail_portrait_tex
+			detail_portrait.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			detail_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			detail_portrait.custom_minimum_size = Vector2(0, 140)
+			detail_container.add_child(detail_portrait)
 
 	# Description
 	var desc_lbl := RichTextLabel.new()
