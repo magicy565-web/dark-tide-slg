@@ -4,6 +4,30 @@
 extends Node3D
 const FactionData = preload("res://systems/faction/faction_data.gd")
 
+# ── AI-Generated Map Textures ──
+var _terrain_textures: Dictionary = {}
+var _settlement_textures: Dictionary = {}
+var _crest_textures: Dictionary = {}
+var _map_bg_texture: Texture2D = null
+
+func _load_map_assets() -> void:
+	# Map background
+	_map_bg_texture = _safe_tex_load("res://assets/map/map_background.png")
+	# Terrain textures
+	for tname in ["plains","forest","mountain","swamp","coastal","fortress_wall","river","ruins","wasteland","volcanic"]:
+		_terrain_textures[tname] = _safe_tex_load("res://assets/map/terrain/terrain_%s.png" % tname)
+	# Settlement/building icons
+	for sname in ["fortress","village","watchtower","trading_post","beacon","ruins","port","gate","bandit","crystal_mine","horse_ranch","gunpowder","shadow_rift","stronghold","event"]:
+		_settlement_textures[sname] = _safe_tex_load("res://assets/map/settlements/settlement_%s.png" % sname)
+	# Faction crests
+	for fname in ["orc","pirate","dark_elf","human","high_elf","mage"]:
+		_crest_textures[fname] = _safe_tex_load("res://assets/map/crests/crest_%s.png" % fname)
+
+func _safe_tex_load(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		return load(path)
+	return null
+
 # ── Visual tracking ──
 var tile_visuals: Dictionary = {}
 var edge_meshes: Array = []
@@ -88,6 +112,7 @@ const COL_DEPLOY_FILL := Color(0.95, 0.9, 0.2, 0.18)
 const COL_ATTACK_FILL := Color(0.9, 0.15, 0.1, 0.18)
 
 func _ready() -> void:
+	_load_map_assets()
 	_setup_environment(); _setup_lighting(); _setup_camera(); _setup_ground()
 	EventBus.tile_captured.connect(_on_tile_captured)
 	EventBus.fog_updated.connect(_on_fog_updated)
@@ -133,7 +158,13 @@ func _setup_camera() -> void:
 
 func _setup_ground() -> void:
 	var g := MeshInstance3D.new(); var p := PlaneMesh.new(); p.size = Vector2(70, 60); g.mesh = p
-	var m := StandardMaterial3D.new(); m.albedo_color = Color(0.12, 0.15, 0.1)
+	var m := StandardMaterial3D.new()
+	if _map_bg_texture:
+		m.albedo_texture = _map_bg_texture
+		m.albedo_color = Color(0.7, 0.65, 0.55)
+		m.uv1_scale = Vector3(1, 1, 1)
+	else:
+		m.albedo_color = Color(0.12, 0.15, 0.1)
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; g.material_override = m
 	g.position = Vector3(9.0, GROUND_Y - 0.15, -7.0); add_child(g)
 	_setup_ambient_particles()
@@ -236,7 +267,14 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 	bm.height = TILE_HEIGHT + elev * 0.5; bm.radial_segments = 6
 	var base_mi := MeshInstance3D.new(); base_mi.mesh = bm
 	base_mi.position.y = (TILE_HEIGHT + elev * 0.5) * 0.5 - elev * 0.25
-	base_mi.material_override = _make_mat(Color(0.5, 0.5, 0.5)); root.add_child(base_mi)
+	# Apply terrain texture to hex tile
+	var terrain_key: String = _terrain_enum_to_key(tile.get("terrain", FactionData.TerrainType.PLAINS))
+	var terrain_tex: Texture2D = _terrain_textures.get(terrain_key, null)
+	if terrain_tex:
+		base_mi.material_override = _make_textured_mat(Color(0.65, 0.65, 0.6), terrain_tex)
+	else:
+		base_mi.material_override = _make_mat(Color(0.5, 0.5, 0.5))
+	root.add_child(base_mi)
 	# Border ring
 	var brm := CylinderMesh.new()
 	brm.top_radius = TILE_RADIUS * 1.06; brm.bottom_radius = TILE_RADIUS * 1.06
@@ -270,6 +308,21 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 	pole.position.y = 0.6; fr.add_child(pole)
 	var banner := _make_box_mesh(Vector3(0.35, 0.22, 0.02), Color(0.5, 0.5, 0.5))
 	banner.position = Vector3(0.22, 1.1, 0.0); fr.add_child(banner)
+	# Faction crest sprite (billboard)
+	var crest_sprite := Sprite3D.new()
+	crest_sprite.name = "CrestSprite"
+	crest_sprite.pixel_size = 0.006
+	crest_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	crest_sprite.no_depth_test = true
+	crest_sprite.position = Vector3(-0.8, TILE_HEIGHT + 0.8, 0.6)
+	crest_sprite.modulate = Color(1, 1, 1, 0.85)
+	var fk_crest: String = tile.get("faction_key", "")
+	if fk_crest == "": fk_crest = _get_tile_faction_key(tile) if tile.get("owner_id", -1) >= 0 else ""
+	if _crest_textures.has(fk_crest) and _crest_textures[fk_crest] != null:
+		crest_sprite.texture = _crest_textures[fk_crest]
+	else:
+		crest_sprite.visible = false
+	root.add_child(crest_sprite)
 	# Fog
 	var fog := MeshInstance3D.new(); var fm := CylinderMesh.new()
 	fm.top_radius = TILE_RADIUS * 1.15; fm.bottom_radius = TILE_RADIUS * 1.15
@@ -290,6 +343,7 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 		"garrison_label": glabel, "army_marker": am,
 		"army_label": am.get_node("ArmyLabel"), "flag_root": fr, "banner": banner,
 		"fog": fog, "area": area, "elevation": elev,
+		"crest_sprite": crest_sprite,
 	}
 
 # ═══════════════ ARMY FIGURE ═══════════════
@@ -312,16 +366,85 @@ func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
 	var level: int = tile.get("level", 1)
 	var tt = tile.get("type", -1)
 	var y: float = TILE_HEIGHT
-	if tt == GameManager.TileType.CORE_FORTRESS or terrain == FactionData.TerrainType.FORTRESS_WALL:
-		_build_castle(parent, y); return
-	if level >= 3:
-		_build_town_hall(parent, y, Vector3(0.3, 0, 0.3))
-		_add_house(parent, y, Vector3(0.55, 0, 0.2)); _add_house(parent, y, Vector3(0.15, 0, 0.55))
-	elif level >= 2:
-		_add_house(parent, y, Vector3(0.2, 0, 0.25))
-		_add_house(parent, y, Vector3(0.5, 0, 0.4)); _add_house(parent, y, Vector3(0.35, 0, 0.55))
+	# Determine settlement icon key based on tile type and special properties
+	var icon_key: String = _get_settlement_icon_key(tile)
+	var tex: Texture2D = _settlement_textures.get(icon_key, null)
+	if tex != null:
+		# Use AI-generated sprite instead of procedural geometry
+		var sprite := Sprite3D.new()
+		sprite.texture = tex
+		sprite.pixel_size = 0.008
+		sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+		sprite.axis = Vector3.AXIS_Y
+		# Flat on top of hex, facing up
+		sprite.rotation_degrees = Vector3(-90, 0, 0)
+		var sscale: float = 0.6 + level * 0.15
+		if tt == GameManager.TileType.CORE_FORTRESS:
+			sscale = 1.1
+		sprite.scale = Vector3(sscale, sscale, sscale)
+		sprite.position = Vector3(0, y + 0.02, 0)
+		sprite.modulate = Color(1, 1, 1, 0.9)
+		parent.add_child(sprite)
+		# Also add a small upright billboard version for visibility from camera angle
+		var billboard := Sprite3D.new()
+		billboard.texture = tex
+		billboard.pixel_size = 0.005
+		billboard.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		billboard.no_depth_test = true
+		var bscale: float = 0.45 + level * 0.1
+		if tt == GameManager.TileType.CORE_FORTRESS:
+			bscale = 0.8
+		billboard.scale = Vector3(bscale, bscale, bscale)
+		billboard.position = Vector3(0, y + 0.6 + level * 0.1, 0)
+		billboard.modulate = Color(1, 1, 1, 0.85)
+		parent.add_child(billboard)
 	else:
-		_add_house(parent, y, Vector3(0.3, 0, 0.3))
+		# Fallback to procedural geometry
+		if tt == GameManager.TileType.CORE_FORTRESS or terrain == FactionData.TerrainType.FORTRESS_WALL:
+			_build_castle(parent, y); return
+		if level >= 3:
+			_build_town_hall(parent, y, Vector3(0.3, 0, 0.3))
+			_add_house(parent, y, Vector3(0.55, 0, 0.2)); _add_house(parent, y, Vector3(0.15, 0, 0.55))
+		elif level >= 2:
+			_add_house(parent, y, Vector3(0.2, 0, 0.25))
+			_add_house(parent, y, Vector3(0.5, 0, 0.4)); _add_house(parent, y, Vector3(0.35, 0, 0.55))
+		else:
+			_add_house(parent, y, Vector3(0.3, 0, 0.3))
+
+func _get_settlement_icon_key(tile: Dictionary) -> String:
+	var tt = tile.get("type", -1)
+	var terrain = tile.get("terrain", FactionData.TerrainType.PLAINS)
+	var special: String = tile.get("special_type", "")
+	# Core fortress
+	if tt == GameManager.TileType.CORE_FORTRESS:
+		return "fortress"
+	# Special types by name/special_type field
+	if special == "trading_post" or tile.get("name", "").find("集市") >= 0 or tile.get("name", "").find("黑市") >= 0:
+		return "trading_post"
+	if special == "watchtower" or tile.get("name", "").find("瞭望") >= 0 or tile.get("name", "").find("烽火") >= 0:
+		return "beacon"
+	if special == "ruins" or tile.get("name", "").find("图书馆") >= 0 or tile.get("name", "").find("神殿") >= 0:
+		return "ruins"
+	if special == "port" or tile.get("name", "").find("港") >= 0 or tile.get("name", "").find("码头") >= 0 or tile.get("name", "").find("湾") >= 0:
+		return "port"
+	if special == "pass" or tile.get("is_chokepoint", false):
+		return "gate"
+	if tile.get("name", "").find("矿") >= 0 or tile.get("name", "").find("晶") >= 0:
+		return "crystal_mine"
+	if tile.get("name", "").find("牧场") >= 0 or tile.get("name", "").find("马场") >= 0:
+		return "horse_ranch"
+	if tile.get("name", "").find("工坊") >= 0 or tile.get("name", "").find("火药") >= 0:
+		return "gunpowder"
+	if tile.get("name", "").find("裂隙") >= 0 or tile.get("name", "").find("暗蚀") >= 0:
+		return "shadow_rift"
+	if tile.get("name", "").find("事件") >= 0 or tile.get("name", "").find("命运") >= 0 or tile.get("name", "").find("低语") >= 0:
+		return "event"
+	# By terrain or level
+	if terrain == FactionData.TerrainType.FORTRESS_WALL:
+		return "stronghold"
+	if tile.get("level", 1) >= 3:
+		return "stronghold"
+	return "village"
 
 func _add_house(p: Node3D, y: float, o: Vector3) -> void:
 	var h := _make_box_mesh(Vector3(0.18, 0.15, 0.18), Color(0.6, 0.5, 0.38))
@@ -574,7 +697,13 @@ func _update_territory_visual(idx: int) -> void:
 	var tt: Color = TERRAIN_COLORS.get(terrain, Color(0.3, 0.4, 0.25))
 	var fc: Color = bc.lerp(tt, 0.2)
 	if tile.get("owner_id", -1) >= 0: fc = fc.lightened(0.08)
-	vis["base"].material_override = _make_mat(fc)
+	# Apply terrain texture if available, otherwise fallback to color
+	var terrain_key: String = _terrain_enum_to_key(terrain)
+	var terrain_tex: Texture2D = _terrain_textures.get(terrain_key, null)
+	if terrain_tex:
+		vis["base"].material_override = _make_textured_mat(fc.lightened(0.15), terrain_tex)
+	else:
+		vis["base"].material_override = _make_mat(fc)
 	# Border
 	var brc: Color = FLAG_COLORS.get(fk, Color(0.3, 0.3, 0.28))
 	if idx == selected_tile: brc = Color(1.0, 1.0, 0.8)
@@ -584,6 +713,14 @@ func _update_territory_visual(idx: int) -> void:
 	var flc: Color = FLAG_COLORS.get(fk, Color(0.4, 0.4, 0.4))
 	vis["banner"].material_override = _make_emissive_mat(flc, flc * 0.35, 0.35)
 	vis["flag_root"].visible = tile["owner_id"] >= 0
+	# Update faction crest sprite
+	if vis.has("crest_sprite"):
+		var cs: Sprite3D = vis["crest_sprite"]
+		if tile["owner_id"] >= 0 and _crest_textures.has(fk) and _crest_textures[fk] != null:
+			cs.texture = _crest_textures[fk]
+			cs.visible = not vis["fog"].visible
+		else:
+			cs.visible = false
 	# Garrison
 	var garrison: int = tile.get("garrison", 0)
 	if garrison > 0 and not vis["fog"].visible:
@@ -1079,6 +1216,18 @@ func _make_mat(color: Color) -> StandardMaterial3D:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_material_cache[key] = m; return m
 
+func _make_textured_mat(color: Color, texture: Texture2D) -> StandardMaterial3D:
+	if texture == null:
+		return _make_mat(color)
+	var key := "tex_%s_%s" % [color, texture.resource_path]
+	if _material_cache.has(key): return _material_cache[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.albedo_texture = texture
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	_material_cache[key] = m; return m
+
 func _make_emissive_mat(color: Color, emission: Color, energy: float) -> StandardMaterial3D:
 	var key := "e_%s_%s_%.2f" % [color, emission, energy]
 	if _material_cache.has(key): return _material_cache[key]
@@ -1093,6 +1242,20 @@ func _make_label3d(text: String, size: int, pos: Vector3, col: Color = Color(1,1
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED; l.no_depth_test = true
 	l.modulate = col; l.outline_modulate = Color(0, 0, 0, 0.9); l.outline_size = 10
 	l.position = pos; l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; return l
+
+func _terrain_enum_to_key(terrain_type: int) -> String:
+	match terrain_type:
+		FactionData.TerrainType.PLAINS: return "plains"
+		FactionData.TerrainType.FOREST: return "forest"
+		FactionData.TerrainType.MOUNTAIN: return "mountain"
+		FactionData.TerrainType.SWAMP: return "swamp"
+		FactionData.TerrainType.COASTAL: return "coastal"
+		FactionData.TerrainType.FORTRESS_WALL: return "fortress_wall"
+		FactionData.TerrainType.RIVER: return "river"
+		FactionData.TerrainType.RUINS: return "ruins"
+		FactionData.TerrainType.WASTELAND: return "wasteland"
+		FactionData.TerrainType.VOLCANIC: return "volcanic"
+	return "plains"
 
 func _make_cyl_mesh(tr: float, br: float, h: float, c: Color) -> MeshInstance3D:
 	var mi := MeshInstance3D.new(); var cm := CylinderMesh.new()

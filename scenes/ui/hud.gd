@@ -146,11 +146,17 @@ func _build_ui() -> void:
 	_btn_hover_tex = _safe_load("res://assets/ui/btn_hover.png")
 	_btn_pressed_tex = _safe_load("res://assets/ui/btn_pressed.png")
 	_icon_gold = _safe_load("res://assets/ui/icon_gold_coin.png")
+	if not _icon_gold: _icon_gold = _safe_load("res://assets/map/resources/res_gold.png")
 	_icon_food = _safe_load("res://assets/ui/icon_food_grain.png")
+	if not _icon_food: _icon_food = _safe_load("res://assets/map/resources/res_food.png")
 	_icon_iron = _safe_load("res://assets/ui/icon_iron_ore.png")
+	if not _icon_iron: _icon_iron = _safe_load("res://assets/map/resources/res_iron.png")
 	_icon_slave = _safe_load("res://assets/ui/icon_slave_chain.png")
+	if not _icon_slave: _icon_slave = _safe_load("res://assets/map/resources/res_slave.png")
 	_icon_prestige = _safe_load("res://assets/ui/icon_prestige_crown.png")
+	if not _icon_prestige: _icon_prestige = _safe_load("res://assets/map/resources/res_prestige.png")
 	_icon_crystal = _safe_load("res://assets/ui/icon_magic_crystal.png")
+	if not _icon_crystal: _icon_crystal = _safe_load("res://assets/map/resources/res_mana.png")
 	_has_resource_icons = _icon_gold != null
 
 	var root := Control.new()
