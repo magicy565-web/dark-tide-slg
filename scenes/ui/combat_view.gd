@@ -123,10 +123,12 @@ var _dot_timers: Dictionary = {}  # side -> slot -> float (accumulator for DoT p
 # ── Unit tracking (side -> slot -> dict with live data) ──
 var _live_units: Dictionary = {"attacker": {}, "defender": {}}
 
-# ── Chibi sprite refs (side -> slot -> TextureRect) ──
-var _chibi_sprites: Dictionary = {"attacker": {}, "defender": {}}
+# ── Chibi video player refs (side -> slot -> VideoStreamPlayer) ──
+var _chibi_players: Dictionary = {"attacker": {}, "defender": {}}
 # ── Chibi hero mapping (side -> slot -> hero_id string) ──
 var _chibi_hero_map: Dictionary = {"attacker": {}, "defender": {}}
+# ── Chibi current state tracking (side -> slot -> state string) ──
+var _chibi_current_state: Dictionary = {"attacker": {}, "defender": {}}
 const CHIBI_SIZE := Vector2(48, 48)
 
 # ── UI refs ──
@@ -524,18 +526,35 @@ func _create_card(pos: Vector2) -> PanelContainer:
 	overlay_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(overlay_lbl)
 
-	# Chibi sprite overlay (top-right corner of card, semi-transparent)
-	var chibi_rect := TextureRect.new()
-	chibi_rect.name = "ChibiSprite"
-	chibi_rect.custom_minimum_size = CHIBI_SIZE
-	chibi_rect.size = CHIBI_SIZE
-	chibi_rect.position = Vector2(CARD_W - CHIBI_SIZE.x - 2, 2)
-	chibi_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	chibi_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	chibi_rect.modulate = Color(1, 1, 1, 0.85)
-	chibi_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chibi_rect.visible = false
-	panel.add_child(chibi_rect)
+	# Chibi video player overlay (top-right corner of card)
+	var chibi_container := Control.new()
+	chibi_container.name = "ChibiContainer"
+	chibi_container.position = Vector2(CARD_W - CHIBI_SIZE.x - 2, 2)
+	chibi_container.size = CHIBI_SIZE
+	chibi_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chibi_container.visible = false
+	panel.add_child(chibi_container)
+
+	var chibi_video := VideoStreamPlayer.new()
+	chibi_video.name = "ChibiVideo"
+	chibi_video.size = CHIBI_SIZE
+	chibi_video.expand = true
+	chibi_video.loop = true
+	chibi_video.autoplay = false
+	chibi_video.volume_db = -80.0  # silent
+	chibi_video.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chibi_container.add_child(chibi_video)
+
+	# Fallback static TextureRect (for heroes without video)
+	var chibi_tex := TextureRect.new()
+	chibi_tex.name = "ChibiFallback"
+	chibi_tex.custom_minimum_size = CHIBI_SIZE
+	chibi_tex.size = CHIBI_SIZE
+	chibi_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chibi_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chibi_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chibi_tex.visible = false
+	chibi_container.add_child(chibi_tex)
 
 	# Tooltip shows counter summary on hover
 	panel.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -882,27 +901,55 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 			else:
 				card.tooltip_text = ""
 
-		# ── Chibi sprite loading ──
-		var chibi_rect: TextureRect = card.get_node_or_null("ChibiSprite")
-		if chibi_rect:
+		# ── Chibi video/sprite loading ──
+		var chibi_container: Control = card.get_node_or_null("ChibiContainer")
+		if chibi_container:
+			var chibi_video: VideoStreamPlayer = chibi_container.get_node_or_null("ChibiVideo")
+			var chibi_tex: TextureRect = chibi_container.get_node_or_null("ChibiFallback")
 			if unit.is_empty():
-				chibi_rect.visible = false
-				chibi_rect.texture = null
-				_chibi_sprites[side].erase(slot_idx)
+				chibi_container.visible = false
+				if chibi_video:
+					chibi_video.stop()
+				if chibi_tex:
+					chibi_tex.texture = null
+					chibi_tex.visible = false
+				_chibi_players[side].erase(slot_idx)
 				_chibi_hero_map[side].erase(slot_idx)
+				_chibi_current_state[side].erase(slot_idx)
 			else:
 				var cmd_id: String = str(unit.get("commander_id", ""))
 				if cmd_id != "" and ChibiLoader.has_chibi(cmd_id):
-					var idle_tex := ChibiLoader.load_state(cmd_id, "idle")
-					if idle_tex:
-						chibi_rect.texture = idle_tex
-						chibi_rect.visible = true
-						_chibi_sprites[side][slot_idx] = chibi_rect
-						_chibi_hero_map[side][slot_idx] = cmd_id
+					_chibi_hero_map[side][slot_idx] = cmd_id
+					chibi_container.visible = true
+					# Prefer video, fallback to PNG
+					if ChibiLoader.has_video(cmd_id):
+						var stream := ChibiLoader.load_video(cmd_id, "idle")
+						if stream and chibi_video:
+							chibi_video.stream = stream
+							chibi_video.loop = true
+							chibi_video.play()
+							chibi_video.visible = true
+							if chibi_tex:
+								chibi_tex.visible = false
+							_chibi_players[side][slot_idx] = chibi_video
+							_chibi_current_state[side][slot_idx] = "idle"
+						else:
+							chibi_container.visible = false
+					elif ChibiLoader.has_png(cmd_id):
+						var idle_tex := ChibiLoader.load_png(cmd_id, "idle")
+						if idle_tex and chibi_tex:
+							chibi_tex.texture = idle_tex
+							chibi_tex.visible = true
+							if chibi_video:
+								chibi_video.visible = false
+							_chibi_players[side][slot_idx] = chibi_tex
+							_chibi_current_state[side][slot_idx] = "idle"
+						else:
+							chibi_container.visible = false
 					else:
-						chibi_rect.visible = false
+						chibi_container.visible = false
 				else:
-					chibi_rect.visible = false
+					chibi_container.visible = false
 
 func _update_card_soldiers(side: String, slot_idx: int, soldiers: int, max_soldiers: int) -> void:
 	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
@@ -2031,10 +2078,8 @@ func _on_close() -> void:
 	if _vs_tween and _vs_tween.is_valid():
 		_vs_tween.kill()
 		_vs_tween = null
-	# Clean up chibi sprite refs
-	_chibi_sprites = {"attacker": {}, "defender": {}}
-	_chibi_hero_map = {"attacker": {}, "defender": {}}
-	ChibiLoader.clear_cache()
+	# Clean up chibi video players and refs
+	_chibi_cleanup()
 	combat_view_closed.emit()
 
 func _on_speed_toggle() -> void:
@@ -2236,51 +2281,129 @@ func _finish_playback() -> void:
 				_apply_death_overlay("defender", slot)
 
 # ═══════════════════════════════════════════════════════════
-#                   CHIBI SPRITE HELPERS
+#                   CHIBI VIDEO HELPERS
 # ═══════════════════════════════════════════════════════════
 
-## Swap a card's chibi sprite to the given state, then revert to idle after delay.
+## Switch a card's chibi to a new state (video or PNG fallback).
+## For play-once states (attack/cast/hurt), auto-reverts to idle after video ends.
+## For permanent states (defeated/victory), stays in that state.
 func _set_chibi_state(side: String, slot_idx: int, state: String, revert_delay: float = 0.5) -> void:
-	if not _chibi_sprites.has(side) or not _chibi_sprites[side].has(slot_idx):
-		return
 	var hero_id: String = _chibi_hero_map[side].get(slot_idx, "")
 	if hero_id.is_empty():
 		return
-	var chibi_rect: TextureRect = _chibi_sprites[side][slot_idx]
-	if chibi_rect == null or not is_instance_valid(chibi_rect):
+	if not _chibi_players.has(side) or not _chibi_players[side].has(slot_idx):
 		return
 
-	var tex := ChibiLoader.load_state(hero_id, state)
-	if tex:
-		chibi_rect.texture = tex
-		# Revert to idle after delay (unless it's a permanent state like defeated)
-		if state != "defeated" and state != "defeat" and revert_delay > 0.0:
-			var tw := create_tween()
-			tw.tween_interval(revert_delay / _speed_mult)
-			tw.tween_callback(func():
-				if is_instance_valid(chibi_rect) and _chibi_hero_map[side].get(slot_idx, "") == hero_id:
-					var idle_tex := ChibiLoader.load_state(hero_id, "idle")
-					if idle_tex:
-						chibi_rect.texture = idle_tex
-			)
+	var current_state: String = _chibi_current_state[side].get(slot_idx, "idle")
+	# Don't interrupt defeated state
+	if current_state == "defeated":
+		return
 
-## Hide chibi sprite (for death/defeat permanent state change).
+	var player = _chibi_players[side][slot_idx]
+	if player == null or not is_instance_valid(player):
+		return
+
+	_chibi_current_state[side][slot_idx] = state
+
+	if player is VideoStreamPlayer:
+		var stream := ChibiLoader.load_video(hero_id, state)
+		if stream:
+			player.stream = stream
+			player.loop = ChibiLoader.is_loop_state(state)
+			player.play()
+
+			# For play-once states, revert to idle when done
+			if not player.loop and state != "defeated" and state != "victory":
+				# Connect finished signal for revert
+				var callable := func():
+					if is_instance_valid(player) and _chibi_hero_map[side].get(slot_idx, "") == hero_id:
+						if _chibi_current_state[side].get(slot_idx, "") == state:
+							_set_chibi_idle(side, slot_idx)
+				if not player.finished.is_connected(callable):
+					# Disconnect previous one-shot connections
+					for conn in player.finished.get_connections():
+						player.finished.disconnect(conn["callable"])
+					player.finished.connect(callable, CONNECT_ONE_SHOT)
+	elif player is TextureRect:
+		# PNG fallback: swap texture
+		var tex := ChibiLoader.load_png(hero_id, state)
+		if tex:
+			player.texture = tex
+			# Revert to idle after delay for non-permanent states
+			if state != "defeated" and state != "victory" and revert_delay > 0.0:
+				var tw := create_tween()
+				tw.tween_interval(revert_delay / _speed_mult)
+				tw.tween_callback(func():
+					if is_instance_valid(player) and _chibi_hero_map[side].get(slot_idx, "") == hero_id:
+						if _chibi_current_state[side].get(slot_idx, "") == state:
+							_set_chibi_idle(side, slot_idx)
+				)
+
+## Revert chibi to idle (looping).
+func _set_chibi_idle(side: String, slot_idx: int) -> void:
+	var hero_id: String = _chibi_hero_map[side].get(slot_idx, "")
+	if hero_id.is_empty():
+		return
+	if not _chibi_players.has(side) or not _chibi_players[side].has(slot_idx):
+		return
+
+	var player = _chibi_players[side][slot_idx]
+	if player == null or not is_instance_valid(player):
+		return
+
+	_chibi_current_state[side][slot_idx] = "idle"
+
+	if player is VideoStreamPlayer:
+		var stream := ChibiLoader.load_video(hero_id, "idle")
+		if stream:
+			# Clear any pending finished connections
+			for conn in player.finished.get_connections():
+				player.finished.disconnect(conn["callable"])
+			player.stream = stream
+			player.loop = true
+			player.play()
+	elif player is TextureRect:
+		var tex := ChibiLoader.load_png(hero_id, "idle")
+		if tex:
+			player.texture = tex
+
+## Show defeat state: switch to defeated animation + fade out.
 func _chibi_defeat(side: String, slot_idx: int) -> void:
-	_set_chibi_state(side, slot_idx, "defeated", 0.0)  # no revert
-	# Fade out the chibi
-	if _chibi_sprites.has(side) and _chibi_sprites[side].has(slot_idx):
-		var chibi_rect: TextureRect = _chibi_sprites[side][slot_idx]
-		if chibi_rect and is_instance_valid(chibi_rect):
-			var tw := create_tween()
-			tw.tween_interval(0.3 / _speed_mult)
-			tw.tween_property(chibi_rect, "modulate:a", 0.3, 0.5 / _speed_mult)
+	_set_chibi_state(side, slot_idx, "defeated", 0.0)
+	# Fade out the chibi container
+	if _chibi_players.has(side) and _chibi_players[side].has(slot_idx):
+		var player = _chibi_players[side][slot_idx]
+		if player and is_instance_valid(player):
+			var container := player.get_parent()
+			if container:
+				var tw := create_tween()
+				tw.tween_interval(0.3 / _speed_mult)
+				tw.tween_property(container, "modulate:a", 0.3, 0.5 / _speed_mult)
 
 ## Show victory pose for all surviving units on a side.
 func _chibi_victory(side: String) -> void:
-	if not _chibi_sprites.has(side):
+	if not _chibi_players.has(side):
 		return
-	for slot_idx in _chibi_sprites[side].keys():
-		_set_chibi_state(side, slot_idx, "victory", 0.0)  # no revert, stay in victory
+	for slot_idx in _chibi_players[side].keys():
+		var current: String = _chibi_current_state[side].get(slot_idx, "")
+		if current != "defeated":
+			_chibi_current_state[side][slot_idx] = ""  # clear to allow override
+			_set_chibi_state(side, slot_idx, "victory", 0.0)
+
+## Stop all chibi videos and clean up.
+func _chibi_cleanup() -> void:
+	for side in ["attacker", "defender"]:
+		if _chibi_players.has(side):
+			for slot_idx in _chibi_players[side].keys():
+				var player = _chibi_players[side][slot_idx]
+				if player is VideoStreamPlayer and is_instance_valid(player):
+					player.stop()
+					for conn in player.finished.get_connections():
+						player.finished.disconnect(conn["callable"])
+	_chibi_players = {"attacker": {}, "defender": {}}
+	_chibi_hero_map = {"attacker": {}, "defender": {}}
+	_chibi_current_state = {"attacker": {}, "defender": {}}
+	ChibiLoader.clear_cache()
 
 # ═══════════════════════════════════════════════════════════
 #                        HELPERS
