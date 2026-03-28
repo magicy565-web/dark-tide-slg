@@ -384,6 +384,12 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 					state["intervention_cp"] = CommanderIntervention.get_current_cp()
 					EventBus.combat_intervention_phase.emit(state)
 
+		# -- Duel Phase (一骑打): if either side has DUEL directive, attempt commander duel --
+		var _duel_atk: bool = (state.get("atk_directive", TacticalDirective.NONE) == TacticalDirective.DUEL)
+		var _duel_def: bool = (state.get("def_directive", TacticalDirective.NONE) == TacticalDirective.DUEL)
+		if _duel_atk or _duel_def:
+			_attempt_duel(state, log, _duel_atk, _duel_def)
+
 		var queue: Array = _build_action_queue(state)
 
 		for unit in queue:
@@ -1112,6 +1118,77 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 	log.append("城墙受到 %d 点伤害 (剩余: %d)" % [wall_damage_total, new_wall])
 
 	return {"breached": new_wall <= 0, "log": log}
+
+
+# ---------------------------------------------------------------------------
+# Duel Mechanic (一骑打)
+# ---------------------------------------------------------------------------
+
+func _attempt_duel(state: Dictionary, log: Array, atk_duel: bool, def_duel: bool) -> void:
+	## Attempt a commander duel when DUEL directive is active.
+	## 25% base chance per round (+20% if hero has duel_bonus passive).
+	var trigger_chance: float = 0.25
+	# Check if any hero on either DUEL side has duel_bonus
+	var atk_hero: Dictionary = _find_strongest_hero(state["atk_units"])
+	var def_hero: Dictionary = _find_strongest_hero(state["def_units"])
+	if atk_hero.is_empty() and def_hero.is_empty():
+		return  # No heroes to duel
+	var atk_has_duel_bonus: bool = (not atk_hero.is_empty() and "duel_bonus" in atk_hero.get("passives", []))
+	var def_has_duel_bonus: bool = (not def_hero.is_empty() and "duel_bonus" in def_hero.get("passives", []))
+	if atk_has_duel_bonus or def_has_duel_bonus:
+		trigger_chance += 0.20
+	if randf() > trigger_chance:
+		return  # Duel did not trigger this round
+	# Need at least one hero on each side to duel
+	if atk_hero.is_empty() or def_hero.is_empty():
+		return
+	log.append("[color=red]══ 一骑打! %s vs %s ══[/color]" % [
+		atk_hero.get("unit_type", "???"), def_hero.get("unit_type", "???")])
+	# Calculate duel scores: ATK + SPD*0.5 + random(0,5)
+	var atk_score: float = atk_hero["atk"] + atk_hero["spd"] * 0.5 + randf_range(0.0, 5.0)
+	var def_score: float = def_hero["atk"] + def_hero["spd"] * 0.5 + randf_range(0.0, 5.0)
+	if atk_has_duel_bonus:
+		atk_score += 3.0
+	if def_has_duel_bonus:
+		def_score += 3.0
+	var atk_wins: bool = atk_score >= def_score
+	var winner_unit: Dictionary = atk_hero if atk_wins else def_hero
+	var loser_unit: Dictionary = def_hero if atk_wins else atk_hero
+	# Loser takes ATK*3 damage, morale -25
+	var duel_damage: int = int(winner_unit["atk"] * 3.0)
+	loser_unit["soldiers"] = maxi(loser_unit["soldiers"] - duel_damage, 0)
+	loser_unit["morale"] = loser_unit.get("morale", MORALE_START) - 25
+	if loser_unit["soldiers"] <= 0:
+		loser_unit["is_alive"] = false
+	# Winner's side gets morale +15
+	var winner_side: String = winner_unit["side"]
+	var winner_units_key: String = "atk_units" if winner_side == "attacker" else "def_units"
+	for u in state[winner_units_key]:
+		if u["is_alive"]:
+			u["morale"] = mini(u.get("morale", MORALE_START) + 15, MORALE_START)
+	log.append("[color=yellow]%s [%s] 胜出! 对方损失%d兵, 士气-25. 己方全军士气+15[/color]" % [
+		winner_unit.get("unit_type", ""), winner_unit["side"], duel_damage])
+	# If winner side has DUEL directive, grant ATK+20% (as described in DIRECTIVE_DATA)
+	if (atk_wins and atk_duel) or (not atk_wins and def_duel):
+		for u in state[winner_units_key]:
+			if u["is_alive"]:
+				u["atk"] = u["atk"] * 1.2
+		log.append("[color=cyan]一骑打胜利! %s全军ATK+20%%[/color]" % ("进攻方" if atk_wins else "防守方"))
+
+
+func _find_strongest_hero(units: Array) -> Dictionary:
+	## Find the unit with a hero that has the highest ATK.
+	var best: Dictionary = {}
+	var best_atk: float = -1.0
+	for u in units:
+		if not u.get("is_alive", true):
+			continue
+		if u.get("hero_id", "") == "":
+			continue
+		if u["atk"] > best_atk:
+			best_atk = u["atk"]
+			best = u
+	return best
 
 
 # ---------------------------------------------------------------------------

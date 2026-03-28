@@ -260,6 +260,8 @@ var _prev_turn_had_combat: bool = false
 var _ap_purchases_this_turn: int = 0
 var _turn_cache: Dictionary = {}
 var _active_territory_effects: Dictionary = {}  # Cached per-turn territory effects
+var _sat_points: Dictionary = {}  # SAT (満足度) points: player_id -> int
+var _guard_timers: Dictionary = {}  # tile_index -> { "player_id": int, "turns_remaining": int }
 
 # ── Commander Tactical Orders (player session state) ──
 # ── Pending random event choice (human player popup) ──
@@ -1070,6 +1072,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	armies.clear()
 	_next_army_id = 1
 	selected_army_id = -1
+	_sat_points.clear()
 	_pending_conquest_tile_index = -1
 	turn_number = 0
 
@@ -1455,6 +1458,9 @@ func begin_turn() -> void:
 	var pid: int = player["id"]
 	var faction_id: int = get_player_faction(pid)
 
+	# ── Guard timer tick (decrement and expire) ──
+	_tick_guard_timers(pid)
+
 	# ── Phase 0: Build per-turn cache ──
 	_build_turn_cache()
 
@@ -1682,6 +1688,22 @@ func begin_turn() -> void:
 	if pid == get_human_player_id():
 		EventSystem.tick_event_cooldowns()
 		EventSystem.process_turn_start()
+
+	# ── Phase 5c2c: Roll random events for human player ──
+	if pid == get_human_player_id():
+		var rolled_events: Array = EventSystem.roll_events()
+		for rev in rolled_events:
+			var ev_title: String = rev.get("name", "事件")
+			var ev_desc: String = rev.get("desc", "")
+			var ev_choices: Array = []
+			if rev.has("choices"):
+				for ch in rev["choices"]:
+					ev_choices.append({"text": ch.get("text", ch.get("label", ""))})
+			elif rev.has("option_a") and rev.has("option_b"):
+				ev_choices.append({"text": rev["option_a"].get("label", "选项A")})
+				ev_choices.append({"text": rev["option_b"].get("label", "选项B")})
+			EventBus.show_event_popup.emit(ev_title, ev_desc, ev_choices)
+			EventBus.message_log.emit("[color=yellow]随机事件: %s[/color]" % ev_title)
 
 	# ── Phase 5c3: Harem cooldown tick ──
 	if pid == get_human_player_id():
@@ -2423,6 +2445,81 @@ func action_forced_march(_army_id: int, _target_tile: int) -> bool:
 	return result.get("success", false)
 
 
+func action_guard_territory(pid: int, tile_index: int) -> bool:
+	## Place a guard order on one of the player's own tiles. Costs 1 AP.
+	## Grants garrison +20% defense and +50% DEF during combat for 1 turn.
+	var player: Dictionary = get_player_by_id(pid)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != pid:
+		EventBus.message_log.emit("只能防守自己的领地!")
+		return false
+	player["ap"] -= 1
+	_guard_timers[tile_index] = {"player_id": pid, "turns_remaining": 1}
+	var tile_name: String = tile.get("name", TILE_NAMES.get(tile["type"], "领地"))
+	EventBus.message_log.emit("[color=cyan]%s 已部署防御! (驻军防御+20%%, 战斗DEF+50%%, 持续1回合)[/color]" % tile_name)
+	return true
+
+
+func _tick_guard_timers(pid: int) -> void:
+	## Decrement guard timers for the current player and remove expired ones.
+	var to_erase: Array = []
+	for tile_index in _guard_timers:
+		var guard: Dictionary = _guard_timers[tile_index]
+		if guard["player_id"] != pid:
+			continue
+		guard["turns_remaining"] -= 1
+		if guard["turns_remaining"] <= 0:
+			to_erase.append(tile_index)
+	for key in to_erase:
+		_guard_timers.erase(key)
+
+
+## ── SAT (満足度) System ──
+
+func get_sat_points(pid: int) -> int:
+	return _sat_points.get(pid, 0)
+
+
+func action_sat_event(pid: int, hero_id: String) -> bool:
+	## Free action (costs 0 AP). Spends 1 SAT point to trigger a hero affection event.
+	## Increases hero affection by 1 and grants small rewards scaling with affection.
+	if _sat_points.get(pid, 0) < BalanceConfig.SAT_EVENT_COST:
+		EventBus.message_log.emit("[color=red]満足度不足! (需要%d)[/color]" % BalanceConfig.SAT_EVENT_COST)
+		return false
+	if hero_id not in HeroSystem.recruited_heroes:
+		EventBus.message_log.emit("[color=red]该英雄未在麾下![/color]")
+		return false
+
+	# Consume SAT
+	_sat_points[pid] = _sat_points.get(pid, 0) - BalanceConfig.SAT_EVENT_COST
+
+	# Get current affection and increase
+	var current_aff: int = HeroSystem.hero_affection.get(hero_id, 0)
+	var new_aff: int = mini(current_aff + BalanceConfig.SAT_EVENT_AFFECTION_GAIN, FactionData.AFFECTION_MAX)
+	HeroSystem.hero_affection[hero_id] = new_aff
+	EventBus.hero_affection_changed.emit(hero_id, new_aff)
+
+	# Calculate rewards scaling with affection
+	var gold_reward: int = BalanceConfig.SAT_REWARD_GOLD_BASE + BalanceConfig.SAT_REWARD_GOLD_PER_AFF * new_aff
+	ResourceManager.apply_delta(pid, {"gold": gold_reward})
+
+	# Morale buff via BuffManager
+	var morale_val: int = BalanceConfig.SAT_REWARD_MORALE_BUFF + (new_aff / 3)
+	var morale_dur: int = BalanceConfig.SAT_REWARD_MORALE_DURATION
+	BuffManager.apply_buff(pid, "sat_morale", {"morale_boost": morale_val}, morale_dur)
+
+	# Log results
+	var hero_name: String = HeroSystem.get_hero_display_name(hero_id) if HeroSystem.has_method("get_hero_display_name") else hero_id
+	EventBus.message_log.emit("[color=pink]【満足度事件】与 %s 交流! 好感度→%d, +%d金, 士気+%d(%d回合)[/color]" % [
+		hero_name, new_aff, gold_reward, morale_val, morale_dur])
+	return true
+
+
 func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 	## Attack a target tile with a specific army. Costs 1 AP.
 	if not armies.has(army_id):
@@ -2467,6 +2564,12 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 		var bonus: float = ThreatManager.get_garrison_bonus()
 		if bonus > 0.0:
 			tile["garrison"] = int(float(original_garrison) * (1.0 + bonus))
+
+	# Apply guard territory garrison bonus (+20% garrison)
+	var _guard_data: Dictionary = _guard_timers.get(target_tile_index, {})
+	if not _guard_data.is_empty() and _guard_data.get("player_id", -1) == tile.get("owner_id", -2):
+		tile["garrison"] = int(float(tile["garrison"]) * 1.2)
+		EventBus.message_log.emit("[color=cyan]防御部署生效! 驻军防御+20%%[/color]")
 
 	# Resolve combat: army vs garrison
 	var won: bool = await _resolve_army_combat(army, tile, defender_desc)
@@ -2660,6 +2763,14 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			if _du_troop.find("mage") != -1 or _du_troop.find("apprentice") != -1:
 				du["atk"] = int(float(du.get("atk", 5)) * 0.5)
 		EventBus.message_log.emit("[color=blue]法力干扰器生效: 敌方法师攻击减半![/color]")
+
+	# Guard territory DEF bonus: +50% DEF for all defender units on guarded tile
+	var _guard_tile_idx: int = tile.get("index", -1)
+	var _guard_info: Dictionary = _guard_timers.get(_guard_tile_idx, {})
+	if not _guard_info.is_empty() and _guard_info.get("player_id", -1) == tile.get("owner_id", -2):
+		for du in defender_units:
+			du["def"] = int(ceil(float(du.get("def", 5)) * 1.5))
+		EventBus.message_log.emit("[color=cyan]防御部署生效! 守军DEF+50%%[/color]")
 
 	var attacker_data: Dictionary = {"units": attacker_units, "player_id": pid}
 	# Apply pre-battle slot preferences for human player
@@ -3662,6 +3773,8 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 		return true
 	else:
 		ResourceManager.remove_army(pid, maxi(attacker_losses, 1))
+		# Apply retreat/defeat losses to actual troop soldiers
+		RecruitManager.apply_combat_losses(pid, maxi(attacker_losses, 1))
 		sync_player_army(pid)
 		EventBus.message_log.emit("%s 攻打 %s 失败! 损失 %d 步兵" % [player["name"], defender_desc, attacker_losses])
 		_check_elimination(player)
@@ -3770,6 +3883,8 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 		return true
 	else:
 		ResourceManager.remove_army(pid, maxi(attacker_losses, 1))
+		# Apply retreat/defeat losses to actual troop soldiers
+		RecruitManager.apply_combat_losses(pid, maxi(attacker_losses, 1))
 		sync_player_army(pid)
 		EventBus.message_log.emit("%s 败于 %s! 损失 %d 兵" % [player["name"], npc_desc, attacker_losses])
 		_check_elimination(player)
@@ -3796,6 +3911,14 @@ func _capture_tile(player: Dictionary, tile: Dictionary) -> void:
 	# Hidden Heroes check after tile capture (秘密英雄)
 	if player["id"] == get_human_player_id():
 		HeroSystem.check_hidden_hero_conditions(player["id"])
+	# SAT (満足度) points on tile capture
+	var _sat_gain: int = BalanceConfig.SAT_GAIN_NORMAL
+	var _cap_tile_type: int = tile.get("type", TileType.WILDERNESS)
+	if _cap_tile_type == TileType.CORE_FORTRESS or _cap_tile_type == TileType.LIGHT_STRONGHOLD:
+		_sat_gain = BalanceConfig.SAT_GAIN_FORTRESS
+	_sat_points[player["id"]] = _sat_points.get(player["id"], 0) + _sat_gain
+	if player["id"] == get_human_player_id():
+		EventBus.message_log.emit("[color=pink]満足度+%d (計%d)[/color]" % [_sat_gain, _sat_points[player["id"]]])
 	# Post-conquest choice (occupy / pillage / plunder)
 	_show_conquest_choice(player, tile)
 
@@ -4749,15 +4872,235 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 	return false
 
 
-func action_diplomacy(player_id: int, neutral_faction_id: int) -> bool:
-	## Execute a diplomacy action on a neutral faction. Costs 1 AP.
+func action_diplomacy(player_id: int, target_faction_id: int, diplomacy_type: String = "neutral_quest") -> bool:
+	## Execute a diplomacy action. Supports neutral quest progression and Sengoku Rance-style
+	## negotiation options: alliance_proposal, tribute, trade_agreement, ceasefire, demand_surrender.
+	## Neutral quest costs 1 AP; other types cost 1 AP + resources.
 	var player: Dictionary = get_player_by_id(player_id)
 	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行動力不足!")
 		return false
 
-	player["ap"] -= 1
-	_handle_neutral_quest(player, neutral_faction_id)
-	return true
+	match diplomacy_type:
+		"neutral_quest":
+			# Original behavior: advance neutral faction quest chain
+			player["ap"] -= 1
+			_handle_neutral_quest(player, target_faction_id)
+			EventBus.ap_changed.emit(player_id, player["ap"])
+			return true
+
+		"alliance_proposal":
+			# Propose alliance with an evil faction. Costs 50 gold, success based on reputation.
+			if DiplomacyManager.is_orc_player(player_id):
+				EventBus.message_log.emit("[color=red]兽人部落无法提出同盟![/color]")
+				return false
+			if not ResourceManager.can_afford(player_id, {"gold": 50}):
+				EventBus.message_log.emit("[color=red]金币不足! 同盟提案需要50金[/color]")
+				return false
+			var rel: Dictionary = DiplomacyManager.get_all_relations(player_id).get(target_faction_id, {})
+			if rel.get("recruited", false):
+				EventBus.message_log.emit("该势力已被收编!")
+				return false
+			if rel.get("hostile", false):
+				EventBus.message_log.emit("[color=red]敌对势力无法结盟! 先改善关系[/color]")
+				return false
+			player["ap"] -= 1
+			ResourceManager.spend(player_id, {"gold": 50})
+			# Success chance based on reputation: base 40% + 1% per reputation point
+			var faction_key: String = DiplomacyManager._faction_to_ai_key(target_faction_id) if DiplomacyManager.has_method("_faction_to_ai_key") else ""
+			var rep: int = DiplomacyManager.get_reputation(faction_key) if faction_key != "" else 0
+			var success_chance: float = clampf(0.4 + float(rep) * 0.01, 0.1, 0.9)
+			if randf() < success_chance:
+				DiplomacyManager.sign_alliance(player_id, target_faction_id)
+				if faction_key != "":
+					DiplomacyManager.change_reputation(faction_key, 10)
+				EventBus.message_log.emit("[color=green]同盟提案成功! 与%s结成同盟[/color]" % FactionData.FACTION_NAMES.get(target_faction_id, "???"))
+			else:
+				EventBus.message_log.emit("[color=yellow]同盟提案被拒绝! (-50金)[/color]")
+			EventBus.ap_changed.emit(player_id, player["ap"])
+			return true
+
+		"tribute":
+			# Pay gold to improve relations and reduce threat. Costs 80 gold.
+			var tribute_cost: int = 80
+			if not ResourceManager.can_afford(player_id, {"gold": tribute_cost}):
+				EventBus.message_log.emit("[color=red]金币不足! 纳贡需要%d金[/color]" % tribute_cost)
+				return false
+			player["ap"] -= 1
+			ResourceManager.spend(player_id, {"gold": tribute_cost})
+			# Improve relations
+			DiplomacyManager.improve_relation(player_id, target_faction_id, 15)
+			# Reduce threat by 5 if targeting light-aligned faction concept
+			ThreatManager.change_threat(-5)
+			var fname: String = FactionData.FACTION_NAMES.get(target_faction_id, "???")
+			EventBus.message_log.emit("[color=green]向%s纳贡%d金! 关系+15, 威胁-5[/color]" % [fname, tribute_cost])
+			EventBus.ap_changed.emit(player_id, player["ap"])
+			return true
+
+		"trade_agreement":
+			# Exchange resources: spend gold to gain food+iron or vice versa. Costs 1 AP.
+			if DiplomacyManager.has_treaty(player_id, "trade", target_faction_id):
+				EventBus.message_log.emit("已有通商协定!")
+				return false
+			var trade_gold_cost: int = 60
+			if not ResourceManager.can_afford(player_id, {"gold": trade_gold_cost}):
+				EventBus.message_log.emit("[color=red]金币不足! 通商协定需要%d金[/color]" % trade_gold_cost)
+				return false
+			player["ap"] -= 1
+			ResourceManager.spend(player_id, {"gold": trade_gold_cost})
+			# Immediate resource exchange: gain food and iron
+			var food_gain: int = 40
+			var iron_gain: int = 15
+			ResourceManager.apply_delta(player_id, {"food": food_gain, "iron": iron_gain})
+			# Also try to set up ongoing trade treaty
+			DiplomacyManager.sign_trade(player_id, target_faction_id)
+			var fname: String = FactionData.FACTION_NAMES.get(target_faction_id, "???")
+			EventBus.message_log.emit("[color=green]与%s达成贸易! -%d金, +%d粮, +%d铁[/color]" % [fname, trade_gold_cost, food_gain, iron_gain])
+			EventBus.ap_changed.emit(player_id, player["ap"])
+			return true
+
+		"ceasefire":
+			# Temporary non-aggression for 3 turns. Costs 1 AP + 60 gold.
+			var ceasefire_cost: int = 60
+			if DiplomacyManager.is_ceasefire_active(player_id, target_faction_id):
+				EventBus.message_log.emit("停战协议仍在生效中!")
+				return false
+			if not ResourceManager.can_afford(player_id, {"gold": ceasefire_cost}):
+				EventBus.message_log.emit("[color=red]金币不足! 停战需要%d金[/color]" % ceasefire_cost)
+				return false
+			player["ap"] -= 1
+			ResourceManager.spend(player_id, {"gold": ceasefire_cost})
+			# Use DiplomacyManager ceasefire but with 3-turn duration
+			if not DiplomacyManager._ceasefire.has(player_id):
+				DiplomacyManager._ceasefire[player_id] = {}
+			DiplomacyManager._ceasefire[player_id][target_faction_id] = 3
+			if DiplomacyManager._relations.has(player_id) and DiplomacyManager._relations[player_id].has(target_faction_id):
+				DiplomacyManager._relations[player_id][target_faction_id]["ceasefire_active"] = true
+			var fname: String = FactionData.FACTION_NAMES.get(target_faction_id, "???")
+			EventBus.message_log.emit("[color=cyan]与%s达成停战! 3回合内互不侵犯 (-%d金)[/color]" % [fname, ceasefire_cost])
+			EventBus.ap_changed.emit(player_id, player["ap"])
+			return true
+
+		"demand_surrender":
+			# If player controls 70%+ of all tiles, demand enemy surrender.
+			var total_tiles: int = tiles.size()
+			var player_tiles: int = count_tiles_owned(player_id)
+			var control_pct: float = float(player_tiles) / float(maxi(1, total_tiles))
+			if control_pct < 0.70:
+				EventBus.message_log.emit("[color=red]领地不足70%%! 当前控制%.0f%%, 无法要求投降[/color]" % (control_pct * 100.0))
+				return false
+			var rel: Dictionary = DiplomacyManager.get_all_relations(player_id).get(target_faction_id, {})
+			if rel.get("recruited", false):
+				EventBus.message_log.emit("该势力已被收编!")
+				return false
+			player["ap"] -= 1
+			# Success chance: 50% base + 1% per percentage point above 70%
+			var bonus_pct: float = (control_pct - 0.70) * 100.0
+			var surrender_chance: float = clampf(0.5 + bonus_pct * 0.01, 0.5, 0.95)
+			if randf() < surrender_chance:
+				DiplomacyManager.recruit_by_diplomacy(player_id, target_faction_id)
+				EventBus.message_log.emit("[color=gold]%s 屈服于你的绝对优势, 无条件投降![/color]" % FactionData.FACTION_NAMES.get(target_faction_id, "???"))
+			else:
+				EventBus.message_log.emit("[color=red]%s 拒绝投降! 他们选择战斗到底![/color]" % FactionData.FACTION_NAMES.get(target_faction_id, "???"))
+			EventBus.ap_changed.emit(player_id, player["ap"])
+			return true
+
+		_:
+			EventBus.message_log.emit("[color=red]未知外交类型: %s[/color]" % diplomacy_type)
+			return false
+
+
+func _get_diplomacy_options(pid: int, target_faction_id: int) -> Array:
+	## Returns which diplomacy options are available for the given player and target faction.
+	## Each entry: { "id": String, "name": String, "cost": String, "desc": String, "available": bool }
+	var options: Array = []
+	var player: Dictionary = get_player_by_id(pid)
+	if player.is_empty():
+		return options
+
+	var has_ap: bool = player["ap"] >= 1
+	var gold: int = ResourceManager.get_resource(pid, "gold")
+
+	# Check if target is a neutral faction (quest-based diplomacy)
+	var is_neutral: bool = false
+	for tile in tiles:
+		if tile.get("neutral_faction_id", -1) == target_faction_id:
+			is_neutral = true
+			break
+
+	if is_neutral:
+		options.append({
+			"id": "neutral_quest",
+			"name": "外交交渉",
+			"cost": "1 AP",
+			"desc": "推进中立势力任务链",
+			"available": has_ap,
+		})
+		return options
+
+	# Evil faction diplomacy options
+	var rel: Dictionary = DiplomacyManager.get_all_relations(pid).get(target_faction_id, {})
+	var recruited: bool = rel.get("recruited", false)
+	var hostile: bool = rel.get("hostile", false)
+
+	if recruited:
+		return options  # No options for already-recruited factions
+
+	# Alliance proposal (non-orc, non-hostile, 50 gold)
+	if not DiplomacyManager.is_orc_player(pid) and not hostile:
+		options.append({
+			"id": "alliance_proposal",
+			"name": "同盟提案",
+			"cost": "50金",
+			"desc": "提议军事同盟 (成功率取决于声望)",
+			"available": has_ap and gold >= 50,
+		})
+
+	# Tribute (80 gold, improve relations)
+	options.append({
+		"id": "tribute",
+		"name": "纳贡",
+		"cost": "80金",
+		"desc": "纳贡改善关系+15, 威胁-5",
+		"available": has_ap and gold >= 80,
+	})
+
+	# Trade agreement (60 gold)
+	var has_trade: bool = DiplomacyManager.has_treaty(pid, "trade", target_faction_id)
+	if not has_trade:
+		options.append({
+			"id": "trade_agreement",
+			"name": "通商协定",
+			"cost": "60金",
+			"desc": "交换资源: +40粮 +15铁",
+			"available": has_ap and gold >= 60,
+		})
+
+	# Ceasefire (60 gold, 3 turns)
+	var ceasefire_active: bool = DiplomacyManager.is_ceasefire_active(pid, target_faction_id)
+	if not ceasefire_active:
+		options.append({
+			"id": "ceasefire",
+			"name": "停战协定",
+			"cost": "60金",
+			"desc": "3回合互不侵犯",
+			"available": has_ap and gold >= 60,
+		})
+
+	# Demand surrender (70%+ territory control)
+	var total_tiles: int = tiles.size()
+	var player_tiles: int = count_tiles_owned(pid)
+	var control_pct: float = float(player_tiles) / float(maxi(1, total_tiles))
+	if control_pct >= 0.70:
+		options.append({
+			"id": "demand_surrender",
+			"name": "要求投降",
+			"cost": "1 AP",
+			"desc": "凭绝对优势要求敌方投降 (控制%.0f%%)" % (control_pct * 100.0),
+			"available": has_ap,
+		})
+
+	return options
 
 
 ## Interrogate a captured hero (1 AP) — Rance 07 尋問 system
@@ -5170,6 +5513,43 @@ func run_ai_turn() -> void:
 								did_action = true
 							break
 				if did_action:
+					break
+			if did_action:
+				continue
+
+		# ── Phase 4b: Guard border tiles (30% chance if border tile has low garrison) ──
+		if not owned_tiles.is_empty() and randf() < 0.30:
+			for ot in owned_tiles:
+				if _guard_timers.has(ot["index"]):
+					continue  # Already guarded
+				if not adjacency.has(ot["index"]):
+					continue
+				var is_border: bool = false
+				for nb in adjacency[ot["index"]]:
+					if nb < tiles.size() and tiles[nb]["owner_id"] >= 0 and tiles[nb]["owner_id"] != pid:
+						is_border = true
+						break
+				if is_border and ot.get("garrison", 0) < 8:
+					action_guard_territory(pid, ot["index"])
+					did_action = true
+					break
+			if did_action:
+				continue
+
+		# ── Phase 4c: Diplomacy with non-hostile factions (10% chance) ──
+		if randf() < 0.10:
+			var evil_factions: Array = [FactionData.FactionID.ORC, FactionData.FactionID.PIRATE, FactionData.FactionID.DARK_ELF]
+			var my_faction: int = get_player_faction(pid)
+			for fid in evil_factions:
+				if fid == my_faction:
+					continue
+				var rel: Dictionary = DiplomacyManager.get_all_relations(pid).get(fid, {})
+				if rel.get("recruited", false) or rel.get("hostile", false):
+					continue
+				# AI tries tribute to improve relations (if affordable)
+				if ResourceManager.can_afford(pid, {"gold": 80}):
+					action_diplomacy(pid, fid, "tribute")
+					did_action = true
 					break
 			if did_action:
 				continue

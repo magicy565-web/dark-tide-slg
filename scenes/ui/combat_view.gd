@@ -2374,7 +2374,7 @@ func _chibi_defeat(side: String, slot_idx: int) -> void:
 	if _chibi_players.has(side) and _chibi_players[side].has(slot_idx):
 		var player = _chibi_players[side][slot_idx]
 		if player and is_instance_valid(player):
-			var container := player.get_parent()
+			var container = player.get_parent()
 			if container:
 				var tw := create_tween()
 				tw.tween_interval(0.3 / _speed_mult)

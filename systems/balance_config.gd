@@ -918,3 +918,20 @@ const TURN_LIMIT: int = 60
 const TURN_LIMIT_WARNING: int = 10
 ## Bonus scoring for finishing early
 const SPEED_CLEAR_BONUS_PER_TURN: int = 50
+
+# ═══════════════ SAT / 満足度 (SR07 aligned) ═══════════════
+
+## Satisfaction points gained when capturing tiles
+const SAT_GAIN_NORMAL: int = 1       # Normal tile capture
+const SAT_GAIN_FORTRESS: int = 2     # Fortress / core tile capture
+
+## SAT event: hero affection interaction (free action, costs SAT points)
+const SAT_EVENT_COST: int = 1        # SAT points consumed per event
+const SAT_EVENT_AFFECTION_GAIN: int = 1  # Affection gain per event
+
+## SAT event rewards scaling with hero affection level (0-10)
+## gold_base + gold_per_aff * affection, morale_buff duration scales too
+const SAT_REWARD_GOLD_BASE: int = 10
+const SAT_REWARD_GOLD_PER_AFF: int = 5
+const SAT_REWARD_MORALE_BUFF: int = 5       # morale boost to army
+const SAT_REWARD_MORALE_DURATION: int = 2   # turns

@@ -82,6 +82,7 @@ var btn_quest_journal: Button
 var btn_guard: Button
 var btn_interrogate: Button
 var btn_reinforce: Button
+var btn_sat_event: Button
 
 # ── UI refs: center target selector ──
 var target_panel: PanelContainer
@@ -367,6 +368,10 @@ func _build_action_panel(parent: Control) -> void:
 	btn_reinforce = _make_button("Reinforce (1AP)")
 	btn_reinforce.pressed.connect(_on_reinforce_pressed)
 	vbox.add_child(btn_reinforce)
+
+	btn_sat_event = _make_button("SAT Event (0)")
+	btn_sat_event.pressed.connect(_on_sat_event_pressed)
+	vbox.add_child(btn_sat_event)
 
 	# Separator
 	var sep := HSeparator.new()
@@ -892,9 +897,26 @@ func _on_diplomacy_pressed() -> void:
 
 	_show_target_panel("Diplomacy - Select Target")
 
-	if targets.is_empty():
-		_add_target_label("(No diplomatic targets)")
-		return
+	# Add evil faction targets (from DiplomacyManager relations)
+	var evil_factions: Array = [FactionData.FactionID.ORC, FactionData.FactionID.PIRATE, FactionData.FactionID.DARK_ELF]
+	var player_faction: int = GameManager.get_player_faction(pid)
+	for fid in evil_factions:
+		if fid == player_faction:
+			continue
+		var rel: Dictionary = DiplomacyManager.get_all_relations(pid).get(fid, {})
+		if rel.get("recruited", false):
+			continue
+		var fname: String = FactionData.FACTION_NAMES.get(fid, "Unknown")
+		var hostile: bool = rel.get("hostile", false)
+		var ceasefire: bool = DiplomacyManager.is_ceasefire_active(pid, fid)
+		var status: String = "Ceasefire" if ceasefire else ("Hostile" if hostile else "Neutral")
+		var label_text: String = "%s [%s]" % [fname, status]
+		var entry: Dictionary = {"type": "evil", "faction_id": fid, "name": fname}
+		_add_target_button(label_text, _on_diplomacy_target.bind(entry))
+
+	# Add neutral faction targets (original)
+	if not targets.is_empty():
+		_add_target_label("--- Neutral Factions ---", Color(0.8, 0.7, 0.5))
 
 	for entry in targets:
 		var label_text: String = entry.get("name", "???")
@@ -919,6 +941,9 @@ func _on_diplomacy_pressed() -> void:
 			if not unlocked.is_empty():
 				label_text += " Recruitable: %d types" % unlocked.size()
 		_add_target_button(label_text, _on_diplomacy_target.bind(entry))
+
+	if targets.is_empty() and evil_factions.all(func(f): return f == player_faction or DiplomacyManager.get_all_relations(pid).get(f, {}).get("recruited", false)):
+		_add_target_label("(No diplomatic targets)")
 
 
 func _on_explore_pressed() -> void:
@@ -967,7 +992,39 @@ func _on_deploy_target(tile_index: int) -> void:
 func _on_diplomacy_target(entry: Dictionary) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var faction_id: int = entry.get("faction_id", -1)
-	GameManager.action_diplomacy(pid, faction_id)
+
+	# Check if GameManager has the new options helper
+	if GameManager.has_method("_get_diplomacy_options"):
+		var options: Array = GameManager._get_diplomacy_options(pid, faction_id)
+		if options.size() == 1 and options[0]["id"] == "neutral_quest":
+			# Neutral faction: go straight to quest (original behavior)
+			GameManager.action_diplomacy(pid, faction_id, "neutral_quest")
+			_close_target_panel()
+			_after_action()
+			return
+		# Show diplomacy sub-menu for evil factions
+		_show_target_panel("Diplomacy Options - %s" % entry.get("name", "???"))
+		if options.is_empty():
+			_add_target_label("(No available options)")
+			return
+		for opt in options:
+			var btn_text: String = "%s (%s)" % [opt["name"], opt["cost"]]
+			if opt.get("desc", "") != "":
+				btn_text += " - %s" % opt["desc"]
+			var opt_id: String = opt["id"]
+			var cfid: int = faction_id
+			_add_target_button(btn_text, _on_diplomacy_option.bind(cfid, opt_id), not opt.get("available", true))
+		return
+
+	# Fallback: original behavior
+	GameManager.action_diplomacy(pid, faction_id, "neutral_quest")
+	_close_target_panel()
+	_after_action()
+
+
+func _on_diplomacy_option(faction_id: int, diplomacy_type: String) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	GameManager.action_diplomacy(pid, faction_id, diplomacy_type)
 	_close_target_panel()
 	_after_action()
 
@@ -994,7 +1051,7 @@ func _on_guard_pressed() -> void:
 
 	for tile in owned_tiles:
 		var tidx: int = tile["index"]
-		var is_guarded: bool = GameManager._guard_timers.get(tidx, 0) > 0
+		var is_guarded: bool = GameManager._guard_timers.has(tidx)
 		var label_text: String = "%s (Lv%d)" % [tile["name"], tile["level"]]
 		if is_guarded:
 			label_text += " [Guarding]"
@@ -1005,6 +1062,40 @@ func _on_guard_target(tile_index: int) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	if GameManager.has_method("action_guard_territory"):
 		GameManager.action_guard_territory(pid, tile_index)
+	_close_target_panel()
+	_after_action()
+
+
+func _on_sat_event_pressed() -> void:
+	if _current_mode == ActionMode.EXPLORE:
+		_close_target_panel()
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "sat_event"
+	var pid: int = GameManager.get_human_player_id()
+	var sat_pts: int = GameManager.get_sat_points(pid)
+
+	_show_target_panel("SAT Event - Select Hero")
+
+	if sat_pts <= 0:
+		_add_target_label("(No SAT points available)")
+		return
+
+	var heroes: Array = HeroSystem.get_heroes_for_player(pid)
+	if heroes.is_empty():
+		_add_target_label("(No heroes available)")
+		return
+
+	for hero_id in heroes:
+		var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+		var hero_name: String = hero_data.get("name", hero_id)
+		var affection: int = HeroSystem.hero_affection.get(hero_id, 0)
+		var label_text: String = "%s (Affection: %d)" % [hero_name, affection]
+		_add_target_button(label_text, _on_sat_event_target.bind(hero_id))
+
+
+func _on_sat_event_target(hero_id: String) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	GameManager.action_sat_event(pid, hero_id)
 	_close_target_panel()
 	_after_action()
 
@@ -1853,6 +1944,11 @@ func _update_buttons() -> void:
 	btn_diplomacy.disabled = not has_ap
 	btn_explore.disabled = not has_ap
 
+	# SAT Event button (free action, requires SAT points)
+	var sat_pts: int = GameManager.get_sat_points(pid)
+	btn_sat_event.text = "SAT Event (%d)" % sat_pts
+	btn_sat_event.disabled = sat_pts <= 0
+
 	# End turn is always available to the human player (player decides when to stop)
 	btn_end_turn.disabled = false
 
@@ -1894,6 +1990,7 @@ func _set_all_buttons_disabled(val: bool) -> void:
 	btn_boost_order.disabled = val
 	btn_sell_slave.disabled = val
 	btn_buy_slave.disabled = val
+	btn_sat_event.disabled = val
 
 
 func _update_player_info() -> void:

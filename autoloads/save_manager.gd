@@ -256,6 +256,16 @@ func _save_game_state() -> Dictionary:
 	for army_id in GameManager.armies:
 		armies_data[str(army_id)] = GameManager.armies[army_id].duplicate(true)
 
+	# Serialize _guard_timers (int keys -> string keys for JSON)
+	var guard_timers_data: Dictionary = {}
+	for k in GameManager._guard_timers:
+		guard_timers_data[str(k)] = GameManager._guard_timers[k].duplicate()
+
+	# Serialize _sat_points (int keys -> string keys for JSON)
+	var sat_points_data: Dictionary = {}
+	for k in GameManager._sat_points:
+		sat_points_data[str(k)] = GameManager._sat_points[k]
+
 	return {
 		"players": players_data,
 		"tiles": tiles_data,
@@ -266,6 +276,8 @@ func _save_game_state() -> Dictionary:
 		"game_active": GameManager.game_active,
 		"armies": armies_data,
 		"next_army_id": GameManager._next_army_id,
+		"guard_timers": guard_timers_data,
+		"sat_points": sat_points_data,
 	}
 
 
@@ -457,6 +469,20 @@ func _load_game_state(gs: Dictionary) -> void:
 	# 防止ID为零或负数
 	GameManager._next_army_id = maxi(GameManager._next_army_id, 1)
 	GameManager.selected_army_id = -1
+
+	# Restore _guard_timers (string keys -> int keys)
+	GameManager._guard_timers.clear()
+	var guard_raw: Dictionary = gs.get("guard_timers", {})
+	for key in guard_raw:
+		if str(key).is_valid_int():
+			GameManager._guard_timers[int(key)] = guard_raw[key]
+
+	# Restore _sat_points (string keys -> int keys)
+	GameManager._sat_points.clear()
+	var sat_raw: Dictionary = gs.get("sat_points", {})
+	for key in sat_raw:
+		if str(key).is_valid_int():
+			GameManager._sat_points[int(key)] = int(sat_raw[key])
 
 
 # ═══════════════ VERSION COMPAT ═══════════════
