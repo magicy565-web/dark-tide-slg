@@ -30,9 +30,13 @@ func _load_map_assets() -> void:
 	# Terrain textures
 	for tname in ["plains","forest","mountain","swamp","coastal","fortress_wall","river","ruins","wasteland","volcanic"]:
 		_terrain_textures[tname] = _safe_tex_load("res://assets/map/terrain/terrain_%s.png" % tname)
-	# Settlement/building icons
+	# Settlement/building icons — prefer HD territory art, fall back to pixel icons
 	for sname in ["fortress","village","watchtower","trading_post","beacon","ruins","port","gate","bandit","crystal_mine","horse_ranch","gunpowder","shadow_rift","stronghold","event"]:
-		_settlement_textures[sname] = _safe_tex_load("res://assets/map/settlements/settlement_%s.png" % sname)
+		var hd: Texture2D = _safe_tex_load("res://assets/map/settlements_hd/settlement_%s.png" % sname)
+		if hd:
+			_settlement_textures[sname] = hd
+		else:
+			_settlement_textures[sname] = _safe_tex_load("res://assets/map/settlements/settlement_%s.png" % sname)
 	# Faction crests (including bandit/neutral fallbacks)
 	for fname in ["orc","pirate","dark_elf","human","high_elf","mage"]:
 		_crest_textures[fname] = _safe_tex_load("res://assets/map/crests/crest_%s.png" % fname)
