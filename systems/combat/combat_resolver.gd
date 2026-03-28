@@ -28,6 +28,16 @@ const MORALE_ORDER_THRESHOLD: int = 76
 # ── Commander Tactical Orders ──
 enum TacticalDirective { NONE, ALL_OUT, HOLD_LINE, GUERRILLA, FOCUS_FIRE, AMBUSH, DUEL, RETREAT }
 
+# Per-unit battle commands (個別指令 — SR07 aligned)
+enum UnitCommand { AUTO, ATTACK, GUARD, CHARGE }
+
+const UNIT_COMMAND_DATA: Dictionary = {
+	UnitCommand.AUTO: {"name": "自動", "desc": "AI自動行動"},
+	UnitCommand.ATTACK: {"name": "攻撃", "desc": "通常攻撃", "atk_mult": 1.0, "def_mult": 1.0},
+	UnitCommand.GUARD: {"name": "防御", "desc": "DEF+50%, ATK-50%, 士気回復+10", "atk_mult": 0.5, "def_mult": 1.5, "morale_regen": 10},
+	UnitCommand.CHARGE: {"name": "突撃", "desc": "ATK+40%, DEF-30%, 必ず先制", "atk_mult": 1.4, "def_mult": 0.7, "preemptive": true},
+}
+
 const DIRECTIVE_DATA: Dictionary = {
 	TacticalDirective.NONE: {"name": "无", "atk_mult": 1.0, "def_mult": 1.0},
 	TacticalDirective.ALL_OUT: {
@@ -419,6 +429,11 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 	var atk_units: Array = _assign_to_slots(raw_atk, atk_pid, "attacker", tile)
 	var def_units: Array = _assign_to_slots(raw_def, def_pid, "defender", tile)
 
+	# Apply player slot preferences to attacker units if provided
+	var slot_prefs: Dictionary = attacker.get("slot_preferences", {})
+	if not slot_prefs.is_empty():
+		_apply_slot_preferences(atk_units, slot_prefs)
+
 	# Territory effect bonuses: apply flat ATK/DEF/SPD to all attacker units
 	var _te_atk_b: int = attacker.get("territory_atk_bonus", 0)
 	var _te_def_b: int = attacker.get("territory_def_bonus", 0)
@@ -460,6 +475,16 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 		def_fake_army.append({"troop_id": raw.get("troop_id", raw.get("type", ""))})
 	var atk_synergy_specials: Dictionary = GameData.compute_synergy_specials(atk_fake_army)
 	var def_synergy_specials: Dictionary = GameData.compute_synergy_specials(def_fake_army)
+
+	# Apply per-unit commands
+	var unit_cmds: Dictionary = attacker.get("unit_commands", {})
+	for i in range(atk_units.size()):
+		if unit_cmds.has(i):
+			atk_units[i]["unit_command"] = unit_cmds[i]
+		else:
+			atk_units[i]["unit_command"] = UnitCommand.AUTO
+	for i in range(def_units.size()):
+		def_units[i]["unit_command"] = UnitCommand.AUTO
 
 	return {
 		"atk_units": atk_units,
@@ -518,6 +543,49 @@ func _assign_to_slots(raw_units: Array, player_id: int, side: String, tile: Dict
 		all_units.append(back_units[i])
 
 	return all_units
+
+
+func _apply_slot_preferences(units: Array, prefs: Dictionary) -> void:
+	## Re-assign slot positions based on player preferences.
+	## prefs: { troop_index(int) : preferred_slot(int 0-5) }
+	if units.is_empty() or prefs.is_empty():
+		return
+	var pref_assignments: Dictionary = {}  # slot -> unit
+	var unassigned: Array = []
+	for i in range(units.size()):
+		if prefs.has(i):
+			var desired_slot: int = prefs[i]
+			if not pref_assignments.has(desired_slot):
+				pref_assignments[desired_slot] = units[i]
+				units[i]["slot"] = desired_slot
+				units[i]["row"] = "front" if desired_slot < FRONT_SLOTS else "back"
+			else:
+				unassigned.append(units[i])
+		else:
+			unassigned.append(units[i])
+	# Assign remaining units to empty slots
+	var used_slots: Dictionary = {}
+	for slot in pref_assignments:
+		used_slots[slot] = true
+	for unit in unassigned:
+		var default_row: String = TROOP_DEFAULT_ROW.get(unit["unit_type"], "front")
+		var start: int = 0 if default_row == "front" else FRONT_SLOTS
+		var end_slot: int = FRONT_SLOTS if default_row == "front" else TOTAL_SLOTS
+		var assigned: bool = false
+		for s in range(start, end_slot):
+			if not used_slots.has(s):
+				unit["slot"] = s
+				unit["row"] = "front" if s < FRONT_SLOTS else "back"
+				used_slots[s] = true
+				assigned = true
+				break
+		if not assigned:
+			for s in range(TOTAL_SLOTS):
+				if not used_slots.has(s):
+					unit["slot"] = s
+					unit["row"] = "front" if s < FRONT_SLOTS else "back"
+					used_slots[s] = true
+					break
 
 
 func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dictionary) -> Dictionary:
@@ -1103,6 +1171,15 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			continue
 		unit["actions_this_round"] = 0
 
+		# Apply per-unit command modifiers
+		var cmd: int = unit.get("unit_command", UnitCommand.AUTO)
+		if cmd == UnitCommand.GUARD:
+			# Guard: regen morale
+			unit["morale"] = mini(unit.get("morale", MORALE_START) + 10, MORALE_START)
+		elif cmd == UnitCommand.CHARGE:
+			# Charge units always act first (handled in action queue)
+			pass
+
 		# Passive: regen_1 — restore 1 soldier per round
 		if "regen_1" in unit["passives"]:
 			if unit["soldiers"] < unit["max_soldiers"]:
@@ -1390,6 +1467,10 @@ func _build_action_queue(state: Dictionary) -> Array:
 		if not is_preemptive and "hakagure_first_strike" in unit["passives"]:
 			is_preemptive = true
 
+		# Charge command grants preemptive
+		if not is_preemptive and unit.get("unit_command", UnitCommand.AUTO) == UnitCommand.CHARGE:
+			is_preemptive = true
+
 		if is_preemptive:
 			preemptive.append(unit)
 		else:
@@ -1437,6 +1518,11 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 	if not unit["is_alive"] or unit["soldiers"] <= 0:
 		return
 	if unit["actions_this_round"] >= unit["max_actions"]:
+		return
+
+	# Guard command: skip attack action (unit only defends this round)
+	if unit.get("unit_command", UnitCommand.AUTO) == UnitCommand.GUARD:
+		unit["actions_this_round"] += 1
 		return
 
 	# Check stun debuff: stunned units cannot act
@@ -2158,6 +2244,16 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 		is_orc_faction = GameManager._get_faction_tag_for_player(attacker_pid) == "orc"
 	if is_orc_faction:
 		def_val *= (1.0 - GameData.FACTION_PASSIVES["orc"]["def_ignore_pct"])
+
+	# Per-unit command modifiers
+	var attacker_cmd: int = attacker_unit.get("unit_command", UnitCommand.AUTO)
+	if attacker_cmd != UnitCommand.AUTO:
+		var cmd_data: Dictionary = UNIT_COMMAND_DATA.get(attacker_cmd, {})
+		atk *= cmd_data.get("atk_mult", 1.0)
+	var target_cmd: int = defender_unit.get("unit_command", UnitCommand.AUTO)
+	if target_cmd != UnitCommand.AUTO:
+		var target_cmd_data: Dictionary = UNIT_COMMAND_DATA.get(target_cmd, {})
+		def_val *= target_cmd_data.get("def_mult", 1.0)
 
 	# Core formula from design doc
 	var base_damage: float = float(soldiers) * maxf(1.0, atk - def_val) / 10.0

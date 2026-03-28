@@ -274,12 +274,101 @@ var _next_army_id: int = 1
 # Track which army is selected for current action (UI state)
 var selected_army_id: int = -1
 
+# Pre-battle slot assignment preferences per army
+# army_id -> { troop_index: preferred_slot (0-5, where 0-2=front, 3-5=back) }
+var army_slot_preferences: Dictionary = {}
+# Temporary storage for slot prefs during combat resolution
+var _combat_slot_prefs: Dictionary = {}
+
+# Per-unit battle commands (set before combat)
+# army_id -> { troop_index: UnitCommand enum value }
+var army_unit_commands: Dictionary = {}
+# Temporary storage for unit commands during combat resolution
+var _combat_unit_commands: Dictionary = {}
+
 # Player faction mapping
 var _player_factions: Dictionary = {}   # player_id -> FactionData.FactionID
 
 # ── Conquest choice state ──
 var _pending_conquest_tile_index: int = -1
 var _conquest_choice_connected: bool = false
+
+
+## Set slot preference for a troop in an army (pre-battle formation assignment)
+func set_troop_slot_preference(army_id: int, troop_index: int, slot: int) -> void:
+	if not army_slot_preferences.has(army_id):
+		army_slot_preferences[army_id] = {}
+	army_slot_preferences[army_id][troop_index] = clampi(slot, 0, 5)
+
+
+## Get slot preferences for an army
+func get_army_slot_preferences(army_id: int) -> Dictionary:
+	return army_slot_preferences.get(army_id, {})
+
+
+## Clear slot preferences for an army
+func clear_army_slot_preferences(army_id: int) -> void:
+	army_slot_preferences.erase(army_id)
+
+
+## Set per-unit command for pre-battle orders
+func set_unit_command(army_id: int, troop_index: int, command: int) -> void:
+	if not army_unit_commands.has(army_id):
+		army_unit_commands[army_id] = {}
+	army_unit_commands[army_id][troop_index] = command
+
+
+## Get unit commands for an army
+func get_army_unit_commands(army_id: int) -> Dictionary:
+	return army_unit_commands.get(army_id, {})
+
+
+## Clear unit commands
+func clear_army_unit_commands(army_id: int) -> void:
+	army_unit_commands.erase(army_id)
+
+
+## Re-assign slot indices on attacker units based on player slot preferences.
+## prefs: { troop_index(int) : preferred_slot(int 0-5) }
+func _apply_slot_preferences_to_units(units: Array, prefs: Dictionary) -> void:
+	if units.is_empty() or prefs.is_empty():
+		return
+	var pref_slots: Dictionary = {}  # slot -> unit index
+	var unassigned: Array = []  # indices into units
+	for i in range(units.size()):
+		if prefs.has(i):
+			var desired: int = prefs[i]
+			if not pref_slots.has(desired):
+				pref_slots[desired] = i
+				units[i]["slot"] = desired
+				units[i]["row"] = 0 if desired < 3 else 1
+			else:
+				unassigned.append(i)
+		else:
+			unassigned.append(i)
+	# Assign remaining units to empty slots, preferring their current row
+	var used: Dictionary = {}
+	for s in pref_slots:
+		used[s] = true
+	for idx in unassigned:
+		var cur_row: int = units[idx].get("row", 0)
+		var start: int = 0 if cur_row == 0 else 3
+		var end_s: int = 3 if cur_row == 0 else 6
+		var placed: bool = false
+		for s in range(start, end_s):
+			if not used.has(s):
+				units[idx]["slot"] = s
+				units[idx]["row"] = 0 if s < 3 else 1
+				used[s] = true
+				placed = true
+				break
+		if not placed:
+			for s in range(6):
+				if not used.has(s):
+					units[idx]["slot"] = s
+					units[idx]["row"] = 0 if s < 3 else 1
+					used[s] = true
+					break
 
 
 func _ready() -> void:
@@ -1696,6 +1785,26 @@ func begin_turn() -> void:
 	EventBus.turn_started.emit(pid)
 	EventBus.message_log.emit("══ %s 的回合 (第%d回合, AP:%d) ══" % [player["name"], turn_number, player["ap"]])
 
+	# Turn milestone events (Rance 07 style)
+	if pid == get_human_player_id():
+		if turn_number == 15:
+			EventBus.message_log.emit("[color=yellow]═══ 第15回合 — 光明联盟开始组织防线 ═══[/color]")
+		elif turn_number == 30:
+			EventBus.message_log.emit("[color=orange]═══ 第30回合 — 战局进入白热化! ═══[/color]")
+			EventBus.message_log.emit("所有敌方据点驻军+3!")
+			for t in tiles:
+				if t["owner_id"] != pid and t["owner_id"] >= 0:
+					t["garrison"] += 3
+		elif turn_number == 45:
+			EventBus.message_log.emit("[color=red]═══ 第45回合 — 光明联盟孤注一掷! ═══[/color]")
+			EventBus.message_log.emit("敌方全据点驻军+5, 但你获得100金作为战争赔偿!")
+			for t in tiles:
+				if t["owner_id"] != pid and t["owner_id"] >= 0:
+					t["garrison"] += 5
+			ResourceManager.apply_delta(pid, {"gold": 100})
+		elif turn_number == 55 and BalanceConfig.TURN_LIMIT > 0:
+			EventBus.message_log.emit("[color=red][b]═══ 最终警告: 仅剩%d回合! ═══[/b][/color]" % (BalanceConfig.TURN_LIMIT - turn_number))
+
 	# Turn limit warning (ターン制限)
 	if pid == get_human_player_id() and BalanceConfig.TURN_LIMIT > 0:
 		var remaining: int = BalanceConfig.TURN_LIMIT - turn_number
@@ -2330,6 +2439,8 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 
 	player["ap"] -= 1
 	_had_combat_this_turn = true
+	_combat_slot_prefs = get_army_slot_preferences(army_id)
+	_combat_unit_commands = get_army_unit_commands(army_id)
 
 	# Determine defender description
 	var defender_desc: String = _get_defender_desc(tile)
@@ -2535,6 +2646,14 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		EventBus.message_log.emit("[color=blue]法力干扰器生效: 敌方法师攻击减半![/color]")
 
 	var attacker_data: Dictionary = {"units": attacker_units, "player_id": pid}
+	# Apply pre-battle slot preferences for human player
+	if not _combat_slot_prefs.is_empty() and pid == get_human_player_id():
+		_apply_slot_preferences_to_units(attacker_units, _combat_slot_prefs)
+		_combat_slot_prefs = {}
+	# Inject per-unit battle commands for human player
+	if not _combat_unit_commands.is_empty() and pid == get_human_player_id():
+		attacker_data["unit_commands"] = _combat_unit_commands
+		_combat_unit_commands = {}
 	var defender_data: Dictionary = {"units": defender_units}
 	var node_data: Dictionary = {
 		"terrain": terrain_enum,
@@ -3364,6 +3483,11 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 		"units": atk_units,
 	}
 
+	# Pass slot preferences for the CombatResolver path
+	if not _combat_slot_prefs.is_empty() and pid == get_human_player_id():
+		attacker_data["slot_preferences"] = _combat_slot_prefs
+		_combat_slot_prefs = {}
+
 	# Territory effect combat bonuses
 	var te_atk: int = _active_territory_effects.get("atk_bonus", 0)
 	var te_def: int = _active_territory_effects.get("def_bonus", 0)
@@ -3636,6 +3760,8 @@ func _capture_tile(player: Dictionary, tile: Dictionary) -> void:
 	ThreatManager.on_tile_captured()
 	# Notify neutral faction AI of territory loss
 	NeutralFactionAI.on_tile_captured(tile["index"], player["id"])
+	# Territory conquest events (領地征服事件)
+	_check_conquest_events(player["id"], tile["index"])
 	# Post-conquest choice (occupy / pillage / plunder)
 	_show_conquest_choice(player, tile)
 
@@ -3768,6 +3894,98 @@ func _calculate_conquest_loot(tile: Dictionary, pid: int) -> Dictionary:
 		loot["iron"] = int(float(loot["iron"]) * bonus)
 
 	return loot
+
+
+## Check and trigger conquest events when capturing a tile
+func _check_conquest_events(pid: int, tile_index: int) -> void:
+	var tile: Dictionary = tiles[tile_index]
+	var tile_type: int = tile["type"]
+	var tile_name: String = tile["name"]
+	var owned_count: int = count_tiles_owned(pid)
+
+	# Core Fortress conquest event
+	if tile_type == TileType.CORE_FORTRESS:
+		EventBus.message_log.emit("[color=gold]═══ 核心要塞陷落: %s ═══[/color]" % tile_name)
+		EventBus.message_log.emit("[color=gold]攻占核心要塞! 敌方士气大幅动摇![/color]")
+		# Bonus: all enemy garrisons lose 10% soldiers
+		for i in range(tiles.size()):
+			if tiles[i]["owner_id"] != pid and tiles[i]["owner_id"] >= 0:
+				var loss: int = maxi(1, int(float(tiles[i]["garrison"]) * 0.10))
+				tiles[i]["garrison"] = maxi(0, tiles[i]["garrison"] - loss)
+		ResourceManager.apply_delta(pid, {"prestige": 10})
+		EventBus.message_log.emit("威望+10! 敌方全据点驻军-10%!")
+
+	# Light Stronghold conquest
+	elif tile_type == TileType.LIGHT_STRONGHOLD:
+		EventBus.message_log.emit("[color=cyan]═══ 光明要塞攻陷: %s ═══[/color]" % tile_name)
+		# Check if this completes a faction's territory
+		var light_faction: int = tile.get("light_faction", -1)
+		if light_faction >= 0:
+			var faction_tiles_remaining: int = 0
+			for t in tiles:
+				if t.get("light_faction", -1) == light_faction and t["owner_id"] != pid:
+					faction_tiles_remaining += 1
+			if faction_tiles_remaining == 0:
+				var faction_name: String = _get_light_faction_name(light_faction)
+				EventBus.message_log.emit("[color=gold]═══ 势力征服! %s 光明势力已被完全消灭! ═══[/color]" % faction_name)
+				ResourceManager.apply_delta(pid, {"prestige": 25, "gold": 100})
+				EventBus.message_log.emit("征服奖励: 威望+25, 金+100!")
+				# Capture chance for faction leader
+				var leader_id: String = _get_light_faction_leader(light_faction)
+				if leader_id != "" and leader_id not in HeroSystem.captured_heroes and leader_id not in HeroSystem.recruited_heroes:
+					HeroSystem.attempt_capture(leader_id, 0.75)
+
+	# Milestone events based on total tiles owned
+	if owned_count == 10:
+		EventBus.message_log.emit("[color=yellow]═══ 暗潮崛起 ═══[/color]")
+		EventBus.message_log.emit("[color=yellow]控制10个据点! 大陆开始感受到暗潮的威胁...[/color]")
+		ResourceManager.apply_delta(pid, {"prestige": 5})
+	elif owned_count == 20:
+		EventBus.message_log.emit("[color=yellow]═══ 暗潮汹涌 ═══[/color]")
+		EventBus.message_log.emit("[color=yellow]控制20个据点! 光明联盟开始恐慌![/color]")
+		ResourceManager.apply_delta(pid, {"prestige": 10, "gold": 50})
+	elif owned_count == 30:
+		EventBus.message_log.emit("[color=orange]═══ 暗潮席卷 ═══[/color]")
+		EventBus.message_log.emit("[color=orange]控制30个据点! 大陆半数已沦陷, 最终决战即将到来![/color]")
+		ResourceManager.apply_delta(pid, {"prestige": 20, "gold": 100, "iron": 50})
+	elif owned_count == 40:
+		EventBus.message_log.emit("[color=red]═══ 暗潮吞噬 ═══[/color]")
+		EventBus.message_log.emit("[color=red]控制40个据点! 光明仅存最后的抵抗...[/color]")
+		ResourceManager.apply_delta(pid, {"prestige": 30, "gold": 200})
+
+	# Harbor conquest: fleet bonus
+	if tile_type == TileType.HARBOR:
+		EventBus.message_log.emit("[color=cyan]港口占领: %s — 海上补给线开通![/color]" % tile_name)
+		ResourceManager.apply_delta(pid, {"food": 20})
+
+	# Trading Post: merchant bonus
+	if tile_type == TileType.TRADING_POST:
+		EventBus.message_log.emit("[color=gold]交易站占领: %s — 商人蜂拥而至![/color]" % tile_name)
+		ResourceManager.apply_delta(pid, {"gold": 30})
+
+	# Ruins: discovery event
+	if tile_type == TileType.RUINS:
+		EventBus.message_log.emit("[color=purple]遗迹占领: %s — 发现古代知识![/color]" % tile_name)
+		if randf() < 0.5:
+			ResourceManager.apply_delta(pid, {"prestige": 5})
+			EventBus.message_log.emit("古代文献: 威望+5!")
+		else:
+			ItemManager.grant_random_loot(pid)
+			EventBus.message_log.emit("遗迹宝物: 获得随机物品!")
+
+
+## Helper: get light faction display name
+func _get_light_faction_name(light_faction: int) -> String:
+	return FactionData.LIGHT_FACTION_NAMES.get(light_faction, "未知势力")
+
+
+## Helper: get the hero_id of the faction leader
+func _get_light_faction_leader(light_faction: int) -> String:
+	match light_faction:
+		0: return "human_leader"
+		1: return "elf_leader"
+		2: return "mage_leader"
+		_: return ""
 
 
 func tick_tile_public_order() -> void:

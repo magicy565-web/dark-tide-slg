@@ -100,6 +100,10 @@ var btn_tile_dev: Button
 var btn_merge_army: Button
 var btn_split_army: Button
 var btn_upgrade_troop: Button
+var btn_formation: Button
+var btn_unit_orders: Button
+var _formation_army_id: int = -1
+var _orders_army_id: int = -1
 var _tile_dev_panel: Node = null
 
 # ── UI refs: item panel ──
@@ -430,7 +434,7 @@ func _build_action_panel(parent: Control) -> void:
 func _build_domestic_sub_panel(parent: Control) -> void:
 	domestic_panel = PanelContainer.new()
 	domestic_panel.position = Vector2(220, 60)
-	domestic_panel.size = Vector2(160, 330)
+	domestic_panel.size = Vector2(160, 365)
 	domestic_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	domestic_panel.visible = false
 	domestic_panel.add_theme_stylebox_override("panel", _make_content_panel_style())
@@ -482,6 +486,16 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 	btn_tile_dev.custom_minimum_size = Vector2(140, 30)
 	btn_tile_dev.pressed.connect(_on_tile_dev_pressed)
 	vbox.add_child(btn_tile_dev)
+
+	btn_formation = _make_button("Edit Formation (陣形)")
+	btn_formation.custom_minimum_size = Vector2(140, 30)
+	btn_formation.pressed.connect(_on_formation_edit)
+	vbox.add_child(btn_formation)
+
+	btn_unit_orders = _make_button("Unit Orders (個別指令)")
+	btn_unit_orders.custom_minimum_size = Vector2(140, 30)
+	btn_unit_orders.pressed.connect(_on_unit_orders)
+	vbox.add_child(btn_unit_orders)
 
 
 # ── Center panel: target / tile selector ──
@@ -1364,6 +1378,79 @@ func _on_upgrade_troop_confirm(army_id: int, troop_index: int) -> void:
 	GameManager.action_upgrade_troop(pid, army_id, troop_index)
 	_close_target_panel()
 	_after_action()
+
+
+func _on_formation_edit() -> void:
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "formation"
+	domestic_panel.visible = false
+
+	var pid: int = GameManager.get_human_player_id()
+	var armies: Array = GameManager.get_player_armies(pid)
+
+	_show_target_panel("Edit Formation (陣形) - Select Army")
+
+	if armies.is_empty():
+		_add_target_label("(No armies)")
+		return
+
+	for army in armies:
+		var soldiers: int = GameManager.get_army_soldier_count(army["id"])
+		var troops: Array = army.get("troops", [])
+		var label_text: String = "%s (%d troops, %d soldiers)" % [army["name"], troops.size(), soldiers]
+		_add_target_button(label_text, _on_formation_army_selected.bind(army["id"]))
+
+
+func _on_formation_army_selected(army_id: int) -> void:
+	_formation_army_id = army_id
+	var army: Dictionary = GameManager.get_army(army_id)
+	var troops: Array = army.get("troops", [])
+	var prefs: Dictionary = GameManager.get_army_slot_preferences(army_id)
+
+	_show_target_panel("Formation: %s — Assign Slots" % army["name"])
+
+	_add_target_label("Front Row: Slots 0-2 | Back Row: Slots 3-5", Color(0.7, 0.8, 0.9))
+	_add_target_label("Current assignments:", Color(0.6, 0.7, 0.8))
+
+	var slot_names: Array = ["Front-L(0)", "Front-C(1)", "Front-R(2)", "Back-L(3)", "Back-C(4)", "Back-R(5)"]
+
+	for i in range(troops.size()):
+		var troop: Dictionary = troops[i]
+		var troop_name: String = troop.get("name", troop.get("troop_id", "???"))
+		var current_slot: int = prefs.get(i, -1)
+		var slot_str: String = slot_names[current_slot] if current_slot >= 0 and current_slot < 6 else "Auto"
+		var default_row: String = "Front" if troop.get("row", "front") == "front" else "Back"
+
+		_add_target_label("  %s (Default: %s, Current: %s)" % [troop_name, default_row, slot_str])
+
+		# Add slot assignment buttons for this troop
+		for s in range(6):
+			var btn_text: String = "  -> %s" % slot_names[s]
+			if current_slot == s:
+				btn_text += " *"
+			var btn := Button.new()
+			btn.text = btn_text
+			btn.custom_minimum_size = Vector2(200, 24)
+			btn.add_theme_font_size_override("font_size", 10)
+			btn.pressed.connect(_on_formation_slot_assign.bind(army_id, i, s))
+			target_container.add_child(btn)
+			target_buttons.append(btn)
+
+	# Reset button
+	_add_target_button("[Reset to Auto]", _on_formation_reset.bind(army_id))
+
+
+func _on_formation_slot_assign(army_id: int, troop_index: int, slot: int) -> void:
+	GameManager.set_troop_slot_preference(army_id, troop_index, slot)
+	EventBus.message_log.emit("阵形设置: 编队%d -> 槽位%d" % [troop_index, slot])
+	# Refresh the panel
+	_on_formation_army_selected(army_id)
+
+
+func _on_formation_reset(army_id: int) -> void:
+	GameManager.clear_army_slot_preferences(army_id)
+	EventBus.message_log.emit("阵形重置为自动分配")
+	_on_formation_army_selected(army_id)
 
 
 func _on_domestic_upgrade() -> void:
@@ -2312,3 +2399,69 @@ func _make_button(text: String, icon: Texture2D = null) -> Button:
 			sp.texture = _btn_pressed_tex
 			btn.add_theme_stylebox_override("pressed", sp)
 	return btn
+
+
+# ═══════════════════════════════════════════════════════════════
+#                   UNIT ORDERS (個別指令)
+# ═══════════════════════════════════════════════════════════════
+
+func _on_unit_orders() -> void:
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "unit_orders"
+	domestic_panel.visible = false
+
+	var pid: int = GameManager.get_human_player_id()
+	var armies: Array = GameManager.get_player_armies(pid)
+
+	_show_target_panel("Unit Orders (個別指令) - Select Army")
+
+	if armies.is_empty():
+		_add_target_label("(No armies)")
+		return
+
+	for army in armies:
+		var soldiers: int = GameManager.get_army_soldier_count(army["id"])
+		var label_text: String = "%s (%d soldiers)" % [army["name"], soldiers]
+		_add_target_button(label_text, _on_unit_orders_army.bind(army["id"]))
+
+
+func _on_unit_orders_army(army_id: int) -> void:
+	_orders_army_id = army_id
+	var army: Dictionary = GameManager.get_army(army_id)
+	var troops: Array = army.get("troops", [])
+	var cmds: Dictionary = GameManager.get_army_unit_commands(army_id)
+
+	_show_target_panel("Unit Orders: %s" % army["name"])
+
+	_add_target_label("Set orders for next battle:", Color(0.7, 0.8, 0.9))
+
+	var cmd_names: Array = ["Auto", "Attack", "Guard(DEF+50%)", "Charge(ATK+40%)"]
+
+	for i in range(troops.size()):
+		var troop: Dictionary = troops[i]
+		var tname: String = troop.get("name", troop.get("troop_id", "???"))
+		var current_cmd: int = cmds.get(i, 0)
+		var cmd_str: String = cmd_names[current_cmd] if current_cmd < cmd_names.size() else "Auto"
+
+		_add_target_label("  %s: [%s]" % [tname, cmd_str], Color(0.8, 0.85, 0.9))
+
+		# Cycle through commands
+		_add_target_button("  → Cycle: %s" % tname, _on_unit_order_cycle.bind(army_id, i))
+
+	_add_target_button("[Reset All to Auto]", _on_unit_orders_reset.bind(army_id))
+
+
+func _on_unit_order_cycle(army_id: int, troop_index: int) -> void:
+	var cmds: Dictionary = GameManager.get_army_unit_commands(army_id)
+	var current: int = cmds.get(troop_index, 0)
+	var next_cmd: int = (current + 1) % 4  # Cycle: AUTO->ATTACK->GUARD->CHARGE->AUTO
+	GameManager.set_unit_command(army_id, troop_index, next_cmd)
+	var cmd_names: Array = ["Auto", "Attack", "Guard", "Charge"]
+	EventBus.message_log.emit("指令設定: 編隊%d -> %s" % [troop_index, cmd_names[next_cmd]])
+	_on_unit_orders_army(army_id)
+
+
+func _on_unit_orders_reset(army_id: int) -> void:
+	GameManager.clear_army_unit_commands(army_id)
+	EventBus.message_log.emit("全部指令重置為自動")
+	_on_unit_orders_army(army_id)
