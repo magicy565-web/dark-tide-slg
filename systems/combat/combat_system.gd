@@ -72,6 +72,9 @@ class BattleUnit:
 	var morale: int = 100               ## 士气 (0 = rout)
 	var is_routed: bool = false          ## 已溃败
 	var exp: int = 0                     ## 累积经验值 (老兵/精锐判定用)
+	var _death_resist_used: bool = false  ## v4.5: death_resist one-time trigger flag
+	var _ghost_shield_active: bool = false ## v4.5: ghost_shield first-hit immunity flag
+	var _dragon_slayer_bonus: int = 0     ## v4.5: dragon_slayer accumulated ATK bonus
 
 	## Convenience: unit is alive if it has HP remaining.
 	func is_alive() -> bool:
@@ -420,6 +423,18 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 			if bu.has_passive("one_battle_power"):
 				bu.atk = int(ceil(float(bu.atk) * 1.3))
 
+			# v4.5: preemptive_bonus / preemptive_shot — boost SPD by +10 for first-strike priority
+			if bu.has_passive("preemptive_bonus") or bu.has_passive("preemptive_shot"):
+				bu.spd += 10
+
+		# v4.5: death_resist — initialize one-time flag (orc_iron_jaw_plate)
+		if bu.has_passive("death_resist"):
+			bu._death_resist_used = false
+
+		# v4.5: ghost_shield — first hit immunity flag
+		if bu.has_passive("ghost_shield"):
+			bu._ghost_shield_active = true
+
 		# v4.3: Hero-Troop Synergy — hero commanding matching troop type
 		if bu.hero_id != "" and not hero_data.is_empty():
 			var hero_specialty: String = hero_data.get("troop_specialty", "")
@@ -662,7 +677,7 @@ func _resolve_preemptive_phase(state: BattleState) -> void:
 
 		var mult := 1.3 if u.has_passive("preemptive_1_3") else 1.0
 		var dmg := _calculate_damage(u, target, state, mult)
-		_apply_damage(target, dmg, state)
+		_apply_damage(target, dmg, state, u)
 
 		var _pre_side := "attacker" if u.is_attacker else "defender"
 		var _pre_tgt_side := "attacker" if target.is_attacker else "defender"
@@ -795,7 +810,7 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 			if unit.first_attack and unit.has_passive("charge_1_5"):
 				skill_mult *= 1.5
 			var dmg := _calculate_damage(unit, t, state, skill_mult)
-			_apply_damage(t, dmg, state)
+			_apply_damage(t, dmg, state, unit)
 			total_dmg += dmg
 			var _aoe_tgt_side := "attacker" if t.is_attacker else "defender"
 			sub_log.append({ "target": t.id, "damage": dmg, "remaining_soldiers": t.soldiers, "target_side": _aoe_tgt_side, "target_slot": t.slot, "target_name": t.troop_id, "max_soldiers": t.max_soldiers })
@@ -814,6 +829,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 				_apply_ally_death_morale(t, state)
 				# v4.4: kill_heal — attacker restores 1 soldier on kill (blood_moon_blade)
 				_apply_kill_heal(unit, state)
+				# v4.5: dragon_slayer — on kill, ATK+1 permanently for battle
+				_apply_dragon_slayer(unit, state)
 
 		unit.first_attack = false
 		# Emit one attack entry per AoE target for combat_view compatibility
@@ -846,7 +863,7 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		skill_mult = 1.5
 
 	var dmg := _calculate_damage(unit, target, state, skill_mult)
-	_apply_damage(target, dmg, state)
+	_apply_damage(target, dmg, state, unit)
 	unit.first_attack = false
 
 	var _target_side := "attacker" if target.is_attacker else "defender"
@@ -884,6 +901,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		_apply_ally_death_morale(target, state)
 		# v4.4: kill_heal — attacker restores 1 soldier on kill (blood_moon_blade)
 		_apply_kill_heal(unit, state)
+		# v4.5: dragon_slayer — on kill, ATK+1 permanently for battle
+		_apply_dragon_slayer(unit, state)
 		return { "action": "_already_logged" }
 
 	return entry
@@ -945,6 +964,20 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 	if _counter["def_mult"] != 1.0:
 		base_damage /= _counter["def_mult"]
 
+	# v4.5: light_slayer (rin_sacred_blade) — +15% damage vs light faction units
+	if attacker.has_passive("light_slayer"):
+		var def_troop: String = defender.troop_id.to_lower()
+		if def_troop.begins_with("elf_") or def_troop.begins_with("knight_") or def_troop.begins_with("human_") or def_troop.begins_with("temple_") or def_troop.begins_with("priest") or def_troop.begins_with("treant") or def_troop.begins_with("alliance_"):
+			base_damage *= 1.15
+
+	# v4.5: blood_oath — when unit is <50% soldiers, ATK×2 for damage calc
+	if attacker.has_passive("blood_oath"):
+		if float(attacker.soldiers) < float(attacker.max_soldiers) * 0.5:
+			base_damage *= 2.0
+
+	# v4.5: dragon_slayer — ATK bonus already applied permanently in _apply_dragon_slayer().
+	# _dragon_slayer_bonus is tracked for logging only; no extra damage calc needed here.
+
 	var final_damage: float = base_damage * skill_mult
 
 	# Convert from "equivalent soldiers killed" to HP damage
@@ -965,9 +998,39 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 # ---------------------------------------------------------------------------
 
 ## Apply damage (HP loss) to a unit, respecting escape_30 passive.
-func _apply_damage(target: BattleUnit, damage: int, state: BattleState) -> void:
+func _apply_damage(target: BattleUnit, damage: int, state: BattleState, attacker: BattleUnit = null) -> void:
 	if damage <= 0:
 		return
+
+	# v4.5: ghost_shield — first hit immunity (absorb full damage once)
+	if target._ghost_shield_active and target.has_passive("ghost_shield"):
+		target._ghost_shield_active = false
+		var _gs_side := "attacker" if target.is_attacker else "defender"
+		state.action_log.append({
+			"action": "passive",
+			"event": "ghost_shield",
+			"unit": target.id,
+			"side": _gs_side,
+			"slot": target.slot,
+			"desc": "%s 幽灵护盾吸收了首次攻击!" % target.troop_id,
+		})
+		return
+
+	# v4.5: ranged_dodge (pirate_ghost_ship_coat) — 30% dodge vs ranged attacks
+	if attacker != null and target.has_passive("ranged_dodge"):
+		var atk_troop: String = attacker.troop_id.to_lower()
+		var is_ranged: bool = atk_troop.find("archer") != -1 or atk_troop.find("ranger") != -1 or atk_troop.find("mage") != -1 or atk_troop.find("cannon") != -1 or atk_troop.find("bombardier") != -1 or atk_troop.find("gunner") != -1
+		if is_ranged and randf() < 0.30:
+			var _rd_side := "attacker" if target.is_attacker else "defender"
+			state.action_log.append({
+				"action": "passive",
+				"event": "ranged_dodge",
+				"unit": target.id,
+				"side": _rd_side,
+				"slot": target.slot,
+				"desc": "%s 闪避了远程攻击!" % target.troop_id,
+			})
+			return
 
 	var new_hp: int = target.hp - damage
 
@@ -990,6 +1053,26 @@ func _apply_damage(target: BattleUnit, damage: int, state: BattleState) -> void:
 				"desc": "%s 触发逃脱被动，保留1兵" % target.troop_id,
 			})
 			return
+
+	# v4.5: death_resist (orc_iron_jaw_plate) — 100% survive lethal with 1 soldier, once per battle
+	if new_hp <= 0 and target.has_passive("death_resist") and not target._death_resist_used:
+		target._death_resist_used = true
+		target.hp = target.hp_per_soldier
+		target.soldiers = 1
+		var _dr_side := "attacker" if target.is_attacker else "defender"
+		state.action_log.append({
+			"action": "passive",
+			"event": "death_resist_triggered",
+			"unit": target.id,
+			"side": _dr_side,
+			"slot": target.slot,
+			"remaining_soldiers": 1,
+			"max_soldiers": target.max_soldiers,
+			"hp": target.hp,
+			"max_hp": target.max_hp,
+			"desc": "%s 铁颚板甲: 抵抗致命伤害，保留1兵!" % target.troop_id,
+		})
+		return
 
 	target.hp = maxi(0, new_hp)
 	_recalc_soldiers(target)
@@ -1058,6 +1141,9 @@ func _select_target(attacker: BattleUnit, enemies: Array[BattleUnit]) -> BattleU
 	# Ninja or assassinate_back passive bypasses front
 	if troop.find("ninja") != -1 or troop.find("assassin") != -1 or attacker.has_passive("assassinate_back"):
 		can_hit_back_directly = true
+	# v4.5: assassinate_bonus (de_shadow_fang) — treat as assassinate_back
+	if attacker.has_passive("assassinate_bonus"):
+		can_hit_back_directly = true
 
 	# Separate enemies into front and back
 	var front: Array[BattleUnit] = []
@@ -1071,7 +1157,7 @@ func _select_target(attacker: BattleUnit, enemies: Array[BattleUnit]) -> BattleU
 			back.append(e)
 
 	# --- 2. Ninja / assassinate: prefer back row --------------------------
-	if (troop.find("ninja") != -1 or troop.find("assassin") != -1 or attacker.has_passive("assassinate_back")) and not back.is_empty():
+	if (troop.find("ninja") != -1 or troop.find("assassin") != -1 or attacker.has_passive("assassinate_back") or attacker.has_passive("assassinate_bonus")) and not back.is_empty():
 		return back[randi() % back.size()]
 
 	# --- 3. Front-row attacker: target enemy front first ------------------
@@ -1112,7 +1198,7 @@ func _pick_aoe_target_row(attacker: BattleUnit, enemies: Array[BattleUnit]) -> i
 	# Ninja / assassinate_back prefers back row for AoE too (use .find() for partial
 	# troop_id matching, consistent with targeting — Bug fix Round 3)
 	var _aoe_troop := attacker.troop_id.to_lower()
-	if (_aoe_troop.find("ninja") != -1 or _aoe_troop.find("assassin") != -1 or attacker.has_passive("assassinate_back")) and has_back:
+	if (_aoe_troop.find("ninja") != -1 or _aoe_troop.find("assassin") != -1 or attacker.has_passive("assassinate_back") or attacker.has_passive("assassinate_bonus")) and has_back:
 		return 1
 
 	return 0 if has_front else 1
@@ -1125,8 +1211,10 @@ func _pick_aoe_target_row(attacker: BattleUnit, enemies: Array[BattleUnit]) -> i
 func _apply_passive_on_hit(attacker: BattleUnit, defender: BattleUnit, damage: int, state: BattleState) -> void:
 	# counter_1_2: defender counterattacks at x1.2 when hit
 	if defender.is_alive() and defender.has_passive("counter_1_2"):
-		var counter_dmg := _calculate_damage(defender, attacker, state, 1.2)
-		_apply_damage(attacker, counter_dmg, state)
+		# v4.5: counter_damage_bonus (homura_flame_gauntlet) — boost counter from x1.2 to x1.5
+		var counter_mult: float = 1.5 if defender.has_passive("counter_damage_bonus") else 1.2
+		var counter_dmg := _calculate_damage(defender, attacker, state, counter_mult)
+		_apply_damage(attacker, counter_dmg, state, defender)
 		var _ctr_side := "attacker" if defender.is_attacker else "defender"
 		var _ctr_tgt_side := "attacker" if attacker.is_attacker else "defender"
 		state.action_log.append({
@@ -1257,12 +1345,18 @@ func _apply_ally_death_morale(dead_unit: BattleUnit, state: BattleState) -> void
 		_reduce_morale(u, base_loss, state)
 
 ## v4.4: kill_heal — when a unit with kill_heal passive kills an enemy, restore 1 soldier worth of HP.
+## v4.5: kill_heal_2 — same but heals 2 soldiers.
 func _apply_kill_heal(killer: BattleUnit, state: BattleState) -> void:
-	if not killer.has_passive("kill_heal") or not killer.is_alive():
+	var heal_soldiers: int = 0
+	if killer.has_passive("kill_heal_2"):
+		heal_soldiers = 2
+	elif killer.has_passive("kill_heal"):
+		heal_soldiers = 1
+	if heal_soldiers == 0 or not killer.is_alive():
 		return
 	if killer.hp >= killer.max_hp:
 		return
-	var heal: int = killer.hp_per_soldier
+	var heal: int = killer.hp_per_soldier * heal_soldiers
 	killer.hp = mini(killer.hp + heal, killer.max_hp)
 	_recalc_soldiers(killer)
 	var side_str: String = "attacker" if killer.is_attacker else "defender"
@@ -1272,7 +1366,23 @@ func _apply_kill_heal(killer: BattleUnit, state: BattleState) -> void:
 		"unit": killer.id,
 		"side": side_str,
 		"slot": killer.slot,
-		"desc": "%s 击杀回复1兵 (血月之刃)" % killer.troop_id,
+		"desc": "%s 击杀回复%d兵" % [killer.troop_id, heal_soldiers],
+	})
+
+## v4.5: dragon_slayer — on kill, gain ATK+1 permanently for this battle (like bloodlust).
+func _apply_dragon_slayer(killer: BattleUnit, state: BattleState) -> void:
+	if not killer.has_passive("dragon_slayer") or not killer.is_alive():
+		return
+	killer._dragon_slayer_bonus += 1
+	killer.atk += 1
+	var side_str: String = "attacker" if killer.is_attacker else "defender"
+	state.action_log.append({
+		"action": "passive",
+		"event": "dragon_slayer",
+		"unit": killer.id,
+		"side": side_str,
+		"slot": killer.slot,
+		"desc": "%s 龙杀! 击杀后ATK+1(累积:%d)" % [killer.troop_id, killer._dragon_slayer_bonus],
 	})
 
 ## Try to fetch an autoload node by name at runtime.

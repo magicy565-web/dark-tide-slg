@@ -1206,6 +1206,9 @@ func _build_action_queue(state: Dictionary) -> Array:
 			is_preemptive = true
 		elif "reload_shot" in unit["passives"] and state["round"] == 1:
 			is_preemptive = true  # reload_shot gets preemptive priority round 1
+		# v4.5: preemptive_bonus / preemptive_shot — equipment passives grant preemptive
+		elif "preemptive_bonus" in unit["passives"] or "preemptive_shot" in unit["passives"]:
+			is_preemptive = true
 
 		# ALL_OUT first strike: fastest unit on that side gets preemptive
 		if not is_preemptive and unit["side"] == "attacker" and atk_first_strike:
@@ -1393,6 +1396,11 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		unit["bloodlust_bonus"] = unit.get("bloodlust_bonus", 0) + 1
 		log.append("%s [%s] 嗜血! 击杀后ATK+1(累积:%d)" % [unit["unit_type"], unit["side"], unit["bloodlust_bonus"]])
 
+	# v4.5: dragon_slayer — on kill, gain ATK+1 permanently for this battle (like bloodlust)
+	if "dragon_slayer" in unit["passives"] and target_soldiers_before > 0 and not target["is_alive"]:
+		unit["bloodlust_bonus"] = unit.get("bloodlust_bonus", 0) + 1
+		log.append("%s [%s] 龙杀! 击杀后ATK+1(累积:%d)" % [unit["unit_type"], unit["side"], unit["bloodlust_bonus"]])
+
 	# Passive: mana_drain — on hit, drain 2 mana from enemy side
 	if "mana_drain" in unit["passives"] and damage > 0:
 		var enemy_mana_key: String = "def_mana" if unit["side"] == "attacker" else "atk_mana"
@@ -1442,7 +1450,9 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 	# Counter-attack: counter_1_2 or counter_defend passive
 	if target["is_alive"] and ("counter_1_2" in target["passives"] or "counter_defend" in target["passives"]):
 		var counter_dmg: int = _calculate_damage(target, unit, state)
-		counter_dmg = int(float(counter_dmg) * 1.2)
+		# v4.5: counter_damage_bonus (homura_flame_gauntlet) — boost counter from x1.2 to x1.5
+		var counter_mult: float = 1.5 if "counter_damage_bonus" in target["passives"] else 1.2
+		counter_dmg = int(float(counter_dmg) * counter_mult)
 		# Counter matrix defense modifier: original attacker may take less/more counter damage
 		var _ca_counter: Dictionary = CounterMatrix.get_counter(unit["unit_type"], target["unit_type"])
 		if _ca_counter["def_mult"] != 1.0:
@@ -1802,6 +1812,10 @@ func _select_target(state: Dictionary, unit: Dictionary) -> Dictionary:
 	# Assassinate_back passive overrides to back priority
 	if "assassinate_back" in unit["passives"]:
 		target_mode = TargetMode.BACK_PRIORITY
+	# v4.5: assassinate_bonus (de_shadow_fang) — +25% chance to target back row
+	elif "assassinate_bonus" in unit["passives"]:
+		if randf() < 0.25:
+			target_mode = TargetMode.BACK_PRIORITY
 
 	# Assassin_crit: ignore taunt, can target back row directly
 	if "assassin_crit" in unit["passives"]:
@@ -1983,6 +1997,19 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 	if _counter_info["atk_mult"] != 1.0:
 		base_damage *= _counter_info["atk_mult"]
 
+	# v4.5: light_slayer (rin_sacred_blade) — +15% damage vs light faction units
+	if "light_slayer" in attacker_unit["passives"]:
+		var def_type: String = defender_unit["unit_type"].to_lower()
+		if def_type.begins_with("elf_") or def_type.begins_with("knight_") or def_type.begins_with("human_") or def_type.begins_with("temple_") or def_type.begins_with("priest") or def_type.begins_with("treant") or def_type.begins_with("alliance_"):
+			base_damage *= 1.15
+
+	# v4.5: blood_oath — when unit is <50% soldiers, ATK×2 (stacks with other ATK mults)
+	if "blood_oath" in attacker_unit["passives"]:
+		if float(attacker_unit["soldiers"]) < float(attacker_unit["max_soldiers"]) * 0.5:
+			base_damage *= 2.0
+
+	# v4.5: spell_damage_bonus / spell_power_bonus — handled in hero_system.gd apply_skill_in_combat
+
 	# Apply weather/season combat modifiers
 	if Engine.get_main_loop() is SceneTree:
 		var _wr: Node = (Engine.get_main_loop() as SceneTree).root
@@ -2079,12 +2106,33 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 		log.append("%s [%s] 大地之盾! 伤害被完全吸收!" % [target["unit_type"], target["side"]])
 		return
 
+	# v4.5: ghost_shield — first hit immunity (absorb full damage once)
+	if "ghost_shield" in target["passives"]:
+		target["passives"].erase("ghost_shield")  # one-time use
+		log.append("%s [%s] 幽灵护盾吸收了首次攻击!" % [target["unit_type"], target["side"]])
+		return
+
+	# v4.5: ranged_dodge (pirate_ghost_ship_coat) — 30% dodge vs ranged attacks
+	if "ranged_dodge" in target["passives"]:
+		var src_type: String = source["unit_type"].to_lower()
+		var _is_src_ranged: bool = src_type.find("archer") != -1 or src_type.find("ranger") != -1 or src_type.find("mage") != -1 or src_type.find("cannon") != -1 or src_type.find("bombardier") != -1 or src_type.find("gunner") != -1
+		if _is_src_ranged and randf() < 0.30:
+			log.append("%s [%s] 闪避了远程攻击!" % [target["unit_type"], target["side"]])
+			return
+
 	# Escape_30: 30% chance to survive lethal damage (soldiers would drop to 0)
 	if target["soldiers"] - damage <= 0 and "escape_30" in target["passives"]:
 		if randf() < 0.3:
 			target["soldiers"] = 1
 			log.append("%s [%s] 逃脱致命一击! 残存1兵" % [target["unit_type"], target["side"]])
 			return
+
+	# v4.5: death_resist (orc_iron_jaw_plate) — 100% survive lethal with 1 soldier, once per battle
+	if target["soldiers"] - damage <= 0 and "death_resist" in target["passives"] and not target.get("_death_resist_used", false):
+		target["_death_resist_used"] = true
+		target["soldiers"] = 1
+		log.append("%s [%s] 铁颚板甲: 抵抗致命伤害，保留1兵!" % [target["unit_type"], target["side"]])
+		return
 
 	target["soldiers"] -= damage
 	log.append("%s [%s] 受到 %d 伤害 (剩余 %d 兵)" % [
@@ -2244,15 +2292,21 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		log.append("暗影斗篷: 进攻方损失减少 %d" % reduced)
 
 	# Equipment: kill_heal (blood_moon_blade) — only check winner's heroes
+	# v4.5: kill_heal_2 — heals 2 soldiers instead of 1
 	var winner_pid: int = atk_pid if winner == "attacker" else def_pid
 	if winner_pid >= 0:
 		for hero in HeroSystem.get_heroes_for_player(winner_pid):
-			if HeroSystem.has_equipment_passive(hero["id"], "kill_heal"):
+			var heal_amount: int = 0
+			if HeroSystem.has_equipment_passive(hero["id"], "kill_heal_2"):
+				heal_amount = 2
+			elif HeroSystem.has_equipment_passive(hero["id"], "kill_heal"):
+				heal_amount = 1
+			if heal_amount > 0:
 				if winner == "attacker":
-					attacker_losses = maxi(attacker_losses - 1, 0)
+					attacker_losses = maxi(attacker_losses - heal_amount, 0)
 				else:
-					defender_losses = maxi(defender_losses - 1, 0)
-				log.append("装备: 胜利回复1兵")
+					defender_losses = maxi(defender_losses - heal_amount, 0)
+				log.append("装备: 胜利回复%d兵" % heal_amount)
 				break
 
 	# Slave capture
@@ -2279,6 +2333,42 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 	if pillage_gold > 0 and winner_pid >= 0:
 		ResourceManager.apply_delta(winner_pid, {"gold": pillage_gold})
 		log.append("劫掠! 胜利方获得 +%d 金" % pillage_gold)
+
+	# v4.5: plunder_gold_bonus — +50% plunder gold on victory (equipment passive)
+	if winner_pid >= 0 and pillage_gold > 0:
+		for hero in HeroSystem.get_heroes_for_player(winner_pid):
+			if HeroSystem.has_equipment_passive(hero["id"], "plunder_gold_bonus"):
+				var bonus_gold: int = int(float(pillage_gold) * 0.5)
+				ResourceManager.apply_delta(winner_pid, {"gold": bonus_gold})
+				log.append("装备: 掠夺金币加成 +%d 金 (50%%)" % bonus_gold)
+				break
+
+	# v4.5: victory_waaagh_bonus — +5 WAAAGH on victory (equipment passive)
+	if winner_pid >= 0:
+		for hero in HeroSystem.get_heroes_for_player(winner_pid):
+			if HeroSystem.has_equipment_passive(hero["id"], "victory_waaagh_bonus"):
+				OrcMechanic.add_waaagh(winner_pid, 5)
+				log.append("装备: 胜利WAAAGH +5!")
+				break
+
+	# v4.5: waaagh_gain_bonus — +25% WAAAGH gain post-battle (equipment passive)
+	if winner_pid >= 0:
+		for hero in HeroSystem.get_heroes_for_player(winner_pid):
+			if HeroSystem.has_equipment_passive(hero["id"], "waaagh_gain_bonus"):
+				var base_waaagh: int = 10  # standard post-battle WAAAGH gain
+				var bonus_waaagh: int = int(float(base_waaagh) * 0.25)
+				OrcMechanic.add_waaagh(winner_pid, bonus_waaagh)
+				log.append("装备: WAAAGH增益加成 +%d (25%%)" % bonus_waaagh)
+				break
+
+	# v4.5: iron_income_bonus — post-battle iron grant (equipment passive)
+	if winner_pid >= 0:
+		for hero in HeroSystem.get_heroes_for_player(winner_pid):
+			if HeroSystem.has_equipment_passive(hero["id"], "iron_income_bonus"):
+				var iron_amount: int = 5
+				ResourceManager.apply_delta(winner_pid, {"iron": iron_amount})
+				log.append("装备: 战后获得 +%d 铁" % iron_amount)
+				break
 
 	# Story flag gold bonuses: momiji paths
 	var gold_bonus_flags: Dictionary = {}
@@ -2333,6 +2423,20 @@ func _check_slave_capture(winner_id: int, loser_units: Array) -> int:
 				var bonus: float = HeroSystem.get_equipment_passive_value(hero["id"], "capture_bonus")
 				if randf() < bonus:
 					count += 1
+				break
+		# v4.5: slave_chain_bonus — +15% capture chance + extra slave
+		for hero in HeroSystem.get_heroes_for_player(winner_id):
+			if HeroSystem.has_equipment_passive(hero["id"], "slave_chain_bonus"):
+				if randf() < 0.15:
+					count += 1
+				break
+		# v4.5: capture_essence_bonus — +20% capture chance + extra shadow essence
+		for hero in HeroSystem.get_heroes_for_player(winner_id):
+			if HeroSystem.has_equipment_passive(hero["id"], "capture_essence_bonus"):
+				if randf() < 0.20:
+					count += 1
+				# Grant extra shadow essence
+				ResourceManager.apply_delta(winner_id, {"shadow_essence": 1})
 				break
 	return count
 

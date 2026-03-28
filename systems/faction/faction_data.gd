@@ -706,6 +706,7 @@ const ITEM_DEFS: Dictionary = {
 	# v0.8.9: Quest reward items
 	"refined_iron_weapon": {"name": "精铁武器", "desc": "下次战斗攻击+20%", "type": "consumable", "effect": {"atk_mult": 1.2}, "weight": 0},
 	"bomb_barrel": {"name": "地精爆破桶", "desc": "攻城时削减20城防", "type": "consumable", "effect": {"wall_damage": 20}, "weight": 0},
+	"legendary_random": {"name": "传说宝箱", "desc": "打开后获得一件随机传奇装备", "type": "consumable", "effect": {"grant_legendary": true}, "weight": 0},
 }
 
 # ── Equipment Definitions (v0.8.7) ──
@@ -781,6 +782,69 @@ static var EQUIPMENT_DEFS: Dictionary = {
 		"passive": "rps_bonus",  # Unit type advantage +15%
 		"passive_value": 0.15,
 		"drop_weight": 10,
+	},
+	"slave_chain": {
+		"name": "奴隶锁链", "slot": EquipSlot.ACCESSORY, "rarity": "rare",
+		"desc": "俘获率+15%, 奴隶产出+1",
+		"stats": {},
+		"passive": "slave_chain_bonus",
+		"passive_value": 0.15,
+		"drop_weight": 0,
+	},
+	"cursed_pickaxe": {
+		"name": "诅咒矿镐", "slot": EquipSlot.WEAPON, "rarity": "rare",
+		"desc": "ATK+2, 每回合+3铁矿",
+		"stats": {"atk": 2},
+		"passive": "iron_income_bonus",
+		"passive_value": 3,
+		"drop_weight": 0,
+	},
+	"dragon_egg": {
+		"name": "龙之卵", "slot": EquipSlot.ACCESSORY, "rarity": "legendary",
+		"desc": "全军ATK+3, DEF+2, 火焰抗性",
+		"stats": {"atk": 3, "def": 2},
+		"passive": "dragon_power",
+		"passive_value": 1.0,
+		"drop_weight": 0,
+	},
+	"blood_oath_ring": {
+		"name": "血誓之戒", "slot": EquipSlot.ACCESSORY, "rarity": "legendary",
+		"desc": "全军士气+10, 濒死时ATK翻倍",
+		"stats": {},
+		"passive": "blood_oath",
+		"passive_value": 0.5,
+		"drop_weight": 0,
+	},
+	"ghost_lantern": {
+		"name": "幽魂灯笼", "slot": EquipSlot.ACCESSORY, "rarity": "rare",
+		"desc": "首次被攻击免伤, DEF+1",
+		"stats": {"def": 1},
+		"passive": "ghost_shield",
+		"passive_value": 1.0,
+		"drop_weight": 0,
+	},
+	"ancient_weapon_reforged": {
+		"name": "重铸·远古神兵", "slot": EquipSlot.WEAPON, "rarity": "legendary",
+		"desc": "ATK+6, 击杀恢复2兵",
+		"stats": {"atk": 6},
+		"passive": "kill_heal_2",
+		"passive_value": 2.0,
+		"drop_weight": 0,
+	},
+	"dragon_slayer_sword": {
+		"name": "屠龙剑", "slot": EquipSlot.WEAPON, "rarity": "legendary",
+		"desc": "ATK+7, 每击杀一个单位ATK永久+1(本战)",
+		"stats": {"atk": 7},
+		"passive": "dragon_slayer",
+		"passive_value": 1.0,
+		"drop_weight": 0,
+	},
+	"rare_weapon": {
+		"name": "海盗秘藏武器", "slot": EquipSlot.WEAPON, "rarity": "rare",
+		"desc": "ATK+3, SPD+1",
+		"stats": {"atk": 3, "spd": 1},
+		"passive": "none",
+		"drop_weight": 0,
 	},
 }
 

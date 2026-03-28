@@ -523,6 +523,12 @@ func apply_skill_in_combat(hero_id: String) -> Dictionary:
 	var int_scale: float = skill_def.get("int_scale", 0.0)
 	var effective_value: float = (base_power + float(hero_int) * int_scale) * aff_mult
 
+	# v4.5: spell_damage_bonus / spell_power_bonus — equipment passives boost skill damage
+	if has_equipment_passive(hero_id, "spell_damage_bonus"):
+		effective_value *= 1.2  # +20% spell damage
+	if has_equipment_passive(hero_id, "spell_power_bonus"):
+		effective_value *= 1.15  # +15% spell power
+
 	# Put skill on cooldown
 	use_skill(hero_id)
 

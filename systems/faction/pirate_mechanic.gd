@@ -938,10 +938,15 @@ func _resolve_treasure_reward(player_id: int, treasure_map: Dictionary) -> Dicti
 		"item":
 			var item_id: String = treasure_map.get("item_id", "rare_weapon")
 			result["item_id"] = item_id
-			# 应用稀有武器效果
-			var player: Dictionary = GameManager.get_player_by_id(player_id)
-			player["atk_bonus"] = player.get("atk_bonus", 0) + 15
-			EventBus.message_log.emit("[color=gold]藏宝图: 发现稀有武器! ATK+15![/color]")
+			if ItemManager.add_item(player_id, item_id):
+				var item_name: String = item_id
+				if FactionData.EQUIPMENT_DEFS.has(item_id):
+					item_name = FactionData.EQUIPMENT_DEFS[item_id].get("name", item_id)
+				elif FactionData.ITEM_DEFS.has(item_id):
+					item_name = FactionData.ITEM_DEFS[item_id].get("name", item_id)
+				EventBus.message_log.emit("[color=gold]藏宝图: 发现 %s![/color]" % item_name)
+			else:
+				EventBus.message_log.emit("[color=orange]藏宝图: 背包已满, 宝物遗失![/color]")
 
 	EventBus.resources_changed.emit(player_id)
 	return result

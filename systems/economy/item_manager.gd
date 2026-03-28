@@ -123,13 +123,13 @@ func use_item(player_id: int, item_id: String) -> bool:
 		if val <= 0.0:
 			return false
 		BuffManager.add_buff(player_id, "item_atk", "atk_mult", val, 1, "item")
-		EventBus.message_log.emit("使用 %s: 下次战斗攻击+30%%" % item_data["name"])
+		EventBus.message_log.emit("使用 %s: 下次战斗攻击+%d%%" % [item_data["name"], int((val - 1.0) * 100)])
 	elif effect.has("def_mult"):
 		var val: float = float(effect["def_mult"])
 		if val <= 0.0:
 			return false
 		BuffManager.add_buff(player_id, "item_def", "def_mult", val, 1, "item")
-		EventBus.message_log.emit("使用 %s: 下次战斗防御+30%%" % item_data["name"])
+		EventBus.message_log.emit("使用 %s: 下次战斗防御+%d%%" % [item_data["name"], int((val - 1.0) * 100)])
 	elif effect.has("guaranteed_slave"):
 		BuffManager.add_buff(player_id, "item_slave", "guaranteed_slave", true, 1, "item")
 		EventBus.message_log.emit("使用 %s: 下次战斗必定俘获奴隶" % item_data["name"])
@@ -146,6 +146,21 @@ func use_item(player_id: int, item_id: String) -> bool:
 		# Stored as buff; applied at next siege combat
 		BuffManager.add_buff(player_id, "item_wall_dmg", "wall_damage", val, 1, "item")
 		EventBus.message_log.emit("使用 %s: 下次攻城削减%d城防" % [item_data["name"], val])
+	elif effect.has("grant_legendary"):
+		# legendary_random: grant a random legendary equipment
+		var legendary_ids: Array = []
+		for eid in FactionData.EQUIPMENT_DEFS:
+			if FactionData.EQUIPMENT_DEFS[eid].get("rarity", "") == "legendary":
+				legendary_ids.append(eid)
+		if legendary_ids.is_empty():
+			EventBus.message_log.emit("[color=red]没有可用的传奇装备![/color]")
+			return false
+		var chosen: String = legendary_ids[randi() % legendary_ids.size()]
+		var chosen_name: String = FactionData.EQUIPMENT_DEFS[chosen].get("name", chosen)
+		if not add_item(player_id, chosen):
+			EventBus.message_log.emit("[color=orange]背包已满! 无法获得传奇装备[/color]")
+			return false
+		EventBus.message_log.emit("使用 %s: 获得传奇装备 [color=orange]%s[/color]!" % [item_data["name"], chosen_name])
 	else:
 		EventBus.message_log.emit("[color=red]道具 %s 效果类型未识别![/color]" % item_data.get("name", item_id))
 		return false
