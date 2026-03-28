@@ -100,6 +100,57 @@ const HEROES: Dictionary = {
 	"youya": {"name": "妖夜", "faction": "dark_elf", "troop": "ninja", "atk": 6, "def": 3, "int": 4, "spd": 9,
 		"base_hp": 20, "base_mp": 8,
 		"capture_chance": 0.0, "join_condition": "turn_gte_10", "active": "致命一击", "passive": "夜行者", "preferred_gift": "medicine"},
+	# --- New Orc Heroes (v5.0) ---
+	"grok": {"name": "グロック", "faction": "orc", "troop": "samurai", "atk": 9, "def": 5, "int": 3, "spd": 3,
+		"base_hp": 32, "base_mp": 6,
+		"capture_chance": 0.0, "join_condition": "turn_gte_8", "active": "蛮牛冲锋", "passive": "charge_bonus",
+		"preferred_gift": "weapon_gift", "desc": "兽人战争首领，擅长正面冲锋"},
+	"shaman_zog": {"name": "シャーマン・ゾグ", "faction": "orc", "troop": "mage_unit", "atk": 4, "def": 4, "int": 9, "spd": 5,
+		"base_hp": 20, "base_mp": 14,
+		"capture_chance": 0.0, "join_condition": "turn_gte_12", "active": "混沌闪电", "passive": "magic_boost",
+		"preferred_gift": "book", "desc": "兽人萨满，操控混沌魔法"},
+	"bonecrusher": {"name": "ボーンクラッシャー", "faction": "orc", "troop": "samurai", "atk": 8, "def": 8, "int": 3, "spd": 2,
+		"base_hp": 35, "base_mp": 6,
+		"capture_chance": 0.0, "join_condition": "waaagh_gte_60", "active": "骨碎重击", "passive": "intimidate",
+		"preferred_gift": "weapon_gift", "desc": "骨碎者，令敌军士气崩溃"},
+	"wolf_rider": {"name": "ウルフライダー", "faction": "orc", "troop": "cavalry", "atk": 6, "def": 4, "int": 3, "spd": 9,
+		"base_hp": 22, "base_mp": 6,
+		"capture_chance": 0.0, "join_condition": "territory_gte_8", "active": "狼群突袭", "passive": "flanking",
+		"preferred_gift": "food_gift", "desc": "狼骑兵首领，擅长迂回突袭"},
+	# --- New Pirate Heroes (v5.0) ---
+	"siren": {"name": "サイレン", "faction": "pirate", "troop": "mage_unit", "atk": 5, "def": 3, "int": 8, "spd": 7,
+		"base_hp": 18, "base_mp": 14,
+		"capture_chance": 0.0, "join_condition": "infamy_gte_50", "active": "魅惑之歌", "passive": "charm",
+		"preferred_gift": "jewel", "desc": "海妖歌姬，魅惑敌方武将"},
+	"iron_hook": {"name": "アイアンフック", "faction": "pirate", "troop": "samurai", "atk": 8, "def": 7, "int": 3, "spd": 4,
+		"base_hp": 28, "base_mp": 6,
+		"capture_chance": 0.0, "join_condition": "plunder_gte_100", "active": "铁钩连击", "passive": "plunder",
+		"preferred_gift": "food_gift", "desc": "铁钩船长，战后掠夺金币翻倍"},
+	"storm_caller": {"name": "ストームコーラー", "faction": "pirate", "troop": "mage_unit", "atk": 3, "def": 5, "int": 9, "spd": 6,
+		"base_hp": 20, "base_mp": 15,
+		"capture_chance": 0.0, "join_condition": "turn_gte_18", "active": "风暴召唤", "passive": "weather_control",
+		"preferred_gift": "book", "desc": "风暴召唤者，改变战场天气"},
+	"shadow_blade": {"name": "シャドウブレード", "faction": "pirate", "troop": "ninja", "atk": 7, "def": 4, "int": 4, "spd": 8,
+		"base_hp": 22, "base_mp": 8,
+		"capture_chance": 0.0, "join_condition": "smuggle_routes_gte_2", "active": "暗杀", "passive": "assassination",
+		"preferred_gift": "medicine", "desc": "暗影刺客，单挑时伤害翻倍"},
+	# --- New Dark Elf Heroes (v5.0) ---
+	"venom_queen": {"name": "ヴェノムクイーン", "faction": "dark_elf", "troop": "mage_unit", "atk": 5, "def": 6, "int": 7, "spd": 6,
+		"base_hp": 22, "base_mp": 12,
+		"capture_chance": 0.0, "join_condition": "slaves_gte_15", "active": "毒雾扩散", "passive": "poison",
+		"preferred_gift": "medicine", "desc": "毒液女王，每回合对敌军施加DOT"},
+	"dark_knight": {"name": "ダークナイト", "faction": "dark_elf", "troop": "cavalry", "atk": 8, "def": 8, "int": 4, "spd": 5,
+		"base_hp": 30, "base_mp": 8,
+		"capture_chance": 0.0, "join_condition": "territory_gte_10", "active": "暗黑突击", "passive": "dark_shield",
+		"preferred_gift": "weapon_gift", "desc": "暗黑骑士，吸收首次伤害"},
+	"spymaster": {"name": "スパイマスター", "faction": "dark_elf", "troop": "ninja", "atk": 4, "def": 3, "int": 9, "spd": 8,
+		"base_hp": 18, "base_mp": 12,
+		"capture_chance": 0.0, "join_condition": "turn_gte_14", "active": "情报网络", "passive": "intel_boost",
+		"preferred_gift": "book", "desc": "谍报大师，探索和间谍效率翻倍"},
+	"soul_binder": {"name": "ソウルバインダー", "faction": "dark_elf", "troop": "mage_unit", "atk": 6, "def": 5, "int": 8, "spd": 4,
+		"base_hp": 24, "base_mp": 14,
+		"capture_chance": 0.0, "join_condition": "altar_sacrifice_gte_5", "active": "灵魂虹吸", "passive": "soul_drain",
+		"preferred_gift": "jewel", "desc": "灵魂束缚者，击杀恢复己方兵力"},
 	# --- Neutral Leaders (6, guard neutral bases) ---
 	"hibiki": {"name": "響", "faction": "neutral", "troop": "ashigaru", "atk": 5, "def": 7, "int": 4, "spd": 5,
 		"base_hp": 28, "base_mp": 8,
@@ -119,6 +170,19 @@ const HEROES: Dictionary = {
 	"hanabi": {"name": "花火", "faction": "neutral", "troop": "cannon", "atk": 9, "def": 2, "int": 5, "spd": 3,
 		"base_hp": 18, "base_mp": 8,
 		"capture_chance": 1.0, "location": "废弃矿山", "active": "集中轰炸", "passive": "", "preferred_gift": "food_gift"},
+	# --- New Neutral/Recruitable Heroes (v5.0) ---
+	"dragon_slayer": {"name": "ドラゴンスレイヤー", "faction": "neutral", "troop": "samurai", "atk": 10, "def": 6, "int": 4, "spd": 5,
+		"base_hp": 30, "base_mp": 8,
+		"capture_chance": 1.0, "location": "龙骨荒原", "active": "屠龙斩", "passive": "dragon_slayer",
+		"preferred_gift": "weapon_gift", "desc": "屠龙者，对boss伤害+100%"},
+	"saint_aria": {"name": "聖女アリア", "faction": "neutral", "troop": "priest", "atk": 3, "def": 7, "int": 8, "spd": 6,
+		"base_hp": 22, "base_mp": 15,
+		"capture_chance": 1.0, "location": "圣光遗迹", "active": "圣愈祷言", "passive": "heal",
+		"preferred_gift": "book", "desc": "圣女，每回合恢复己方兵力"},
+	"master_smith": {"name": "鉄匠マスター", "faction": "neutral", "troop": "ashigaru", "atk": 5, "def": 5, "int": 7, "spd": 4,
+		"base_hp": 25, "base_mp": 10,
+		"capture_chance": 1.0, "location": "远古锻造所", "active": "大师锻造", "passive": "forge",
+		"preferred_gift": "iron_ore", "desc": "铸造大师，全军装备品质提升"},
 }
 
 const FACTION_NAMES: Dictionary = {
@@ -134,7 +198,40 @@ const FACTION_COLORS: Dictionary = {
 }
 
 # ── Strategic Resources ──
-const STRATEGIC_RESOURCES: Array = ["magic_crystal", "war_horse", "gunpowder", "shadow_essence"]
+const STRATEGIC_RESOURCES: Array = ["magic_crystal", "war_horse", "gunpowder", "shadow_essence", "trade_goods", "soul_crystals", "arcane_dust"]
+
+# ── Region-Specific Strategic Resources (v5.0) ──
+# Each map region produces a unique strategic resource from its resource stations.
+const REGION_STRATEGIC_RESOURCES: Dictionary = {
+	"northern_wastes": {
+		"resource": "shadow_essence",
+		"name": "暗影精华",
+		"desc": "北方荒原产出, 强化暗黑魔法和终极兵种解锁",
+		"bonus": "dark_magic_boost",
+		"bonus_value": 0.2,  # +20% dark magic damage
+	},
+	"deep_coast": {
+		"resource": "trade_goods",
+		"name": "贸易品",
+		"desc": "深海沿岸产出, 提供额外金币收入",
+		"bonus": "gold_income",
+		"bonus_value": 10,  # +10 gold per turn per station
+	},
+	"eternal_night": {
+		"resource": "soul_crystals",
+		"name": "灵魂水晶",
+		"desc": "永夜之地产出, 用于英雄强化和属性提升",
+		"bonus": "hero_enhance",
+		"bonus_value": 1,  # +1 to random hero stat per 3 crystals
+	},
+	"eastern_highlands": {
+		"resource": "arcane_dust",
+		"name": "奥术尘",
+		"desc": "东方高地产出, 加速研究和建筑升级",
+		"bonus": "research_speed",
+		"bonus_value": 0.25,  # +25% research/build speed
+	},
+}
 
 # ── Starting resources per faction (v4.6 balance pass: tighter early game) ──
 ## Orc: Low gold, high food — horde army that's cheap to feed but needs plunder for gold
@@ -144,14 +241,17 @@ const STARTING_RESOURCES: Dictionary = {
 	FactionID.ORC: {
 		"gold": 400, "food": 160, "iron": 70, "slaves": 2, "prestige": 0, "army": 5,
 		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
+		"trade_goods": 0, "soul_crystals": 0, "arcane_dust": 0,
 	},
 	FactionID.PIRATE: {
 		"gold": 600, "food": 130, "iron": 50, "slaves": 2, "prestige": 0, "army": 3,
 		"magic_crystal": 0, "war_horse": 0, "gunpowder": 5, "shadow_essence": 0,
+		"trade_goods": 0, "soul_crystals": 0, "arcane_dust": 0,
 	},
 	FactionID.DARK_ELF: {
 		"gold": 450, "food": 120, "iron": 80, "slaves": 8, "prestige": 0, "army": 3,
 		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
+		"trade_goods": 0, "soul_crystals": 0, "arcane_dust": 0,
 	},
 }
 
@@ -471,6 +571,21 @@ const STRATEGIC_RESOURCE_COSTS: Dictionary = {
 		"ultimate_unlock": {"cost": 8, "desc": "解锁终极兵种招募"},
 		"shadow_dominion": {"cost": 15, "desc": "所有奴隶NPC服从度+30"},
 	},
+	"trade_goods": {
+		"trade_caravan": {"cost": 3, "desc": "派出商队, 下回合+60金"},
+		"buy_mercenaries": {"cost": 5, "desc": "雇佣精锐佣兵(+5兵力)"},
+		"trade_monopoly": {"cost": 10, "desc": "贸易垄断, 金币收入永久+20%"},
+	},
+	"soul_crystals": {
+		"hero_empower": {"cost": 3, "desc": "随机英雄永久属性+2"},
+		"soul_shield": {"cost": 5, "desc": "全军获得灵魂护盾(吸收首次30%伤害, 3回合)"},
+		"soul_resurrection": {"cost": 10, "desc": "战斗中阵亡士兵50%复活(永久)"},
+	},
+	"arcane_dust": {
+		"quick_build": {"cost": 3, "desc": "下一个建筑立即完工"},
+		"research_boost": {"cost": 5, "desc": "研究速度+50%(5回合)"},
+		"arcane_mastery": {"cost": 10, "desc": "全军法术伤害永久+30%"},
+	},
 }
 
 # ── Neutral Factions ──
@@ -626,6 +741,9 @@ const RESOURCE_STATION_TYPES: Array = [
 	{"type": "war_horse", "name": "战马牧场", "output_key": "war_horse", "base_output": 1},
 	{"type": "gunpowder", "name": "火药工坊", "output_key": "gunpowder", "base_output": 1},
 	{"type": "shadow_essence", "name": "暗影裂隙", "output_key": "shadow_essence", "base_output": 1},
+	{"type": "trade_goods", "name": "贸易站", "output_key": "trade_goods", "base_output": 2, "region": "deep_coast"},
+	{"type": "soul_crystals", "name": "灵魂祭坛", "output_key": "soul_crystals", "base_output": 1, "region": "eternal_night"},
+	{"type": "arcane_dust", "name": "奥术废墟", "output_key": "arcane_dust", "base_output": 1, "region": "eastern_highlands"},
 ]
 
 # ── Unique buildings per faction ──

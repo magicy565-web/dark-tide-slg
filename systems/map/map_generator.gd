@@ -17,13 +17,56 @@ const FactionData = preload("res://systems/faction/faction_data.gd")
 # Constants
 # ---------------------------------------------------------------------------
 
-const MAP_WIDTH: int = 1280
-const MAP_HEIGHT: int = 720
-const MIN_NODE_DISTANCE: float = 80.0
-const NODE_COUNT_MIN: int = 50
-const NODE_COUNT_MAX: int = 60
+const MAP_WIDTH: int = 2200
+const MAP_HEIGHT: int = 1400
+const MIN_NODE_DISTANCE: float = 70.0
+const NODE_COUNT_MIN: int = 90
+const NODE_COUNT_MAX: int = 110
 const EXTRA_EDGE_RATIO_MIN: float = 0.15
 const EXTRA_EDGE_RATIO_MAX: float = 0.20
+
+# ---------------------------------------------------------------------------
+# Region definitions – 6 provinces for strategic depth (Sengoku Rance style)
+# ---------------------------------------------------------------------------
+
+const REGIONS: Array = [
+	{
+		"id": "northern_wastes",
+		"name": "北方荒原",
+		"center": Vector2(0.50, 0.10),
+		"terrain_weights": {"PLAINS": 10, "FOREST": 8, "MOUNTAIN": 18, "SWAMP": 5, "WALL": 5, "RIVER": 5, "RUINS": 8, "WASTELAND": 26, "VOLCANIC": 15},
+	},
+	{
+		"id": "deep_coast",
+		"name": "深海沿岸",
+		"center": Vector2(0.10, 0.45),
+		"terrain_weights": {"PLAINS": 25, "FOREST": 10, "MOUNTAIN": 5, "SWAMP": 8, "WALL": 5, "RIVER": 22, "RUINS": 5, "WASTELAND": 10, "VOLCANIC": 10},
+	},
+	{
+		"id": "eternal_night",
+		"name": "永夜密林",
+		"center": Vector2(0.20, 0.85),
+		"terrain_weights": {"PLAINS": 8, "FOREST": 35, "MOUNTAIN": 5, "SWAMP": 22, "WALL": 5, "RIVER": 8, "RUINS": 7, "WASTELAND": 5, "VOLCANIC": 5},
+	},
+	{
+		"id": "radiant_kingdom",
+		"name": "光辉王国",
+		"center": Vector2(0.50, 0.50),
+		"terrain_weights": {"PLAINS": 35, "FOREST": 12, "MOUNTAIN": 5, "SWAMP": 3, "WALL": 18, "RIVER": 12, "RUINS": 5, "WASTELAND": 5, "VOLCANIC": 5},
+	},
+	{
+		"id": "eastern_highlands",
+		"name": "东方高地",
+		"center": Vector2(0.85, 0.35),
+		"terrain_weights": {"PLAINS": 12, "FOREST": 10, "MOUNTAIN": 28, "SWAMP": 3, "WALL": 5, "RIVER": 5, "RUINS": 22, "WASTELAND": 10, "VOLCANIC": 5},
+	},
+	{
+		"id": "southern_ruins",
+		"name": "南方废墟",
+		"center": Vector2(0.75, 0.85),
+		"terrain_weights": {"PLAINS": 10, "FOREST": 8, "MOUNTAIN": 10, "SWAMP": 5, "WALL": 5, "RIVER": 5, "RUINS": 28, "WASTELAND": 22, "VOLCANIC": 7},
+	},
+]
 
 # Fortress definitions – placed first with maximum spacing.
 const FORTRESS_DATA: Array = [
@@ -35,6 +78,11 @@ const FORTRESS_DATA: Array = [
 	{"name": "世界树圣地", "faction": "HIGH_ELF", "garrison": 12},
 	{"name": "奥术堡垒", "faction": "MAGE", "garrison": 12},
 	{"name": "翡翠尖塔", "faction": "MAGE", "garrison": 8},
+	# New fortresses for expanded map
+	{"name": "铁壁关", "faction": "HUMAN", "garrison": 12, "city_def": 40},
+	{"name": "霜牙港", "faction": "PIRATE", "garrison": 10, "city_def": 30},
+	{"name": "月影祭坛", "faction": "DARK_ELF", "garrison": 11},
+	{"name": "贤者之塔", "faction": "MAGE", "garrison": 10},
 ]
 
 # Neutral base leaders – one node each.
@@ -45,6 +93,11 @@ const NEUTRAL_LEADERS: Array = [
 	{"name": "沙漠商队驿站", "faction": "NEUTRAL"},
 	{"name": "冰原猎手村", "faction": "NEUTRAL"},
 	{"name": "暗巷佣兵所", "faction": "BANDIT"},
+	# New neutral bases for expanded map
+	{"name": "山贼寨", "faction": "BANDIT"},
+	{"name": "流浪商团", "faction": "NEUTRAL"},
+	{"name": "亡灵墓地", "faction": "NEUTRAL"},
+	{"name": "龙穴", "faction": "NEUTRAL"},
 ]
 
 # Resource station pool with target counts.
@@ -61,6 +114,8 @@ const VILLAGE_NAMES: Array = [
 	"云雾庄", "碧水村", "红叶镇", "松风庄", "星落村",
 	"银溪镇", "青石庄", "月影村", "暖风镇", "幽谷庄",
 	"花田村", "铁砧镇", "雪峰庄", "霞光村", "古木镇",
+	"翠竹村", "落霞庄", "清泉镇", "桃源村", "雁归庄",
+	"磐石镇", "紫藤村", "黄昏庄", "碧落镇", "苍松村",
 ]
 const STRONGHOLD_NAMES: Array = [
 	"铁壁堡", "狮鹫堡", "雷鸣关", "苍穹堡", "玄武堡",
@@ -142,11 +197,17 @@ func generate(player_faction: int) -> Dictionary:
 	positions = _fill_positions(positions, target_count)
 	var node_count: int = positions.size()
 
+	# -- Step 2b: Assign each tile to the nearest region -----------------------
+	var tile_regions: Array = _assign_regions(positions)
+
 	# -- Step 3: Build edges via Kruskal's MST + extra edges -------------------
 	var edges: Dictionary = _build_edges(positions, node_count)
 
+	# -- Step 3b: Create chokepoints by pruning cross-region edges -------------
+	edges = _create_chokepoints(positions, edges, tile_regions)
+
 	# -- Step 4: Assign node metadata ------------------------------------------
-	var nodes: Dictionary = _assign_nodes(positions, edges, player_faction)
+	var nodes: Dictionary = _assign_nodes(positions, edges, player_faction, tile_regions)
 
 	return {"nodes": nodes, "edges": edges}
 
@@ -177,6 +238,14 @@ func _place_fortresses() -> Array:
 		Vector2(0.50, 0.45),
 		# MAGE 翡翠尖塔 – center-south
 		Vector2(0.55, 0.60),
+		# NEW: 铁壁关 – chokepoint between North and Center
+		Vector2(0.45, 0.30),
+		# NEW: 霜牙港 – northern coastal
+		Vector2(0.15, 0.15),
+		# NEW: 月影祭坛 – Dark Elf secondary
+		Vector2(0.22, 0.70),
+		# NEW: 贤者之塔 – Eastern Highlands
+		Vector2(0.82, 0.55),
 	]
 
 	for i in range(FORTRESS_DATA.size()):
@@ -266,7 +335,7 @@ func _build_edges(positions: Array, n: int) -> Dictionary:
 		if extras_added >= extra_count:
 			break
 		# Skip very long edges to keep the map playable.
-		if e["dist"] > 300.0:
+		if e["dist"] > 350.0:
 			continue
 		mst_edges.append(e)
 		extras_added += 1
@@ -285,29 +354,33 @@ func _build_edges(positions: Array, n: int) -> Dictionary:
 # Node metadata assignment
 # ---------------------------------------------------------------------------
 
-func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int) -> Dictionary:
+func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int, tile_regions: Array) -> Dictionary:
 	var n: int = positions.size()
 	var nodes: Dictionary = {}
 
 	# Track which ids have been assigned already.
 	var assigned: Dictionary = {}  # id -> true
 
-	# --- Phase 1: Core fortresses (ids 0..7) ---------------------------------
+	# --- Phase 1: Core fortresses (ids 0..11) --------------------------------
 	for i in range(FORTRESS_DATA.size()):
 		var fd: Dictionary = FORTRESS_DATA[i]
 		var faction_enum: int = _faction_string_to_enum(fd["faction"])
 		var city_def: int = fd.get("city_def", 30)
 		var garrison_count: int = fd["garrison"]
-		nodes[i] = _make_node(i, positions[i], "FORTRESS", fd["name"], faction_enum, city_def, garrison_count)
+		var rid: String = tile_regions[i] if i < tile_regions.size() else ""
+		var rname: String = _region_name_for_id(rid)
+		nodes[i] = _make_node(i, positions[i], "FORTRESS", fd["name"], faction_enum, city_def, garrison_count, rid, rname)
 		assigned[i] = true
 
-	# --- Phase 2: Neutral leader bases (pick 6 unassigned nodes nearest center) --
+	# --- Phase 2: Neutral leader bases (pick 10 unassigned nodes nearest center) -
 	var neutral_ids: Array = _pick_unassigned_ids(positions, assigned, NEUTRAL_LEADERS.size(), Vector2(MAP_WIDTH * 0.4, MAP_HEIGHT * 0.5))
 	for idx in range(neutral_ids.size()):
 		var nid: int = neutral_ids[idx]
 		var nl: Dictionary = NEUTRAL_LEADERS[idx]
 		var fac: int = _faction_string_to_enum(nl["faction"])
-		nodes[nid] = _make_node(nid, positions[nid], "STRONGHOLD", nl["name"], fac, 20, randi_range(6, 8))
+		var rid: String = tile_regions[nid] if nid < tile_regions.size() else ""
+		var rname: String = _region_name_for_id(rid)
+		nodes[nid] = _make_node(nid, positions[nid], "STRONGHOLD", nl["name"], fac, 20, randi_range(6, 8), rid, rname)
 		assigned[nid] = true
 
 	# --- Phase 3: Resource stations -------------------------------------------
@@ -324,7 +397,9 @@ func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int) -> 
 		var rid: int = resource_ids[idx]
 		var rdata: Dictionary = resource_nodes[idx]
 		var node_name: String = rdata["name_prefix"] + "采集站" + str(idx + 1)
-		var nd: Dictionary = _make_node(rid, positions[rid], "RESOURCE", node_name, -1, 5, randi_range(3, 5))
+		var r_rid: String = tile_regions[rid] if rid < tile_regions.size() else ""
+		var r_rname: String = _region_name_for_id(r_rid)
+		var nd: Dictionary = _make_node(rid, positions[rid], "RESOURCE", node_name, -1, 5, randi_range(3, 5), r_rid, r_rname)
 		nd["resource_type"] = rdata["resource_type"]
 		nodes[rid] = nd
 		assigned[rid] = true
@@ -390,7 +465,9 @@ func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int) -> 
 			city_def = 0
 			owner = -1
 
-		nodes[nid] = _make_node(nid, positions[nid], node_type, node_name, owner, city_def, garrison_count)
+		var nid_rid: String = tile_regions[nid] if nid < tile_regions.size() else ""
+		var nid_rname: String = _region_name_for_id(nid_rid)
+		nodes[nid] = _make_node(nid, positions[nid], node_type, node_name, owner, city_def, garrison_count, nid_rid, nid_rname)
 		assigned[nid] = true
 
 	# --- Phase 5: Player start – claim 1 fortress + 2 adjacent villages ------
@@ -445,8 +522,12 @@ func _assign_player_start(nodes: Dictionary, edges: Dictionary, player_faction: 
 # ---------------------------------------------------------------------------
 
 ## Build a single node_data dictionary.
-func _make_node(id: int, pos: Vector2, type_str: String, node_name: String, owner: int, city_def: int, garrison_size: int) -> Dictionary:
-	var terrain_str: String = _random_terrain()
+func _make_node(id: int, pos: Vector2, type_str: String, node_name: String, owner: int, city_def: int, garrison_size: int, region_id: String = "", region_name: String = "") -> Dictionary:
+	var terrain_str: String
+	if region_id != "":
+		terrain_str = _random_terrain_for_region(region_id)
+	else:
+		terrain_str = _random_terrain()
 	# Fortresses and strongholds always get WALL terrain override for their base.
 	if type_str == "FORTRESS":
 		terrain_str = "WALL"
@@ -473,6 +554,8 @@ func _make_node(id: int, pos: Vector2, type_str: String, node_name: String, owne
 		"building": -1,
 		"building_level": 0,
 		"resource_type": "",
+		"region_id": region_id,
+		"region_name": region_name,
 	}
 
 ## Create a simple garrison array with the given number of placeholder unit dicts.
@@ -497,6 +580,113 @@ func _random_terrain() -> String:
 		if roll <= cumulative:
 			return key
 	return "PLAINS"
+
+# ---------------------------------------------------------------------------
+# Region system helpers
+# ---------------------------------------------------------------------------
+
+## Assign each tile position to the nearest region, returning an Array[String] of region ids.
+func _assign_regions(positions: Array) -> Array:
+	var tile_regions: Array = []
+	for pos in positions:
+		var best_region: String = REGIONS[0]["id"]
+		var best_dist: float = INF
+		for region in REGIONS:
+			var center := Vector2(region["center"].x * MAP_WIDTH, region["center"].y * MAP_HEIGHT)
+			var d: float = pos.distance_to(center)
+			if d < best_dist:
+				best_dist = d
+				best_region = region["id"]
+		tile_regions.append(best_region)
+	return tile_regions
+
+## Get the display name for a region id.
+func _region_name_for_id(region_id: String) -> String:
+	for region in REGIONS:
+		if region["id"] == region_id:
+			return region["name"]
+	return ""
+
+## Pick a random terrain using region-specific weights.
+func _random_terrain_for_region(region_id: String) -> String:
+	var weights: Dictionary = TERRAIN_WEIGHTS
+	for region in REGIONS:
+		if region["id"] == region_id:
+			weights = region["terrain_weights"]
+			break
+	var roll: int = randi_range(1, 100)
+	var cumulative: int = 0
+	for key in weights:
+		cumulative += weights[key]
+		if roll <= cumulative:
+			return key
+	return "PLAINS"
+
+## Create chokepoints by pruning cross-region extra edges while maintaining connectivity.
+func _create_chokepoints(positions: Array, edges: Dictionary, tile_regions: Array) -> Dictionary:
+	var n: int = positions.size()
+
+	# Identify all edges and classify as intra-region or cross-region
+	var edge_set: Dictionary = {}  # "a_b" -> true (tracks processed edges)
+	var cross_region_edges: Array = []  # [{a, b}]
+
+	for a in edges:
+		for b in edges[a]:
+			var key: String = "%d_%d" % [mini(a, b), maxi(a, b)]
+			if edge_set.has(key):
+				continue
+			edge_set[key] = true
+			if a < tile_regions.size() and b < tile_regions.size():
+				if tile_regions[a] != tile_regions[b]:
+					cross_region_edges.append({"a": a, "b": b})
+
+	# Count cross-region connections per region-pair
+	var pair_counts: Dictionary = {}  # "regionA_regionB" -> count
+	for ce in cross_region_edges:
+		var ra: String = tile_regions[ce["a"]]
+		var rb: String = tile_regions[ce["b"]]
+		var pair_key: String = ra + "_" + rb if ra < rb else rb + "_" + ra
+		pair_counts[pair_key] = pair_counts.get(pair_key, 0) + 1
+
+	# Remove some cross-region edges to create chokepoints, but keep at least 2 per region pair
+	cross_region_edges.shuffle()
+	var removed_edges: Array = []
+	for ce in cross_region_edges:
+		var ra: String = tile_regions[ce["a"]]
+		var rb: String = tile_regions[ce["b"]]
+		var pair_key: String = ra + "_" + rb if ra < rb else rb + "_" + ra
+		if pair_counts.get(pair_key, 0) > 2:
+			# Remove this edge
+			edges[ce["a"]].erase(ce["b"])
+			edges[ce["b"]].erase(ce["a"])
+			pair_counts[pair_key] -= 1
+			removed_edges.append(ce)
+
+	# Verify full connectivity — if broken, restore edges until connected
+	if not _is_fully_connected(edges, n):
+		# Restore removed edges one by one until connected
+		for re in removed_edges:
+			edges[re["a"]].append(re["b"])
+			edges[re["b"]].append(re["a"])
+			if _is_fully_connected(edges, n):
+				break
+
+	return edges
+
+## Check if the graph is fully connected via BFS.
+func _is_fully_connected(edges: Dictionary, n: int) -> bool:
+	if n <= 0:
+		return true
+	var visited: Dictionary = {}
+	var queue: Array = [0]
+	visited[0] = true
+	while queue.size() > 0:
+		var current: int = queue.pop_front()
+		for nb in edges.get(current, []):
+			if not visited.has(nb):
+				visited[nb] = true
+				queue.append(nb)
+	return visited.size() == n
 
 ## Determine which faction owns a region based on position quadrant rules.
 func _region_faction(pos: Vector2) -> int:

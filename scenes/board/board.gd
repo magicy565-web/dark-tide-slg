@@ -271,8 +271,8 @@ func _apply_zoom() -> void:
 	camera.rotation_degrees.x = lerpf(-68.0, -48.0, t)
 
 func _clamp_camera() -> void:
-	camera_target_pos.x = clampf(camera_target_pos.x, -5.0, 25.0)
-	camera_target_pos.z = clampf(camera_target_pos.z, -25.0, 5.0)
+	camera_target_pos.x = clampf(camera_target_pos.x, -5.0, 40.0)
+	camera_target_pos.z = clampf(camera_target_pos.z, -35.0, 5.0)
 
 # ═══════════════ BOARD BUILDING ═══════════════
 func _clear_board() -> void:
@@ -1583,9 +1583,9 @@ func setup_minimap(parent_control: Control) -> void:
 	minimap_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	minimap_viewport.transparent_bg = false; minimap_viewport.world_3d = get_viewport().world_3d; minimap_container.add_child(minimap_viewport)
 	minimap_camera = Camera3D.new(); minimap_camera.name = "MinimapCamera"
-	minimap_camera.position = Vector3(9, 40, -8)
+	minimap_camera.position = Vector3(13, 55, -12)
 	minimap_camera.rotation_degrees = Vector3(-90, 0, 0)
-	minimap_camera.fov = 60; minimap_camera.current = true
+	minimap_camera.fov = 65; minimap_camera.current = true
 	minimap_viewport.add_child(minimap_camera)
 
 # ═══════════════ TILE PULSE ANIMATION ═══════════════

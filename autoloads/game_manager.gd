@@ -32,7 +32,7 @@ const TILE_NAMES: Dictionary = {
 }
 
 # ── Balance constants ──
-const MAP_NODE_COUNT: int = 55
+const MAP_NODE_COUNT: int = 100
 const BASE_AP: int = 2
 const AP_PER_TILES: int = 7  # v4.6: 5→7 so +1 AP requires real expansion
 const MAX_AP: int = 6
@@ -86,15 +86,15 @@ const PROD_RANGES: Dictionary = {
 }
 
 # Light Alliance zone specs
-const HUMAN_TILES: int = 9
-const ELF_TILES: int = 5
-const MAGE_TILES: int = 5
-const DARK_TILES_EACH: int = 4
-# Evil territory: per-faction sizes from FactionData (Orc:5 > Pirate:4 > DarkElf:2 = 11 = 20%)
-const LIGHT_CORE_FORTRESS_COUNT: int = 5   # Only light fortresses placed in remaining pool
-const OUTPOST_COUNT: int = 22
-const RESOURCE_STATION_COUNT: int = 10
-const NEUTRAL_BASE_COUNT: int = 6
+const HUMAN_TILES: int = 14
+const ELF_TILES: int = 7
+const MAGE_TILES: int = 7
+const DARK_TILES_EACH: int = 6
+# Evil territory: per-faction sizes from FactionData (Orc:7 > Pirate:6 > DarkElf:5 = 18 ~18%)
+const LIGHT_CORE_FORTRESS_COUNT: int = 7   # Only light fortresses placed in remaining pool
+const OUTPOST_COUNT: int = 35
+const RESOURCE_STATION_COUNT: int = 14
+const NEUTRAL_BASE_COUNT: int = 10
 
 # ── Core Fortress data ──
 const CORE_FORTRESS_DEFS: Array = [
@@ -157,6 +157,35 @@ const CORE_FORTRESS_DEFS: Array = [
 		"garrison": 14, "wall_hp": 0,
 		"effect": "slave_cap_plus_10_temple_lv2",
 		"desc": "奴隶上限+10; 苦痛神殿自带Lv2; 可招募冷蜥骑兵",
+	},
+	# New fortresses for expanded map
+	{
+		"name": "铁壁关", "faction": "human", "light_faction": 0,
+		"garrison": 12, "wall_hp": 40,
+		"effect": "chokepoint_defense_30",
+		"desc": "关隘要塞: 驻军防御+30%, 相邻据点+10%",
+		"fall_effect": "northern_route_open",
+		"fall_desc": "攻破: 北方入侵路线开放",
+	},
+	{
+		"name": "霜牙港", "faction": "pirate", "evil_faction": 1,
+		"garrison": 10, "wall_hp": 0,
+		"effect": "naval_supply_line",
+		"desc": "北方海港: 海上补给线, 掠夺范围+1",
+	},
+	{
+		"name": "月影祭坛", "faction": "dark_elf", "evil_faction": 2,
+		"garrison": 11, "wall_hp": 0,
+		"effect": "dark_ritual_shrine",
+		"desc": "暗影祭坛: 每回合+1暗影精华, 黑暗仪式冷却-1",
+	},
+	{
+		"name": "贤者之塔", "faction": "mage", "light_faction": 2,
+		"garrison": 10, "wall_hp": 0,
+		"effect": "sage_research",
+		"desc": "贤者研究: 法力效率+25%, 可研究高级法术",
+		"fall_effect": "sage_knowledge_lost",
+		"fall_desc": "攻破: 高级法术研究中断",
 	},
 ]
 
@@ -492,7 +521,28 @@ func get_tile_production(tile: Dictionary) -> Dictionary:
 	}
 
 
-# ═══════════════ MAP GENERATION (55 nodes) ═══════════════
+# ═══════════════ MAP GENERATION (100 nodes) ═══════════════
+
+# Region definitions for the expanded map (6 provinces)
+const MAP_REGIONS: Array = [
+	{"id": "northern_wastes", "name": "北方荒原", "center": Vector3(13.0, 0, -1.5)},
+	{"id": "deep_coast", "name": "深海沿岸", "center": Vector3(2.5, 0, -10.0)},
+	{"id": "eternal_night", "name": "永夜密林", "center": Vector3(5.0, 0, -21.0)},
+	{"id": "radiant_kingdom", "name": "光辉王国", "center": Vector3(13.0, 0, -10.0)},
+	{"id": "eastern_highlands", "name": "东方高地", "center": Vector3(23.0, 0, -7.0)},
+	{"id": "southern_ruins", "name": "南方废墟", "center": Vector3(20.0, 0, -21.0)},
+]
+
+func _assign_tile_region(pos: Vector3) -> Dictionary:
+	## Return {"region_id": ..., "region_name": ...} for the nearest region.
+	var best: Dictionary = MAP_REGIONS[0]
+	var best_dist: float = INF
+	for region in MAP_REGIONS:
+		var d: float = pos.distance_to(region["center"])
+		if d < best_dist:
+			best_dist = d
+			best = region
+	return {"region_id": best["id"], "region_name": best["name"]}
 
 func generate_map() -> void:
 	tiles.clear()
@@ -520,8 +570,8 @@ func generate_map() -> void:
 
 func _place_nodes() -> Array:
 	var positions: Array = []
-	var cols: int = 8
-	var rows: int = 7
+	var cols: int = 11
+	var rows: int = 10
 	var spacing_x: float = 2.6
 	var spacing_z: float = 2.6
 	var jitter: float = 0.6
@@ -598,7 +648,7 @@ func _add_extra_edges(positions: Array, mst: Array) -> Array:
 				break
 			var j: int = nb[0]
 			var key: String = "%d_%d" % [mini(i, j), maxi(i, j)]
-			if not edge_set.has(key) and nb[1] < 6.0:
+			if not edge_set.has(key) and nb[1] < 7.0:
 				edge_set[key] = true
 				extras.append([i, j])
 				break
@@ -633,49 +683,49 @@ func _assign_tile_types(positions: Array) -> void:
 
 	# ── Light Alliance zones ──
 	# Human Kingdom: rightmost cluster -> strongholds + villages
-	var human_zone: Array = _pick_cluster(sorted_by_pos, positions, HUMAN_TILES, Vector3(16.0, 0, -4.0), assigned)
-	# First 2 are strongholds
+	var human_zone: Array = _pick_cluster(sorted_by_pos, positions, HUMAN_TILES, Vector3(20.0, 0, -6.0), assigned)
+	# First 3 are strongholds
 	for i in range(human_zone.size()):
 		assigned[human_zone[i]] = true
-		if i < 2:
+		if i < 3:
 			type_assign[human_zone[i]] = TileType.LIGHT_STRONGHOLD
 		else:
 			type_assign[human_zone[i]] = TileType.LIGHT_VILLAGE
 
 	# High Elves: top-left
-	var elf_zone: Array = _pick_cluster(sorted_by_pos, positions, ELF_TILES, Vector3(2.0, 0, 0.0), assigned)
+	var elf_zone: Array = _pick_cluster(sorted_by_pos, positions, ELF_TILES, Vector3(3.0, 0, -1.0), assigned)
 	for i in range(elf_zone.size()):
 		assigned[elf_zone[i]] = true
-		if i < 1:
+		if i < 2:
 			type_assign[elf_zone[i]] = TileType.LIGHT_STRONGHOLD
 		else:
 			type_assign[elf_zone[i]] = TileType.LIGHT_VILLAGE
 
 	# Mage Tower: bottom-center (replaces Fur Folk)
-	var mage_zone: Array = _pick_cluster(sorted_by_pos, positions, MAGE_TILES, Vector3(8.0, 0, -14.0), assigned)
+	var mage_zone: Array = _pick_cluster(sorted_by_pos, positions, MAGE_TILES, Vector3(12.0, 0, -20.0), assigned)
 	for i in range(mage_zone.size()):
 		assigned[mage_zone[i]] = true
-		if i < 1:
+		if i < 2:
 			type_assign[mage_zone[i]] = TileType.LIGHT_STRONGHOLD
 		else:
 			type_assign[mage_zone[i]] = TileType.LIGHT_VILLAGE
 
-	# ── Dark faction starting zones (3-4 tiles each) ──
-	var orc_zone: Array = _pick_cluster(sorted_by_pos, positions, DARK_TILES_EACH, Vector3(0.0, 0, -10.0), assigned)
+	# ── Dark faction starting zones (6 tiles each) ──
+	var orc_zone: Array = _pick_cluster(sorted_by_pos, positions, DARK_TILES_EACH + 1, Vector3(0.0, 0, -14.0), assigned)
 	var _orc_faction_map: Dictionary = {}
 	for i in range(orc_zone.size()):
 		assigned[orc_zone[i]] = true
 		type_assign[orc_zone[i]] = TileType.DARK_BASE
 		_orc_faction_map[orc_zone[i]] = "orc"
 
-	var pirate_zone: Array = _pick_cluster(sorted_by_pos, positions, DARK_TILES_EACH, Vector3(18.0, 0, -14.0), assigned)
+	var pirate_zone: Array = _pick_cluster(sorted_by_pos, positions, DARK_TILES_EACH, Vector3(24.0, 0, -20.0), assigned)
 	var _pirate_faction_map: Dictionary = {}
 	for i in range(pirate_zone.size()):
 		assigned[pirate_zone[i]] = true
 		type_assign[pirate_zone[i]] = TileType.DARK_BASE
 		_pirate_faction_map[pirate_zone[i]] = "pirate"
 
-	var delf_zone: Array = _pick_cluster(sorted_by_pos, positions, DARK_TILES_EACH, Vector3(10.0, 0, 0.0), assigned)
+	var delf_zone: Array = _pick_cluster(sorted_by_pos, positions, DARK_TILES_EACH - 1, Vector3(14.0, 0, -1.0), assigned)
 	var _delf_faction_map: Dictionary = {}
 	for i in range(delf_zone.size()):
 		assigned[delf_zone[i]] = true
@@ -716,44 +766,44 @@ func _assign_tile_types(positions: Array) -> void:
 		if ri < remaining.size():
 			type_assign[remaining[ri]] = TileType.NEUTRAL_BASE
 			ri += 1
-	# ~4 mines
-	for _j in range(4):
+	# ~6 mines
+	for _j in range(6):
 		if ri < remaining.size():
 			type_assign[remaining[ri]] = TileType.MINE_TILE
 			ri += 1
-	# ~4 farms
-	for _j in range(4):
+	# ~6 farms
+	for _j in range(6):
 		if ri < remaining.size():
 			type_assign[remaining[ri]] = TileType.FARM_TILE
 			ri += 1
-	# ~4 events
-	for _j in range(3):
+	# ~5 events
+	for _j in range(5):
 		if ri < remaining.size():
 			type_assign[remaining[ri]] = TileType.EVENT_TILE
 			ri += 1
 	# v0.8.3: New tile subtypes
-	# ~2 trading posts
-	for _j in range(2):
+	# ~4 trading posts
+	for _j in range(4):
 		if ri < remaining.size():
 			type_assign[remaining[ri]] = TileType.TRADING_POST
 			ri += 1
-	# ~2 watchtowers
-	for _j in range(2):
+	# ~4 watchtowers
+	for _j in range(4):
 		if ri < remaining.size():
 			type_assign[remaining[ri]] = TileType.WATCHTOWER
 			ri += 1
-	# ~2 ruins
-	for _j in range(2):
+	# ~4 ruins
+	for _j in range(4):
 		if ri < remaining.size():
 			type_assign[remaining[ri]] = TileType.RUINS
 			ri += 1
-	# ~2 harbors
-	for _j in range(2):
+	# ~3 harbors
+	for _j in range(3):
 		if ri < remaining.size():
 			type_assign[remaining[ri]] = TileType.HARBOR
 			ri += 1
-	# ~4 chokepoints (strategic passes)
-	for _j in range(4):
+	# ~6 chokepoints (strategic passes)
+	for _j in range(6):
 		if ri < remaining.size():
 			type_assign[remaining[ri]] = TileType.CHOKEPOINT
 			ri += 1
@@ -845,6 +895,8 @@ func _assign_tile_types(positions: Array) -> void:
 		elif neutral_faction_id >= 0:
 			tile_name = FactionData.NEUTRAL_FACTION_NAMES.get(neutral_faction_id, "中立势力") + " #" + str(i)
 
+		var _region_data: Dictionary = _assign_tile_region(positions[i])
+
 		tiles.append({
 			"index": i,
 			"type": tile_type,
@@ -873,6 +925,10 @@ func _assign_tile_types(positions: Array) -> void:
 			# Runtime fields used by subsystems (initialized for safety)
 			"wall_hp": core_fortress_wall_hp,
 			"alliance_def_bonus": 0,
+			# Region data for strategic map display
+			"region_id": _region_data["region_id"],
+			"region_name": _region_data["region_name"],
+			"is_region_border": false,
 		})
 
 	# Mark light faction ownership on tiles
@@ -894,6 +950,7 @@ func _assign_tile_types(positions: Array) -> void:
 	# v0.8.3: Terrain & chokepoint assignment
 	_assign_terrain()
 	_assign_chokepoints()
+	_fortify_region_borders()
 
 
 var _zone_cache: Dictionary = {}
@@ -1018,6 +1075,32 @@ func _assign_chokepoints() -> void:
 		var idx: int = candidates[ci]["idx"]
 		tiles[idx]["is_chokepoint"] = true
 		tiles[idx]["garrison"] += FactionData.CHOKEPOINT_DATA["garrison_bonus"]
+
+
+func _fortify_region_borders() -> void:
+	## Boost garrison for tiles at region borders (connecting different regions).
+	## These natural chokepoints between regions get extra defenders.
+	for tile in tiles:
+		var idx: int = tile["index"]
+		var my_region: String = tile.get("region_id", "")
+		if my_region == "":
+			continue
+		var neighbors: Array = adjacency.get(idx, [])
+		var is_border: bool = false
+		for nb in neighbors:
+			if nb < tiles.size():
+				var nb_region: String = tiles[nb].get("region_id", "")
+				if nb_region != "" and nb_region != my_region:
+					is_border = true
+					break
+		if is_border:
+			# Border tiles get +3 garrison and are marked
+			tile["garrison"] += 3
+			tile["is_region_border"] = true
+			# If not already a chokepoint and has low degree, mark as chokepoint
+			if not tile["is_chokepoint"] and neighbors.size() <= 3:
+				tile["is_chokepoint"] = true
+				tile["garrison"] += 2
 
 
 func _get_tile_zone_key(tile: Dictionary) -> String:

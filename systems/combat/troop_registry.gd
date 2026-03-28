@@ -125,6 +125,30 @@ static func _register_evil_faction(d: Dictionary) -> void:
 		"tier": 3, "desc": "命中附毒DoT+降SPD, 需要战马",
 		"strategic_cost": {"war_horse": 2},
 	}
+	# ── New Elite Faction Troops (v5.0) ──
+	d["orc_warg_rider"] = {
+		"name": "座狼骑兵", "faction": "orc",
+		"troop_class": TC_CAVALRY, "row": ROW_FRONT,
+		"base_atk": 9, "base_def": 5, "max_soldiers": 5, "hp_per_soldier": 6,
+		"recruit_cost": 45, "passive": "flanking_charge", "category": CAT_FACTION,
+		"tier": 3, "desc": "高速侧翼冲锋, 无视前排嘲讽攻击后排, 需要战马",
+		"strategic_cost": {"war_horse": 2},
+	}
+	d["pirate_bombard"] = {
+		"name": "海盗轰炸手", "faction": "pirate",
+		"troop_class": TC_CANNON, "row": ROW_BACK,
+		"base_atk": 12, "base_def": 2, "max_soldiers": 4, "hp_per_soldier": 5,
+		"recruit_cost": 48, "passive": "siege_bombard", "category": CAT_FACTION,
+		"tier": 3, "desc": "高爆轰炸, 攻城×3+AoE溅射, 需要火药",
+		"strategic_cost": {"gunpowder": 3},
+	}
+	d["de_shadow_guard"] = {
+		"name": "暗影禁卫", "faction": "dark_elf",
+		"troop_class": TC_SAMURAI, "row": ROW_FRONT,
+		"base_atk": 7, "base_def": 7, "max_soldiers": 5, "hp_per_soldier": 7,
+		"recruit_cost": 42, "passive": "shadow_stealth", "category": CAT_FACTION,
+		"tier": 3, "desc": "首回合隐身+反击×1.5, 攻守均衡的精锐",
+	}
 
 # ═══════════════ LIGHT FACTION TROOPS (9) ═══════════════
 
@@ -258,6 +282,14 @@ static func _register_neutral(d: Dictionary) -> void:
 		"base_atk": 6, "base_def": 6, "max_soldiers": 5, "hp_per_soldier": 6,
 		"recruit_cost": 20, "passive": "gold_on_hit", "category": CAT_NEUTRAL,
 		"tier": 2, "desc": "均衡型, 每次攻击+2金",
+	}
+	# ── New Neutral Elite Troop (v5.0) ──
+	d["mercenary_veteran"] = {
+		"name": "佣兵老兵", "faction": "neutral_merc",
+		"troop_class": TC_SAMURAI, "row": ROW_FRONT,
+		"base_atk": 7, "base_def": 6, "max_soldiers": 6, "hp_per_soldier": 6,
+		"recruit_cost": 35, "passive": "veteran_resolve", "category": CAT_NEUTRAL,
+		"tier": 2, "desc": "全属性高于同级, 招募费用昂贵, 永不溃逃",
 	}
 	# ── 6 neutral factions: T3 advanced troops (taming >= 7) ──
 	d["neutral_dwarf_cannon"] = {

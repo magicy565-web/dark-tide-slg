@@ -412,6 +412,151 @@ func _register_events() -> void:
 	})
 
 
+	# ═══════════════ REGION-SPECIFIC EVENTS (v5.0) ═══════════════
+	# 15 new events tied to map regions for the expanded 90-110 tile map.
+
+	# === Northern Wastes (5 events) — Orc territory ===
+	_events.append({
+		"id": "nw_orc_civil_war", "name": "兽人内战",
+		"desc": "北方荒原上两支兽人氏族爆发了全面战争，战火蔓延至你的领地边境。",
+		"condition": "faction_orc", "repeatable": false,
+		"choices": [
+			{"text": "支持强者 (-3兵, WAAAGH+25, 获得2奴隶)", "effects": {"soldiers": -3, "waaagh": 25, "slaves": 2}},
+			{"text": "坐山观虎斗 (+15金, 威胁-5)", "effects": {"gold": 15, "threat": -5}},
+		]
+	})
+	_events.append({
+		"id": "nw_waaagh_surge", "name": "WAAAGH!浪潮",
+		"desc": "北方荒原的兽人部落发出战争呐喊，WAAAGH!能量如潮水般涌来。",
+		"condition": "faction_orc", "repeatable": true,
+		"choices": [
+			{"text": "顺势狂暴 (WAAAGH+30, 全军ATK+15% 3回合, 秩序-5)", "effects": {"waaagh": 30, "order": -5, "buff": {"type": "atk_pct", "value": 15, "duration": 3}}},
+			{"text": "引导能量 (WAAAGH+15, +2暗影精华)", "effects": {"waaagh": 15, "shadow_essence": 2}},
+		]
+	})
+	_events.append({
+		"id": "nw_frozen_supplies", "name": "冰封补给",
+		"desc": "北方荒原的极寒冻结了一批运输中的补给物资。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "派兵挖掘 (-2兵, +20粮+15铁)", "effects": {"soldiers": -2, "food": 20, "iron": 15}},
+			{"text": "放弃补给", "effects": {}},
+		]
+	})
+	_events.append({
+		"id": "nw_troll_migration", "name": "巨魔迁徙",
+		"desc": "一群北方巨魔正在穿过你的领地，它们可以被征服或驱赶。",
+		"condition": "faction_orc", "repeatable": false,
+		"choices": [
+			{"text": "征服巨魔 (战斗: 敌6兵, 胜利+4精锐兵)", "effects": {"type": "combat", "enemy_soldiers": 6}},
+			{"text": "用食物引导 (-15粮, +3兵)", "effects": {"food": -15, "soldiers": 3}},
+		]
+	})
+	_events.append({
+		"id": "nw_bone_totems", "name": "白骨图腾",
+		"desc": "荒原深处发现远古兽人的白骨图腾阵，散发着原始的力量。",
+		"condition": "faction_orc", "repeatable": false,
+		"choices": [
+			{"text": "祭拜图腾 (-3奴隶, 全军永久DEF+2)", "effects": {"slaves": -3, "buff": {"type": "def_flat", "value": 2, "duration": 99}}},
+			{"text": "拆除取骨 (+25铁, WAAAGH+10)", "effects": {"iron": 25, "waaagh": 10}},
+		]
+	})
+
+	# === Deep Coast (5 events) — Pirate territory ===
+	_events.append({
+		"id": "dc_pirate_raid", "name": "海盗劫船",
+		"desc": "深海海域出现一艘满载货物的商船，是否出手劫掠？",
+		"condition": "faction_pirate", "repeatable": true,
+		"choices": [
+			{"text": "全速追击 (70%+80金+1道具, 30%损3兵)", "effects": {"type": "gamble", "success_rate": 0.7, "success": {"gold": 80, "item": "random"}, "fail": {"soldiers": -3}}},
+			{"text": "假扮商船接近 (-20金, +50金+2奴隶)", "effects": {"gold": 30, "slaves": 2}},
+		]
+	})
+	_events.append({
+		"id": "dc_sea_storm", "name": "深海风暴",
+		"desc": "一场毁灭性的海上风暴席卷了深海海岸。",
+		"condition": "faction_pirate", "repeatable": true,
+		"choices": [
+			{"text": "趁风暴偷袭敌港 (+60金, -3兵, 威胁+5)", "effects": {"gold": 60, "soldiers": -3, "threat": 5}},
+			{"text": "加固港口 (-30铁, 所有据点+8城防)", "effects": {"iron": -30, "wall_boost": 8}},
+		]
+	})
+	_events.append({
+		"id": "dc_smuggler_offer", "name": "走私者的提议",
+		"desc": "一位走私商人带来了一批违禁品，提出秘密交易。",
+		"condition": "faction_pirate", "repeatable": false,
+		"choices": [
+			{"text": "接受交易 (-40金, +3火药+2魔晶)", "effects": {"gold": -40, "gunpowder": 3, "magic_crystal": 2}},
+			{"text": "扣押货物 (+60金, 声望-10)", "effects": {"gold": 60, "reputation_all": -10}},
+		]
+	})
+	_events.append({
+		"id": "dc_kraken_sighting", "name": "海怪出没",
+		"desc": "深海中出现了传说中的海怪，沿岸渔民惊恐不已。",
+		"condition": "faction_pirate", "repeatable": false,
+		"choices": [
+			{"text": "猎杀海怪 (战斗: 敌12兵, 胜利+3暗影精华)", "effects": {"type": "combat", "enemy_soldiers": 12}},
+			{"text": "祭祀安抚 (-5奴隶, 全军ATK+20% 5回合)", "effects": {"slaves": -5, "buff": {"type": "atk_pct", "value": 20, "duration": 5}}},
+		]
+	})
+	_events.append({
+		"id": "dc_sunken_armory", "name": "海底武器库",
+		"desc": "潜水员在深海发现了一座沉没的古代武器库。",
+		"condition": "faction_pirate", "repeatable": false,
+		"choices": [
+			{"text": "打捞武器 (-20铁, +5火药+全军ATK+10% 3回合)", "effects": {"iron": -20, "gunpowder": 5, "buff": {"type": "atk_pct", "value": 10, "duration": 3}}},
+			{"text": "标记位置卖给矮人 (+100金, 声望+5)", "effects": {"gold": 100, "reputation_all": 5}},
+		]
+	})
+
+	# === Eternal Night (5 events) — Dark Elf territory ===
+	_events.append({
+		"id": "en_dark_ritual", "name": "暗黑仪式",
+		"desc": "永夜之地的古老祭坛突然复苏，暗影能量在空气中震荡。",
+		"condition": "faction_dark_elf", "repeatable": false,
+		"choices": [
+			{"text": "举行大祭 (-5奴隶, +5暗影精华, 全军INT+3 5回合)", "effects": {"slaves": -5, "shadow_essence": 5, "buff": {"type": "int_flat", "value": 3, "duration": 5}}},
+			{"text": "封印祭坛 (秩序+8, +30金)", "effects": {"order": 8, "gold": 30}},
+		]
+	})
+	_events.append({
+		"id": "en_slave_revolt", "name": "奴隶暴动",
+		"desc": "永夜之地的奴隶矿场爆发了大规模暴动。",
+		"condition": "faction_dark_elf", "repeatable": true,
+		"choices": [
+			{"text": "血腥镇压 (-2兵, -5奴隶, 秩序+10, 威望+5)", "effects": {"soldiers": -2, "slaves": -5, "order": 10, "prestige": 5}},
+			{"text": "做出让步 (-20金, 秩序+3, 奴隶产出+20% 5回合)", "effects": {"gold": -20, "order": 3, "buff": {"type": "slave_efficiency", "value": 20, "duration": 5}}},
+		]
+	})
+	_events.append({
+		"id": "en_shadow_beast", "name": "暗影巨兽",
+		"desc": "一头从虚空中召唤出的暗影巨兽在永夜之地游荡，威胁着所有生灵。",
+		"condition": "faction_dark_elf", "repeatable": false,
+		"choices": [
+			{"text": "驯服巨兽 (战斗: 敌10兵, 胜利+8精锐兵)", "effects": {"type": "combat", "enemy_soldiers": 10}},
+			{"text": "引导至敌方领地 (-2暗影精华, 威胁+15, 敌全军-3兵)", "effects": {"shadow_essence": -2, "threat": 15}},
+		]
+	})
+	_events.append({
+		"id": "en_void_rift", "name": "虚空裂隙",
+		"desc": "永夜之地出现了一道连接虚空的裂隙，散发着诡异的光芒。",
+		"condition": "faction_dark_elf", "repeatable": false,
+		"choices": [
+			{"text": "汲取虚空之力 (-3魔晶, +8暗影精华, 秩序-8)", "effects": {"magic_crystal": -3, "shadow_essence": 8, "order": -8}},
+			{"text": "封闭裂隙 (+5魔晶, 秩序+5)", "effects": {"magic_crystal": 5, "order": 5}},
+		]
+	})
+	_events.append({
+		"id": "en_ancient_library", "name": "暗精灵古图书馆",
+		"desc": "在永夜深处发现了一座被遗忘的暗精灵古代图书馆。",
+		"condition": "faction_dark_elf", "repeatable": false,
+		"choices": [
+			{"text": "研读禁忌知识 (随机英雄永久INT+3, 秩序-5)", "effects": {"hero_stat_boost": {"stat": "int", "value": 3}, "order": -5}},
+			{"text": "搜刮卷轴变卖 (+80金, +2魔晶)", "effects": {"gold": 80, "magic_crystal": 2}},
+		]
+	})
+
+
 # ═══════════════ CONDITION CHECKS ═══════════════
 
 func check_condition(event: Dictionary) -> bool:
