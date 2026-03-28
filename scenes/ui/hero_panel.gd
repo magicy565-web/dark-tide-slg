@@ -543,57 +543,53 @@ func _refresh_detail() -> void:
 
 
 func _build_equipment_slots() -> void:
-	var slot_names: Array = ["weapon", "armor", "accessory"]
-	var slot_labels: Dictionary = {"weapon": "Weapon", "armor": "Armor", "accessory": "Accessory"}
+	# SR07-style: single item slot per hero
+	var slot_row := HBoxContainer.new()
+	slot_row.add_theme_constant_override("separation", 8)
+	detail_container.add_child(slot_row)
 
-	for slot in slot_names:
-		var slot_row := HBoxContainer.new()
-		slot_row.add_theme_constant_override("separation", 8)
-		detail_container.add_child(slot_row)
+	var slot_lbl := Label.new()
+	slot_lbl.text = "Item:"
+	slot_lbl.custom_minimum_size = Vector2(50, 0)
+	slot_lbl.add_theme_font_size_override("font_size", 12)
+	slot_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+	slot_row.add_child(slot_lbl)
 
-		var slot_lbl := Label.new()
-		slot_lbl.text = "%s:" % slot_labels[slot]
-		slot_lbl.custom_minimum_size = Vector2(50, 0)
-		slot_lbl.add_theme_font_size_override("font_size", 12)
-		slot_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
-		slot_row.add_child(slot_lbl)
+	var equip_id: String = ""
+	if HeroSystem.has_method("get_hero_equipment"):
+		var equips: Dictionary = HeroSystem.get_hero_equipment(_selected_hero_id)
+		equip_id = equips.get("item", "")
 
-		# Check if hero has equipment in this slot
-		var equip_id: String = ""
-		if HeroSystem.has_method("get_hero_equipment"):
-			var equips: Dictionary = HeroSystem.get_hero_equipment(_selected_hero_id)
-			equip_id = equips.get(slot, "")
+	if equip_id != "":
+		var equip_def: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {}) if "EQUIPMENT_DEFS" in FactionData else {}
+		var equip_name := Label.new()
+		equip_name.text = equip_def.get("name", equip_id)
+		equip_name.add_theme_font_size_override("font_size", 12)
+		var rarity: String = equip_def.get("rarity", "common")
+		equip_name.add_theme_color_override("font_color", _get_rarity_color(rarity))
+		equip_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slot_row.add_child(equip_name)
 
-		if equip_id != "":
-			var equip_def: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {}) if "EQUIPMENT_DEFS" in FactionData else {}
-			var equip_name := Label.new()
-			equip_name.text = equip_def.get("name", equip_id)
-			equip_name.add_theme_font_size_override("font_size", 12)
-			var rarity: String = equip_def.get("rarity", "common")
-			equip_name.add_theme_color_override("font_color", _get_rarity_color(rarity))
-			equip_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			slot_row.add_child(equip_name)
+		var btn_unequip := Button.new()
+		btn_unequip.text = "Unequip"
+		btn_unequip.custom_minimum_size = Vector2(56, 24)
+		btn_unequip.add_theme_font_size_override("font_size", 11)
+		btn_unequip.pressed.connect(_on_unequip.bind(_selected_hero_id, "item"))
+		slot_row.add_child(btn_unequip)
+	else:
+		var empty_lbl := Label.new()
+		empty_lbl.text = "-- Empty --"
+		empty_lbl.add_theme_font_size_override("font_size", 12)
+		empty_lbl.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
+		empty_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slot_row.add_child(empty_lbl)
 
-			var btn_unequip := Button.new()
-			btn_unequip.text = "Unequip"
-			btn_unequip.custom_minimum_size = Vector2(56, 24)
-			btn_unequip.add_theme_font_size_override("font_size", 11)
-			btn_unequip.pressed.connect(_on_unequip.bind(_selected_hero_id, slot))
-			slot_row.add_child(btn_unequip)
-		else:
-			var empty_lbl := Label.new()
-			empty_lbl.text = "-- Empty --"
-			empty_lbl.add_theme_font_size_override("font_size", 12)
-			empty_lbl.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
-			empty_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			slot_row.add_child(empty_lbl)
-
-			var btn_equip := Button.new()
-			btn_equip.text = "Equip"
-			btn_equip.custom_minimum_size = Vector2(56, 24)
-			btn_equip.add_theme_font_size_override("font_size", 11)
-			btn_equip.pressed.connect(_on_equip_slot.bind(_selected_hero_id, slot))
-			slot_row.add_child(btn_equip)
+		var btn_equip := Button.new()
+		btn_equip.text = "Equip"
+		btn_equip.custom_minimum_size = Vector2(56, 24)
+		btn_equip.add_theme_font_size_override("font_size", 11)
+		btn_equip.pressed.connect(_on_equip_slot.bind(_selected_hero_id, "item"))
+		slot_row.add_child(btn_equip)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -638,9 +634,8 @@ func _on_gift_hero(hero_id: String) -> void:
 		EventBus.message_log.emit("[color=red]Not enough gold (need 10)[/color]")
 
 
-func _on_equip_slot(hero_id: String, slot: String) -> void:
+func _on_equip_slot(hero_id: String, _slot: String = "") -> void:
 	AudioManager.play_ui_click()
-	# Show available equipment for this slot from inventory
 	var pid: int = GameManager.get_human_player_id()
 	var inventory: Array = ItemManager.get_equipment_items(pid) if ItemManager.has_method("get_equipment_items") else []
 
@@ -648,25 +643,10 @@ func _on_equip_slot(hero_id: String, slot: String) -> void:
 		EventBus.message_log.emit("[color=yellow]No equippable items in inventory[/color]")
 		return
 
-	# Filter by slot type
-	var matching: Array = []
-	for item in inventory:
-		var item_id: String = item.get("item_id", "")
-		var equip_def: Dictionary = FactionData.EQUIPMENT_DEFS.get(item_id, {}) if "EQUIPMENT_DEFS" in FactionData else {}
-		var equip_slot: String = equip_def.get("slot", "")
-		if equip_slot == slot:
-			matching.append(item)
-
-	if matching.is_empty():
-		EventBus.message_log.emit("[color=yellow]No equipment for this slot[/color]")
-		return
-
-	if matching.size() == 1:
-		# Only one match, equip directly
-		_do_equip_item(hero_id, matching[0].get("item_id", ""))
+	if inventory.size() == 1:
+		_do_equip_item(hero_id, inventory[0].get("item_id", ""))
 	else:
-		# Show selection popup for multiple items
-		_show_equip_selection_popup(hero_id, matching)
+		_show_equip_selection_popup(hero_id, inventory)
 
 
 func _show_equip_selection_popup(hero_id: String, items: Array) -> void:

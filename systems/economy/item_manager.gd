@@ -303,13 +303,11 @@ func _get_item_display(item_id: String) -> Dictionary:
 		}
 	elif FactionData.EQUIPMENT_DEFS.has(item_id):
 		var def_data: Dictionary = FactionData.EQUIPMENT_DEFS[item_id]
-		var slot_name: String = FactionData.EQUIP_SLOT_NAMES.get(def_data.get("slot", 0), "饰品")
 		return {
 			"item_id": item_id,
 			"name": def_data.get("name", item_id),
 			"desc": def_data.get("desc", ""),
 			"type": "equipment",
-			"slot": slot_name,
 			"rarity": def_data.get("rarity", "common"),
 		}
 	return {"item_id": item_id, "name": item_id, "desc": "", "type": "unknown"}

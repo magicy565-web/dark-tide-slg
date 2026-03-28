@@ -11,7 +11,7 @@ var hero_corruption: Dictionary = {}   # hero_id -> int (prison corruption count
 var hero_affection: Dictionary = {}    # hero_id -> int (0-10)
 
 # ── Equipment state (v0.8.7) ──
-# hero_id -> { "weapon": equip_id or "", "armor": equip_id or "", "accessory": equip_id or "" }
+# hero_id -> equip_id (String, "" if empty) — SR07-style single item slot per hero
 var hero_equipment: Dictionary = {}
 
 # ── Active skill cooldowns (v0.9.0) ──
@@ -303,11 +303,11 @@ func get_heroes_for_player(player_id: int) -> Array:
 
 func _ensure_equip_slots(hero_id: String) -> void:
 	if not hero_equipment.has(hero_id):
-		hero_equipment[hero_id] = {"weapon": "", "armor": "", "accessory": ""}
+		hero_equipment[hero_id] = ""
 
 
 func equip_item(hero_id: String, equip_id: String) -> Dictionary:
-	## Equip an equipment item on a hero. Returns {ok, reason, unequipped_id}.
+	## Equip an item on a hero (1 slot per hero, SR07-style).
 	if hero_id not in recruited_heroes:
 		return {"ok": false, "reason": "英雄未招募"}
 	if not FactionData.EQUIPMENT_DEFS.has(equip_id):
@@ -316,12 +316,8 @@ func equip_item(hero_id: String, equip_id: String) -> Dictionary:
 	if not ItemManager.has_item(pid, equip_id):
 		return {"ok": false, "reason": "背包中无此装备"}
 
-	var equip_data: Dictionary = FactionData.EQUIPMENT_DEFS[equip_id]
-	var slot_enum: int = equip_data["slot"]
-	var slot_key: String = _slot_enum_to_key(slot_enum)
-
 	_ensure_equip_slots(hero_id)
-	var old_equip: String = hero_equipment[hero_id][slot_key]
+	var old_equip: String = hero_equipment[hero_id]
 
 	# Remove from inventory
 	ItemManager.remove_item(pid, equip_id)
@@ -330,25 +326,26 @@ func equip_item(hero_id: String, equip_id: String) -> Dictionary:
 	if old_equip != "":
 		ItemManager.add_item(pid, old_equip)
 
-	hero_equipment[hero_id][slot_key] = equip_id
+	hero_equipment[hero_id] = equip_id
+	var equip_data: Dictionary = FactionData.EQUIPMENT_DEFS[equip_id]
 	EventBus.message_log.emit("%s 装备了 %s" % [_get_hero_name(hero_id), equip_data["name"]])
 	return {"ok": true, "reason": "装备成功", "unequipped_id": old_equip}
 
 
-func unequip_item(hero_id: String, slot_key: String) -> Dictionary:
-	## Unequip an item from a hero's slot. Returns {ok, reason, equip_id}.
+func unequip_item(hero_id: String, _slot_key: String = "") -> Dictionary:
+	## Unequip the item from a hero. _slot_key kept for API compat but ignored.
 	if hero_id not in recruited_heroes:
 		return {"ok": false, "reason": "英雄未招募"}
 	_ensure_equip_slots(hero_id)
-	var equip_id: String = hero_equipment[hero_id].get(slot_key, "")
+	var equip_id: String = hero_equipment[hero_id]
 	if equip_id == "":
-		return {"ok": false, "reason": "该槽位无装备"}
+		return {"ok": false, "reason": "该英雄无装备"}
 
 	var pid: int = GameManager.get_human_player_id()
 	if ItemManager.is_full(pid):
 		return {"ok": false, "reason": "背包已满, 无法卸下装备"}
 
-	hero_equipment[hero_id][slot_key] = ""
+	hero_equipment[hero_id] = ""
 	ItemManager.add_item(pid, equip_id)
 	var equip_data: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {})
 	EventBus.message_log.emit("%s 卸下了 %s" % [_get_hero_name(hero_id), equip_data.get("name", equip_id)])
@@ -356,55 +353,48 @@ func unequip_item(hero_id: String, slot_key: String) -> Dictionary:
 
 
 func get_hero_equipment(hero_id: String) -> Dictionary:
-	## Returns { "weapon": equip_id, "armor": equip_id, "accessory": equip_id }
+	## Returns {"item": equip_id} for SR07 compat. Legacy callers still work.
 	_ensure_equip_slots(hero_id)
-	return hero_equipment[hero_id].duplicate()
+	return {"item": hero_equipment[hero_id]}
 
 
 func get_hero_equipment_details(hero_id: String) -> Array:
-	## Returns array of equipped item detail dicts for UI display.
+	## Returns array with single equipped item detail dict for UI display.
 	_ensure_equip_slots(hero_id)
-	var result: Array = []
-	for slot_key in ["weapon", "armor", "accessory"]:
-		var equip_id: String = hero_equipment[hero_id][slot_key]
-		if equip_id != "" and FactionData.EQUIPMENT_DEFS.has(equip_id):
-			var data: Dictionary = FactionData.EQUIPMENT_DEFS[equip_id].duplicate()
-			data["equip_id"] = equip_id
-			data["slot_key"] = slot_key
-			result.append(data)
-		else:
-			result.append({"equip_id": "", "slot_key": slot_key, "name": "空", "desc": ""})
-	return result
+	var equip_id: String = hero_equipment[hero_id]
+	if equip_id != "" and FactionData.EQUIPMENT_DEFS.has(equip_id):
+		var data: Dictionary = FactionData.EQUIPMENT_DEFS[equip_id].duplicate()
+		data["equip_id"] = equip_id
+		data["slot_key"] = "item"
+		return [data]
+	return [{"equip_id": "", "slot_key": "item", "name": "空", "desc": ""}]
 
 
 func get_equipment_stat_totals(hero_id: String) -> Dictionary:
-	## Sum all stat bonuses from equipped items.
+	## Get stat bonuses from the hero's equipped item.
 	var totals := {"atk": 0, "def": 0, "spd": 0, "int_stat": 0}
 	_ensure_equip_slots(hero_id)
-	for slot_key in ["weapon", "armor", "accessory"]:
-		var equip_id: String = hero_equipment[hero_id][slot_key]
-		if equip_id == "":
-			continue
-		var data: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {})
-		var stats: Dictionary = data.get("stats", {})
-		for key in stats:
-			totals[key] = totals.get(key, 0) + stats[key]
+	var equip_id: String = hero_equipment[hero_id]
+	if equip_id == "":
+		return totals
+	var data: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {})
+	var stats: Dictionary = data.get("stats", {})
+	for key in stats:
+		totals[key] = totals.get(key, 0) + stats[key]
 	return totals
 
 
 func get_equipment_passives(hero_id: String) -> Array:
-	## Returns array of passive strings from equipped items (for combat resolver).
-	var passives: Array = []
+	## Returns array of passive strings from equipped item.
 	_ensure_equip_slots(hero_id)
-	for slot_key in ["weapon", "armor", "accessory"]:
-		var equip_id: String = hero_equipment[hero_id][slot_key]
-		if equip_id == "":
-			continue
-		var data: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {})
-		var passive: String = data.get("passive", "none")
-		if passive != "none":
-			passives.append(passive)
-	return passives
+	var equip_id: String = hero_equipment[hero_id]
+	if equip_id == "":
+		return []
+	var data: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {})
+	var passive: String = data.get("passive", "none")
+	if passive != "none":
+		return [passive]
+	return []
 
 
 func has_equipment_passive(hero_id: String, passive_name: String) -> bool:
@@ -412,25 +402,15 @@ func has_equipment_passive(hero_id: String, passive_name: String) -> bool:
 
 
 func get_equipment_passive_value(hero_id: String, passive_name: String) -> float:
-	## Get the value of a specific equipment passive (e.g., capture_bonus -> 0.1).
+	## Get the value of a specific equipment passive.
 	_ensure_equip_slots(hero_id)
-	for slot_key in ["weapon", "armor", "accessory"]:
-		var equip_id: String = hero_equipment[hero_id][slot_key]
-		if equip_id == "":
-			continue
-		var data: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {})
-		if data.get("passive", "none") == passive_name:
-			return data.get("passive_value", 0.0)
+	var equip_id: String = hero_equipment[hero_id]
+	if equip_id == "":
+		return 0.0
+	var data: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {})
+	if data.get("passive", "none") == passive_name:
+		return data.get("passive_value", 0.0)
 	return 0.0
-
-
-func _slot_enum_to_key(slot_enum: int) -> String:
-	match slot_enum:
-		FactionData.EquipSlot.WEAPON: return "weapon"
-		FactionData.EquipSlot.ARMOR: return "armor"
-		FactionData.EquipSlot.ACCESSORY: return "accessory"
-	push_warning("HeroSystem: _slot_enum_to_key unknown slot_enum=%d, defaulting to accessory" % slot_enum)
-	return "accessory"
 
 
 # ═══════════════ ACTIVE SKILLS (v0.9.0) ═══════════════
@@ -843,10 +823,23 @@ func from_save_data(data: Dictionary) -> void:
 	hero_corruption = data.get("hero_corruption", {}).duplicate()
 	hero_affection = data.get("hero_affection", {}).duplicate()
 	hero_equipment = data.get("hero_equipment", {}).duplicate(true)
+	# Migrate legacy 3-slot format to SR07 single-slot format
+	for hid in hero_equipment.keys():
+		if hero_equipment[hid] is Dictionary:
+			# Pick the best equipped item from old slots (prefer weapon > armor > accessory)
+			var old_slots: Dictionary = hero_equipment[hid]
+			var migrated: String = ""
+			for old_key in ["weapon", "armor", "accessory"]:
+				var old_id: String = old_slots.get(old_key, "")
+				if old_id != "":
+					if migrated == "":
+						migrated = old_id
+					else:
+						# Return extra items to inventory
+						ItemManager.add_item(GameManager.get_human_player_id(), old_id)
+			hero_equipment[hid] = migrated
 	# 确保所有英雄（已招募+被俘）的装备槽都正确初始化
-	for hid in recruited_heroes:
-		_ensure_equip_slots(hid)
-	for hid in captured_heroes:
+	for hid in recruited_heroes + captured_heroes:
 		_ensure_equip_slots(hid)
 	_skill_cooldowns = data.get("skill_cooldowns", {}).duplicate()
 	hero_submission = data.get("hero_submission", {}).duplicate()

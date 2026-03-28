@@ -345,54 +345,52 @@ func _refresh() -> void:
 		sub_label.add_theme_color_override("font_color", sub_color)
 		_add(sub_label)
 
-	# ── Equipment Slots ──
+	# ── Equipment (SR07 single slot) ──
 	_add(HSeparator.new())
 	_add(_make_section("Equipment"))
 	var equip_details: Array = HeroSystem.get_hero_equipment_details(_hero_id)
-	var slot_names: Dictionary = {"weapon": "Weapon", "armor": "Armor", "accessory": "Accessory"}
-	for ei in equip_details:
-		var sk: String = ei.get("slot_key", "")
-		var eid: String = ei.get("equip_id", "")
-		var sr := HBoxContainer.new()
-		sr.add_theme_constant_override("separation", 8)
-		_add(sr)
-		var snl := Label.new()
-		snl.text = "%s:" % slot_names.get(sk, sk)
-		snl.custom_minimum_size = Vector2(50, 0)
-		snl.add_theme_font_size_override("font_size", 13)
-		snl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
-		sr.add_child(snl)
-		if eid != "":
-			var enl := Label.new()
-			enl.text = ei.get("name", eid)
-			enl.add_theme_font_size_override("font_size", 13)
-			enl.add_theme_color_override("font_color", _get_rarity_color(ei.get("rarity", "common")))
-			enl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			sr.add_child(enl)
-			var eq_stats: Dictionary = ei.get("stats", {})
-			if not eq_stats.is_empty():
-				var sp: Array = []
-				for k in eq_stats: sp.append("+%d%s" % [eq_stats[k], k.to_upper()])
-				var esl := Label.new()
-				esl.text = " ".join(sp); esl.add_theme_font_size_override("font_size", 11)
-				esl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.9))
-				sr.add_child(esl)
-			var bu := Button.new()
-			bu.text = "Unequip"; bu.custom_minimum_size = Vector2(56, 24)
-			bu.add_theme_font_size_override("font_size", 11)
-			bu.pressed.connect(_on_unequip.bind(_hero_id, sk))
-			sr.add_child(bu)
-		else:
-			var eml := Label.new()
-			eml.text = "-- Empty --"; eml.add_theme_font_size_override("font_size", 13)
-			eml.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
-			eml.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			sr.add_child(eml)
-			var be := Button.new()
-			be.text = "Equip"; be.custom_minimum_size = Vector2(56, 24)
-			be.add_theme_font_size_override("font_size", 11)
-			be.pressed.connect(_show_equip_picker.bind(_hero_id, sk))
-			sr.add_child(be)
+	var ei: Dictionary = equip_details[0] if not equip_details.is_empty() else {"equip_id": "", "slot_key": "item"}
+	var eid: String = ei.get("equip_id", "")
+	var sr := HBoxContainer.new()
+	sr.add_theme_constant_override("separation", 8)
+	_add(sr)
+	var snl := Label.new()
+	snl.text = "Item:"
+	snl.custom_minimum_size = Vector2(50, 0)
+	snl.add_theme_font_size_override("font_size", 13)
+	snl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+	sr.add_child(snl)
+	if eid != "":
+		var enl := Label.new()
+		enl.text = ei.get("name", eid)
+		enl.add_theme_font_size_override("font_size", 13)
+		enl.add_theme_color_override("font_color", _get_rarity_color(ei.get("rarity", "common")))
+		enl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sr.add_child(enl)
+		var eq_stats: Dictionary = ei.get("stats", {})
+		if not eq_stats.is_empty():
+			var sp: Array = []
+			for k in eq_stats: sp.append("+%d%s" % [eq_stats[k], k.to_upper()])
+			var esl := Label.new()
+			esl.text = " ".join(sp); esl.add_theme_font_size_override("font_size", 11)
+			esl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.9))
+			sr.add_child(esl)
+		var bu := Button.new()
+		bu.text = "Unequip"; bu.custom_minimum_size = Vector2(56, 24)
+		bu.add_theme_font_size_override("font_size", 11)
+		bu.pressed.connect(_on_unequip.bind(_hero_id, "item"))
+		sr.add_child(bu)
+	else:
+		var eml := Label.new()
+		eml.text = "-- Empty --"; eml.add_theme_font_size_override("font_size", 13)
+		eml.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
+		eml.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sr.add_child(eml)
+		var be := Button.new()
+		be.text = "Equip"; be.custom_minimum_size = Vector2(56, 24)
+		be.add_theme_font_size_override("font_size", 11)
+		be.pressed.connect(_show_equip_picker.bind(_hero_id, "item"))
+		sr.add_child(be)
 
 	# ── Active Skills ──
 	_add(HSeparator.new())
@@ -528,20 +526,9 @@ func _show_equip_picker(hero_id: String, slot_key: String) -> void:
 		existing_overlay.queue_free()
 	var pid: int = GameManager.get_human_player_id()
 	var all_equip: Array = ItemManager.get_equipment_items(pid)
-	var slot_key_to_enum: Dictionary = {
-		"weapon": FactionData.EquipSlot.WEAPON,
-		"armor": FactionData.EquipSlot.ARMOR,
-		"accessory": FactionData.EquipSlot.ACCESSORY,
-	}
-	var target_enum: int = slot_key_to_enum.get(slot_key, -1)
-	var matching: Array = []
-	for eq in all_equip:
-		var eq_id: String = eq.get("item_id", "")
-		var eq_def: Dictionary = FactionData.EQUIPMENT_DEFS.get(eq_id, {})
-		if eq_def.get("slot", -1) == target_enum:
-			matching.append(eq)
+	var matching: Array = all_equip
 	if matching.is_empty():
-		EventBus.message_log.emit("[color=yellow]No available %s equipment in inventory[/color]" % {"weapon": "Weapon", "armor": "Armor", "accessory": "Accessory"}.get(slot_key, slot_key))
+		EventBus.message_log.emit("[color=yellow]No equipment in inventory[/color]")
 		return
 	# Build popup overlay
 	var overlay := Control.new()
@@ -573,7 +560,7 @@ func _show_equip_picker(hero_id: String, slot_key: String) -> void:
 	var title_row := HBoxContainer.new()
 	pvbox.add_child(title_row)
 	var title_lbl := Label.new()
-	title_lbl.text = "Select Equipment (%s)" % {"weapon": "Weapon", "armor": "Armor", "accessory": "Accessory"}.get(slot_key, slot_key)
+	title_lbl.text = "Select Equipment"
 	title_lbl.add_theme_font_size_override("font_size", 16)
 	title_lbl.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -219,7 +219,7 @@ func _build_item_row(item: Dictionary, index: int) -> PanelContainer:
 	var tt: String = item.get("type", "unknown")
 	match tt:
 		"consumable": type_lbl.text = "[Consumable]"
-		"equipment": type_lbl.text = "[Equip-%s]" % item.get("slot", "")
+		"equipment": type_lbl.text = "[Equipment]"
 		_: type_lbl.text = "[%s]" % tt
 	type_lbl.add_theme_font_size_override("font_size", 11)
 	type_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
@@ -321,11 +321,6 @@ func _refresh_detail(item: Dictionary) -> void:
 			pl.text = "Passive: %s" % passive; pl.add_theme_font_size_override("font_size", 12)
 			pl.add_theme_color_override("font_color", Color(0.7, 0.5, 0.9))
 			detail_container.add_child(pl)
-		var sll := Label.new()
-		sll.text = "Slot: %s" % item.get("slot", "?")
-		sll.add_theme_font_size_override("font_size", 12)
-		sll.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
-		detail_container.add_child(sll)
 	# Action buttons
 	detail_container.add_child(HSeparator.new())
 	var btn_row := HBoxContainer.new()
