@@ -4463,68 +4463,6 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 				print("[WARNING] Unknown event effect key: %s = %s" % [key, str(value)])
 
 
-# ── Random event popup helpers ──
-
-func _show_random_event_popup(player: Dictionary, event: Dictionary) -> void:
-	## Format event data and show popup, or queue if popup is already active.
-	var title: String = event.get("name", "Event")
-	var description: String = event.get("desc", "")
-	var choices: Array = _format_event_choices(event)
-
-	if not _pending_choice_event.is_empty():
-		# Popup already showing another event — queue this one
-		_pending_event_queue.append({"event": event, "player": player})
-		return
-
-	_pending_choice_event = event
-	_pending_choice_player = player
-	EventBus.show_event_popup.emit(title, description, choices)
-
-
-func _format_event_choices(event: Dictionary) -> Array:
-	## Convert option_a/option_b format into choices array for EventPopup.
-	var choices: Array = []
-	if event.has("option_a"):
-		choices.append({"text": event["option_a"].get("label", "Option A")})
-	if event.has("option_b"):
-		choices.append({"text": event["option_b"].get("label", "Option B")})
-	# Also support events that already use a choices array
-	if choices.is_empty() and event.has("choices"):
-		for c in event["choices"]:
-			if c is Dictionary:
-				choices.append({"text": c.get("text", "...")})
-			else:
-				choices.append({"text": str(c)})
-	return choices
-
-
-func _on_random_event_choice(choice_index: int) -> void:
-	## Called when the human player picks a choice from the EventPopup.
-	if _pending_choice_event.is_empty():
-		return  # No pending random event — might be a conquest popup
-
-	var event: Dictionary = _pending_choice_event
-	var player: Dictionary = _pending_choice_player
-	_pending_choice_event = {}
-	_pending_choice_player = {}
-
-	# Map popup index to choice key
-	var choice_key: String = "a"
-	if event.has("choices") and not event.has("option_a"):
-		# choices-array format: index maps directly
-		choice_key = "a" if choice_index <= 0 else "b"
-	else:
-		choice_key = "a" if choice_index <= 0 else "b"
-
-	_apply_choice_event(player, event, choice_key)
-
-	# Process queued events
-	if not _pending_event_queue.is_empty():
-		var next: Dictionary = _pending_event_queue.pop_front()
-		# Use call_deferred so the popup has time to close before reopening
-		call_deferred("_show_random_event_popup", next["player"], next["event"])
-
-
 # ═══════════════ ITEMS ═══════════════
 
 func _give_random_item(player: Dictionary) -> void:
