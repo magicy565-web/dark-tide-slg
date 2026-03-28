@@ -1792,7 +1792,7 @@ func _update_tile_info_for(tile_index: int) -> void:
 		var power: int = GameManager.get_army_combat_power(army["id"])
 		var troop_count: int = army["troops"].size()
 		info += "[color=yellow]━━ Army: %s ━━[/color]\n" % army["name"]
-		info += "Troop roster: %d/%d | Total troops: %d | Power: %d\n" % [troop_count, GameManager.MAX_TROOPS_PER_ARMY, soldiers, power]
+		info += "Troop roster: %d/%d | Total troops: %d | Power: %d\n" % [troop_count, GameManager.get_effective_max_troops(army.get("player_id", pid)), soldiers, power]
 		if army["player_id"] == pid:
 			var tile_idx: int = army.get("tile_index", -1)
 			var on_enemy: bool = tile_idx >= 0 and tile_idx < GameManager.tiles.size() and GameManager.tiles[tile_idx]["owner_id"] != pid and GameManager.tiles[tile_idx]["owner_id"] >= 0

@@ -529,7 +529,14 @@ func _get_pop_cap(player_id: int) -> int:
 	for tile in GameManager.tiles:
 		if tile.get("owner_id", -1) == player_id:
 			owned_tiles += 1
-	return 3 + (owned_tiles / 5)
+	var base: int = 3 + (owned_tiles / 5)
+	# v4.4: garrison_bonus — equipment passive increases troop cap
+	if player_id == GameManager.get_human_player_id():
+		for hid in HeroSystem.recruited_heroes:
+			if HeroSystem.has_equipment_passive(hid, "garrison_bonus"):
+				base += int(HeroSystem.get_equipment_passive_value(hid, "garrison_bonus"))
+				break  # Only apply once
+	return base
 
 
 func _sync_army_count(player_id: int) -> void:

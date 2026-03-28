@@ -46,6 +46,16 @@ var MAX_ARMIES_UPGRADED: int:
 	get: return BalanceConfig.MAX_ARMIES_UPGRADED
 var MAX_TROOPS_PER_ARMY: int:
 	get: return BalanceConfig.MAX_TROOPS_PER_ARMY
+
+## v4.4: Effective max troops per army, considering garrison_bonus equipment passive.
+func get_effective_max_troops(player_id: int) -> int:
+	var base: int = BalanceConfig.MAX_TROOPS_PER_ARMY
+	if player_id == get_human_player_id():
+		for hid in HeroSystem.recruited_heroes:
+			if HeroSystem.has_equipment_passive(hid, "garrison_bonus"):
+				base += int(HeroSystem.get_equipment_passive_value(hid, "garrison_bonus"))
+				break  # Only apply once
+	return base
 var MAX_HEROES_PER_ARMY: int:
 	get: return BalanceConfig.MAX_HEROES_PER_ARMY
 
@@ -2133,9 +2143,10 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	for troop in army["troops"]:
 		if troop.get("soldiers", 0) <= 0:
 			continue
-		attacker_units.append({
+		var _cmd_id: String = army["heroes"][0] if army["heroes"].size() > 0 and slot_idx == 0 else "generic"
+		var _unit_dict: Dictionary = {
 			"id": "att_%d" % slot_idx,
-			"commander_id": army["heroes"][0] if army["heroes"].size() > 0 and slot_idx == 0 else "generic",
+			"commander_id": _cmd_id,
 			"troop_id": troop.get("troop_id", "infantry"),
 			# BUG FIX: troop instances don't have atk/def keys; look up from troop definition
 			"atk": GameData.get_troop_def(troop.get("troop_id", "")).get("base_atk", 5) + player.get("atk_bonus", 0),
@@ -2147,7 +2158,24 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			"row": troop.get("row", 0 if slot_idx < 3 else 1),
 			"slot": slot_idx,
 			"passive": troop.get("passive", ""),
-		})
+		}
+		# v4.4: Inject hero combat stats & equipment passives for CombatSystem v2
+		if _cmd_id != "generic" and _cmd_id != "":
+			var _hero_stats: Dictionary = HeroSystem.get_hero_combat_stats(_cmd_id)
+			if not _hero_stats.is_empty():
+				_unit_dict["hero_data"] = {
+					"id": _cmd_id,
+					"hp": _hero_stats.get("hp", 20),
+					"mp": _hero_stats.get("mp", 10),
+					"troop_specialty": _hero_stats.get("troop", ""),
+					"equipment_passives": _hero_stats.get("equipment_passives", []),
+				}
+				# Apply hero stat bonuses to the unit
+				_unit_dict["atk"] += _hero_stats.get("atk", 0)
+				_unit_dict["def"] += _hero_stats.get("def", 0)
+				_unit_dict["spd"] += _hero_stats.get("spd", 0)
+				_unit_dict["int"] += _hero_stats.get("int_stat", 0)
+		attacker_units.append(_unit_dict)
 		slot_idx += 1
 
 	# Build defender army dict from garrison

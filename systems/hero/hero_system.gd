@@ -80,6 +80,11 @@ func attempt_capture(hero_id: String, capture_chance: float = -1.0) -> bool:
 	# Pirate capture bonus
 	if _pirate_mode:
 		capture_chance = minf(capture_chance + FactionData.PIRATE_CAPTURE_BONUS, 1.0)
+	# v4.4: Equipment capture_bonus — any recruited hero with slave_shackle_equip
+	for hid in recruited_heroes:
+		if has_equipment_passive(hid, "capture_bonus"):
+			capture_chance = minf(capture_chance + get_equipment_passive_value(hid, "capture_bonus"), 1.0)
+			break  # Only apply once
 	if randf() <= capture_chance:
 		captured_heroes.append(hero_id)
 		hero_corruption[hero_id] = 0

@@ -165,6 +165,16 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 	state.mana_attacker = 0
 	state.mana_defender = 0
 
+	# v4.4: mana_bonus — equipment passive contributes to team mana pool at battle start
+	for u in state.attacker_units:
+		if u.mana > 0:
+			state.mana_attacker += u.mana
+			u.mana = 0  # Individual mana transferred to team pool
+	for u in state.defender_units:
+		if u.mana > 0:
+			state.mana_defender += u.mana
+			u.mana = 0
+
 	# -- Apply terrain penalties that persist for the whole battle ----------
 	_apply_terrain_modifiers(state)
 
@@ -204,6 +214,19 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 
 	# -- Siege phase (attacker chips at city walls before combat) -----------
 	if state.is_siege and state.city_def > 0:
+		# v4.4: node_wall_bonus — defender hero equipment adds to wall HP
+		for u in state.defender_units:
+			if u.has_passive("node_wall_bonus"):
+				state.city_def += 5  # iron_wall_shield: +5 wall HP
+				state.action_log.append({
+					"action": "passive",
+					"event": "node_wall_bonus",
+					"unit": u.id,
+					"side": "defender",
+					"slot": u.slot,
+					"desc": "%s 的铁壁之盾强化城防 +5" % u.troop_id,
+				})
+				break  # Only apply once
 		_resolve_siege_phase(state)
 
 	# -- Pre-battle: preemptive strikes ------------------------------------
@@ -379,6 +402,23 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 			bu.hero_max_hp = bu.hero_hp
 			bu.hero_mp = hero_data.get("mp", 0)
 			bu.hero_max_mp = bu.hero_mp
+
+			# v4.4: Equipment passives — merge into BattleUnit.passive for has_passive() checks
+			var eq_passives: Array = hero_data.get("equipment_passives", [])
+			for ep in eq_passives:
+				if ep != "" and ep != "none":
+					if bu.passive == "":
+						bu.passive = ep
+					else:
+						bu.passive += "," + ep
+
+			# v4.4: mana_bonus — increase team mana pool start value
+			if bu.has_passive("mana_bonus"):
+				bu.mana += 3  # mana_orb: +3 mana
+
+			# v4.4: one_battle_power — +30% ATK for this battle (war_totem)
+			if bu.has_passive("one_battle_power"):
+				bu.atk = int(ceil(float(bu.atk) * 1.3))
 
 		# v4.3: Hero-Troop Synergy — hero commanding matching troop type
 		if bu.hero_id != "" and not hero_data.is_empty():
@@ -772,6 +812,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 				})
 				# Allies lose morale when a comrade is eliminated
 				_apply_ally_death_morale(t, state)
+				# v4.4: kill_heal — attacker restores 1 soldier on kill (blood_moon_blade)
+				_apply_kill_heal(unit, state)
 
 		unit.first_attack = false
 		# Emit one attack entry per AoE target for combat_view compatibility
@@ -840,6 +882,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		})
 		# Allies lose morale when a comrade is eliminated
 		_apply_ally_death_morale(target, state)
+		# v4.4: kill_heal — attacker restores 1 soldier on kill (blood_moon_blade)
+		_apply_kill_heal(unit, state)
 		return { "action": "_already_logged" }
 
 	return entry
@@ -891,7 +935,11 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 	# Apply unit counter matrix multipliers (CounterMatrix)
 	var _counter: Dictionary = CounterMatrix.get_counter(attacker.troop_id, defender.troop_id)
 	if _counter["atk_mult"] != 1.0:
-		base_damage *= _counter["atk_mult"]
+		var counter_atk: float = _counter["atk_mult"]
+		# v4.4: rps_bonus — equipment passive enhances counter advantage
+		if attacker.has_passive("rps_bonus") and counter_atk > 1.0:
+			counter_atk += 0.15  # counter_tactics: +15% to counter multiplier
+		base_damage *= counter_atk
 	# def_mult < 1.0 means attacker takes less damage; > 1.0 means more.
 	# Translate to defender effectiveness: scale defender's contribution inversely.
 	if _counter["def_mult"] != 1.0:
@@ -1207,6 +1255,25 @@ func _apply_ally_death_morale(dead_unit: BattleUnit, state: BattleState) -> void
 		if u == dead_unit or not u.is_alive() or u.is_routed:
 			continue
 		_reduce_morale(u, base_loss, state)
+
+## v4.4: kill_heal — when a unit with kill_heal passive kills an enemy, restore 1 soldier worth of HP.
+func _apply_kill_heal(killer: BattleUnit, state: BattleState) -> void:
+	if not killer.has_passive("kill_heal") or not killer.is_alive():
+		return
+	if killer.hp >= killer.max_hp:
+		return
+	var heal: int = killer.hp_per_soldier
+	killer.hp = mini(killer.hp + heal, killer.max_hp)
+	_recalc_soldiers(killer)
+	var side_str: String = "attacker" if killer.is_attacker else "defender"
+	state.action_log.append({
+		"action": "passive",
+		"event": "kill_heal",
+		"unit": killer.id,
+		"side": side_str,
+		"slot": killer.slot,
+		"desc": "%s 击杀回复1兵 (血月之刃)" % killer.troop_id,
+	})
 
 ## Try to fetch an autoload node by name at runtime.
 func _has_autoload(aname: String) -> bool:
