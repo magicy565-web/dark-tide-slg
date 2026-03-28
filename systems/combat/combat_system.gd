@@ -19,7 +19,7 @@ const FactionData = preload("res://systems/faction/faction_data.gd")
 # Constants
 # ---------------------------------------------------------------------------
 
-const MAX_ROUNDS := 12
+const MAX_ROUNDS := 8  # v4.6: 12→8 for faster, more decisive battles
 const MAX_FRONT_SLOTS := 3
 const MAX_BACK_SLOTS := 3
 const MAX_SLOTS := 6  # front(3) + back(3), SR07 formation

@@ -1237,9 +1237,49 @@ func _has_revealed_neighbor(idx: int, pid: int) -> bool:
 		if GameManager.is_revealed_for(n, pid): return true
 	return false
 
+# ═══════════════ VISUAL FEEDBACK (v4.6) ═══════════════
+
+## Flash a captured tile: bright flash on the base mesh over 0.5s
+func _flash_tile_capture(idx: int) -> void:
+	if not tile_visuals.has(idx): return
+	var vis: Dictionary = tile_visuals[idx]
+	var base_mi: MeshInstance3D = vis["base"]
+	if not is_instance_valid(base_mi): return
+	var tile: Dictionary = GameManager.tiles[idx]
+	var fk: String = _get_tile_faction_key(tile)
+	var fc: Color = FLAG_COLORS.get(fk, FLAG_COLORS["none"])
+	# Create a temporary emissive flash by tweening border ring scale
+	var border_mi: MeshInstance3D = vis["border"]
+	if is_instance_valid(border_mi):
+		var bmat := StandardMaterial3D.new()
+		bmat.albedo_color = Color.WHITE
+		bmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		bmat.emission_enabled = true
+		bmat.emission = Color.WHITE
+		bmat.emission_energy_multiplier = 2.0
+		border_mi.material_override = bmat
+		var tw := create_tween()
+		tw.tween_property(bmat, "albedo_color", fc, 0.5).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(bmat, "emission", fc * 0.5, 0.5).set_ease(Tween.EASE_OUT)
+		tw.tween_callback(func(): _update_territory_visual(idx))
+
+## Brief shake on a tile (used for combat at that location)
+func _shake_tile(idx: int) -> void:
+	if not tile_visuals.has(idx): return
+	var vis: Dictionary = tile_visuals[idx]
+	var root_node: Node3D = vis["root"]
+	var original_pos: Vector3 = root_node.position
+	var tw := create_tween()
+	tw.tween_property(root_node, "position", original_pos + Vector3(0.08, 0, 0.08), 0.04)
+	tw.tween_property(root_node, "position", original_pos + Vector3(-0.06, 0, -0.06), 0.04)
+	tw.tween_property(root_node, "position", original_pos + Vector3(0.04, 0, 0), 0.04)
+	tw.tween_property(root_node, "position", original_pos, 0.06).set_ease(Tween.EASE_OUT)
+
 # ═══════════════ SIGNAL HANDLERS ═══════════════
 func _on_tile_captured(_pid: int, ti: int) -> void:
 	_update_territory_visual(ti)
+	# Visual: flash captured tile white → faction color over 0.5s
+	_flash_tile_capture(ti)
 	# Update neighbors for border visuals
 	if GameManager.adjacency.has(ti):
 		for n in GameManager.adjacency[ti]:

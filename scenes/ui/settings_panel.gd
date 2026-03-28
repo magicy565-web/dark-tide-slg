@@ -1,4 +1,4 @@
-## settings_panel.gd - Game settings UI for Dark Tide SLG (v3.0)
+## settings_panel.gd - Game settings UI for Dark Tide SLG (v4.0)
 ## Provides audio, display, gameplay, and difficulty settings with persistence.
 extends CanvasLayer
 
@@ -11,6 +11,7 @@ var panel: PanelContainer
 var _visible: bool = false
 
 # ── Slider refs ──
+var master_slider: HSlider
 var bgm_slider: HSlider
 var sfx_slider: HSlider
 var ambient_slider: HSlider
@@ -21,7 +22,7 @@ var edge_scroll_check: CheckButton
 # ── Display settings ──
 var show_grid_check: CheckButton
 var show_fog_check: CheckButton
-var combat_speed_slider: HSlider
+var game_speed_option: OptionButton
 var auto_end_turn_check: CheckButton
 var auto_save_check: CheckButton
 
@@ -31,8 +32,16 @@ var fullscreen_check: CheckButton
 # ── Difficulty ──
 var difficulty_option: OptionButton
 
+# ── Game speed values ──
+const GAME_SPEED_VALUES: Array = [0.5, 1.0, 1.5, 2.0]
+const GAME_SPEED_LABELS: Array = ["x0.5", "x1", "x1.5", "x2"]
+
+## Global game speed multiplier for combat_view and other time-scaled systems
+static var game_speed: float = 1.0
+
 # ── Defaults for reset ──
 const DEFAULTS: Dictionary = {
+	"master_volume": 0.8,
 	"bgm_volume": 0.7,
 	"sfx_volume": 0.8,
 	"ambient_volume": 0.5,
@@ -41,7 +50,7 @@ const DEFAULTS: Dictionary = {
 	"edge_scroll": true,
 	"show_grid": true,
 	"show_fog": true,
-	"combat_speed": 1.0,
+	"game_speed_idx": 1,
 	"auto_end_turn": false,
 	"auto_save": true,
 	"fullscreen": false,
@@ -127,11 +136,22 @@ func _build_ui() -> void:
 	# ── Audio section ──
 	_add_section_header(vbox, "Audio")
 
-	bgm_slider = _add_slider(vbox, "BGM", DEFAULTS["bgm_volume"])
-	bgm_slider.value_changed.connect(func(v): AudioManager.set_bgm_volume(v))
+	master_slider = _add_slider(vbox, "Master", DEFAULTS["master_volume"])
+	master_slider.value_changed.connect(func(v):
+		AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(v))
+	)
+
+	bgm_slider = _add_slider(vbox, "Music", DEFAULTS["bgm_volume"])
+	bgm_slider.value_changed.connect(func(v):
+		AudioManager.set_bgm_volume(v)
+		AudioServer.set_bus_volume_db(AudioServer.get_bus_index("BGM"), linear_to_db(v))
+	)
 
 	sfx_slider = _add_slider(vbox, "SFX", DEFAULTS["sfx_volume"])
-	sfx_slider.value_changed.connect(func(v): AudioManager.set_sfx_volume(v))
+	sfx_slider.value_changed.connect(func(v):
+		AudioManager.set_sfx_volume(v)
+		AudioServer.set_bus_volume_db(AudioServer.get_bus_index("SFX"), linear_to_db(v))
+	)
 
 	ambient_slider = _add_slider(vbox, "Ambient", DEFAULTS["ambient_volume"])
 	ambient_slider.value_changed.connect(func(v): AudioManager.set_ambient_volume(v))
@@ -170,11 +190,27 @@ func _build_ui() -> void:
 	)
 	vbox.add_child(fullscreen_check)
 
-	combat_speed_slider = _add_slider(vbox, "Combat Speed", DEFAULTS["combat_speed"] / 3.0)
-	combat_speed_slider.value_changed.connect(func(v):
-		var speed: float = v * 3.0
-		EventBus.message_log.emit("Combat Speed: %.1fx" % speed)
+	# Game Speed OptionButton
+	var speed_row := HBoxContainer.new()
+	speed_row.add_theme_constant_override("separation", 8)
+	vbox.add_child(speed_row)
+
+	var speed_lbl := Label.new()
+	speed_lbl.text = "Game Speed"
+	speed_lbl.custom_minimum_size = Vector2(80, 0)
+	speed_lbl.add_theme_font_size_override("font_size", 14)
+	speed_row.add_child(speed_lbl)
+
+	game_speed_option = OptionButton.new()
+	game_speed_option.custom_minimum_size = Vector2(120, 30)
+	for i in range(GAME_SPEED_LABELS.size()):
+		game_speed_option.add_item(GAME_SPEED_LABELS[i], i)
+	game_speed_option.selected = DEFAULTS["game_speed_idx"]
+	game_speed_option.item_selected.connect(func(idx):
+		game_speed = GAME_SPEED_VALUES[idx]
+		EventBus.message_log.emit("Game Speed: %s" % GAME_SPEED_LABELS[idx])
 	)
+	speed_row.add_child(game_speed_option)
 
 	vbox.add_child(HSeparator.new())
 
@@ -302,10 +338,16 @@ func toggle_settings() -> void:
 	visible = _visible
 	if _visible:
 		# Sync with current audio settings
+		var master_db: float = AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Master"))
+		master_slider.value = db_to_linear(master_db)
 		bgm_slider.value = AudioManager.bgm_volume
 		sfx_slider.value = AudioManager.sfx_volume
 		ambient_slider.value = AudioManager.ambient_volume
 		mute_check.button_pressed = AudioManager.master_muted
+		# Sync game speed
+		var speed_idx: int = GAME_SPEED_VALUES.find(game_speed)
+		if speed_idx >= 0:
+			game_speed_option.selected = speed_idx
 	else:
 		_save_settings()
 		settings_closed.emit()
@@ -313,6 +355,7 @@ func toggle_settings() -> void:
 
 func _reset_to_defaults() -> void:
 	AudioManager.play_ui_click()
+	master_slider.value = DEFAULTS["master_volume"]
 	bgm_slider.value = DEFAULTS["bgm_volume"]
 	sfx_slider.value = DEFAULTS["sfx_volume"]
 	ambient_slider.value = DEFAULTS["ambient_volume"]
@@ -321,12 +364,14 @@ func _reset_to_defaults() -> void:
 	edge_scroll_check.button_pressed = DEFAULTS["edge_scroll"]
 	show_grid_check.button_pressed = DEFAULTS["show_grid"]
 	show_fog_check.button_pressed = DEFAULTS["show_fog"]
-	combat_speed_slider.value = DEFAULTS["combat_speed"] / 3.0
+	game_speed_option.selected = DEFAULTS["game_speed_idx"]
+	game_speed = GAME_SPEED_VALUES[DEFAULTS["game_speed_idx"]]
 	auto_end_turn_check.button_pressed = DEFAULTS["auto_end_turn"]
 	auto_save_check.button_pressed = DEFAULTS["auto_save"]
 	fullscreen_check.button_pressed = DEFAULTS["fullscreen"]
 	difficulty_option.selected = DEFAULTS["difficulty"]
 	# Apply audio defaults immediately
+	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(DEFAULTS["master_volume"]))
 	AudioManager.set_bgm_volume(DEFAULTS["bgm_volume"])
 	AudioManager.set_sfx_volume(DEFAULTS["sfx_volume"])
 	AudioManager.set_ambient_volume(DEFAULTS["ambient_volume"])
@@ -336,6 +381,7 @@ func _reset_to_defaults() -> void:
 
 func _save_settings() -> void:
 	var config := ConfigFile.new()
+	config.set_value("audio", "master_volume", master_slider.value)
 	config.set_value("audio", "bgm_volume", bgm_slider.value)
 	config.set_value("audio", "sfx_volume", sfx_slider.value)
 	config.set_value("audio", "ambient_volume", ambient_slider.value)
@@ -346,7 +392,7 @@ func _save_settings() -> void:
 	config.set_value("gameplay", "auto_save", auto_save_check.button_pressed)
 	config.set_value("display", "show_grid", show_grid_check.button_pressed)
 	config.set_value("display", "show_fog", show_fog_check.button_pressed)
-	config.set_value("display", "combat_speed", combat_speed_slider.value * 3.0)
+	config.set_value("display", "game_speed_idx", game_speed_option.selected)
 	config.set_value("display", "fullscreen", fullscreen_check.button_pressed)
 	config.set_value("gameplay", "difficulty", difficulty_option.selected)
 	var err := config.save(SETTINGS_PATH)
@@ -358,8 +404,11 @@ func _load_settings() -> void:
 	var config := ConfigFile.new()
 	var err := config.load(SETTINGS_PATH)
 	if err != OK:
-		return  # No saved settings, use defaults
+		# No saved settings — apply defaults to AudioServer buses
+		AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(DEFAULTS["master_volume"]))
+		return
 
+	master_slider.value = config.get_value("audio", "master_volume", DEFAULTS["master_volume"])
 	bgm_slider.value = config.get_value("audio", "bgm_volume", DEFAULTS["bgm_volume"])
 	sfx_slider.value = config.get_value("audio", "sfx_volume", DEFAULTS["sfx_volume"])
 	ambient_slider.value = config.get_value("audio", "ambient_volume", DEFAULTS["ambient_volume"])
@@ -370,9 +419,14 @@ func _load_settings() -> void:
 	auto_save_check.button_pressed = config.get_value("gameplay", "auto_save", DEFAULTS["auto_save"])
 	show_grid_check.button_pressed = config.get_value("display", "show_grid", DEFAULTS["show_grid"])
 	show_fog_check.button_pressed = config.get_value("display", "show_fog", DEFAULTS["show_fog"])
-	combat_speed_slider.value = config.get_value("display", "combat_speed", DEFAULTS["combat_speed"]) / 3.0
 	fullscreen_check.button_pressed = config.get_value("display", "fullscreen", DEFAULTS["fullscreen"])
 	difficulty_option.selected = config.get_value("gameplay", "difficulty", DEFAULTS["difficulty"])
+
+	# Game speed
+	var speed_idx: int = config.get_value("display", "game_speed_idx", DEFAULTS["game_speed_idx"])
+	speed_idx = clampi(speed_idx, 0, GAME_SPEED_VALUES.size() - 1)
+	game_speed_option.selected = speed_idx
+	game_speed = GAME_SPEED_VALUES[speed_idx]
 
 	# Apply loaded difficulty setting
 	var _diff_keys: Array = ["easy", "normal", "hard", "nightmare"]
@@ -381,6 +435,7 @@ func _load_settings() -> void:
 		BalanceManager.set_difficulty(_diff_keys[_diff_idx])
 
 	# Apply loaded audio settings
+	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(master_slider.value))
 	AudioManager.set_bgm_volume(bgm_slider.value)
 	AudioManager.set_sfx_volume(sfx_slider.value)
 	AudioManager.set_ambient_volume(ambient_slider.value)
@@ -400,11 +455,13 @@ func get_setting(key: String):
 		"edge_scroll": return edge_scroll_check.button_pressed if edge_scroll_check else DEFAULTS["edge_scroll"]
 		"show_grid": return show_grid_check.button_pressed if show_grid_check else DEFAULTS["show_grid"]
 		"show_fog": return show_fog_check.button_pressed if show_fog_check else DEFAULTS["show_fog"]
-		"combat_speed": return combat_speed_slider.value * 3.0 if combat_speed_slider else DEFAULTS["combat_speed"]
+		"game_speed": return game_speed
+		"combat_speed": return game_speed  # backward compat alias
 		"auto_end_turn": return auto_end_turn_check.button_pressed if auto_end_turn_check else DEFAULTS["auto_end_turn"]
 		"auto_save": return auto_save_check.button_pressed if auto_save_check else DEFAULTS["auto_save"]
 		"fullscreen": return fullscreen_check.button_pressed if fullscreen_check else DEFAULTS["fullscreen"]
 		"tutorial_enabled": return tutorial_check.button_pressed if tutorial_check else DEFAULTS["tutorial_enabled"]
+		"master_volume": return master_slider.value if master_slider else DEFAULTS["master_volume"]
 	return null
 
 

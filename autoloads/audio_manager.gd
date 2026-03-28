@@ -1,6 +1,7 @@
-## audio_manager.gd - Sound & Music system for 暗潮 SLG (v1.5)
+## audio_manager.gd - Sound & Music system for 暗潮 SLG (v2.0)
 ## Manages BGM, SFX, and ambient sounds. Works without actual audio files
 ## by providing the interface; audio files can be added later.
+## Generates procedural click sound so the game is not completely silent.
 extends Node
 
 # ── Volume settings (0.0 to 1.0) ──
@@ -73,11 +74,20 @@ var _ambient_player: AudioStreamPlayer
 var _current_bgm: int = -1
 var _crossfading: bool = false
 
+# ── Procedural audio cache ──
+var _procedural_click: AudioStream = null
+var _procedural_confirm: AudioStream = null
+
+# ── String-based SFX lookup (for play_sfx_by_name) ──
+var _sfx_name_map: Dictionary = {}
+
 
 func _ready() -> void:
 	_init_audio_paths()
+	_build_sfx_name_map()
 	_setup_audio_buses()
 	_setup_players()
+	_generate_procedural_sounds()
 	_connect_signals()
 
 
@@ -121,6 +131,70 @@ func _init_audio_paths() -> void:
 		SFX.VICTORY: "res://assets/audio/sfx/victory.ogg",
 		SFX.DEFEAT: "res://assets/audio/sfx/defeat.ogg",
 	}
+
+
+func _build_sfx_name_map() -> void:
+	## Map human-readable string names to SFX enum values for play_sfx_by_name()
+	_sfx_name_map = {
+		"ui_click": SFX.UI_CLICK,
+		"ui_confirm": SFX.UI_CONFIRM,
+		"ui_cancel": SFX.UI_CANCEL,
+		"ui_hover": SFX.UI_HOVER,
+		"combat_attack": SFX.COMBAT_ATTACK,
+		"combat_defend": SFX.COMBAT_DEFEND,
+		"combat_critical": SFX.COMBAT_CRITICAL,
+		"combat_death": SFX.COMBAT_DEATH,
+		"combat_siege": SFX.COMBAT_SIEGE,
+		"combat_ability": SFX.COMBAT_ABILITY,
+		"capture": SFX.MAP_CAPTURE,
+		"map_capture": SFX.MAP_CAPTURE,
+		"map_lost": SFX.MAP_LOST,
+		"map_deploy": SFX.MAP_DEPLOY,
+		"resource_gain": SFX.RESOURCE_GAIN,
+		"resource_spend": SFX.RESOURCE_SPEND,
+		"research_complete": SFX.RESEARCH_COMPLETE,
+		"build_complete": SFX.BUILD_COMPLETE,
+		"hero_capture": SFX.HERO_CAPTURE,
+		"recruit": SFX.HERO_RECRUIT,
+		"hero_recruit": SFX.HERO_RECRUIT,
+		"event_trigger": SFX.EVENT_TRIGGER,
+		"waaagh": SFX.WAAAGH,
+		"level_up": SFX.LEVEL_UP,
+		"turn_start": SFX.TURN_START,
+		"turn_end": SFX.TURN_END,
+		"combat_start": SFX.COMBAT_ATTACK,
+		"victory": SFX.VICTORY,
+		"defeat": SFX.DEFEAT,
+	}
+
+
+func _generate_procedural_sounds() -> void:
+	## Generate simple procedural audio for UI feedback so the game is not silent.
+	## These are used as fallbacks when .ogg files do not exist.
+	_procedural_click = _make_click_tone(800.0, 0.06)
+	_procedural_confirm = _make_click_tone(1000.0, 0.1)
+
+
+## Create a short sine-wave "click" tone as an AudioStreamWAV.
+static func _make_click_tone(freq: float, duration: float, sample_rate: int = 22050) -> AudioStreamWAV:
+	var num_samples: int = int(duration * sample_rate)
+	var data := PackedByteArray()
+	data.resize(num_samples * 2)  # 16-bit mono
+	for i in range(num_samples):
+		var t: float = float(i) / sample_rate
+		# Envelope: quick attack, fast decay
+		var envelope: float = clampf(1.0 - t / duration, 0.0, 1.0)
+		envelope *= envelope  # quadratic decay
+		var sample_val: float = sin(TAU * freq * t) * envelope * 0.4
+		var s16: int = clampi(int(sample_val * 32767.0), -32768, 32767)
+		data[i * 2] = s16 & 0xFF
+		data[i * 2 + 1] = (s16 >> 8) & 0xFF
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = sample_rate
+	stream.stereo = false
+	stream.data = data
+	return stream
 
 
 func _setup_audio_buses() -> void:
@@ -178,6 +252,8 @@ func _connect_signals() -> void:
 	EventBus.tech_effects_applied.connect(_on_research_complete)
 	EventBus.waaagh_changed.connect(_on_waaagh_changed)
 	EventBus.event_triggered.connect(_on_event_triggered)
+	EventBus.hero_recruited.connect(_on_hero_recruited)
+	EventBus.hero_leveled_up.connect(_on_hero_leveled_up)
 	# Combat SFX signals
 	EventBus.sfx_attack.connect(_on_sfx_attack)
 	EventBus.sfx_unit_killed.connect(_on_sfx_unit_killed)
@@ -254,14 +330,15 @@ func play_sfx(sfx_id: int) -> void:
 	if not _sfx_paths.has(sfx_id):
 		return  # No audio file path registered
 
+	var stream: AudioStream = null
 	var path: String = _sfx_paths[sfx_id]
-	if not ResourceLoader.exists(path):
-		push_warning("AudioManager: SFX file not found: %s (sfx_id=%d)" % [path, sfx_id])
-		return
+	if ResourceLoader.exists(path):
+		stream = load(path)
 
-	var stream = load(path)
+	# Fallback to procedural sounds if file not found
 	if stream == null:
-		push_warning("AudioManager: Failed to load SFX file: %s (sfx_id=%d)" % [path, sfx_id])
+		stream = _get_procedural_fallback(sfx_id)
+	if stream == null:
 		return
 
 	# Find available player
@@ -289,6 +366,80 @@ func play_ui_confirm() -> void:
 
 func play_ui_cancel() -> void:
 	play_sfx(SFX.UI_CANCEL)
+
+
+## Get a procedural fallback sound for common SFX when .ogg files are missing.
+func _get_procedural_fallback(sfx_id: int) -> AudioStream:
+	match sfx_id:
+		SFX.UI_CLICK, SFX.UI_HOVER:
+			return _procedural_click
+		SFX.UI_CONFIRM:
+			return _procedural_confirm
+		SFX.UI_CANCEL:
+			return _procedural_click
+	return null
+
+
+## Play an SFX by string name (e.g. "turn_start", "capture", "recruit").
+## Returns true if the sound was found and played.
+func play_sfx_by_name(sfx_name: String) -> bool:
+	if _sfx_name_map.has(sfx_name):
+		play_sfx(_sfx_name_map[sfx_name])
+		return true
+	push_warning("AudioManager: Unknown SFX name '%s'" % sfx_name)
+	return false
+
+
+## Play music by BGMTrack enum or track name string.
+func play_music(track) -> void:
+	if track is int:
+		play_bgm(track)
+	elif track is String:
+		var track_map: Dictionary = {
+			"title": BGMTrack.TITLE,
+			"faction_select": BGMTrack.FACTION_SELECT,
+			"overworld_calm": BGMTrack.OVERWORLD_CALM,
+			"overworld_tense": BGMTrack.OVERWORLD_TENSE,
+			"combat_normal": BGMTrack.COMBAT_NORMAL,
+			"combat_boss": BGMTrack.COMBAT_BOSS,
+			"victory": BGMTrack.VICTORY,
+			"defeat": BGMTrack.DEFEAT,
+			"event": BGMTrack.EVENT,
+		}
+		if track_map.has(track):
+			play_bgm(track_map[track])
+		else:
+			push_warning("AudioManager: Unknown music track name '%s'" % track)
+
+
+## Stop currently playing music.
+func stop_music(fade_time: float = 0.5) -> void:
+	stop_bgm(fade_time)
+
+
+## Set volume for a named bus ("Master", "BGM", "SFX", "Ambient").
+## value is 0.0 to 1.0 (linear).
+func set_volume(bus_name: String, value: float) -> void:
+	var idx: int = AudioServer.get_bus_index(bus_name)
+	if idx == -1:
+		push_warning("AudioManager: Audio bus '%s' not found" % bus_name)
+		return
+	var vol: float = clampf(value, 0.0, 1.0)
+	AudioServer.set_bus_volume_db(idx, linear_to_db(vol))
+	# Keep internal state in sync
+	match bus_name:
+		"BGM":
+			bgm_volume = vol
+			_bgm_player.volume_db = linear_to_db(vol)
+		"SFX":
+			sfx_volume = vol
+			for player in _sfx_players:
+				player.volume_db = linear_to_db(vol)
+		"Ambient":
+			ambient_volume = vol
+			_ambient_player.volume_db = linear_to_db(vol)
+		"Master":
+			pass  # Master bus volume is set directly on AudioServer
 
 
 # ═══════════════ VOLUME CONTROL ═══════════════
@@ -353,6 +504,12 @@ func _on_waaagh_changed(_pid: int, value: int) -> void:
 
 func _on_event_triggered(_pid: int, _name: String, _desc: String) -> void:
 	play_sfx(SFX.EVENT_TRIGGER)
+
+func _on_hero_recruited(_hero_id: String) -> void:
+	play_sfx(SFX.HERO_RECRUIT)
+
+func _on_hero_leveled_up(_hero_id: String, _new_level: int) -> void:
+	play_sfx(SFX.LEVEL_UP)
 
 
 # ═══════════════ COMBAT SFX SIGNAL HANDLERS ═══════════════

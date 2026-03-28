@@ -9,7 +9,7 @@ const FactionData = preload("res://systems/faction/faction_data.gd")
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-const MAX_ROUNDS: int = 12
+const MAX_ROUNDS: int = 8  # v4.6: 12→8 for faster, more decisive battles
 const FRONT_SLOTS: int = 3       # indices 0, 1, 2
 const BACK_SLOTS: int = 3        # indices 3, 4, 5
 const TOTAL_SLOTS: int = 6

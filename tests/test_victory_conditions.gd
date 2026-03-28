@@ -90,8 +90,8 @@ func test_story_files_have_exclusive_ending() -> String:
 
 # ── 6. Balance config ──
 
-func test_starting_gold_is_600() -> String:
-	return _assert(BalanceConfig.STARTING_GOLD == 600, "STARTING_GOLD should be 600, got %d" % BalanceConfig.STARTING_GOLD)
+func test_starting_gold_is_500() -> String:
+	return _assert(BalanceConfig.STARTING_GOLD == 500, "STARTING_GOLD should be 500, got %d" % BalanceConfig.STARTING_GOLD)
 
 func test_cannon_atk_is_17() -> String:
 	var cannon_def: Dictionary = FactionData.SHARED_UNIT_DEFS.get("cannon", {})

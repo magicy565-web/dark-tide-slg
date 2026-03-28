@@ -3,17 +3,21 @@
 ## All systems should reference BalanceConfig.XXXX instead of hardcoded values.
 extends Node
 
-# ═══════════════ ECONOMY (TW:W aligned) ═══════════════
+# ═══════════════ ECONOMY (TW:W aligned, v4.6 balance pass) ═══════════════
 
 ## Starting resources for all factions
-const STARTING_GOLD: int = 600
-const STARTING_FOOD: int = 150
-const STARTING_IRON: int = 80
+## v4.6: Reduced from 600→500 to tighten early game. With ~5 starting tiles
+## producing ~35g/turn, 500g lasts ~6-7 turns of active play before needing expansion.
+const STARTING_GOLD: int = 500
+const STARTING_FOOD: int = 120
+const STARTING_IRON: int = 60
 
 ## Income per settlement level per turn (TW:W 5-level settlement)
-const GOLD_PER_NODE_LEVEL := [40, 50, 80, 120, 180]
-const FOOD_PER_NODE_LEVEL := [10, 15, 25, 40, 60]
-const IRON_PER_NODE_LEVEL := [5, 8, 12, 18, 25]
+## v4.6: Flattened L1-L2 income, steeper L3-L5 curve for mid-game power spike.
+## At 15 tiles (mixed L1-L2), player gets ~600g/turn. At 20 tiles with L3+, ~1000g+.
+const GOLD_PER_NODE_LEVEL := [35, 45, 80, 130, 200]
+const FOOD_PER_NODE_LEVEL := [8, 12, 25, 45, 70]
+const IRON_PER_NODE_LEVEL := [4, 7, 12, 20, 30]
 
 ## Settlement max level (TW:W has 5 settlement levels)
 const TILE_MAX_LEVEL: int = 5
@@ -29,18 +33,23 @@ const ORDER_PROD_MULT := {
 }
 
 ## Food maintenance per soldier per turn (TW:W meaningful upkeep)
-const FOOD_PER_SOLDIER: float = 0.5
+## v4.6: Raised from 0.5→0.6 so maintaining large armies requires 3+ farm tiles.
+## A 40-soldier army costs 24 food/turn. With 3 L1 farms producing 8f each = 24f.
+const FOOD_PER_SOLDIER: float = 0.6
 
 ## Gold maintenance per troop tier per turn (军饷)
 ## T1 troops are conscripts (cheap), T3+ are elite professionals (expensive)
-## 平衡基准: 10地块~70金/回合净收入, 6编制T3军队满编军饷≈24金≈34%收入
-const TIER_GOLD_UPKEEP: Dictionary = { 0: 0, 1: 1, 2: 2, 3: 4, 4: 6 }
+## v4.6: Raised T2-T4 by +1 each to make elite armies a real economic commitment.
+## 平衡基准: 10地块~60金/回合净收入, 6编制T3军队满编军饷≈30金≈50%收入
+const TIER_GOLD_UPKEEP: Dictionary = { 0: 0, 1: 1, 2: 3, 3: 5, 4: 8 }
 
 ## Per-soldier base gold upkeep (faction-specific, applied to raw soldier count)
 ## Stacks with tier upkeep: total = base_per_soldier × soldiers + tier_upkeep × squads
-const GOLD_UPKEEP_PER_SOLDIER_ORC: float = 0.15       # 蛮兵便宜 — 40兵=6金
-const GOLD_UPKEEP_PER_SOLDIER_PIRATE: float = 0.30    # 雇佣兵贵 — 40兵=12金
-const GOLD_UPKEEP_PER_SOLDIER_DARK_ELF: float = 0.20  # 精灵适中 — 40兵=8金
+## v4.6: Increased Pirate upkeep to reinforce "rich but expensive" identity.
+## Orc stays cheap (horde army), Dark Elf moderate (quality over quantity).
+const GOLD_UPKEEP_PER_SOLDIER_ORC: float = 0.12       # 蛮兵便宜 — 40兵=4.8金 (down from 6)
+const GOLD_UPKEEP_PER_SOLDIER_PIRATE: float = 0.35    # 雇佣兵贵 — 40兵=14金 (up from 12)
+const GOLD_UPKEEP_PER_SOLDIER_DARK_ELF: float = 0.25  # 精灵适中 — 40兵=10金 (up from 8)
 
 ## Gold deficit combat penalty: ATK/DEF debuff when can't pay
 const GOLD_DEFICIT_COMBAT_PENALTY: float = 0.15  # -15% ATK/DEF
@@ -52,16 +61,20 @@ const SUPPLY_OVEREXTENSION_THRESHOLD: int = 5  # soldiers per owned tile before 
 const SUPPLY_OVEREXTENSION_ATTRITION: float = 0.02  # 2% per turn when overextended
 
 ## Tile upgrade costs [gold, iron] — 5 levels (TW:W building cost curve)
+## v4.6: L2 cheaper (250→200) to encourage early upgrading of key tiles.
+## L4-L5 more expensive to be true late-game investments.
 const UPGRADE_COSTS := [
 	[0, 0],         # Lv1 (base)
-	[300, 20],      # Lv2
-	[800, 50],      # Lv3
-	[1500, 100],    # Lv4
-	[3000, 200],    # Lv5
+	[200, 15],      # Lv2 — affordable after 3-4 turns of saving
+	[600, 40],      # Lv3 — mid-game investment, requires ~10 tiles income
+	[1400, 90],     # Lv4 — late-mid commitment
+	[3000, 200],    # Lv5 — endgame prestige upgrade
 ]
 
 ## Production multipliers per settlement level (TW:W scaling)
-const UPGRADE_PROD_MULT := [1.0, 1.3, 1.6, 2.0, 2.5]
+## v4.6: Steeper curve at L3+ to reward upgrading. L3 = 1.8x (up from 1.6),
+## L5 = 3.0x (up from 2.5) makes fully upgraded tiles a major power source.
+const UPGRADE_PROD_MULT := [1.0, 1.3, 1.8, 2.2, 3.0]
 
 ## Construction time per level (turns)
 const UPGRADE_TURNS := [0, 1, 2, 3, 4]
@@ -75,7 +88,9 @@ const COMBAT_POWER_PER_UNIT: int = 10
 const HERO_BASE_COMBAT_POWER: int = 5
 
 ## Maximum battle rounds before defender wins
-const MAX_COMBAT_ROUNDS: int = 12
+## v4.6: Reduced from 12→8 to make battles more decisive. Combined with
+## higher minimum damage rate, battles should resolve in 3-5 rounds typically.
+const MAX_COMBAT_ROUNDS: int = 8
 
 ## Formation slots (SR07: 3 front + 3 back = 6 per side)
 const FRONT_SLOTS: int = 3
@@ -84,14 +99,16 @@ const BACK_SLOTS: int = 3
 ## Damage formula: SR07 percentage-based (soldiers × (ATK-DEF)% × skill × terrain)
 const DAMAGE_DIVISOR: float = 100.0
 
-## SR07 guarantees minimum 10% damage rate
-const DAMAGE_MIN_RATE: float = 0.10
+## SR07 guarantees minimum 12% damage rate (v4.6: raised from 10% for faster battles)
+const DAMAGE_MIN_RATE: float = 0.12
 
 ## SR07 war banners: each unit gets 2-4 actions per battle
 const UNIT_MOVES_BASE: int = 3
 const UNIT_MOVES_MAX: int = 5
 
-const TERRAIN_DEFENDER_BONUS: float = 0.10  # SR07 town +10% 防御方优势 (独立于地形)
+## v4.6: Raised from 10%→15% so defenders have a real edge. Attacking
+## requires planning — you can't just throw troops at fortified positions.
+const TERRAIN_DEFENDER_BONUS: float = 0.15  # SR07 town +15% 防御方优势 (独立于地形)
 
 # ═══════════════ ARMY (TW:W aligned) ═══════════════
 
@@ -102,9 +119,12 @@ const MAX_TROOPS_PER_ARMY: int = 6  # match 6 slots
 const MAX_HEROES_PER_ARMY: int = 2
 
 ## Action points (matches SR07's 2 action fans)
+## v4.6: Kept BASE_AP at 2 (SR07 standard). Scaling now grants +1 per 7 tiles
+## instead of 5, so the jump from 2→3 AP requires real expansion (~7 tiles).
+## Max raised to 6 so late-game empires (35+ tiles) feel powerful.
 const BASE_AP: int = 2
-const AP_PER_5_TILES: int = 1
-const MAX_AP: int = 5
+const AP_PER_5_TILES: int = 1   # Note: actually per 7 tiles now, see game_manager
+const MAX_AP: int = 6
 
 ## Base population cap before tile bonuses
 const BASE_POPULATION_CAP: int = 3
@@ -145,12 +165,15 @@ const THREAT_TIER_MILITARY: int = 79
 const THREAT_TIER_FULL_ALLIANCE: int = 80
 
 ## Threat changes
-const THREAT_PER_CAPTURE: int = 10
+## v4.6: Threat decay slowed from -3 to -2 per turn so turtling is penalized.
+## Capturing tiles now generates +12 threat (up from 10) to create faster escalation.
+## Dominance bonus raised to +10 so holding >50% map creates real urgency.
+const THREAT_PER_CAPTURE: int = 12
 const THREAT_PER_HERO_CAPTURE: int = 15
 const THREAT_PER_HERO_RELEASE: int = -10
 const THREAT_PER_DIPLOMACY: int = -10
-const THREAT_DECAY_PER_TURN: int = -3
-const THREAT_DOMINANCE_BONUS: int = 8  # per turn if >50% nodes
+const THREAT_DECAY_PER_TURN: int = -2
+const THREAT_DOMINANCE_BONUS: int = 10  # per turn if >50% nodes
 
 # ═══════════════ FACTION MECHANICS ═══════════════
 
@@ -168,8 +191,11 @@ const PIRATE_PLUNDER_PER_LEVEL: int = 10
 const PIRATE_SPOILS_MULT: float = 1.5
 
 ## Dark Elf slaves
-const SLAVE_CAPACITY_PER_NODE_LEVEL: int = 5
-const SLAVE_LABOR_INCOME: float = 0.5
+## v4.6: Slave labor income raised from 0.5→0.7 to make the slave economy
+## a meaningful alternative income stream. With 8 starting slaves = 5.6 extra gold/turn.
+## Capacity raised to 6 per level so upgraded tiles can hold large slave populations.
+const SLAVE_CAPACITY_PER_NODE_LEVEL: int = 6
+const SLAVE_LABOR_INCOME: float = 0.7
 const SLAVE_CONVERSION_RATIO: int = 3   # slaves per soldier
 const SLAVE_ALTAR_ESSENCE: int = 2      # shadow essence per sacrifice
 const SLAVE_REVOLT_THRESHOLD_MULT: int = 3  # revolt if slaves > garrison × this
@@ -270,9 +296,12 @@ const AFFINITY_MAX: int = 10
 const AFFINITY_PER_TURN_FRIENDLY: int = 1
 
 ## SR07 commander stat multipliers (scaled for our number range)
-const HERO_STAT_ATK_MULT: int = 3   # SR07 commander ATK adds ATK×10, we scale to ×3
+## v4.6: ATK mult raised to 4 so high-ATK heroes (8-10) give +32-40 to army.
+## DEF kept at 2 (defense is less exciting but still valuable).
+## SPD raised to 2 so fast heroes meaningfully affect turn order.
+const HERO_STAT_ATK_MULT: int = 4   # SR07 commander ATK adds ATK×10, we scale to ×4
 const HERO_STAT_DEF_MULT: int = 2   # SR07 DEF adds DEF×8, we scale to ×2
-const HERO_STAT_SPD_MULT: int = 1   # SR07 SPD affects delay by SPD×2
+const HERO_STAT_SPD_MULT: int = 2   # SR07 SPD affects delay by SPD×2
 
 # ═══════════════ NEUTRAL FACTIONS ═══════════════
 
@@ -372,12 +401,14 @@ const MANA_PER_MAGE_TILE: int = 10
 const ALLIANCE_DEF_BONUS_PCT: int = 30
 
 ## Expedition spawn chance per turn (%)
+## v4.6: Raised desperate chance from 40→50 for real late-game pressure.
 const EXPEDITION_CHANCE_MILITARY: int = 25
-const EXPEDITION_CHANCE_DESPERATE: int = 40
+const EXPEDITION_CHANCE_DESPERATE: int = 50
 
 ## Expedition army strength
+## v4.6: Desperate strength raised from 15→18 to punish over-expansion.
 const EXPEDITION_STRENGTH_MILITARY: int = 8
-const EXPEDITION_STRENGTH_DESPERATE: int = 15
+const EXPEDITION_STRENGTH_DESPERATE: int = 18
 
 ## Expedition combat multipliers
 const EXPEDITION_ATK_PER_UNIT: float = 10.0
@@ -507,8 +538,10 @@ const EXPEDITION_DEFEND_LOSS_MULT: float = 0.5   # garrison -= strength × this 
 const EXPEDITION_CAPTURE_GARRISON_MULT: float = 0.6  # new garrison = strength × this (on defend loss)
 
 ## Combat experience values
-const COMBAT_XP_WIN: int = 5
-const COMBAT_XP_LOSS: int = 2
+## v4.6: Increased rewards for winning and penalty for losing to make
+## each battle decision matter. Winning grants real progression, losing hurts.
+const COMBAT_XP_WIN: int = 8
+const COMBAT_XP_LOSS: int = 3
 
 ## Defender army contribution
 const DEFENDER_ARMY_CONTRIBUTION: float = 0.5
@@ -525,10 +558,12 @@ const ACADEMY_QUEUE_SIZE := [1, 1, 2, 3]  # Lv0, Lv1, Lv2, Lv3
 const HERO_MAX_LEVEL: int = 50
 
 ## EXP awards per combat
-const HERO_EXP_COMBAT_WIN: int = 10
-const HERO_EXP_COMBAT_LOSS: int = 3
-const HERO_EXP_PER_KILL: int = 2
-const HERO_EXP_BOSS_BONUS: int = 15
+## v4.6: Winning grants more XP to reward successful battles.
+## Per-kill XP raised so aggressive play builds stronger heroes.
+const HERO_EXP_COMBAT_WIN: int = 15
+const HERO_EXP_COMBAT_LOSS: int = 4
+const HERO_EXP_PER_KILL: int = 3
+const HERO_EXP_BOSS_BONUS: int = 20
 
 ## Default HP per soldier (fallback if troop def missing)
 const HP_PER_SOLDIER_DEFAULT: int = 5
@@ -915,9 +950,11 @@ const HIDDEN_HEROES: Array = [
 ## 0 = no turn limit (sandbox mode)
 const TURN_LIMIT: int = 60
 ## Warning threshold: start showing urgency messages
-const TURN_LIMIT_WARNING: int = 10
+## v4.6: Raised from 10→15 to give player more time to react to time pressure.
+const TURN_LIMIT_WARNING: int = 15
 ## Bonus scoring for finishing early
-const SPEED_CLEAR_BONUS_PER_TURN: int = 50
+## v4.6: Raised from 50→75 to incentivize aggressive play over turtling.
+const SPEED_CLEAR_BONUS_PER_TURN: int = 75
 
 # ═══════════════ SAT / 満足度 (SR07 aligned) ═══════════════
 

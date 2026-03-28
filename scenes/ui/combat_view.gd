@@ -32,7 +32,7 @@ const DIVIDER_X := 640.0
 const GRID_TOP := 140.0
 const TURN_BAR_Y := 100.0
 const TURN_ICON_SIZE := 40.0
-const MAX_ROUNDS := 12
+const MAX_ROUNDS := 8
 const CLOCK_Y := 540.0
 const LOG_TOP := 570.0
 const ANIM_BASE_SPEED := 0.4
@@ -279,7 +279,7 @@ func _build_ui() -> void:
 	# Terrain + round info
 	terrain_label = _make_label("Terrain: Plains", 13, Color(0.6, 0.6, 0.5), Vector2(40, 50), Vector2(300, 20))
 	shake_container.add_child(terrain_label)
-	round_label = _make_label("Round 0/12", 13, Color(0.85, 0.75, 0.55), Vector2(SCREEN_W - 200, 50), Vector2(160, 20))
+	round_label = _make_label("Round 0/%d" % MAX_ROUNDS, 13, Color(0.85, 0.75, 0.55), Vector2(SCREEN_W - 200, 50), Vector2(160, 20))
 	round_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	shake_container.add_child(round_label)
 
@@ -1130,9 +1130,10 @@ func _apply_death_overlay(side: String, slot_idx: int) -> void:
 		overlay.add_theme_color_override("font_color", Color(1.0, 0.25, 0.15))
 	overlay.visible = true
 
-	# Desaturate + dim with tween
+	# Desaturate + dim with tween (v4.6: enhanced fade-out for dramatic death)
 	var tw := create_tween()
-	tw.tween_property(card, "modulate", Color(0.35, 0.35, 0.35, 0.75), 0.3 / _speed_mult).set_ease(Tween.EASE_OUT)
+	tw.tween_property(card, "modulate", Color(0.5, 0.15, 0.15, 0.9), 0.1 / _speed_mult).set_ease(Tween.EASE_OUT)
+	tw.tween_property(card, "modulate", Color(0.3, 0.3, 0.3, 0.5), 0.3 / _speed_mult).set_ease(Tween.EASE_IN)
 
 	# Count kills
 	if side == "attacker":

@@ -34,7 +34,7 @@ const TILE_NAMES: Dictionary = {
 # ── Balance constants ──
 const MAP_NODE_COUNT: int = 55
 const BASE_AP: int = 2
-const AP_PER_TILES: int = 5  # +1 AP per 5 owned tiles
+const AP_PER_TILES: int = 7  # v4.6: 5→7 so +1 AP requires real expansion
 const MAX_AP: int = 6
 const COMBAT_POWER_PER_UNIT: int = BalanceConfig.COMBAT_POWER_PER_UNIT
 

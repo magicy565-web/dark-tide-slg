@@ -139,6 +139,11 @@ var _ai_turn_active: bool = false
 var messages: Array = []
 const MAX_MESSAGES: int = 12
 
+# ── Visual feedback tracking (v4.6) ──
+var _prev_gold: int = -1
+var _prev_food: int = -1
+var _prev_iron: int = -1
+
 
 # ═══════════════════════════════════════════════════════════════
 #                          LIFECYCLE
@@ -781,6 +786,8 @@ func _on_phase_banner_requested(text: String, is_ai_turn: bool) -> void:
 	_phase_banner_label.text = text
 	_phase_banner.visible = true
 	_ai_turn_active = is_ai_turn
+	# Visual: slide banner in from top
+	_animate_phase_banner_in()
 
 	if is_ai_turn:
 		# Stay visible and disable input during AI turn
@@ -862,6 +869,7 @@ func _on_attack_pressed() -> void:
 		return
 	_current_mode = ActionMode.ATTACK
 	_selected_army_id = -1
+	_pulse_button(btn_attack)
 	var pid: int = GameManager.get_human_player_id()
 	var armies: Array = GameManager.get_player_armies(pid)
 
@@ -912,6 +920,7 @@ func _on_deploy_pressed() -> void:
 		return
 	_current_mode = ActionMode.DEPLOY
 	_selected_army_id = -1
+	_pulse_button(btn_deploy)
 	var pid: int = GameManager.get_human_player_id()
 	var armies: Array = GameManager.get_player_armies(pid)
 
@@ -954,6 +963,7 @@ func _on_domestic_pressed() -> void:
 		_close_target_panel()
 		return
 	_current_mode = ActionMode.DOMESTIC
+	_pulse_button(btn_domestic)
 	target_panel.visible = false
 	_clear_target_buttons()
 
@@ -984,6 +994,7 @@ func _on_diplomacy_pressed() -> void:
 		_close_target_panel()
 		return
 	_current_mode = ActionMode.DIPLOMACY
+	_pulse_button(btn_diplomacy)
 	var pid: int = GameManager.get_human_player_id()
 	var targets: Array = GameManager.get_diplomacy_targets(pid)
 
@@ -1043,6 +1054,7 @@ func _on_explore_pressed() -> void:
 		_close_target_panel()
 		return
 	_current_mode = ActionMode.EXPLORE
+	_pulse_button(btn_explore)
 	var pid: int = GameManager.get_human_player_id()
 	var tiles: Array = GameManager.get_explorable_tiles(pid)
 
@@ -2481,6 +2493,35 @@ func _update_items() -> void:
 
 
 # ═══════════════════════════════════════════════════════════════
+#               VISUAL FEEDBACK HELPERS (v4.6)
+# ═══════════════════════════════════════════════════════════════
+
+## Flash a resource label yellow (gain) or red (loss) then back to white
+func _flash_resource_label(label: Label, is_gain: bool) -> void:
+	if not is_instance_valid(label): return
+	var flash_color := Color(1, 0.9, 0.2) if is_gain else Color(1, 0.2, 0.15)
+	var tw := create_tween()
+	tw.tween_property(label, "modulate", flash_color, 0.1)
+	tw.tween_property(label, "modulate", Color.WHITE, 0.35).set_ease(Tween.EASE_OUT)
+
+## Brief scale pulse on a button after a successful action
+func _pulse_button(btn: Button) -> void:
+	if not is_instance_valid(btn): return
+	btn.pivot_offset = btn.size * 0.5
+	var tw := create_tween()
+	tw.tween_property(btn, "scale", Vector2(1.1, 1.1), 0.08).set_ease(Tween.EASE_OUT)
+	tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.15).set_ease(Tween.EASE_IN)
+
+## Slide the phase banner in from top with ease-out
+func _animate_phase_banner_in() -> void:
+	if not is_instance_valid(_phase_banner): return
+	var target_top: float = _phase_banner.offset_top
+	_phase_banner.offset_top = target_top - 60
+	var tw := create_tween()
+	tw.tween_property(_phase_banner, "offset_top", target_top, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+
+# ═══════════════════════════════════════════════════════════════
 #                  SIGNAL HANDLERS
 # ═══════════════════════════════════════════════════════════════
 
@@ -2490,6 +2531,11 @@ func _on_turn_started(_player_id: int) -> void:
 	_update_tile_info()
 	_update_buttons()
 	_update_items()
+	# Visual: snapshot resources for change detection on next update
+	var pid: int = GameManager.get_human_player_id()
+	_prev_gold = ResourceManager.get_resource(pid, "gold")
+	_prev_food = ResourceManager.get_resource(pid, "food")
+	_prev_iron = ResourceManager.get_resource(pid, "iron")
 
 
 func _on_turn_ended(_player_id: int) -> void:
@@ -2498,6 +2544,22 @@ func _on_turn_ended(_player_id: int) -> void:
 
 
 func _on_resources_changed(_pid: int) -> void:
+	# Visual: flash resource labels on significant change (>10%)
+	var pid: int = GameManager.get_human_player_id()
+	if _pid == pid and _prev_gold >= 0:
+		var new_gold: int = ResourceManager.get_resource(pid, "gold")
+		var new_food: int = ResourceManager.get_resource(pid, "food")
+		var new_iron: int = ResourceManager.get_resource(pid, "iron")
+		var threshold := 0.10
+		if _prev_gold > 0 and absf(float(new_gold - _prev_gold) / _prev_gold) > threshold:
+			_flash_resource_label(gold_label, new_gold > _prev_gold)
+		if _prev_food > 0 and absf(float(new_food - _prev_food) / _prev_food) > threshold:
+			_flash_resource_label(food_label, new_food > _prev_food)
+		if _prev_iron > 0 and absf(float(new_iron - _prev_iron) / _prev_iron) > threshold:
+			_flash_resource_label(iron_label, new_iron > _prev_iron)
+		_prev_gold = new_gold
+		_prev_food = new_food
+		_prev_iron = new_iron
 	_update_player_info()
 
 
