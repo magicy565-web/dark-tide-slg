@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>暗潮 Dark Tide — 战略地图</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* === RESET & BASE === */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --gold:#DAA520;--gold-light:#F0D060;--gold-dark:#8B6914;
+  --bg-deep:#0a0a14;--bg-panel:#12121e;--bg-panel-alpha:rgba(18,18,30,0.92);
+  --border-gold:linear-gradient(135deg,#8B6914,#DAA520,#F0D060,#DAA520,#8B6914);
+  --text-primary:#e8e0d0;--text-secondary:#a09880;--text-dim:#605848;
+  --orc-primary:#8B0000;--orc-accent:#FF6600;
+  --pirate-primary:#1B2A4A;--pirate-accent:#DAA520;
+  --darkelf-primary:#3D0066;--darkelf-accent:#C0C0C0;
+  --human-primary:#DAA520;--human-accent:#CC0000;
+  --elf-primary:#006633;--elf-accent:#4169E1;
+  --mage-primary:#0047AB;--mage-accent:#7B2FBE;
+  --neutral-primary:#8B7D6B;--neutral-accent:#C4A35A;
+}
+html{font-size:14px}
+body{background:var(--bg-deep);color:var(--text-primary);font-family:'Noto Sans SC',sans-serif;overflow-x:hidden;min-height:100vh}
+
+/* === ORNAMENTAL HELPERS === */
+.gold-border{position:relative;border:1px solid var(--gold-dark);background:var(--bg-panel-alpha);box-shadow:inset 0 0 30px rgba(0,0,0,0.5),0 0 1px var(--gold-dark)}
+.gold-border::before{content:'';position:absolute;inset:-1px;padding:1px;background:var(--border-gold);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:0.7}
+
+/* === PARCHMENT TEXTURE (CSS-only) === */
+.parchment-bg{
+  background:
+    radial-gradient(ellipse at 20% 30%,rgba(90,70,40,0.15) 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 70%,rgba(60,50,30,0.12) 0%,transparent 50%),
+    radial-gradient(ellipse at 50% 50%,rgba(80,65,35,0.08) 0%,transparent 70%),
+    linear-gradient(180deg,#2a2218 0%,#1e1a12 30%,#221e14 70%,#1a1610 100%);
+  background-color:#1c1810;
+}
+
+/* === GAME FRAME === */
+.game-frame{width:1280px;height:720px;margin:20px auto;position:relative;display:flex;flex-direction:column;overflow:hidden;border:2px solid var(--gold-dark);box-shadow:0 0 60px rgba(218,165,32,0.08),0 0 120px rgba(0,0,0,0.6)}
+.game-frame::before,.game-frame::after{content:'';position:absolute;width:24px;height:24px;border:2px solid var(--gold);z-index:20;pointer-events:none}
+.game-frame::before{top:2px;left:2px;border-right:none;border-bottom:none}
+.game-frame::after{top:2px;right:2px;border-left:none;border-bottom:none}
+@media(max-width:1320px){.game-frame{transform-origin:top center;transform:scale(calc(100vw / 1320))}}
+
+/* === TOP RESOURCE BAR === */
+.resource-bar{height:44px;display:flex;align-items:center;padding:0 12px;gap:4px;background:linear-gradient(180deg,#1a1610 0%,#141008 100%);border-bottom:1px solid var(--gold-dark);position:relative;z-index:10;flex-shrink:0}
+.resource-bar::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.res-item{display:flex;align-items:center;gap:4px;padding:0 8px;font-size:13px;font-family:'Noto Sans SC',sans-serif}
+.res-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.res-icon svg{width:20px;height:20px}
+.res-value{color:var(--gold-light);font-weight:700;font-size:14px;min-width:32px;text-align:right}
+.res-label{color:var(--text-secondary);font-size:11px}
+.res-divider{width:1px;height:24px;background:linear-gradient(180deg,transparent,var(--gold-dark),transparent);margin:0 4px}
+.turn-counter{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:'Noto Serif SC',serif;font-weight:700;color:var(--gold);font-size:16px;letter-spacing:1px}
+.turn-counter .turn-num{font-size:22px;color:var(--gold-light);text-shadow:0 0 8px rgba(218,165,32,0.4)}
+
+/* === MAIN AREA === */
+.main-area{flex:1;display:flex;overflow:hidden;position:relative}
+
+/* === MAP AREA === */
+.map-area{flex:1;position:relative;overflow:hidden;cursor:grab}
+.map-area:active{cursor:grabbing}
+.map-viewport{width:100%;height:100%;position:relative}
+.map-canvas{position:absolute;inset:0}
+
+/* === SVG MAP === */
+.map-svg{width:100%;height:100%}
+.map-svg text{font-family:'Noto Sans SC',sans-serif;pointer-events:none;user-select:none}
+
+/* Territory node styles */
+.territory-node{cursor:pointer;transition:filter 0.2s}
+.territory-node:hover{filter:brightness(1.3)}
+.territory-node:hover .node-glow{opacity:0.6}
+.territory-node.selected .node-glow{opacity:0.8;animation:pulse-glow 1.5s infinite}
+.territory-node.attackable .node-border{stroke:#ff2020;animation:pulse-red 1s infinite}
+.node-glow{opacity:0;transition:opacity 0.3s}
+
+/* Connection paths */
+.connection-path{stroke:#4a4030;stroke-width:2;fill:none;stroke-dasharray:8 4;opacity:0.5}
+.supply-line{stroke:var(--gold);stroke-width:1.5;fill:none;stroke-dasharray:6 4;opacity:0.6;animation:supply-flow 2s linear infinite}
+
+/* Fog of war */
+.fog-territory{opacity:0.7;animation:fog-drift 8s ease-in-out infinite alternate}
+
+@keyframes pulse-glow{0%,100%{opacity:0.5}50%{opacity:1}}
+@keyframes pulse-red{0%,100%{opacity:0.6}50%{opacity:1}}
+@keyframes supply-flow{to{stroke-dashoffset:-20}}
+@keyframes fog-drift{0%{opacity:0.6}100%{opacity:0.8}}
+
+/* === MINIMAP === */
+.minimap{position:absolute;bottom:8px;left:8px;width:160px;height:100px;z-index:5}
+.minimap-inner{width:100%;height:100%;background:rgba(10,10,20,0.85);border:1px solid var(--gold-dark);position:relative;overflow:hidden}
+.minimap-dot{position:absolute;width:4px;height:4px;border-radius:50%}
+.minimap-viewport{position:absolute;border:1px solid rgba(255,255,255,0.5);pointer-events:none}
+.minimap-label{position:absolute;top:-18px;left:0;font-size:10px;color:var(--text-secondary);letter-spacing:2px;text-transform:uppercase}
+
+/* === RIGHT INFO PANEL === */
+.info-panel{width:280px;background:linear-gradient(180deg,#141010 0%,#100e0a 50%,#141010 100%);border-left:1px solid var(--gold-dark);display:flex;flex-direction:column;position:relative;flex-shrink:0;z-index:5}
+.info-panel::before{content:'';position:absolute;left:-1px;top:0;bottom:0;width:1px;background:linear-gradient(180deg,transparent,var(--gold),transparent)}
+
+.panel-header{padding:12px 14px;border-bottom:1px solid rgba(218,165,32,0.2);display:flex;align-items:center;gap:10px}
+.panel-header .territory-icon{width:36px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center}
+.panel-header .territory-name{font-family:'Noto Serif SC',serif;font-size:16px;font-weight:700;color:var(--gold-light)}
+.panel-header .territory-type{font-size:11px;color:var(--text-secondary)}
+
+.panel-section{padding:10px 14px;border-bottom:1px solid rgba(218,165,32,0.08)}
+.panel-section-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim);margin-bottom:6px;font-weight:500}
+.panel-row{display:flex;justify-content:space-between;align-items:center;padding:2px 0;font-size:12px}
+.panel-row .label{color:var(--text-secondary)}
+.panel-row .value{color:var(--text-primary);font-weight:500}
+
+.garrison-list{display:flex;flex-direction:column;gap:4px}
+.garrison-item{display:flex;align-items:center;gap:8px;padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:3px}
+.garrison-item .troop-icon{width:24px;height:24px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.garrison-item .troop-name{flex:1;font-size:11px;color:var(--text-secondary)}
+.garrison-item .troop-count{font-size:13px;font-weight:700;color:var(--gold-light)}
+
+.building-list{display:flex;flex-direction:column;gap:3px}
+.building-item{display:flex;align-items:center;gap:6px;font-size:11px}
+.building-item .bld-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:12px}
+.building-item .bld-level{color:var(--gold);font-size:10px}
+
+.production-row{display:flex;gap:12px;flex-wrap:wrap}
+.prod-item{display:flex;align-items:center;gap:4px;font-size:12px}
+.prod-item svg{width:16px;height:16px}
+.prod-item .prod-val{color:#8f8;font-weight:600}
+
+.panel-actions{padding:10px 14px;margin-top:auto;display:flex;flex-wrap:wrap;gap:6px}
+.panel-btn{flex:1;min-width:calc(50% - 3px);padding:8px 4px;font-size:11px;font-family:'Noto Sans SC',sans-serif;border:1px solid var(--gold-dark);background:linear-gradient(180deg,#2a2218,#1a1610);color:var(--gold-light);cursor:pointer;text-align:center;transition:all 0.2s;position:relative;letter-spacing:1px}
+.panel-btn:hover{background:linear-gradient(180deg,#3a3228,#2a2218);border-color:var(--gold);box-shadow:0 0 8px rgba(218,165,32,0.2)}
+.panel-btn:active{transform:scale(0.97)}
+.panel-btn.primary{background:linear-gradient(180deg,#4a2218,#3a1610);border-color:#cc4444}
+
+/* === BOTTOM ACTION BAR === */
+.action-bar{height:64px;display:flex;align-items:center;justify-content:center;padding:0 16px;gap:6px;background:linear-gradient(180deg,#141008 0%,#1a1610 100%);border-top:1px solid var(--gold-dark);position:relative;z-index:10;flex-shrink:0}
+.action-bar::before{content:'';position:absolute;top:-1px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+
+.action-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 14px;border:1px solid var(--gold-dark);background:linear-gradient(180deg,#2a2218 0%,#1a1610 50%,#141008 100%);color:var(--text-secondary);cursor:pointer;transition:all 0.2s;position:relative;min-width:72px}
+.action-btn::before{content:'';position:absolute;inset:-1px;padding:1px;background:var(--border-gold);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:0}
+.action-btn:hover{background:linear-gradient(180deg,#3a3228 0%,#2a2218 50%,#1a1610 100%);color:var(--gold-light)}
+.action-btn:hover::before{opacity:0.5}
+.action-btn:active{transform:translateY(1px)}
+.action-btn .btn-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.action-btn .btn-icon svg{width:24px;height:24px}
+.action-btn .btn-label{font-size:10px;letter-spacing:1px;font-weight:500}
+
+.action-btn.end-turn{border-color:#cc4444;background:linear-gradient(180deg,#3a1818 0%,#2a1010 100%)}
+.action-btn.end-turn:hover{background:linear-gradient(180deg,#4a2020 0%,#3a1818 100%);color:#ff8888}
+
+/* === ASSET SHOWCASE === */
+.asset-showcase{max-width:1280px;margin:40px auto;padding:0 20px}
+.showcase-title{font-family:'Noto Serif SC',serif;font-size:28px;font-weight:900;color:var(--gold);text-align:center;margin-bottom:8px;letter-spacing:4px}
+.showcase-subtitle{text-align:center;color:var(--text-secondary);font-size:13px;margin-bottom:32px;letter-spacing:2px}
+
+.asset-category{margin-bottom:32px}
+.category-title{font-family:'Noto Serif SC',serif;font-size:18px;color:var(--gold-light);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(218,165,32,0.2);letter-spacing:2px;display:flex;align-items:center;gap:8px}
+.category-title::before{content:'';width:4px;height:18px;background:var(--gold);display:inline-block}
+
+.asset-grid{display:grid;gap:12px}
+.asset-grid.terrain-grid{grid-template-columns:repeat(5,1fr)}
+.asset-grid.node-grid{grid-template-columns:repeat(7,1fr)}
+.asset-grid.icon-grid{grid-template-columns:repeat(9,1fr)}
+.asset-grid.ui-grid{grid-template-columns:repeat(4,1fr)}
+.asset-grid.faction-grid{grid-template-columns:repeat(7,1fr)}
+.asset-grid.resource-grid{grid-template-columns:repeat(8,1fr)}
+
+.asset-card{background:rgba(20,16,8,0.8);border:1px solid rgba(218,165,32,0.15);padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;transition:all 0.2s}
+.asset-card:hover{border-color:var(--gold);background:rgba(40,36,28,0.8)}
+.asset-card .asset-preview{width:64px;height:64px;display:flex;align-items:center;justify-content:center}
+.asset-card .asset-preview svg{width:100%;height:100%}
+.asset-card .asset-preview.large{width:80px;height:80px}
+.asset-card .asset-label{font-size:10px;color:var(--text-secondary);text-align:center;letter-spacing:1px}
+.asset-card .asset-label-zh{font-size:11px;color:var(--text-primary);font-weight:500}
+
+/* === SCROLLBAR === */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#0a0a14}
+::-webkit-scrollbar-thumb{background:var(--gold-dark);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--gold)}
+
+/* === TOOLTIP === */
+.map-tooltip{position:absolute;pointer-events:none;background:rgba(10,10,20,0.95);border:1px solid var(--gold-dark);padding:8px 12px;font-size:11px;color:var(--text-primary);z-index:100;display:none;min-width:120px;box-shadow:0 4px 16px rgba(0,0,0,0.6)}
+.map-tooltip .tt-name{font-family:'Noto Serif SC',serif;font-size:13px;color:var(--gold-light);font-weight:700;margin-bottom:4px}
+.map-tooltip .tt-row{display:flex;justify-content:space-between;gap:16px;padding:1px 0}
+.map-tooltip .tt-label{color:var(--text-secondary)}
+</style>
+</head>
+<body>
+
+<!-- PAGE HEADER -->
+<div style="text-align:center;padding:24px 0 8px;position:relative">
+  <div style="font-family:'Noto Serif SC',serif;font-size:36px;font-weight:900;color:#DAA520;letter-spacing:8px;text-shadow:0 2px 12px rgba(218,165,32,0.3)">暗 潮</div>
+  <div style="font-size:12px;color:#605848;letter-spacing:6px;margin-top:2px">DARK TIDE — STRATEGIC MAP UI</div>
+  <div style="width:200px;height:1px;margin:12px auto 0;background:linear-gradient(90deg,transparent,#DAA520,transparent)"></div>
+</div>
+
+<!-- GAME FRAME -->
+<div class="game-frame" id="gameFrame">
+  <div style="position:absolute;bottom:2px;left:2px;width:24px;height:24px;border-left:2px solid var(--gold);border-bottom:2px solid var(--gold);z-index:20;pointer-events:none"></div>
+  <div style="position:absolute;bottom:2px;right:2px;width:24px;height:24px;border-right:2px solid var(--gold);border-bottom:2px solid var(--gold);z-index:20;pointer-events:none"></div>
+  <!-- TOP RESOURCE BAR -->
+  <div class="resource-bar" id="resourceBar">
+    <!-- Filled by JS -->
+  </div>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+    <!-- MAP AREA -->
+    <div class="map-area parchment-bg" id="mapArea">
+      <div class="map-viewport">
+        <svg class="map-svg" id="mapSvg" viewBox="0 0 960 612">
+          <defs>
+            <!-- PLACEHOLDER: SVG defs filled by JS -->
+          </defs>
+          <!-- Map layers filled by JS -->
+        </svg>
+      </div>
+      <!-- MINIMAP -->
+      <div class="minimap gold-border">
+        <span class="minimap-label">MINIMAP</span>
+        <div class="minimap-inner" id="minimap"></div>
+      </div>
+      <!-- TOOLTIP -->
+      <div class="map-tooltip" id="mapTooltip">
+        <div class="tt-name"></div>
+        <div class="tt-content"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT INFO PANEL -->
+    <div class="info-panel" id="infoPanel">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- BOTTOM ACTION BAR -->
+  <div class="action-bar" id="actionBar">
+    <!-- Filled by JS -->
+  </div>
+</div>
+
+<!-- ASSET SHOWCASE -->
+<div class="asset-showcase" id="assetShowcase">
+  <div class="showcase-title">美术资源总览</div>
+  <div class="showcase-subtitle">DARK TIDE — MAP ASSET SHEET</div>
+  <!-- Filled by JS -->
+</div>
+
+<script>
+// ============================================================
+// DARK TIDE MAP — COMPLETE GAME DATA & RENDERING
+// ============================================================
+
+// === FACTION DATA ===
+const FACTIONS = {
+  orc:     { name:'兽人·铁牙氏族', nameEn:'Orc',     primary:'#8B0000', secondary:'#4A4A4A', accent:'#FF6600', flag:'#FF4444', border:'#CC3333' },
+  pirate:  { name:'海盗·深渊之牙', nameEn:'Pirate',   primary:'#1B2A4A', secondary:'#1A1A1A', accent:'#DAA520', flag:'#4488CC', border:'#3366AA' },
+  darkelf: { name:'暗精灵·永夜议会', nameEn:'Dark Elf', primary:'#3D0066', secondary:'#0D0D0D', accent:'#C0C0C0', flag:'#8844CC', border:'#6633AA' },
+  human:   { name:'人类·天城王朝', nameEn:'Human',    primary:'#DAA520', secondary:'#F5F5F5', accent:'#CC0000', flag:'#FFD700', border:'#DAA520' },
+  elf:     { name:'精灵·银月议庭', nameEn:'High Elf', primary:'#006633', secondary:'#C0C0C0', accent:'#4169E1', flag:'#44CC66', border:'#228844' },
+  mage:    { name:'法师·白塔同盟', nameEn:'Mage',     primary:'#0047AB', secondary:'#F0F0F0', accent:'#7B2FBE', flag:'#4466FF', border:'#2244CC' },
+  neutral: { name:'中立势力',      nameEn:'Neutral',  primary:'#555550', secondary:'#C4A35A', accent:'#FFFFFF', flag:'#999988', border:'#777766' },
+  none:    { name:'无主之地',      nameEn:'Unclaimed',primary:'#333330', secondary:'#222220', accent:'#444440', flag:'#444440', border:'#444440' }
+};
+
+// === TERRAIN DATA ===
+const TERRAINS = {
+  plains:   { name:'平原', color:'#6a8a3a', icon:'plains',   atkMod:1.0, defMod:1.0 },
+  forest:   { name:'森林', color:'#2a5a1a', icon:'forest',   atkMod:0.85,defMod:1.25 },
+  mountain: { name:'山地', color:'#7a6a5a', icon:'mountain', atkMod:0.75,defMod:1.40 },
+  swamp:    { name:'沼泽', color:'#4a5a3a', icon:'swamp',    atkMod:0.80,defMod:0.90 },
+  coastal:  { name:'沿海', color:'#3a5a7a', icon:'coastal',  atkMod:1.0, defMod:1.0 },
+  fortress_wall:{ name:'城墙', color:'#8a8070', icon:'wall', atkMod:0.70,defMod:1.50 },
+  river:    { name:'河流', color:'#3050a0', icon:'river',    atkMod:0.9, defMod:0.9 },
+  ruins:    { name:'遗迹', color:'#6a5a7a', icon:'ruins',    atkMod:1.0, defMod:1.0 },
+  wasteland:{ name:'荒原', color:'#8a7a5a', icon:'wasteland',atkMod:0.9, defMod:0.85 },
+  volcanic: { name:'火山', color:'#7a3020', icon:'volcanic', atkMod:0.9, defMod:0.85 }
+};
+
+// === TERRITORY DATA (55 territories) ===
+const TERRITORIES = [
+  // Core Fortresses - Evil (3)
+  {id:'broken_throne',name:'碎骨王座',type:'core_fortress',faction:'orc',terrain:'mountain',garrison:12,x:160,y:280,size:88,special:'WAAAGH上限+30'},
+  {id:'abyss_port',name:'深渊港',type:'core_fortress',faction:'pirate',terrain:'coastal',garrison:10,x:780,y:480,size:88,special:'掠夺值×2'},
+  {id:'eternal_night',name:'永夜暗城',type:'core_fortress',faction:'darkelf',terrain:'forest',garrison:14,x:420,y:60,size:88,special:'奴隶上限+10'},
+  // Core Fortresses - Light (5)
+  {id:'heaven_capital',name:'天城王都',type:'core_fortress',faction:'human',terrain:'fortress_wall',garrison:15,x:700,y:120,size:88,special:'圣殿女卫+DEF+20%'},
+  {id:'silver_fortress',name:'银冠要塞',type:'core_fortress',faction:'human',terrain:'fortress_wall',garrison:10,x:820,y:200,size:72,special:'每回合训练骑士'},
+  {id:'world_tree',name:'世界树圣地',type:'core_fortress',faction:'elf',terrain:'forest',garrison:12,x:200,y:100,size:88,special:'屏障×2+树人'},
+  {id:'arcane_bastion',name:'奥术堡垒',type:'core_fortress',faction:'mage',terrain:'mountain',garrison:12,x:480,y:500,size:88,special:'法力贡献×3'},
+  {id:'emerald_spire',name:'翡翠尖塔',type:'core_fortress',faction:'mage',terrain:'plains',garrison:8,x:560,y:540,size:72,special:'传送门'},
+  // Special Named Territories
+  {id:'silk_road_bazaar',name:'丝路集市',type:'trading_post',faction:'neutral',terrain:'plains',garrison:4,x:440,y:300,size:48,special:'贸易折扣'},
+  {id:'shadowmarket',name:'暗巷黑市',type:'trading_post',faction:'neutral',terrain:'coastal',garrison:6,x:700,y:400,size:48,special:'黑市交易'},
+  {id:'eagles_perch',name:'鹰眼哨',type:'watchtower',faction:'neutral',terrain:'mountain',garrison:3,x:340,y:180,size:44,special:'视野+2格'},
+  {id:'border_beacon',name:'边境烽火台',type:'watchtower',faction:'human',terrain:'mountain',garrison:5,x:620,y:200,size:44,special:'警示全境'},
+  {id:'ancient_library',name:'远古图书馆',type:'ruins_special',faction:'none',terrain:'ruins',garrison:8,x:300,y:400,size:52,special:'上古知识'},
+  {id:'fallen_temple',name:'堕落神殿',type:'ruins_special',faction:'none',terrain:'swamp',garrison:10,x:200,y:450,size:52,special:'邪神祭坛'},
+  {id:'smugglers_cove',name:'走私者湾',type:'port',faction:'pirate',terrain:'coastal',garrison:5,x:860,y:400,size:48,special:'隐蔽港口'},
+  {id:'fishermans_wharf',name:'渔人码头',type:'port',faction:'neutral',terrain:'coastal',garrison:3,x:900,y:320,size:44,special:'粮食充裕'},
+  {id:'iron_gate_pass',name:'铁门关',type:'mountain_pass',faction:'human',terrain:'mountain',garrison:12,x:560,y:180,size:56,special:'一夫当关'},
+  {id:'serpent_gorge',name:'蛇腹峡',type:'mountain_pass',faction:'none',terrain:'mountain',garrison:10,x:340,y:340,size:52,special:'蜿蜒峡谷'},
+  {id:'mist_bridge',name:'雾桥',type:'mountain_pass',faction:'none',terrain:'swamp',garrison:8,x:260,y:340,size:48,special:'沼泽桥梁'},
+  {id:'shadow_pass',name:'暗影隘口',type:'mountain_pass',faction:'darkelf',terrain:'forest',garrison:9,x:380,y:140,size:48,special:'幽暗小道'},
+  // Resource Stations
+  {id:'crystal_mine_1',name:'晶蓝矿脉',type:'crystal_mine',faction:'mage',terrain:'mountain',garrison:3,x:520,y:460,size:44,special:'魔晶+2/回合'},
+  {id:'crystal_mine_2',name:'紫霞矿洞',type:'crystal_mine',faction:'elf',terrain:'mountain',garrison:3,x:140,y:160,size:44,special:'魔晶+2/回合'},
+  {id:'horse_ranch_1',name:'风驰牧场',type:'horse_ranch',faction:'human',terrain:'plains',garrison:2,x:660,y:260,size:44,special:'战马+1/回合'},
+  {id:'horse_ranch_2',name:'草原马场',type:'horse_ranch',faction:'neutral',terrain:'plains',garrison:2,x:480,y:240,size:44,special:'战马+1/回合'},
+  {id:'gunpowder_1',name:'雷火工坊',type:'gunpowder',faction:'neutral',terrain:'mountain',garrison:4,x:400,y:440,size:44,special:'火药+1/回合'},
+  {id:'shadow_rift_1',name:'虚空裂隙',type:'shadow_rift',faction:'none',terrain:'wasteland',garrison:5,x:240,y:520,size:48,special:'暗影精华+1'},
+  {id:'shadow_rift_2',name:'暗蚀之门',type:'shadow_rift',faction:'none',terrain:'volcanic',garrison:5,x:120,y:380,size:48,special:'暗影精华+1'},
+  // Regular territories - Orc region
+  {id:'orc_village_1',name:'铁砧村',type:'village',faction:'orc',terrain:'plains',garrison:4,x:100,y:240,size:40,special:null},
+  {id:'orc_village_2',name:'嗥叫营',type:'village',faction:'orc',terrain:'wasteland',garrison:3,x:200,y:220,size:40,special:null},
+  {id:'orc_stronghold',name:'碎石要塞',type:'stronghold',faction:'orc',terrain:'mountain',garrison:7,x:120,y:330,size:56,special:null},
+  {id:'orc_outpost',name:'战猪哨',type:'outpost',faction:'orc',terrain:'plains',garrison:5,x:220,y:300,size:44,special:null},
+  // Human region
+  {id:'human_village_1',name:'晨光村',type:'village',faction:'human',terrain:'plains',garrison:4,x:740,y:180,size:40,special:null},
+  {id:'human_village_2',name:'麦穗镇',type:'village',faction:'human',terrain:'plains',garrison:5,x:800,y:130,size:40,special:null},
+  {id:'human_village_3',name:'石桥村',type:'village',faction:'human',terrain:'fortress_wall',garrison:4,x:640,y:120,size:40,special:null},
+  {id:'human_stronghold_1',name:'狮鹫堡',type:'stronghold',faction:'human',terrain:'fortress_wall',garrison:8,x:760,y:260,size:56,special:null},
+  {id:'human_outpost_1',name:'边境哨站',type:'outpost',faction:'human',terrain:'plains',garrison:5,x:880,y:230,size:44,special:null},
+  // Elf region
+  {id:'elf_village_1',name:'银叶谷',type:'village',faction:'elf',terrain:'forest',garrison:4,x:120,y:80,size:40,special:null},
+  {id:'elf_village_2',name:'月露林',type:'village',faction:'elf',terrain:'forest',garrison:3,x:260,y:80,size:40,special:null},
+  {id:'elf_outpost',name:'翠风哨',type:'outpost',faction:'elf',terrain:'forest',garrison:5,x:280,y:140,size:44,special:null},
+  // Mage region
+  {id:'mage_village_1',name:'星辰镇',type:'village',faction:'mage',terrain:'plains',garrison:4,x:440,y:540,size:40,special:null},
+  {id:'mage_outpost',name:'咒语哨',type:'outpost',faction:'mage',terrain:'mountain',garrison:5,x:600,y:480,size:44,special:null},
+  // Pirate region
+  {id:'pirate_village_1',name:'黑帆湾',type:'village',faction:'pirate',terrain:'coastal',garrison:4,x:840,y:480,size:40,special:null},
+  {id:'pirate_outpost',name:'礁石堡',type:'outpost',faction:'pirate',terrain:'coastal',garrison:6,x:720,y:520,size:44,special:null},
+  {id:'pirate_village_2',name:'沉船滩',type:'village',faction:'pirate',terrain:'coastal',garrison:3,x:900,y:440,size:40,special:null},
+  // Dark Elf region
+  {id:'de_village_1',name:'毒蔓居',type:'village',faction:'darkelf',terrain:'swamp',garrison:4,x:460,y:100,size:40,special:null},
+  // Neutral territories
+  {id:'neutral_1',name:'流浪者营地',type:'village',faction:'neutral',terrain:'plains',garrison:3,x:540,y:320,size:40,special:null},
+  {id:'neutral_2',name:'荒废矿井',type:'village',faction:'neutral',terrain:'mountain',garrison:4,x:380,y:380,size:40,special:null},
+  {id:'neutral_3',name:'猎人小屋',type:'village',faction:'neutral',terrain:'forest',garrison:2,x:320,y:260,size:40,special:null},
+  {id:'neutral_4',name:'驿站',type:'village',faction:'neutral',terrain:'plains',garrison:3,x:600,y:360,size:40,special:null},
+  {id:'neutral_5',name:'废弃塔楼',type:'outpost',faction:'none',terrain:'ruins',garrison:5,x:680,y:340,size:44,special:null},
+  {id:'neutral_6',name:'迷雾沼',type:'village',faction:'none',terrain:'swamp',garrison:3,x:160,y:460,size:40,special:null},
+  {id:'bandit_1',name:'黑鸦巢',type:'bandit',faction:'none',terrain:'forest',garrison:5,x:500,y:380,size:44,special:null},
+  {id:'bandit_2',name:'蝎尾寨',type:'bandit',faction:'none',terrain:'wasteland',garrison:4,x:340,y:480,size:44,special:null},
+  {id:'bandit_3',name:'断刃谷',type:'bandit',faction:'none',terrain:'mountain',garrison:6,x:640,y:440,size:44,special:null},
+  {id:'event_1',name:'命运十字路',type:'event',faction:'none',terrain:'plains',garrison:2,x:500,y:160,size:40,special:'随机事件'},
+  {id:'event_2',name:'低语之泉',type:'event',faction:'none',terrain:'forest',garrison:3,x:180,y:180,size:40,special:'随机事件'}
+];
+
+// === ADJACENCY (simplified connectivity) ===
+const ADJACENCY = [
+  ['broken_throne','orc_village_1'],['broken_throne','orc_village_2'],['broken_throne','orc_stronghold'],['broken_throne','orc_outpost'],
+  ['orc_village_1','orc_village_2'],['orc_village_2','orc_outpost'],['orc_stronghold','shadow_rift_2'],['orc_outpost','mist_bridge'],['orc_outpost','neutral_3'],
+  ['abyss_port','pirate_village_1'],['abyss_port','pirate_outpost'],['abyss_port','smugglers_cove'],['abyss_port','pirate_village_2'],
+  ['pirate_village_1','pirate_village_2'],['pirate_outpost','bandit_3'],['smugglers_cove','pirate_village_2'],['smugglers_cove','fishermans_wharf'],
+  ['eternal_night','shadow_pass'],['eternal_night','de_village_1'],['eternal_night','eagles_perch'],
+  ['heaven_capital','human_village_3'],['heaven_capital','human_village_1'],['heaven_capital','human_village_2'],['heaven_capital','iron_gate_pass'],
+  ['silver_fortress','human_village_1'],['silver_fortress','human_stronghold_1'],['silver_fortress','human_outpost_1'],
+  ['human_village_1','human_stronghold_1'],['human_village_2','human_outpost_1'],['human_village_3','iron_gate_pass'],['human_stronghold_1','horse_ranch_1'],
+  ['world_tree','elf_village_1'],['world_tree','elf_village_2'],['world_tree','crystal_mine_2'],
+  ['elf_village_1','elf_village_2'],['elf_village_2','elf_outpost'],['elf_outpost','eagles_perch'],['elf_outpost','event_2'],
+  ['arcane_bastion','crystal_mine_1'],['arcane_bastion','mage_village_1'],['arcane_bastion','mage_outpost'],['arcane_bastion','gunpowder_1'],
+  ['emerald_spire','mage_outpost'],['emerald_spire','mage_village_1'],['emerald_spire','pirate_outpost'],
+  ['silk_road_bazaar','neutral_1'],['silk_road_bazaar','horse_ranch_2'],['silk_road_bazaar','serpent_gorge'],['silk_road_bazaar','neutral_4'],
+  ['shadowmarket','neutral_5'],['shadowmarket','pirate_outpost'],['shadowmarket','fishermans_wharf'],
+  ['eagles_perch','elf_outpost'],['eagles_perch','shadow_pass'],['border_beacon','iron_gate_pass'],['border_beacon','horse_ranch_1'],
+  ['ancient_library','neutral_2'],['ancient_library','serpent_gorge'],['ancient_library','bandit_2'],
+  ['fallen_temple','shadow_rift_1'],['fallen_temple','neutral_6'],['fallen_temple','bandit_2'],
+  ['iron_gate_pass','event_1'],['iron_gate_pass','border_beacon'],
+  ['serpent_gorge','neutral_3'],['serpent_gorge','neutral_2'],['mist_bridge','neutral_3'],['mist_bridge','orc_outpost'],
+  ['shadow_pass','de_village_1'],['shadow_pass','eagles_perch'],
+  ['horse_ranch_2','neutral_1'],['horse_ranch_2','event_1'],
+  ['neutral_1','neutral_4'],['neutral_4','neutral_5'],['neutral_4','bandit_1'],
+  ['neutral_5','bandit_3'],['neutral_5','shadowmarket'],
+  ['bandit_1','bandit_3'],['bandit_1','neutral_4'],
+  ['neutral_6','orc_stronghold'],['neutral_6','shadow_rift_2'],
+  ['shadow_rift_1','bandit_2'],['shadow_rift_1','fallen_temple'],
+  ['de_village_1','event_1'],['event_2','elf_village_1'],['event_2','orc_village_2'],
+  ['mage_village_1','bandit_2'],['mage_outpost','bandit_3'],
+  ['human_outpost_1','fishermans_wharf'],['horse_ranch_1','neutral_4'],
+  ['gunpowder_1','ancient_library'],['gunpowder_1','bandit_2'],
+  ['crystal_mine_1','mage_outpost']
+];
+
+// === SVG ICON DEFINITIONS ===
+const SVG_DEFS = `
+  <!-- Parchment texture filter -->
+  <filter id="parchment-noise" x="0%" y="0%" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" result="noise"/>
+    <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise"/>
+    <feBlend in="SourceGraphic" in2="grayNoise" mode="multiply" result="blended"/>
+  </filter>
+  <!-- Glow filter -->
+  <filter id="glow-gold" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+    <feFlood flood-color="#DAA520" flood-opacity="0.6"/>
+    <feComposite in2="blur" operator="in"/>
+    <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glow-red" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+    <feFlood flood-color="#ff2020" flood-opacity="0.7"/>
+    <feComposite in2="blur" operator="in"/>
+    <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glow-white" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+    <feFlood flood-color="#ffffff" flood-opacity="0.5"/>
+    <feComposite in2="blur" operator="in"/>
+    <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <!-- Fog filter -->
+  <filter id="fog-filter" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="4" seed="2">
+      <animate attributeName="seed" from="0" to="100" dur="20s" repeatCount="indefinite"/>
+    </feTurbulence>
+    <feColorMatrix type="saturate" values="0"/>
+    <feComponentTransfer><feFuncA type="table" tableValues="0 0.3 0.5 0.6"/></feComponentTransfer>
+    <feBlend in="SourceGraphic" mode="multiply"/>
+  </filter>
+  <!-- Drop shadow -->
+  <filter id="drop-shadow">
+    <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000" flood-opacity="0.5"/>
+  </filter>
+
+  <!-- TERRAIN PATTERNS -->
+  <pattern id="pat-plains" width="20" height="20" patternUnits="userSpaceOnUse">
+    <rect width="20" height="20" fill="#4a6a2a"/>
+    <path d="M2 18 Q5 14 8 18 M12 16 Q14 12 17 16" stroke="#5a7a3a" stroke-width="0.8" fill="none"/>
+    <circle cx="10" cy="8" r="0.5" fill="#6a8a3a" opacity="0.5"/>
+  </pattern>
+  <pattern id="pat-forest" width="16" height="16" patternUnits="userSpaceOnUse">
+    <rect width="16" height="16" fill="#1a4a12"/>
+    <path d="M4 14 L8 4 L12 14 Z" fill="#2a5a1a" opacity="0.6"/>
+    <path d="M1 14 L3 8 L5 14" fill="#1a4a12" opacity="0.4"/>
+    <path d="M11 14 L13 9 L15 14" fill="#1a4a12" opacity="0.4"/>
+  </pattern>
+  <pattern id="pat-mountain" width="24" height="20" patternUnits="userSpaceOnUse">
+    <rect width="24" height="20" fill="#5a4a3a"/>
+    <path d="M0 20 L8 4 L16 20 Z" fill="#6a5a4a" opacity="0.5"/>
+    <path d="M8 20 L16 6 L24 20 Z" fill="#7a6a5a" opacity="0.4"/>
+    <path d="M6 6 L8 4 L10 6" fill="#eee" opacity="0.15"/>
+  </pattern>
+  <pattern id="pat-swamp" width="16" height="16" patternUnits="userSpaceOnUse">
+    <rect width="16" height="16" fill="#3a4a28"/>
+    <circle cx="4" cy="12" r="1.5" fill="#4a5a38" opacity="0.5"/>
+    <circle cx="12" cy="6" r="1" fill="#4a5a38" opacity="0.4"/>
+    <path d="M2 8 Q8 6 14 8" stroke="#5a6a48" stroke-width="0.5" fill="none" opacity="0.3"/>
+  </pattern>
+  <pattern id="pat-coastal" width="20" height="12" patternUnits="userSpaceOnUse">
+    <rect width="20" height="12" fill="#2a4a6a"/>
+    <path d="M0 6 Q5 3 10 6 Q15 9 20 6" stroke="#3a5a7a" stroke-width="1" fill="none" opacity="0.5"/>
+    <path d="M0 10 Q5 7 10 10 Q15 13 20 10" stroke="#3a5a7a" stroke-width="0.8" fill="none" opacity="0.3"/>
+  </pattern>
+  <pattern id="pat-wall" width="12" height="10" patternUnits="userSpaceOnUse">
+    <rect width="12" height="10" fill="#6a6050"/>
+    <rect x="0" y="0" width="5" height="4" fill="#7a7060" opacity="0.5" rx="0.5"/>
+    <rect x="6" y="0" width="5" height="4" fill="#7a7060" opacity="0.5" rx="0.5"/>
+    <rect x="3" y="5" width="5" height="4" fill="#7a7060" opacity="0.5" rx="0.5"/>
+    <rect x="9" y="5" width="3" height="4" fill="#7a7060" opacity="0.5" rx="0.5"/>
+  </pattern>
+  <pattern id="pat-river" width="16" height="16" patternUnits="userSpaceOnUse">
+    <rect width="16" height="16" fill="#2a4080"/>
+    <path d="M0 4 Q4 2 8 4 Q12 6 16 4" stroke="#4060a0" stroke-width="1.5" fill="none" opacity="0.5">
+      <animate attributeName="d" values="M0 4 Q4 2 8 4 Q12 6 16 4;M0 6 Q4 4 8 6 Q12 8 16 6;M0 4 Q4 2 8 4 Q12 6 16 4" dur="3s" repeatCount="indefinite"/>
+    </path>
+  </pattern>
+  <pattern id="pat-ruins" width="16" height="16" patternUnits="userSpaceOnUse">
+    <rect width="16" height="16" fill="#5a4a6a"/>
+    <rect x="2" y="8" width="3" height="8" fill="#6a5a7a" opacity="0.4" transform="rotate(-8 3.5 12)"/>
+    <rect x="10" y="6" width="2" height="10" fill="#6a5a7a" opacity="0.3" transform="rotate(5 11 11)"/>
+  </pattern>
+  <pattern id="pat-wasteland" width="20" height="20" patternUnits="userSpaceOnUse">
+    <rect width="20" height="20" fill="#6a5a3a"/>
+    <circle cx="5" cy="15" r="0.8" fill="#7a6a4a" opacity="0.3"/>
+    <circle cx="15" cy="5" r="0.6" fill="#7a6a4a" opacity="0.2"/>
+    <path d="M8 10 Q10 8 12 10" stroke="#7a6a4a" stroke-width="0.5" fill="none" opacity="0.2"/>
+  </pattern>
+  <pattern id="pat-volcanic" width="16" height="16" patternUnits="userSpaceOnUse">
+    <rect width="16" height="16" fill="#5a2010"/>
+    <circle cx="8" cy="8" r="1" fill="#ff4400" opacity="0.3">
+      <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="3" cy="13" r="0.6" fill="#ff6600" opacity="0.2">
+      <animate attributeName="opacity" values="0.2;0.5;0.2" dur="1.5s" repeatCount="indefinite"/>
+    </circle>
+  </pattern>
+`;
+
+// Map terrain to pattern id
+const TERRAIN_PATTERN = {
+  plains:'pat-plains',forest:'pat-forest',mountain:'pat-mountain',swamp:'pat-swamp',
+  coastal:'pat-coastal',fortress_wall:'pat-wall',river:'pat-river',ruins:'pat-ruins',
+  wasteland:'pat-wasteland',volcanic:'pat-volcanic'
+};
+
+// === TYPE ICONS (SVG paths for territory type indicators) ===
+function getTypeIconSVG(type, size) {
+  const s = size * 0.35;
+  const icons = {
+    core_fortress: `<polygon points="0,-${s} ${s*0.3},-${s*0.4} ${s},-${s*0.3} ${s*0.5},${s*0.1} ${s*0.6},${s} 0,${s*0.5} -${s*0.6},${s} -${s*0.5},${s*0.1} -${s},-${s*0.3} -${s*0.3},-${s*0.4}" fill="#FFD700" opacity="0.9"/>`,
+    stronghold: `<rect x="-${s*0.6}" y="-${s*0.6}" width="${s*1.2}" height="${s*1.2}" fill="none" stroke="#ccc" stroke-width="1.5" rx="2"/>
+                 <rect x="-${s*0.3}" y="-${s*0.8}" width="${s*0.15}" height="${s*0.3}" fill="#ccc"/>
+                 <rect x="${s*0.15}" y="-${s*0.8}" width="${s*0.15}" height="${s*0.3}" fill="#ccc"/>`,
+    village: `<path d="M-${s*0.5} ${s*0.3} L-${s*0.5} -${s*0.1} L0 -${s*0.5} L${s*0.5} -${s*0.1} L${s*0.5} ${s*0.3} Z" fill="#a08060" opacity="0.8"/>`,
+    outpost: `<circle r="${s*0.4}" fill="none" stroke="#aaa" stroke-width="1.5"/><circle r="${s*0.15}" fill="#aaa"/>`,
+    bandit: `<path d="M0 -${s*0.5} L${s*0.15} -${s*0.1} L${s*0.5} ${s*0.1} L${s*0.2} ${s*0.2} L${s*0.3} ${s*0.5} L0 ${s*0.3} L-${s*0.3} ${s*0.5} L-${s*0.2} ${s*0.2} L-${s*0.5} ${s*0.1} L-${s*0.15} -${s*0.1} Z" fill="#aa4444" opacity="0.8"/>`,
+    event: `<circle r="${s*0.35}" fill="none" stroke="#eea0ff" stroke-width="1.2"/><text text-anchor="middle" dy="${s*0.15}" fill="#eea0ff" font-size="${s*0.6}" font-weight="bold">?</text>`,
+    trading_post: `<circle r="${s*0.35}" fill="#DAA520" opacity="0.8"/><text text-anchor="middle" dy="${s*0.15}" fill="#1a1a0a" font-size="${s*0.5}" font-weight="bold">$</text>`,
+    watchtower: `<rect x="-${s*0.15}" y="-${s*0.5}" width="${s*0.3}" height="${s}" fill="#aaa" opacity="0.8"/><polygon points="-${s*0.35},-${s*0.5} 0,-${s*0.8} ${s*0.35},-${s*0.5}" fill="#ddd" opacity="0.6"/>`,
+    ruins_special: `<rect x="-${s*0.4}" y="-${s*0.1}" width="${s*0.15}" height="${s*0.5}" fill="#9a8aaa" transform="rotate(-10)"/><rect x="${s*0.1}" y="-${s*0.3}" width="${s*0.12}" height="${s*0.6}" fill="#9a8aaa" transform="rotate(5)"/><rect x="-${s*0.5}" y="${s*0.3}" width="${s}" height="${s*0.08}" fill="#8a7a9a"/>`,
+    port: `<path d="M0 -${s*0.5} L0 ${s*0.2} M-${s*0.3} ${s*0.2} Q0 ${s*0.5} ${s*0.3} ${s*0.2}" stroke="#6af" stroke-width="1.5" fill="none"/><circle cx="0" cy="-${s*0.5}" r="${s*0.12}" fill="#6af"/>`,
+    mountain_pass: `<path d="M-${s*0.5} ${s*0.3} L-${s*0.2} -${s*0.4} L0 -${s*0.1} L${s*0.2} -${s*0.4} L${s*0.5} ${s*0.3}" fill="none" stroke="#baa" stroke-width="1.5"/><rect x="-${s*0.08}" y="-${s*0.2}" width="${s*0.16}" height="${s*0.5}" fill="#dcc" opacity="0.6"/>`,
+    crystal_mine: `<polygon points="0,-${s*0.5} ${s*0.3},0 ${s*0.15},${s*0.4} -${s*0.15},${s*0.4} -${s*0.3},0" fill="#8040c0" opacity="0.7"/><polygon points="0,-${s*0.5} ${s*0.15},0 0,${s*0.2} -${s*0.15},0" fill="#a060e0" opacity="0.5"/>`,
+    horse_ranch: `<path d="M-${s*0.3} ${s*0.2} Q-${s*0.2} -${s*0.3} ${s*0.1} -${s*0.4} Q${s*0.3} -${s*0.45} ${s*0.4} -${s*0.3} L${s*0.35} -${s*0.15} Q${s*0.15} -${s*0.1} 0 ${s*0.1} L-${s*0.1} ${s*0.3}" fill="none" stroke="#c8a870" stroke-width="1.5"/>`,
+    gunpowder: `<ellipse rx="${s*0.3}" ry="${s*0.35}" fill="#8a6040" opacity="0.8"/><circle cx="0" cy="-${s*0.35}" r="${s*0.12}" fill="#ff8800" opacity="0.7"><animate attributeName="opacity" values="0.7;1;0.7" dur="1s" repeatCount="indefinite"/></circle>`,
+    shadow_rift: `<circle r="${s*0.4}" fill="#1a0030" opacity="0.8"/><circle r="${s*0.25}" fill="#3a0060" opacity="0.6"><animate attributeName="r" values="${s*0.2};${s*0.3};${s*0.2}" dur="2s" repeatCount="indefinite"/></circle><circle r="${s*0.1}" fill="#6a00a0" opacity="0.8"/>`
+  };
+  return icons[type] || icons.village;
+}
+
+// === FACTION CREST SVG ===
+function getFactionCrest(faction, size) {
+  const s = size;
+  const f = FACTIONS[faction];
+  if (!f) return '';
+  const crests = {
+    orc: `<path d="M0 -${s} L${s*0.3} -${s*0.3} L${s} 0 L${s*0.3} ${s*0.3} L0 ${s} L-${s*0.3} ${s*0.3} L-${s} 0 L-${s*0.3} -${s*0.3}Z" fill="${f.primary}" stroke="${f.accent}" stroke-width="1"/>`,
+    pirate: `<circle r="${s*0.8}" fill="${f.primary}" stroke="${f.accent}" stroke-width="1"/><path d="M-${s*0.3} -${s*0.1} L${s*0.3} -${s*0.1} M0 -${s*0.4} L0 ${s*0.4} M-${s*0.2} ${s*0.2} Q0 ${s*0.5} ${s*0.2} ${s*0.2}" stroke="${f.accent}" stroke-width="0.8" fill="none"/>`,
+    darkelf: `<polygon points="0,-${s} ${s*0.6},${s*0.7} -${s*0.6},${s*0.7}" fill="${f.primary}" stroke="${f.accent}" stroke-width="1"/><circle cy="-${s*0.1}" r="${s*0.2}" fill="${f.accent}" opacity="0.5"/>`,
+    human: `<rect x="-${s*0.7}" y="-${s*0.8}" width="${s*1.4}" height="${s*1.6}" rx="2" fill="${f.primary}" stroke="${f.accent}" stroke-width="1" opacity="0.9"/>`,
+    elf: `<ellipse rx="${s*0.6}" ry="${s*0.8}" fill="${f.primary}" stroke="${f.accent}" stroke-width="1"/><path d="M0 -${s*0.5} Q${s*0.3} 0 0 ${s*0.5} Q-${s*0.3} 0 0 -${s*0.5}" fill="${f.accent}" opacity="0.3"/>`,
+    mage: `<circle r="${s*0.7}" fill="${f.primary}" stroke="${f.accent}" stroke-width="1"/><polygon points="0,-${s*0.5} ${s*0.15},-${s*0.15} ${s*0.5},-${s*0.15} ${s*0.2},${s*0.1} ${s*0.3},${s*0.45} 0,${s*0.25} -${s*0.3},${s*0.45} -${s*0.2},${s*0.1} -${s*0.5},-${s*0.15} -${s*0.15},-${s*0.15}" fill="${f.accent}" opacity="0.4"/>`,
+    neutral: `<circle r="${s*0.7}" fill="${f.primary}" stroke="${f.secondary}" stroke-width="1"/>`,
+    none: `<circle r="${s*0.5}" fill="${f.primary}" stroke="${f.border}" stroke-width="0.5" stroke-dasharray="2 2"/>`
+  };
+  return crests[faction] || crests.neutral;
+}
+
+// === RESOURCE ICONS ===
+const RESOURCE_ICONS = {
+  gold: {label:'金币',color:'#FFD700',svg:`<circle cx="10" cy="10" r="8" fill="#DAA520" stroke="#8B6914" stroke-width="1"/><text x="10" y="14" text-anchor="middle" fill="#1a1a0a" font-size="10" font-weight="bold">$</text>`},
+  food: {label:'粮食',color:'#8BC34A',svg:`<ellipse cx="10" cy="12" rx="7" ry="5" fill="#6B8E23"/><path d="M10 3 Q12 8 10 12 Q8 8 10 3" fill="#8BC34A"/><path d="M7 5 Q6 9 8 12" fill="none" stroke="#8BC34A" stroke-width="1"/><path d="M13 5 Q14 9 12 12" fill="none" stroke="#8BC34A" stroke-width="1"/>`},
+  iron: {label:'铁矿',color:'#90A4AE',svg:`<polygon points="10,2 18,8 14,18 6,18 2,8" fill="#607D8B" stroke="#90A4AE" stroke-width="1"/><polygon points="10,5 14,8 12,14 8,14 6,8" fill="#78909C" opacity="0.5"/>`},
+  slaves: {label:'奴隶',color:'#8D6E63',svg:`<circle cx="10" cy="6" r="3" fill="#8D6E63"/><path d="M5 18 Q5 11 10 10 Q15 11 15 18" fill="#6D4C41"/><path d="M7 13 L4 16 M13 13 L16 16" stroke="#555" stroke-width="1"/>`},
+  prestige: {label:'威望',color:'#FFD700',svg:`<polygon points="10,1 12.5,7 19,7.5 14,12 15.5,19 10,15.5 4.5,19 6,12 1,7.5 7.5,7" fill="#FFD700" stroke="#8B6914" stroke-width="0.5"/>`},
+  order: {label:'秩序',color:'#42A5F5',svg:`<circle cx="10" cy="10" r="8" fill="none" stroke="#42A5F5" stroke-width="1.5"/><path d="M10 4 L10 10 L14 14" stroke="#42A5F5" stroke-width="1.5" fill="none"/>`},
+  threat: {label:'威胁',color:'#EF5350',svg:`<polygon points="10,1 12,7 19,7 13.5,11 15.5,18 10,14 4.5,18 6.5,11 1,7 8,7" fill="#EF5350" opacity="0.9"/>`},
+  mana: {label:'法力',color:'#7B2FBE',svg:`<circle cx="10" cy="10" r="7" fill="#4A148C" stroke="#7B2FBE" stroke-width="1"/><circle cx="10" cy="10" r="3" fill="#9C27B0" opacity="0.6"/>`}
+};
+
+// === ACTION BUTTONS ===
+const ACTION_BUTTONS = [
+  {id:'attack',label:'出 击',icon:`<path d="M6 4 L18 12 L6 20 Z" fill="#ff4444" opacity="0.8"/><path d="M4 12 L20 12" stroke="#ff4444" stroke-width="2"/>`},
+  {id:'build',label:'建 造',icon:`<rect x="6" y="10" width="12" height="10" fill="#DAA520" opacity="0.7" rx="1"/><polygon points="12,3 4,10 20,10" fill="#B8962A" opacity="0.8"/>`},
+  {id:'recruit',label:'招 募',icon:`<circle cx="12" cy="7" r="4" fill="#8BC34A" opacity="0.7"/><path d="M5 20 Q5 13 12 12 Q19 13 19 20" fill="#689F38" opacity="0.7"/><path d="M18 8 L22 8 M20 6 L20 10" stroke="#8BC34A" stroke-width="1.5"/>`},
+  {id:'deploy',label:'部 署',icon:`<path d="M12 4 L12 16 M8 12 L12 16 L16 12" stroke="#42A5F5" stroke-width="2" fill="none"/><rect x="6" y="17" width="12" height="2" fill="#42A5F5" opacity="0.5" rx="1"/>`},
+  {id:'diplomacy',label:'外 交',icon:`<circle cx="8" cy="10" r="5" fill="none" stroke="#DAA520" stroke-width="1.5"/><circle cx="16" cy="10" r="5" fill="none" stroke="#C0C0C0" stroke-width="1.5"/><path d="M10 8 L14 12 M14 8 L10 12" stroke="#fff" stroke-width="1" opacity="0.5"/>`},
+  {id:'hero',label:'英 雄',icon:`<polygon points="12,2 14,8 20,9 15.5,13 17,20 12,16.5 7,20 8.5,13 4,9 10,8" fill="#FFD700" stroke="#8B6914" stroke-width="0.5"/>`},
+  {id:'endturn',label:'结束回合',icon:`<circle cx="12" cy="12" r="8" fill="none" stroke="#cc4444" stroke-width="1.5"/><path d="M12 6 L12 12 L16 15" stroke="#cc4444" stroke-width="1.5" fill="none"/><path d="M18 7 L20 5 M18 7 L20 9" stroke="#cc4444" stroke-width="1.2" fill="none"/>`,cls:'end-turn'}
+];
+
+// ============================================================
+// RENDERING
+// ============================================================
+
+// State
+let selectedTerritory = null;
+let hoveredTerritory = null;
+
+// Build resource bar
+function buildResourceBar() {
+  const bar = document.getElementById('resourceBar');
+  const resources = [
+    {key:'gold',value:'2,450'},{key:'food',value:'180'},{key:'iron',value:'75'},
+    {key:'slaves',value:'32'},{key:'prestige',value:'48'},{key:'order',value:'62'},
+    {key:'threat',value:'35'},{key:'mana',value:'18'}
+  ];
+  let html = '';
+  resources.forEach((r, i) => {
+    const res = RESOURCE_ICONS[r.key];
+    html += `<div class="res-item">
+      <div class="res-icon"><svg viewBox="0 0 20 20">${res.svg}</svg></div>
+      <span class="res-value">${r.value}</span>
+    </div>`;
+    if (i < resources.length - 1) html += `<div class="res-divider"></div>`;
+  });
+  html += `<div class="turn-counter">
+    <span style="font-size:11px;color:var(--text-secondary)">回合</span>
+    <span class="turn-num">07</span>
+    <span style="font-size:11px;color:var(--text-secondary)">/30</span>
+  </div>`;
+  bar.innerHTML = html;
+}
+
+// Build map SVG
+function buildMap() {
+  const svg = document.getElementById('mapSvg');
+  const defs = svg.querySelector('defs');
+  defs.innerHTML = SVG_DEFS;
+
+  // Background — parchment base
+  let mapHTML = `
+    <rect width="960" height="612" fill="#1c1810"/>
+    <rect width="960" height="612" fill="url(#pat-plains)" opacity="0.08"/>
+    <rect width="960" height="612" opacity="0.12">
+      <animate attributeName="opacity" values="0.10;0.14;0.10" dur="6s" repeatCount="indefinite"/>
+    </rect>
+  `;
+
+  // Compass rose (top-right)
+  mapHTML += `<g transform="translate(910,50)" opacity="0.2">
+    <circle r="20" fill="none" stroke="#DAA520" stroke-width="0.5"/>
+    <path d="M0 -18 L3 -5 L0 -8 L-3 -5 Z" fill="#DAA520"/>
+    <path d="M0 18 L3 5 L0 8 L-3 5 Z" fill="#8B6914"/>
+    <path d="M18 0 L5 3 L8 0 L5 -3 Z" fill="#8B6914"/>
+    <path d="M-18 0 L-5 3 L-8 0 L-5 -3 Z" fill="#8B6914"/>
+    <text y="-22" text-anchor="middle" fill="#DAA520" font-size="7" font-weight="bold">N</text>
+  </g>`;
+
+  // Map border decoration
+  mapHTML += `
+    <rect x="4" y="4" width="952" height="604" fill="none" stroke="#DAA520" stroke-width="0.3" opacity="0.2" rx="2"/>
+    <line x1="0" y1="0" x2="20" y2="0" stroke="#DAA520" stroke-width="1" opacity="0.3"/>
+    <line x1="0" y1="0" x2="0" y2="20" stroke="#DAA520" stroke-width="1" opacity="0.3"/>
+    <line x1="960" y1="0" x2="940" y2="0" stroke="#DAA520" stroke-width="1" opacity="0.3"/>
+    <line x1="960" y1="0" x2="960" y2="20" stroke="#DAA520" stroke-width="1" opacity="0.3"/>
+    <line x1="0" y1="612" x2="20" y2="612" stroke="#DAA520" stroke-width="1" opacity="0.3"/>
+    <line x1="0" y1="612" x2="0" y2="592" stroke="#DAA520" stroke-width="1" opacity="0.3"/>
+    <line x1="960" y1="612" x2="940" y2="612" stroke="#DAA520" stroke-width="1" opacity="0.3"/>
+    <line x1="960" y1="612" x2="960" y2="592" stroke="#DAA520" stroke-width="1" opacity="0.3"/>
+  `;
+
+  // Regional background zones (soft color washes)
+  mapHTML += `
+    <ellipse cx="160" cy="280" rx="140" ry="120" fill="${FACTIONS.orc.primary}" opacity="0.06"/>
+    <ellipse cx="760" cy="180" rx="160" ry="120" fill="${FACTIONS.human.primary}" opacity="0.06"/>
+    <ellipse cx="200" cy="100" rx="120" ry="80" fill="${FACTIONS.elf.primary}" opacity="0.06"/>
+    <ellipse cx="520" cy="510" rx="140" ry="100" fill="${FACTIONS.mage.primary}" opacity="0.06"/>
+    <ellipse cx="810" cy="460" rx="120" ry="100" fill="${FACTIONS.pirate.primary}" opacity="0.06"/>
+    <ellipse cx="430" cy="80" rx="80" ry="60" fill="${FACTIONS.darkelf.primary}" opacity="0.06"/>
+  `;
+
+  // Connection paths
+  mapHTML += `<g class="connections">`;
+  const tMap = {};
+  TERRITORIES.forEach(t => tMap[t.id] = t);
+  ADJACENCY.forEach(([a, b]) => {
+    const ta = tMap[a], tb = tMap[b];
+    if (!ta || !tb) return;
+    const isSupply = (ta.faction === 'orc' && tb.faction === 'orc') || (ta.faction === 'pirate' && tb.faction === 'pirate') || (ta.faction === 'darkelf' && tb.faction === 'darkelf');
+    if (isSupply) {
+      mapHTML += `<line x1="${ta.x}" y1="${ta.y}" x2="${tb.x}" y2="${tb.y}" class="supply-line"/>`;
+    }
+    mapHTML += `<line x1="${ta.x}" y1="${ta.y}" x2="${tb.x}" y2="${tb.y}" class="connection-path"/>`;
+  });
+  mapHTML += `</g>`;
+
+  // Territory nodes
+  mapHTML += `<g class="territories">`;
+  TERRITORIES.forEach(t => {
+    const f = FACTIONS[t.faction] || FACTIONS.none;
+    const r = t.size / 2;
+    const terrainPat = TERRAIN_PATTERN[t.terrain] || 'pat-plains';
+    const isFog = t.faction === 'none' && t.type !== 'event';
+
+    mapHTML += `<g class="territory-node${isFog ? ' fog-territory' : ''}" data-id="${t.id}" transform="translate(${t.x},${t.y})">`;
+
+    // Glow (hidden by default)
+    mapHTML += `<circle class="node-glow" r="${r + 6}" fill="none" stroke="${f.flag}" stroke-width="3" filter="url(#glow-gold)"/>`;
+
+    // Territory shape — hexagonal
+    const hex = hexPoints(r);
+    mapHTML += `<polygon class="node-bg" points="${hex}" fill="url(#${terrainPat})" stroke="${f.border}" stroke-width="2"/>`;
+
+    // Faction color overlay
+    mapHTML += `<polygon points="${hex}" fill="${f.primary}" opacity="0.35"/>`;
+
+    // Border highlight
+    mapHTML += `<polygon class="node-border" points="${hex}" fill="none" stroke="${f.flag}" stroke-width="1.5" opacity="0.6"/>`;
+
+    // Type icon
+    mapHTML += `<g class="type-icon">${getTypeIconSVG(t.type, t.size)}</g>`;
+
+    // Garrison badge
+    if (t.garrison > 0) {
+      mapHTML += `<g transform="translate(${r - 4},${-r + 4})">
+        <rect x="-8" y="-7" width="16" height="14" rx="2" fill="rgba(0,0,0,0.7)" stroke="${f.flag}" stroke-width="0.5"/>
+        <text text-anchor="middle" dy="4" fill="${f.flag}" font-size="9" font-weight="bold">${t.garrison}</text>
+      </g>`;
+    }
+
+    // Faction crest (small, top-left)
+    if (t.faction !== 'none') {
+      mapHTML += `<g transform="translate(${-r + 4},${-r + 4}) scale(0.6)">${getFactionCrest(t.faction, 8)}</g>`;
+    }
+
+    // Territory name
+    mapHTML += `<text y="${r + 12}" text-anchor="middle" fill="${f.flag}" font-size="${t.size > 60 ? 10 : 8}" font-weight="${t.size > 60 ? '700' : '400'}" opacity="0.9" style="text-shadow:0 1px 2px rgba(0,0,0,0.8)">${t.name}</text>`;
+
+    // Fog overlay for unclaimed
+    if (isFog) {
+      mapHTML += `<polygon points="${hex}" fill="rgba(8,8,12,0.45)"/>`;
+    }
+
+    mapHTML += `</g>`;
+  });
+  mapHTML += `</g>`;
+
+  // Vignette overlay
+  mapHTML += `<rect width="960" height="612" fill="url(#vignette)" pointer-events="none"/>`;
+
+  // Add vignette gradient to defs
+  defs.innerHTML += `
+    <radialGradient id="vignette" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="rgba(10,10,20,0.4)"/>
+    </radialGradient>
+  `;
+
+  svg.innerHTML = `<defs>${defs.innerHTML}</defs>${mapHTML}`;
+
+  // Bind events
+  svg.querySelectorAll('.territory-node').forEach(node => {
+    node.addEventListener('mouseenter', onTerritoryHover);
+    node.addEventListener('mouseleave', onTerritoryLeave);
+    node.addEventListener('click', onTerritoryClick);
+  });
+}
+
+function hexPoints(r) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 6;
+    pts.push(`${(r * Math.cos(angle)).toFixed(1)},${(r * Math.sin(angle)).toFixed(1)}`);
+  }
+  return pts.join(' ');
+}
+
+// === TOOLTIP ===
+function onTerritoryHover(e) {
+  const id = this.dataset.id;
+  const t = TERRITORIES.find(t => t.id === id);
+  if (!t) return;
+  hoveredTerritory = t;
+  const tooltip = document.getElementById('mapTooltip');
+  const f = FACTIONS[t.faction] || FACTIONS.none;
+  const terrain = TERRAINS[t.terrain];
+  tooltip.querySelector('.tt-name').textContent = t.name;
+  tooltip.querySelector('.tt-content').innerHTML = `
+    <div class="tt-row"><span class="tt-label">势力</span><span style="color:${f.flag}">${f.name}</span></div>
+    <div class="tt-row"><span class="tt-label">地形</span><span>${terrain ? terrain.name : t.terrain}</span></div>
+    <div class="tt-row"><span class="tt-label">驻军</span><span>${t.garrison}</span></div>
+    ${t.special ? `<div class="tt-row"><span class="tt-label">特殊</span><span style="color:#ffd700">${t.special}</span></div>` : ''}
+  `;
+  tooltip.style.display = 'block';
+
+  const mapArea = document.getElementById('mapArea');
+  const rect = mapArea.getBoundingClientRect();
+  const svgRect = document.getElementById('mapSvg').getBoundingClientRect();
+  const scaleX = svgRect.width / 960;
+  const scaleY = svgRect.height / 612;
+
+  tooltip.style.left = (t.x * scaleX + svgRect.left - rect.left + 20) + 'px';
+  tooltip.style.top = (t.y * scaleY + svgRect.top - rect.top - 40) + 'px';
+}
+
+function onTerritoryLeave() {
+  hoveredTerritory = null;
+  document.getElementById('mapTooltip').style.display = 'none';
+}
+
+function onTerritoryClick() {
+  const id = this.dataset.id;
+  const t = TERRITORIES.find(t => t.id === id);
+  if (!t) return;
+
+  // Clear previous selection
+  document.querySelectorAll('.territory-node.selected').forEach(n => n.classList.remove('selected'));
+  document.querySelectorAll('.territory-node.attackable').forEach(n => n.classList.remove('attackable'));
+
+  this.classList.add('selected');
+  selectedTerritory = t;
+
+  // Highlight adjacent territories
+  const adjIds = new Set();
+  ADJACENCY.forEach(([a, b]) => {
+    if (a === id) adjIds.add(b);
+    if (b === id) adjIds.add(a);
+  });
+
+  const playerFactions = ['orc','pirate','darkelf'];
+  if (playerFactions.includes(t.faction)) {
+    adjIds.forEach(adjId => {
+      const adjT = TERRITORIES.find(tt => tt.id === adjId);
+      if (adjT && !playerFactions.includes(adjT.faction)) {
+        const node = document.querySelector(`.territory-node[data-id="${adjId}"]`);
+        if (node) node.classList.add('attackable');
+      }
+    });
+  }
+
+  updateInfoPanel(t);
+}
+
+// === INFO PANEL ===
+function updateInfoPanel(t) {
+  const panel = document.getElementById('infoPanel');
+  const f = FACTIONS[t.faction] || FACTIONS.none;
+  const terrain = TERRAINS[t.terrain];
+
+  const typeNames = {
+    core_fortress:'核心要塞',stronghold:'前哨要塞',village:'村庄',outpost:'哨站',
+    bandit:'匪巢',event:'事件点',trading_post:'交易站',watchtower:'瞭望塔',
+    ruins_special:'遗迹',port:'港口',mountain_pass:'关隘',crystal_mine:'魔晶矿脉',
+    horse_ranch:'战马牧场',gunpowder:'火药工坊',shadow_rift:'暗影裂隙'
+  };
+
+  panel.innerHTML = `
+    <div class="panel-header">
+      <div class="territory-icon" style="background:${f.primary};border:1px solid ${f.flag}">
+        <svg viewBox="-12 -12 24 24" width="32" height="32">${getTypeIconSVG(t.type, 24)}</svg>
+      </div>
+      <div>
+        <div class="territory-name">${t.name}</div>
+        <div class="territory-type">${typeNames[t.type] || t.type}</div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">所属势力</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+        <svg viewBox="-10 -10 20 20" width="24" height="24">${getFactionCrest(t.faction, 8)}</svg>
+        <span style="color:${f.flag};font-weight:600">${f.name}</span>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">地形信息</div>
+      <div class="panel-row"><span class="label">地形</span><span class="value">${terrain ? terrain.name : t.terrain}</span></div>
+      <div class="panel-row"><span class="label">攻击修正</span><span class="value" style="color:${terrain && terrain.atkMod < 1 ? '#ff6666' : '#66ff66'}">×${terrain ? terrain.atkMod.toFixed(2) : '1.00'}</span></div>
+      <div class="panel-row"><span class="label">防御修正</span><span class="value" style="color:${terrain && terrain.defMod > 1 ? '#66ff66' : '#ff6666'}">×${terrain ? terrain.defMod.toFixed(2) : '1.00'}</span></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">驻军</div>
+      <div class="garrison-list">
+        <div class="garrison-item">
+          <div class="troop-icon" style="background:${f.primary}">⚔</div>
+          <span class="troop-name">守备兵</span>
+          <span class="troop-count">${t.garrison}</span>
+        </div>
+        ${t.garrison >= 8 ? `<div class="garrison-item">
+          <div class="troop-icon" style="background:${f.primary}">🛡</div>
+          <span class="troop-name">重装兵</span>
+          <span class="troop-count">${Math.floor(t.garrison * 0.4)}</span>
+        </div>` : ''}
+      </div>
+    </div>
+
+    ${t.special ? `<div class="panel-section">
+      <div class="panel-section-title">特殊效果</div>
+      <div style="color:#FFD700;font-size:12px;padding:2px 0">★ ${t.special}</div>
+    </div>` : ''}
+
+    <div class="panel-section">
+      <div class="panel-section-title">资源产出</div>
+      <div class="production-row">
+        <div class="prod-item"><svg viewBox="0 0 20 20" width="16" height="16">${RESOURCE_ICONS.gold.svg}</svg><span class="prod-val">+${Math.floor(t.garrison * 2.5)}</span></div>
+        <div class="prod-item"><svg viewBox="0 0 20 20" width="16" height="16">${RESOURCE_ICONS.food.svg}</svg><span class="prod-val">+${Math.floor(t.garrison * 1.2)}</span></div>
+        <div class="prod-item"><svg viewBox="0 0 20 20" width="16" height="16">${RESOURCE_ICONS.iron.svg}</svg><span class="prod-val">+${Math.floor(t.garrison * 0.5)}</span></div>
+      </div>
+    </div>
+
+    <div class="panel-actions">
+      <button class="panel-btn primary">⚔ 出击</button>
+      <button class="panel-btn">🏗 建造</button>
+      <button class="panel-btn">👥 招募</button>
+      <button class="panel-btn">📋 详情</button>
+    </div>
+  `;
+}
+
+// === ACTION BAR ===
+function buildActionBar() {
+  const bar = document.getElementById('actionBar');
+  let html = '';
+  ACTION_BUTTONS.forEach(btn => {
+    html += `<div class="action-btn ${btn.cls || ''}" data-action="${btn.id}">
+      <div class="btn-icon"><svg viewBox="0 0 24 24">${btn.icon}</svg></div>
+      <span class="btn-label">${btn.label}</span>
+    </div>`;
+  });
+  bar.innerHTML = html;
+}
+
+// === MINIMAP ===
+function buildMinimap() {
+  const mm = document.getElementById('minimap');
+  let html = '';
+  TERRITORIES.forEach(t => {
+    const f = FACTIONS[t.faction] || FACTIONS.none;
+    const mx = (t.x / 960) * 160;
+    const my = (t.y / 612) * 100;
+    const sz = t.size > 60 ? 5 : t.size > 44 ? 4 : 3;
+    html += `<div class="minimap-dot" style="left:${mx - sz/2}px;top:${my - sz/2}px;width:${sz}px;height:${sz}px;background:${f.flag}"></div>`;
+  });
+  // Viewport indicator
+  html += `<div class="minimap-viewport" style="left:20px;top:15px;width:60px;height:40px"></div>`;
+  mm.innerHTML = html;
+}
+
+// === ASSET SHOWCASE ===
+function buildAssetShowcase() {
+  const showcase = document.getElementById('assetShowcase');
+  let html = '';
+
+  // 1. Terrain tiles
+  html += `<div class="asset-category">
+    <div class="category-title">地形贴图 Terrain Tiles</div>
+    <div class="asset-grid terrain-grid">`;
+  Object.entries(TERRAINS).forEach(([key, t]) => {
+    const pat = TERRAIN_PATTERN[key];
+    html += `<div class="asset-card">
+      <div class="asset-preview"><svg viewBox="0 0 64 64"><defs>${SVG_DEFS}</defs><rect width="64" height="64" fill="url(#${pat})" rx="4"/></svg></div>
+      <div class="asset-label-zh">${t.name}</div>
+      <div class="asset-label">${key}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // 2. Territory nodes by faction
+  html += `<div class="asset-category">
+    <div class="category-title">阵营据点节点 Faction Territory Nodes</div>
+    <div class="asset-grid node-grid">`;
+  Object.entries(FACTIONS).forEach(([key, f]) => {
+    if (key === 'none') return;
+    html += `<div class="asset-card">
+      <div class="asset-preview"><svg viewBox="-50 -50 100 100">
+        <defs>${SVG_DEFS}</defs>
+        <polygon points="${hexPoints(36)}" fill="url(#pat-plains)" stroke="${f.border}" stroke-width="2.5"/>
+        <polygon points="${hexPoints(36)}" fill="${f.primary}" opacity="0.4"/>
+        <polygon points="${hexPoints(36)}" fill="none" stroke="${f.flag}" stroke-width="1.5" opacity="0.7"/>
+        ${getTypeIconSVG('core_fortress', 72)}
+      </svg></div>
+      <div class="asset-label-zh" style="color:${f.flag}">${f.name.split('·')[0]}</div>
+      <div class="asset-label">${f.nameEn}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // 3. Territory type icons
+  const typeEntries = [
+    ['core_fortress','核心要塞','Core Fortress'],['stronghold','前哨要塞','Stronghold'],['village','村庄','Village'],
+    ['outpost','哨站','Outpost'],['bandit','匪巢','Bandit Lair'],['event','事件点','Event'],
+    ['trading_post','交易站','Trading Post'],['watchtower','瞭望塔','Watchtower'],['ruins_special','遗迹','Ruins'],
+    ['port','港口','Port'],['mountain_pass','关隘','Mountain Pass'],['crystal_mine','魔晶矿脉','Crystal Mine'],
+    ['horse_ranch','战马牧场','Horse Ranch'],['gunpowder','火药工坊','Gunpowder Works'],['shadow_rift','暗影裂隙','Shadow Rift']
+  ];
+  html += `<div class="asset-category">
+    <div class="category-title">据点类型图标 Territory Type Icons</div>
+    <div class="asset-grid" style="grid-template-columns:repeat(5,1fr)">`;
+  typeEntries.forEach(([type, zh, en]) => {
+    html += `<div class="asset-card">
+      <div class="asset-preview"><svg viewBox="-40 -40 80 80">
+        <circle r="30" fill="rgba(30,26,18,0.8)" stroke="#DAA520" stroke-width="1"/>
+        ${getTypeIconSVG(type, 60)}
+      </svg></div>
+      <div class="asset-label-zh">${zh}</div>
+      <div class="asset-label">${en}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // 4. Faction crests
+  html += `<div class="asset-category">
+    <div class="category-title">阵营纹章 Faction Crests</div>
+    <div class="asset-grid faction-grid">`;
+  Object.entries(FACTIONS).forEach(([key, f]) => {
+    if (key === 'none') return;
+    html += `<div class="asset-card">
+      <div class="asset-preview"><svg viewBox="-20 -20 40 40">${getFactionCrest(key, 14)}</svg></div>
+      <div class="asset-label-zh" style="color:${f.flag}">${f.name.split('·')[0]}</div>
+      <div class="asset-label">${f.nameEn}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // 5. Resource icons
+  html += `<div class="asset-category">
+    <div class="category-title">资源图标 Resource Icons</div>
+    <div class="asset-grid resource-grid">`;
+  Object.entries(RESOURCE_ICONS).forEach(([key, r]) => {
+    html += `<div class="asset-card">
+      <div class="asset-preview"><svg viewBox="0 0 20 20" width="48" height="48">${r.svg}</svg></div>
+      <div class="asset-label-zh">${r.label}</div>
+      <div class="asset-label">${key}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // 6. UI Elements
+  html += `<div class="asset-category">
+    <div class="category-title">UI元素 UI Elements</div>
+    <div class="asset-grid ui-grid">`;
+
+  // Button states
+  ['normal','hover','active','disabled'].forEach(state => {
+    const styles = {
+      normal: 'background:linear-gradient(180deg,#2a2218,#1a1610);border-color:#8B6914',
+      hover: 'background:linear-gradient(180deg,#3a3228,#2a2218);border-color:#DAA520;box-shadow:0 0 8px rgba(218,165,32,0.3)',
+      active: 'background:linear-gradient(180deg,#1a1610,#2a2218);border-color:#DAA520',
+      disabled: 'background:linear-gradient(180deg,#1a1a1a,#141414);border-color:#444;opacity:0.5'
+    };
+    html += `<div class="asset-card">
+      <div class="asset-preview large" style="width:120px">
+        <div style="padding:8px 16px;border:1px solid #8B6914;color:#DAA520;font-size:12px;font-family:'Noto Sans SC';letter-spacing:2px;${styles[state]}">行动按钮</div>
+      </div>
+      <div class="asset-label-zh">按钮·${state}</div>
+      <div class="asset-label">btn_${state}</div>
+    </div>`;
+  });
+
+  // Panel frame
+  html += `<div class="asset-card">
+    <div class="asset-preview large" style="width:120px;height:80px">
+      <div class="gold-border" style="width:100%;height:100%;padding:8px">
+        <div style="font-size:9px;color:#DAA520;letter-spacing:1px">面板边框</div>
+        <div style="font-size:8px;color:#a09880;margin-top:4px">Panel Frame</div>
+      </div>
+    </div>
+    <div class="asset-label-zh">信息面板</div>
+    <div class="asset-label">panel_frame</div>
+  </div>`;
+
+  // Tooltip
+  html += `<div class="asset-card">
+    <div class="asset-preview large" style="width:120px;height:80px">
+      <div style="background:rgba(10,10,20,0.95);border:1px solid #8B6914;padding:6px 10px;width:100%">
+        <div style="font-size:10px;color:#F0D060;font-weight:700">碎骨王座</div>
+        <div style="font-size:8px;color:#a09880;margin-top:2px">兽人·铁牙氏族</div>
+        <div style="font-size:8px;color:#888;margin-top:2px">驻军: 12</div>
+      </div>
+    </div>
+    <div class="asset-label-zh">悬停提示</div>
+    <div class="asset-label">tooltip</div>
+  </div>`;
+
+  // Resource bar segment
+  html += `<div class="asset-card">
+    <div class="asset-preview large" style="width:120px">
+      <div style="background:linear-gradient(180deg,#1a1610,#141008);border:1px solid #8B6914;padding:4px 8px;display:flex;align-items:center;gap:4px">
+        <svg viewBox="0 0 20 20" width="16" height="16">${RESOURCE_ICONS.gold.svg}</svg>
+        <span style="color:#F0D060;font-size:12px;font-weight:700">2,450</span>
+      </div>
+    </div>
+    <div class="asset-label-zh">资源栏单元</div>
+    <div class="asset-label">res_bar_item</div>
+  </div>`;
+
+  // Notification bar
+  html += `<div class="asset-card">
+    <div class="asset-preview large" style="width:120px">
+      <div style="background:rgba(0,100,0,0.3);border:1px solid #4CAF50;padding:4px 8px;font-size:9px;color:#8BC34A;text-align:center">✓ 占领成功</div>
+    </div>
+    <div class="asset-label-zh">通知条</div>
+    <div class="asset-label">notification</div>
+  </div>`;
+
+  html += `</div></div>`;
+
+  // 7. Interactive States
+  html += `<div class="asset-category">
+    <div class="category-title">交互状态 Interactive States</div>
+    <div class="asset-grid" style="grid-template-columns:repeat(5,1fr)">`;
+
+  const states = [
+    {name:'常规',en:'Normal',glow:'none',border:'#777766',opacity:0.6},
+    {name:'悬停',en:'Hover',glow:'url(#glow-gold)',border:'#DAA520',opacity:1},
+    {name:'选中(己方)',en:'Selected',glow:'url(#glow-white)',border:'#ffffff',opacity:1,anim:true},
+    {name:'可攻击',en:'Attackable',glow:'url(#glow-red)',border:'#ff2020',opacity:1,anim:true},
+    {name:'迷雾',en:'Fog of War',glow:'none',border:'#333',opacity:0.4,fog:true}
+  ];
+
+  states.forEach(st => {
+    html += `<div class="asset-card">
+      <div class="asset-preview"><svg viewBox="-50 -50 100 100">
+        <defs>${SVG_DEFS}</defs>
+        ${st.glow !== 'none' ? `<polygon points="${hexPoints(36)}" fill="none" stroke="${st.border}" stroke-width="3" filter="${st.glow}"${st.anim ? '><animate attributeName="opacity" values="0.5;1;0.5" dur="1.5s" repeatCount="indefinite"/></polygon' : '/'}>`  : ''}
+        <polygon points="${hexPoints(36)}" fill="url(#pat-plains)" stroke="${st.border}" stroke-width="2" opacity="${st.opacity}"/>
+        <polygon points="${hexPoints(36)}" fill="#555550" opacity="0.35"/>
+        ${st.fog ? `<polygon points="${hexPoints(36)}" fill="rgba(8,8,12,0.6)"/>` : ''}
+        ${getTypeIconSVG('village', 60)}
+      </svg></div>
+      <div class="asset-label-zh">${st.name}</div>
+      <div class="asset-label">${st.en}</div>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  // 8. Military Markers
+  html += `<div class="asset-category">
+    <div class="category-title">军事标记 Military Markers</div>
+    <div class="asset-grid" style="grid-template-columns:repeat(4,1fr)">`;
+
+  // Army marker
+  html += `<div class="asset-card">
+    <div class="asset-preview"><svg viewBox="-30 -30 60 60">
+      <path d="M0 -20 L15 -8 L12 10 L-12 10 L-15 -8 Z" fill="#8B0000" stroke="#FF4444" stroke-width="1.5"/>
+      <text y="4" text-anchor="middle" fill="#FFD700" font-size="14" font-weight="bold">12</text>
+    </svg></div>
+    <div class="asset-label-zh">军团标记</div>
+    <div class="asset-label">army_marker</div>
+  </div>`;
+
+  // Garrison indicator
+  html += `<div class="asset-card">
+    <div class="asset-preview"><svg viewBox="-20 -20 40 40">
+      <rect x="-12" y="-10" width="24" height="20" rx="3" fill="rgba(0,0,0,0.75)" stroke="#DAA520" stroke-width="1"/>
+      <text y="4" text-anchor="middle" fill="#DAA520" font-size="12" font-weight="bold">8</text>
+    </svg></div>
+    <div class="asset-label-zh">驻军徽标</div>
+    <div class="asset-label">garrison_badge</div>
+  </div>`;
+
+  // Supply line
+  html += `<div class="asset-card">
+    <div class="asset-preview"><svg viewBox="0 0 80 40">
+      <line x1="5" y1="20" x2="75" y2="20" stroke="#DAA520" stroke-width="2" stroke-dasharray="6 4" opacity="0.7">
+        <animate attributeName="stroke-dashoffset" from="0" to="-20" dur="2s" repeatCount="indefinite"/>
+      </line>
+      <circle cx="5" cy="20" r="3" fill="#DAA520"/>
+      <circle cx="75" cy="20" r="3" fill="#DAA520"/>
+    </svg></div>
+    <div class="asset-label-zh">补给线</div>
+    <div class="asset-label">supply_line</div>
+  </div>`;
+
+  // Connection path
+  html += `<div class="asset-card">
+    <div class="asset-preview"><svg viewBox="0 0 80 40">
+      <line x1="5" y1="20" x2="75" y2="20" stroke="#4a4030" stroke-width="2" stroke-dasharray="8 4" opacity="0.6"/>
+      <circle cx="5" cy="20" r="4" fill="#555550" stroke="#777766" stroke-width="1"/>
+      <circle cx="75" cy="20" r="4" fill="#555550" stroke="#777766" stroke-width="1"/>
+    </svg></div>
+    <div class="asset-label-zh">连接路径</div>
+    <div class="asset-label">connection_path</div>
+  </div>`;
+
+  html += `</div></div>`;
+
+  showcase.innerHTML = `
+    <div class="showcase-title">美术资源总览</div>
+    <div class="showcase-subtitle">DARK TIDE — MAP ASSET SHEET · 全部 ${typeEntries.length + Object.keys(TERRAINS).length + Object.keys(FACTIONS).length + Object.keys(RESOURCE_ICONS).length + 15}+ 素材</div>
+    ${html}
+  `;
+}
+
+// === INITIALIZE ===
+function init() {
+  buildResourceBar();
+  buildMap();
+  buildActionBar();
+  buildMinimap();
+
+  // Set default selection
+  const defaultT = TERRITORIES.find(t => t.id === 'broken_throne');
+  if (defaultT) updateInfoPanel(defaultT);
+
+  buildAssetShowcase();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
