@@ -2241,7 +2241,35 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	elif faction_id == FactionData.FactionID.PIRATE:
 		PirateMechanic.apply_rum_bonus_to_units(pid, attacker_units)
 
-	var attacker_data: Dictionary = {"units": attacker_units}
+	# v4.4: Apply consumable item buffs to attacker units before combat
+	var _atk_mult: float = BuffManager.get_atk_multiplier(pid)
+	var _def_mult: float = BuffManager.get_def_multiplier(pid)
+	if _atk_mult != 1.0 or _def_mult != 1.0:
+		for au in attacker_units:
+			if _atk_mult != 1.0:
+				au["atk"] = int(ceil(float(au["atk"]) * _atk_mult))
+			if _def_mult != 1.0:
+				au["def"] = int(ceil(float(au["def"]) * _def_mult))
+
+	# v4.4: Apply wall_damage buff to siege (blast_barrel, etc.)
+	var _wall_dmg_buff: int = BuffManager.get_buff_value(pid, "wall_damage") as int
+	if _wall_dmg_buff > 0 and city_def > 0:
+		city_def = maxi(0, city_def - _wall_dmg_buff)
+		EventBus.message_log.emit("[color=orange]爆破桶削减城防 -%d (剩余%d)[/color]" % [_wall_dmg_buff, city_def])
+
+	# v4.4: Relic first_hit_immune — reduce attacker losses by adding DEF bonus
+	var _has_first_hit: bool = RelicManager.has_first_hit_immune(pid)
+
+	# v4.4: mage_weaken buff — halve ATK of enemy mage-type units
+	var _mage_weaken: bool = BuffManager.get_buff_value(pid, "mage_weaken") as bool
+	if _mage_weaken:
+		for du in defender_units:
+			var _du_troop: String = du.get("troop_id", "").to_lower()
+			if _du_troop.find("mage") != -1 or _du_troop.find("apprentice") != -1:
+				du["atk"] = int(float(du.get("atk", 5)) * 0.5)
+		EventBus.message_log.emit("[color=blue]法力干扰器生效: 敌方法师攻击减半![/color]")
+
+	var attacker_data: Dictionary = {"units": attacker_units, "player_id": pid}
 	var defender_data: Dictionary = {"units": defender_units}
 	var node_data: Dictionary = {
 		"terrain": terrain_enum,
@@ -2276,6 +2304,22 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	var def_losses: Dictionary = result.get("defender_losses", {})
 	var captured_heroes: Array = result.get("captured_heroes", [])
 
+	# v4.4: Consume one-use combat buffs after battle
+	if _atk_mult != 1.0:
+		BuffManager.consume_buff(pid, "atk_mult")
+	if _def_mult != 1.0:
+		BuffManager.consume_buff(pid, "def_mult")
+	if _wall_dmg_buff > 0:
+		BuffManager.consume_buff(pid, "wall_damage")
+	if BuffManager.has_guaranteed_slave(pid) and won:
+		BuffManager.consume_buff(pid, "guaranteed_slave")
+
+	# v4.4: Relic first_hit_immune — reduce attacker losses by 30%
+	if _has_first_hit and won:
+		for key in att_losses:
+			att_losses[key] = maxi(0, att_losses[key] - int(float(att_losses[key]) * 0.3))
+		EventBus.message_log.emit("[color=purple]暗影斗篷: 进攻方损失减少30%![/color]")
+
 	# Apply losses to attacker army troops
 	# BUG FIX: match by slot index instead of troop_id to handle duplicate troop types
 	for i in range(mini(army["troops"].size(), attacker_units.size())):
@@ -2289,6 +2333,20 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		if RecruitManager.has_method("clear_garrison_troops"):
 			RecruitManager.clear_garrison_troops(tile.get("index", 0))
 		EventBus.message_log.emit("[color=green]%s 攻克 %s![/color]" % [army["name"], defender_desc])
+
+		# v4.4: Slave capture on v2 victory
+		var _slaves_captured: int = 1
+		# Relic: victory_slave_bonus
+		var _relic_slave: int = RelicManager.get_victory_slave_bonus(pid)
+		if _relic_slave > 0:
+			_slaves_captured += _relic_slave
+		# Buff: guaranteed_slave (already consumed above)
+		if BuffManager.has_buff(pid, "item_slave"):
+			_slaves_captured = maxi(_slaves_captured, 2)
+		if SlaveManager.has_method("add_slaves"):
+			SlaveManager.add_slaves(pid, _slaves_captured)
+			if _slaves_captured > 1:
+				EventBus.message_log.emit("俘获 %d 名奴隶" % _slaves_captured)
 
 		# Handle captured heroes
 		for hero_id in captured_heroes:
@@ -3355,6 +3413,9 @@ func _apply_conquest_choice(tile: Dictionary, choice: String) -> void:
 			delta["gold"] = int(float(base_loot["gold"]) * mult)
 			delta["food"] = int(float(base_loot["food"]) * mult)
 			delta["iron"] = int(float(base_loot["iron"]) * mult)
+			# v4.4: 洗劫有30%概率掉落道具
+			if randf() < 0.3:
+				ItemManager.grant_random_loot(pid)
 			EventBus.message_log.emit("[color=yellow]洗劫 %s — 大肆搜刮，获得 %d金/%d粮/%d铁，治安骤降[/color]" % [tile["name"], delta["gold"], delta["food"], delta["iron"]])
 		"plunder":
 			tile["public_order"] = clampf(BalanceConfig.TILE_ORDER_DEFAULT - BalanceConfig.CONQUEST_PLUNDER_ORDER_PENALTY, 0.0, 1.0)
@@ -3367,6 +3428,8 @@ func _apply_conquest_choice(tile: Dictionary, choice: String) -> void:
 			var heal: int = maxi(1, int(float(army) * BalanceConfig.CONQUEST_PLUNDER_HP_RECOVERY))
 			ResourceManager.add_army(pid, heal)
 			sync_player_army(pid)
+			# v4.4: 掳掠必定掉落道具
+			ItemManager.grant_random_loot(pid)
 			EventBus.message_log.emit("[color=red]掳掠 %s — 纵兵劫掠，获得 %d金/%d粮/%d铁，回复 %d 兵力[/color]" % [tile["name"], delta["gold"], delta["food"], delta["iron"], heal])
 			# Trigger random H CG event
 			EventBus.message_log.emit("[color=#ff69b4]掳掠中发生了特殊事件...[/color]")

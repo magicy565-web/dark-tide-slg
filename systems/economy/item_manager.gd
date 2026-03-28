@@ -103,8 +103,15 @@ func use_item(player_id: int, item_id: String) -> bool:
 		var val: int = int(effect["heal"])
 		if val <= 0:
 			return false
-		ResourceManager.add_army(player_id, val)
-		EventBus.message_log.emit("使用 %s: 恢复%d兵力" % [item_data["name"], val])
+		# v4.4: Squad-level healing — distribute to most damaged squads first
+		var healed: int = 0
+		if RecruitManager.has_method("heal_army_squads"):
+			healed = RecruitManager.heal_army_squads(player_id, val)
+		if healed == 0:
+			# Fallback: pool-level heal if squad system unavailable
+			ResourceManager.add_army(player_id, val)
+			healed = val
+		EventBus.message_log.emit("使用 %s: 恢复%d兵力" % [item_data["name"], healed])
 	elif effect.has("dice_bonus"):
 		var val: int = int(effect["dice_bonus"])
 		if val == 0:

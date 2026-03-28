@@ -222,6 +222,38 @@ func reinforce_army(player_id: int, reinforcements: Array) -> void:
 	_sync_army_count(player_id)
 
 
+## v4.4: Heal army squads — distribute healing to most-damaged squads first.
+## Returns total soldiers actually healed.
+func heal_army_squads(player_id: int, amount: int) -> int:
+	var army_ref: Array = _get_army_ref(player_id)
+	if army_ref.is_empty():
+		return 0
+	var total_healed: int = 0
+	var remaining: int = amount
+	# Sort squads by damage (most damaged first) — work on indices to mutate in-place
+	var sorted_indices: Array = range(army_ref.size())
+	sorted_indices.sort_custom(func(a: int, b: int) -> bool:
+		var da: int = army_ref[a].get("max_soldiers", army_ref[a]["soldiers"]) - army_ref[a]["soldiers"]
+		var db: int = army_ref[b].get("max_soldiers", army_ref[b]["soldiers"]) - army_ref[b]["soldiers"]
+		return da > db
+	)
+	for idx in sorted_indices:
+		if remaining <= 0:
+			break
+		var troop: Dictionary = army_ref[idx]
+		var max_s: int = troop.get("max_soldiers", troop["soldiers"])
+		var missing: int = max_s - troop["soldiers"]
+		if missing <= 0:
+			continue
+		var heal: int = mini(missing, remaining)
+		troop["soldiers"] += heal
+		remaining -= heal
+		total_healed += heal
+	if total_healed > 0:
+		_sync_army_count(player_id)
+	return total_healed
+
+
 ## Build combat unit array for CombatResolver (backward compatible format).
 ## Includes synergy bonuses, veterancy, and aura from T4 troops.
 func get_combat_units(player_id: int) -> Array:
