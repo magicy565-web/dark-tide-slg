@@ -11,6 +11,8 @@
 class_name MapGenerator
 extends RefCounted
 
+const FactionData = preload("res://systems/faction/faction_data.gd")
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -426,10 +428,10 @@ func _assign_player_start(nodes: Dictionary, edges: Dictionary, player_faction: 
 			break
 		var nd: Dictionary = nodes[neighbor_id]
 		# Prefer converting villages or generic non-fortress nodes.
-		if nd["type"] == GameData.NodeType.FORTRESS:
+		if nd["type"] == GameManager.TileType.CORE_FORTRESS:
 			continue
 		nd["owner"] = player_faction
-		nd["type"] = GameData.NodeType.VILLAGE
+		nd["type"] = GameManager.TileType.LIGHT_VILLAGE
 		nd["garrison"] = _make_garrison(3)
 		nd["city_def"] = 5
 		nd["city_def_max"] = 5
@@ -522,69 +524,69 @@ func _region_faction(pos: Vector2) -> int:
 		return _faction_string_to_enum("BANDIT")
 	return -1
 
-## Convert a faction string key to the GameData enum value.
+## Convert a faction string key to the FactionData.FactionID enum value.
 func _faction_string_to_enum(s: String) -> int:
 	match s:
 		"ORC":
-			return GameData.Faction.ORC
+			return FactionData.FactionID.ORC
 		"PIRATE":
-			return GameData.Faction.PIRATE
+			return FactionData.FactionID.PIRATE
 		"DARK_ELF":
-			return GameData.Faction.DARK_ELF
+			return FactionData.FactionID.DARK_ELF
 		"HUMAN":
-			return GameData.Faction.HUMAN
+			return 100  # Light faction placeholder (Human Kingdom)
 		"HIGH_ELF":
-			return GameData.Faction.HIGH_ELF
+			return 101  # Light faction placeholder (High Elves)
 		"MAGE":
-			return GameData.Faction.MAGE
+			return 102  # Light faction placeholder (Mage Tower)
 		"BANDIT":
-			return GameData.Faction.BANDIT
+			return 200  # Neutral/bandit placeholder
 		"NEUTRAL":
-			return GameData.Faction.NEUTRAL
+			return -1
 		_:
 			return -1
 
-## Convert a node type string to the GameData enum value.
+## Convert a node type string to the GameManager.TileType enum value.
 func _type_string_to_enum(s: String) -> int:
 	match s:
 		"FORTRESS":
-			return GameData.NodeType.FORTRESS
+			return GameManager.TileType.CORE_FORTRESS
 		"VILLAGE":
-			return GameData.NodeType.VILLAGE
+			return GameManager.TileType.LIGHT_VILLAGE
 		"STRONGHOLD":
-			return GameData.NodeType.STRONGHOLD
+			return GameManager.TileType.NEUTRAL_BASE
 		"BANDIT_CAMP":
-			return GameData.NodeType.BANDIT_CAMP
+			return GameManager.TileType.DARK_BASE
 		"EVENT_POINT":
-			return GameData.NodeType.EVENT_POINT
+			return GameManager.TileType.EVENT_TILE
 		"RESOURCE":
-			return GameData.NodeType.RESOURCE
+			return GameManager.TileType.RESOURCE_STATION
 		_:
-			return GameData.NodeType.VILLAGE
+			return GameManager.TileType.WILDERNESS
 
-## Convert a terrain string to the GameData enum value.
+## Convert a terrain string to the FactionData.TerrainType enum value.
 func _terrain_string_to_enum(s: String) -> int:
 	match s:
 		"PLAINS":
-			return GameData.Terrain.PLAINS
+			return FactionData.TerrainType.PLAINS
 		"FOREST":
-			return GameData.Terrain.FOREST
+			return FactionData.TerrainType.FOREST
 		"MOUNTAIN":
-			return GameData.Terrain.MOUNTAIN
+			return FactionData.TerrainType.MOUNTAIN
 		"SWAMP":
-			return GameData.Terrain.SWAMP
+			return FactionData.TerrainType.SWAMP
 		"WALL":
-			return GameData.Terrain.WALL
+			return FactionData.TerrainType.FORTRESS_WALL
 		"RIVER":
-			return GameData.Terrain.RIVER
+			return FactionData.TerrainType.RIVER
 		"RUINS":
-			return GameData.Terrain.RUINS
+			return FactionData.TerrainType.RUINS
 		"WASTELAND":
-			return GameData.Terrain.WASTELAND
+			return FactionData.TerrainType.WASTELAND
 		"VOLCANIC":
-			return GameData.Terrain.VOLCANIC
+			return FactionData.TerrainType.VOLCANIC
 		_:
-			return GameData.Terrain.PLAINS
+			return FactionData.TerrainType.PLAINS
 
 ## Return the minimum distance from a point to any point in an existing array.
 func _min_distance_to(point: Vector2, others: Array) -> float:

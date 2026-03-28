@@ -38,8 +38,10 @@ var path_preview_meshes: Array = []
 var water_anim_nodes: Array = []  # [{node, type}]
 var attack_route_meshes: Array = []
 var settlement_nodes: Dictionary = {}
+var _settlement_cache: Dictionary = {}  # idx -> last icon_key to avoid redundant rebuilds
 # ── Material cache ──
 var _material_cache: Dictionary = {}
+const _MATERIAL_CACHE_MAX: int = 512
 var _fog_mat: StandardMaterial3D = null
 var _fog_edge_mat: StandardMaterial3D = null
 # ── Dirty fog tracking ──
@@ -229,6 +231,7 @@ func _clear_board() -> void:
 		if is_instance_valid(b): b.queue_free()
 	faction_border_meshes.clear()
 	settlement_nodes.clear()
+	_settlement_cache.clear()
 	water_anim_nodes.clear()
 	for m in attack_route_meshes:
 		if is_instance_valid(m): m.queue_free()
@@ -414,34 +417,46 @@ func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
 func _get_settlement_icon_key(tile: Dictionary) -> String:
 	var tt = tile.get("type", -1)
 	var terrain = tile.get("terrain", FactionData.TerrainType.PLAINS)
-	var special: String = tile.get("special_type", "")
-	# Core fortress
-	if tt == GameManager.TileType.CORE_FORTRESS:
-		return "fortress"
-	# Special types by name/special_type field
-	if special == "trading_post" or tile.get("name", "").find("集市") >= 0 or tile.get("name", "").find("黑市") >= 0:
-		return "trading_post"
-	if special == "watchtower" or tile.get("name", "").find("瞭望") >= 0 or tile.get("name", "").find("烽火") >= 0:
-		return "beacon"
-	if special == "ruins" or tile.get("name", "").find("图书馆") >= 0 or tile.get("name", "").find("神殿") >= 0:
-		return "ruins"
-	if special == "port" or tile.get("name", "").find("港") >= 0 or tile.get("name", "").find("码头") >= 0 or tile.get("name", "").find("湾") >= 0:
-		return "port"
-	if special == "pass" or tile.get("is_chokepoint", false):
+	# ── Primary: match by TileType enum ──
+	match tt:
+		GameManager.TileType.CORE_FORTRESS:
+			return "fortress"
+		GameManager.TileType.LIGHT_STRONGHOLD:
+			return "stronghold"
+		GameManager.TileType.NEUTRAL_BASE:
+			return "stronghold"
+		GameManager.TileType.DARK_BASE:
+			return "bandit"
+		GameManager.TileType.EVENT_TILE:
+			return "event"
+		GameManager.TileType.TRADING_POST:
+			return "trading_post"
+		GameManager.TileType.WATCHTOWER:
+			return "beacon"
+		GameManager.TileType.RUINS:
+			return "ruins"
+		GameManager.TileType.HARBOR:
+			return "port"
+		GameManager.TileType.CHOKEPOINT:
+			return "gate"
+		GameManager.TileType.MINE_TILE:
+			return "crystal_mine"
+		GameManager.TileType.RESOURCE_STATION:
+			# Map by resource_station_type field
+			var rst: String = tile.get("resource_station_type", "")
+			match rst:
+				"crystal": return "crystal_mine"
+				"horse": return "horse_ranch"
+				"gunpowder": return "gunpowder"
+				"shadow": return "shadow_rift"
+			return "crystal_mine"
+	# ── Secondary: check chokepoint flag ──
+	if tile.get("is_chokepoint", false):
 		return "gate"
-	if tile.get("name", "").find("矿") >= 0 or tile.get("name", "").find("晶") >= 0:
-		return "crystal_mine"
-	if tile.get("name", "").find("牧场") >= 0 or tile.get("name", "").find("马场") >= 0:
-		return "horse_ranch"
-	if tile.get("name", "").find("工坊") >= 0 or tile.get("name", "").find("火药") >= 0:
-		return "gunpowder"
-	if tile.get("name", "").find("裂隙") >= 0 or tile.get("name", "").find("暗蚀") >= 0:
-		return "shadow_rift"
-	if tile.get("name", "").find("事件") >= 0 or tile.get("name", "").find("命运") >= 0 or tile.get("name", "").find("低语") >= 0:
-		return "event"
-	# By terrain or level
+	# ── Tertiary: terrain-based ──
 	if terrain == FactionData.TerrainType.FORTRESS_WALL:
 		return "stronghold"
+	# ── Default by level ──
 	if tile.get("level", 1) >= 3:
 		return "stronghold"
 	return "village"
@@ -726,8 +741,12 @@ func _update_territory_visual(idx: int) -> void:
 	if garrison > 0 and not vis["fog"].visible:
 		vis["garrison_label"].text = "Lv%d  %d兵" % [tile.get("level", 1), garrison]
 	else: vis["garrison_label"].text = ""
-	# Settlement update
-	if settlement_nodes.has(idx): _build_settlement(settlement_nodes[idx], tile)
+	# Settlement update (only rebuild if tile state changed)
+	if settlement_nodes.has(idx):
+		var new_key: String = _get_settlement_icon_key(tile) + "_%d" % tile.get("level", 1)
+		if _settlement_cache.get(idx, "") != new_key:
+			_build_settlement(settlement_nodes[idx], tile)
+			_settlement_cache[idx] = new_key
 	# Army
 	var army: Dictionary = GameManager.get_army_at_tile(idx)
 	if not army.is_empty() and not vis["fog"].visible:
@@ -760,9 +779,9 @@ func _get_tile_faction_key(tile: Dictionary) -> String:
 		FactionData.FactionID.PIRATE: return "pirate"
 		FactionData.FactionID.DARK_ELF: return "dark_elf"
 	match tile.get("light_faction", -1):
-		0: return "human"
-		1: return "high_elf"
-		2: return "mage"
+		FactionData.LightFaction.HUMAN_KINGDOM: return "human"
+		FactionData.LightFaction.HIGH_ELVES: return "high_elf"
+		FactionData.LightFaction.MAGE_TOWER: return "mage"
 	return "neutral"
 
 func _get_player_faction_key(player_id: int) -> String:
@@ -1209,9 +1228,18 @@ func _process_water_animation(_delta: float) -> void:
 				node.position.z = fmod(original_z + t * 0.1, 1.2) - 0.6
 
 # ═══════════════ UTILITY ═══════════════
+func _trim_material_cache() -> void:
+	if _material_cache.size() > _MATERIAL_CACHE_MAX:
+		# Evict oldest half of entries
+		var keys: Array = _material_cache.keys()
+		var to_remove: int = _material_cache.size() / 2
+		for i in range(to_remove):
+			_material_cache.erase(keys[i])
+
 func _make_mat(color: Color) -> StandardMaterial3D:
 	var key := "%s" % color
 	if _material_cache.has(key): return _material_cache[key]
+	if _material_cache.size() >= _MATERIAL_CACHE_MAX: _trim_material_cache()
 	var m := StandardMaterial3D.new(); m.albedo_color = color
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_material_cache[key] = m; return m

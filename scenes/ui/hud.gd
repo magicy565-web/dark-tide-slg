@@ -13,6 +13,15 @@ var _icon_iron: Texture2D
 var _icon_slave: Texture2D
 var _icon_prestige: Texture2D
 var _icon_crystal: Texture2D
+var _icon_order: Texture2D
+var _icon_threat: Texture2D
+var _icon_action_attack: Texture2D
+var _icon_action_deploy: Texture2D
+var _icon_action_build: Texture2D
+var _icon_action_diplomacy: Texture2D
+var _icon_action_end_turn: Texture2D
+var _icon_action_hero: Texture2D
+var _icon_action_recruit: Texture2D
 var _has_resource_icons: bool = false
 
 func _safe_load(path: String) -> Resource:
@@ -157,6 +166,17 @@ func _build_ui() -> void:
 	if not _icon_prestige: _icon_prestige = _safe_load("res://assets/map/resources/res_prestige.png")
 	_icon_crystal = _safe_load("res://assets/ui/icon_magic_crystal.png")
 	if not _icon_crystal: _icon_crystal = _safe_load("res://assets/map/resources/res_mana.png")
+	_icon_order = _safe_load("res://assets/ui/icon_order.png")
+	if not _icon_order: _icon_order = _safe_load("res://assets/map/resources/res_order.png")
+	_icon_threat = _safe_load("res://assets/ui/icon_threat.png")
+	if not _icon_threat: _icon_threat = _safe_load("res://assets/map/resources/res_threat.png")
+	_icon_action_attack = _safe_load("res://assets/map/actions/action_attack.png")
+	_icon_action_deploy = _safe_load("res://assets/map/actions/action_deploy.png")
+	_icon_action_build = _safe_load("res://assets/map/actions/action_build.png")
+	_icon_action_diplomacy = _safe_load("res://assets/map/actions/action_diplomacy.png")
+	_icon_action_end_turn = _safe_load("res://assets/map/actions/action_end_turn.png")
+	_icon_action_hero = _safe_load("res://assets/map/actions/action_hero.png")
+	_icon_action_recruit = _safe_load("res://assets/map/actions/action_recruit.png")
 	_has_resource_icons = _icon_gold != null
 
 	var root := Control.new()
@@ -235,12 +255,22 @@ func _build_top_bar(parent: Control) -> void:
 	hbox2.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(hbox2)
 
-	order_label = _make_label("Order:50", 12, Color(0.5, 0.8, 1.0))
-	order_label.custom_minimum_size.x = 90
-	hbox2.add_child(order_label)
-	threat_label = _make_label("Threat:0", 12, Color(1.0, 0.4, 0.3))
-	threat_label.custom_minimum_size.x = 90
-	hbox2.add_child(threat_label)
+	if _icon_order:
+		var order_hb := _make_icon_label(_icon_order, "50", 12, Color(0.5, 0.8, 1.0), 90)
+		order_label = order_hb.get_child(order_hb.get_child_count() - 1)
+		hbox2.add_child(order_hb)
+	else:
+		order_label = _make_label("Order:50", 12, Color(0.5, 0.8, 1.0))
+		order_label.custom_minimum_size.x = 90
+		hbox2.add_child(order_label)
+	if _icon_threat:
+		var threat_hb := _make_icon_label(_icon_threat, "0", 12, Color(1.0, 0.4, 0.3), 90)
+		threat_label = threat_hb.get_child(threat_hb.get_child_count() - 1)
+		hbox2.add_child(threat_hb)
+	else:
+		threat_label = _make_label("Threat:0", 12, Color(1.0, 0.4, 0.3))
+		threat_label.custom_minimum_size.x = 90
+		hbox2.add_child(threat_label)
 	waaagh_label = _make_label("", 12, Color(1.0, 0.2, 0.1))
 	waaagh_label.custom_minimum_size.x = 80
 	hbox2.add_child(waaagh_label)
@@ -275,19 +305,19 @@ func _build_action_panel(parent: Control) -> void:
 	var title := _make_label("Actions", 15, Color(0.8, 0.8, 0.9))
 	vbox.add_child(title)
 
-	btn_attack = _make_button("Attack (1AP)")
+	btn_attack = _make_button("Attack (1AP)", _icon_action_attack)
 	btn_attack.pressed.connect(_on_attack_pressed)
 	vbox.add_child(btn_attack)
 
-	btn_deploy = _make_button("Deploy (1AP)")
+	btn_deploy = _make_button("Deploy (1AP)", _icon_action_deploy)
 	btn_deploy.pressed.connect(_on_deploy_pressed)
 	vbox.add_child(btn_deploy)
 
-	btn_domestic = _make_button("Domestic (1AP)")
+	btn_domestic = _make_button("Domestic (1AP)", _icon_action_build)
 	btn_domestic.pressed.connect(_on_domestic_pressed)
 	vbox.add_child(btn_domestic)
 
-	btn_diplomacy = _make_button("Diplomacy (1AP)")
+	btn_diplomacy = _make_button("Diplomacy (1AP)", _icon_action_diplomacy)
 	btn_diplomacy.pressed.connect(_on_diplomacy_pressed)
 	vbox.add_child(btn_diplomacy)
 
@@ -325,7 +355,7 @@ func _build_action_panel(parent: Control) -> void:
 	sep_hero.add_theme_constant_override("separation", 4)
 	vbox.add_child(sep_hero)
 
-	btn_hero = _make_button("Heroes (H)")
+	btn_hero = _make_button("Heroes (H)", _icon_action_hero)
 	btn_hero.pressed.connect(_on_hero_pressed)
 	vbox.add_child(btn_hero)
 
@@ -351,7 +381,7 @@ func _build_action_panel(parent: Control) -> void:
 	sep2.add_theme_constant_override("separation", 8)
 	vbox.add_child(sep2)
 
-	btn_end_turn = _make_button("End Turn")
+	btn_end_turn = _make_button("End Turn", _icon_action_end_turn)
 	btn_end_turn.pressed.connect(_on_end_turn_pressed)
 	vbox.add_child(btn_end_turn)
 
@@ -374,7 +404,7 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 	var title := _make_label("Domestic Menu", 13, Color(0.7, 0.8, 0.9))
 	vbox.add_child(title)
 
-	btn_recruit = _make_button("Recruit")
+	btn_recruit = _make_button("Recruit", _icon_action_recruit)
 	btn_recruit.custom_minimum_size = Vector2(140, 30)
 	btn_recruit.pressed.connect(_on_domestic_recruit)
 	vbox.add_child(btn_recruit)
@@ -1530,8 +1560,14 @@ func _update_player_info() -> void:
 	ap_label.text = "AP:%d" % player.get("ap", 0)
 	stronghold_label.text = "Fort:%s" % GameManager.get_stronghold_progress(pid)
 
-	order_label.text = "Order:%d (x%.2f)" % [OrderManager.get_order(), OrderManager.get_production_multiplier()]
-	threat_label.text = "Threat:%d [%s]" % [ThreatManager.get_threat(), ThreatManager.get_tier_name()]
+	if _icon_order:
+		order_label.text = "%d (x%.2f)" % [OrderManager.get_order(), OrderManager.get_production_multiplier()]
+	else:
+		order_label.text = "Order:%d (x%.2f)" % [OrderManager.get_order(), OrderManager.get_production_multiplier()]
+	if _icon_threat:
+		threat_label.text = "%d [%s]" % [ThreatManager.get_threat(), ThreatManager.get_tier_name()]
+	else:
+		threat_label.text = "Threat:%d [%s]" % [ThreatManager.get_threat(), ThreatManager.get_tier_name()]
 
 	# WAAAGH! display for Orc faction
 	var faction_id: int = GameManager.get_player_faction(pid)
@@ -1936,9 +1972,13 @@ func _make_label(text: String, size: int, color: Color) -> Label:
 	return lbl
 
 
-func _make_button(text: String) -> Button:
+func _make_button(text: String, icon: Texture2D = null) -> Button:
 	var btn := Button.new()
 	btn.text = text
+	if icon:
+		btn.icon = icon
+		btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.expand_icon = true
 	btn.custom_minimum_size = Vector2(180, 32)
 	btn.add_theme_font_size_override("font_size", 12)
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
