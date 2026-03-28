@@ -140,12 +140,15 @@ func _build_title_panel() -> void:
 	title_panel.offset_right = 220
 	title_panel.offset_top = -200
 	title_panel.offset_bottom = 200
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.06, 0.12, 0.80)
-	style.border_color = Color(0.6, 0.3, 0.1)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(12)
-	style.set_content_margin_all(24)
+	var style: StyleBox = UITheme.make_content_style() if UITheme else null
+	if not style:
+		var sf := StyleBoxFlat.new()
+		sf.bg_color = Color(0.08, 0.06, 0.12, 0.80)
+		sf.border_color = Color(0.6, 0.3, 0.1)
+		sf.set_border_width_all(2)
+		sf.set_corner_radius_all(12)
+		sf.set_content_margin_all(24)
+		style = sf
 	title_panel.add_theme_stylebox_override("panel", style)
 	root.add_child(title_panel)
 
@@ -219,13 +222,16 @@ func _build_faction_panel() -> void:
 	faction_panel.offset_top = 40
 	faction_panel.offset_bottom = -40
 	faction_panel.visible = false
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.04, 0.08, 0.97)
-	style.border_color = Color(0.5, 0.3, 0.15)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(16)
-	faction_panel.add_theme_stylebox_override("panel", style)
+	var fstyle: StyleBox = UITheme.make_info_panel_style() if UITheme else null
+	if not fstyle:
+		var sf := StyleBoxFlat.new()
+		sf.bg_color = Color(0.05, 0.04, 0.08, 0.97)
+		sf.border_color = Color(0.5, 0.3, 0.15)
+		sf.set_border_width_all(2)
+		sf.set_corner_radius_all(10)
+		sf.set_content_margin_all(16)
+		fstyle = sf
+	faction_panel.add_theme_stylebox_override("panel", fstyle)
 	root.add_child(faction_panel)
 
 	_build_faction_panel_content()

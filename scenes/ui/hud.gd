@@ -24,6 +24,13 @@ var _icon_action_hero: Texture2D
 var _icon_action_recruit: Texture2D
 var _has_resource_icons: bool = false
 
+# ── HD UI frame textures (extracted from ui_panels sprite sheets) ──
+var _frame_top_bar: Texture2D
+var _frame_info_panel: Texture2D
+var _frame_content: Texture2D
+var _frame_parchment: Texture2D
+var _frame_action_bar: Texture2D
+
 func _safe_load(path: String) -> Resource:
 	if ResourceLoader.exists(path):
 		return load(path)
@@ -185,6 +192,13 @@ func _build_ui() -> void:
 	_icon_action_recruit = _safe_load("res://assets/map/actions/action_recruit.png")
 	_has_resource_icons = _icon_gold != null
 
+	# HD UI frame textures
+	_frame_top_bar = _safe_load("res://assets/ui/frames/top_bar_frame.png")
+	_frame_info_panel = _safe_load("res://assets/ui/frames/info_panel_frame.png")
+	_frame_content = _safe_load("res://assets/ui/frames/content_panel_frame.png")
+	_frame_parchment = _safe_load("res://assets/ui/frames/parchment_bg.png")
+	_frame_action_bar = _safe_load("res://assets/ui/frames/inventory_bar_frame.png")
+
 	var root := Control.new()
 	root.name = "HUDRoot"
 	root.anchor_right = 1.0
@@ -210,7 +224,7 @@ func _build_top_bar(parent: Control) -> void:
 	panel.anchor_right = 1.0
 	panel.offset_bottom = 58
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.06, 0.1, 0.92), 8))
+	panel.add_theme_stylebox_override("panel", _make_top_bar_style())
 	parent.add_child(panel)
 
 	# Use a VBoxContainer to hold both rows so layout is automatic
@@ -301,7 +315,7 @@ func _build_action_panel(parent: Control) -> void:
 	action_panel.position = Vector2(10, 60)
 	action_panel.size = Vector2(200, 560)
 	action_panel.mouse_filter = Control.MOUSE_FILTER_PASS
-	action_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.06, 0.1, 0.88)))
+	action_panel.add_theme_stylebox_override("panel", _make_action_bar_style())
 	parent.add_child(action_panel)
 
 	var vbox := VBoxContainer.new()
@@ -412,7 +426,7 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 	domestic_panel.size = Vector2(160, 330)
 	domestic_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	domestic_panel.visible = false
-	domestic_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.08, 0.06, 0.14, 0.92)))
+	domestic_panel.add_theme_stylebox_override("panel", _make_content_panel_style())
 	parent.add_child(domestic_panel)
 
 	var vbox := VBoxContainer.new()
@@ -473,7 +487,7 @@ func _build_target_panel(parent: Control) -> void:
 	target_panel.size = Vector2(420, 400)
 	target_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	target_panel.visible = false
-	target_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.07, 0.12, 0.92)))
+	target_panel.add_theme_stylebox_override("panel", _make_info_panel_style())
 	parent.add_child(target_panel)
 
 	var vbox := VBoxContainer.new()
@@ -514,7 +528,7 @@ func _build_item_panel(parent: Control) -> void:
 	item_panel.position = Vector2(10, 450)
 	item_panel.size = Vector2(200, 130)
 	item_panel.mouse_filter = Control.MOUSE_FILTER_PASS
-	item_panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.06, 0.1, 0.88)))
+	item_panel.add_theme_stylebox_override("panel", _make_content_panel_style())
 	parent.add_child(item_panel)
 
 	item_container = VBoxContainer.new()
@@ -536,7 +550,7 @@ func _build_tile_info(parent: Control) -> void:
 	panel.offset_top = 60
 	panel.offset_bottom = 360
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.06, 0.08, 0.12, 0.9)))
+	panel.add_theme_stylebox_override("panel", _make_info_panel_style())
 	parent.add_child(panel)
 
 	tile_info_label = RichTextLabel.new()
@@ -559,7 +573,7 @@ func _build_message_log(parent: Control) -> void:
 	panel.anchor_bottom = 1.0
 	panel.offset_top = -160
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_theme_stylebox_override("panel", _make_panel_style(Color(0.04, 0.04, 0.08, 0.85)))
+	panel.add_theme_stylebox_override("panel", _make_parchment_style())
 	parent.add_child(panel)
 
 	message_log_label = RichTextLabel.new()
@@ -657,12 +671,7 @@ func _build_minimap(parent: Control) -> void:
 	var frame := PanelContainer.new()
 	frame.anchor_right = 1.0
 	frame.anchor_bottom = 1.0
-	var frame_style := StyleBoxFlat.new()
-	frame_style.bg_color = Color(0.05, 0.05, 0.08, 0.8)
-	frame_style.border_color = Color(0.5, 0.45, 0.3)
-	frame_style.set_border_width_all(1)
-	frame_style.set_corner_radius_all(4)
-	frame_style.set_content_margin_all(2)
+	var frame_style: StyleBox = _make_content_panel_style()
 	frame.add_theme_stylebox_override("panel", frame_style)
 	minimap_anchor.add_child(frame)
 
@@ -2191,6 +2200,54 @@ func _make_panel_style(fallback_color: Color = Color(0.06, 0.06, 0.1, 0.88), mar
 		sf.set_corner_radius_all(6)
 		sf.set_content_margin_all(8)
 		return sf
+
+
+func _make_frame_style(tex: Texture2D, tex_margin: Array, content_margin: Array, fallback_color: Color) -> StyleBox:
+	## Build a StyleBoxTexture from an HD frame, or fall back to flat color.
+	## tex_margin = [left, top, right, bottom], content_margin = [left, top, right, bottom]
+	if tex:
+		var stex := StyleBoxTexture.new()
+		stex.texture = tex
+		stex.texture_margin_left = tex_margin[0]
+		stex.texture_margin_top = tex_margin[1]
+		stex.texture_margin_right = tex_margin[2]
+		stex.texture_margin_bottom = tex_margin[3]
+		stex.content_margin_left = content_margin[0]
+		stex.content_margin_top = content_margin[1]
+		stex.content_margin_right = content_margin[2]
+		stex.content_margin_bottom = content_margin[3]
+		return stex
+	return _make_panel_style(fallback_color)
+
+
+func _make_top_bar_style() -> StyleBox:
+	return _make_frame_style(_frame_top_bar,
+		[60, 30, 60, 20], [70, 14, 70, 8],
+		Color(0.06, 0.06, 0.1, 0.92))
+
+
+func _make_info_panel_style() -> StyleBox:
+	return _make_frame_style(_frame_info_panel,
+		[30, 50, 30, 20], [20, 45, 20, 12],
+		Color(0.06, 0.08, 0.12, 0.9))
+
+
+func _make_content_panel_style() -> StyleBox:
+	return _make_frame_style(_frame_content,
+		[25, 20, 25, 30], [14, 12, 14, 16],
+		Color(0.06, 0.06, 0.1, 0.88))
+
+
+func _make_action_bar_style() -> StyleBox:
+	return _make_frame_style(_frame_action_bar,
+		[30, 40, 30, 20], [16, 30, 16, 10],
+		Color(0.06, 0.06, 0.1, 0.88))
+
+
+func _make_parchment_style() -> StyleBox:
+	return _make_frame_style(_frame_parchment,
+		[8, 8, 8, 8], [10, 10, 10, 10],
+		Color(0.04, 0.04, 0.08, 0.85))
 
 
 func _make_icon_label(icon: Texture2D, text: String, size: int, color: Color, min_w: float) -> HBoxContainer:

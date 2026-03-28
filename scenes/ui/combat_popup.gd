@@ -109,12 +109,15 @@ func _build_ui() -> void:
 	popup_panel.offset_right = 280
 	popup_panel.offset_top = -180
 	popup_panel.offset_bottom = 180
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.04, 0.1, 0.97)
-	style.border_color = Color(0.8, 0.3, 0.1)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(16)
+	var style: StyleBox = UITheme.make_info_panel_style() if UITheme else null
+	if not style:
+		var sf := StyleBoxFlat.new()
+		sf.bg_color = Color(0.06, 0.04, 0.1, 0.97)
+		sf.border_color = Color(0.8, 0.3, 0.1)
+		sf.set_border_width_all(2)
+		sf.set_corner_radius_all(10)
+		sf.set_content_margin_all(16)
+		style = sf
 	popup_panel.add_theme_stylebox_override("panel", style)
 	root.add_child(popup_panel)
 
@@ -186,13 +189,16 @@ func _build_orders_ui() -> void:
 	_orders_panel.offset_right = 320
 	_orders_panel.offset_top = -260
 	_orders_panel.offset_bottom = 260
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.04, 0.03, 0.08, 0.97)
-	style.border_color = Color(0.2, 0.6, 0.9)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(14)
-	_orders_panel.add_theme_stylebox_override("panel", style)
+	var style2: StyleBox = UITheme.make_info_panel_style() if UITheme else null
+	if not style2:
+		var sf := StyleBoxFlat.new()
+		sf.bg_color = Color(0.04, 0.03, 0.08, 0.97)
+		sf.border_color = Color(0.2, 0.6, 0.9)
+		sf.set_border_width_all(2)
+		sf.set_corner_radius_all(10)
+		sf.set_content_margin_all(14)
+		style2 = sf
+	_orders_panel.add_theme_stylebox_override("panel", style2)
 	_orders_root.add_child(_orders_panel)
 
 	var main_vbox := VBoxContainer.new()
