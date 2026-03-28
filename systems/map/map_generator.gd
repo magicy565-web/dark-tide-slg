@@ -505,11 +505,11 @@ func _region_faction(pos: Vector2) -> int:
 
 	# North: top 30% -> Human
 	if ry < 0.30:
-		return GameData.Faction.HUMAN
+		return _faction_string_to_enum("HUMAN")
 
 	# East: right 30% -> High Elf
 	if rx > 0.70:
-		return GameData.Faction.HIGH_ELF
+		return _faction_string_to_enum("HIGH_ELF")
 
 	# South/Southwest: bottom 30% AND left 50% -> neutral / scattered
 	if ry > 0.70 and rx < 0.50:
@@ -517,7 +517,7 @@ func _region_faction(pos: Vector2) -> int:
 
 	# Center band -> Mage
 	if rx > 0.30 and rx < 0.70 and ry > 0.30 and ry < 0.70:
-		return GameData.Faction.MAGE
+		return _faction_string_to_enum("MAGE")
 
 	# Everything else: scattered neutral / bandit
 	if randf() < 0.5:
