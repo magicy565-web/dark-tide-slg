@@ -231,6 +231,24 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 			income["food"] = int(float(income["food"]) * weather_mods.get("food_mult", 1.0))
 			income["iron"] = int(float(income["iron"]) * weather_mods.get("iron_mult", 1.0))
 
+	# ── Difficulty scaling ──
+	# Human player gets player_income_mult; AI players get inverse scaling (higher on hard)
+	var is_human: bool = (player_id == GameManager.get_human_player_id())
+	if is_human:
+		var player_mult: float = BalanceManager.get_player_income_mult()
+		if player_mult != 1.0:
+			income["gold"] = int(float(income["gold"]) * player_mult)
+			income["food"] = int(float(income["food"]) * player_mult)
+			income["iron"] = int(float(income["iron"]) * player_mult)
+	else:
+		# AI income scales inversely: when player_income_mult < 1.0, AI gets a boost
+		# Use ai_garrison_mult as proxy for AI economic strength
+		var ai_mult: float = BalanceManager.get_ai_garrison_mult()
+		if ai_mult != 1.0:
+			income["gold"] = int(float(income["gold"]) * ai_mult)
+			income["food"] = int(float(income["food"]) * ai_mult)
+			income["iron"] = int(float(income["iron"]) * ai_mult)
+
 	return income
 
 

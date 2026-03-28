@@ -79,6 +79,8 @@ var btn_buy_slave: Button
 var btn_hero: Button
 var btn_research: Button
 var btn_quest_journal: Button
+var btn_armies: Button
+var btn_economy: Button
 var btn_guard: Button
 var btn_interrogate: Button
 var btn_reinforce: Button
@@ -428,6 +430,14 @@ func _build_action_panel(parent: Control) -> void:
 	btn_quest_journal = _make_button("Quest Log (J)")
 	btn_quest_journal.pressed.connect(_on_quest_journal_pressed)
 	vbox.add_child(btn_quest_journal)
+
+	btn_armies = _make_button("Armies (A)")
+	btn_armies.pressed.connect(_on_armies_pressed)
+	vbox.add_child(btn_armies)
+
+	btn_economy = _make_button("Economy ($)")
+	btn_economy.pressed.connect(_on_economy_pressed)
+	vbox.add_child(btn_economy)
 
 	var btn_event_mgr := _make_button("Event Mgr (E)")
 	btn_event_mgr.pressed.connect(_on_event_manager_pressed)
@@ -1769,6 +1779,237 @@ func _on_quest_journal_pressed() -> void:
 	var quest_panel = get_tree().get_root().find_child("QuestJournalPanel", true, false)
 	if quest_panel and quest_panel.has_method("show_panel"):
 		quest_panel.show_panel()
+
+
+func _on_armies_pressed() -> void:
+	if _current_mode == ActionMode.DOMESTIC_SUB and _domestic_sub_type == "armies_detail":
+		_close_target_panel()
+		return
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "armies_detail"
+	domestic_panel.visible = false
+
+	var pid: int = GameManager.get_human_player_id()
+	var player_armies: Array = GameManager.get_player_armies(pid)
+
+	_show_target_panel("Army Details")
+
+	if player_armies.is_empty():
+		_add_target_label("(No armies deployed)")
+		return
+
+	# Build RichTextLabel content with BBCode
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.mouse_filter = Control.MOUSE_FILTER_PASS
+	rtl.add_theme_font_size_override("normal_font_size", 11)
+	rtl.add_theme_color_override("default_color", Color(0.8, 0.8, 0.85))
+
+	var bbtext: String = ""
+
+	for army in player_armies:
+		var army_id: int = army["id"]
+		var tile_idx: int = army.get("tile_index", -1)
+		var tile_name: String = "???"
+		if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+			tile_name = GameManager.tiles[tile_idx].get("name", "???")
+		var total_soldiers: int = GameManager.get_army_soldier_count(army_id)
+		var total_power: int = GameManager.get_army_combat_power(army_id)
+
+		bbtext += "[b][color=gold]%s[/color][/b]  @%s\n" % [army["name"], tile_name]
+		bbtext += "  Strength: [color=cyan]%d[/color]  |  Soldiers: [color=white]%d[/color]\n" % [total_power, total_soldiers]
+
+		# Troops
+		var troops: Array = army.get("troops", [])
+		if troops.is_empty():
+			bbtext += "  [color=gray](No troops)[/color]\n"
+		else:
+			var army_food_upkeep: int = 0
+			var army_gold_upkeep: int = 0
+			for troop in troops:
+				var troop_id: String = troop.get("troop_id", "")
+				var td: Dictionary = GameData.get_troop_def(troop_id)
+				var tier: int = td.get("tier", 1)
+				var soldiers: int = troop.get("soldiers", 0)
+				var max_sol: int = troop.get("max_soldiers", soldiers)
+				var troop_name: String = troop.get("name", td.get("name", troop_id))
+				var troop_class: int = td.get("troop_class", 0)
+				var class_name_str: String = GameData.TROOP_CLASS_NAMES.get(troop_class, "???")
+				var atk: int = GameData.get_effective_atk(troop)
+				var def_val: int = GameData.get_effective_def(troop)
+				var vet: Dictionary = GameData.get_veterancy_bonuses(troop.get("experience", 0))
+				var vet_label: String = vet.get("label", "")
+				var food_up: int = GameData.TIER_UPKEEP.get(tier, 0)
+				var gold_up: int = BalanceConfig.TIER_GOLD_UPKEEP.get(tier, 0)
+				army_food_upkeep += food_up
+				army_gold_upkeep += gold_up
+
+				var vet_str: String = ""
+				if vet_label != "":
+					vet_str = " [color=yellow][%s][/color]" % vet_label
+
+				bbtext += "    [color=silver]T%d[/color] %s [%s] %d/%d  ATK:%d DEF:%d%s\n" % [
+					tier, troop_name, class_name_str, soldiers, max_sol, atk, def_val, vet_str]
+
+			bbtext += "  [color=orange]Upkeep: %d food + %d gold /turn[/color]\n" % [army_food_upkeep, army_gold_upkeep]
+
+		# Heroes assigned to this army
+		var hero_ids: Array = army.get("heroes", [])
+		if not hero_ids.is_empty():
+			for hid in hero_ids:
+				var hdata: Dictionary = FactionData.HEROES.get(hid, {})
+				if hdata.is_empty():
+					continue
+				var hname: String = hdata.get("name", hid)
+				var hatk: int = hdata.get("atk", 0)
+				var hdef: int = hdata.get("def", 0)
+				var hint: int = hdata.get("int", 0)
+				var hspd: int = hdata.get("spd", 0)
+				bbtext += "  [color=aqua]Hero: %s[/color]  ATK:%d DEF:%d INT:%d SPD:%d\n" % [hname, hatk, hdef, hint, hspd]
+		else:
+			bbtext += "  [color=gray]No hero assigned[/color]\n"
+
+		# Tactical directive
+		var directive_names: Array = ["None", "Aggressive", "Defensive", "Balanced", "Retreat"]
+		var dir_idx: int = clampi(GameManager._current_directive, 0, directive_names.size() - 1)
+		bbtext += "  Directive: [color=white]%s[/color]\n" % directive_names[dir_idx]
+
+		bbtext += "\n"
+
+	rtl.text = bbtext
+	target_container.add_child(rtl)
+	target_buttons.append(rtl)
+
+
+func _on_economy_pressed() -> void:
+	if _current_mode == ActionMode.DOMESTIC_SUB and _domestic_sub_type == "economy_report":
+		_close_target_panel()
+		return
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "economy_report"
+	domestic_panel.visible = false
+
+	var pid: int = GameManager.get_human_player_id()
+	_show_target_panel("Economy Report")
+
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.mouse_filter = Control.MOUSE_FILTER_PASS
+	rtl.add_theme_font_size_override("normal_font_size", 11)
+	rtl.add_theme_color_override("default_color", Color(0.8, 0.8, 0.85))
+
+	var bbtext: String = ""
+
+	# ── INCOME BREAKDOWN ──
+	bbtext += "[b][color=gold]-- Income Breakdown --[/color][/b]\n"
+	var type_totals: Dictionary = {}  # tile_type -> {gold, food, iron, count}
+	var faction_id: int = GameManager.get_player_faction(pid)
+	var params: Dictionary = FactionData.FACTION_PARAMS.get(faction_id, {})
+	var gold_mult: float = params.get("gold_income_mult", 1.0) * params.get("base_production_mult", 1.0)
+	var food_mult: float = params.get("food_production_mult", 1.0) * params.get("base_production_mult", 1.0)
+	var iron_mult: float = params.get("iron_income_mult", 1.0) * params.get("base_production_mult", 1.0)
+
+	for tile in GameManager.tiles:
+		if tile == null:
+			continue
+		if tile.get("owner_id", -1) != pid:
+			continue
+		var ttype: int = tile.get("type", -1)
+		var base: Dictionary = tile.get("base_production", {})
+		var level: int = maxi(tile.get("level", 1), 1)
+		var level_idx: int = clampi(level - 1, 0, GameManager.UPGRADE_PROD_MULT.size() - 1)
+		var level_m: float = GameManager.UPGRADE_PROD_MULT[level_idx] if GameManager.UPGRADE_PROD_MULT.size() > 0 else 1.0
+		var tile_order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+		var order_m: float = ProductionCalculator.get_tile_order_multiplier(tile_order)
+		var g: int = int(roundf(float(base.get("gold", 0)) * level_m * gold_mult * order_m))
+		var f: int = int(roundf(float(base.get("food", 0)) * level_m * food_mult * order_m))
+		var ir: int = int(roundf(float(base.get("iron", 0)) * level_m * iron_mult * order_m))
+		if not type_totals.has(ttype):
+			type_totals[ttype] = {"gold": 0, "food": 0, "iron": 0, "count": 0}
+		type_totals[ttype]["gold"] += g
+		type_totals[ttype]["food"] += f
+		type_totals[ttype]["iron"] += ir
+		type_totals[ttype]["count"] += 1
+
+	var total_gold_income: int = 0
+	var total_food_income: int = 0
+	var total_iron_income: int = 0
+	for ttype in type_totals:
+		var entry: Dictionary = type_totals[ttype]
+		var tname: String = GameManager.TILE_NAMES.get(ttype, "Tile#%d" % ttype)
+		bbtext += "  %s (x%d): G+%d F+%d I+%d\n" % [tname, entry["count"], entry["gold"], entry["food"], entry["iron"]]
+		total_gold_income += entry["gold"]
+		total_food_income += entry["food"]
+		total_iron_income += entry["iron"]
+
+	# Full calculated income (includes building bonuses, relics, etc.)
+	var full_income: Dictionary = ProductionCalculator.calculate_turn_income(pid)
+	var bonus_gold: int = full_income.get("gold", 0) - total_gold_income
+	var bonus_food: int = full_income.get("food", 0) - total_food_income
+	var bonus_iron: int = full_income.get("iron", 0) - total_iron_income
+	if bonus_gold != 0 or bonus_food != 0 or bonus_iron != 0:
+		bbtext += "  [color=cyan]Bonuses (buildings/relics/buffs):[/color] G%+d F%+d I%+d\n" % [bonus_gold, bonus_food, bonus_iron]
+
+	bbtext += "[color=green]Total Income: G+%d  F+%d  I+%d[/color]\n\n" % [
+		full_income.get("gold", 0), full_income.get("food", 0), full_income.get("iron", 0)]
+
+	# ── UPKEEP BREAKDOWN ──
+	bbtext += "[b][color=gold]-- Upkeep Breakdown --[/color][/b]\n"
+	var food_upkeep: int = ProductionCalculator.calculate_food_upkeep(pid)
+	var military_food_upkeep: int = GameData.get_army_upkeep(RecruitManager._get_army_ref(pid))
+	var total_food_upkeep: int = food_upkeep + military_food_upkeep
+	var gold_upkeep: int = ProductionCalculator.calculate_gold_upkeep(pid)
+
+	bbtext += "  Army food (base): [color=orange]%d[/color]\n" % food_upkeep
+	bbtext += "  Army food (T2+ tier): [color=orange]%d[/color]\n" % military_food_upkeep
+	bbtext += "  Army gold (salary): [color=orange]%d[/color]\n" % gold_upkeep
+	bbtext += "[color=red]Total Upkeep: G-%d  F-%d[/color]\n\n" % [gold_upkeep, total_food_upkeep]
+
+	# ── NET PROFIT ──
+	bbtext += "[b][color=gold]-- Net Profit --[/color][/b]\n"
+	var net_gold: int = full_income.get("gold", 0) - gold_upkeep
+	var net_food: int = full_income.get("food", 0) - total_food_upkeep
+	var net_iron: int = full_income.get("iron", 0)
+	var gold_color: String = "green" if net_gold >= 0 else "red"
+	var food_color: String = "green" if net_food >= 0 else "red"
+	bbtext += "  Gold: [color=%s]%+d /turn[/color]\n" % [gold_color, net_gold]
+	bbtext += "  Food: [color=%s]%+d /turn[/color]\n" % [food_color, net_food]
+	bbtext += "  Iron: [color=green]+%d /turn[/color]\n\n" % net_iron
+
+	# ── TERRITORY EFFECTS ──
+	bbtext += "[b][color=gold]-- Territory Effects --[/color][/b]\n"
+	var te: Dictionary = GameManager._active_territory_effects
+	var active_ids: Array = te.get("_active_ids", [])
+	if active_ids.is_empty():
+		bbtext += "  [color=gray](No active territory effects)[/color]\n"
+	else:
+		for eid in active_ids:
+			var eff_data: Dictionary = BalanceConfig.TERRITORY_EFFECTS.get(eid, {})
+			bbtext += "  [color=cyan]%s[/color]: %s\n" % [eff_data.get("name", eid), eff_data.get("desc", "")]
+	bbtext += "\n"
+
+	# ── PREDICTIONS ──
+	bbtext += "[b][color=gold]-- Predictions --[/color][/b]\n"
+	var current_gold: int = ResourceManager.get_resource(pid, "gold")
+	var current_food: int = ResourceManager.get_resource(pid, "food")
+	if net_gold < 0:
+		var turns_gold: int = ceili(float(current_gold) / float(-net_gold))
+		bbtext += "  [color=red]Gold runs out in ~%d turns[/color]\n" % turns_gold
+	else:
+		bbtext += "  [color=green]Gold: surplus of %d/turn[/color]\n" % net_gold
+	if net_food < 0:
+		var turns_food: int = ceili(float(current_food) / float(-net_food))
+		bbtext += "  [color=red]Food runs out in ~%d turns[/color]\n" % turns_food
+	else:
+		bbtext += "  [color=green]Food: surplus of %d/turn[/color]\n" % net_food
+
+	rtl.text = bbtext
+	target_container.add_child(rtl)
+	target_buttons.append(rtl)
 
 
 func _on_event_manager_pressed() -> void:

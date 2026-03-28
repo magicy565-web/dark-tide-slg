@@ -382,6 +382,7 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		"defender_units_initial": defender_units_initial,
 		"attacker_units_final": _snapshot_units(state.attacker_units),
 		"defender_units_final": _snapshot_units(state.defender_units),
+		"player_controlled": player_controlled,
 	}
 
 # ---------------------------------------------------------------------------

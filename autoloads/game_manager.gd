@@ -1175,9 +1175,10 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 
 		# Capture starting tiles for rival
 		var zone_key: String = _faction_zone_key(fid)
+		var _ai_gar_mult: float = BalanceManager.get_ai_garrison_mult()
 		for idx in _zone_cache.get(zone_key, []):
 			tiles[idx]["owner_id"] = rival_id
-			tiles[idx]["garrison"] = BalanceConfig.STARTING_GARRISON
+			tiles[idx]["garrison"] = int(float(BalanceConfig.STARTING_GARRISON) * _ai_gar_mult)
 			tiles[idx]["public_order"] = BalanceConfig.TILE_ORDER_DEFAULT
 
 		# Create starting army for rival
@@ -1202,6 +1203,14 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 
 	# Initialize garrison compositions for all non-player tiles (Phase 3)
 	_init_light_garrisons()
+
+	# Apply difficulty scaling to light/neutral garrisons
+	var _diff_gar_mult: float = BalanceManager.get_ai_garrison_mult()
+	if _diff_gar_mult != 1.0:
+		for i in range(tiles.size()):
+			var t: Dictionary = tiles[i]
+			if t.get("owner_id", -1) < 0 and t.get("garrison", 0) > 0:
+				t["garrison"] = maxi(1, int(float(t["garrison"]) * _diff_gar_mult))
 
 	# Spawn initial wanderers on some unclaimed tiles
 	_spawn_initial_wanderers()
@@ -1284,6 +1293,13 @@ func _give_starting_army(player_id: int, faction_id: int) -> void:
 		RecruitManager._get_army_ref(player_id).append(inst2)
 	RecruitManager._sync_army_count(player_id)
 
+	# Apply difficulty scaling to AI starting troops
+	if player_id != get_human_player_id():
+		var _ai_troop_mult: float = BalanceManager.get_ai_garrison_mult()
+		if _ai_troop_mult != 1.0:
+			for troop in RecruitManager._get_army_ref(player_id):
+				var scaled: int = maxi(2, int(float(troop.get("soldiers", 1)) * _ai_troop_mult))
+				troop["soldiers"] = scaled
 
 ## Initialize garrisons for light faction tiles using GameData templates.
 func _init_light_garrisons() -> void:

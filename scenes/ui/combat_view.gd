@@ -115,6 +115,8 @@ var _kills_atk: int = 0
 var _kills_def: int = 0
 var _is_finishing: bool = false
 var _playback_generation: int = 0
+var _is_player_battle: bool = false
+var _waiting_for_command: bool = false
 
 # ── Buff/debuff tracking (side -> slot -> Array[String]) ──
 var _active_buffs: Dictionary = {}
@@ -173,6 +175,10 @@ var _shake_intensity: float = 0.0
 var _shake_decay: float = 0.0
 var _shake_offset: Vector2 = Vector2.ZERO
 var _intervention_panel = null  # CombatInterventionPanel instance
+var _cmd_bar: HBoxContainer = null  # Interactive command bar
+var _cmd_continue_btn: Button = null
+var _cmd_auto_btn: Button = null
+var _cmd_retreat_btn: Button = null
 func _ready() -> void:
 	layer = 20
 	visible = false
@@ -331,6 +337,9 @@ func _build_ui() -> void:
 
 	# Control buttons
 	_build_buttons()
+
+	# Interactive command bar (shown at round start for human player battles)
+	_build_command_bar()
 
 	# Result overlay
 	_build_result_panel()
@@ -624,6 +633,80 @@ func _build_buttons() -> void:
 	btn_close = _make_btn("Close", _on_close)
 	btn_close.visible = false
 	row2.add_child(btn_close)
+
+func _build_command_bar() -> void:
+	_cmd_bar = HBoxContainer.new()
+	_cmd_bar.name = "CommandBar"
+	_cmd_bar.position = Vector2(CENTER_X - 240, SCREEN_H - 60)
+	_cmd_bar.add_theme_constant_override("separation", 12)
+	_cmd_bar.visible = false
+	_cmd_bar.z_index = 80
+	shake_container.add_child(_cmd_bar)
+
+	# Background panel behind the command bar
+	var bar_bg := ColorRect.new()
+	bar_bg.position = Vector2(CENTER_X - 260, SCREEN_H - 68)
+	bar_bg.size = Vector2(520, 52)
+	bar_bg.color = Color(0.06, 0.05, 0.1, 0.92)
+	bar_bg.z_index = 79
+	bar_bg.name = "CommandBarBg"
+	bar_bg.visible = false
+	shake_container.add_child(bar_bg)
+
+	_cmd_continue_btn = _make_btn("Continue >>", _on_cmd_continue)
+	_cmd_continue_btn.custom_minimum_size = Vector2(140, 36)
+	_cmd_continue_btn.add_theme_color_override("font_color", Color(0.85, 0.9, 0.7))
+	_cmd_bar.add_child(_cmd_continue_btn)
+
+	_cmd_auto_btn = _make_btn("Auto (all)", _on_cmd_auto)
+	_cmd_auto_btn.custom_minimum_size = Vector2(120, 36)
+	_cmd_auto_btn.add_theme_color_override("font_color", Color(0.7, 0.8, 0.95))
+	_cmd_bar.add_child(_cmd_auto_btn)
+
+	_cmd_retreat_btn = _make_btn("Retreat", _on_cmd_retreat)
+	_cmd_retreat_btn.custom_minimum_size = Vector2(100, 36)
+	_cmd_retreat_btn.add_theme_color_override("font_color", Color(0.95, 0.6, 0.5))
+	_cmd_bar.add_child(_cmd_retreat_btn)
+
+func _show_command_bar() -> void:
+	_waiting_for_command = true
+	_cmd_bar.visible = true
+	# Also show the background
+	var bar_bg = shake_container.get_node_or_null("CommandBarBg")
+	if bar_bg:
+		bar_bg.visible = true
+
+func _hide_command_bar() -> void:
+	_waiting_for_command = false
+	_cmd_bar.visible = false
+	var bar_bg = shake_container.get_node_or_null("CommandBarBg")
+	if bar_bg:
+		bar_bg.visible = false
+
+func _on_cmd_continue() -> void:
+	## Advance one round then pause again at next round_start
+	_hide_command_bar()
+	_playing = true
+	_playback_generation += 1
+	btn_play.text = "|| Pause"
+	_play_next()
+
+func _on_cmd_auto() -> void:
+	## Resume full auto-play for all remaining rounds
+	_hide_command_bar()
+	_is_player_battle = false  # disable further pauses
+	_auto_play = true
+	btn_auto.text = "Auto"
+	_playing = true
+	_playback_generation += 1
+	btn_play.text = "|| Pause"
+	_play_next()
+
+func _on_cmd_retreat() -> void:
+	## Skip to end — the result is already determined by the resolver, so just skip playback
+	_hide_command_bar()
+	_on_skip()
+
 func _build_result_panel() -> void:
 	result_panel = PanelContainer.new()
 	result_panel.position = Vector2(340, 270)
@@ -730,6 +813,11 @@ func show_battle(battle_result: Dictionary) -> void:
 	_kills_atk = 0
 	_kills_def = 0
 	_is_finishing = false
+	_is_player_battle = battle_result.get("player_controlled", false)
+	_waiting_for_command = false
+	if _is_player_battle:
+		_auto_play = false
+		btn_auto.text = "Manual"
 	log_text.clear()
 	result_panel.visible = false
 	btn_close.visible = false
@@ -779,6 +867,12 @@ func show_battle(battle_result: Dictionary) -> void:
 	if _auto_play:
 		get_tree().create_timer(0.8).timeout.connect(func():
 			if visible:
+				_on_play()
+		)
+	elif _is_player_battle:
+		# For interactive combat: auto-start playback after intro, it will pause at round_start
+		get_tree().create_timer(0.8).timeout.connect(func():
+			if visible and not _playing:
 				_on_play()
 		)
 
@@ -1968,8 +2062,16 @@ func _play_next() -> void:
 	_log_index += 1
 	_update_turn_bar()
 
-	# Vary delay based on action type for rhythm
+	# Interactive combat: pause at round_start for human player battles
 	var action: String = entry.get("action", "")
+	if action == "round_start" and _is_player_battle:
+		_playing = false
+		_playback_generation += 1
+		btn_play.text = "▶ Play"
+		_show_command_bar()
+		return
+
+	# Vary delay based on action type for rhythm
 	var base_delay := ANIM_BASE_SPEED + 0.18
 	match action:
 		"round_start":
@@ -2068,6 +2170,8 @@ func _on_close() -> void:
 	Engine.time_scale = 1.0
 	_playing = false
 	_playback_generation += 1
+	_hide_command_bar()
+	_is_player_battle = false
 	visible = false
 	_combo_count = 0
 	combo_label.visible = false
@@ -2215,6 +2319,7 @@ func _apply_log_entry(entry: Dictionary) -> void:
 
 func _finish_playback() -> void:
 	_playing = false
+	_hide_command_bar()
 	btn_play.text = "▶ Play"
 	btn_close.visible = true
 
