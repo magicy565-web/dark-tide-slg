@@ -519,6 +519,9 @@ func apply_skill_in_combat(hero_id: String) -> Dictionary:
 				"desc": "%s 使用 [%s]: 造成 %.0f 伤害!" % [hero_name, skill_name, effective_value]}
 		"heal":
 			var heal_amount: int = int(effective_value)
+			# v4.6: heal_bonus — +30% healing from equipment passive
+			if has_equipment_passive(hero_id, "heal_bonus"):
+				heal_amount = int(float(heal_amount) * 1.3)
 			return {"type": "heal", "value": heal_amount,
 				"desc": "%s 使用 [%s]: 恢复 %d 兵力!" % [hero_name, skill_name, heal_amount]}
 		"buff":

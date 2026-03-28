@@ -181,6 +181,24 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 	# -- Apply terrain penalties that persist for the whole battle ----------
 	_apply_terrain_modifiers(state)
 
+	# v4.6: time_slow — if any unit on one side has time_slow, enemy SPD-3 first round
+	var _time_slow_atk_on_def: bool = false
+	for _ts_check in state.attacker_units:
+		if _ts_check.has_passive("time_slow"):
+			_time_slow_atk_on_def = true
+			break
+	if _time_slow_atk_on_def:
+		for _ts_d in state.defender_units:
+			_ts_d.spd = maxi(1, _ts_d.spd - 3)
+	var _time_slow_def_on_atk: bool = false
+	for _ts_check2 in state.defender_units:
+		if _ts_check2.has_passive("time_slow"):
+			_time_slow_def_on_atk = true
+			break
+	if _time_slow_def_on_atk:
+		for _ts_a in state.attacker_units:
+			_ts_a.spd = maxi(1, _ts_a.spd - 3)
+
 	# ── Formation Detection & Synergy ──
 	var _fs := FormationSystem.new()
 	var atk_unit_dicts: Array = _build_formation_dicts(state.attacker_units)
@@ -250,6 +268,15 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		# Start-of-round passives (regen, mana charge)
 		_apply_round_start_passives(state)
 
+		# v4.6: time_slow — restore SPD after round 1
+		if state.round_number == 2:
+			if _time_slow_atk_on_def:
+				for _ts_restore in state.defender_units:
+					_ts_restore.spd += 3
+			if _time_slow_def_on_atk:
+				for _ts_restore2 in state.attacker_units:
+					_ts_restore2.spd += 3
+
 		# -- Commander Intervention Phase (human player only) --
 		if player_controlled:
 			CommanderIntervention.tick_cooldowns()
@@ -298,6 +325,13 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 				var entry2 := _execute_action(unit, state)
 				if entry2.get("action", "") != "_already_logged":
 					state.action_log.append(entry2)
+
+			# v4.6: double_shot — unit attacks twice in round 1 only
+			if state.round_number == 1 and unit.has_passive("double_shot") and unit.is_alive() and not unit.has_passive("extra_action"):
+				unit.has_acted = false
+				var entry_ds := _execute_action(unit, state)
+				if entry_ds.get("action", "") != "_already_logged":
+					state.action_log.append(entry_ds)
 
 			winner = _check_battle_end(state)
 			if winner != "":
@@ -460,6 +494,16 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 
 		units.append(bu)
 
+	# v4.6: command_bonus — if any unit has command_bonus, SPD+2 to all same-side units
+	var _has_command_bonus: bool = false
+	for _cb_u in units:
+		if _cb_u.has_passive("command_bonus"):
+			_has_command_bonus = true
+			break
+	if _has_command_bonus:
+		for _cb_u2 in units:
+			_cb_u2.spd += 2
+
 	return units
 
 
@@ -614,6 +658,9 @@ func _resolve_siege_phase(state: BattleState) -> void:
 		var siege_dmg: int = u.atk
 		if u.has_passive("siege_x2"):
 			siege_dmg *= 2
+		# v4.6: siege_bonus — extra flat siege damage from equipment
+		if u.has_passive("siege_bonus"):
+			siege_dmg += 10
 		state.city_def = max(0, state.city_def - siege_dmg)
 
 		state.action_log.append({
@@ -725,6 +772,64 @@ func _apply_round_start_passives(state: BattleState) -> void:
 			# Also contribute to the team pool
 			var current := state.get_mana(u.is_attacker)
 			state.set_mana(u.is_attacker, current + 1)
+
+		# v4.6: mana_regen — +2 mana to team pool per round
+		if u.has_passive("mana_regen"):
+			var mr_current := state.get_mana(u.is_attacker)
+			state.set_mana(u.is_attacker, mr_current + 2)
+
+		# v4.6: regen_aura — heal 1 soldier (1 hp_per_soldier HP) to most damaged friendly unit
+		if u.has_passive("regen_aura"):
+			var ra_allies: Array[BattleUnit] = state.attacker_units if u.is_attacker else state.defender_units
+			var ra_best: BattleUnit = null
+			var ra_best_ratio: float = 1.0
+			for ra_ally in ra_allies:
+				if not ra_ally.is_alive() or ra_ally.hp >= ra_ally.max_hp:
+					continue
+				var ra_ratio: float = float(ra_ally.hp) / float(maxi(ra_ally.max_hp, 1))
+				if ra_ratio < ra_best_ratio:
+					ra_best_ratio = ra_ratio
+					ra_best = ra_ally
+			if ra_best != null:
+				ra_best.hp = mini(ra_best.hp + ra_best.hp_per_soldier, ra_best.max_hp)
+				_recalc_soldiers(ra_best)
+				var _ra_side := "attacker" if u.is_attacker else "defender"
+				state.action_log.append({
+					"action": "passive",
+					"event": "regen_aura",
+					"unit": u.id,
+					"side": _ra_side,
+					"slot": u.slot,
+					"desc": "%s 再生光环: %s +1兵" % [u.troop_id, ra_best.troop_id],
+				})
+
+		# v4.6: poisoned_2 / poisoned_1 — poison DOT tick (1 hp_per_soldier damage/round)
+		if u.has_passive("poisoned_2") or u.has_passive("poisoned_1"):
+			var poison_dmg: int = u.hp_per_soldier  # 1 soldier worth of HP
+			u.hp = maxi(0, u.hp - poison_dmg)
+			_recalc_soldiers(u)
+			var _poison_side := "attacker" if u.is_attacker else "defender"
+			state.action_log.append({
+				"action": "passive",
+				"event": "poison_dot",
+				"unit": u.id,
+				"side": _poison_side,
+				"slot": u.slot,
+				"desc": "%s 中毒! -%d HP" % [u.troop_id, poison_dmg],
+			})
+			# Decrement poison duration: poisoned_2 -> poisoned_1 -> remove
+			if u.has_passive("poisoned_2"):
+				var _new_passive: String = u.passive.replace("poisoned_2", "poisoned_1")
+				u.passive = _new_passive
+			elif u.has_passive("poisoned_1"):
+				var _new_passive2: String = u.passive.replace("poisoned_1", "")
+				# Clean up trailing/leading commas
+				_new_passive2 = _new_passive2.replace(",,", ",").strip_edges()
+				if _new_passive2.begins_with(","):
+					_new_passive2 = _new_passive2.substr(1)
+				if _new_passive2.ends_with(","):
+					_new_passive2 = _new_passive2.substr(0, _new_passive2.length() - 1)
+				u.passive = _new_passive2
 
 # ---------------------------------------------------------------------------
 # Action Queue
@@ -978,6 +1083,11 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 	# v4.5: dragon_slayer — ATK bonus already applied permanently in _apply_dragon_slayer().
 	# _dragon_slayer_bonus is tracked for logging only; no extra damage calc needed here.
 
+	# v4.6: desert_mastery — ATK doubled on WASTELAND terrain
+	if attacker.has_passive("desert_mastery"):
+		if state.terrain == Terrain.WASTELAND:
+			base_damage *= 2.0
+
 	var final_damage: float = base_damage * skill_mult
 
 	# Convert from "equivalent soldiers killed" to HP damage
@@ -1033,6 +1143,11 @@ func _apply_damage(target: BattleUnit, damage: int, state: BattleState, attacker
 			return
 
 	var new_hp: int = target.hp - damage
+
+	# v4.6: damage_reduce — reduce incoming damage by 20%
+	if target.has_passive("damage_reduce"):
+		damage = maxi(1, int(float(damage) * 0.80))
+		new_hp = target.hp - damage
 
 	# escape_30: 30% chance to survive lethal damage (kept at 1 soldier / hp_per_soldier HP)
 	if new_hp <= 0 and target.has_passive("escape_30"):
@@ -1232,6 +1347,31 @@ func _apply_passive_on_hit(attacker: BattleUnit, defender: BattleUnit, damage: i
 			"max_soldiers": attacker.max_soldiers,
 			"desc": "%s 反击 %s，造成%d伤害" % [defender.troop_id, attacker.troop_id, counter_dmg],
 		})
+
+	# v4.6: poison_attack — on hit, apply poison DOT (2 rounds, 1 HP damage/round)
+	if attacker.has_passive("poison_attack") and damage > 0 and defender.is_alive():
+		# Apply 1 HP damage per round for 2 rounds via direct HP reduction in round start
+		# We track this by adding a tag; since BattleUnit doesn't have debuffs array,
+		# we apply immediate damage of 2 soldiers worth over time by reducing HP directly
+		# for simplicity, deal 1 hp_per_soldier damage now and tag for 1 more next round
+		var _pa_side := "attacker" if attacker.is_attacker else "defender"
+		var _pa_tgt_side := "attacker" if defender.is_attacker else "defender"
+		# Mark as poisoned using passive tag (checked in round start)
+		if not defender.has_passive("poisoned_2"):
+			if defender.passive == "":
+				defender.passive = "poisoned_2"
+			else:
+				defender.passive += ",poisoned_2"
+			state.action_log.append({
+				"action": "passive",
+				"event": "poison_attack",
+				"unit": attacker.id,
+				"side": _pa_side,
+				"slot": attacker.slot,
+				"target": defender.id,
+				"target_side": _pa_tgt_side,
+				"desc": "%s 毒击! %s 中毒(2回合)" % [attacker.troop_id, defender.troop_id],
+			})
 
 # ---------------------------------------------------------------------------
 # Battle End Check

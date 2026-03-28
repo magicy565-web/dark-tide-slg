@@ -123,6 +123,26 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	# -- Phase 0: Build battle state --
 	var state: Dictionary = _build_battle_state(attacker, defender, tile)
 
+	# v4.6: time_slow — if any unit on one side has time_slow, enemy SPD-3 first round
+	var _ts_atk_on_def: bool = false
+	for _ts_u in state["atk_units"]:
+		if "time_slow" in _ts_u["passives"]:
+			_ts_atk_on_def = true
+			break
+	if _ts_atk_on_def:
+		for _ts_d in state["def_units"]:
+			_ts_d["spd"] = maxf(_ts_d["spd"] - 3.0, 1.0)
+		log.append("时间减速! 敌方SPD-3(首回合)")
+	var _ts_def_on_atk: bool = false
+	for _ts_u2 in state["def_units"]:
+		if "time_slow" in _ts_u2["passives"]:
+			_ts_def_on_atk = true
+			break
+	if _ts_def_on_atk:
+		for _ts_a in state["atk_units"]:
+			_ts_a["spd"] = maxf(_ts_a["spd"] - 3.0, 1.0)
+		log.append("时间减速! 进攻方SPD-3(首回合)")
+
 	# -- Apply Commander Tactical Orders --
 	_apply_directive_modifiers(state)
 
@@ -218,6 +238,14 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		wall_hp = maxf(wall_hp - float(blast_barrel_dmg), 0.0)
 		log.append("爆破桶: 城防-%.0f" % float(blast_barrel_dmg))
 
+	# v4.6: siege_bonus — equipment passive reduces wall HP by 10
+	if atk_pid >= 0:
+		for _sb_hero in HeroSystem.get_heroes_for_player(atk_pid):
+			if HeroSystem.has_equipment_passive(_sb_hero["id"], "siege_bonus"):
+				wall_hp = maxf(wall_hp - 10.0, 0.0)
+				log.append("装备: 攻城加成 城防-10")
+				break
+
 	# Passive: siege_ignore — if ANY attacker unit has siege_ignore, skip wall phase entirely
 	var _has_siege_ignore: bool = false
 	for _si_unit in state["atk_units"]:
@@ -262,6 +290,15 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		log.append("--- 第 %d 回合 ---" % round_num)
 
 		_start_of_round(state, log)
+
+		# v4.6: time_slow — restore SPD after round 1
+		if round_num == 2:
+			if _ts_atk_on_def:
+				for _ts_r in state["def_units"]:
+					_ts_r["spd"] = _ts_r["spd"] + 3.0
+			if _ts_def_on_atk:
+				for _ts_r2 in state["atk_units"]:
+					_ts_r2["spd"] = _ts_r2["spd"] + 3.0
 
 		# -- Commander Intervention Phase --
 		if state.get("interventions_enabled", false):
@@ -324,6 +361,24 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 
 	var atk_units: Array = _assign_to_slots(raw_atk, atk_pid, "attacker", tile)
 	var def_units: Array = _assign_to_slots(raw_def, def_pid, "defender", tile)
+
+	# v4.6: command_bonus — if any unit has command_bonus, SPD+2 to all same-side units
+	var _atk_has_cmd: bool = false
+	for _cmd_u in atk_units:
+		if "command_bonus" in _cmd_u["passives"]:
+			_atk_has_cmd = true
+			break
+	if _atk_has_cmd:
+		for _cmd_u2 in atk_units:
+			_cmd_u2["spd"] = _cmd_u2["spd"] + 2.0
+	var _def_has_cmd: bool = false
+	for _cmd_u3 in def_units:
+		if "command_bonus" in _cmd_u3["passives"]:
+			_def_has_cmd = true
+			break
+	if _def_has_cmd:
+		for _cmd_u4 in def_units:
+			_cmd_u4["spd"] = _cmd_u4["spd"] + 2.0
 
 	# Mana pools: max = 10 + highest INT × 2
 	var atk_max_int: int = _get_highest_int(atk_units)
@@ -894,6 +949,9 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 		# Passive: dwarf_siege_t3 — siege damage ×3 (AoE splash handled after loop)
 		if "dwarf_siege_t3" in unit["passives"]:
 			siege_dmg *= 3.0
+		# v4.6: siege_bonus — extra flat siege damage from equipment
+		if "siege_bonus" in unit["passives"]:
+			siege_dmg += 10.0
 		# Siege buff (cached)
 		if _siege_mult > 1.0:
 			siege_dmg *= _siege_mult
@@ -927,6 +985,18 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 
 func _start_of_round(state: Dictionary, log: Array) -> void:
 	state["barrier_used_this_round"] = false
+
+	# v4.6: double_shot — unit attacks twice in round 1 (set max_actions=2)
+	if state["round"] == 1:
+		for _ds_unit in state["atk_units"] + state["def_units"]:
+			if _ds_unit["is_alive"] and "double_shot" in _ds_unit["passives"]:
+				_ds_unit["max_actions"] = 2
+				log.append("%s [%s] 连射准备! 首回合攻击两次" % [_ds_unit["unit_type"], _ds_unit["side"]])
+	elif state["round"] == 2:
+		# Reset double_shot units back to normal
+		for _ds_unit2 in state["atk_units"] + state["def_units"]:
+			if "double_shot" in _ds_unit2["passives"] and "extra_action" not in _ds_unit2["passives"]:
+				_ds_unit2["max_actions"] = 1
 
 	# ── Commander Tactical Orders: per-round effects ──
 	for side_key in ["atk", "def"]:
@@ -1087,6 +1157,28 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			var mana_key: String = "atk_mana" if unit["side"] == "attacker" else "def_mana"
 			var max_key: String = "atk_mana_max" if unit["side"] == "attacker" else "def_mana_max"
 			state[mana_key] = mini(state[mana_key] + 1, state[max_key])
+
+		# v4.6: mana_regen — +2 mana to team pool per round
+		if "mana_regen" in unit["passives"]:
+			var mr_mana_key: String = "atk_mana" if unit["side"] == "attacker" else "def_mana"
+			var mr_max_key: String = "atk_mana_max" if unit["side"] == "attacker" else "def_mana_max"
+			state[mr_mana_key] = mini(state[mr_mana_key] + 2, state[mr_max_key])
+
+		# v4.6: regen_aura — heal 1 soldier to most damaged friendly unit per round
+		if "regen_aura" in unit["passives"]:
+			var ra_allies: Array = state["atk_units"] if unit["side"] == "attacker" else state["def_units"]
+			var ra_lowest: Dictionary = {}
+			var ra_lowest_pct: float = 2.0
+			for ra_ally in ra_allies:
+				if ra_ally["is_alive"] and ra_ally["soldiers"] < ra_ally["max_soldiers"]:
+					var ra_pct: float = float(ra_ally["soldiers"]) / float(ra_ally["max_soldiers"])
+					if ra_pct < ra_lowest_pct:
+						ra_lowest_pct = ra_pct
+						ra_lowest = ra_ally
+			if not ra_lowest.is_empty():
+				var ra_heal: int = mini(1, ra_lowest["max_soldiers"] - ra_lowest["soldiers"])
+				ra_lowest["soldiers"] += ra_heal
+				log.append("%s [%s] 再生光环: %s +%d兵" % [unit["unit_type"], unit["side"], ra_lowest["unit_type"], ra_heal])
 
 		# Passive: scatter — if soldiers < 30% of max, unit retreats (survives but leaves battle)
 		if "scatter" in unit["passives"]:
@@ -1416,6 +1508,11 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		# SPD penalty applied dynamically via debuff in action queue, not direct mod
 		log.append("%s [%s] 寒霜毒液! %s 中毒+减速2回合" % [unit["unit_type"], unit["side"], target["unit_type"]])
 
+	# v4.6: poison_attack — on hit, apply poison DOT (2 rounds, 1 damage/round)
+	if "poison_attack" in unit["passives"] and damage > 0 and target["is_alive"]:
+		target["debuffs"].append({"id": "poison_dot", "duration": 2, "value": 1})
+		log.append("%s [%s] 毒击! %s 中毒2回合" % [unit["unit_type"], unit["side"], target["unit_type"]])
+
 	# Passive: gold_on_hit — on hit, player gains 2 gold
 	if "gold_on_hit" in unit["passives"] and damage > 0:
 		if unit["player_id"] >= 0:
@@ -1496,6 +1593,9 @@ func _execute_heal(state: Dictionary, healer: Dictionary, log: Array) -> void:
 	var heal_amount: int = 2
 	# INT scaling: heal × (1 + INT × 0.05)
 	heal_amount = int(float(heal_amount) * (1.0 + healer["int_stat"] * 0.05))
+	# v4.6: heal_bonus — +30% healing from equipment passive
+	if "heal_bonus" in healer["passives"]:
+		heal_amount = int(float(heal_amount) * 1.3)
 	best_target["soldiers"] = mini(best_target["soldiers"] + heal_amount, best_target["max_soldiers"])
 	log.append("%s [%s] 治疗 %s +%d兵" % [
 		healer["unit_type"], healer["side"], best_target["unit_type"], heal_amount])
@@ -1605,6 +1705,9 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 			var best: Dictionary = _find_most_wounded_ally(allies, unit)
 			if not best.is_empty():
 				var heal: int = int(2.0 * int_mult)
+				# v4.6: heal_bonus — +30% healing
+				if "heal_bonus" in unit["passives"]:
+					heal = int(float(heal) * 1.3)
 				best["soldiers"] = mini(best["soldiers"] + heal, best["max_soldiers"])
 				log.append("【%s】治愈之光! %s +%d兵" % [unit["hero_id"], best["unit_type"], heal])
 
@@ -2010,6 +2113,12 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 
 	# v4.5: spell_damage_bonus / spell_power_bonus — handled in hero_system.gd apply_skill_in_combat
 
+	# v4.6: desert_mastery — ATK doubled on WASTELAND terrain
+	if "desert_mastery" in attacker_unit["passives"]:
+		var _dm_terrain: int = state.get("terrain", FactionData.TerrainType.PLAINS)
+		if _dm_terrain == FactionData.TerrainType.WASTELAND:
+			base_damage *= 2.0
+
 	# Apply weather/season combat modifiers
 	if Engine.get_main_loop() is SceneTree:
 		var _wr: Node = (Engine.get_main_loop() as SceneTree).root
@@ -2088,6 +2197,10 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, source: Dictionary, log: Array, _death_burst_recursion: bool = false) -> void:
 	if damage <= 0:
 		return
+
+	# v4.6: damage_reduce — reduce incoming damage by 20%
+	if "damage_reduce" in target["passives"]:
+		damage = maxi(1, int(float(damage) * 0.80))
 
 	# Consume dodge_next buff
 	var dodge_idx: int = -1
