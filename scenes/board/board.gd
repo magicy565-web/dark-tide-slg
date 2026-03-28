@@ -9,19 +9,58 @@ var _terrain_textures: Dictionary = {}
 var _settlement_textures: Dictionary = {}
 var _crest_textures: Dictionary = {}
 var _map_bg_texture: Texture2D = null
+var _map_bg_variants: Array = []  # Alternative background textures
+var _map_decoration_tex: Texture2D = null  # Map decoration sprite sheet
+var _military_icon_tex: Texture2D = null  # Military army icon for 3D markers
 
 func _load_map_assets() -> void:
-	# Map background
+	# Map background (primary)
 	_map_bg_texture = _safe_tex_load("res://assets/map/map_background.png")
+	# Load alternative backgrounds for faction-themed maps
+	for bg_name in ["map_pixel_hd", "map_hd_v1", "map_hd_tw_v1", "map_hd_mj_v0", "map_hd_mj_v1", "map_hd_mj_v2", "map_hd_mj_v3"]:
+		var tex: Texture2D = _safe_tex_load("res://assets/map/backgrounds/%s.png" % bg_name)
+		if tex:
+			_map_bg_variants.append(tex)
+	# Select faction-themed background if available
+	_select_faction_background()
+	# Map decoration sprites
+	_map_decoration_tex = _safe_tex_load("res://assets/map/map_decorations/map_sprites.png")
+	# Military icon for army markers
+	_military_icon_tex = _safe_tex_load("res://assets/map/actions/military_army.png")
 	# Terrain textures
 	for tname in ["plains","forest","mountain","swamp","coastal","fortress_wall","river","ruins","wasteland","volcanic"]:
 		_terrain_textures[tname] = _safe_tex_load("res://assets/map/terrain/terrain_%s.png" % tname)
 	# Settlement/building icons
 	for sname in ["fortress","village","watchtower","trading_post","beacon","ruins","port","gate","bandit","crystal_mine","horse_ranch","gunpowder","shadow_rift","stronghold","event"]:
 		_settlement_textures[sname] = _safe_tex_load("res://assets/map/settlements/settlement_%s.png" % sname)
-	# Faction crests
+	# Faction crests (including bandit/neutral fallbacks)
 	for fname in ["orc","pirate","dark_elf","human","high_elf","mage"]:
 		_crest_textures[fname] = _safe_tex_load("res://assets/map/crests/crest_%s.png" % fname)
+	# Bandit and neutral don't have dedicated crests; use orc crest tinted as fallback
+	if not _crest_textures.has("bandit") or _crest_textures.get("bandit") == null:
+		_crest_textures["bandit"] = _crest_textures.get("orc")
+	if not _crest_textures.has("neutral") or _crest_textures.get("neutral") == null:
+		_crest_textures["neutral"] = null  # Neutral deliberately has no crest
+
+func _select_faction_background() -> void:
+	## Pick a map background variant based on the player's faction for thematic consistency.
+	if _map_bg_variants.is_empty():
+		return
+	if GameManager.players.is_empty():
+		return
+	var pid: int = GameManager.get_human_player_id()
+	var fid: int = GameManager.get_player_faction(pid)
+	# Faction → preferred background index (pixel_hd=0, hd_v1=1, tw_v1=2, mj_v0-v3=3-6)
+	var bg_idx: int = 0
+	match fid:
+		FactionData.FactionID.ORC:
+			bg_idx = 2  # Total War style for Orc warfare theme
+		FactionData.FactionID.PIRATE:
+			bg_idx = 1  # HD style for naval/coastal feel
+		FactionData.FactionID.DARK_ELF:
+			bg_idx = 0  # Pixel HD for dark fantasy aesthetic
+	if bg_idx < _map_bg_variants.size():
+		_map_bg_texture = _map_bg_variants[bg_idx]
 
 func _safe_tex_load(path: String) -> Texture2D:
 	if ResourceLoader.exists(path):
@@ -159,16 +198,20 @@ func _setup_camera() -> void:
 	camera.fov = 50.0; camera.current = true; camera_pivot.add_child(camera)
 
 func _setup_ground() -> void:
+	# ── Main ground plane with map background ──
 	var g := MeshInstance3D.new(); var p := PlaneMesh.new(); p.size = Vector2(70, 60); g.mesh = p
 	var m := StandardMaterial3D.new()
 	if _map_bg_texture:
 		m.albedo_texture = _map_bg_texture
 		m.albedo_color = Color(0.7, 0.65, 0.55)
 		m.uv1_scale = Vector3(1, 1, 1)
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	else:
 		m.albedo_color = Color(0.12, 0.15, 0.1)
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; g.material_override = m
 	g.position = Vector3(9.0, GROUND_Y - 0.15, -7.0); add_child(g)
+	# ── Ocean/void boundary ring around the playable area ──
+	_build_map_boundary()
 	_setup_ambient_particles()
 
 # ═══════════════ INPUT & CAMERA ═══════════════
@@ -230,6 +273,10 @@ func _clear_board() -> void:
 	for b in faction_border_meshes:
 		if is_instance_valid(b): b.queue_free()
 	faction_border_meshes.clear()
+	# Clean up edge decorations and map boundary elements
+	for ch in get_children():
+		if ch.name in ["EdgeDeco", "MapBorder", "EdgeFog"]:
+			ch.queue_free()
 	settlement_nodes.clear()
 	_settlement_cache.clear()
 	water_anim_nodes.clear()
@@ -254,6 +301,7 @@ func _build_board() -> void:
 	for tile in GameManager.tiles:
 		_build_territory(tile["index"], tile, tile["position_3d"])
 	_draw_edges(); _draw_faction_borders()
+	_build_inter_tile_decorations()
 	_update_all_territories(); _update_fog()
 
 func _get_elev(tile: Dictionary) -> float:
@@ -360,6 +408,18 @@ func _build_army_figure(p: Node3D) -> void:
 	fp.name = "ArmyFlagPole"; fp.position = Vector3(-0.15, 0.4, 0); p.add_child(fp)
 	var fb := _make_box_mesh(Vector3(0.18, 0.12, 0.015), Color(0.6, 0.2, 0.2))
 	fb.name = "ArmyBanner"; fb.position = Vector3(-0.06, 0.7, 0); p.add_child(fb)
+	# Military icon billboard above the figure
+	if _military_icon_tex:
+		var mil_sprite := Sprite3D.new()
+		mil_sprite.texture = _military_icon_tex
+		mil_sprite.pixel_size = 0.004
+		mil_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		mil_sprite.no_depth_test = true
+		mil_sprite.position = Vector3(0.15, 0.85, 0)
+		mil_sprite.modulate = Color(1, 1, 1, 0.8)
+		mil_sprite.scale = Vector3(0.5, 0.5, 0.5)
+		mil_sprite.name = "MilitaryIcon"
+		p.add_child(mil_sprite)
 
 # ═══════════════ SETTLEMENTS ═══════════════
 func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
@@ -1292,6 +1352,166 @@ func _make_cyl_mesh(tr: float, br: float, h: float, c: Color) -> MeshInstance3D:
 func _make_box_mesh(s: Vector3, c: Color) -> MeshInstance3D:
 	var mi := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = s
 	mi.mesh = bm; mi.material_override = _make_mat(c); return mi
+
+# ═══════════════ MAP BOUNDARY & EDGE DECORATIONS ═══════════════
+func _build_map_boundary() -> void:
+	## Create a dark ocean/void border around the playable map area.
+	## This frames the hex grid and prevents the ground plane edges from looking bare.
+	var center := Vector3(9.0, GROUND_Y - 0.12, -7.0)
+	var half_w: float = 28.0
+	var half_h: float = 22.0
+	var border_w: float = 12.0
+	var border_mat := StandardMaterial3D.new()
+	border_mat.albedo_color = Color(0.05, 0.07, 0.15, 0.75)
+	border_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	border_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	# Four border strips (top, bottom, left, right)
+	var strips: Array = [
+		# [position, size] for each border strip
+		[Vector3(center.x, center.y, center.z - half_h - border_w * 0.5), Vector2(half_w * 2 + border_w * 2, border_w)],  # top
+		[Vector3(center.x, center.y, center.z + half_h + border_w * 0.5), Vector2(half_w * 2 + border_w * 2, border_w)],  # bottom
+		[Vector3(center.x - half_w - border_w * 0.5, center.y, center.z), Vector2(border_w, half_h * 2)],  # left
+		[Vector3(center.x + half_w + border_w * 0.5, center.y, center.z), Vector2(border_w, half_h * 2)],  # right
+	]
+	for strip_data in strips:
+		var mi := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = strip_data[1]
+		mi.mesh = pm
+		mi.material_override = border_mat
+		mi.position = strip_data[0]
+		mi.name = "MapBorder"
+		add_child(mi)
+	# Subtle gradient fog at edges using a ring of small planes
+	_build_edge_fog(center, half_w, half_h)
+
+func _build_edge_fog(center: Vector3, half_w: float, half_h: float) -> void:
+	## Place subtle fog planes along the map edges for a smooth visual transition.
+	var fog_mat := StandardMaterial3D.new()
+	fog_mat.albedo_color = Color(0.06, 0.08, 0.18, 0.4)
+	fog_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fog_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var fog_depth: float = 5.0
+	# Top and bottom edge fog
+	for side in [-1.0, 1.0]:
+		var mi := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(half_w * 2, fog_depth)
+		mi.mesh = pm
+		mi.material_override = fog_mat
+		mi.position = Vector3(center.x, center.y + 0.01, center.z + side * (half_h - fog_depth * 0.3))
+		mi.name = "EdgeFog"
+		add_child(mi)
+	# Left and right edge fog
+	for side in [-1.0, 1.0]:
+		var mi := MeshInstance3D.new()
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(fog_depth, half_h * 2)
+		mi.mesh = pm
+		mi.material_override = fog_mat
+		mi.position = Vector3(center.x + side * (half_w - fog_depth * 0.3), center.y + 0.01, center.z)
+		mi.name = "EdgeFog"
+		add_child(mi)
+
+# ═══════════════ INTER-TILE DECORATIONS ═══════════════
+func _build_inter_tile_decorations() -> void:
+	## Place small decorative elements between tiles for visual richness.
+	## Uses procedural placement based on terrain types of adjacent tiles.
+	if GameManager.tiles.is_empty():
+		return
+	var deco_count: int = 0
+	var max_decos: int = 80  # Cap for performance
+	for ti in GameManager.adjacency:
+		if deco_count >= max_decos:
+			break
+		if ti >= GameManager.tiles.size():
+			continue
+		var ta: Dictionary = GameManager.tiles[ti]
+		for ni in GameManager.adjacency[ti]:
+			if ni <= ti or ni >= GameManager.tiles.size():
+				continue
+			if deco_count >= max_decos:
+				break
+			# Only place decorations along ~30% of edges for natural feel
+			if randf() > 0.30:
+				continue
+			var tb: Dictionary = GameManager.tiles[ni]
+			var pa: Vector3 = ta["position_3d"]
+			var pb: Vector3 = tb["position_3d"]
+			var mid := Vector3((pa.x + pb.x) * 0.5, TILE_HEIGHT + 0.01, (pa.z + pb.z) * 0.5)
+			# Jitter position off the road centerline
+			var perp := Vector3(-(pb.z - pa.z), 0, pb.x - pa.x).normalized()
+			mid += perp * randf_range(-0.4, 0.4)
+			var terrain_a: int = ta.get("terrain", FactionData.TerrainType.PLAINS)
+			var terrain_b: int = tb.get("terrain", FactionData.TerrainType.PLAINS)
+			_place_edge_decoration(mid, terrain_a, terrain_b)
+			deco_count += 1
+
+func _place_edge_decoration(pos: Vector3, terrain_a: int, terrain_b: int) -> void:
+	## Place a small decoration appropriate for the terrain transition.
+	var dominant: int = terrain_a if randf() < 0.6 else terrain_b
+	match dominant:
+		FactionData.TerrainType.FOREST:
+			# Small bush/shrub
+			var bush := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 0.08 + randf() * 0.06
+			sm.height = sm.radius * 1.5
+			bush.mesh = sm
+			bush.material_override = _make_mat(Color(0.15 + randf() * 0.08, 0.3 + randf() * 0.12, 0.08))
+			bush.position = pos
+			bush.name = "EdgeDeco"
+			add_child(bush)
+		FactionData.TerrainType.MOUNTAIN, FactionData.TerrainType.VOLCANIC:
+			# Small rock
+			var rock := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 0.05 + randf() * 0.04
+			sm.height = sm.radius * 1.2
+			rock.mesh = sm
+			rock.material_override = _make_mat(Color(0.4 + randf() * 0.1, 0.38, 0.35))
+			rock.position = pos
+			rock.scale = Vector3(1.0 + randf() * 0.4, 0.5 + randf() * 0.3, 1.0 + randf() * 0.3)
+			rock.name = "EdgeDeco"
+			add_child(rock)
+		FactionData.TerrainType.WASTELAND, FactionData.TerrainType.RUINS:
+			# Bone/debris
+			var debris := _make_box_mesh(
+				Vector3(0.06 + randf() * 0.04, 0.02, 0.02),
+				Color(0.6 + randf() * 0.15, 0.55, 0.45))
+			debris.position = pos
+			debris.rotation.y = randf() * TAU
+			debris.name = "EdgeDeco"
+			add_child(debris)
+		FactionData.TerrainType.SWAMP, FactionData.TerrainType.RIVER, FactionData.TerrainType.COASTAL:
+			# Small puddle/water patch
+			var puddle := MeshInstance3D.new()
+			var cm := CylinderMesh.new()
+			cm.top_radius = 0.1 + randf() * 0.08
+			cm.bottom_radius = cm.top_radius
+			cm.height = 0.01
+			cm.radial_segments = 8
+			puddle.mesh = cm
+			var pm := StandardMaterial3D.new()
+			pm.albedo_color = Color(0.1, 0.25, 0.45, 0.5)
+			pm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			pm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			puddle.material_override = pm
+			puddle.position = pos
+			puddle.name = "EdgeDeco"
+			add_child(puddle)
+		_:
+			# Grass tuft for plains and generic terrain
+			var tuft := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 0.04 + randf() * 0.03
+			sm.height = sm.radius * 1.4
+			tuft.mesh = sm
+			tuft.material_override = _make_mat(Color(0.3 + randf() * 0.1, 0.45 + randf() * 0.1, 0.2))
+			tuft.position = pos
+			tuft.scale = Vector3(1, 0.4, 1)
+			tuft.name = "EdgeDeco"
+			add_child(tuft)
 
 # ═══════════════ AMBIENT PARTICLES ═══════════════
 func _setup_ambient_particles() -> void:
