@@ -36,6 +36,9 @@ var supply_overlay = null
 var formation_preview = null
 var combat_intervention_panel = null
 
+# ── Game over overlay (v4.5) ──
+var game_over_panel_node = null
+
 
 func _ready() -> void:
 	# Start with HUD hidden, menu visible (board stays visible - camera needs it)
@@ -111,6 +114,12 @@ func _ready() -> void:
 	combat_intervention_panel = CanvasLayer.new()
 	combat_intervention_panel.set_script(CombatInterventionScript)
 	add_child(combat_intervention_panel)
+
+	# Game over overlay (v4.5) — high-layer CanvasLayer that covers everything
+	var GameOverPanelScript = preload("res://scenes/ui/game_over_panel.gd")
+	game_over_panel_node = CanvasLayer.new()
+	game_over_panel_node.set_script(GameOverPanelScript)
+	add_child(game_over_panel_node)
 
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)

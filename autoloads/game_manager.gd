@@ -1819,6 +1819,12 @@ func begin_turn() -> void:
 	EventBus.turn_started.emit(pid)
 	EventBus.message_log.emit("══ %s 的回合 (第%d回合, AP:%d) ══" % [player["name"], turn_number, player["ap"]])
 
+	# ── Phase banner for UI feedback (v4.5) ──
+	if pid == get_human_player_id():
+		EventBus.phase_banner_requested.emit("Your Turn - Turn %d" % turn_number, false)
+	else:
+		EventBus.phase_banner_requested.emit("Enemy Turn - %s..." % player["name"], true)
+
 	# Turn milestone events (Rance 07 style)
 	if pid == get_human_player_id():
 		if turn_number == 15:
@@ -5215,6 +5221,7 @@ func check_win_condition() -> void:
 		EventBus.message_log.emit("[color=red]═══ 回合超限! ═══[/color]")
 		EventBus.message_log.emit("[color=red]暗潮势力未能在%d回合内完成目标, 光明联盟集结反攻![/color]" % BalanceConfig.TURN_LIMIT)
 		EventBus.game_over.emit(-1)
+		EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "Turn Limit Exceeded", "victory_type": ""})
 		return
 
 	# ── Victory Path 1: Conquest (攻占所有光明联盟要塞) ──
@@ -5239,6 +5246,7 @@ func check_win_condition() -> void:
 				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
+		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Conquest Victory"})
 		return
 
 	# ── Victory Path 2: Domination (控制60%以上地图节点) ──
@@ -5258,6 +5266,7 @@ func check_win_condition() -> void:
 				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
+		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Domination Victory"})
 		return
 
 	# ── Victory Path 3: Shadow Dominion (暗影统治 — 威胁值100 + 拥有终极兵种) ──
@@ -5294,6 +5303,7 @@ func check_win_condition() -> void:
 				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
+		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Shadow Domination"})
 		return
 
 	# ── Victory Path 4: Pirate Harem Collection (海盗后宫收集胜利) ──
@@ -5311,6 +5321,7 @@ func check_win_condition() -> void:
 				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
 		EventBus.game_over.emit(human_id)
+		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Harem Victory"})
 		return
 
 	# ── Defeat: Elimination ──
@@ -5318,6 +5329,7 @@ func check_win_condition() -> void:
 		game_active = false
 		EventBus.message_log.emit("[color=red]你的势力已被消灭...[/color]")
 		EventBus.game_over.emit(-1)
+		EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "Your faction was eliminated", "victory_type": ""})
 		return
 
 	# ── Defeat: All evil factions eliminated (rival AI wins) ──
@@ -5332,6 +5344,7 @@ func check_win_condition() -> void:
 		game_active = false
 		EventBus.message_log.emit("[color=red]所有暗黑势力已被光明联盟消灭...[/color]")
 		EventBus.game_over.emit(-1)
+		EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "All dark factions were destroyed", "victory_type": ""})
 
 
 # ═══════════════ TERRITORY EFFECTS (国効果) ═══════════════

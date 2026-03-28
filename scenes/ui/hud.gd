@@ -128,6 +128,12 @@ var game_over_victory_type_label: Label
 var game_over_stats_vbox: VBoxContainer
 var game_over_style: StyleBoxFlat
 
+# ── UI refs: turn phase banner (v4.5) ──
+var _phase_banner: PanelContainer
+var _phase_banner_label: Label
+var _phase_banner_timer: Timer
+var _ai_turn_active: bool = false
+
 var messages: Array = []
 const MAX_MESSAGES: int = 12
 
@@ -150,6 +156,8 @@ func _connect_signals() -> void:
 	EventBus.player_arrived.connect(_on_player_arrived)
 	EventBus.message_log.connect(_on_message_log)
 	EventBus.game_over.connect(_on_game_over)
+	EventBus.phase_banner_requested.connect(_on_phase_banner_requested)
+	EventBus.turn_started.connect(_on_turn_started_phase_cleanup)
 	EventBus.tile_captured.connect(_on_tile_captured)
 	EventBus.item_acquired.connect(_on_item_changed)
 	EventBus.item_used.connect(_on_item_changed)
@@ -158,9 +166,14 @@ func _connect_signals() -> void:
 	EventBus.gold_changed.connect(_on_legacy_changed)
 	EventBus.charm_changed.connect(_on_legacy_changed)
 	EventBus.territory_selected.connect(_on_territory_selected)
+	EventBus.territory_deselected.connect(_on_territory_deselected)
 	EventBus.combat_result.connect(_on_combat_result)
 	EventBus.order_changed.connect(_on_order_changed)
 	EventBus.threat_changed.connect(_on_threat_changed)
+	EventBus.ap_changed.connect(_on_ap_changed)
+	EventBus.territory_changed.connect(_on_territory_changed)
+	EventBus.army_deployed.connect(_on_army_deployed)
+	EventBus.strategic_resource_changed.connect(_on_strategic_resource_changed)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -227,6 +240,7 @@ func _build_ui() -> void:
 	_build_message_log(root)
 	_build_game_over(root)
 	_build_minimap(root)
+	_build_phase_banner(root)
 
 
 # ── Top bar (resources, turn info, strategic resources) ──
@@ -578,16 +592,18 @@ func _build_tile_info(parent: Control) -> void:
 	panel.offset_left = -250
 	panel.offset_right = -10
 	panel.offset_top = 60
-	panel.offset_bottom = 360
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.offset_bottom = 460
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	panel.add_theme_stylebox_override("panel", _make_info_panel_style())
 	parent.add_child(panel)
 
 	tile_info_label = RichTextLabel.new()
 	tile_info_label.bbcode_enabled = true
-	tile_info_label.fit_content = true
-	tile_info_label.scroll_active = false
-	tile_info_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tile_info_label.fit_content = false
+	tile_info_label.scroll_active = true
+	tile_info_label.scroll_following = false
+	tile_info_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	tile_info_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tile_info_label.text = "[b]Current Location[/b]\nWaiting for game to start..."
 	tile_info_label.add_theme_font_size_override("normal_font_size", 12)
 	panel.add_child(tile_info_label)
@@ -713,6 +729,72 @@ func _on_board_ready_minimap() -> void:
 	var board_node = get_tree().get_root().find_child("Board", true, false)
 	if board_node and board_node.has_method("setup_minimap"):
 		board_node.setup_minimap(minimap_anchor)
+
+
+# ── Turn phase banner (v4.5) ──
+
+func _build_phase_banner(parent: Control) -> void:
+	_phase_banner = PanelContainer.new()
+	_phase_banner.anchor_left = 0.5
+	_phase_banner.anchor_right = 0.5
+	_phase_banner.anchor_top = 0.0
+	_phase_banner.anchor_bottom = 0.0
+	_phase_banner.offset_left = -200
+	_phase_banner.offset_right = 200
+	_phase_banner.offset_top = 65
+	_phase_banner.offset_bottom = 105
+	_phase_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_phase_banner.visible = false
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.06, 0.05, 0.1, 0.92)
+	style.border_color = Color(0.65, 0.55, 0.25)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(8)
+	_phase_banner.add_theme_stylebox_override("panel", style)
+	parent.add_child(_phase_banner)
+
+	_phase_banner_label = Label.new()
+	_phase_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_phase_banner_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_phase_banner_label.add_theme_font_size_override("font_size", 18)
+	_phase_banner_label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.4))
+	_phase_banner.add_child(_phase_banner_label)
+
+	_phase_banner_timer = Timer.new()
+	_phase_banner_timer.one_shot = true
+	_phase_banner_timer.timeout.connect(_on_phase_banner_timeout)
+	add_child(_phase_banner_timer)
+
+
+func _on_phase_banner_requested(text: String, is_ai_turn: bool) -> void:
+	_phase_banner_label.text = text
+	_phase_banner.visible = true
+	_ai_turn_active = is_ai_turn
+
+	if is_ai_turn:
+		# Stay visible and disable input during AI turn
+		_phase_banner_label.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5))
+		_phase_banner_timer.stop()
+		_set_all_buttons_disabled(true)
+	else:
+		# Human turn: show briefly then auto-hide
+		_phase_banner_label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.4))
+		_phase_banner_timer.start(1.5)
+		# Re-enable buttons (will be refined by _update_buttons)
+		_ai_turn_active = false
+
+
+func _on_phase_banner_timeout() -> void:
+	_phase_banner.visible = false
+
+
+func _on_turn_started_phase_cleanup(_player_id: int) -> void:
+	# When a new human turn starts, hide AI banner
+	var human_id: int = GameManager.get_human_player_id()
+	if _player_id == human_id and _ai_turn_active:
+		_ai_turn_active = false
+		_phase_banner.visible = false
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -2228,6 +2310,8 @@ func _on_territory_selected(tile_index: int) -> void:
 func _update_tile_info_for(tile_index: int) -> void:
 	if GameManager.tiles.is_empty():
 		return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var pid: int = GameManager.get_human_player_id()
 	var type_name: String = GameManager.TILE_NAMES.get(tile["type"], "Unknown")
@@ -2264,23 +2348,42 @@ func _update_tile_info_for(tile_index: int) -> void:
 	# Owner info
 	if tile["owner_id"] == pid:
 		info += "[color=green]Own territory[/color]\n"
-		var prod: Dictionary = GameManager.get_tile_production(tile) if GameManager.has_method("get_tile_production") else {}
-		if not prod.is_empty():
-			info += "Output: Gold %d Food %d Iron %d\n" % [prod.get("gold", 0), prod.get("food", 0), prod.get("iron", 0)]
-		var bld: String = tile.get("building_id", "")
-		if bld != "":
-			info += "Building: [color=orchid]%s[/color] Lv%d\n" % [BuildingRegistry.get_building_name(bld), tile.get("building_level", 1)]
 	elif tile["owner_id"] >= 0:
 		var _owner = GameManager.get_player_by_id(tile["owner_id"])
 		var oname: String = _owner.get("name", "Enemy") if _owner else "Enemy"
-		info += "[color=red]%s Captured[/color]\n" % oname
+		info += "[color=red]Owner: %s[/color]\n" % oname
 	else:
 		info += "[color=gray]Unclaimed[/color]\n"
+
+	# Production (show for any owned tile)
+	if tile["owner_id"] >= 0:
+		var prod: Dictionary = GameManager.get_tile_production(tile) if GameManager.has_method("get_tile_production") else {}
+		if not prod.is_empty():
+			info += "Output: [color=gold]Gold %d[/color] [color=green]Food %d[/color] [color=silver]Iron %d[/color]\n" % [prod.get("gold", 0), prod.get("food", 0), prod.get("iron", 0)]
+
+	# Building
+	var bld: String = tile.get("building_id", "")
+	if bld != "":
+		var bld_level: int = tile.get("building_level", 1)
+		var max_level: int = BuildingRegistry.get_building_max_level(bld) if BuildingRegistry.has_method("get_building_max_level") else bld_level
+		info += "Building: [color=orchid]%s[/color] (Lv%d/%d)\n" % [BuildingRegistry.get_building_name(bld), bld_level, max_level]
+	elif tile["owner_id"] == pid:
+		info += "[color=gray]No building (can build)[/color]\n"
 
 	# Garrison
 	var garrison: int = tile.get("garrison", 0)
 	if garrison > 0:
 		info += "Garrison: %d\n" % garrison
+
+	# Guard status
+	if GameManager._guard_timers.has(tile_index):
+		var guard_info: Dictionary = GameManager._guard_timers[tile_index]
+		var guard_owner: int = guard_info.get("player_id", -1)
+		var turns_left: int = guard_info.get("turns_remaining", 0)
+		if guard_owner == pid:
+			info += "[color=cyan]Guarded (%d turn%s remaining) DEF+50%%[/color]\n" % [turns_left, "" if turns_left == 1 else "s"]
+		else:
+			info += "[color=orange]Enemy guarded (%d turn%s)[/color]\n" % [turns_left, "" if turns_left == 1 else "s"]
 
 	# Army stationed here (v0.9.2)
 	var army: Dictionary = GameManager.get_army_at_tile(tile_index)
@@ -2289,7 +2392,7 @@ func _update_tile_info_for(tile_index: int) -> void:
 		var power: int = GameManager.get_army_combat_power(army["id"])
 		var troop_count: int = army["troops"].size()
 		info += "[color=yellow]━━ Army: %s ━━[/color]\n" % army["name"]
-		info += "Troop roster: %d/%d | Total troops: %d | Power: %d\n" % [troop_count, GameManager.get_effective_max_troops(army.get("player_id", pid)), soldiers, power]
+		info += "Troops: %d/%d | Soldiers: %d | Power: %d\n" % [troop_count, GameManager.get_effective_max_troops(army.get("player_id", pid)), soldiers, power]
 		if army["player_id"] == pid:
 			var tile_idx: int = army.get("tile_index", -1)
 			var on_enemy: bool = tile_idx >= 0 and tile_idx < GameManager.tiles.size() and GameManager.tiles[tile_idx]["owner_id"] != pid and GameManager.tiles[tile_idx]["owner_id"] >= 0
@@ -2297,6 +2400,10 @@ func _update_tile_info_for(tile_index: int) -> void:
 				info += "[color=orange]Supply: Enemy territory (%.0f%% attrition/turn)[/color]\n" % (BalanceConfig.SUPPLY_ENEMY_TERRITORY_ATTRITION * 100.0)
 			else:
 				info += "[color=green]Supply: Normal[/color]\n"
+		else:
+			var army_owner = GameManager.get_player_by_id(army["player_id"])
+			var army_owner_name: String = army_owner.get("name", "Unknown") if army_owner else "Unknown"
+			info += "[color=red]Owner: %s[/color]\n" % army_owner_name
 
 	# Neutral faction
 	if tile.get("neutral_faction_id", -1) >= 0:
@@ -2367,6 +2474,7 @@ func _on_game_over(winner_id: int) -> void:
 
 func _on_combat_result(_attacker_id: int, _defender_desc: String, _won: bool) -> void:
 	# Refresh all UI after combat resolves
+	_update_player_info()
 	_update_tile_info()
 	_update_buttons()
 
@@ -2375,6 +2483,30 @@ func _on_order_changed(_new_value: int) -> void:
 	_update_player_info()
 
 func _on_threat_changed(_new_value: int) -> void:
+	_update_player_info()
+
+
+func _on_ap_changed(_pid: int, _new_ap: int) -> void:
+	_update_player_info()
+	_update_buttons()
+
+
+func _on_territory_changed(_tile_index: int, _new_owner_id: int) -> void:
+	_update_player_info()
+	_update_tile_info()
+	_update_buttons()
+
+
+func _on_territory_deselected() -> void:
+	_update_tile_info()
+
+
+func _on_army_deployed(_pid: int, _army_id: int, _from: int, _to: int) -> void:
+	_update_player_info()
+	_update_tile_info()
+
+
+func _on_strategic_resource_changed(_pid: int, _key: String, _val: int) -> void:
 	_update_player_info()
 
 

@@ -250,3 +250,9 @@ signal tile_combat_bonus_applied(tile_idx: int, path: int, bonuses: Dictionary)
 signal hidden_hero_discovered(hero_id: String, hero_name: String, message: String)
 signal story_window_triggered(window_id: String, title: String, narrative: String)
 signal story_window_expired(window_id: String, title: String, consequence: String)
+
+# ── Turn Phase Banner (v4.5) ──
+signal phase_banner_requested(text: String, is_ai_turn: bool)
+
+# ── Game Over Detailed (v4.5) ──
+signal game_over_detailed(data: Dictionary)
