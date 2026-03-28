@@ -771,6 +771,9 @@ func _assign_tile_types(positions: Array) -> void:
 			"terrain_move_cost": 1,
 			"named_outpost_id": "",
 		"public_order": BalanceConfig.TILE_ORDER_DEFAULT,
+			# Runtime fields used by subsystems (initialized for safety)
+			"wall_hp": core_fortress_wall_hp,
+			"alliance_def_bonus": 0,
 		})
 
 	# Mark light faction ownership on tiles

@@ -330,13 +330,13 @@ func apply_step_rewards(player_id: int, neutral_faction: int) -> void:
 
 
 func _reveal_fog_tiles(player_id: int, count: int) -> void:
-	## Reveal up to 'count' unrevealed tiles.
+	## Reveal up to 'count' unrevealed tiles using the proper revealed dict system.
 	var revealed: int = 0
 	for tile in GameManager.tiles:
 		if revealed >= count:
 			break
-		if tile.get("fog", true) and tile["owner_id"] < 0:
-			tile["fog"] = false
+		if not tile["revealed"].get(player_id, false) and tile["owner_id"] < 0:
+			tile["revealed"][player_id] = true
 			revealed += 1
 	if revealed > 0:
 		EventBus.fog_updated.emit(player_id)

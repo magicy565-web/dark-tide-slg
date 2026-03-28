@@ -24,7 +24,7 @@ const MAX_FRONT_SLOTS := 3
 const MAX_BACK_SLOTS := 3
 const MAX_SLOTS := 6  # front(3) + back(3), SR07 formation
 
-# Terrain enum mirrors GameData.Terrain.  We reference GameData at runtime but
+# Terrain enum mirrors FactionData.TerrainType.  We reference FactionData at runtime but
 # keep local copies so the file is self-documenting.
 enum Terrain {
 	PLAINS    = 0,

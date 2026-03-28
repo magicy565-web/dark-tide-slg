@@ -319,8 +319,7 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 	crest_sprite.no_depth_test = true
 	crest_sprite.position = Vector3(-0.8, TILE_HEIGHT + 0.8, 0.6)
 	crest_sprite.modulate = Color(1, 1, 1, 0.85)
-	var fk_crest: String = tile.get("faction_key", "")
-	if fk_crest == "": fk_crest = _get_tile_faction_key(tile) if tile.get("owner_id", -1) >= 0 else ""
+	var fk_crest: String = _get_tile_faction_key(tile) if tile.get("owner_id", -1) >= 0 else ""
 	if _crest_textures.has(fk_crest) and _crest_textures[fk_crest] != null:
 		crest_sprite.texture = _crest_textures[fk_crest]
 	else:
