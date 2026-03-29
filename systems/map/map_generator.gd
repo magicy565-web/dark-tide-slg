@@ -501,11 +501,11 @@ func _build_edges(positions: Array, n: int) -> Dictionary:
 func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int, tile_regions: Array) -> Dictionary:
 	var n: int = positions.size()
 	var nodes: Dictionary = {}
-
-	# Track which ids have been assigned already.
 	var assigned: Dictionary = {}  # id -> true
+	var used_names: Dictionary = {}  # name -> true, tracks all assigned names to prevent reuse
 
-	# --- Phase 1: Core fortresses (ids 0..11) --------------------------------
+	# --- Phase 1: Core fortresses from presets (ids 0..FORTRESS_DATA.size()-1) ---
+	var core_presets: Array = LocationPresets.get_presets_by_category("core_fortress")
 	for i in range(FORTRESS_DATA.size()):
 		var fd: Dictionary = FORTRESS_DATA[i]
 		var faction_enum: int = _faction_string_to_enum(fd["faction"])
@@ -513,63 +513,97 @@ func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int, til
 		var garrison_count: int = fd["garrison"]
 		var rid: String = tile_regions[i] if i < tile_regions.size() else ""
 		var rname: String = _region_name_for_id(rid)
-		nodes[i] = _make_node(i, positions[i], "FORTRESS", fd["name"], faction_enum, city_def, garrison_count, rid, rname)
+		# Use preset name if available for richer data.
+		var pname: String = fd["name"]
+		if i < core_presets.size():
+			pname = core_presets[i]["name"]
+		nodes[i] = _make_node(i, positions[i], "FORTRESS", pname, faction_enum, city_def, garrison_count, rid, rname)
+		# Apply chokepoint flag from articulation-point analysis.
+		if _chokepoint_flags.has(i):
+			nodes[i]["is_chokepoint"] = true
 		assigned[i] = true
+		used_names[pname] = true
 
-	# --- Phase 2: Neutral leader bases (pick 10 unassigned nodes nearest center) -
-	var neutral_ids: Array = _pick_unassigned_ids(positions, assigned, NEUTRAL_LEADERS.size(), Vector2(MAP_WIDTH * 0.4, MAP_HEIGHT * 0.5))
-	for idx in range(neutral_ids.size()):
-		var nid: int = neutral_ids[idx]
-		var nl: Dictionary = NEUTRAL_LEADERS[idx]
-		var fac: int = _faction_string_to_enum(nl["faction"])
+	# --- Phase 2: Place all non-core presets by proximity to their position_hint ---
+	# Group presets by category for ordered placement (outposts first, then specials, etc.)
+	var preset_categories: Array = ["outpost", "special", "neutral", "bandit_lair", "event_point", "resource_station", "village"]
+	var presets_to_place: Array = []
+	for cat in preset_categories:
+		var cat_presets: Array = LocationPresets.get_presets_by_category(cat)
+		for p in cat_presets:
+			presets_to_place.append(p)
+
+	for preset in presets_to_place:
+		# Find the closest unassigned node to this preset's position hint.
+		var hint: Vector2 = preset["position_hint"]
+		var target: Vector2
+		if hint.x < 0 or hint.y < 0:
+			# Random placement — pick a scattered node.
+			target = Vector2(randf_range(100, MAP_WIDTH - 100), randf_range(100, MAP_HEIGHT - 100))
+		else:
+			target = Vector2(hint.x * MAP_WIDTH, hint.y * MAP_HEIGHT)
+
+		var best_id: int = -1
+		var best_dist: float = INF
+		for i in range(n):
+			if assigned.has(i):
+				continue
+			var d: float = positions[i].distance_to(target)
+			if d < best_dist:
+				best_dist = d
+				best_id = i
+		if best_id == -1:
+			continue  # No free nodes left.
+
+		var nid: int = best_id
 		var rid: String = tile_regions[nid] if nid < tile_regions.size() else ""
 		var rname: String = _region_name_for_id(rid)
-		nodes[nid] = _make_node(nid, positions[nid], "STRONGHOLD", nl["name"], fac, 20, randi_range(6, 8), rid, rname)
+		var cat: String = preset["category"]
+		var type_str: String = _preset_category_to_type(cat)
+		var fac: int = _faction_string_to_enum(preset["faction"])
+		var garrison_count: int = randi_range(preset["garrison_min"], preset["garrison_max"])
+		var city_def: int = preset["city_def"]
+		var level: int = preset["level"]
+		var pname: String = preset["name"]
+
+		# Build node using _make_node then override specific fields.
+		var nd: Dictionary = _make_node(nid, positions[nid], type_str, pname, fac, city_def, garrison_count, rid, rname)
+		nd["level"] = level
+		# Override terrain with preset preference if specified.
+		var tpref: String = preset["terrain_pref"]
+		if tpref != "":
+			nd["terrain"] = _terrain_string_to_enum(tpref)
+		# Resource type for resource stations.
+		if preset["resource_type"] != "":
+			nd["resource_type"] = preset["resource_type"]
+		# Chokepoint flag.
+		if _chokepoint_flags.has(nid):
+			nd["is_chokepoint"] = true
+		nodes[nid] = nd
 		assigned[nid] = true
+		used_names[pname] = true
 
-	# --- Phase 3: Resource stations -------------------------------------------
-	var resource_nodes: Array = []
-	for rp in RESOURCE_POOL:
-		var count: int = randi_range(rp["count_min"], rp["count_max"])
-		for c in range(count):
-			resource_nodes.append({"resource_type": rp["resource_type"], "name_prefix": rp["name_prefix"]})
-
-	var resource_ids: Array = _pick_unassigned_scattered(positions, assigned, resource_nodes.size())
-	# Guard: only assign as many as we actually found positions for (Bug fix Round 3)
-	var resource_assign_count: int = mini(resource_ids.size(), resource_nodes.size())
-	for idx in range(resource_assign_count):
-		var rid: int = resource_ids[idx]
-		var rdata: Dictionary = resource_nodes[idx]
-		var node_name: String = rdata["name_prefix"] + "采集站" + str(idx + 1)
-		var r_rid: String = tile_regions[rid] if rid < tile_regions.size() else ""
-		var r_rname: String = _region_name_for_id(r_rid)
-		var nd: Dictionary = _make_node(rid, positions[rid], "RESOURCE", node_name, -1, 5, randi_range(3, 5), r_rid, r_rname)
-		nd["resource_type"] = rdata["resource_type"]
-		nodes[rid] = nd
-		assigned[rid] = true
-
-	# --- Phase 4: Remaining nodes – distribute by type weights ----------------
-	# village 40%, stronghold 25%, bandit_camp 20%, event_point 15%
+	# --- Phase 3: Fill remaining unassigned nodes with generated names ----------
+	# Since presets provide 78 unique names and maps have 90-110 nodes,
+	# only ~12-32 nodes need generated names (<20% reuse guaranteed).
 	var remaining_ids: Array = []
 	for i in range(n):
 		if not assigned.has(i):
 			remaining_ids.append(i)
 	remaining_ids.shuffle()
 
-	# Precompute shuffled name pools.
-	var village_pool: Array = VILLAGE_NAMES.duplicate()
+	# Build de-duped name pools from constants, excluding already-used names.
+	var village_pool: Array = _filter_unused_names(VILLAGE_NAMES, used_names)
+	var stronghold_pool: Array = _filter_unused_names(STRONGHOLD_NAMES, used_names)
+	var bandit_pool: Array = _filter_unused_names(BANDIT_NAMES, used_names)
+	var event_pool: Array = _filter_unused_names(EVENT_NAMES, used_names)
 	village_pool.shuffle()
-	var stronghold_pool: Array = STRONGHOLD_NAMES.duplicate()
 	stronghold_pool.shuffle()
-	var bandit_pool: Array = BANDIT_NAMES.duplicate()
 	bandit_pool.shuffle()
-	var event_pool: Array = EVENT_NAMES.duplicate()
 	event_pool.shuffle()
 
-	var vi: int = 0
-	var si: int = 0
-	var bi: int = 0
-	var ei: int = 0
+	var vi: int = 0; var si: int = 0; var bi: int = 0; var ei: int = 0
+	var suffix_counter: int = 1  # For generating unique suffixed names.
 
 	for idx in range(remaining_ids.size()):
 		var nid: int = remaining_ids[idx]
@@ -582,42 +616,94 @@ func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int, til
 
 		if roll < 0.40:
 			node_type = "VILLAGE"
-			node_name = village_pool[vi % village_pool.size()] if village_pool.size() > 0 else "村庄" + str(vi)
+			node_name = _pick_unique_name(village_pool, vi, "边境村落", suffix_counter, used_names)
 			vi += 1
 			garrison_count = randi_range(3, 5)
 			city_def = 5
 			owner = _region_faction(positions[nid])
 		elif roll < 0.65:
 			node_type = "STRONGHOLD"
-			node_name = stronghold_pool[si % stronghold_pool.size()] if stronghold_pool.size() > 0 else "据点" + str(si)
+			node_name = _pick_unique_name(stronghold_pool, si, "前线据点", suffix_counter, used_names)
 			si += 1
 			garrison_count = randi_range(6, 8)
 			city_def = 15
 			owner = _region_faction(positions[nid])
 		elif roll < 0.85:
 			node_type = "BANDIT_CAMP"
-			node_name = bandit_pool[bi % bandit_pool.size()] if bandit_pool.size() > 0 else "匪寨" + str(bi)
+			node_name = _pick_unique_name(bandit_pool, bi, "荒野匪巢", suffix_counter, used_names)
 			bi += 1
 			garrison_count = randi_range(4, 6)
 			city_def = 10
 			owner = _faction_string_to_enum("BANDIT")
 		else:
 			node_type = "EVENT_POINT"
-			node_name = event_pool[ei % event_pool.size()] if event_pool.size() > 0 else "事件点" + str(ei)
+			node_name = _pick_unique_name(event_pool, ei, "未知遗迹", suffix_counter, used_names)
 			ei += 1
 			garrison_count = 0
 			city_def = 0
 			owner = -1
 
+		if used_names.has(node_name):
+			suffix_counter += 1
+			node_name = node_name + "·" + _num_to_cn(suffix_counter)
+
+		used_names[node_name] = true
 		var nid_rid: String = tile_regions[nid] if nid < tile_regions.size() else ""
 		var nid_rname: String = _region_name_for_id(nid_rid)
-		nodes[nid] = _make_node(nid, positions[nid], node_type, node_name, owner, city_def, garrison_count, nid_rid, nid_rname)
+		var nd: Dictionary = _make_node(nid, positions[nid], node_type, node_name, owner, city_def, garrison_count, nid_rid, nid_rname)
+		if _chokepoint_flags.has(nid):
+			nd["is_chokepoint"] = true
+		nodes[nid] = nd
 		assigned[nid] = true
 
-	# --- Phase 5: Player start – claim 1 fortress + 2 adjacent villages ------
+	# --- Phase 4: Player start – claim 1 fortress + 2 adjacent villages ------
 	_assign_player_start(nodes, edges, player_faction)
 
 	return nodes
+
+## Convert a preset category string to the node type string used by _make_node.
+func _preset_category_to_type(category: String) -> String:
+	match category:
+		"core_fortress": return "FORTRESS"
+		"outpost": return "STRONGHOLD"
+		"special": return "STRONGHOLD"
+		"neutral": return "VILLAGE"
+		"bandit_lair": return "BANDIT_CAMP"
+		"event_point": return "EVENT_POINT"
+		"resource_station": return "RESOURCE"
+		"village": return "VILLAGE"
+		_: return "VILLAGE"
+
+## Filter a name array, removing names already in used_names.
+func _filter_unused_names(pool: Array, used: Dictionary) -> Array:
+	var result: Array = []
+	for name in pool:
+		if not used.has(name):
+			result.append(name)
+	return result
+
+## Pick a unique name from a pool. If pool is exhausted, generate a suffixed name.
+func _pick_unique_name(pool: Array, index: int, fallback_prefix: String, _suffix: int, used: Dictionary) -> String:
+	if index < pool.size():
+		var name: String = pool[index]
+		if not used.has(name):
+			return name
+	# Pool exhausted or name collision — generate unique name.
+	var gen_name: String = fallback_prefix + "·" + _num_to_cn(index + 1)
+	var safety: int = 0
+	while used.has(gen_name) and safety < 50:
+		safety += 1
+		gen_name = fallback_prefix + "·" + _num_to_cn(index + 1 + safety)
+	return gen_name
+
+## Convert a small integer to a Chinese numeral suffix for unique naming.
+func _num_to_cn(num: int) -> String:
+	var cn_digits: Array = ["零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖", "拾",
+		"拾壹", "拾贰", "拾叁", "拾肆", "拾伍", "拾陆", "拾柒", "拾捌", "拾玖", "贰拾",
+		"贰拾壹", "贰拾贰", "贰拾叁", "贰拾肆", "贰拾伍", "贰拾陆", "贰拾柒", "贰拾捌", "贰拾玖", "叁拾"]
+	if num >= 0 and num < cn_digits.size():
+		return cn_digits[num]
+	return str(num)
 
 # ---------------------------------------------------------------------------
 # Player start assignment
@@ -892,6 +978,26 @@ func _find_articulation_points(edges: Dictionary, n: int) -> Dictionary:
 						is_ap[u] = true
 
 	return is_ap
+
+## BFS hop count between two nodes. Returns max_hops+1 if not reachable within max_hops.
+func _bfs_hops(adj: Dictionary, from_id: int, to_id: int, max_hops: int) -> int:
+	if from_id == to_id:
+		return 0
+	var visited: Dictionary = {from_id: true}
+	var queue: Array = [[from_id, 0]]
+	while queue.size() > 0:
+		var current: Array = queue.pop_front()
+		var node: int = current[0]
+		var depth: int = current[1]
+		if depth >= max_hops:
+			continue
+		for nb in adj.get(node, []):
+			if nb == to_id:
+				return depth + 1
+			if not visited.has(nb):
+				visited[nb] = true
+				queue.append([nb, depth + 1])
+	return max_hops + 1
 
 ## Check if the graph is fully connected via BFS.
 func _is_fully_connected(edges: Dictionary, n: int) -> bool:
