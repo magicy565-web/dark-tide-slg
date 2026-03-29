@@ -167,6 +167,8 @@ var screen_flash: ColorRect
 var side_label_atk: Label
 var side_label_def: Label
 var vs_label: Label
+var round_counter_panel: PanelContainer = null
+var round_counter_label: Label = null
 var _vs_tween: Tween = null
 
 # Card panels indexed: attacker_cards[slot] and defender_cards[slot]
@@ -798,6 +800,36 @@ func _build_overlay_effects() -> void:
 	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	vignette.z_index = 65
 	root.add_child(vignette)
+
+	# Prominent round counter (top-center pill)
+	round_counter_panel = PanelContainer.new()
+	round_counter_panel.name = "RoundCounterPanel"
+	round_counter_panel.z_index = 55
+	var rc_style := StyleBoxFlat.new()
+	rc_style.bg_color = Color(0.08, 0.07, 0.12, 0.92)
+	rc_style.border_color = Color(0.6, 0.45, 0.25, 0.7)
+	rc_style.set_border_width_all(2)
+	rc_style.set_corner_radius_all(10)
+	rc_style.content_margin_left = 18
+	rc_style.content_margin_right = 18
+	rc_style.content_margin_top = 4
+	rc_style.content_margin_bottom = 4
+	round_counter_panel.add_theme_stylebox_override("panel", rc_style)
+	round_counter_panel.position = Vector2(CENTER_X - 60, 64)
+	round_counter_panel.size = Vector2(120, 32)
+	round_counter_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shake_container.add_child(round_counter_panel)
+
+	round_counter_label = Label.new()
+	round_counter_label.text = "Round 0/%d" % MAX_ROUNDS
+	round_counter_label.add_theme_font_size_override("font_size", 16)
+	round_counter_label.add_theme_color_override("font_color", Color(0.9, 0.82, 0.6))
+	round_counter_label.add_theme_constant_override("outline_size", 2)
+	round_counter_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
+	round_counter_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	round_counter_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	round_counter_panel.add_child(round_counter_label)
+
 # ═══════════════════════════════════════════════════════════
 #                       BATTLE DISPLAY
 # ═══════════════════════════════════════════════════════════
@@ -833,6 +865,9 @@ func show_battle(battle_result: Dictionary) -> void:
 	title_label.text = battle_result.get("title", "COMBAT")
 	terrain_label.text = "Terrain: %s" % _get_terrain_name(battle_result.get("terrain", 0))
 	round_label.text = "Round 0/%d" % MAX_ROUNDS
+	if is_instance_valid(round_counter_label):
+		round_counter_label.text = "Round 0/%d" % MAX_ROUNDS
+		round_counter_label.add_theme_color_override("font_color", Color(0.9, 0.82, 0.6))
 
 	# Load terrain-specific battle background
 	var terrain_id = battle_result.get("terrain", 0)
@@ -1720,36 +1755,63 @@ func _spawn_damage_number(pos: Vector2, damage: int, max_soldiers: int, is_crit:
 	var lbl := Label.new()
 	if is_crit:
 		lbl.text = "-%d!" % damage
-		lbl.add_theme_font_size_override("font_size", 26)
+		lbl.add_theme_font_size_override("font_size", 28)
 		lbl.add_theme_color_override("font_color", ColorTheme.ACCENT_GOLD_BRIGHT)
 	elif damage > max_soldiers * 0.3:
 		lbl.text = "-%d" % damage
-		lbl.add_theme_font_size_override("font_size", 20)
+		lbl.add_theme_font_size_override("font_size", 22)
 		lbl.add_theme_color_override("font_color", ColorTheme.FLASH_GAIN)
 	else:
 		lbl.text = "-%d" % damage
-		lbl.add_theme_font_size_override("font_size", 15)
+		lbl.add_theme_font_size_override("font_size", 16)
 		lbl.add_theme_color_override("font_color", ColorTheme.TEXT_WARNING)
 
-	lbl.position = pos + Vector2(randf_range(-24, -8), -35)
+	# Outline for readability against busy backgrounds
+	lbl.add_theme_constant_override("outline_size", 3)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+
+	lbl.position = pos + Vector2(randf_range(-28, -4), -35)
 	lbl.z_index = 100
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	anim_layer.add_child(lbl)
 
 	var spd := 0.9 / _speed_mult
-	var rise := -50.0 if is_crit else -35.0
+	var rise := -60.0 if is_crit else -40.0
 	var tw := create_tween()
 	if is_crit:
 		# Crit: pop in big then shrink, with longer hang time
-		tw.tween_property(lbl, "scale", Vector2(1.4, 1.4), 0.08 / _speed_mult)
-		tw.tween_property(lbl, "scale", Vector2(1.0, 1.0), 0.12 / _speed_mult).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		tw.tween_property(lbl, "scale", Vector2(1.6, 1.6), 0.07 / _speed_mult)
+		tw.tween_property(lbl, "scale", Vector2(1.0, 1.0), 0.14 / _speed_mult).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 		tw.set_parallel(true)
-		tw.tween_property(lbl, "position:y", lbl.position.y + rise, spd).set_ease(Tween.EASE_OUT)
-		tw.tween_property(lbl, "modulate:a", 0.0, spd * 1.1)
+		tw.tween_property(lbl, "position:y", lbl.position.y + rise, spd).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tw.tween_property(lbl, "modulate:a", 0.0, spd * 1.1).set_delay(0.15 / _speed_mult)
 	else:
 		tw.set_parallel(true)
-		tw.tween_property(lbl, "position:y", lbl.position.y + rise, spd).set_ease(Tween.EASE_OUT)
-		tw.tween_property(lbl, "modulate:a", 0.0, spd)
+		tw.tween_property(lbl, "position:y", lbl.position.y + rise, spd).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tw.tween_property(lbl, "modulate:a", 0.0, spd).set_delay(0.1 / _speed_mult)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(lbl): lbl.queue_free()
+	)
+
+## Spawn a floating damage popup on an arbitrary parent control.
+## Used for ability/passive damage that doesn't go through _animate_attack.
+func _spawn_damage_popup(parent: Control, value: int, pos: Vector2, is_crit: bool = false) -> void:
+	var lbl := Label.new()
+	lbl.text = str(value) + ("!" if is_crit else "")
+	lbl.add_theme_font_size_override("font_size", 20 if is_crit else 14)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.1) if is_crit else Color(1.0, 0.2, 0.2))
+	lbl.add_theme_constant_override("outline_size", 2)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	lbl.position = pos + Vector2(randf_range(-20, 20), -10)
+	lbl.z_index = 100
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(lbl)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(lbl, "position:y", lbl.position.y - 60, 0.8 / _speed_mult).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(lbl, "modulate:a", 0.0, 0.8 / _speed_mult).set_delay(0.3 / _speed_mult)
 	tw.chain().tween_callback(func():
 		if is_instance_valid(lbl): lbl.queue_free()
 	)
@@ -2185,6 +2247,8 @@ func _on_skip() -> void:
 		if round_num > 0:
 			_current_round = round_num
 			round_label.text = "Round %d/%d" % [round_num, MAX_ROUNDS]
+			if is_instance_valid(round_counter_label):
+				round_counter_label.text = "Round %d/%d" % [round_num, MAX_ROUNDS]
 			_update_clock(round_num)
 
 		if action == "attack" and target_slot >= 0:
@@ -2278,6 +2342,18 @@ func _apply_log_entry(entry: Dictionary) -> void:
 		_current_round = round_num
 		round_label.text = "Round %d/%d" % [round_num, MAX_ROUNDS]
 		_update_clock(round_num)
+		# Update prominent round counter with pulse animation
+		if is_instance_valid(round_counter_label):
+			round_counter_label.text = "Round %d/%d" % [round_num, MAX_ROUNDS]
+			# Color shifts toward red as rounds progress
+			var t: float = float(round_num) / float(MAX_ROUNDS)
+			var rc_color := Color(0.9, 0.82, 0.6).lerp(Color(1.0, 0.5, 0.3), t)
+			round_counter_label.add_theme_color_override("font_color", rc_color)
+		if is_instance_valid(round_counter_panel):
+			var rc_tw := create_tween()
+			round_counter_panel.pivot_offset = round_counter_panel.size * 0.5
+			rc_tw.tween_property(round_counter_panel, "scale", Vector2(1.15, 1.15), 0.1 / _speed_mult)
+			rc_tw.tween_property(round_counter_panel, "scale", Vector2(1.0, 1.0), 0.15 / _speed_mult).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 	var log_line: String = ""
 	match action:
@@ -2324,6 +2400,10 @@ func _apply_log_entry(entry: Dictionary) -> void:
 				_detect_and_apply_buff(side, slot_idx, desc)
 				if remaining > 0:
 					_update_card_soldiers(side, slot_idx, remaining, max_s)
+				# Show floating damage number for passive damage
+				if damage > 0:
+					var pos := _get_card_center(side, slot_idx)
+					_spawn_damage_popup(anim_layer, damage, pos)
 
 		"ability":
 			log_line = "[color=#fc8][Skill][/color] %s" % desc
@@ -2440,6 +2520,65 @@ func _apply_log_entry(entry: Dictionary) -> void:
 	if log_line != "":
 		log_text.append_text(log_line + "\n")
 
+func _show_battle_result_banner(is_victory: bool) -> void:
+	var banner := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.08, 0.15, 0.95) if is_victory else Color(0.15, 0.05, 0.05, 0.95)
+	style.border_color = Color(1.0, 0.85, 0.3) if is_victory else Color(0.8, 0.2, 0.2)
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(12)
+	style.set_content_margin_all(20)
+	banner.add_theme_stylebox_override("panel", style)
+	banner.name = "BattleResultBanner"
+	banner.z_index = 80
+
+	# Position centered above the result panel
+	banner.anchor_left = 0.5
+	banner.anchor_right = 0.5
+	banner.anchor_top = 0.0
+	banner.anchor_bottom = 0.0
+	banner.offset_left = -160
+	banner.offset_right = 160
+	banner.offset_top = 200
+	banner.offset_bottom = 280
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	banner.add_child(vbox)
+
+	var lbl := Label.new()
+	lbl.text = "VICTORY" if is_victory else "DEFEAT"
+	lbl.add_theme_font_size_override("font_size", 36)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3) if is_victory else Color(1.0, 0.3, 0.3))
+	lbl.add_theme_constant_override("outline_size", 4)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	vbox.add_child(lbl)
+
+	var sub := Label.new()
+	sub.text = "Glory to the victors!" if is_victory else "Regroup and fight again..."
+	sub.add_theme_font_size_override("font_size", 13)
+	sub.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(sub)
+
+	root.add_child(banner)
+
+	# Slide in from top
+	var target_top: float = banner.offset_top
+	banner.offset_top = target_top - 200
+	banner.modulate.a = 0.0
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(banner, "offset_top", target_top, 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.tween_property(banner, "modulate:a", 1.0, 0.4)
+	# Auto-fade after 3 seconds
+	tw.chain().tween_property(banner, "modulate:a", 0.0, 0.5).set_delay(2.5)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(banner): banner.queue_free()
+	)
+
 func _finish_playback() -> void:
 	_playing = false
 	_hide_command_bar()
@@ -2460,11 +2599,13 @@ func _finish_playback() -> void:
 		result_label.add_theme_color_override("font_color", Color(1, 0.88, 0.3))
 		_screen_flash_effect(Color(1, 0.9, 0.5, 0.15), 0.5)
 		_chibi_victory("attacker")
+		_show_battle_result_banner(true)
 	elif winner == "defender":
 		result_label.text = "DEFENDER WINS!"
 		result_label.add_theme_color_override("font_color", Color(0.5, 0.7, 1))
 		_screen_flash_effect(Color(0.3, 0.5, 1.0, 0.1), 0.5)
 		_chibi_victory("defender")
+		_show_battle_result_banner(false)
 	else:
 		result_label.text = "BATTLE END"
 		result_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))

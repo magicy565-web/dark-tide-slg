@@ -117,6 +117,8 @@ var hovered_tile: int = -1
 var _last_click_tile: int = -1
 var _last_click_time: float = 0.0
 var _hover_tween: Tween = null
+var _hover_glow: MeshInstance3D = null
+var _hover_glow_mat: StandardMaterial3D = null
 var _pulse_tween: Tween = null
 var _pulse_ring: MeshInstance3D = null
 # ── Camera state ──
@@ -124,9 +126,11 @@ var camera: Camera3D
 var camera_pivot: Node3D
 var camera_target_pos: Vector3 = Vector3(9.0, 0.0, -8.0)
 var camera_zoom: float = 1.0
+var _camera_zoom_target: float = 1.0
 const ZOOM_MIN: float = 0.6
 const ZOOM_MAX: float = 2.0
 const ZOOM_SPEED: float = 0.1
+const ZOOM_LERP_SPEED: float = 8.0
 const PAN_SPEED: float = 15.0
 const EDGE_SCROLL_MARGIN: float = 30.0
 const EDGE_SCROLL_SPEED: float = 8.0
@@ -169,8 +173,8 @@ const TERRAIN_ELEVATION := {
 	FactionData.TerrainType.RIVER: -0.03, FactionData.TerrainType.RUINS: 0.08,
 	FactionData.TerrainType.WASTELAND: 0.02, FactionData.TerrainType.VOLCANIC: 0.25,
 }
-const COL_FOG := Color(0.12, 0.12, 0.15, 0.4)
-const COL_FOG_EDGE := Color(0.12, 0.12, 0.15, 0.18)
+const COL_FOG := Color(0.35, 0.3, 0.22, 0.55)
+const COL_FOG_EDGE := Color(0.35, 0.3, 0.22, 0.25)
 const COL_HIGHLIGHT_FRIENDLY := Color(0.2, 0.9, 0.3, 0.35)
 const COL_HIGHLIGHT_ENEMY := Color(0.9, 0.15, 0.15, 0.35)
 const COL_HIGHLIGHT_NEUTRAL := Color(0.9, 0.8, 0.2, 0.35)
@@ -244,14 +248,20 @@ func _setup_ground() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			camera_zoom = clampf(camera_zoom - ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX); _apply_zoom()
+			_camera_zoom_target = clampf(_camera_zoom_target - ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			camera_zoom = clampf(camera_zoom + ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX); _apply_zoom()
+			_camera_zoom_target = clampf(_camera_zoom_target + ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX)
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			_deselect_tile()
 
 func _process(delta: float) -> void:
 	camera_pivot.position = camera_pivot.position.lerp(camera_target_pos, CAM_LERP_SPEED * delta)
+	# Smooth zoom interpolation
+	if not is_equal_approx(camera_zoom, _camera_zoom_target):
+		camera_zoom = lerpf(camera_zoom, _camera_zoom_target, ZOOM_LERP_SPEED * delta)
+		if absf(camera_zoom - _camera_zoom_target) < 0.005:
+			camera_zoom = _camera_zoom_target
+		_apply_zoom()
 	_process_camera_input(delta); _process_edge_scroll(delta); _process_hover_path(); _process_water_animation(delta)
 	update_minimap_overlay()
 
@@ -1071,11 +1081,13 @@ func _on_tile_hover_enter(tile_index: int) -> void:
 	var oh: int = hovered_tile; hovered_tile = tile_index
 	if oh >= 0: _update_territory_visual(oh); _animate_tile_hover(oh, false)
 	_update_territory_visual(tile_index); _animate_tile_hover(tile_index, true)
+	_show_hover_glow(tile_index)
 
 func _on_tile_hover_exit(tile_index: int) -> void:
 	if hovered_tile == tile_index:
 		hovered_tile = -1; _update_territory_visual(tile_index)
 		_animate_tile_hover(tile_index, false)
+		_hide_hover_glow()
 
 func _animate_tile_hover(idx: int, entering: bool) -> void:
 	if not tile_visuals.has(idx): return
@@ -1086,6 +1098,39 @@ func _animate_tile_hover(idx: int, entering: bool) -> void:
 	_hover_tween = create_tween()
 	_hover_tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	_hover_tween.tween_property(vis["root"], "position:y", ty, 0.15)
+
+func _show_hover_glow(idx: int) -> void:
+	if not tile_visuals.has(idx): return
+	var pos: Vector3 = GameManager.tiles[idx]["position_3d"]
+	var el: float = tile_visuals[idx].get("elevation", 0.0)
+	if not is_instance_valid(_hover_glow):
+		_hover_glow = MeshInstance3D.new()
+		_hover_glow.name = "HoverGlow"
+		var tc := CylinderMesh.new()
+		tc.top_radius = TILE_RADIUS * 1.12
+		tc.bottom_radius = TILE_RADIUS * 1.12
+		tc.height = 0.03
+		tc.radial_segments = 6
+		_hover_glow.mesh = tc
+		_hover_glow_mat = StandardMaterial3D.new()
+		_hover_glow_mat.albedo_color = Color(1.0, 0.92, 0.65, 0.3)
+		_hover_glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_hover_glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_hover_glow_mat.emission_enabled = true
+		_hover_glow_mat.emission = Color(1.0, 0.88, 0.55)
+		_hover_glow_mat.emission_energy_multiplier = 0.8
+		_hover_glow.material_override = _hover_glow_mat
+		add_child(_hover_glow)
+	_hover_glow.position = Vector3(pos.x, el + TILE_HEIGHT + 0.045, pos.z)
+	_hover_glow.visible = true
+	_hover_glow.scale = Vector3(0.9, 1.0, 0.9)
+	var tw := create_tween()
+	tw.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(_hover_glow, "scale", Vector3(1.0, 1.0, 1.0), 0.12)
+
+func _hide_hover_glow() -> void:
+	if is_instance_valid(_hover_glow):
+		_hover_glow.visible = false
 
 func _on_tile_clicked(tile_index: int) -> void:
 	var old_sel: int = selected_tile
@@ -1455,7 +1500,7 @@ func _build_map_boundary() -> void:
 func _build_edge_fog(center: Vector3, half_w: float, half_h: float) -> void:
 	## Place subtle fog planes along the map edges for a smooth visual transition.
 	var fog_mat := StandardMaterial3D.new()
-	fog_mat.albedo_color = Color(0.06, 0.08, 0.18, 0.4)
+	fog_mat.albedo_color = Color(0.3, 0.25, 0.18, 0.35)
 	fog_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	fog_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	var fog_depth: float = 5.0
