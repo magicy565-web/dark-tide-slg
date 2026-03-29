@@ -127,11 +127,11 @@ const TILE_HEIGHT: float = 0.18
 const GROUND_Y: float = -0.1
 
 const FACTION_COLORS := {
-	"orc": Color(0.75, 0.22, 0.18), "pirate": Color(0.18, 0.32, 0.62),
-	"dark_elf": Color(0.45, 0.15, 0.62), "human": Color(0.75, 0.62, 0.22),
-	"high_elf": Color(0.18, 0.58, 0.28), "mage": Color(0.18, 0.32, 0.72),
-	"neutral": Color(0.45, 0.45, 0.38), "vassal": Color(0.35, 0.55, 0.40),
-	"none": Color(0.28, 0.28, 0.25),
+	"orc": Color(0.85, 0.25, 0.2), "pirate": Color(0.2, 0.38, 0.72),
+	"dark_elf": Color(0.52, 0.18, 0.72), "human": Color(0.85, 0.72, 0.25),
+	"high_elf": Color(0.22, 0.65, 0.32), "mage": Color(0.22, 0.38, 0.82),
+	"neutral": Color(0.52, 0.52, 0.42), "vassal": Color(0.4, 0.62, 0.45),
+	"none": Color(0.35, 0.35, 0.3),
 }
 const FLAG_COLORS := {
 	"orc": Color(1.0, 0.3, 0.2), "pirate": Color(0.3, 0.55, 0.85),
@@ -141,16 +141,16 @@ const FLAG_COLORS := {
 	"none": Color(0.35, 0.35, 0.3),
 }
 const TERRAIN_COLORS := {
-	FactionData.TerrainType.PLAINS: Color(0.45, 0.6, 0.3),
-	FactionData.TerrainType.FOREST: Color(0.2, 0.45, 0.15),
-	FactionData.TerrainType.MOUNTAIN: Color(0.6, 0.55, 0.5),
-	FactionData.TerrainType.SWAMP: Color(0.35, 0.4, 0.28),
-	FactionData.TerrainType.COASTAL: Color(0.3, 0.45, 0.6),
-	FactionData.TerrainType.FORTRESS_WALL: Color(0.65, 0.6, 0.55),
-	FactionData.TerrainType.RIVER: Color(0.25, 0.4, 0.65),
-	FactionData.TerrainType.RUINS: Color(0.5, 0.45, 0.55),
-	FactionData.TerrainType.WASTELAND: Color(0.65, 0.55, 0.35),
-	FactionData.TerrainType.VOLCANIC: Color(0.55, 0.25, 0.15),
+	FactionData.TerrainType.PLAINS: Color(0.55, 0.72, 0.35),
+	FactionData.TerrainType.FOREST: Color(0.28, 0.55, 0.2),
+	FactionData.TerrainType.MOUNTAIN: Color(0.7, 0.65, 0.58),
+	FactionData.TerrainType.SWAMP: Color(0.4, 0.48, 0.32),
+	FactionData.TerrainType.COASTAL: Color(0.35, 0.55, 0.72),
+	FactionData.TerrainType.FORTRESS_WALL: Color(0.75, 0.7, 0.62),
+	FactionData.TerrainType.RIVER: Color(0.3, 0.5, 0.75),
+	FactionData.TerrainType.RUINS: Color(0.6, 0.55, 0.62),
+	FactionData.TerrainType.WASTELAND: Color(0.75, 0.65, 0.4),
+	FactionData.TerrainType.VOLCANIC: Color(0.65, 0.3, 0.18),
 }
 const TERRAIN_ELEVATION := {
 	FactionData.TerrainType.PLAINS: 0.0, FactionData.TerrainType.FOREST: 0.05,
@@ -159,8 +159,8 @@ const TERRAIN_ELEVATION := {
 	FactionData.TerrainType.RIVER: -0.03, FactionData.TerrainType.RUINS: 0.08,
 	FactionData.TerrainType.WASTELAND: 0.02, FactionData.TerrainType.VOLCANIC: 0.25,
 }
-const COL_FOG := Color(0.08, 0.08, 0.12, 0.6)
-const COL_FOG_EDGE := Color(0.08, 0.08, 0.12, 0.3)
+const COL_FOG := Color(0.12, 0.12, 0.15, 0.4)
+const COL_FOG_EDGE := Color(0.12, 0.12, 0.15, 0.18)
 const COL_HIGHLIGHT_FRIENDLY := Color(0.2, 0.9, 0.3, 0.35)
 const COL_HIGHLIGHT_ENEMY := Color(0.9, 0.15, 0.15, 0.35)
 const COL_HIGHLIGHT_NEUTRAL := Color(0.9, 0.8, 0.2, 0.35)
@@ -189,18 +189,18 @@ func rebuild() -> void:
 func _setup_environment() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.1, 0.12, 0.2)
+	env.background_color = Color(0.15, 0.18, 0.12)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.6, 0.6, 0.68)
-	env.ambient_light_energy = 0.85
+	env.ambient_light_color = Color(0.9, 0.88, 0.82)
+	env.ambient_light_energy = 1.4
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 
 func _setup_lighting() -> void:
 	for cfg in [
-		[Vector3(-50, 30, 0), Color(1.0, 0.95, 0.85), 1.7],
-		[Vector3(-25, -120, 0), Color(0.55, 0.6, 0.82), 0.75],
-		[Vector3(-10, 180, 0), Color(0.9, 0.7, 0.5), 0.35]]:
+		[Vector3(-50, 30, 0), Color(1.0, 0.95, 0.85), 2.2],
+		[Vector3(-25, -120, 0), Color(0.65, 0.7, 0.9), 1.1],
+		[Vector3(-10, 180, 0), Color(0.95, 0.8, 0.6), 0.6]]:
 		var l := DirectionalLight3D.new()
 		l.rotation_degrees = cfg[0]; l.light_color = cfg[1]
 		l.light_energy = cfg[2]; l.shadow_enabled = false; add_child(l)
@@ -219,11 +219,11 @@ func _setup_ground() -> void:
 	var m := StandardMaterial3D.new()
 	if _map_bg_texture:
 		m.albedo_texture = _map_bg_texture
-		m.albedo_color = Color(0.7, 0.65, 0.55)
+		m.albedo_color = Color(0.85, 0.8, 0.7)
 		m.uv1_scale = Vector3(1, 1, 1)
 		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	else:
-		m.albedo_color = Color(0.12, 0.15, 0.1)
+		m.albedo_color = Color(0.18, 0.2, 0.14)
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; g.material_override = m
 	g.position = Vector3(9.0, GROUND_Y - 0.15, -7.0); add_child(g)
 	# ── Ocean/void boundary ring around the playable area ──
@@ -338,9 +338,9 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 	var terrain_key: String = _terrain_enum_to_key(tile.get("terrain", FactionData.TerrainType.PLAINS))
 	var terrain_tex: Texture2D = _terrain_textures.get(terrain_key, null)
 	if terrain_tex:
-		base_mi.material_override = _make_textured_mat(Color(0.65, 0.65, 0.6), terrain_tex)
+		base_mi.material_override = _make_textured_mat(Color(0.85, 0.85, 0.8), terrain_tex)
 	else:
-		base_mi.material_override = _make_mat(Color(0.5, 0.5, 0.5))
+		base_mi.material_override = _make_mat(Color(0.6, 0.6, 0.55))
 	root.add_child(base_mi)
 	# Border ring
 	var brm := CylinderMesh.new()
@@ -358,9 +358,9 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 	var sett := Node3D.new(); sett.name = "Settlement"; root.add_child(sett)
 	settlement_nodes[idx] = sett; _build_settlement(sett, tile)
 	# Labels
-	var label := _make_label3d(tile.get("name", "#%d" % idx), 30, Vector3(0, 2.0, 0))
+	var label := _make_label3d(tile.get("name", "#%d" % idx), 36, Vector3(0, 2.2, 0))
 	root.add_child(label)
-	var glabel := _make_label3d("", 22, Vector3(0, 1.6, 0), Color(1, 0.9, 0.7, 0.9))
+	var glabel := _make_label3d("", 26, Vector3(0, 1.75, 0), Color(1, 0.95, 0.8, 0.95))
 	root.add_child(glabel)
 	# Army marker
 	var am := Node3D.new(); am.name = "ArmyMarker"; am.visible = false
@@ -378,11 +378,11 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 	# Faction crest sprite (billboard)
 	var crest_sprite := Sprite3D.new()
 	crest_sprite.name = "CrestSprite"
-	crest_sprite.pixel_size = 0.006
+	crest_sprite.pixel_size = 0.009
 	crest_sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	crest_sprite.no_depth_test = true
-	crest_sprite.position = Vector3(-0.8, TILE_HEIGHT + 0.8, 0.6)
-	crest_sprite.modulate = Color(1, 1, 1, 0.85)
+	crest_sprite.position = Vector3(-0.8, TILE_HEIGHT + 1.0, 0.6)
+	crest_sprite.modulate = Color(1, 1, 1, 0.92)
 	var fk_crest: String = _get_tile_faction_key(tile) if tile.get("owner_id", -1) >= 0 else ""
 	if _crest_textures.has(fk_crest) and _crest_textures[fk_crest] != null:
 		crest_sprite.texture = _crest_textures[fk_crest]
@@ -451,14 +451,14 @@ func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
 		# Use AI-generated sprite instead of procedural geometry
 		var sprite := Sprite3D.new()
 		sprite.texture = tex
-		sprite.pixel_size = 0.008
+		sprite.pixel_size = 0.012
 		sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 		sprite.axis = Vector3.AXIS_Y
 		# Flat on top of hex, facing up
 		sprite.rotation_degrees = Vector3(-90, 0, 0)
-		var sscale: float = 0.6 + level * 0.15
+		var sscale: float = 0.8 + level * 0.2
 		if tt == GameManager.TileType.CORE_FORTRESS:
-			sscale = 1.1
+			sscale = 1.4
 		sprite.scale = Vector3(sscale, sscale, sscale)
 		sprite.position = Vector3(0, y + 0.02, 0)
 		sprite.modulate = Color(1, 1, 1, 0.9)
@@ -466,12 +466,12 @@ func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
 		# Also add a small upright billboard version for visibility from camera angle
 		var billboard := Sprite3D.new()
 		billboard.texture = tex
-		billboard.pixel_size = 0.005
+		billboard.pixel_size = 0.008
 		billboard.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		billboard.no_depth_test = true
-		var bscale: float = 0.45 + level * 0.1
+		var bscale: float = 0.6 + level * 0.15
 		if tt == GameManager.TileType.CORE_FORTRESS:
-			bscale = 0.8
+			bscale = 1.0
 		billboard.scale = Vector3(bscale, bscale, bscale)
 		billboard.position = Vector3(0, y + 0.6 + level * 0.1, 0)
 		billboard.modulate = Color(1, 1, 1, 0.85)
@@ -785,23 +785,23 @@ func _update_territory_visual(idx: int) -> void:
 	var bc: Color = FACTION_COLORS.get(fk, FACTION_COLORS["none"])
 	var terrain = tile.get("terrain", FactionData.TerrainType.PLAINS)
 	var tt: Color = TERRAIN_COLORS.get(terrain, Color(0.3, 0.4, 0.25))
-	var fc: Color = bc.lerp(tt, 0.2)
-	if tile.get("owner_id", -1) >= 0: fc = fc.lightened(0.08)
+	var fc: Color = tt.lerp(bc, 0.25)
+	if tile.get("owner_id", -1) >= 0: fc = fc.lightened(0.12)
 	# Apply terrain texture if available, otherwise fallback to color
 	var terrain_key: String = _terrain_enum_to_key(terrain)
 	var terrain_tex: Texture2D = _terrain_textures.get(terrain_key, null)
 	if terrain_tex:
-		vis["base"].material_override = _make_textured_mat(fc.lightened(0.15), terrain_tex)
+		vis["base"].material_override = _make_textured_mat(fc.lightened(0.35), terrain_tex)
 	else:
 		vis["base"].material_override = _make_mat(fc)
 	# Border
 	var brc: Color = FLAG_COLORS.get(fk, Color(0.3, 0.3, 0.28))
 	if idx == selected_tile: brc = Color(1.0, 1.0, 0.8)
 	elif idx == hovered_tile: brc = brc.lightened(0.35)
-	vis["border"].material_override = _make_emissive_mat(brc, brc * 0.4, 0.5)
+	vis["border"].material_override = _make_emissive_mat(brc, brc * 0.6, 0.8)
 	# Flag
 	var flc: Color = FLAG_COLORS.get(fk, Color(0.4, 0.4, 0.4))
-	vis["banner"].material_override = _make_emissive_mat(flc, flc * 0.35, 0.35)
+	vis["banner"].material_override = _make_emissive_mat(flc, flc * 0.5, 0.6)
 	vis["flag_root"].visible = tile["owner_id"] >= 0
 	# Update faction crest sprite
 	if vis.has("crest_sprite"):
@@ -888,7 +888,7 @@ func _create_road_edge(from: Vector3, to: Vector3, fe: float, te: float) -> void
 	for i in range(seg_n):
 		var t0: float = (float(i) + gap * 0.5) / float(seg_n)
 		var tm: float = t0 + (1.0 - gap) * 0.5 / float(seg_n)
-		var rd := _make_box_mesh(Vector3(0.22, 0.025, seg_l), Color(0.32, 0.28, 0.2))
+		var rd := _make_box_mesh(Vector3(0.3, 0.035, seg_l), Color(0.45, 0.38, 0.28))
 		rd.position = Vector3(lerpf(from.x, to.x, tm), lerpf(fe, te, tm) + TILE_HEIGHT + 0.015, lerpf(from.z, to.z, tm))
 		rd.rotation.y = angle; add_child(rd); edge_meshes.append(rd)
 
@@ -1381,7 +1381,7 @@ func _make_emissive_mat(color: Color, emission: Color, energy: float) -> Standar
 	_material_cache[key] = m; return m
 
 func _make_label3d(text: String, size: int, pos: Vector3, col: Color = Color(1,1,1,0.95)) -> Label3D:
-	var l := Label3D.new(); l.text = text; l.font_size = size; l.pixel_size = 0.005
+	var l := Label3D.new(); l.text = text; l.font_size = size; l.pixel_size = 0.007
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED; l.no_depth_test = true
 	l.modulate = col; l.outline_modulate = Color(0, 0, 0, 0.9); l.outline_size = 10
 	l.position = pos; l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; return l
