@@ -6,6 +6,7 @@ extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
 const ChibiLoader = preload("res://systems/combat/chibi_sprite_loader.gd")
+const VfxLoaderRef = preload("res://systems/combat/vfx_loader.gd")
 
 ## Archetype display names for counter indicator labels
 const ARCHETYPE_LABELS := {
@@ -16,6 +17,8 @@ const ARCHETYPE_LABELS := {
 }
 
 signal combat_view_closed()
+signal ultimate_vfx_finished(hero_id: String)
+signal awakening_vfx_finished(hero_id: String)
 
 # ── Layout constants ──
 const CARD_W := 180.0
@@ -2088,6 +2091,10 @@ func _play_next() -> void:
 			base_delay = 0.5
 		"intervention":
 			base_delay = 0.8
+		"ultimate":
+			base_delay = 2.0  # full cinematic sequence
+		"awakening":
+			base_delay = 1.2  # awakening burst animation
 
 	var delay := base_delay / _speed_mult
 	var gen := _playback_generation
@@ -2295,6 +2302,27 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			log_line = "[color=gold]%s[/color]" % desc
 			_screen_shake(SHAKE_LIGHT, 6.0)
 			_show_passive_banner(desc, "attacker")
+
+		"ultimate":
+			var hero_id: String = entry.get("hero_id", "")
+			var skill_name: String = VfxLoaderRef.get_skill_name(hero_id)
+			if skill_name == "":
+				skill_name = desc
+			log_line = "[color=#ff4][Ultimate][/color] %s - %s" % [desc, skill_name]
+			if slot_idx >= 0:
+				_glow_card(side, slot_idx)
+				_set_chibi_state(side, slot_idx, "cast", 1.8)
+			if not _is_finishing and hero_id != "":
+				play_ultimate_vfx(hero_id)
+
+		"awakening":
+			var hero_id: String = entry.get("hero_id", "")
+			log_line = "[color=#f8f][Awakening][/color] %s" % desc
+			if slot_idx >= 0:
+				if not _is_finishing and hero_id != "":
+					play_awakening_vfx(hero_id, side, slot_idx)
+				else:
+					_glow_card(side, slot_idx)
 
 		"death":
 			log_line = "[color=#f44][Annihilate][/color] %s" % desc
@@ -3007,6 +3035,223 @@ func _spawn_dot_pulsing_overlay(card: PanelContainer, color: Color) -> void:
 			tw_fade.tween_callback(func():
 				if is_instance_valid(overlay): overlay.queue_free()
 			)
+	)
+
+# ═══════════════════════════════════════════════════════════
+#                  ULTIMATE / AWAKENING VFX
+# ═══════════════════════════════════════════════════════════
+
+func play_ultimate_vfx(hero_id: String) -> void:
+	## Full-screen cinematic ultimate skill VFX sequence.
+	var tex: Texture2D = VfxLoaderRef.load_vfx(hero_id)
+	var skill_color: Color = VfxLoaderRef.get_skill_color(hero_id)
+	var skill_name: String = VfxLoaderRef.get_skill_name(hero_id)
+
+	# Container CanvasLayer above everything (layer 25, combat view is 20)
+	var vfx_layer := CanvasLayer.new()
+	vfx_layer.layer = 25
+	add_child(vfx_layer)
+
+	# Full-screen root control
+	var vfx_root := Control.new()
+	vfx_root.anchor_right = 1.0
+	vfx_root.anchor_bottom = 1.0
+	vfx_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	vfx_layer.add_child(vfx_root)
+
+	# Black dimming overlay
+	var dim := ColorRect.new()
+	dim.anchor_right = 1.0
+	dim.anchor_bottom = 1.0
+	dim.color = Color(0, 0, 0, 0)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(dim)
+
+	# VFX texture display
+	var vfx_rect := TextureRect.new()
+	vfx_rect.texture = tex
+	vfx_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	vfx_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	vfx_rect.anchor_right = 1.0
+	vfx_rect.anchor_bottom = 1.0
+	vfx_rect.modulate = Color(1, 1, 1, 0)
+	vfx_rect.pivot_offset = Vector2(SCREEN_W * 0.5, SCREEN_H * 0.5)
+	vfx_rect.scale = Vector2(0.8, 0.8)
+	vfx_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(vfx_rect)
+
+	# Skill name label (gold, large, centered)
+	var name_lbl := Label.new()
+	name_lbl.text = skill_name
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_lbl.anchor_left = 0.2
+	name_lbl.anchor_right = 0.8
+	name_lbl.anchor_top = 0.42
+	name_lbl.anchor_bottom = 0.58
+	name_lbl.add_theme_font_size_override("font_size", 48)
+	name_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.3))
+	name_lbl.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.0))
+	name_lbl.add_theme_constant_override("outline_size", 4)
+	name_lbl.modulate = Color(1, 1, 1, 0)
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(name_lbl)
+
+	# Color tint bar at top and bottom for cinematic letterbox feel
+	var bar_top := ColorRect.new()
+	bar_top.anchor_right = 1.0
+	bar_top.size = Vector2(SCREEN_W, 50)
+	bar_top.color = Color(skill_color.r, skill_color.g, skill_color.b, 0.0)
+	bar_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(bar_top)
+
+	var bar_bot := ColorRect.new()
+	bar_bot.anchor_right = 1.0
+	bar_bot.anchor_bottom = 1.0
+	bar_bot.anchor_top = 1.0
+	bar_bot.offset_top = -50
+	bar_bot.color = Color(skill_color.r, skill_color.g, skill_color.b, 0.0)
+	bar_bot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(bar_bot)
+
+	var spd := _speed_mult
+
+	# Phase 1: Screen darkens (0.2s)
+	var tw_dim := create_tween()
+	tw_dim.tween_property(dim, "color:a", 0.5, 0.2 / spd)
+	tw_dim.parallel().tween_property(bar_top, "color:a", 0.6, 0.2 / spd)
+	tw_dim.parallel().tween_property(bar_bot, "color:a", 0.6, 0.2 / spd)
+
+	# Phase 2: VFX image fades in with scale bounce (0.3s, starts at 0.2s)
+	var tw_vfx := create_tween()
+	tw_vfx.tween_interval(0.2 / spd)
+	tw_vfx.tween_property(vfx_rect, "modulate:a", 1.0, 0.2 / spd).set_ease(Tween.EASE_OUT)
+	tw_vfx.parallel().tween_property(vfx_rect, "scale", Vector2(1.05, 1.05), 0.2 / spd).set_ease(Tween.EASE_OUT)
+	tw_vfx.tween_property(vfx_rect, "scale", Vector2(1.0, 1.0), 0.1 / spd).set_ease(Tween.EASE_IN_OUT)
+
+	# Phase 3: Skill name appears (0.2s, starts at 0.4s)
+	var tw_name := create_tween()
+	tw_name.tween_interval(0.4 / spd)
+	tw_name.tween_property(name_lbl, "modulate:a", 1.0, 0.2 / spd).set_ease(Tween.EASE_OUT)
+
+	# Phase 4: Hold with subtle pulse (0.8s, starts at 0.6s)
+	var tw_pulse := create_tween().set_loops(2)
+	tw_pulse.tween_interval(0.6 / spd)
+	tw_pulse.tween_property(vfx_rect, "scale", Vector2(1.02, 1.02), 0.2 / spd).set_ease(Tween.EASE_IN_OUT)
+	tw_pulse.tween_property(vfx_rect, "scale", Vector2(1.0, 1.0), 0.2 / spd).set_ease(Tween.EASE_IN_OUT)
+
+	# Screen shake for impact
+	_screen_shake(SHAKE_HEAVY, 6.0)
+
+	# Phase 5: Fade out everything (0.3s, starts at ~1.5s)
+	var total_hold := (0.6 + 0.8) / spd
+	var tw_out := create_tween()
+	tw_out.tween_interval(total_hold)
+	tw_out.tween_property(dim, "color:a", 0.0, 0.3 / spd)
+	tw_out.parallel().tween_property(vfx_rect, "modulate:a", 0.0, 0.3 / spd)
+	tw_out.parallel().tween_property(name_lbl, "modulate:a", 0.0, 0.2 / spd)
+	tw_out.parallel().tween_property(bar_top, "color:a", 0.0, 0.3 / spd)
+	tw_out.parallel().tween_property(bar_bot, "color:a", 0.0, 0.3 / spd)
+
+	# Cleanup
+	var cleanup_delay := total_hold + 0.35 / spd
+	get_tree().create_timer(cleanup_delay).timeout.connect(func():
+		if is_instance_valid(vfx_layer):
+			vfx_layer.queue_free()
+		ultimate_vfx_finished.emit(hero_id)
+	)
+
+
+func play_awakening_vfx(hero_id: String, side: String, slot_idx: int) -> void:
+	## Awakening burst effect on a hero's card with color flash and text.
+	var skill_color: Color = VfxLoaderRef.get_skill_color(hero_id)
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	if not cards.has(slot_idx):
+		awakening_vfx_finished.emit(hero_id)
+		return
+	var card: PanelContainer = cards[slot_idx]
+	var card_center := _get_card_center(side, slot_idx)
+	var spd := _speed_mult
+
+	# 1. Flash the hero card with awakening color
+	var flash := ColorRect.new()
+	flash.size = card.size
+	flash.color = Color(skill_color.r, skill_color.g, skill_color.b, 0.8)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.z_index = 50
+	card.add_child(flash)
+
+	var tw_flash := create_tween().set_loops(3)
+	tw_flash.tween_property(flash, "color:a", 0.2, 0.1 / spd)
+	tw_flash.tween_property(flash, "color:a", 0.8, 0.1 / spd)
+
+	# 2. Scale burst effect (1.0 -> 1.5 -> 1.1)
+	var orig_scale := card.scale
+	var orig_pivot := card.pivot_offset
+	card.pivot_offset = card.size * 0.5
+	var tw_scale := create_tween()
+	tw_scale.tween_property(card, "scale", Vector2(1.5, 1.5), 0.15 / spd).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw_scale.tween_property(card, "scale", Vector2(1.1, 1.1), 0.2 / spd).set_ease(Tween.EASE_IN_OUT)
+	tw_scale.tween_property(card, "scale", orig_scale, 0.15 / spd).set_ease(Tween.EASE_IN_OUT)
+
+	# 3. Show "覚醒!" text above hero
+	var awaken_lbl := Label.new()
+	awaken_lbl.text = "覚醒!"
+	awaken_lbl.add_theme_font_size_override("font_size", 28)
+	awaken_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	awaken_lbl.add_theme_color_override("font_outline_color", Color(0.15, 0.0, 0.0))
+	awaken_lbl.add_theme_constant_override("outline_size", 3)
+	awaken_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	awaken_lbl.position = Vector2(card_center.x - 40, card_center.y - CARD_H * 0.5 - 40)
+	awaken_lbl.modulate = Color(1, 1, 1, 0)
+	awaken_lbl.z_index = 55
+	awaken_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if is_instance_valid(anim_layer):
+		anim_layer.add_child(awaken_lbl)
+	else:
+		root.add_child(awaken_lbl)
+
+	var tw_text := create_tween()
+	tw_text.tween_property(awaken_lbl, "modulate:a", 1.0, 0.1 / spd)
+	tw_text.tween_property(awaken_lbl, "position:y", awaken_lbl.position.y - 20, 0.6 / spd).set_ease(Tween.EASE_OUT)
+	tw_text.parallel().tween_property(awaken_lbl, "modulate:a", 0.0, 0.3 / spd).set_delay(0.4 / spd)
+
+	# 4. Particle burst in hero's element color
+	var density := _particle_density_mult() if has_method("_particle_density_mult") else 1.0
+	var particle_count := int(12 * density)
+	for i in range(particle_count):
+		var p := ColorRect.new()
+		p.size = Vector2(4, 4)
+		p.color = Color(skill_color.r, skill_color.g, skill_color.b, 0.9)
+		p.position = card_center
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		p.z_index = 52
+		if is_instance_valid(anim_layer):
+			anim_layer.add_child(p)
+		else:
+			root.add_child(p)
+		var angle := TAU * float(i) / float(particle_count)
+		var dist := randf_range(40.0, 90.0)
+		var target_pos := card_center + Vector2(cos(angle), sin(angle)) * dist
+		var tw_p := create_tween()
+		tw_p.tween_property(p, "position", target_pos, 0.4 / spd).set_ease(Tween.EASE_OUT)
+		tw_p.parallel().tween_property(p, "modulate:a", 0.0, 0.5 / spd).set_ease(Tween.EASE_IN)
+		tw_p.tween_callback(func():
+			if is_instance_valid(p): p.queue_free()
+		)
+
+	# Screen shake for awakening impact
+	_screen_shake(SHAKE_MEDIUM, 8.0)
+
+	# Chibi: cast pose during awakening
+	_set_chibi_state(side, slot_idx, "cast", 1.0)
+
+	# Cleanup
+	get_tree().create_timer(1.0 / spd).timeout.connect(func():
+		if is_instance_valid(flash): flash.queue_free()
+		if is_instance_valid(awaken_lbl): awaken_lbl.queue_free()
+		card.pivot_offset = orig_pivot
+		awakening_vfx_finished.emit(hero_id)
 	)
 
 # ═══════════════════════════════════════════════════════════
