@@ -369,5 +369,9 @@ func to_save_data() -> Dictionary:
 func from_save_data(data: Dictionary) -> void:
 	current_time = data.get("current_time", 0) as TimeOfDay
 	_time_turn_counter = data.get("time_turn_counter", 0)
-	_fatigue = data.get("fatigue", {}).duplicate()
+	# Fix integer keys that become strings after JSON round-trip
+	var raw_fatigue: Dictionary = data.get("fatigue", {})
+	_fatigue = {}
+	for k in raw_fatigue:
+		_fatigue[int(k)] = raw_fatigue[k]
 	_unit_veterancy = data.get("unit_veterancy", {}).duplicate(true)

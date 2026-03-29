@@ -58,6 +58,7 @@ func reset() -> void:
 	_hidden_hero_notifications.clear()
 	_battles_won_count = 0
 	_hidden_hero_data.clear()
+	_hero_stat_bonuses.clear()
 
 
 ## Called when pirate faction is selected. Enables harem mechanics.

@@ -499,6 +499,9 @@ func create_troop_instance(troop_id: String, soldiers_override: int = -1) -> Dic
 	var td: Dictionary = get_troop_def(troop_id)
 	if td.is_empty():
 		return {}
+	if not td.has("max_soldiers"):
+		push_warning("GameData: troop '%s' missing 'max_soldiers' key" % troop_id)
+		return {}
 	var soldiers: int = soldiers_override if soldiers_override > 0 else td["max_soldiers"]
 	var hpp: int = td.get("hp_per_soldier", 5)
 	return {

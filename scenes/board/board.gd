@@ -271,10 +271,11 @@ func _zoom_toward_cursor(mouse_pos: Vector2, old_zoom: float, new_zoom: float) -
 	if world_pos == Vector3.ZERO:
 		return
 	var factor: float = 0.15  # How much to shift toward cursor
-	if new_zoom < old_zoom:  # Zooming in
+	if new_zoom < old_zoom:  # Zooming in — move toward cursor
 		camera_target_pos = camera_target_pos.lerp(world_pos, factor)
-	else:  # Zooming out
-		camera_target_pos = camera_target_pos.lerp(world_pos, -factor * 0.5)
+	else:  # Zooming out — move away from cursor gently
+		var away := camera_target_pos + (camera_target_pos - world_pos).normalized() * 0.5
+		camera_target_pos = camera_target_pos.lerp(away, factor * 0.5)
 	_clamp_camera()
 
 
@@ -350,9 +351,9 @@ func _clear_board() -> void:
 	for b in faction_border_meshes:
 		if is_instance_valid(b): b.queue_free()
 	faction_border_meshes.clear()
-	# Clean up edge decorations and map boundary elements
+	# Clean up edge decorations, map boundary elements, and ambient particles
 	for ch in get_children():
-		if ch.name in ["EdgeDeco", "MapBorder", "EdgeFog"]:
+		if ch.name in ["EdgeDeco", "MapBorder", "EdgeFog"] or ch.name.begins_with("AmbientParticle_"):
 			ch.queue_free()
 	settlement_nodes.clear()
 	_settlement_cache.clear()
@@ -360,7 +361,11 @@ func _clear_board() -> void:
 	for m in attack_route_meshes:
 		if is_instance_valid(m): m.queue_free()
 	attack_route_meshes.clear()
+	_clear_march_routes()
 	_clear_highlights(); _clear_path_preview(); _clear_pulse_ring()
+	if is_instance_valid(_hover_glow):
+		_hover_glow.queue_free()
+		_hover_glow = null
 
 func _build_board() -> void:
 	tile_visuals.clear()
@@ -1119,7 +1124,9 @@ func _on_tile_input(_cn: Node, event: InputEvent, _p: Vector3, _n: Vector3, _si:
 
 func _on_tile_hover_enter(tile_index: int) -> void:
 	var oh: int = hovered_tile; hovered_tile = tile_index
-	if oh >= 0: _update_territory_visual(oh); _animate_tile_hover(oh, false)
+	if oh >= 0:
+		_update_territory_visual(oh)
+		_animate_tile_hover(oh, false)
 	_update_territory_visual(tile_index); _animate_tile_hover(tile_index, true)
 	_show_hover_glow(tile_index)
 
@@ -1461,7 +1468,7 @@ func _draw_march_route(path: Array) -> void:
 	for i in range(path.size() - 1):
 		var fi: int = path[i]
 		var ti: int = path[i + 1]
-		if not GameManager.tiles.has(fi) or not GameManager.tiles.has(ti): continue
+		if fi < 0 or fi >= GameManager.tiles.size() or ti < 0 or ti >= GameManager.tiles.size(): continue
 		var fp: Vector3 = GameManager.tiles[fi]["position_3d"]
 		var tp: Vector3 = GameManager.tiles[ti]["position_3d"]
 		var fe: float = TERRAIN_ELEVATION.get(GameManager.tiles[fi].get("terrain", 0), 0.0)
@@ -1489,7 +1496,7 @@ func _draw_march_route(path: Array) -> void:
 	# Add waypoint rings at each step
 	for i in range(1, path.size()):
 		var idx: int = path[i]
-		if not GameManager.tiles.has(idx): continue
+		if idx < 0 or idx >= GameManager.tiles.size(): continue
 		var p: Vector3 = GameManager.tiles[idx]["position_3d"]
 		var elev: float = TERRAIN_ELEVATION.get(GameManager.tiles[idx].get("terrain", 0), 0.0)
 		var ring := MeshInstance3D.new()
@@ -1725,8 +1732,8 @@ func _place_edge_decoration(pos: Vector3, terrain_a: int, terrain_b: int) -> voi
 		spr.texture = tex
 		spr.pixel_size = 0.002 * deco_scale
 		spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		spr.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		spr.transparent = true
+		spr.no_depth_test = false
+		spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 		spr.position = pos + Vector3(0, 0.15 * deco_scale, 0)
 		spr.name = "EdgeDeco"
 		add_child(spr)
@@ -1793,9 +1800,8 @@ func update_minimap_overlay() -> void:
 	if not is_instance_valid(_minimap_cam_rect) or not is_instance_valid(minimap_camera):
 		return
 	# Calculate the camera's visible area as a fraction of the full map
-	var cam := $Camera3D if has_node("Camera3D") else null
+	var cam := camera if is_instance_valid(camera) else null
 	if not cam:
-		# Try to find the main camera
 		cam = get_viewport().get_camera_3d()
 	if not cam or cam == minimap_camera:
 		return
@@ -1803,8 +1809,10 @@ func update_minimap_overlay() -> void:
 	var map_min := Vector2(-5, -25)
 	var map_max := Vector2(30, 5)
 	var map_size := map_max - map_min
-	# Camera position on the XZ plane
-	var cam_pos := Vector2(cam.global_position.x, cam.global_position.z)
+	# Camera position on the XZ plane — use pivot position, not camera global
+	# (camera is offset from pivot by its local transform)
+	var pivot_pos := camera_pivot.global_position if is_instance_valid(camera_pivot) else cam.global_position
+	var cam_pos := Vector2(pivot_pos.x, pivot_pos.z)
 	# Normalize to 0-1 range
 	var norm_x: float = clampf((cam_pos.x - map_min.x) / map_size.x, 0.0, 1.0)
 	var norm_y: float = clampf((cam_pos.y - map_min.y) / map_size.y, 0.0, 1.0)

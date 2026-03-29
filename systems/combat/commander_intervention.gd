@@ -228,6 +228,7 @@ func _execute_tactical_retreat(state: Dictionary, target_slot: Variant, log: Arr
 func _execute_inspire(state: Dictionary, log: Array) -> void:
 	for unit in state["atk_units"]:
 		if unit["is_alive"]:
+			if not unit.has("buffs"): unit["buffs"] = []
 			unit["buffs"].append({"id": "inspire", "duration": 2, "value": 0.20, "mult_atk": true})
 			# v4.3: Inspire also restores morale (synergy with deeper morale system)
 			unit["morale"] = mini(unit.get("morale", 100) + 15, 100)
@@ -236,6 +237,7 @@ func _execute_inspire(state: Dictionary, log: Array) -> void:
 func _execute_shield_wall(state: Dictionary, log: Array) -> void:
 	for unit in state["atk_units"]:
 		if unit["is_alive"] and unit["row"] == "front":
+			if not unit.has("buffs"): unit["buffs"] = []
 			unit["buffs"].append({"id": "shield_wall_def", "duration": 1, "value": 0.30, "mult_def": true})
 			unit["buffs"].append({"id": "shield_wall_atk", "duration": 1, "value": -0.20, "mult_atk": true})
 	log.append("[color=gold]【指挥】盾墙! 前排DEF+30%%, ATK-20%%(1回合)[/color]")
@@ -244,6 +246,7 @@ func _execute_focus_volley(state: Dictionary, target_slot: Variant, log: Array) 
 	var slot: int = int(target_slot) if target_slot != null else 0
 	for unit in state["atk_units"]:
 		if unit["is_alive"] and unit["row"] == "back":
+			if not unit.has("buffs"): unit["buffs"] = []
 			unit["buffs"].append({"id": "focus_volley", "duration": 1, "value": 0.25, "mult_atk": true})
 	state["forced_target"] = slot
 	state["forced_target_duration"] = 1

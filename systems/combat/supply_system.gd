@@ -101,8 +101,8 @@ func build_supply_depot(tile_index: int, player_id: int) -> bool:
 	var player = _get_player(player_id)
 	if player == null:
 		return false
-	var gold: int = player.get("gold", 0)
-	var iron: int = player.get("iron", 0) if player.has_method("get") else _get_strategic_resource(player_id, "iron")
+	var gold: int = player.get("gold", 0) if player is Dictionary else 0
+	var iron: int = player.get("iron", 0) if player is Dictionary else _get_strategic_resource(player_id, "iron")
 	if gold < DEPOT_GOLD_COST or iron < DEPOT_IRON_COST:
 		return false
 	# Deduct resources

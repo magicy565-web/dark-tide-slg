@@ -307,7 +307,7 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	# Morale: Order debuff on enemies
 	if OrderManager.get_order() >= MORALE_ORDER_THRESHOLD:
 		for u in state["def_units"]:
-			if "morale_immune" not in u["passives"] and not u["immovable"]:
+			if "morale_immune" not in u["passives"] and not u.get("immovable", false):
 				u["morale"] = maxi(u["morale"] - MORALE_ORDER_DEBUFF, 0)
 
 	log.append("=== 战斗开始 === 进攻方 %d 单位 vs 防守方 %d 单位" % [

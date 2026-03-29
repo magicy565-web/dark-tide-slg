@@ -227,6 +227,8 @@ func _try_light_raid() -> void:
 		if all_player.is_empty():
 			return
 		interior_tiles = all_player
+	if interior_tiles.is_empty():
+		return
 
 	var target: Dictionary = interior_tiles[randi() % interior_tiles.size()]
 	var pid: int = target["owner_id"]
