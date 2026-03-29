@@ -39,6 +39,8 @@ func _connect_signals() -> void:
 	EventBus.threat_changed.connect(_on_threat_changed)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not GameManager.game_active:
+		return
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_D:
 			if _visible: hide_panel()

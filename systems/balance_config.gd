@@ -288,7 +288,8 @@ const SCORE_PER_TURN: int = 2
 # ═══════════════ HERO (SR07 aligned) ═══════════════
 
 ## Capture and affinity (SR07 capture mechanics)
-const MAX_PRISONERS: int = 5
+# BUG FIX: unified with FactionData.PRISON_CAPACITY (was 5 here vs 3 there)
+const MAX_PRISONERS: int = 3   # Base capacity; Pirate gets PIRATE_PRISON_CAPACITY from FactionData
 const CAPTURE_BASE_CHANCE: float = 0.20     # SR07 base 20%
 const CAPTURE_HUNT_CHANCE: float = 0.50     # SR07 with fleeing warrior hunt 50%
 const CAPTURE_GUARANTEED_BOTH: float = 1.0  # SR07 with both skills = 100%

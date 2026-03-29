@@ -51,6 +51,8 @@ func _connect_signals() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not GameManager.game_active:
+		return
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_H:
 			if _visible:
@@ -302,7 +304,7 @@ func _build_prison_list() -> void:
 		_hero_nodes.append(lbl)
 		return
 
-	var prison_cap: int = HeroSystem.PRISON_CAPACITY if "PRISON_CAPACITY" in HeroSystem else 5
+	var prison_cap: int = HeroSystem.PRISON_CAPACITY if "PRISON_CAPACITY" in HeroSystem else FactionData.PRISON_CAPACITY
 	var header := _make_info_label("Prisoners (%d/%d)" % [prisoners.size(), prison_cap], Color(0.8, 0.5, 0.3))
 	content_container.add_child(header)
 	_hero_nodes.append(header)

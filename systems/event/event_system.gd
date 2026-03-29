@@ -590,7 +590,7 @@ func _register_events() -> void:
 		"desc": "一位与你关系亲密的英雄在深夜来访，面红耳赤地表示有话要说。",
 		"condition": "has_multiple_heroes", "repeatable": false,
 		"choices": [
-			{"text": "认真倾听 (随机英雄好感+2, 威望+5)", "effects": {"corruption_boost": 2, "prestige": 5}},
+			{"text": "认真倾听 (随机英雄好感+2, 威望+5)", "effects": {"affection_boost": 2, "prestige": 5}},
 			{"text": "婉拒她 (秩序+5)", "effects": {"order": 5}},
 		]
 	})
@@ -1559,16 +1559,19 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 	if effects.has("corruption_boost"):
 		var boost_val: int = effects["corruption_boost"]
 		for hid in HeroSystem.captured_heroes:
-			HeroSystem.hero_corruption[hid] = HeroSystem.hero_corruption.get(hid, 0) + boost_val
+			var cur_cor: int = HeroSystem.hero_corruption.get(hid, 0)
+			# BUG FIX: clamp to prevent negative corruption
+			HeroSystem.hero_corruption[hid] = clampi(cur_cor + boost_val, 0, 100)
 		result["applied"].append("corruption_boost: +%d (all prisoners)" % boost_val)
 
-	# Wall boost: repair all light-faction walls
+	# Wall boost: repair player-owned walls (not enemy walls)
 	if effects.has("wall_boost"):
 		var boost_amount: int = effects["wall_boost"]
 		for tile in GameManager.tiles:
-			if LightFactionAI.has_wall(tile["index"]):
+			# BUG FIX: only repair walls owned by the player, not light faction enemy walls
+			if tile.get("owner_id", -1) == pid and LightFactionAI.has_wall(tile["index"]):
 				LightFactionAI.repair_wall(tile["index"], boost_amount)
-		result["applied"].append("wall_boost: +%d (all walls)" % boost_amount)
+		result["applied"].append("wall_boost: +%d (player walls)" % boost_amount)
 
 	# v4.3: Hero permanent stat boost (from chain events)
 	if effects.has("hero_stat_boost"):
@@ -1576,11 +1579,11 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 		var stat_key: String = boost.get("stat", "atk")
 		var stat_val: int = boost.get("value", 1)
 		var boosted_hero: String = ""
-		# Apply to first recruited hero
+		# Apply to a random recruited hero (BUG FIX: was always picking first)
 		if HeroSystem.has_method("get_recruited_heroes"):
 			var recruited: Array = HeroSystem.get_recruited_heroes(pid)
 			if not recruited.is_empty():
-				boosted_hero = recruited[0]
+				boosted_hero = recruited[randi() % recruited.size()]
 				if HeroSystem.has_method("modify_hero_stat"):
 					HeroSystem.modify_hero_stat(boosted_hero, stat_key, stat_val)
 				EventBus.message_log.emit("[color=green]%s 的%s永久+%d![/color]" % [boosted_hero, stat_key.to_upper(), stat_val])
@@ -1643,11 +1646,17 @@ func _apply_reveal(player_id: int, count: int) -> void:
 	unrevealed.shuffle()
 	var revealed_count: int = 0
 	for i in range(mini(count, unrevealed.size())):
-		GameManager.tiles[unrevealed[i]]["revealed"][player_id] = true
+		var tile_idx: int = unrevealed[i]
+		# BUG FIX: ensure "revealed" dict exists before writing
+		if not GameManager.tiles[tile_idx].has("revealed"):
+			GameManager.tiles[tile_idx]["revealed"] = {}
+		GameManager.tiles[tile_idx]["revealed"][player_id] = true
 		# Also reveal neighbors
-		var neighbors: Array = GameManager.adjacency.get(unrevealed[i], [])
+		var neighbors: Array = GameManager.adjacency.get(tile_idx, [])
 		for n_idx in neighbors:
 			if n_idx < GameManager.tiles.size():
+				if not GameManager.tiles[n_idx].has("revealed"):
+					GameManager.tiles[n_idx]["revealed"] = {}
 				GameManager.tiles[n_idx]["revealed"][player_id] = true
 		revealed_count += 1
 	if revealed_count > 0:

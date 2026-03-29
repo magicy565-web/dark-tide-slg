@@ -37,6 +37,7 @@ var _discovered_hidden_heroes: Array = []     # hero_id strings already discover
 var _hidden_hero_notifications: Array = []    # pending reveal notifications
 var _battles_won_count: int = 0               # total battles won (for iron_general unlock)
 var _hidden_hero_data: Dictionary = {}        # hero_id -> hero data dict (runtime registry)
+var _hero_stat_bonuses: Dictionary = {}       # hero_id -> {stat_key: int} permanent bonuses from events
 
 
 func reset() -> void:
@@ -1134,7 +1135,8 @@ func _unlock_second_skill(hero_id: String) -> void:
 
 func _get_hero_data(hero_id: String) -> Dictionary:
 	## Lookup hero data from FactionData.HEROES or hidden hero runtime registry.
-	var data: Dictionary = _get_hero_data(hero_id)
+	# BUG FIX: was calling itself recursively (infinite recursion crash)
+	var data: Dictionary = FactionData.HEROES.get(hero_id, {})
 	if data.is_empty():
 		data = _hidden_hero_data.get(hero_id, {})
 	return data
@@ -1142,3 +1144,21 @@ func _get_hero_data(hero_id: String) -> Dictionary:
 
 func _get_hero_name(hero_id: String) -> String:
 	return _get_hero_data(hero_id).get("name", hero_id)
+
+
+## Apply a permanent stat modification to a hero (from events, chain rewards, etc.)
+func modify_hero_stat(hero_id: String, stat_key: String, value: int) -> void:
+	if not HeroLeveling:
+		return
+	# Store permanent stat bonuses in HeroLeveling's stat override system
+	var current: int = 0
+	if HeroLeveling.has_method("get_stat_bonus"):
+		current = HeroLeveling.get_stat_bonus(hero_id, stat_key)
+	if HeroLeveling.has_method("set_stat_bonus"):
+		HeroLeveling.set_stat_bonus(hero_id, stat_key, current + value)
+	else:
+		# Fallback: store in a local dict if HeroLeveling doesn't support it
+		if not _hero_stat_bonuses.has(hero_id):
+			_hero_stat_bonuses[hero_id] = {}
+		_hero_stat_bonuses[hero_id][stat_key] = _hero_stat_bonuses[hero_id].get(stat_key, 0) + value
+	EventBus.hero_stat_changed.emit(hero_id, stat_key, value)

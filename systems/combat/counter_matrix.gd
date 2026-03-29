@@ -47,6 +47,17 @@ const TYPE_MAP: Dictionary = {
 	"wanderer_refugee": "fodder",
 	# Alliance
 	"alliance_vanguard": "cavalry", "alliance_arcane_battery": "mage",
+	"alliance_commander": "heavy_infantry",
+	# BUG FIX: missing troop types that defaulted to wrong "infantry" archetype
+	"orc_warg_rider": "cavalry",
+	"pirate_bombard": "artillery",
+	"de_shadow_guard": "heavy_infantry",
+	"mercenary_veteran": "heavy_infantry",
+	"pirate_ghost_ship": "artillery",
+	"dark_elf_ultimate": "boss",
+	"wanderer_ronin": "berserker",
+	"wanderer_mystic": "mage",
+	"wanderer_sellsword": "infantry",
 }
 
 ## The counter matrix: attacker_type -> defender_type -> {atk_mult, def_mult, label}

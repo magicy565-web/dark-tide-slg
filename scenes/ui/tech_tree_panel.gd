@@ -32,6 +32,8 @@ func _connect_signals() -> void:
 	EventBus.tech_effects_applied.connect(_on_tech_effects)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not GameManager.game_active:
+		return
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_T:
 			if _visible: hide_panel()

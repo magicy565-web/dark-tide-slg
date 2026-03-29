@@ -91,7 +91,9 @@ static func _is_cavalry(unit: Dictionary) -> bool:
 	if unit.get("troop_class", -1) == TC_CAVALRY:
 		return true
 	var uid := _get_unit_id_string(unit)
-	return uid.find("cavalry") != -1 or uid.find("knight") != -1 or uid.find("rider") != -1 or uid.find("horseman") != -1
+	# BUG FIX: removed "knight" substring -- hero_rin_knights is heavy infantry, not cavalry
+	# Use more specific terms that only match actual cavalry units
+	return uid.find("cavalry") != -1 or uid.find("warg_rider") != -1 or uid.find("rider") != -1 or uid.find("horseman") != -1
 
 static func _is_ranged(unit: Dictionary) -> bool:
 	if unit.get("troop_class", -1) in RANGED_CLASSES:

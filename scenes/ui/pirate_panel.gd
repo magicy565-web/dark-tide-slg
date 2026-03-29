@@ -65,6 +65,8 @@ func _connect_signals() -> void:
 	EventBus.harem_progress_updated.connect(func(_r, _s, _t): if _visible: _refresh())
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not GameManager.game_active:
+		return
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_P:
 			if _visible: hide_panel()

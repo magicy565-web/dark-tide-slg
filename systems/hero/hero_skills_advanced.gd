@@ -384,6 +384,8 @@ func execute_ultimate(hero_id: String, battle_state: Dictionary) -> Dictionary:
 					if unit["soldiers"] <= 0:
 						unit["is_alive"] = false
 					else:
+						if not unit.has("debuffs"):
+							unit["debuffs"] = []
 						unit["debuffs"].append({"id": "frozen", "duration": freeze_rounds, "value": 0})
 					result["targets_hit"].append({"unit": unit.get("unit_type", ""), "damage": dmg})
 			result["special_effects"].append("freeze_%d" % freeze_rounds)
@@ -441,6 +443,8 @@ func execute_ultimate(hero_id: String, battle_state: Dictionary) -> Dictionary:
 			var buff_rounds: int = ult.get("buff_rounds", 3)
 			for unit in ally_units:
 				if unit.get("is_alive", false):
+					if not unit.has("buffs"):
+						unit["buffs"] = []
 					unit["buffs"].append({"id": "ultimate_buff", "duration": buff_rounds, "value": damage_mult * 0.1})
 					result["targets_hit"].append({"unit": unit.get("unit_type", ""), "buffed": true})
 			result["special_effects"].append("team_buff_%d" % buff_rounds)

@@ -186,7 +186,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if pirate_panel and pirate_panel.is_panel_visible():
 				return
 			if espionage_panel and espionage_panel.visible:
-				espionage_panel.visible = false
+				espionage_panel.hide_panel()  # BUG FIX: call hide_panel() for proper cleanup
 				return
 			if combat_view.visible:
 				return  # Let combat view handle ESC
