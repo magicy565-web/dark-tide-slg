@@ -253,6 +253,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(delta: float) -> void:
 	camera_pivot.position = camera_pivot.position.lerp(camera_target_pos, CAM_LERP_SPEED * delta)
 	_process_camera_input(delta); _process_edge_scroll(delta); _process_hover_path(); _process_water_animation(delta)
+	update_minimap_overlay()
 
 func _process_camera_input(delta: float) -> void:
 	var mv := Vector3.ZERO
@@ -1597,6 +1598,68 @@ func setup_minimap(parent_control: Control) -> void:
 	minimap_camera.rotation_degrees = Vector3(-90, 0, 0)
 	minimap_camera.fov = 65; minimap_camera.current = true
 	minimap_viewport.add_child(minimap_camera)
+	_setup_minimap_overlay()
+
+# ═══════════════ MINIMAP OVERLAY ═══════════════
+var _minimap_overlay: Control
+var _minimap_cam_rect: ColorRect  # Shows camera viewport position
+
+func update_minimap_overlay() -> void:
+	## Called each frame or on camera move to update the camera viewport indicator.
+	if not is_instance_valid(_minimap_cam_rect) or not is_instance_valid(minimap_camera):
+		return
+	# Calculate the camera's visible area as a fraction of the full map
+	var cam := $Camera3D if has_node("Camera3D") else null
+	if not cam:
+		# Try to find the main camera
+		cam = get_viewport().get_camera_3d()
+	if not cam or cam == minimap_camera:
+		return
+	# Map bounds (approximate from tile positions)
+	var map_min := Vector2(-5, -25)
+	var map_max := Vector2(30, 5)
+	var map_size := map_max - map_min
+	# Camera position on the XZ plane
+	var cam_pos := Vector2(cam.global_position.x, cam.global_position.z)
+	# Normalize to 0-1 range
+	var norm_x: float = clampf((cam_pos.x - map_min.x) / map_size.x, 0.0, 1.0)
+	var norm_y: float = clampf((cam_pos.y - map_min.y) / map_size.y, 0.0, 1.0)
+	# Size of viewport indicator (depends on zoom/FOV)
+	var view_w: float = 0.2  # ~20% of map visible
+	var view_h: float = 0.15
+	if minimap_container:
+		var msize: Vector2 = minimap_container.size
+		_minimap_cam_rect.position = Vector2(
+			(norm_x - view_w * 0.5) * msize.x,
+			(norm_y - view_h * 0.5) * msize.y
+		)
+		_minimap_cam_rect.size = Vector2(view_w * msize.x, view_h * msize.y)
+
+
+func _setup_minimap_overlay() -> void:
+	## Add a transparent overlay on top of the minimap for the camera rect indicator.
+	if not is_instance_valid(minimap_container):
+		return
+	_minimap_overlay = Control.new()
+	_minimap_overlay.name = "MinimapOverlay"
+	_minimap_overlay.anchor_right = 1.0
+	_minimap_overlay.anchor_bottom = 1.0
+	_minimap_overlay.mouse_filter = Control.MOUSE_FILTER_PASS
+	minimap_container.add_child(_minimap_overlay)
+	# Camera viewport rectangle
+	_minimap_cam_rect = ColorRect.new()
+	_minimap_cam_rect.color = Color(1.0, 0.9, 0.3, 0.25)
+	_minimap_cam_rect.size = Vector2(36, 28)
+	_minimap_cam_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_minimap_overlay.add_child(_minimap_cam_rect)
+	# Border for cam rect
+	var border := ReferenceRect.new()
+	border.anchor_right = 1.0
+	border.anchor_bottom = 1.0
+	border.border_color = Color(1.0, 0.85, 0.3, 0.6)
+	border.border_width = 1.5
+	border.editor_only = false
+	_minimap_cam_rect.add_child(border)
 
 # ═══════════════ TILE PULSE ANIMATION ═══════════════
 func pulse_tile(idx: int, color: Color, duration: float = 0.6) -> void:

@@ -58,6 +58,11 @@ var stronghold_label: Label
 var order_label: Label
 var threat_label: Label
 var waaagh_label: Label
+var order_bar: ProgressBar
+var threat_bar: ProgressBar
+var gold_delta_label: Label
+var food_delta_label: Label
+var iron_delta_label: Label
 
 var magic_crystal_label: Label
 var war_horse_label: Label
@@ -277,12 +282,18 @@ func _build_top_bar(parent: Control) -> void:
 	var gold_hb := _make_icon_label(_icon_gold, "0", ColorTheme.FONT_BODY, ColorTheme.RES_GOLD, 50)
 	gold_label = gold_hb.get_child(gold_hb.get_child_count() - 1)
 	hbox.add_child(gold_hb)
+	gold_delta_label = _make_label("", 10, Color(0.5, 0.8, 0.3))
+	hbox.add_child(gold_delta_label)
 	var food_hb := _make_icon_label(_icon_food, "0", ColorTheme.FONT_BODY, ColorTheme.RES_FOOD, 50)
 	food_label = food_hb.get_child(food_hb.get_child_count() - 1)
 	hbox.add_child(food_hb)
+	food_delta_label = _make_label("", 10, Color(0.5, 0.8, 0.3))
+	hbox.add_child(food_delta_label)
 	var iron_hb := _make_icon_label(_icon_iron, "0", ColorTheme.FONT_BODY, ColorTheme.RES_IRON, 50)
 	iron_label = iron_hb.get_child(iron_hb.get_child_count() - 1)
 	hbox.add_child(iron_hb)
+	iron_delta_label = _make_label("", 10, Color(0.5, 0.8, 0.3))
+	hbox.add_child(iron_delta_label)
 	var slave_hb := _make_icon_label(_icon_slave, "0", ColorTheme.FONT_BODY, ColorTheme.RES_SLAVE, 60)
 	slaves_label = slave_hb.get_child(slave_hb.get_child_count() - 1)
 	hbox.add_child(slave_hb)
@@ -308,22 +319,14 @@ func _build_top_bar(parent: Control) -> void:
 	hbox2.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(hbox2)
 
-	if _icon_order:
-		var order_hb := _make_icon_label(_icon_order, "50", 12, ColorTheme.RES_ORDER, 90)
-		order_label = order_hb.get_child(order_hb.get_child_count() - 1)
-		hbox2.add_child(order_hb)
-	else:
-		order_label = _make_label("Order:50", 12, ColorTheme.RES_ORDER)
-		order_label.custom_minimum_size.x = 90
-		hbox2.add_child(order_label)
-	if _icon_threat:
-		var threat_hb := _make_icon_label(_icon_threat, "0", 12, ColorTheme.RES_THREAT, 90)
-		threat_label = threat_hb.get_child(threat_hb.get_child_count() - 1)
-		hbox2.add_child(threat_hb)
-	else:
-		threat_label = _make_label("Threat:0", 12, ColorTheme.RES_THREAT)
-		threat_label.custom_minimum_size.x = 90
-		hbox2.add_child(threat_label)
+	var order_hb := _make_resource_bar("Order", 100, Color(0.3, 0.5, 1.0), 160)
+	order_bar = order_hb.get_child(1) as ProgressBar
+	order_label = order_hb.get_child(2) as Label
+	hbox2.add_child(order_hb)
+	var threat_hb := _make_resource_bar("Threat", 100, Color(1.0, 0.3, 0.3), 160)
+	threat_bar = threat_hb.get_child(1) as ProgressBar
+	threat_label = threat_hb.get_child(2) as Label
+	hbox2.add_child(threat_hb)
 	waaagh_label = _make_label("", 12, ColorTheme.TEXT_WARNING)
 	waaagh_label.custom_minimum_size.x = 80
 	hbox2.add_child(waaagh_label)
@@ -358,23 +361,28 @@ func _build_action_panel(parent: Control) -> void:
 	var title := _make_label("Actions", ColorTheme.FONT_SUBHEADING, ColorTheme.TEXT_HEADING)
 	vbox.add_child(title)
 
-	btn_attack = _make_button("Attack (1AP)", _icon_action_attack)
+	btn_attack = _make_button("Attack [1] (1AP)", _icon_action_attack)
+	btn_attack.tooltip_text = "Select an army and attack an adjacent enemy territory. Costs 1 Action Point."
 	btn_attack.pressed.connect(_on_attack_pressed)
 	vbox.add_child(btn_attack)
 
-	btn_deploy = _make_button("Deploy (1AP)", _icon_action_deploy)
+	btn_deploy = _make_button("Deploy [2] (1AP)", _icon_action_deploy)
+	btn_deploy.tooltip_text = "Move an army to an adjacent friendly territory. Costs 1 Action Point."
 	btn_deploy.pressed.connect(_on_deploy_pressed)
 	vbox.add_child(btn_deploy)
 
-	btn_domestic = _make_button("Domestic (1AP)", _icon_action_build)
+	btn_domestic = _make_button("Domestic [3] (1AP)", _icon_action_build)
+	btn_domestic.tooltip_text = "Recruit troops, upgrade territories, build structures, manage armies."
 	btn_domestic.pressed.connect(_on_domestic_pressed)
 	vbox.add_child(btn_domestic)
 
-	btn_diplomacy = _make_button("Diplomacy (1AP)", _icon_action_diplomacy)
+	btn_diplomacy = _make_button("Diplomacy [4] (1AP)", _icon_action_diplomacy)
+	btn_diplomacy.tooltip_text = "Negotiate with other factions: ceasefire, tribute, alliance, or taming."
 	btn_diplomacy.pressed.connect(_on_diplomacy_pressed)
 	vbox.add_child(btn_diplomacy)
 
-	btn_explore = _make_button("Explore (1AP)")
+	btn_explore = _make_button("Explore [5] (1AP)")
+	btn_explore.tooltip_text = "Explore unclaimed territories to discover resources and events."
 	btn_explore.pressed.connect(_on_explore_pressed)
 	vbox.add_child(btn_explore)
 
@@ -462,7 +470,7 @@ func _build_action_panel(parent: Control) -> void:
 	sep2.add_theme_constant_override("separation", 8)
 	vbox.add_child(sep2)
 
-	btn_end_turn = _make_button("End Turn", _icon_action_end_turn)
+	btn_end_turn = _make_button("End Turn [Enter]", _icon_action_end_turn)
 	btn_end_turn.pressed.connect(_on_end_turn_pressed)
 	vbox.add_child(btn_end_turn)
 
@@ -2436,6 +2444,29 @@ func _update_player_info() -> void:
 	else:
 		threat_label.text = "Threat:%d [%s]" % [ThreatManager.get_threat(), ThreatManager.get_tier_name()]
 
+	# Update Order/Threat bars
+	if order_bar:
+		order_bar.value = OrderManager.get_order()
+	if threat_bar:
+		threat_bar.value = ThreatManager.get_threat()
+
+	# Per-turn income deltas
+	var full_income: Dictionary = ProductionCalculator.calculate_turn_income(pid) if ProductionCalculator.has_method("calculate_turn_income") else {}
+	var food_upkeep: int = ProductionCalculator.calculate_food_upkeep(pid) if ProductionCalculator.has_method("calculate_food_upkeep") else 0
+	var gold_upkeep: int = ProductionCalculator.calculate_gold_upkeep(pid) if ProductionCalculator.has_method("calculate_gold_upkeep") else 0
+	var military_food_upkeep: int = GameData.get_army_upkeep(RecruitManager._get_army_ref(pid)) if GameData.has_method("get_army_upkeep") else 0
+
+	var net_gold: int = full_income.get("gold", 0) - gold_upkeep
+	var net_food: int = full_income.get("food", 0) - food_upkeep - military_food_upkeep
+	var net_iron: int = full_income.get("iron", 0)
+
+	gold_delta_label.text = "%+d" % net_gold if net_gold != 0 else ""
+	gold_delta_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4) if net_gold >= 0 else Color(1.0, 0.3, 0.3))
+	food_delta_label.text = "%+d" % net_food if net_food != 0 else ""
+	food_delta_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4) if net_food >= 0 else Color(1.0, 0.3, 0.3))
+	iron_delta_label.text = "%+d" % net_iron if net_iron != 0 else ""
+	iron_delta_label.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4) if net_iron >= 0 else Color(1.0, 0.3, 0.3))
+
 	# WAAAGH! display for Orc faction
 	var faction_id: int = GameManager.get_player_faction(pid)
 	if faction_id == FactionData.FactionID.ORC:
@@ -2588,6 +2619,62 @@ func _animate_phase_banner_in() -> void:
 	_phase_banner.offset_top = target_top - 60
 	var tw := create_tween()
 	tw.tween_property(_phase_banner, "offset_top", target_top, 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+
+
+# ═══════════════════════════════════════════════════════════════
+#                  KEYBOARD SHORTCUTS
+# ═══════════════════════════════════════════════════════════════
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not GameManager.game_active:
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		# Don't process shortcuts if any panel is open that might need text input
+		if game_over_panel.visible:
+			return
+		var player: Dictionary = GameManager.get_current_player()
+		if player.is_empty() or player.get("is_ai", true):
+			return
+		match event.keycode:
+			KEY_1:
+				_on_attack_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_2:
+				_on_deploy_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_3:
+				_on_domestic_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_4:
+				_on_diplomacy_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_5:
+				_on_explore_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_H:
+				_on_hero_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_J:
+				_on_quest_journal_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_A:
+				_on_armies_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_E:
+				_on_event_manager_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_ENTER, KEY_SPACE:
+				_on_end_turn_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_ESCAPE:
+				_close_target_panel()
+				get_viewport().set_input_as_handled()
+			KEY_F5:
+				_on_save_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_F9:
+				_on_load_pressed()
+				get_viewport().set_input_as_handled()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -2971,6 +3058,33 @@ func _make_icon_label(icon: Texture2D, text: String, size: int, color: Color, mi
 	hb.add_child(lbl)
 	return hb
 
+
+func _make_resource_bar(label_text: String, max_val: int, color: Color, min_w: float) -> HBoxContainer:
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 4)
+	hb.custom_minimum_size.x = min_w
+	var lbl := _make_label(label_text, 11, color)
+	lbl.custom_minimum_size.x = 50
+	hb.add_child(lbl)
+	var bar := ProgressBar.new()
+	bar.max_value = max_val
+	bar.value = 0
+	bar.custom_minimum_size = Vector2(80, 14)
+	bar.show_percentage = false
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# Style the bar
+	var bg_style := StyleBoxFlat.new()
+	bg_style.bg_color = Color(0.1, 0.1, 0.15, 0.8)
+	bg_style.set_corner_radius_all(3)
+	bar.add_theme_stylebox_override("background", bg_style)
+	var fill_style := StyleBoxFlat.new()
+	fill_style.bg_color = color
+	fill_style.set_corner_radius_all(3)
+	bar.add_theme_stylebox_override("fill", fill_style)
+	hb.add_child(bar)
+	var val_lbl := _make_label("0", 11, color)
+	hb.add_child(val_lbl)
+	return hb
 
 func _make_label(text: String, size: int, color: Color) -> Label:
 	return ColorTheme.make_label(text, size, color)
