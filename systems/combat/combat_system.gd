@@ -162,6 +162,10 @@ var player_controlled: bool = false
 func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_data: Dictionary) -> Dictionary:
 	# -- Build state --------------------------------------------------------
 	var state := BattleState.new()
+
+	# v6.0: Reset hero skill systems for this battle
+	HeroSkillsAdvanced.reset_battle()
+
 	state.attacker_units = _build_battle_units(attacker_army, true)
 	state.defender_units = _build_battle_units(defender_army, false)
 	state.terrain = node_data.get("terrain", Terrain.PLAINS)
@@ -269,6 +273,9 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 
 		# Start-of-round passives (regen, mana charge)
 		_apply_round_start_passives(state)
+
+		# -- v6.0: Ultimate charge, awakening check, ultimate execution --
+		_tick_hero_skills(state)
 
 		# v4.6: time_slow — restore SPD after round 1
 		if state.round_number == 2:
@@ -1582,3 +1589,99 @@ func _sync_formation_to_battle_units(units: Array[BattleUnit], dicts: Array) -> 
 		u.def_stat = d.get("def", u.def_stat)
 		u.spd = d.get("spd", u.spd)
 
+
+# ---------------------------------------------------------------------------
+# v6.0: Hero Skills Integration (Ultimate / Awakening)
+# ---------------------------------------------------------------------------
+
+func _tick_hero_skills(state: BattleState) -> void:
+	var all_units: Array[BattleUnit] = []
+	all_units.append_array(state.attacker_units)
+	all_units.append_array(state.defender_units)
+
+	for u in all_units:
+		if not u.is_alive():
+			continue
+		var hid: String = u.hero_id
+		if hid.is_empty():
+			continue
+		var side: String = "attacker" if state.attacker_units.has(u) else "defender"
+
+		# 1) Tick ultimate charge
+		HeroSkillsAdvanced.tick_charge(hid)
+
+		# 2) Check awakening trigger (HP < 30%)
+		var hp_ratio: float = float(u.soldiers) / float(maxi(1, u.max_soldiers))
+		if not HeroSkillsAdvanced.is_awakened(hid) and HeroSkillsAdvanced.check_awakening(hid, hp_ratio):
+			var awk: Dictionary = HeroSkillsAdvanced.trigger_awakening(hid)
+			if not awk.is_empty():
+				u.atk *= awk.get("atk_mult", 1.0)
+				u.def_stat *= awk.get("def_mult", 1.0)
+				u.spd *= awk.get("spd_mult", 1.0)
+				state.action_log.append({
+					"action": "awakening",
+					"hero_id": hid,
+					"side": side,
+					"slot": u.slot,
+					"desc": "%s — %s!" % [u.troop_id, awk.get("name", "覚醒")],
+				})
+
+		# 3) Tick awakening duration
+		if HeroSkillsAdvanced.is_awakened(hid):
+			if not HeroSkillsAdvanced.tick_awakening(hid):
+				var awk_data: Dictionary = HeroSkillsAdvanced.awakening_data.get(hid, {})
+				if not awk_data.is_empty():
+					u.atk /= awk_data.get("atk_mult", 1.0)
+					u.def_stat /= awk_data.get("def_mult", 1.0)
+					u.spd /= awk_data.get("spd_mult", 1.0)
+
+		# 4) Execute charged ultimate
+		if HeroSkillsAdvanced.is_charged(hid):
+			var battle_dict: Dictionary = _state_to_resolver_dict(state)
+			var ult_result: Dictionary = HeroSkillsAdvanced.execute_ultimate(hid, battle_dict)
+			if ult_result.get("ok", false):
+				_apply_ultimate_damage(state, ult_result, side)
+				state.action_log.append({
+					"action": "ultimate",
+					"hero_id": hid,
+					"side": side,
+					"slot": u.slot,
+					"desc": "%s 发动 %s!" % [u.troop_id, ult_result.get("name", "必杀技")],
+					"damage": ult_result.get("total_damage", 0),
+				})
+
+
+func _apply_ultimate_damage(state: BattleState, ult_result: Dictionary, caster_side: String) -> void:
+	var targets_hit: Array = ult_result.get("targets_hit", [])
+	var enemy_units: Array[BattleUnit] = state.defender_units if caster_side == "attacker" else state.attacker_units
+	var ally_units: Array[BattleUnit] = state.attacker_units if caster_side == "attacker" else state.defender_units
+	for hit in targets_hit:
+		var dmg: int = hit.get("damage", 0)
+		var healed: int = hit.get("healed", 0)
+		if dmg > 0:
+			var living: Array[BattleUnit] = []
+			for eu in enemy_units:
+				if eu.is_alive():
+					living.append(eu)
+			if not living.is_empty():
+				var target: BattleUnit = living[randi() % living.size()]
+				target.soldiers = maxi(0, target.soldiers - mini(dmg, target.soldiers))
+		if healed > 0:
+			for au in ally_units:
+				if au.is_alive() and au.soldiers < au.max_soldiers:
+					au.soldiers = mini(au.soldiers + healed, au.max_soldiers)
+					break
+
+
+func _state_to_resolver_dict(state: BattleState) -> Dictionary:
+	var atk_units: Array = []
+	for u in state.attacker_units:
+		atk_units.append({"hero_id": u.hero_id, "unit_type": u.troop_id,
+			"soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
+			"atk": u.atk, "def": u.def_stat, "is_alive": u.is_alive(), "side": "attacker"})
+	var def_units: Array = []
+	for u in state.defender_units:
+		def_units.append({"hero_id": u.hero_id, "unit_type": u.troop_id,
+			"soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
+			"atk": u.atk, "def": u.def_stat, "is_alive": u.is_alive(), "side": "defender"})
+	return {"atk_units": atk_units, "def_units": def_units, "round": state.round_number}
