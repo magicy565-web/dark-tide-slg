@@ -2043,20 +2043,23 @@ func _process_deferred_effects(player_id: int, player: Dictionary) -> void:
 				tile.erase("deferred_effects")
 
 	# 3. Tick down duration-based deferred tile effects
-	for tile in tiles:
-		if not tile.has("deferred_effects"):
-			continue
-		var to_remove: Array = []
-		for key in tile["deferred_effects"]:
-			var fx: Dictionary = tile["deferred_effects"][key]
-			if fx.has("turns_remaining") and fx["turns_remaining"] > 0:
-				fx["turns_remaining"] -= 1
-				if fx["turns_remaining"] <= 0:
-					to_remove.append(key)
-		for key in to_remove:
-			tile["deferred_effects"].erase(key)
-		if tile["deferred_effects"].is_empty():
-			tile.erase("deferred_effects")
+	# BUG FIX R7: Only tick global deferred effects once per turn cycle (player_id == 0),
+	# not once per player, to prevent N× faster decay in multiplayer.
+	if player_id == 0:
+		for tile in tiles:
+			if not tile.has("deferred_effects"):
+				continue
+			var to_remove: Array = []
+			for key in tile["deferred_effects"]:
+				var fx: Dictionary = tile["deferred_effects"][key]
+				if fx.has("turns_remaining") and fx["turns_remaining"] > 0:
+					fx["turns_remaining"] -= 1
+					if fx["turns_remaining"] <= 0:
+						to_remove.append(key)
+			for key in to_remove:
+				tile["deferred_effects"].erase(key)
+			if tile["deferred_effects"].is_empty():
+				tile.erase("deferred_effects")
 
 
 ## Phase 4b: Apply per-turn passive effects to a player's troops.
@@ -2234,7 +2237,16 @@ func disband_army(army_id: int) -> bool:
 	if tile_index >= 0 and tile_index < tiles.size():
 		tiles[tile_index]["garrison"] += total_soldiers
 
-	EventBus.message_log.emit("解散军团: %s (兵力%d归入驻军)" % [army["name"], total_soldiers])
+	# BUG FIX R7: Return heroes to the hero pool so they aren't lost
+	for hero_id in army.get("heroes", []):
+		if HeroSystem and HeroSystem.has_method("unassign_hero_from_army"):
+			HeroSystem.unassign_hero_from_army(hero_id)
+		elif HeroSystem:
+			# Fallback: just make sure the hero is still in recruited_heroes
+			if hero_id not in HeroSystem.recruited_heroes:
+				HeroSystem.recruited_heroes.append(hero_id)
+
+	EventBus.message_log.emit("解散军团: %s (兵力%d归入驻军, 英雄%d人归队)" % [army["name"], total_soldiers, army.get("heroes", []).size()])
 	EventBus.army_disbanded.emit(player_id, army_id)
 
 	if selected_army_id == army_id:
@@ -3069,6 +3081,13 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		EventBus.message_log.emit("[color=red]%s 进攻 %s 失败! (军团撤回)[/color]" % [army["name"], defender_desc])
 
 	EventBus.combat_result.emit(pid, defender_desc, won)
+
+	# BUG FIX R7: Remove zombie troops with 0 soldiers from army after combat
+	var surviving_troops: Array = []
+	for troop in army["troops"]:
+		if troop.get("soldiers", 0) > 0:
+			surviving_troops.append(troop)
+	army["troops"] = surviving_troops
 
 	# ── 英雄经验 (v3.1) ──
 	_grant_hero_combat_exp(pid, result, won)

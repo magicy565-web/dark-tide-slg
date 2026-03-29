@@ -1310,8 +1310,8 @@ func should_concentrate(faction_key: String) -> bool:
 			var weak: int = _find_weakest_adjacent_enemy_tile(bi["index"])
 			if weak >= 0:
 				var enemy_g: int = GameManager.tiles[weak].get("garrison", 0)
-				# BUG FIX: removed asymmetric *8.0 from can_attack check
-			if float(bi["garrison"]) > float(enemy_g) * 1.2:
+				# BUG FIX R7: fixed indentation — condition was outside loop body
+				if float(bi["garrison"]) > float(enemy_g) * 1.2:
 					can_attack = true
 					break
 		if not can_attack:

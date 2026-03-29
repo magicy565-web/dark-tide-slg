@@ -11,7 +11,7 @@ const TERRAIN_SPEED_MULT: Dictionary = {
 	FactionData.TerrainType.MOUNTAIN: 0.5,
 	FactionData.TerrainType.SWAMP: 0.6,
 	FactionData.TerrainType.COASTAL: 1.0,
-	FactionData.TerrainType.FORTRESS_WALL: 1.2,
+	FactionData.TerrainType.FORTRESS_WALL: 0.4,  # BUG FIX R7: walls should slow movement, not speed it up
 	FactionData.TerrainType.RIVER: 0.8,
 	FactionData.TerrainType.RUINS: 0.8,
 	FactionData.TerrainType.WASTELAND: 1.0,

@@ -156,7 +156,9 @@ func invest_in_counter_intel(player_id: int, gold_amount: int) -> int:
 	if points <= 0:
 		return current
 	var actual_cost: int = points * COUNTER_INTEL_COST_PER_POINT
-	ResourceManager.spend(player_id, {"gold": actual_cost})
+	# BUG FIX R7: check spend() return value like invest_in_intel does
+	if not ResourceManager.spend(player_id, {"gold": actual_cost}):
+		return current
 	set_counter_intel(player_id, current + points)
 	EventBus.message_log.emit("[反谍] 投资%d金, 反情报+%d (当前%d/%d)" % [
 		actual_cost, points, get_counter_intel(player_id), COUNTER_INTEL_INVEST_MAX])
@@ -339,11 +341,18 @@ func _handle_plant_evidence(player_id: int, target_faction: int, succeeded: bool
 
 func _check_counter_intel_capture(attacker_id: int, target_id: int, op_name: String) -> void:
 	## When an operation fails, check if the target captures the spy.
-	var target_ci: int = get_counter_intel(target_id)
+	# BUG FIX R7: target_id may be a tile_index for tile-targeted ops;
+	# resolve to the tile owner so we check/award counter-intel to the correct player.
+	var defender_pid: int = target_id
+	if target_id >= 0 and target_id < GameManager.tiles.size():
+		var tile_owner: int = GameManager.tiles[target_id].get("owner_id", -1)
+		if tile_owner >= 0:
+			defender_pid = tile_owner
+	var target_ci: int = get_counter_intel(defender_pid)
 	if target_ci > COUNTER_INTEL_CAPTURE_THRESHOLD:
 		# Spy captured
-		_set_intel(target_id, get_intel(target_id) + COUNTER_INTEL_CAPTURE_BONUS)
-		EventBus.spy_captured.emit(attacker_id, target_id)
+		_set_intel(defender_pid, get_intel(defender_pid) + COUNTER_INTEL_CAPTURE_BONUS)
+		EventBus.spy_captured.emit(attacker_id, defender_pid)
 		EventBus.message_log.emit("[反谍] %s行动失败, 间谍被俘! 对方情报+%d" % [
 			op_name, COUNTER_INTEL_CAPTURE_BONUS])
 

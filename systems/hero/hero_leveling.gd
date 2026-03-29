@@ -210,6 +210,12 @@ func deserialize(data: Dictionary) -> void:
 	hero_level = data.get("hero_level", {}).duplicate(true)
 	hero_unlocked_passives = data.get("hero_unlocked_passives", {}).duplicate(true)
 
+	# BUG FIX R7: JSON round-trip turns int values to float; cast back to int
+	for hero_id in hero_exp.keys():
+		hero_exp[hero_id] = int(hero_exp[hero_id])
+	for hero_id in hero_level.keys():
+		hero_level[hero_id] = int(hero_level[hero_id])
+
 	# 校验：确保等级与累计经验值匹配
 	for hero_id in hero_exp.keys():
 		var exp_val: int = hero_exp[hero_id]

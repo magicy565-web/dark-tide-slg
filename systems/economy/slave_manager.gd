@@ -180,8 +180,7 @@ func convert_slaves_to_soldiers(player_id: int) -> bool:
 	return true
 
 
-# ── Slave Capacity (03_战略设定: 5/节点×节点等级) ──
-const SLAVE_CAP_PER_NODE_LEVEL: int = 5
+# ── Slave Capacity (03_战略设定: use BalanceConfig for canonical value) ──
 
 func get_slave_capacity(player_id: int) -> int:
 	## Returns max slave capacity based on owned nodes.
@@ -189,7 +188,7 @@ func get_slave_capacity(player_id: int) -> int:
 	for tile in GameManager.tiles:
 		if tile.get("owner_id", -1) == player_id:
 			var level: int = tile.get("level", 1)
-			cap += SLAVE_CAP_PER_NODE_LEVEL * level
+			cap += BalanceConfig.SLAVE_CAPACITY_PER_NODE_LEVEL * level
 	return cap
 
 

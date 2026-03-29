@@ -155,6 +155,8 @@ func repair_wall(tile_index: int, amount: int) -> void:
 		if bld != "":
 			var effects: Dictionary = BuildingRegistry.get_building_effects(bld, bld_level)
 			cap += int(effects.get("wall_hp_bonus", 0))
+		# BUG FIX R7: apply difficulty scaling to repair cap, matching init_human_defense
+		cap = int(float(cap) * BalanceManager.get_wall_hp_mult())
 	var old_hp: int = _wall_hp[tile_index]
 	_wall_hp[tile_index] = mini(cap, _wall_hp[tile_index] + amount)
 	if _wall_hp[tile_index] > old_hp:
@@ -184,6 +186,8 @@ func regen_walls() -> void:
 					cap = BalanceConfig.WALL_HP_STRONGHOLD
 				GameManager.TileType.CORE_FORTRESS:
 					cap = BalanceConfig.WALL_HP_CORE_FORTRESS
+			# BUG FIX R7: apply difficulty scaling to regen cap, matching init_human_defense
+			cap = int(float(cap) * BalanceManager.get_wall_hp_mult())
 			cap = int(float(cap) * (1.0 + wall_bonus))  # Apply wall bonus to cap
 			_wall_hp[idx] = mini(cap, _wall_hp[idx] + regen)
 
