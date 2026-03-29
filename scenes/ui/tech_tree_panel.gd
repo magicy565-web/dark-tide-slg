@@ -211,29 +211,104 @@ func _refresh_tree() -> void:
 		tree_container.add_child(lbl); _tree_nodes.append(lbl); return
 
 	for branch_name in branches:
+		# Branch header with horizontal line
+		var branch_row := HBoxContainer.new()
+		branch_row.add_theme_constant_override("separation", 8)
+		tree_container.add_child(branch_row); _tree_nodes.append(branch_row)
+		var line_left := HSeparator.new()
+		line_left.custom_minimum_size.x = 20
+		line_left.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		branch_row.add_child(line_left)
 		var bl := Label.new()
-		bl.text = "[ %s ]" % branch_name
+		bl.text = branch_name
 		bl.add_theme_font_size_override("font_size", 15)
 		bl.add_theme_color_override("font_color", Color(0.7, 0.8, 0.5))
-		tree_container.add_child(bl); _tree_nodes.append(bl)
+		branch_row.add_child(bl)
+		var line_right := HSeparator.new()
+		line_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		branch_row.add_child(line_right)
+
 		var techs: Array = branches[branch_name]
 		techs.sort_custom(func(a, b): return a["data"].get("tier", 0) < b["data"].get("tier", 0))
 		for entry in techs:
 			var tid: String = entry["id"]; var d: Dictionary = entry["data"]
-			var state_text: String; var nc: Color
-			if tid in completed: state_text = "Complete"; nc = Color(0.3, 0.9, 0.4)
-			elif tid == current: state_text = "Researching"; nc = Color(1.0, 0.9, 0.3)
-			elif tid in queue: state_text = "Queued"; nc = Color(0.8, 0.7, 0.3)
-			elif tid in available_ids: state_text = "Available"; nc = Color(0.9, 0.9, 0.95)
-			else: state_text = "Locked"; nc = Color(0.4, 0.4, 0.45)
-			var btn := Button.new()
-			btn.text = "  T%d  %s  [%s]" % [d.get("tier", 0), d.get("name", tid), state_text]
-			btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			btn.custom_minimum_size = Vector2(0, 30)
-			btn.add_theme_font_size_override("font_size", 13)
-			btn.add_theme_color_override("font_color", nc)
-			btn.pressed.connect(_on_select_tech.bind(tid))
-			tree_container.add_child(btn); _tree_nodes.append(btn)
+			var state_text: String; var nc: Color; var border_color: Color
+			if tid in completed: state_text = "Complete"; nc = Color(0.3, 0.9, 0.4); border_color = Color(0.2, 0.7, 0.3)
+			elif tid == current: state_text = "Researching"; nc = Color(1.0, 0.9, 0.3); border_color = Color(0.8, 0.7, 0.2)
+			elif tid in queue: state_text = "Queued"; nc = Color(0.8, 0.7, 0.3); border_color = Color(0.6, 0.5, 0.2)
+			elif tid in available_ids: state_text = "Available"; nc = Color(0.9, 0.9, 0.95); border_color = Color(0.5, 0.5, 0.6)
+			else: state_text = "Locked"; nc = Color(0.4, 0.4, 0.45); border_color = Color(0.25, 0.25, 0.3)
+
+			var card := PanelContainer.new()
+			var cs := StyleBoxFlat.new()
+			cs.bg_color = Color(0.08, 0.08, 0.12, 0.85)
+			cs.border_color = border_color
+			cs.border_width_left = 4
+			cs.border_width_top = 1; cs.border_width_right = 1; cs.border_width_bottom = 1
+			cs.set_corner_radius_all(4)
+			cs.set_content_margin_all(8)
+			card.add_theme_stylebox_override("panel", cs)
+			card.custom_minimum_size = Vector2(0, 38)
+
+			var card_hbox := HBoxContainer.new()
+			card_hbox.add_theme_constant_override("separation", 8)
+			card.add_child(card_hbox)
+
+			# Tier badge
+			var tier_lbl := Label.new()
+			tier_lbl.text = "T%d" % d.get("tier", 0)
+			tier_lbl.add_theme_font_size_override("font_size", 11)
+			tier_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.6))
+			tier_lbl.custom_minimum_size.x = 24
+			card_hbox.add_child(tier_lbl)
+
+			# Tech name
+			var name_lbl := Label.new()
+			name_lbl.text = d.get("name", tid)
+			name_lbl.add_theme_font_size_override("font_size", 13)
+			name_lbl.add_theme_color_override("font_color", nc)
+			name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			card_hbox.add_child(name_lbl)
+
+			# Status badge
+			var status_lbl := Label.new()
+			status_lbl.text = state_text
+			status_lbl.add_theme_font_size_override("font_size", 10)
+			status_lbl.add_theme_color_override("font_color", nc.darkened(0.2))
+			card_hbox.add_child(status_lbl)
+
+			# Turns info
+			var turns_lbl := Label.new()
+			turns_lbl.text = "%dt" % d.get("turns", 1)
+			turns_lbl.add_theme_font_size_override("font_size", 10)
+			turns_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+			card_hbox.add_child(turns_lbl)
+
+			# Make clickable
+			card.mouse_filter = Control.MOUSE_FILTER_STOP
+			card.gui_input.connect(_on_tech_card_input.bind(tid))
+
+			# Show prerequisite indicator
+			var prereqs: Array = d.get("prereqs", [])
+			if not prereqs.is_empty():
+				var pnames: Array = []
+				for p in prereqs:
+					var pd: Dictionary = ResearchManager.get_tech_data(p)
+					var pname: String = pd.get("name", p)
+					var done: bool = p in completed
+					pnames.append("[color=%s]%s[/color]" % ["green" if done else "red", pname])
+				var req_rtl := RichTextLabel.new()
+				req_rtl.bbcode_enabled = true
+				req_rtl.fit_content = true
+				req_rtl.scroll_active = false
+				req_rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				req_rtl.custom_minimum_size = Vector2(0, 18)
+				req_rtl.add_theme_font_size_override("normal_font_size", 10)
+				req_rtl.text = "    Requires: %s" % ", ".join(pnames)
+				tree_container.add_child(card); _tree_nodes.append(card)
+				tree_container.add_child(req_rtl); _tree_nodes.append(req_rtl)
+			else:
+				tree_container.add_child(card); _tree_nodes.append(card)
 
 func _refresh_detail() -> void:
 	for child in detail_container.get_children(): child.queue_free()
@@ -321,6 +396,14 @@ func _refresh_detail() -> void:
 		bs.custom_minimum_size = Vector2(140, 34)
 		bs.add_theme_font_size_override("font_size", 14)
 		bs.pressed.connect(_on_start_research.bind(_selected_tech_id))
+		var bs_style := StyleBoxFlat.new()
+		bs_style.bg_color = Color(0.15, 0.25, 0.15, 0.9)
+		bs_style.border_color = Color(0.3, 0.7, 0.3)
+		bs_style.set_border_width_all(1)
+		bs_style.set_corner_radius_all(6)
+		bs_style.set_content_margin_all(6)
+		bs.add_theme_stylebox_override("normal", bs_style)
+		bs.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
 		detail_container.add_child(bs)
 	else:
 		var ll := Label.new()
@@ -329,6 +412,10 @@ func _refresh_detail() -> void:
 		detail_container.add_child(ll)
 
 # ═══════════════ CALLBACKS ═══════════════
+
+func _on_tech_card_input(event: InputEvent, tech_id: String) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_on_select_tech(tech_id)
 
 func _on_select_tech(tech_id: String) -> void:
 	AudioManager.play_ui_click()

@@ -226,6 +226,28 @@ func _build_evil_factions() -> void:
 					btn.custom_minimum_size = Vector2(140, 28)
 					btn.add_theme_font_size_override("font_size", 11)
 					var aid: String = action["id"]; var cfid: int = fid
+					# Color-code by action type
+					var btn_style := StyleBoxFlat.new()
+					match aid:
+						"recruit_diplomacy":
+							btn_style.bg_color = Color(0.15, 0.3, 0.15, 0.9)
+							btn_style.border_color = Color(0.3, 0.7, 0.3)
+						"ceasefire":
+							btn_style.bg_color = Color(0.15, 0.2, 0.3, 0.9)
+							btn_style.border_color = Color(0.3, 0.5, 0.8)
+						"declare_war":
+							btn_style.bg_color = Color(0.3, 0.1, 0.1, 0.9)
+							btn_style.border_color = Color(0.8, 0.2, 0.2)
+						"demand_tribute", "offer_tribute":
+							btn_style.bg_color = Color(0.25, 0.2, 0.1, 0.9)
+							btn_style.border_color = Color(0.7, 0.6, 0.3)
+						_:
+							btn_style.bg_color = Color(0.15, 0.15, 0.2, 0.9)
+							btn_style.border_color = Color(0.4, 0.4, 0.5)
+					btn_style.set_border_width_all(1)
+					btn_style.set_corner_radius_all(4)
+					btn_style.set_content_margin_all(4)
+					btn.add_theme_stylebox_override("normal", btn_style)
 					btn.pressed.connect(_on_evil_action.bind(cfid, aid))
 					btn_row.add_child(btn)
 			# Send gift (non-orc, non-hostile only)
@@ -292,6 +314,14 @@ func _build_light_factions() -> void:
 	var bar := ProgressBar.new()
 	bar.min_value = 0; bar.max_value = 100; bar.value = threat
 	bar.custom_minimum_size = Vector2(200, 16); bar.show_percentage = false
+	var t_bg := StyleBoxFlat.new()
+	t_bg.bg_color = Color(0.12, 0.12, 0.15, 0.8)
+	t_bg.set_corner_radius_all(4)
+	bar.add_theme_stylebox_override("background", t_bg)
+	var t_fill := StyleBoxFlat.new()
+	t_fill.bg_color = Color(0.8, 0.3, 0.2) if threat >= 60 else Color(0.9, 0.6, 0.2) if threat >= 30 else Color(0.5, 0.7, 0.3)
+	t_fill.set_corner_radius_all(4)
+	bar.add_theme_stylebox_override("fill", t_fill)
 	threat_row.add_child(bar)
 
 	# Description
@@ -363,6 +393,14 @@ func _build_neutral_factions() -> void:
 		var bar := ProgressBar.new()
 		bar.min_value = 0; bar.max_value = 10; bar.value = taming
 		bar.custom_minimum_size = Vector2(200, 16); bar.show_percentage = false
+		var bar_bg := StyleBoxFlat.new()
+		bar_bg.bg_color = Color(0.12, 0.12, 0.15, 0.8)
+		bar_bg.set_corner_radius_all(4)
+		bar.add_theme_stylebox_override("background", bar_bg)
+		var bar_fill := StyleBoxFlat.new()
+		bar_fill.bg_color = Color(0.7, 0.6, 0.3) if taming < 5 else Color(0.3, 0.8, 0.4) if taming < 8 else Color(1.0, 0.85, 0.3)
+		bar_fill.set_corner_radius_all(4)
+		bar.add_theme_stylebox_override("fill", bar_fill)
 		taming_row.add_child(bar)
 		# Threshold labels
 		var threshold_lbl := Label.new()
@@ -386,7 +424,7 @@ func _build_faction_card(fname: String, status_text: String, status_color: Color
 	var card := PanelContainer.new()
 	var s := StyleBoxFlat.new()
 	s.bg_color = ColorTheme.BG_PANEL
-	s.border_color = ColorTheme.BORDER_DIM
+	s.border_color = name_color.darkened(0.4)
 	s.set_border_width_all(1); s.set_corner_radius_all(6); s.set_content_margin_all(10)
 	card.add_theme_stylebox_override("panel", s)
 	var vbox := VBoxContainer.new()
@@ -492,8 +530,22 @@ func _on_threat_changed(_val: int) -> void:
 
 func _make_tab_button(text: String) -> Button:
 	var btn := Button.new()
-	btn.text = text; btn.custom_minimum_size = Vector2(130, 32)
+	btn.text = text; btn.custom_minimum_size = Vector2(140, 34)
 	btn.add_theme_font_size_override("font_size", 14)
+	var style_normal := StyleBoxFlat.new()
+	style_normal.bg_color = Color(0.1, 0.1, 0.15, 0.8)
+	style_normal.border_color = Color(0.3, 0.3, 0.35)
+	style_normal.set_border_width_all(1)
+	style_normal.set_corner_radius_all(6)
+	style_normal.set_content_margin_all(6)
+	btn.add_theme_stylebox_override("normal", style_normal)
+	var style_hover := StyleBoxFlat.new()
+	style_hover.bg_color = Color(0.15, 0.15, 0.22, 0.9)
+	style_hover.border_color = Color(0.5, 0.45, 0.3)
+	style_hover.set_border_width_all(1)
+	style_hover.set_corner_radius_all(6)
+	style_hover.set_content_margin_all(6)
+	btn.add_theme_stylebox_override("hover", style_hover)
 	return btn
 
 func _get_evil_faction_color(fid: int) -> Color:
