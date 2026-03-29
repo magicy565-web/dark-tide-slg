@@ -64,6 +64,9 @@ var gold_delta_label: Label
 var food_delta_label: Label
 var iron_delta_label: Label
 
+var ap_display: Label
+var ap_display_bg: PanelContainer
+
 var magic_crystal_label: Label
 var war_horse_label: Label
 var gunpowder_label: Label
@@ -358,8 +361,28 @@ func _build_action_panel(parent: Control) -> void:
 	vbox.add_theme_constant_override("separation", 4)
 	action_panel.add_child(vbox)
 
+	# Prominent AP counter at top of action panel
+	var ap_hbox := HBoxContainer.new()
+	ap_hbox.add_theme_constant_override("separation", 8)
+	ap_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(ap_hbox)
+	var ap_icon_lbl := _make_label("AP", 14, Color(0.3, 0.8, 1.0))
+	ap_hbox.add_child(ap_icon_lbl)
+	ap_display = Label.new()
+	ap_display.text = "0"
+	ap_display.add_theme_font_size_override("font_size", 24)
+	ap_display.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
+	ap_display.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ap_display.custom_minimum_size.x = 40
+	ap_hbox.add_child(ap_display)
+	var ap_max_lbl := _make_label("/ turn", 10, Color(0.6, 0.6, 0.65))
+	ap_hbox.add_child(ap_max_lbl)
+
 	var title := _make_label("Actions", ColorTheme.FONT_SUBHEADING, ColorTheme.TEXT_HEADING)
 	vbox.add_child(title)
+
+	var section_combat := _make_label("-- Combat --", 10, Color(0.7, 0.5, 0.5))
+	vbox.add_child(section_combat)
 
 	btn_attack = _make_button("Attack [1] (1AP)", _icon_action_attack)
 	btn_attack.tooltip_text = "Select an army and attack an adjacent enemy territory. Costs 1 Action Point."
@@ -386,6 +409,9 @@ func _build_action_panel(parent: Control) -> void:
 	btn_explore.pressed.connect(_on_explore_pressed)
 	vbox.add_child(btn_explore)
 
+	var section_ops := _make_label("-- Operations --", 10, Color(0.5, 0.6, 0.7))
+	vbox.add_child(section_ops)
+
 	btn_guard = _make_button("Guard (1AP)")
 	btn_guard.pressed.connect(_on_guard_pressed)
 	vbox.add_child(btn_guard)
@@ -402,12 +428,10 @@ func _build_action_panel(parent: Control) -> void:
 	btn_sat_event.pressed.connect(_on_sat_event_pressed)
 	vbox.add_child(btn_sat_event)
 
-	# Separator
-	var sep := HSeparator.new()
-	sep.add_theme_constant_override("separation", 8)
-	vbox.add_child(sep)
-
 	# Prestige actions
+	var section_prestige := _make_label("-- Prestige --", 10, Color(0.7, 0.7, 0.5))
+	vbox.add_child(section_prestige)
+
 	btn_reduce_threat = _make_button("Reduce Threat -10 (20 Prestige)")
 	btn_reduce_threat.pressed.connect(_on_reduce_threat)
 	vbox.add_child(btn_reduce_threat)
@@ -428,9 +452,8 @@ func _build_action_panel(parent: Control) -> void:
 	vbox.add_child(btn_buy_slave)
 
 	# Hero & Research buttons (free actions)
-	var sep_hero := HSeparator.new()
-	sep_hero.add_theme_constant_override("separation", 4)
-	vbox.add_child(sep_hero)
+	var section_info := _make_label("-- Info & Management --", 10, Color(0.5, 0.7, 0.6))
+	vbox.add_child(section_info)
 
 	btn_hero = _make_button("Heroes (H)", _icon_action_hero)
 	btn_hero.pressed.connect(_on_hero_pressed)
@@ -2433,6 +2456,15 @@ func _update_player_info() -> void:
 	var pop_cap: int = GameManager.get_population_cap(pid)
 	pop_label.text = "Roster:%d/%d" % [RecruitManager._get_army_ref(pid).size(), pop_cap]
 	ap_label.text = "AP:%d" % player.get("ap", 0)
+	if ap_display:
+		var current_ap: int = player.get("ap", 0)
+		ap_display.text = str(current_ap)
+		if current_ap <= 0:
+			ap_display.add_theme_color_override("font_color", Color(0.8, 0.3, 0.3))
+		elif current_ap == 1:
+			ap_display.add_theme_color_override("font_color", Color(1.0, 0.8, 0.2))
+		else:
+			ap_display.add_theme_color_override("font_color", Color(0.3, 1.0, 0.5))
 	stronghold_label.text = "Fort:%s" % GameManager.get_stronghold_progress(pid)
 
 	if _icon_order:
@@ -2687,6 +2719,12 @@ func _on_turn_started(_player_id: int) -> void:
 	_update_tile_info()
 	_update_buttons()
 	_update_items()
+	# Flash turn label on new turn
+	if turn_label and _player_id == GameManager.get_human_player_id():
+		var original_color: Color = turn_label.get_theme_color("font_color") if turn_label.has_theme_color_override("font_color") else Color.WHITE
+		turn_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.5))
+		var tw := create_tween()
+		tw.tween_property(turn_label, "theme_override_colors/font_color", original_color, 0.8).set_ease(Tween.EASE_IN)
 	# Visual: snapshot resources for change detection on next update
 	var pid: int = GameManager.get_human_player_id()
 	_prev_gold = ResourceManager.get_resource(pid, "gold")
@@ -2881,6 +2919,27 @@ func _update_tile_info_for(tile_index: int) -> void:
 	var wall_hp: int = tile.get("wall_hp", 0)
 	if wall_hp > 0:
 		info += "Wall HP: %d\n" % wall_hp
+
+	# Quick power comparison if there are armies nearby
+	var pid2: int = GameManager.get_human_player_id()
+	var player_total_power: int = 0
+	var enemy_total_power: int = 0
+	for army_id_key in GameManager.armies:
+		var a: Dictionary = GameManager.armies[army_id_key]
+		var a_power: int = GameManager.get_army_combat_power(army_id_key)
+		if a["player_id"] == pid2:
+			player_total_power += a_power
+		elif a["player_id"] >= 0:
+			enemy_total_power += a_power
+	info += "\n[color=gray]━━ Global Power ━━[/color]\n"
+	info += "[color=cyan]Your Total: %d[/color] | [color=red]Enemy: %d[/color]\n" % [player_total_power, enemy_total_power]
+	var ratio: float = float(player_total_power) / maxf(float(enemy_total_power), 1.0)
+	if ratio > 1.5:
+		info += "[color=green]Advantage: %.1fx[/color]\n" % ratio
+	elif ratio < 0.7:
+		info += "[color=red]Disadvantage: %.1fx[/color]\n" % ratio
+	else:
+		info += "[color=yellow]Contested: %.1fx[/color]\n" % ratio
 
 	tile_info_label.text = info
 
