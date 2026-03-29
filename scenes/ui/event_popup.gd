@@ -193,7 +193,7 @@ func _on_hide_event_popup() -> void:
 func _on_dismiss() -> void:
 	EventBus.event_choice_selected.emit(-1)
 	if _is_conquest_popup():
-		EventBus.conquest_choice_selected.emit(0)
+		EventBus.conquest_choice_selected.emit(-1)  # BUG FIX: emit -1 (no choice), not 0 (first option)
 	_hide_animated()
 
 

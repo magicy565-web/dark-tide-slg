@@ -475,17 +475,16 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			winner = result
 			break
 
-	# 12 rounds elapsed → defender wins (unless HOLD_LINE directive)
+	# 8 rounds elapsed → defender wins (unless HOLD_LINE directive)
 	if winner == "":
-		if state.get("atk_directive", TacticalDirective.NONE) == TacticalDirective.HOLD_LINE:
-			winner = "attacker"
-			log.append("坚守指令: 超时判定 — 进攻方胜!")
-		elif state.get("def_directive", TacticalDirective.NONE) == TacticalDirective.HOLD_LINE:
+		# BUG FIX: attacker HOLD_LINE should NOT grant attacker a timeout win;
+		# only defender HOLD_LINE grants defender timeout victory
+		if state.get("def_directive", TacticalDirective.NONE) == TacticalDirective.HOLD_LINE:
 			winner = "defender"
 			log.append("坚守指令: 超时判定 — 防守方坚守成功!")
 		else:
 			winner = "defender"
-			log.append("12回合结束，防守方胜利!")
+			log.append("8回合结束，防守方胜利!")
 
 	# -- Phase 4: Finalize --
 	return _finalize_result(state, winner, wall_destroyed, log, tile)
@@ -2639,7 +2638,8 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 			if _morale_resist > 0.0:
 				morale_loss = int(float(morale_loss) * (1.0 - _morale_resist))
 		target["morale"] = maxi(target.get("morale", MORALE_START) - morale_loss, 0)
-		EventBus.unit_morale_changed.emit(target["unit_type"], target["side"], target["morale"])
+		if EventBus:
+			EventBus.unit_morale_changed.emit(target["unit_type"], target["side"], target["morale"])
 
 	# Pirate faction passive: gold_per_kill — +1 gold per soldier killed
 	var source_pid: int = source.get("player_id", -1)

@@ -289,8 +289,18 @@ func to_save_data() -> Dictionary:
 
 
 func from_save_data(data: Dictionary) -> void:
-	_active_sieges = data.get("active_sieges", {})
-	_next_siege_id = data.get("next_siege_id", 1)
+	_active_sieges = data.get("active_sieges", {}).duplicate(true)
+	_next_siege_id = int(data.get("next_siege_id", 1))
+	# Fix integer fields inside each siege dict after JSON round-trip
+	for siege_id in _active_sieges:
+		var s: Dictionary = _active_sieges[siege_id]
+		for key in ["attacker_army_id", "attacker_player_id", "defender_player_id",
+					"tile_index", "turns_remaining", "total_turns"]:
+			if s.has(key):
+				s[key] = int(s[key])
+		for key in ["wall_hp", "wall_max_hp", "defender_morale", "attrition_rate", "sortie_chance"]:
+			if s.has(key):
+				s[key] = float(s[key])
 
 
 # ═══════════════ INTERNALS ═══════════════

@@ -405,7 +405,7 @@ func apply_rear_order_recovery(player_id: int) -> void:
 		var cls: String = get_tile_classification(player_id, tile["index"])
 		if cls == "rear":
 			var order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
-			tile["public_order"] = minf(order + REAR_ORDER_RECOVERY, 1.0)
+			tile["public_order"] = minf(order + REAR_ORDER_RECOVERY, 100.0)
 
 
 # ═══════════════ COMBINED MODIFIERS ═══════════════

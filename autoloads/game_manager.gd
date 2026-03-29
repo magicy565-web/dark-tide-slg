@@ -1253,6 +1253,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 		_give_starting_army(rival_id, fid)
 		DiplomacyManager.init_player(rival_id)
 		StrategicResourceManager.init_player(rival_id)
+		ResearchManager.init_player(rival_id)
 		if fid == FactionData.FactionID.ORC:
 			OrcMechanic.init_player(rival_id)
 
@@ -1652,7 +1653,7 @@ func begin_turn() -> void:
 		ResourceManager.apply_delta(pid, income)
 		var msg: String = "%s 产出: 金%d 粮%d 铁%d" % [
 			player["name"], income["gold"], income["food"], income["iron"]]
-		if income["prestige"] > 0:
+		if income.get("prestige", 0) > 0:
 			msg += " 威望%d" % income["prestige"]
 		# Strategic resource income display
 		for sres in FactionData.STRATEGIC_RESOURCES:
@@ -2189,10 +2190,13 @@ func create_army(player_id: int, tile_index: int, army_name: String = "") -> int
 	if current_armies.size() >= get_max_armies(player_id):
 		EventBus.message_log.emit("军团数已达上限(%d)!" % get_max_armies(player_id))
 		return -1
-	# Check no army already at this tile
+	# Check no army already at this tile (skip for internal split operations)
 	if not get_army_at_tile(tile_index).is_empty():
-		EventBus.message_log.emit("该地域已有军团驻扎!")
-		return -1
+		# Allow co-location if the existing army belongs to the same player (split scenario)
+		var existing: Dictionary = get_army_at_tile(tile_index)
+		if existing.get("player_id", -1) != player_id:
+			EventBus.message_log.emit("该地域已有军团驻扎!")
+			return -1
 
 	var army_id: int = _next_army_id
 	_next_army_id += 1
@@ -2280,18 +2284,26 @@ func action_merge_armies(source_id: int, target_id: int) -> bool:
 	if source["player_id"] != target["player_id"]:
 		return false
 
-	# Transfer troops from source to target
+	# Transfer troops from source to target (BUG FIX: remove transferred troops from source)
 	var max_troops: int = get_effective_max_troops(target["player_id"])
+	var transferred_troops: Array = []
 	for troop in source.get("troops", []):
 		if target.get("troops", []).size() >= max_troops:
 			EventBus.message_log.emit("目标军队编制已满! 部分兵种留在原军队")
 			break
 		target["troops"].append(troop)
+		transferred_troops.append(troop)
+	for troop in transferred_troops:
+		source["troops"].erase(troop)
 
-	# Transfer heroes
+	# Transfer heroes (BUG FIX: remove transferred heroes from source)
+	var transferred_heroes: Array = []
 	for hero_id in source.get("heroes", []):
 		if target.get("heroes", []).size() < MAX_HEROES_PER_ARMY:
 			target["heroes"].append(hero_id)
+			transferred_heroes.append(hero_id)
+	for hero_id in transferred_heroes:
+		source["heroes"].erase(hero_id)
 
 	# Remove source if empty
 	if source.get("troops", []).is_empty():
@@ -2767,7 +2779,7 @@ func _get_defender_desc(tile: Dictionary) -> String:
 		_:
 			if tile["owner_id"] >= 0:
 				var _p = get_player_by_id(tile["owner_id"])
-				return (_p.get("name", "敌军") if _p else "敌军") + "据点"
+				return (_p.get("name", "敌军") if not _p.is_empty() else "敌军") + "据点"
 	return "守军"
 
 
@@ -2793,7 +2805,10 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	for troop in army["troops"]:
 		if troop.get("soldiers", 0) <= 0:
 			continue
-		var _cmd_id: String = army["heroes"][0] if army["heroes"].size() > 0 and slot_idx == 0 else "generic"
+		# BUG FIX: assign heroes round-robin to unit slots, not just first hero to slot 0
+		var _cmd_id: String = "generic"
+		if army["heroes"].size() > 0 and slot_idx < army["heroes"].size():
+			_cmd_id = army["heroes"][slot_idx]
 		var _unit_dict: Dictionary = {
 			"id": "att_%d" % slot_idx,
 			"commander_id": _cmd_id,
@@ -3034,12 +3049,13 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			HeroSystem.attempt_capture(str(hero_id))
 	else:
 		# Garrison takes losses but survives
+		# BUG FIX: match by slot index to handle duplicate troop types correctly
 		if not garrison_troops.is_empty():
-			for gt in garrison_troops:
-				for du in defender_units:
-					if def_losses.has(du["id"]) and gt.get("troop_id", "") == du["troop_id"]:
-						gt["soldiers"] = maxi(0, gt["soldiers"] - def_losses[du["id"]])
-						break
+			for i in range(mini(garrison_troops.size(), defender_units.size())):
+				var gt = garrison_troops[i]
+				var du = defender_units[i]
+				if def_losses.has(du["id"]):
+					gt["soldiers"] = maxi(0, gt["soldiers"] - def_losses[du["id"]])
 		else:
 			var total_def_lost: int = 0
 			for key in def_losses:
@@ -4661,7 +4677,7 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 				var success_rate: float = effects.get("success_rate", 1.0)
 				if randf() > success_rate:
 					var loss: int = abs(value)
-					ResourceManager.apply_delta(player["id"], {"slaves": -loss})
+					# BUG FIX: removed duplicate ResourceManager.apply_delta - SlaveManager handles it
 					SlaveManager.remove_slaves(player["id"], loss)
 					EventBus.message_log.emit("失败! 损失 %d 奴隶" % loss)
 				else:
@@ -5649,7 +5665,7 @@ func run_ai_turn() -> void:
 							if commitments.get("overcommitted", false):
 								_skip_attack = true  # Too many sieges already
 				if not _skip_attack:
-					action_attack_with_army(army["id"], best_tile_idx)
+					await action_attack_with_army(army["id"], best_tile_idx)
 					ai_armies = get_player_armies(pid)  # Refresh after combat
 					did_action = true
 					break  # Re-evaluate after attack
@@ -5992,7 +6008,7 @@ func _run_orc_ai(player_id: int) -> void:
 						if not siege_info.get("worth_sieging", true):
 							_orc_skip = true
 				if not _orc_skip:
-					action_attack_with_army(army["id"], best_tile_idx)
+					await action_attack_with_army(army["id"], best_tile_idx)
 					ai_armies = get_player_armies(player_id)  # Refresh after combat
 					did_action = true
 					break  # Re-evaluate after attack
@@ -6249,8 +6265,8 @@ func _on_random_event_choice(choice_index: int) -> void:
 	# Map choice index to "a"/"b" or apply via event_system
 	if event.has("choices") and event["choices"] is Array:
 		# Use event_system's apply_choice
-		var event_id: String = event.get("id", "")
-		if event_id != "" and EventSystem:
+		var event_id = event.get("id", "")
+		if str(event_id) != "" and EventSystem:
 			EventSystem.apply_choice(event_id, choice_index)
 	else:
 		# option_a / option_b format

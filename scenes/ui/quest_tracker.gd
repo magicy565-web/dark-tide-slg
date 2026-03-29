@@ -235,7 +235,9 @@ func _on_quest_clicked() -> void:
 	var tree := get_tree()
 	if tree == null:
 		return
-	var main := tree.root.get_child(0) if tree.root.get_child_count() > 0 else null
+	# BUG FIX: use get_tree().current_scene instead of root.get_child(0)
+	# (autoloads are children of root before the main scene)
+	var main = tree.current_scene
 	if main and "quest_journal_panel" in main and main.quest_journal_panel:
 		main.quest_journal_panel.show_panel()
 		return

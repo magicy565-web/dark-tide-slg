@@ -266,6 +266,9 @@ func _process(delta: float) -> void:
 	update_minimap_overlay()
 
 func _process_camera_input(delta: float) -> void:
+	# BUG FIX: don't pan camera when UI has focus (panel open, typing, etc.)
+	if get_viewport() and get_viewport().gui_get_focus_owner() != null:
+		return
 	var mv := Vector3.ZERO
 	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP): mv.z -= 1.0
 	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN): mv.z += 1.0

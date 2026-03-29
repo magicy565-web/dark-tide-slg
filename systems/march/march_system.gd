@@ -367,6 +367,9 @@ func check_interception(marching_army_id: int, tile_index: int) -> Dictionary:
 			continue
 		if other_army["tile_index"] != tile_index:
 			continue
+		# BUG FIX: skip armies that are currently marching (in transit, not truly at tile)
+		if march_orders.has(aid) and march_orders[aid].get("state", "") == "marching":
+			continue
 		# Enemy army found at tile — roll interception
 		var chance: float = INTERCEPT_BASE_CHANCE
 		# Scout hero bonus

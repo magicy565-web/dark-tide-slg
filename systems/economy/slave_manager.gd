@@ -135,6 +135,9 @@ func tick_altar(player_id: int) -> Dictionary:
 	if altar_count <= 0:
 		return result
 
+	# BUG FIX: only apply altar mechanics for Dark Elf faction
+	if GameManager.get_player_faction(player_id) != FactionData.FactionID.DARK_ELF:
+		return result
 	var params: Dictionary = FactionData.FACTION_PARAMS[FactionData.FactionID.DARK_ELF]
 	var altar_mult: float = StrategicResourceManager.get_altar_multiplier(player_id)
 	result["atk_bonus"] = int(altar_count * params["slave_altar_atk_per_slave"] * altar_mult)

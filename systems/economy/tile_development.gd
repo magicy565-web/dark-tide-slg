@@ -324,14 +324,16 @@ func convert_path(tile_idx: int, new_path: int) -> bool:
 			break
 	if owner_id < 0:
 		return false
-	var gold: int = ResourceManager.get_gold(owner_id)
-	var iron: int = ResourceManager.get_iron(owner_id)
+	var gold: int = ResourceManager.get_resource(owner_id, "gold")
+	var iron: int = ResourceManager.get_resource(owner_id, "iron")
 	if gold < BalanceConfig.PATH_CONVERSION_GOLD_COST or iron < BalanceConfig.PATH_CONVERSION_IRON_COST:
 		return false
 
 	# Pay cost
-	ResourceManager.add_gold(owner_id, -BalanceConfig.PATH_CONVERSION_GOLD_COST)
-	ResourceManager.add_iron(owner_id, -BalanceConfig.PATH_CONVERSION_IRON_COST)
+	ResourceManager.apply_delta(owner_id, {
+		"gold": -BalanceConfig.PATH_CONVERSION_GOLD_COST,
+		"iron": -BalanceConfig.PATH_CONVERSION_IRON_COST,
+	})
 
 	# Record old path for signal
 	var old_path: int = dev["path"]
@@ -478,8 +480,8 @@ func to_save_data() -> Dictionary:
 
 
 func from_save_data(data: Dictionary) -> void:
-	_tile_dev = data.get("tile_dev", {})
-	_rebuilding_tiles = data.get("rebuilding_tiles", {})
+	_tile_dev = data.get("tile_dev", {}).duplicate(true)
+	_rebuilding_tiles = data.get("rebuilding_tiles", {}).duplicate(true)
 	# Fix int keys after JSON round-trip (keys become strings)
 	var keys_to_fix: Array = []
 	for k in _tile_dev:

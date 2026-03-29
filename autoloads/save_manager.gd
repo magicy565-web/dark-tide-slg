@@ -470,6 +470,13 @@ func _load_game_state(gs: Dictionary) -> void:
 			army["id"] = int(army.get("id", int_key))
 			army["player_id"] = int(army.get("player_id", 0))
 			army["tile_index"] = int(army.get("tile_index", -1))
+			# BUG FIX: also fix troop dict fields inside army after JSON round-trip
+			var troops: Array = army.get("troops", [])
+			for troop in troops:
+				if troop is Dictionary:
+					for fld in ["soldiers", "max_soldiers", "base_atk", "base_def", "morale"]:
+						if troop.has(fld) and troop[fld] is float:
+							troop[fld] = int(troop[fld])
 			GameManager.armies[int_key] = army
 	GameManager._next_army_id = int(gs.get("next_army_id", 1))
 	# If armies exist but next_army_id is too low, fix it
@@ -487,7 +494,13 @@ func _load_game_state(gs: Dictionary) -> void:
 	var guard_raw: Dictionary = gs.get("guard_timers", {})
 	for key in guard_raw:
 		if str(key).is_valid_int():
-			GameManager._guard_timers[int(key)] = guard_raw[key]
+			# BUG FIX: deep-convert guard_timers inner dict values to int after JSON round-trip
+			var timer_data = guard_raw[key]
+			if timer_data is Dictionary:
+				for tk in timer_data:
+					if timer_data[tk] is float:
+						timer_data[tk] = int(timer_data[tk])
+			GameManager._guard_timers[int(key)] = timer_data
 
 	# Restore _sat_points (string keys -> int keys)
 	GameManager._sat_points.clear()

@@ -617,6 +617,26 @@ func _apply_intervention_results(state: BattleState, istate: Dictionary) -> void
 					if buff.get("mult_def", false):
 						u.def_stat = int(float(u.def_stat) * (1.0 + buff.get("value", 0.0)))
 				break
+	# BUG FIX: sync defender units too (rally/shield_wall on defender side was lost)
+	for d in istate.get("def_units", []):
+		for u in state.defender_units:
+			if u.slot == d["slot"]:
+				u.soldiers = d["soldiers"]
+				u.hp = u.soldiers * u.hp_per_soldier
+				if d["soldiers"] <= 0:
+					u.soldiers = 0
+					u.hp = 0
+				u.row = 0 if d["row"] == "front" else 1
+				if d.has("morale"):
+					u.morale = clampi(d["morale"], 0, 100)
+					if u.is_routed and u.morale > 0:
+						u.is_routed = false
+				for buff in d.get("buffs", []):
+					if buff.get("mult_atk", false):
+						u.atk = int(float(u.atk) * (1.0 + buff.get("value", 0.0)))
+					if buff.get("mult_def", false):
+						u.def_stat = int(float(u.def_stat) * (1.0 + buff.get("value", 0.0)))
+				break
 
 
 ## Infer a display class from troop_id for color coding in combat view.
@@ -1110,10 +1130,9 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 		if attacker.has_passive("rps_bonus") and counter_atk > 1.0:
 			counter_atk += 0.15  # counter_tactics: +15% to counter multiplier
 		base_damage *= counter_atk
-	# def_mult < 1.0 means attacker takes less damage; > 1.0 means more.
-	# Translate to defender effectiveness: scale defender's contribution inversely.
+	# BUG FIX: def_mult should multiply, not divide. def_mult < 1.0 reduces damage taken.
 	if _counter["def_mult"] != 1.0:
-		base_damage /= _counter["def_mult"]
+		base_damage *= _counter["def_mult"]
 
 	# v4.5: light_slayer (rin_sacred_blade) — +15% damage vs light faction units
 	if attacker.has_passive("light_slayer"):
@@ -1807,7 +1826,10 @@ func _apply_ultimate_damage(state: BattleState, ult_result: Dictionary, caster_s
 					living.append(eu)
 			if not living.is_empty():
 				var target: BattleUnit = living[randi() % living.size()]
-				target.soldiers = maxi(0, target.soldiers - mini(dmg, target.soldiers))
+				# BUG FIX: apply damage through HP system to keep soldiers and HP in sync
+				var hp_dmg: int = dmg * target.hp_per_soldier
+				target.hp = maxi(0, target.hp - hp_dmg)
+				_recalc_soldiers(target)
 		if healed > 0:
 			for au in ally_units:
 				if au.is_alive() and au.soldiers < au.max_soldiers:

@@ -176,8 +176,14 @@ func _add_slot_row(slot_index: int, label: String) -> void:
 	if has_save:
 		var info: Dictionary = SaveManager.get_save_info(actual_slot) if SaveManager.has_method("get_save_info") else {}
 		var turn: int = info.get("turn", 0)
-		var faction: String = info.get("faction_name", "???")
-		var date: String = info.get("save_date", "")
+		# BUG FIX: save data uses "faction" (int) and "timestamp", not "faction_name"/"save_date"
+		var faction_id = info.get("faction", -1)
+		var faction: String = "???"
+		if faction_id is int and faction_id >= 0 and FactionData.has_method("get_faction_name"):
+			faction = FactionData.get_faction_name(faction_id)
+		elif info.has("faction_name"):
+			faction = info.get("faction_name", "???")
+		var date: String = info.get("timestamp", info.get("save_date", ""))
 
 		var detail_lbl := Label.new()
 		detail_lbl.text = "Turn %d | %s | %s" % [turn, faction, date]
@@ -229,7 +235,9 @@ func _on_save_slot(slot: int) -> void:
 	if SaveManager.has_method("save_game"):
 		var success: bool = SaveManager.save_game(slot)
 		if success:
-			EventBus.message_log.emit("[color=lime]Game saved to slot %d[/color]" % (slot + 1))
+			# BUG FIX: display "Auto Save" for auto-save slot instead of "slot 100"
+			var slot_name: String = "Auto Save" if slot == SaveManager.AUTO_SLOT else "slot %d" % (slot + 1)
+			EventBus.message_log.emit("[color=lime]Game saved to %s[/color]" % slot_name)
 		else:
 			EventBus.message_log.emit("[color=red]Save failed[/color]")
 	_refresh_slots()
@@ -240,7 +248,8 @@ func _on_load_slot(slot: int) -> void:
 	if SaveManager.has_method("load_game"):
 		var success: bool = SaveManager.load_game(slot)
 		if success:
-			EventBus.message_log.emit("[color=lime]Slot %d loaded[/color]" % (slot + 1))
+			var slot_name: String = "Auto Save" if slot == SaveManager.AUTO_SLOT else "Slot %d" % (slot + 1)
+			EventBus.message_log.emit("[color=lime]%s loaded[/color]" % slot_name)
 			hide_panel()
 		else:
 			EventBus.message_log.emit("[color=red]Load failed[/color]")

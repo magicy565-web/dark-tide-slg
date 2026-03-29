@@ -278,6 +278,23 @@ func _reset_all_singletons() -> void:
 		HeroLeveling.hero_unlocked_passives.clear()
 		HeroLeveling.hero_current_hp.clear()
 		HeroLeveling.hero_current_mp.clear()
+	# BUG FIX: reset systems that were missing, causing stale state on New Game
+	if SupplySystem.has_method("reset"):
+		SupplySystem.reset()
+	if SiegeSystem.has_method("reset"):
+		SiegeSystem.reset()
+	if TileDevelopment.has_method("reset"):
+		TileDevelopment.reset()
+	if AIStrategicPlanner.has_method("reset"):
+		AIStrategicPlanner.reset()
+	if ResearchManager.has_method("reset"):
+		ResearchManager.reset()
+	if MarchSystem.has_method("reset"):
+		MarchSystem.reset()
+	if EnchantmentSystem.has_method("reset"):
+		EnchantmentSystem.reset()
+	if TutorialManager.has_method("reset"):
+		TutorialManager.reset()
 
 
 # ═══════════════════════════════════════════

@@ -73,9 +73,13 @@ func _evaluate_tier(threat: int) -> int:
 func _apply_defense_bonus() -> void:
 	## Adjacent uncaptured light outposts get +30% garrison bonus.
 	for tile in GameManager.tiles:
+		if tile == null:
+			continue
 		tile["alliance_def_bonus"] = 0  # Reset
 
 	for tile in GameManager.tiles:
+		if tile == null:
+			continue
 		if tile["owner_id"] >= 0:
 			continue
 		if tile.get("light_faction", -1) < 0:

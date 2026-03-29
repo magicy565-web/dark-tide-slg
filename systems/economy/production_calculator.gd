@@ -115,7 +115,9 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 			for adj_idx in adj_tiles:
 				var adj_effects: Dictionary = TileDevelopment.get_adjacent_effects(adj_idx)
 				if adj_effects.has("gold_mult_adjacent"):
-					income["gold"] = int(float(income["gold"]) * adj_effects["gold_mult_adjacent"])
+					# BUG FIX: only multiply this tile's gold, not cumulative total
+					var adj_gold_bonus: int = int(float(g) * (adj_effects["gold_mult_adjacent"] - 1.0))
+					income["gold"] += adj_gold_bonus
 				if adj_effects.has("order_per_turn_adjacent"):
 					# Apply order bonus to this tile's public order
 					var cur_order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)

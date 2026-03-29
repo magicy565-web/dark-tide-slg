@@ -134,7 +134,8 @@ func invest_in_intel(player_id: int, gold_amount: int) -> int:
 	if points <= 0:
 		return current
 	var actual_cost: int = points * INTEL_COST_PER_POINT
-	ResourceManager.spend(player_id, {"gold": actual_cost})
+	if not ResourceManager.spend(player_id, {"gold": actual_cost}):
+		return current  # BUG FIX: check spend() return value
 	_set_intel(player_id, current + points)
 	EventBus.message_log.emit("[谍报] 投资%d金, 情报+%d (当前%d/%d)" % [
 		actual_cost, points, get_intel(player_id), max_intel])
@@ -200,9 +201,14 @@ func execute_operation(player_id: int, operation_type: int, target) -> Dictionar
 	var success_chance: int = op_def["success"]
 	success_chance += _get_spy_master_bonus(player_id)
 	if target is int and target >= 0:
-		# If target is a faction/player, apply their counter-intel
-		var target_counter: int = get_counter_intel(target)
-		success_chance -= target_counter / 2
+		# BUG FIX: for tile-targeted ops, look up tile owner for counter-intel
+		var target_pid: int = target
+		if operation_type in [OpType.SCOUT, OpType.SABOTAGE, OpType.INCITE_REVOLT]:
+			if target < GameManager.tiles.size() and GameManager.tiles[target] != null:
+				target_pid = GameManager.tiles[target].get("owner_id", -1)
+		if target_pid >= 0:
+			var target_counter: int = get_counter_intel(target_pid)
+			success_chance -= target_counter / 2
 
 	# Scout synergy: if SABOTAGE or INCITE_REVOLT on a tile scouted within last 3 turns
 	if operation_type in [OpType.SABOTAGE, OpType.INCITE_REVOLT] and target is int:
@@ -377,12 +383,15 @@ func _get_intel_decay(player_id: int) -> int:
 
 func _count_hero_passive(player_id: int, passive_name: String) -> int:
 	## Count recruited heroes with the given passive. Checks base passive + level passives.
+	## BUG FIX: only count heroes belonging to the specified player
 	var count: int = 0
 	if not HeroSystem:
 		return count
 	for hero_id in HeroSystem.recruited_heroes:
 		var info: Dictionary = HeroSystem.get_hero_info(hero_id)
 		if info.is_empty():
+			continue
+		if info.get("owner_id", -1) != player_id:
 			continue
 		if info.get("passive", "") == passive_name:
 			count += 1
@@ -618,11 +627,18 @@ func from_save_data(data: Dictionary) -> void:
 	_fix_int_keys(_intel)
 	_fix_int_keys(_counter_intel)
 	_fix_int_keys(_cooldowns)
+	# BUG FIX: fix inner dict keys for cooldowns and consecutive_failures
+	for pid in _cooldowns:
+		if _cooldowns[pid] is Dictionary:
+			_fix_int_keys(_cooldowns[pid])
 	_fix_int_keys(_revealed_tiles)
 	_fix_int_keys(_intercepted_orders)
 	_fix_int_keys(_sabotaged_tiles)
 	_fix_int_keys(_wounded_heroes)
 	_fix_int_keys(_consecutive_failures)
+	for pid in _consecutive_failures:
+		if _consecutive_failures[pid] is Dictionary:
+			_fix_int_keys(_consecutive_failures[pid])
 	_fix_int_keys(_scout_history)
 
 

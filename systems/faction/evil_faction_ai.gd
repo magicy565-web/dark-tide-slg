@@ -507,8 +507,10 @@ func _pick_raid_composition(faction_id: int, base_strength: int) -> Array:
 
 	# Fallback: use counter-composition from planner
 	var counter: Array = AIStrategicPlanner.get_counter_composition(ai_key, faction_id)
+	if counter.is_empty():
+		return composition  # No counter data available, return what we have
 	for i in range(base_strength):
-		composition.append(counter[i % maxi(1, counter.size())])
+		composition.append(counter[i % counter.size()])
 	return composition
 
 
