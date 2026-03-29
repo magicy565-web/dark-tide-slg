@@ -15,10 +15,12 @@ var _deco_textures: Dictionary = {}  # Extracted decoration sprites by terrain/t
 var _military_icon_tex: Texture2D = null  # Military army icon for 3D markers
 
 func _load_map_assets() -> void:
-	# Map background (primary)
-	_map_bg_texture = _safe_tex_load("res://assets/map/map_background.png")
+	# Map background — prefer v3 hand-painted, fall back to others
+	_map_bg_texture = _safe_tex_load("res://assets/map/backgrounds/map_bg_v3.png")
+	if not _map_bg_texture:
+		_map_bg_texture = _safe_tex_load("res://assets/map/map_background.png")
 	# Load alternative backgrounds for faction-themed maps
-	for bg_name in ["map_pixel_hd", "map_hd_v1", "map_hd_tw_v1", "map_hd_mj_v0", "map_hd_mj_v1", "map_hd_mj_v2", "map_hd_mj_v3"]:
+	for bg_name in ["map_bg_v3", "map_pixel_hd", "map_hd_v1", "map_hd_tw_v1", "map_hd_mj_v0", "map_hd_mj_v1", "map_hd_mj_v2", "map_hd_mj_v3"]:
 		var tex: Texture2D = _safe_tex_load("res://assets/map/backgrounds/%s.png" % bg_name)
 		if tex:
 			_map_bg_variants.append(tex)
@@ -31,20 +33,28 @@ func _load_map_assets() -> void:
 		_deco_textures[dname] = _safe_tex_load("res://assets/map/decorations/%s.png" % dname)
 	# Military icon for army markers
 	_military_icon_tex = _safe_tex_load("res://assets/map/actions/military_army.png")
-	# Terrain textures — prefer HD pixel-art tiles, fall back to simple textures
+	# Terrain textures — prefer v3 hand-painted, fall back to HD, then basic
 	for tname in ["plains","forest","mountain","swamp","coastal","fortress_wall","river","ruins","wasteland","volcanic"]:
-		var hd_terrain: Texture2D = _safe_tex_load("res://assets/map/terrain_hd/terrain_%s.png" % tname)
-		if hd_terrain:
-			_terrain_textures[tname] = hd_terrain
+		var v3_terrain: Texture2D = _safe_tex_load("res://assets/map/terrain_v3/terrain_%s.png" % tname)
+		if v3_terrain:
+			_terrain_textures[tname] = v3_terrain
 		else:
-			_terrain_textures[tname] = _safe_tex_load("res://assets/map/terrain/terrain_%s.png" % tname)
-	# Settlement/building icons — prefer HD territory art, fall back to pixel icons
+			var hd_terrain: Texture2D = _safe_tex_load("res://assets/map/terrain_hd/terrain_%s.png" % tname)
+			if hd_terrain:
+				_terrain_textures[tname] = hd_terrain
+			else:
+				_terrain_textures[tname] = _safe_tex_load("res://assets/map/terrain/terrain_%s.png" % tname)
+	# Settlement/building icons — prefer v3, fall back to HD, then basic
 	for sname in ["fortress","village","watchtower","trading_post","beacon","ruins","port","gate","bandit","crystal_mine","horse_ranch","gunpowder","shadow_rift","stronghold","event"]:
-		var hd: Texture2D = _safe_tex_load("res://assets/map/settlements_hd/settlement_%s.png" % sname)
-		if hd:
-			_settlement_textures[sname] = hd
+		var v3: Texture2D = _safe_tex_load("res://assets/map/settlements_v3/settlement_%s.png" % sname)
+		if v3:
+			_settlement_textures[sname] = v3
 		else:
-			_settlement_textures[sname] = _safe_tex_load("res://assets/map/settlements/settlement_%s.png" % sname)
+			var hd: Texture2D = _safe_tex_load("res://assets/map/settlements_hd/settlement_%s.png" % sname)
+			if hd:
+				_settlement_textures[sname] = hd
+			else:
+				_settlement_textures[sname] = _safe_tex_load("res://assets/map/settlements/settlement_%s.png" % sname)
 	# Faction crests — prefer HD ornate shields, fall back to simple crests
 	for fname in ["orc","pirate","dark_elf","human","high_elf","mage","bandit","neutral"]:
 		var hd_crest: Texture2D = _safe_tex_load("res://assets/map/crests_hd/crest_%s.png" % fname)
