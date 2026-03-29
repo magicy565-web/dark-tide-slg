@@ -1723,6 +1723,74 @@ func _tick_hero_skills(state: BattleState) -> void:
 					"desc": "%s 发动 %s!" % [u.troop_id, ult_result.get("name", "必杀技")],
 					"damage": ult_result.get("total_damage", 0),
 				})
+				# Log buff/heal/freeze sub-effects from ultimates
+				var ult_skill: Dictionary = HeroSkillsAdvanced.ultimate_skills.get(hid, {})
+				var ult_effect: String = ult_skill.get("effect", "")
+				if ult_effect == "buff_all":
+					var allies: Array[BattleUnit] = state.attacker_units if side == "attacker" else state.defender_units
+					for si in range(allies.size()):
+						if allies[si].is_alive():
+							state.action_log.append({"action": "buff", "side": side, "slot": si, "buff_type": "team_buff", "desc": "全体增益!"})
+				elif ult_effect == "heal_all":
+					var allies: Array[BattleUnit] = state.attacker_units if side == "attacker" else state.defender_units
+					for si in range(allies.size()):
+						if allies[si].is_alive():
+							state.action_log.append({"action": "heal", "side": side, "slot": si, "is_mass": true, "desc": "全体治疗!"})
+				elif ult_effect == "aoe_damage_freeze":
+					var enemy_side: String = "defender" if side == "attacker" else "attacker"
+					var enemies: Array[BattleUnit] = state.defender_units if side == "attacker" else state.attacker_units
+					for si in range(enemies.size()):
+						if enemies[si].is_alive():
+							state.action_log.append({"action": "debuff", "side": enemy_side, "slot": si, "debuff_type": "freeze", "desc": "冻结!"})
+
+	# 5) Tick and execute combo skills
+	var army_heroes: Array = []
+	for u2 in state.attacker_units:
+		if u2.is_alive() and not u2.hero_id.is_empty():
+			army_heroes.append(u2.hero_id)
+	if not army_heroes.is_empty():
+		HeroSkillsAdvanced.tick_combo_charges(army_heroes)
+		var available_combos: Array = HeroSkillsAdvanced.check_available_combos(army_heroes)
+		for combo_info in available_combos:
+			if combo_info.get("charged", false):
+				var cid: int = combo_info.get("combo_id", -1)
+				var battle_dict: Dictionary = _state_to_resolver_dict(state)
+				var combo_result: Dictionary = HeroSkillsAdvanced.execute_combo(cid, battle_dict)
+				if combo_result.get("ok", false):
+					_apply_ultimate_damage(state, combo_result, "attacker")
+					state.action_log.append({
+						"action": "combo",
+						"combo_index": cid,
+						"combo_name": combo_result.get("name", ""),
+						"side": "attacker",
+						"slot": 0,
+						"desc": "连携技 %s 发动!" % combo_result.get("name", ""),
+						"damage": combo_result.get("total_damage", 0),
+					})
+	# Same for defender combos
+	var def_heroes: Array = []
+	for u2 in state.defender_units:
+		if u2.is_alive() and not u2.hero_id.is_empty():
+			def_heroes.append(u2.hero_id)
+	if not def_heroes.is_empty():
+		HeroSkillsAdvanced.tick_combo_charges(def_heroes)
+		var available_combos_d: Array = HeroSkillsAdvanced.check_available_combos(def_heroes)
+		for combo_info in available_combos_d:
+			if combo_info.get("charged", false):
+				var cid: int = combo_info.get("combo_id", -1)
+				var battle_dict: Dictionary = _state_to_resolver_dict(state)
+				var combo_result: Dictionary = HeroSkillsAdvanced.execute_combo(cid, battle_dict)
+				if combo_result.get("ok", false):
+					_apply_ultimate_damage(state, combo_result, "defender")
+					state.action_log.append({
+						"action": "combo",
+						"combo_index": cid,
+						"combo_name": combo_result.get("name", ""),
+						"side": "defender",
+						"slot": 0,
+						"desc": "连携技 %s 发动!" % combo_result.get("name", ""),
+						"damage": combo_result.get("total_damage", 0),
+					})
 
 
 func _apply_ultimate_damage(state: BattleState, ult_result: Dictionary, caster_side: String) -> void:
