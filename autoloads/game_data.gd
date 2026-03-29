@@ -64,7 +64,7 @@ var PASSIVE_DEFS: Dictionary = {
 	"death_burst":      {"name": "死亡爆发", "desc": "死亡时ATK×2全体伤害",      "type": "on_death"},
 	# ── Neutral / special passives ──
 	"zero_food":        {"name": "不死之军", "desc": "不消耗粮食,-1兵/回合,胜利+2兵", "type": "special"},
-	"low_hp_double":    {"name": "血怒",     "desc": "<50%血ATK翻倍",            "type": "conditional_stat"},
+	"low_hp_double":    {"name": "血怒",     "desc": "<50%血ATK翻倍",            "type": "conditional_stat", "stat": "atk", "mult": 2.0},
 	"self_destruct_20": {"name": "自爆",     "desc": "20%概率自损1兵",           "type": "per_round", "chance": 0.2},
 	"siege_x3":         {"name": "超级攻城", "desc": "城防削减×3",               "type": "siege", "mult": 3.0},
 	# ── Rebel / wanderer passives ──
@@ -74,12 +74,12 @@ var PASSIVE_DEFS: Dictionary = {
 	"guerrilla":        {"name": "游击",     "desc": "森林/沼泽ATK+2, DEF+1",   "type": "terrain_bonus"},
 	"conscript":        {"name": "征召",     "desc": "经过友方据点时+1兵",       "type": "movement"},
 	# ── Ultimate passives ──
-	"waaagh_triple":    {"name": "WAAAGH暴怒", "desc": "WAAAGH>=80时ATK×3",      "type": "conditional_stat"},
+	"waaagh_triple":    {"name": "WAAAGH暴怒", "desc": "WAAAGH>=80时ATK×3",      "type": "conditional_stat", "stat": "atk", "mult": 3.0},
 	"siege_ignore":     {"name": "无视城防",   "desc": "无视城防直接进入战斗",    "type": "siege"},
 	"shadow_flight":    {"name": "暗影飞行",   "desc": "无视地形+30%双倍伤害",    "type": "special"},
 	# ── Faction-specific passives (design doc) ──
 	"horde_bonus":      {"name": "兽群之力",   "desc": "同军3+兽人时ATK+2",       "type": "conditional_stat", "stat": "atk", "value": 2, "min_orc_count": 3},
-	"berserker_rage":   {"name": "狂暴化",     "desc": "<50%HP时ATK翻倍失DEF",    "type": "conditional_stat"},
+	"berserker_rage":   {"name": "狂暴化",     "desc": "<50%HP时ATK翻倍失DEF",    "type": "conditional_stat", "stat": "atk", "mult": 2.0, "def_penalty": true},
 	"charge_stun":      {"name": "冲锋震荡",   "desc": "首击×1.5且30%眩晕1回合",  "type": "first_attack", "mult": 1.5, "stun_chance": 0.3},
 	"pistol_shot":      {"name": "手枪射击",   "desc": "前排可攻后排(手枪)",       "type": "targeting"},
 	"reload_shot":      {"name": "火枪齐射",   "desc": "先手射击后需1回合装填",    "type": "priority", "reload_turns": 1},
@@ -97,7 +97,7 @@ var PASSIVE_DEFS: Dictionary = {
 	"double_forest":    {"name": "森林双击",   "desc": "森林地形攻击两次",         "type": "terrain_bonus"},
 	"root_bind":        {"name": "根缚",       "desc": "定身1敌2回合",             "type": "active", "stun_duration": 2},
 	"regen_2":          {"name": "深根再生",   "desc": "每回合回复2兵",            "type": "per_round"},
-	"blood_triple":     {"name": "血怒三倍",   "desc": "<30%HP时ATK×3不可撤退",    "type": "conditional_stat"},
+	"blood_triple":     {"name": "血怒三倍",   "desc": "<30%HP时ATK×3不可撤退",    "type": "conditional_stat", "stat": "atk", "mult": 3.0, "no_retreat": true},
 	"blood_ritual":     {"name": "血祭",       "desc": "牺牲2兵治愈全军",          "type": "active"},
 	"war_cry":          {"name": "战吼",       "desc": "全友军ATK+2持续3回合",     "type": "active"},
 	"misfire":          {"name": "不稳定",     "desc": "15%概率自伤",              "type": "per_round", "chance": 0.15},
@@ -105,6 +105,11 @@ var PASSIVE_DEFS: Dictionary = {
 	"gold_on_hit":      {"name": "生财有道",   "desc": "每次攻击+2金",             "type": "on_hit"},
 	"leadership":       {"name": "统帅",       "desc": "邻近部队ATK+2",            "type": "aura_local"},
 	"trade_hire":       {"name": "佣兵雇佣",   "desc": "战中可招募1随机佣兵",      "type": "active"},
+	# ── v5.0: Missing passive definitions for new troop types ──
+	"flanking_charge":  {"name": "侧翼冲锋",   "desc": "无视前排嘲讽攻击后排",      "type": "targeting"},
+	"siege_bombard":    {"name": "高爆轰炸",   "desc": "攻城×3+AoE溅射",           "type": "siege", "mult": 3.0},
+	"shadow_stealth":   {"name": "暗影潜行",   "desc": "首回合隐身+反击×1.5",       "type": "stealth", "duration": 1, "counter_mult": 1.5},
+	"veteran_resolve":  {"name": "老兵意志",   "desc": "永不溃逃, 士气不低于30",     "type": "special", "min_morale": 30},
 }
 
 # ─── Tier Mechanic Constants ────────────────────────────────────────────────
@@ -547,7 +552,7 @@ func get_army_combat_power(army: Array) -> int:
 		var td: Dictionary = get_troop_def(tid)
 		if td.is_empty():
 			continue
-		power += troop["soldiers"] * (td["base_atk"] + td["base_def"])
+		power += troop.get("soldiers", 0) * (td.get("base_atk", 0) + td.get("base_def", 0))
 	return power
 
 

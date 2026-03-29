@@ -187,7 +187,8 @@ func get_def_multiplier(faction_key: String) -> float:
 
 
 func get_hp_multiplier(faction_key: String) -> float:
-	return get_stat_multipliers(faction_key).get("hp_mult", 1.0)
+	# BUG FIX: apply NG+ scaling to HP like ATK/DEF
+	return get_stat_multipliers(faction_key).get("hp_mult", 1.0) * NgPlusManager.get_ai_stat_mult()
 
 
 func get_garrison_regen_bonus(faction_key: String) -> int:

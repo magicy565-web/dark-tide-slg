@@ -221,6 +221,11 @@ func _collect_save_data() -> Dictionary:
 		"tile_development": TileDevelopment.to_save_data(),
 		"supply_system": SupplySystem.to_save_data(),
 		"siege": SiegeSystem.to_save_data(),
+		# BUG FIX: save 4 previously missing systems
+		"march_system": MarchSystem.to_save_data() if MarchSystem != null else {},
+		"enchantment": EnchantmentSystem.to_save_data() if EnchantmentSystem != null else {},
+		"hero_skills_advanced": HeroSkillsAdvanced.to_save_data() if HeroSkillsAdvanced != null else {},
+		"environment": EnvironmentSystem.to_save_data() if EnvironmentSystem != null else {},
 	}
 
 
@@ -368,6 +373,16 @@ func _apply_save_data(data: Dictionary) -> void:
 	if data.has("siege"):
 		SiegeSystem.from_save_data(data.get("siege", {}))
 
+	# 4h. BUG FIX: Restore 4 previously missing systems (v5.1+)
+	if data.has("march_system") and MarchSystem != null:
+		MarchSystem.from_save_data(data.get("march_system", {}))
+	if data.has("enchantment") and EnchantmentSystem != null:
+		EnchantmentSystem.from_save_data(data.get("enchantment", {}))
+	if data.has("hero_skills_advanced") and HeroSkillsAdvanced != null:
+		HeroSkillsAdvanced.from_save_data(data.get("hero_skills_advanced", {}))
+	if data.has("environment") and EnvironmentSystem != null:
+		EnvironmentSystem.from_save_data(data.get("environment", {}))
+
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
 	EventBus.resources_changed.emit(pid)
@@ -474,7 +489,7 @@ func _load_game_state(gs: Dictionary) -> void:
 			var troops: Array = army.get("troops", [])
 			for troop in troops:
 				if troop is Dictionary:
-					for fld in ["soldiers", "max_soldiers", "base_atk", "base_def", "morale"]:
+					for fld in ["soldiers", "max_soldiers", "hp_per_soldier", "total_hp", "max_hp", "experience", "base_atk", "base_def", "morale"]:
 						if troop.has(fld) and troop[fld] is float:
 							troop[fld] = int(troop[fld])
 			GameManager.armies[int_key] = army

@@ -2799,6 +2799,10 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		if _auto_save_on:
 			SaveManager.auto_save()
 
+	# BUG FIX: reset enchantment combat state to prevent rage stacks persisting across battles
+	if EnchantmentSystem and EnchantmentSystem.has_method("reset_combat_state"):
+		EnchantmentSystem.reset_combat_state()
+
 	# Build attacker army dict for CombatSystem
 	var attacker_units: Array = []
 	var slot_idx: int = 0
@@ -3088,6 +3092,7 @@ func _terrain_to_combat_enum(terrain: String) -> int:
 		"forest": return 1   # CombatSystem.Terrain.FOREST
 		"mountain": return 2 # CombatSystem.Terrain.MOUNTAIN
 		"swamp": return 3    # CombatSystem.Terrain.SWAMP
+		"coastal": return 4  # BUG FIX: was missing, defaulting to PLAINS
 		"wall": return 5     # CombatSystem.Terrain.FORTRESS
 	return 0
 

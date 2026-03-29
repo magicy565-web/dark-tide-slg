@@ -1096,11 +1096,11 @@ func from_save_data(data: Dictionary) -> void:
 				var rel = _relations[pid][fid]
 				if rel is Dictionary and rel.has("rebellion_turns"):
 					rel["rebellion_turns"] = int(rel["rebellion_turns"])
-	_light_ceasefire_turns = data.get("light_ceasefire_turns", 0)
-	_light_extort_cooldown = data.get("light_extort_cooldown", 0)
+	_light_ceasefire_turns = int(data.get("light_ceasefire_turns", 0))
+	_light_extort_cooldown = int(data.get("light_extort_cooldown", 0))
 	_pending_light_peace = data.get("pending_light_peace", {}).duplicate(true)
 	_reputation = data.get("reputation", {}).duplicate()
-	_treaty_breaks_total = data.get("treaty_breaks_total", 0)
+	_treaty_breaks_total = int(data.get("treaty_breaks_total", 0))
 	# Fix reputation int values after JSON round-trip
 	for key in _reputation:
 		_reputation[key] = int(_reputation[key])

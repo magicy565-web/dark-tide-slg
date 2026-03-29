@@ -1271,7 +1271,8 @@ func plan_concentration(faction_key: String) -> Dictionary:
 		for s in supporters:
 			combined_force += s["garrison"]
 
-		var ratio: float = float(combined_force) / maxf(float(enemy_garrison) * 8.0, 1.0)
+		# BUG FIX: removed asymmetric *8.0 that made concentration ratio 8x harder to reach
+		var ratio: float = float(combined_force) / maxf(float(enemy_garrison), 1.0)
 		if ratio > 2.0 and float(combined_force) > best_combined_score:
 			best_combined_score = float(combined_force)
 			best_target_idx = weak_enemy
@@ -1309,7 +1310,8 @@ func should_concentrate(faction_key: String) -> bool:
 			var weak: int = _find_weakest_adjacent_enemy_tile(bi["index"])
 			if weak >= 0:
 				var enemy_g: int = GameManager.tiles[weak].get("garrison", 0)
-				if float(bi["garrison"]) > float(enemy_g) * 8.0 * 1.2:
+				# BUG FIX: removed asymmetric *8.0 from can_attack check
+			if float(bi["garrison"]) > float(enemy_g) * 1.2:
 					can_attack = true
 					break
 		if not can_attack:
@@ -1628,11 +1630,18 @@ func to_save_data() -> Dictionary:
 func from_save_data(data: Dictionary) -> void:
 	_player_memory = data.get("player_memory", {}).duplicate(true)
 	_faction_strategy = data.get("faction_strategy", {}).duplicate()
-	_coordinated_target = data.get("coordinated_target", -1)
-	_coordination_cooldown = data.get("coordination_cooldown", 0)
+	_coordinated_target = int(data.get("coordinated_target", -1))
+	_coordination_cooldown = int(data.get("coordination_cooldown", 0))
 	_pending_feints = data.get("pending_feints", {}).duplicate(true)
 	_concentration_plans = data.get("concentration_plans", {}).duplicate(true)
 	_stall_counters = data.get("stall_counters", {}).duplicate()
 	_diversion_results = data.get("diversion_results", {}).duplicate(true)
 	_feint_results = data.get("feint_results", {}).duplicate(true)
 	_last_tile_counts = data.get("last_tile_counts", {}).duplicate()
+	# BUG FIX: cast Strategy enum values and counter ints after JSON round-trip
+	for key in _faction_strategy:
+		_faction_strategy[key] = int(_faction_strategy[key])
+	for key in _stall_counters:
+		_stall_counters[key] = int(_stall_counters[key])
+	for key in _last_tile_counts:
+		_last_tile_counts[key] = int(_last_tile_counts[key])
