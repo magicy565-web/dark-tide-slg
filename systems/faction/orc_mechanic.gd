@@ -651,7 +651,10 @@ func _end_frenzy(player_id: int) -> void:
 	if loss > 0:
 		RecruitManager.apply_combat_losses(player_id, loss)
 		EventBus.message_log.emit("[color=red]WAAAGH! 狂暴结束! 军队损失%d (疲劳)[/color]" % loss)
-	_waaagh[player_id] = 0
+	# Set WAAAGH to infighting threshold + 1 to avoid immediate infighting next turn
+	# (frenzy losses are already punishing enough)
+	var infighting_threshold: int = params.get("waaagh_infighting_threshold", 20)
+	_waaagh[player_id] = infighting_threshold + 1
 	EventBus.frenzy_ended.emit(player_id)
 	EventBus.waaagh_changed.emit(player_id, _waaagh[player_id])
 

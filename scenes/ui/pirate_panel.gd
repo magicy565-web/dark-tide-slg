@@ -1039,7 +1039,7 @@ func _on_hire_merc(pid: int, merc_id: String, cost: int) -> void:
 	# Add soldiers from mercenary
 	for merc in PirateMechanic.MERCENARY_TYPES:
 		if merc["id"] == merc_id:
-			ResourceManager.add(pid, {"soldiers": merc["count"]})
+			ResourceManager.add_army(pid, merc["count"])
 			EventBus.message_log.emit("Hired %s x%d (-%dg)" % [merc["name"], merc["count"], cost])
 			break
 	_refresh()

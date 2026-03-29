@@ -403,7 +403,14 @@ func to_save_data() -> Dictionary:
 
 
 func from_save_data(data: Dictionary) -> void:
-	_raid_cooldowns = data.get("raid_cooldowns", {}).duplicate()
+	var raw: Dictionary = data.get("raid_cooldowns", {}).duplicate()
+	# Fix int keys after JSON round-trip (keys become strings)
+	_raid_cooldowns = {}
+	for k in raw:
+		if k is String and k.is_valid_int():
+			_raid_cooldowns[int(k)] = int(raw[k])
+		else:
+			_raid_cooldowns[k] = raw[k]
 
 
 func _faction_to_ai_key(faction_id: int) -> String:

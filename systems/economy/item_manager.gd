@@ -18,6 +18,7 @@ func _ready() -> void:
 
 func reset() -> void:
 	_inventories.clear()
+	_national_items.clear()
 
 func init_player(player_id: int) -> void:
 	_inventories[player_id] = []

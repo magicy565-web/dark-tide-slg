@@ -286,9 +286,9 @@ func _build_building_phase(dev: Dictionary) -> void:
 	var accent: Color = _get_path_color(path)
 	var path_data: Dictionary = TileDevelopment.PATH_BONUSES[path]
 	var buildings_built: Array = dev["buildings"]
-	var total_slots: int = TileDevelopment.SLOTS_PER_LEVEL[mini(
+	var total_slots: int = TileDevelopment.SLOTS_PER_LEVEL[clampi(
 		TileDevelopment._get_tile_level(_tile_idx) - 1,
-		TileDevelopment.SLOTS_PER_LEVEL.size() - 1)]
+		0, TileDevelopment.SLOTS_PER_LEVEL.size() - 1)]
 	var used_slots: int = buildings_built.size()
 
 	content_vbox.add_child(_lbl("%s %s" % [_get_path_icon(path), path_data["name"]], 18, accent))

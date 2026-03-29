@@ -147,6 +147,9 @@ func complete_quest(player_id: int, neutral_faction: int) -> bool:
 	_quest_progress[player_id][neutral_faction]["completed"] = true
 	if not _recruited_factions.has(player_id):
 		_recruited_factions[player_id] = []
+	# Guard against duplicate recruitment (e.g., race between auto-advance and manual advance)
+	if neutral_faction in _recruited_factions[player_id]:
+		return true
 	_recruited_factions[player_id].append(neutral_faction)
 	# Max out taming on completion
 	set_taming_level(player_id, neutral_faction, 10)
@@ -316,6 +319,7 @@ func apply_step_rewards(player_id: int, neutral_faction: int) -> void:
 		var count: int = reward["temp_soldiers"]
 		var duration: int = reward.get("temp_duration", 5)
 		ResourceManager.add_army(player_id, count)
+		BuffManager.add_buff(player_id, "temp_army_quest", "temp_army", count, duration, "quest")
 		EventBus.message_log.emit("获得%d临时士兵(%d回合)" % [count, duration])
 
 	# Reveal fog tiles (caravan step 1)
@@ -714,10 +718,22 @@ func from_save_data(data: Dictionary) -> void:
 					entry["step"] = int(entry["step"])
 	_recruited_factions = data.get("recruited_factions", {}).duplicate(true)
 	_fix_int_keys(_recruited_factions)
+	# Fix float values in recruited faction arrays (JSON round-trip: int -> float)
+	for pid in _recruited_factions:
+		if _recruited_factions[pid] is Array:
+			for i in range(_recruited_factions[pid].size()):
+				if _recruited_factions[pid][i] is float:
+					_recruited_factions[pid][i] = int(_recruited_factions[pid][i])
 	_recruitment_bonuses = data.get("recruitment_bonuses", {}).duplicate(true)
 	_fix_int_keys(_recruitment_bonuses)
 	_unlocked_units = data.get("unlocked_units", {}).duplicate(true)
 	_fix_int_keys(_unlocked_units)
+	# Fix float values in unlocked unit arrays
+	for pid in _unlocked_units:
+		if _unlocked_units[pid] is Array:
+			for i in range(_unlocked_units[pid].size()):
+				if _unlocked_units[pid][i] is float:
+					_unlocked_units[pid][i] = int(_unlocked_units[pid][i])
 	_pending_quest_combat = data.get("pending_quest_combat", {}).duplicate(true)
 	_fix_int_keys(_pending_quest_combat)
 	_caravan_item_timer = data.get("caravan_item_timer", {}).duplicate(true)

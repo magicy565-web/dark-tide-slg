@@ -30,6 +30,11 @@ func tick(player_id: int) -> void:
 	var altar_result: Dictionary = SlaveManager.tick_altar(player_id)
 	if altar_result.get("atk_bonus", 0) > 0:
 		EventBus.message_log.emit("[color=purple]祭坛效果: 全军攻击+%d (本回合)[/color]" % altar_result.get("atk_bonus", 0))
+	# Apply shadow essence production from altar sacrifices
+	var shadow_gain: int = altar_result.get("shadow_essence", 0)
+	if shadow_gain > 0:
+		ResourceManager.apply_delta(player_id, {"shadow_essence": shadow_gain})
+		EventBus.message_log.emit("[color=purple]祭坛产出: +%d 暗影精华[/color]" % shadow_gain)
 	if altar_result.get("sacrificed", false):
 		# BUG修复: 祭坛攻击加成上限为+10，防止无限叠加
 		_altar_atk_bonus[player_id] = mini(_altar_atk_bonus.get(player_id, 0) + 1, 10)

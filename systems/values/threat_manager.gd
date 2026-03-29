@@ -70,9 +70,9 @@ func _get_tier_for(val: int) -> int:
 # ═══════════════ DECAY ═══════════════
 
 func tick_decay() -> void:
-	## -5 threat per turn (natural decay, per 03_战略设定.md).
+	## Decay threat per turn (use BalanceConfig value, not hardcoded).
 	if _threat > 0:
-		change_threat(-5)
+		change_threat(BalanceConfig.THREAT_DECAY_PER_TURN)
 	# When threat is 0, skip decay entirely (no log spam)
 
 
@@ -124,25 +124,25 @@ func should_spawn_boss() -> bool:
 
 func check_dominance(player_owned_nodes: int, total_nodes: int) -> void:
 	if total_nodes > 0 and float(player_owned_nodes) / float(total_nodes) >= 0.5:
-		change_threat(5)
+		change_threat(BalanceConfig.THREAT_DOMINANCE_BONUS)
 
 
 # ═══════════════ THREAT CHANGE TRIGGERS ═══════════════
 
 func on_tile_captured() -> void:
-	change_threat(10)  # 03_战略设定: 占领+10
+	change_threat(BalanceConfig.THREAT_PER_CAPTURE)
 
 func on_hero_captured() -> void:
-	change_threat(20)  # 03_战略设定: 俘英雄+20
+	change_threat(BalanceConfig.THREAT_PER_HERO_CAPTURE)
 
 func on_army_destroyed() -> void:
 	change_threat(5)
 
 func on_hero_released() -> void:
-	change_threat(-10)  # 03_战略设定: 释放英雄-10
+	change_threat(BalanceConfig.THREAT_PER_HERO_RELEASE)
 
 func on_diplomacy_action() -> void:
-	change_threat(-15)  # 03_战略设定: 外交-15
+	change_threat(BalanceConfig.THREAT_PER_DIPLOMACY)
 
 
 # ═══════════════ SAVE / LOAD ═══════════════

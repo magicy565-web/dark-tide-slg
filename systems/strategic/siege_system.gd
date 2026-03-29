@@ -28,6 +28,11 @@ func _ready() -> void:
 	pass
 
 
+func reset() -> void:
+	_active_sieges.clear()
+	_next_siege_id = 1
+
+
 # ═══════════════ PUBLIC API ═══════════════
 
 ## Check whether a tile qualifies as fortified (requires siege to capture).

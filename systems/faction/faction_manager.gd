@@ -63,7 +63,7 @@ func mark_faction_dead(faction_id: int, conquering_player_id: int = -1) -> void:
 			OrderManager.on_faction_conquered()
 			# Only award prestige if the conquering player is the human player
 			var human_pid: int = GameManager.get_human_player_id()
-			if conquering_player_id == human_pid or conquering_player_id == -1:
+			if conquering_player_id == human_pid:
 				ResourceManager.apply_delta(
 					human_pid,
 					{"prestige": FactionData.PRESTIGE_SOURCES["conquer_faction"]}
