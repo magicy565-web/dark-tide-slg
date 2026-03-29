@@ -5595,6 +5595,24 @@ func run_ai_turn() -> void:
 				if new_id > 0:
 					ai_armies = get_player_armies(pid)
 
+		# ── Phase 0.5: Strategic tactical assessment ──
+		var _ai_faction_key: String = ""
+		match faction_id:
+			FactionData.FactionID.ORC: _ai_faction_key = "orc_ai"
+			FactionData.FactionID.PIRATE: _ai_faction_key = "pirate_ai"
+			FactionData.FactionID.DARK_ELF: _ai_faction_key = "dark_elf_ai"
+		var _tactical_plan: Dictionary = {}
+		if _ai_faction_key != "":
+			_tactical_plan = AIStrategicPlanner.get_tactical_plan(_ai_faction_key)
+			var _plan_type: String = _tactical_plan.get("type", "normal")
+			# Execute concentration before attacks
+			if _plan_type == "concentration":
+				AIStrategicPlanner.execute_concentration(_ai_faction_key)
+			# Execute retreats before attacks
+			if _plan_type == "retreat":
+				for _rt_idx in _tactical_plan.get("tiles", []):
+					AIStrategicPlanner.execute_retreat(_ai_faction_key, _rt_idx)
+
 		# ── Phase 1: Attack with armies (prioritize high-value targets) ──
 		for army in ai_armies:
 			if player["ap"] <= 0:
@@ -5614,10 +5632,27 @@ func run_ai_turn() -> void:
 					best_score = score
 					best_tile_idx = nb_idx
 			if best_score > 0.0 and best_tile_idx >= 0:
-				action_attack_with_army(army["id"], best_tile_idx)
-				ai_armies = get_player_armies(pid)  # Refresh after combat
-				did_action = true
-				break  # Re-evaluate after attack
+				# Siege-aware: check if target is fortified before attacking
+				var _skip_attack: bool = false
+				if SiegeSystem.is_tile_fortified(best_tile_idx):
+					# If another army already sieging, deploy to support instead
+					if SiegeSystem.is_tile_under_siege(best_tile_idx):
+						var existing_siege: Dictionary = SiegeSystem.get_siege_at_tile(best_tile_idx)
+						if existing_siege.get("attacker_player_id", -1) == pid:
+							_skip_attack = true  # Our siege, don't start another
+					else:
+						# Evaluate siege cost — only start if worth it
+						var siege_info: Dictionary = AIStrategicPlanner.evaluate_siege_cost(best_tile_idx)
+						if not siege_info.get("worth_sieging", true):
+							# Check commitment level
+							var commitments: Dictionary = AIStrategicPlanner.get_active_commitments("")
+							if commitments.get("overcommitted", false):
+								_skip_attack = true  # Too many sieges already
+				if not _skip_attack:
+					action_attack_with_army(army["id"], best_tile_idx)
+					ai_armies = get_player_armies(pid)  # Refresh after combat
+					did_action = true
+					break  # Re-evaluate after attack
 
 		if did_action:
 			continue
@@ -5740,9 +5775,56 @@ func run_ai_turn() -> void:
 		# No valid action, break
 		break
 
+	# ── Siege management phase: process existing AI sieges ──
+	_ai_manage_sieges(pid)
+
 	await get_tree().create_timer(0.3).timeout
 	if game_active:
 		end_turn()
+
+
+func _ai_manage_sieges(player_id: int) -> void:
+	## AI siege management: for each active siege, decide storm / continue / lift.
+	var sieges: Array = SiegeSystem.get_player_sieges(player_id)
+	for siege in sieges:
+		var siege_id: String = siege.get("siege_id", "")
+		if siege_id == "":
+			continue
+		var wall_hp: float = siege.get("wall_hp", 100.0)
+		var defender_morale: float = siege.get("defender_morale", 100.0)
+		var army_id: int = siege.get("attacker_army_id", -1)
+
+		# Calculate army health percentage
+		var army_health_pct: float = _get_army_health_pct(army_id)
+
+		# Storm if: wall_hp < 20 OR defender_morale < 20
+		if wall_hp < 20.0 or defender_morale < 20.0:
+			SiegeSystem.storm_walls(siege_id)
+			EventBus.message_log.emit("[AI] 发起强攻! (墙HP:%.0f 士气:%.0f)" % [wall_hp, defender_morale])
+			continue
+
+		# Lift if: army health < 40%
+		if army_health_pct < 0.4:
+			SiegeSystem.lift_siege(siege_id)
+			EventBus.message_log.emit("[AI] 撤围 — 军队损耗过大 (%.0f%%)" % (army_health_pct * 100.0))
+			continue
+
+		# Continue otherwise — do nothing, siege progresses naturally
+
+
+func _get_army_health_pct(army_id: int) -> float:
+	## Returns army health as 0.0-1.0 based on soldiers / max_soldiers.
+	if not armies.has(army_id):
+		return 0.0
+	var army: Dictionary = armies[army_id]
+	var total_soldiers: int = 0
+	var total_max: int = 0
+	for troop in army.get("troops", []):
+		total_soldiers += troop.get("soldiers", 0)
+		total_max += troop.get("max_soldiers", troop.get("soldiers", 0))
+	if total_max <= 0:
+		return 0.0
+	return float(total_soldiers) / float(total_max)
 
 
 func _ai_score_attack(player: Dictionary, tile: Dictionary, army: Dictionary = {}) -> float:
@@ -5795,6 +5877,24 @@ func _ai_score_attack(player: Dictionary, tile: Dictionary, army: Dictionary = {
 		if tile["owner_id"] != pid and tile["owner_id"] >= 0:
 			score += 2.0
 
+	# ── Siege-aware scoring ──
+	if SiegeSystem.is_tile_fortified(tile_idx):
+		var siege_info: Dictionary = AIStrategicPlanner.evaluate_siege_cost(tile_idx)
+		var siege_turns: int = siege_info.get("siege_turns", 0)
+		score -= float(siege_turns) * 4.0  # Penalty for time cost
+		# If army is weak, extra penalty for attrition
+		if army_power < def_power * 0.8:
+			score -= 10.0  # Can't sustain attrition
+		# If ally already sieging this tile, bonus for joining
+		if SiegeSystem.is_tile_under_siege(tile_idx):
+			var existing_siege: Dictionary = SiegeSystem.get_siege_at_tile(tile_idx)
+			if existing_siege.get("attacker_player_id", -1) != pid:
+				score += 8.0  # Join existing ally siege
+		# If supply-cutting value is high, still attack (strategic override)
+		var supply_score: float = AIStrategicPlanner.score_supply_cut_attack("", tile_idx)
+		if supply_score > 15.0:
+			score += supply_score * 0.5  # Strategic value overrides fortress penalty
+
 	return score
 
 
@@ -5838,6 +5938,17 @@ func _run_orc_ai(player_id: int) -> void:
 		ai_armies = get_player_armies(player_id)
 		var did_action: bool = false
 
+		# ── Phase 0.5: Orc tactical intelligence ──
+		# Orcs prefer concentration (WAAAGH buildup), rarely use feint (20%)
+		if not in_frenzy:
+			var orc_plan: Dictionary = AIStrategicPlanner.get_tactical_plan("orc_ai")
+			var orc_plan_type: String = orc_plan.get("type", "normal")
+			if orc_plan_type == "concentration":
+				AIStrategicPlanner.execute_concentration("orc_ai")
+			elif orc_plan_type == "retreat":
+				for orc_rt_idx in orc_plan.get("tiles", []):
+					AIStrategicPlanner.execute_retreat("orc_ai", orc_rt_idx)
+
 		# ── Phase 1: AGGRESSIVE ATTACKS (primary behavior) ──
 		# Orc aggression threshold based on WAAAGH: higher WAAAGH = attack even bad odds
 		var aggression_threshold: float = 0.0
@@ -5869,10 +5980,22 @@ func _run_orc_ai(player_id: int) -> void:
 					best_tile_idx = nb_idx
 
 			if best_tile_idx >= 0:
-				action_attack_with_army(army["id"], best_tile_idx)
-				ai_armies = get_player_armies(player_id)  # Refresh after combat
-				did_action = true
-				break  # Re-evaluate after attack
+				# Siege-aware: Orcs check fortifications (but are more tolerant)
+				var _orc_skip: bool = false
+				if SiegeSystem.is_tile_fortified(best_tile_idx) and not in_frenzy:
+					if SiegeSystem.is_tile_under_siege(best_tile_idx):
+						var existing_siege: Dictionary = SiegeSystem.get_siege_at_tile(best_tile_idx)
+						if existing_siege.get("attacker_player_id", -1) == player_id:
+							_orc_skip = true  # Already our siege
+					else:
+						var siege_info: Dictionary = AIStrategicPlanner.evaluate_siege_cost(best_tile_idx)
+						if not siege_info.get("worth_sieging", true):
+							_orc_skip = true
+				if not _orc_skip:
+					action_attack_with_army(army["id"], best_tile_idx)
+					ai_armies = get_player_armies(player_id)  # Refresh after combat
+					did_action = true
+					break  # Re-evaluate after attack
 
 		if did_action:
 			continue
@@ -5986,6 +6109,9 @@ func _run_orc_ai(player_id: int) -> void:
 		# No valid action, break
 		break
 
+	# ── Siege management phase for Orc AI ──
+	_ai_manage_sieges(player_id)
+
 	await get_tree().create_timer(0.3).timeout
 	if game_active:
 		end_turn()
@@ -6039,6 +6165,22 @@ func _orc_score_attack(army: Dictionary, tile: Dictionary, waaagh: int, in_frenz
 			if nb < tiles.size() and tiles[nb]["owner_id"] == army["player_id"]:
 				friendly_neighbors += 1
 		score += friendly_neighbors * 1.0  # Less weight than generic AI (Orcs don't care about clean borders)
+
+	# ── Siege-aware scoring for Orc AI ──
+	if tile_idx >= 0 and SiegeSystem.is_tile_fortified(tile_idx):
+		var siege_info: Dictionary = AIStrategicPlanner.evaluate_siege_cost(tile_idx)
+		var siege_turns: int = siege_info.get("siege_turns", 0)
+		# Orcs penalize fortifications less than generic AI (they're reckless)
+		score -= float(siege_turns) * 2.0
+		# But even Orcs respect strong walls when weak
+		if army_power < def_power * 0.6:
+			score -= 6.0
+		# Ally already sieging? Join the WAAAGH!
+		if SiegeSystem.is_tile_under_siege(tile_idx):
+			score += 6.0
+		# Frenzy overrides caution
+		if in_frenzy:
+			score += 5.0
 
 	return score
 

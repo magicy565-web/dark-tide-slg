@@ -28,6 +28,14 @@ var _faction_strategy: Dictionary = {}  # faction_key -> Strategy enum
 var _coordinated_target: int = -1  # tile index for coordinated assault
 var _coordination_cooldown: int = 0
 
+# ── Advanced Tactical Intelligence ──
+var _pending_feints: Dictionary = {}           # faction_key -> feint plan Dictionary
+var _concentration_plans: Dictionary = {}      # faction_key -> concentration plan Dictionary
+var _stall_counters: Dictionary = {}           # faction_key -> int (turns since last capture)
+var _diversion_results: Dictionary = {}        # faction_key -> {successes: int, failures: int}
+var _feint_results: Dictionary = {}            # faction_key -> {successes: int, failures: int}
+var _last_tile_counts: Dictionary = {}         # faction_key -> int (tile count last turn)
+
 # ── Personality weights for strategy selection ──
 # Each personality type has base weights for each strategy
 const STRATEGY_WEIGHTS: Dictionary = {
@@ -92,6 +100,12 @@ func reset() -> void:
 	_faction_strategy.clear()
 	_coordinated_target = -1
 	_coordination_cooldown = 0
+	_pending_feints.clear()
+	_concentration_plans.clear()
+	_stall_counters.clear()
+	_diversion_results.clear()
+	_feint_results.clear()
+	_last_tile_counts.clear()
 
 
 # ═══════════════ MEMORY SYSTEM ═══════════════
@@ -260,6 +274,20 @@ func evaluate_strategy(faction_key: String) -> int:
 	if border_pressure >= 4:
 		weights[Strategy.DEFEND] += 0.20
 
+	# Commitment awareness: if overcommitted in sieges, favor DEFEND/CONSOLIDATE
+	var commitments: Dictionary = get_active_commitments(faction_key)
+	if commitments.get("overcommitted", false):
+		weights[Strategy.DEFEND] += 0.30
+		weights[Strategy.CONSOLIDATE] += 0.20
+		weights[Strategy.EXPAND] -= 0.20
+		weights[Strategy.RAID] -= 0.20
+	if commitments.get("free_armies", 0) <= 0 and commitments.get("total_armies", 0) > 0:
+		# All armies committed — force defensive posture
+		weights[Strategy.DEFEND] += 0.40
+		weights[Strategy.CONSOLIDATE] += 0.30
+		weights[Strategy.EXPAND] = 0.0
+		weights[Strategy.RAID] = 0.0
+
 	# Weather awareness: apply weather multiplier to offensive strategies
 	var weather_mult: float = _evaluate_weather_for_attack()
 	weights[Strategy.RAID] *= weather_mult
@@ -325,6 +353,42 @@ func select_raid_target(faction_key: String, source_tiles: Array) -> Dictionary:
 			if not _check_supply_feasibility(src, nb):
 				continue
 			candidates.append({"tile": nb, "score": score, "source": src})
+
+	# ── Supply chokepoint consideration (RAID / EXPAND strategies) ──
+	var strategy: int = get_current_strategy(faction_key)
+	if strategy == Strategy.RAID or strategy == Strategy.EXPAND:
+		# Find all enemy player IDs adjacent to our territory
+		var enemy_pids: Dictionary = {}
+		for c in candidates:
+			var oid: int = c["tile"].get("owner_id", -1)
+			if oid >= 0:
+				enemy_pids[oid] = true
+		for epid in enemy_pids:
+			var chokepoints: Array = find_supply_chokepoints(epid)
+			for cp in chokepoints:
+				var cp_idx: int = cp["tile_index"]
+				# Check if this chokepoint is already in candidates
+				var already: bool = false
+				for c in candidates:
+					if c["tile"]["index"] == cp_idx:
+						# Boost existing candidate score with supply-cut value
+						var supply_score: float = score_supply_cut_attack(faction_key, cp_idx)
+						if supply_score > 0.0:
+							c["score"] += supply_score
+							EventBus.message_log.emit("[%s] AI targets #%d to cut supply line (would isolate %d tiles)" % [faction_key, cp_idx, cp["isolation_count"]])
+						already = true
+						break
+				if not already:
+					# Add as new candidate if we have a source tile adjacent to it
+					for src in source_tiles:
+						if not GameManager.adjacency.has(src["index"]):
+							continue
+						if cp_idx in GameManager.adjacency[src["index"]]:
+							var supply_score: float = score_supply_cut_attack(faction_key, cp_idx)
+							if supply_score > 0.0:
+								candidates.append({"tile": GameManager.tiles[cp_idx], "score": supply_score, "source": src})
+								EventBus.message_log.emit("[%s] AI targets #%d to cut supply line (would isolate %d tiles)" % [faction_key, cp_idx, cp["isolation_count"]])
+							break
 
 	if candidates.is_empty():
 		return {}
@@ -574,7 +638,7 @@ func clear_coordinated_target() -> void:
 # ═══════════════ MAIN TURN PROCESSING ═══════════════
 
 func process_turn(player_id: int) -> void:
-	## Called each turn. Update memory and evaluate strategies for all AI factions.
+	## Called each turn. Update memory, evaluate strategies, and run tactical intelligence.
 	var ai_factions: Array = AIScaling.get_all_ai_factions()
 
 	# Update memory for each faction
@@ -582,6 +646,21 @@ func process_turn(player_id: int) -> void:
 		record_player_buildup(faction_key)
 		var strategy: int = evaluate_strategy(faction_key)
 		_faction_strategy[faction_key] = strategy
+
+		# ── Stall tracking for force concentration ──
+		var current_tiles: int = _count_faction_tiles(faction_key)
+		var prev_tiles: int = _last_tile_counts.get(faction_key, current_tiles)
+		if current_tiles <= prev_tiles:
+			_stall_counters[faction_key] = _stall_counters.get(faction_key, 0) + 1
+		else:
+			_stall_counters[faction_key] = 0
+		_last_tile_counts[faction_key] = current_tiles
+
+		# ── Execute pending feints (turn 2: real attack phase) ──
+		_check_pending_feint(faction_key)
+
+		# ── Track diversion results (did player pull back from our threatened tile?) ──
+		_evaluate_tactic_results(faction_key)
 
 	# Try coordinated attacks among warlike evil factions
 	var evil_keys: Array = []
@@ -707,6 +786,828 @@ func _check_supply_feasibility(source_tile: Dictionary, target_tile: Dictionary)
 	return false  # Target is too far for reliable supply
 
 
+# ═══════════════ SUPPLY LINE WARFARE ═══════════════
+
+func find_supply_chokepoints(target_player_id: int) -> Array:
+	## Analyze enemy territory graph. Find tiles whose capture would ISOLATE
+	## the most enemy territory. Returns [{tile_index, isolation_count, garrison}]
+	## sorted by isolation_count descending.
+	var enemy_tiles: Dictionary = {}  # index -> true
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) == target_player_id:
+			enemy_tiles[tile["index"]] = true
+
+	if enemy_tiles.is_empty():
+		return []
+
+	var capital: int = SupplySystem.get_capital(target_player_id)
+
+	# Find enemy border tiles adjacent to any AI territory
+	var border_candidates: Array = []
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) != target_player_id:
+			continue
+		var idx: int = tile["index"]
+		if not GameManager.adjacency.has(idx):
+			continue
+		var adj_to_ai: bool = false
+		for nb_idx in GameManager.adjacency[idx]:
+			if nb_idx < GameManager.tiles.size():
+				var nb: Dictionary = GameManager.tiles[nb_idx]
+				if nb["owner_id"] < 0:  # AI-owned tile
+					adj_to_ai = true
+					break
+		if adj_to_ai:
+			border_candidates.append(idx)
+
+	# For each candidate, simulate capturing it and count isolated enemy tiles
+	var results: Array = []
+	for cand_idx in border_candidates:
+		# Simulate removal: BFS from capital through enemy tiles minus this one
+		if capital < 0 or capital == cand_idx:
+			# Capturing capital itself isolates everything
+			var iso_count: int = enemy_tiles.size() - 1
+			results.append({
+				"tile_index": cand_idx,
+				"isolation_count": iso_count,
+				"garrison": GameManager.tiles[cand_idx].get("garrison", 0),
+			})
+			continue
+
+		var connected: Dictionary = {}
+		var queue: Array = [capital]
+		connected[capital] = true
+		while not queue.is_empty():
+			var cur: int = queue.pop_front()
+			var neighbors: Array = GameManager.adjacency.get(cur, [])
+			for nb in neighbors:
+				if connected.has(nb):
+					continue
+				if nb == cand_idx:
+					continue  # Pretend this tile is captured
+				if not enemy_tiles.has(nb):
+					continue
+				connected[nb] = true
+				queue.append(nb)
+
+		var isolated_count: int = 0
+		for eidx in enemy_tiles:
+			if eidx != cand_idx and not connected.has(eidx):
+				isolated_count += 1
+
+		if isolated_count > 0:
+			results.append({
+				"tile_index": cand_idx,
+				"isolation_count": isolated_count,
+				"garrison": GameManager.tiles[cand_idx].get("garrison", 0),
+			})
+
+	# Sort by isolation_count descending
+	results.sort_custom(func(a, b): return a["isolation_count"] > b["isolation_count"])
+	return results
+
+
+func score_supply_cut_attack(faction_key: String, tile_index: int) -> float:
+	## Score a supply-cut attack. Higher = better target.
+	var tile: Dictionary = GameManager.tiles[tile_index]
+	var target_player_id: int = tile.get("owner_id", -1)
+	if target_player_id < 0:
+		return 0.0
+
+	# Get isolation count for this tile
+	var chokepoints: Array = find_supply_chokepoints(target_player_id)
+	var isolation_count: int = 0
+	for cp in chokepoints:
+		if cp["tile_index"] == tile_index:
+			isolation_count = cp["isolation_count"]
+			break
+
+	if isolation_count <= 0:
+		return 0.0
+
+	# Base attack score
+	var base_score: float = 10.0
+	# Isolation bonus: each isolated tile worth 3 points
+	var isolation_bonus: float = float(isolation_count) * 3.0
+	var score: float = base_score + isolation_bonus
+
+	# Penalize if tile is heavily fortified (siege cost)
+	var siege_info: Dictionary = evaluate_siege_cost(tile_index)
+	if siege_info.get("is_fortified", false):
+		score -= float(siege_info.get("siege_turns", 0)) * 2.0
+		score -= siege_info.get("estimated_attrition", 0.0) * 10.0
+
+	# Bonus if cutting supply also isolates enemy capital approach
+	var capital: int = SupplySystem.get_capital(target_player_id)
+	if capital >= 0 and GameManager.adjacency.has(tile_index):
+		if capital in GameManager.adjacency[tile_index]:
+			score += 5.0  # Adjacent to capital — high strategic value
+
+	return score
+
+
+# ═══════════════ SIEGE INTELLIGENCE ═══════════════
+
+func evaluate_siege_cost(tile_index: int) -> Dictionary:
+	## Evaluate the cost of besieging a tile.
+	## Returns {is_fortified, siege_turns, estimated_attrition, wall_hp, worth_sieging}
+	var result: Dictionary = {
+		"is_fortified": false,
+		"siege_turns": 0,
+		"estimated_attrition": 0.0,
+		"wall_hp": 0.0,
+		"worth_sieging": true,
+	}
+
+	if not SiegeSystem.is_tile_fortified(tile_index):
+		return result
+
+	result["is_fortified"] = true
+	var tile: Dictionary = GameManager.tiles[tile_index]
+
+	# Determine wall HP and siege turns based on tile type
+	if tile.get("type", -1) == GameManager.TileType.CORE_FORTRESS:
+		result["siege_turns"] = SiegeSystem.FORTRESS_SIEGE_TURNS
+		result["wall_hp"] = SiegeSystem.FORTRESS_WALL_HP
+	else:
+		result["siege_turns"] = SiegeSystem.WALLED_SIEGE_TURNS
+		result["wall_hp"] = SiegeSystem.WALLED_WALL_HP
+
+	# Estimated attrition: base rate * siege turns
+	result["estimated_attrition"] = SiegeSystem.BASE_ATTRITION_RATE * float(result["siege_turns"])
+
+	# Calculate strategic importance of tile
+	var tile_value: float = 0.0
+	match tile.get("type", -1):
+		GameManager.TileType.CORE_FORTRESS: tile_value = 12.0
+		GameManager.TileType.LIGHT_STRONGHOLD: tile_value = 10.0
+		GameManager.TileType.CHOKEPOINT: tile_value = 7.0
+		GameManager.TileType.RESOURCE_STATION: tile_value = 6.0
+		_: tile_value = 3.0
+
+	# Siege cost = attrition penalty + time penalty
+	var siege_cost: float = result["estimated_attrition"] * 30.0 + float(result["siege_turns"]) * 2.0
+	result["worth_sieging"] = tile_value > siege_cost
+
+	return result
+
+
+# ═══════════════ 围魏救赵 — DIVERSIONARY ATTACK ═══════════════
+
+func plan_diversion(faction_key: String, threatened_tile: int) -> Dictionary:
+	## When AI territory is under pressure, consider attacking enemy rear instead
+	## of directly defending. Returns {type:"diversion",...} or {type:"direct_defense"}.
+	var tier: int = AIScaling.get_tier(faction_key)
+	if tier < 1:
+		return {"type": "direct_defense"}
+
+	# Check learning: if player ignores diversions 3+ times, stop trying
+	var div_res: Dictionary = _diversion_results.get(faction_key, {"successes": 0, "failures": 0})
+	if div_res.get("failures", 0) >= 3 and div_res.get("successes", 0) < div_res.get("failures", 0):
+		return {"type": "direct_defense"}
+
+	# Find the enemy player(s) threatening this tile
+	var enemy_pids: Array = []
+	if GameManager.adjacency.has(threatened_tile):
+		for nb_idx in GameManager.adjacency[threatened_tile]:
+			if nb_idx < GameManager.tiles.size():
+				var nb_owner: int = GameManager.tiles[nb_idx].get("owner_id", -1)
+				if nb_owner >= 0 and nb_owner not in enemy_pids:
+					enemy_pids.append(nb_owner)
+
+	if enemy_pids.is_empty():
+		return {"type": "direct_defense"}
+
+	# Find undefended rear tiles for each threatening enemy
+	var best_rear: Dictionary = {}
+	var best_rear_score: float = 0.0
+	for epid in enemy_pids:
+		var rear_targets: Array = find_undefended_enemy_rear(faction_key, epid)
+		for rt in rear_targets:
+			if rt["score"] > best_rear_score:
+				best_rear_score = rt["score"]
+				best_rear = rt
+
+	if best_rear.is_empty():
+		return {"type": "direct_defense"}
+
+	# Score direct defense: garrison strength of threatened tile
+	var threatened: Dictionary = GameManager.tiles[threatened_tile] if threatened_tile < GameManager.tiles.size() else {}
+	var direct_def_score: float = float(threatened.get("garrison", 0)) * 1.5
+	match threatened.get("type", -1):
+		GameManager.TileType.CORE_FORTRESS: direct_def_score += 15.0
+		GameManager.TileType.DARK_BASE: direct_def_score += 10.0
+
+	# Personality modifier: aggressive factions prefer diversion
+	var personality: int = AIScaling.get_personality(faction_key)
+	var diversion_mult: float = 1.0
+	if personality == AIScaling.Personality.AGGRESSIVE:
+		diversion_mult = 1.4
+	elif personality == AIScaling.Personality.DEFENSIVE:
+		diversion_mult = 0.6
+
+	# Past success bonus
+	if div_res.get("successes", 0) >= 2:
+		diversion_mult *= 1.3
+
+	if best_rear_score * diversion_mult > direct_def_score:
+		EventBus.ai_diversion_planned.emit(faction_key, threatened_tile, best_rear["tile_index"])
+		EventBus.message_log.emit("[color=red][%s] 围魏救赵! 佯攻据点#%d, 实攻后方据点#%d[/color]" % [faction_key, threatened_tile, best_rear["tile_index"]])
+		return {
+			"type": "diversion",
+			"target_tile": best_rear["tile_index"],
+			"threatened_tile": threatened_tile,
+			"diversion_score": best_rear_score,
+		}
+
+	return {"type": "direct_defense"}
+
+
+func find_undefended_enemy_rear(faction_key: String, enemy_player_id: int) -> Array:
+	## Find enemy rear tiles reachable by this AI faction (1-2 hops from AI territory).
+	## Returns sorted array of {tile_index, score, garrison}.
+	var rear_tiles: Array = SupplySystem.get_rear_tiles(enemy_player_id)
+	if rear_tiles.is_empty():
+		return []
+
+	# Collect all AI-owned tile indices for adjacency check
+	var ai_tiles: Dictionary = {}
+	for tile in GameManager.tiles:
+		if tile["owner_id"] < 0 and AIScaling._tile_belongs_to_faction(tile, faction_key):
+			ai_tiles[tile["index"]] = true
+
+	# Also collect 2-hop reachable indices from AI tiles
+	var reachable_2hop: Dictionary = {}
+	for ai_idx in ai_tiles:
+		if GameManager.adjacency.has(ai_idx):
+			for nb1 in GameManager.adjacency[ai_idx]:
+				reachable_2hop[nb1] = true
+				if GameManager.adjacency.has(nb1):
+					for nb2 in GameManager.adjacency[nb1]:
+						reachable_2hop[nb2] = true
+
+	var capital: int = SupplySystem.get_capital(enemy_player_id)
+	var results: Array = []
+	for rt_idx in rear_tiles:
+		if rt_idx < 0 or rt_idx >= GameManager.tiles.size():
+			continue
+		# Must be reachable (1 or 2 hops from AI territory)
+		var directly_adjacent: bool = false
+		if GameManager.adjacency.has(rt_idx):
+			for nb in GameManager.adjacency[rt_idx]:
+				if ai_tiles.has(nb):
+					directly_adjacent = true
+					break
+		var two_hop_reachable: bool = reachable_2hop.has(rt_idx)
+		if not directly_adjacent and not two_hop_reachable:
+			continue
+
+		var tile: Dictionary = GameManager.tiles[rt_idx]
+		var garrison: int = tile.get("garrison", 0)
+		var level: int = tile.get("level", 1)
+
+		# Score: production_value * 2 + (10 - garrison) + capital_proximity_bonus
+		var prod_value: float = float(level) * 2.0
+		if tile.get("building_id", "") != "":
+			prod_value += 3.0
+		var score: float = prod_value * 2.0 + maxf(0.0, 10.0 - float(garrison))
+
+		# Capital proximity bonus
+		if capital >= 0 and GameManager.adjacency.has(rt_idx):
+			if capital in GameManager.adjacency[rt_idx]:
+				score += 8.0
+			else:
+				for nb in GameManager.adjacency[rt_idx]:
+					if GameManager.adjacency.has(nb) and capital in GameManager.adjacency[nb]:
+						score += 4.0
+						break
+
+		if directly_adjacent:
+			score += 5.0
+
+		results.append({"tile_index": rt_idx, "score": score, "garrison": garrison})
+
+	results.sort_custom(func(a, b): return a["score"] > b["score"])
+	return results
+
+
+# ═══════════════ 声东击西 — FEINT EAST STRIKE WEST ═══════════════
+
+func plan_feint(faction_key: String) -> Dictionary:
+	## Plan a coordinated misdirection: deploy army to strong border (feint)
+	## while real attack comes from another direction.
+	var tier: int = AIScaling.get_tier(faction_key)
+	if tier < 2:
+		return {}
+
+	# Check learning: if player ignores feints 3+ times, stop feinting
+	var feint_res: Dictionary = _feint_results.get(faction_key, {"successes": 0, "failures": 0})
+	if feint_res.get("failures", 0) >= 3 and feint_res.get("successes", 0) < feint_res.get("failures", 0):
+		return {}
+
+	# Need at least 2 available AI border tiles with garrison
+	var border_info: Array = _get_faction_border_info(faction_key)
+	if border_info.size() < 2:
+		return {}
+
+	# Find the strongest enemy border tile (feint target) and weakest (real target)
+	border_info.sort_custom(func(a, b): return a["adj_enemy_garrison"] > b["adj_enemy_garrison"])
+
+	var feint_source: Dictionary = border_info[0]
+	var real_source: Dictionary = {}
+	for bi in border_info:
+		if bi["index"] == feint_source["index"]:
+			continue
+		var is_adjacent: bool = false
+		if GameManager.adjacency.has(feint_source["index"]):
+			if bi["index"] in GameManager.adjacency[feint_source["index"]]:
+				is_adjacent = true
+		if not is_adjacent:
+			real_source = bi
+			break
+
+	if real_source.is_empty():
+		if border_info.size() >= 2:
+			real_source = border_info[border_info.size() - 1]
+		else:
+			return {}
+
+	var feint_target: int = _find_adjacent_enemy_tile(feint_source["index"])
+	var real_target: int = _find_weakest_adjacent_enemy_tile(real_source["index"])
+
+	if feint_target < 0 or real_target < 0:
+		return {}
+	if feint_target == real_target:
+		return {}
+
+	var plan: Dictionary = {
+		"feint_source": feint_source["index"],
+		"feint_target": feint_target,
+		"real_source": real_source["index"],
+		"real_target": real_target,
+		"execute_turn": 1,
+		"feint_garrison_before": GameManager.tiles[feint_target].get("garrison", 0) if feint_target < GameManager.tiles.size() else 0,
+	}
+
+	_pending_feints[faction_key] = plan
+	EventBus.ai_diversion_planned.emit(faction_key, feint_target, real_target)
+	EventBus.message_log.emit("[color=red][%s] 声东击西! 佯攻据点#%d, 暗袭据点#%d[/color]" % [faction_key, feint_target, real_target])
+	return plan
+
+
+func _check_pending_feint(faction_key: String) -> void:
+	## Check and advance pending feint plans each turn.
+	if not _pending_feints.has(faction_key):
+		return
+	var plan: Dictionary = _pending_feints[faction_key]
+	plan["execute_turn"] -= 1
+	if plan["execute_turn"] < 0:
+		var feint_target: int = plan.get("feint_target", -1)
+		if feint_target >= 0 and feint_target < GameManager.tiles.size():
+			var current_garrison: int = GameManager.tiles[feint_target].get("garrison", 0)
+			var before_garrison: int = plan.get("feint_garrison_before", 0)
+			var res: Dictionary = _feint_results.get(faction_key, {"successes": 0, "failures": 0})
+			if current_garrison > before_garrison + 1:
+				res["successes"] = res.get("successes", 0) + 1
+			else:
+				res["failures"] = res.get("failures", 0) + 1
+			_feint_results[faction_key] = res
+		_pending_feints.erase(faction_key)
+
+
+func get_pending_feint(faction_key: String) -> Dictionary:
+	## Returns the current feint plan for a faction, or empty dict.
+	return _pending_feints.get(faction_key, {})
+
+
+func _get_faction_border_info(faction_key: String) -> Array:
+	## Get all faction border tiles with info about adjacent enemy strength.
+	var results: Array = []
+	for tile in GameManager.tiles:
+		if tile["owner_id"] >= 0:
+			continue
+		if not AIScaling._tile_belongs_to_faction(tile, faction_key):
+			continue
+		if not GameManager.adjacency.has(tile["index"]):
+			continue
+		var max_enemy_garrison: int = 0
+		var has_enemy: bool = false
+		for nb_idx in GameManager.adjacency[tile["index"]]:
+			if nb_idx < GameManager.tiles.size() and GameManager.tiles[nb_idx]["owner_id"] >= 0:
+				has_enemy = true
+				var g: int = GameManager.tiles[nb_idx].get("garrison", 0)
+				if g > max_enemy_garrison:
+					max_enemy_garrison = g
+		if has_enemy:
+			results.append({
+				"index": tile["index"],
+				"garrison": tile.get("garrison", 0),
+				"adj_enemy_garrison": max_enemy_garrison,
+			})
+	return results
+
+
+func _find_adjacent_enemy_tile(source_idx: int) -> int:
+	## Find the strongest adjacent enemy tile (for feint target selection).
+	if not GameManager.adjacency.has(source_idx):
+		return -1
+	var best_idx: int = -1
+	var best_garrison: int = -1
+	for nb_idx in GameManager.adjacency[source_idx]:
+		if nb_idx < GameManager.tiles.size() and GameManager.tiles[nb_idx]["owner_id"] >= 0:
+			var g: int = GameManager.tiles[nb_idx].get("garrison", 0)
+			if g > best_garrison:
+				best_garrison = g
+				best_idx = nb_idx
+	return best_idx
+
+
+func _find_weakest_adjacent_enemy_tile(source_idx: int) -> int:
+	## Find the weakest adjacent enemy tile (for real attack target).
+	if not GameManager.adjacency.has(source_idx):
+		return -1
+	var best_idx: int = -1
+	var best_garrison: int = 9999
+	for nb_idx in GameManager.adjacency[source_idx]:
+		if nb_idx < GameManager.tiles.size() and GameManager.tiles[nb_idx]["owner_id"] >= 0:
+			var g: int = GameManager.tiles[nb_idx].get("garrison", 0)
+			if g < best_garrison:
+				best_garrison = g
+				best_idx = nb_idx
+	return best_idx
+
+
+# ═══════════════ 集中优势兵力 — FORCE CONCENTRATION ═══════════════
+
+func plan_concentration(faction_key: String) -> Dictionary:
+	## Plan force concentration: consolidate garrison toward a single high-value
+	## attack point to create overwhelming force.
+	var tier: int = AIScaling.get_tier(faction_key)
+	if tier < 1:
+		return {}
+
+	var border_info: Array = _get_faction_border_info(faction_key)
+	if border_info.is_empty():
+		return {}
+
+	var best_target_idx: int = -1
+	var best_combined_score: float = 0.0
+	var rally_tiles: Array = []
+
+	for bi in border_info:
+		var weak_enemy: int = _find_weakest_adjacent_enemy_tile(bi["index"])
+		if weak_enemy < 0:
+			continue
+		var enemy_garrison: int = GameManager.tiles[weak_enemy].get("garrison", 0)
+		var supporters: Array = [bi]
+		for bi2 in border_info:
+			if bi2["index"] == bi["index"]:
+				continue
+			var dist: int = _hop_distance(bi2["index"], bi["index"], 3)
+			if dist >= 0 and dist <= 2:
+				supporters.append(bi2)
+
+		var combined_force: int = 0
+		for s in supporters:
+			combined_force += s["garrison"]
+
+		var ratio: float = float(combined_force) / maxf(float(enemy_garrison) * 8.0, 1.0)
+		if ratio > 2.0 and float(combined_force) > best_combined_score:
+			best_combined_score = float(combined_force)
+			best_target_idx = weak_enemy
+			rally_tiles = []
+			for s in supporters:
+				rally_tiles.append({"tile_index": s["index"], "garrison": s["garrison"]})
+
+	if best_target_idx < 0 or rally_tiles.size() < 2:
+		return {}
+
+	var plan: Dictionary = {
+		"target_tile": best_target_idx,
+		"rally_tiles": rally_tiles,
+		"attack_turn": 1,
+	}
+	_concentration_plans[faction_key] = plan
+	EventBus.ai_concentration_started.emit(faction_key, best_target_idx, rally_tiles.size())
+	EventBus.message_log.emit("[color=red][%s] 集中优势兵力! %d个据点合力进攻据点#%d[/color]" % [faction_key, rally_tiles.size(), best_target_idx])
+	return plan
+
+
+func should_concentrate(faction_key: String) -> bool:
+	## Returns true if force concentration is recommended for this faction.
+	if _concentration_plans.has(faction_key):
+		return false
+	if _stall_counters.get(faction_key, 0) >= 3:
+		return true
+	var strategy: int = get_current_strategy(faction_key)
+	if strategy == Strategy.EXPAND and _stall_counters.get(faction_key, 0) >= 2:
+		return true
+	var border_info: Array = _get_faction_border_info(faction_key)
+	if border_info.size() >= 3:
+		var can_attack: bool = false
+		for bi in border_info:
+			var weak: int = _find_weakest_adjacent_enemy_tile(bi["index"])
+			if weak >= 0:
+				var enemy_g: int = GameManager.tiles[weak].get("garrison", 0)
+				if float(bi["garrison"]) > float(enemy_g) * 8.0 * 1.2:
+					can_attack = true
+					break
+		if not can_attack:
+			return true
+	return false
+
+
+func get_concentration_plan(faction_key: String) -> Dictionary:
+	## Returns the active concentration plan for a faction, or empty dict.
+	return _concentration_plans.get(faction_key, {})
+
+
+func execute_concentration(faction_key: String) -> void:
+	## Execute force concentration: boost garrison at rally tiles toward target.
+	if not _concentration_plans.has(faction_key):
+		return
+	var plan: Dictionary = _concentration_plans[faction_key]
+	var target: int = plan.get("target_tile", -1)
+	if target < 0:
+		_concentration_plans.erase(faction_key)
+		return
+
+	plan["attack_turn"] = plan.get("attack_turn", 1) - 1
+	if plan["attack_turn"] <= 0:
+		var best_rally: int = -1
+		var best_dist: int = 9999
+		for rt in plan.get("rally_tiles", []):
+			var d: int = _hop_distance(rt["tile_index"], target, 4)
+			if d >= 0 and d < best_dist:
+				best_dist = d
+				best_rally = rt["tile_index"]
+
+		if best_rally >= 0 and best_rally < GameManager.tiles.size():
+			var transferred: int = 0
+			for rt in plan.get("rally_tiles", []):
+				if rt["tile_index"] == best_rally:
+					continue
+				if rt["tile_index"] < GameManager.tiles.size():
+					var donate: int = maxi(0, GameManager.tiles[rt["tile_index"]].get("garrison", 0) - 2)
+					if donate > 0:
+						GameManager.tiles[rt["tile_index"]]["garrison"] -= donate
+						transferred += donate
+			if transferred > 0:
+				GameManager.tiles[best_rally]["garrison"] += transferred
+				EventBus.message_log.emit("[%s] 兵力集结完毕! 据点#%d获得+%d援军" % [faction_key, best_rally, transferred])
+		_concentration_plans.erase(faction_key)
+	else:
+		_concentration_plans[faction_key] = plan
+
+
+# ═══════════════ STRATEGIC RETREAT ═══════════════
+
+func should_retreat(faction_key: String, tile_index: int) -> bool:
+	## Returns true if the garrison at tile_index should consider retreating.
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return false
+	var tile: Dictionary = GameManager.tiles[tile_index]
+	var garrison: int = tile.get("garrison", 0)
+	if garrison <= 0:
+		return false
+
+	var tile_type: int = tile.get("type", -1)
+	if tile_type == GameManager.TileType.CORE_FORTRESS or tile_type == GameManager.TileType.DARK_BASE:
+		return false
+
+	if not GameManager.adjacency.has(tile_index):
+		return false
+
+	var enemy_force: int = 0
+	var enemy_tile_count: int = 0
+	var friendly_count: int = 0
+	for nb_idx in GameManager.adjacency[tile_index]:
+		if nb_idx >= GameManager.tiles.size():
+			continue
+		var nb: Dictionary = GameManager.tiles[nb_idx]
+		if nb["owner_id"] >= 0:
+			enemy_force += nb.get("garrison", 0) * 8
+			var enemy_army: Dictionary = GameManager.get_army_at_tile(nb_idx)
+			if not enemy_army.is_empty():
+				enemy_force += GameManager.get_army_combat_power(enemy_army["id"])
+			enemy_tile_count += 1
+		elif nb["owner_id"] < 0 and AIScaling._tile_belongs_to_faction(nb, faction_key):
+			friendly_count += 1
+
+	var our_force: int = garrison * 8
+	if enemy_force > our_force * 3:
+		return true
+	if enemy_tile_count >= 3 and garrison < 5:
+		return true
+	if friendly_count == 0 and enemy_force > our_force * 1.5:
+		return true
+
+	return false
+
+
+func find_retreat_tile(faction_key: String, tile_index: int) -> int:
+	## Find safest adjacent owned tile for retreat. Returns tile_index or -1.
+	if not GameManager.adjacency.has(tile_index):
+		return -1
+
+	var best_idx: int = -1
+	var best_score: float = -999.0
+	for nb_idx in GameManager.adjacency[tile_index]:
+		if nb_idx >= GameManager.tiles.size():
+			continue
+		var nb: Dictionary = GameManager.tiles[nb_idx]
+		if nb["owner_id"] >= 0:
+			continue
+		if not AIScaling._tile_belongs_to_faction(nb, faction_key):
+			continue
+
+		var score: float = 0.0
+		score += float(nb.get("garrison", 0)) * 0.5
+		if nb.get("building_id", "") != "":
+			score += 3.0
+		if GameManager.adjacency.has(nb_idx):
+			for nb2_idx in GameManager.adjacency[nb_idx]:
+				if nb2_idx < GameManager.tiles.size():
+					if GameManager.tiles[nb2_idx]["owner_id"] >= 0:
+						score -= 2.0
+					elif AIScaling._tile_belongs_to_faction(GameManager.tiles[nb2_idx], faction_key):
+						score += 1.0
+		var nb_type: int = nb.get("type", -1)
+		if nb_type == GameManager.TileType.CORE_FORTRESS or nb_type == GameManager.TileType.DARK_BASE:
+			score += 5.0
+
+		if score > best_score:
+			best_score = score
+			best_idx = nb_idx
+
+	return best_idx
+
+
+func execute_retreat(faction_key: String, from_tile: int) -> bool:
+	## Execute a strategic retreat: move garrison from from_tile to safest neighbor.
+	var retreat_to: int = find_retreat_tile(faction_key, from_tile)
+	if retreat_to < 0:
+		return false
+
+	var garrison: int = GameManager.tiles[from_tile].get("garrison", 0)
+	if garrison <= 0:
+		return false
+
+	var transfer: int = maxi(0, garrison - 1)
+	if transfer <= 0:
+		return false
+
+	GameManager.tiles[from_tile]["garrison"] -= transfer
+	GameManager.tiles[retreat_to]["garrison"] += transfer
+	EventBus.ai_strategic_retreat.emit(0, from_tile, retreat_to)
+	EventBus.message_log.emit("[%s] 战略转进: 据点#%d → 据点#%d (%d兵力)" % [faction_key, from_tile, retreat_to, transfer])
+	return true
+
+
+# ═══════════════ TACTICAL PLAN DISPATCH ═══════════════
+
+func get_tactical_plan(faction_key: String) -> Dictionary:
+	## Returns the best tactical plan for this faction's current situation.
+	## Called by game_manager before attack phase.
+
+	var feint: Dictionary = get_pending_feint(faction_key)
+	if not feint.is_empty() and feint.get("execute_turn", 1) <= 0:
+		return {"type": "feint", "plan": feint}
+
+	var conc: Dictionary = get_concentration_plan(faction_key)
+	if not conc.is_empty():
+		return {"type": "concentration", "plan": conc}
+
+	if should_concentrate(faction_key):
+		var new_conc: Dictionary = plan_concentration(faction_key)
+		if not new_conc.is_empty():
+			return {"type": "concentration", "plan": new_conc}
+
+	var border_pressure: int = _count_border_pressure(faction_key)
+	if border_pressure >= 2:
+		var predicted: int = predict_player_next_target(faction_key)
+		if predicted >= 0:
+			var diversion: Dictionary = plan_diversion(faction_key, predicted)
+			if diversion.get("type", "") == "diversion":
+				return {"type": "diversion", "plan": diversion}
+
+	if not _pending_feints.has(faction_key):
+		var tier: int = AIScaling.get_tier(faction_key)
+		if tier >= 2:
+			var personality: int = AIScaling.get_personality(faction_key)
+			var feint_chance: float = 0.2
+			if personality == AIScaling.Personality.AGGRESSIVE:
+				feint_chance = 0.4
+			if randf() < feint_chance:
+				var new_feint: Dictionary = plan_feint(faction_key)
+				if not new_feint.is_empty():
+					return {"type": "feint_setup", "plan": new_feint}
+
+	var retreat_tiles: Array = _find_tiles_needing_retreat(faction_key)
+	if not retreat_tiles.is_empty():
+		return {"type": "retreat", "tiles": retreat_tiles}
+
+	return {"type": "normal"}
+
+
+func _find_tiles_needing_retreat(faction_key: String) -> Array:
+	## Find all faction tiles that should retreat.
+	var result: Array = []
+	for tile in GameManager.tiles:
+		if tile["owner_id"] >= 0:
+			continue
+		if not AIScaling._tile_belongs_to_faction(tile, faction_key):
+			continue
+		if should_retreat(faction_key, tile["index"]):
+			result.append(tile["index"])
+	return result
+
+
+# ═══════════════ LEARNING & RESULT TRACKING ═══════════════
+
+func _evaluate_tactic_results(_faction_key: String) -> void:
+	## Evaluate past tactical decisions for adaptive learning.
+	pass  # Actual tracking happens in _check_pending_feint and plan_diversion
+
+
+func record_diversion_result(faction_key: String, success: bool) -> void:
+	## Record whether a diversion caused the player to pull back.
+	var res: Dictionary = _diversion_results.get(faction_key, {"successes": 0, "failures": 0})
+	if success:
+		res["successes"] = res.get("successes", 0) + 1
+	else:
+		res["failures"] = res.get("failures", 0) + 1
+	_diversion_results[faction_key] = res
+
+
+# ═══════════════ HOP DISTANCE UTILITY ═══════════════
+
+func _hop_distance(from_idx: int, to_idx: int, max_hops: int) -> int:
+	## BFS hop distance between two tiles. Returns -1 if unreachable within max_hops.
+	if from_idx == to_idx:
+		return 0
+	var visited: Dictionary = {from_idx: true}
+	var frontier: Array = [from_idx]
+	var depth: int = 0
+	while not frontier.is_empty() and depth < max_hops:
+		depth += 1
+		var next_frontier: Array = []
+		for idx in frontier:
+			if not GameManager.adjacency.has(idx):
+				continue
+			for nb_idx in GameManager.adjacency[idx]:
+				if nb_idx == to_idx:
+					return depth
+				if not visited.has(nb_idx) and nb_idx < GameManager.tiles.size():
+					visited[nb_idx] = true
+					next_frontier.append(nb_idx)
+		frontier = next_frontier
+	return -1
+
+
+# ═══════════════ COMMITMENT TRACKING ═══════════════
+
+func get_active_commitments(faction_key: String) -> Dictionary:
+	## Track how many armies are in sieges vs free.
+	## Returns {total_armies, sieging_armies, free_armies, overcommitted}
+	var result: Dictionary = {
+		"total_armies": 0,
+		"sieging_armies": 0,
+		"free_armies": 0,
+		"overcommitted": false,
+	}
+
+	# Find player_id for this faction key
+	var faction_pid: int = -1
+	for p in GameManager.players:
+		var ai_key: String = ""
+		var fid: int = GameManager.get_player_faction(p["id"])
+		match fid:
+			FactionData.FactionID.ORC: ai_key = "orc_ai"
+			FactionData.FactionID.PIRATE: ai_key = "pirate_ai"
+			FactionData.FactionID.DARK_ELF: ai_key = "dark_elf_ai"
+		if ai_key == faction_key:
+			faction_pid = p["id"]
+			break
+
+	if faction_pid < 0:
+		return result
+
+	var armies: Array = GameManager.get_player_armies(faction_pid)
+	result["total_armies"] = armies.size()
+
+	# Count armies involved in sieges
+	var sieges: Array = SiegeSystem.get_player_sieges(faction_pid)
+	result["sieging_armies"] = sieges.size()
+	result["free_armies"] = maxi(0, result["total_armies"] - result["sieging_armies"])
+
+	# Overcommitted if >50% armies in sieges
+	if result["total_armies"] > 0:
+		result["overcommitted"] = float(result["sieging_armies"]) / float(result["total_armies"]) > 0.5
+
+	return result
+
+
 # ═══════════════ SAVE / LOAD ═══════════════
 
 func to_save_data() -> Dictionary:
@@ -715,6 +1616,12 @@ func to_save_data() -> Dictionary:
 		"faction_strategy": _faction_strategy.duplicate(),
 		"coordinated_target": _coordinated_target,
 		"coordination_cooldown": _coordination_cooldown,
+		"pending_feints": _pending_feints.duplicate(true),
+		"concentration_plans": _concentration_plans.duplicate(true),
+		"stall_counters": _stall_counters.duplicate(),
+		"diversion_results": _diversion_results.duplicate(true),
+		"feint_results": _feint_results.duplicate(true),
+		"last_tile_counts": _last_tile_counts.duplicate(),
 	}
 
 
@@ -723,3 +1630,9 @@ func from_save_data(data: Dictionary) -> void:
 	_faction_strategy = data.get("faction_strategy", {}).duplicate()
 	_coordinated_target = data.get("coordinated_target", -1)
 	_coordination_cooldown = data.get("coordination_cooldown", 0)
+	_pending_feints = data.get("pending_feints", {}).duplicate(true)
+	_concentration_plans = data.get("concentration_plans", {}).duplicate(true)
+	_stall_counters = data.get("stall_counters", {}).duplicate()
+	_diversion_results = data.get("diversion_results", {}).duplicate(true)
+	_feint_results = data.get("feint_results", {}).duplicate(true)
+	_last_tile_counts = data.get("last_tile_counts", {}).duplicate()

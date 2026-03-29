@@ -273,6 +273,11 @@ signal supply_line_cut(player_id: int, isolated_tiles: Array)
 signal supply_line_restored(player_id: int, tiles: Array)
 signal territory_classified(player_id: int)
 
+# ── Advanced Tactical Intelligence (v5.1) ──
+signal ai_diversion_planned(faction_key: String, feint_tile: int, real_tile: int)
+signal ai_concentration_started(faction_key: String, target_tile: int, army_count: int)
+signal ai_strategic_retreat(army_id: int, from_tile: int, to_tile: int)
+
 # ── Siege System (v5.0) ──
 signal siege_started(attacker_army_id: int, tile_index: int, turns: int)
 signal siege_progress(tile_index: int, wall_hp: float, morale: float, turns_left: int)

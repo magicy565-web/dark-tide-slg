@@ -68,18 +68,54 @@ func _tick_faction(player_id: int, faction_id: int) -> void:
 
 	# ── Strategic actions based on planner ──
 	if is_hostile and source_tiles.size() > 0:
-		match strategy:
-			AIStrategicPlanner.Strategy.RAID:
-				_try_strategic_raid(player_id, source_tiles, faction_id)
-			AIStrategicPlanner.Strategy.EXPAND:
-				_try_strategic_raid(player_id, source_tiles, faction_id)
-			AIStrategicPlanner.Strategy.DEFEND:
-				AIStrategicPlanner.reinforce_threatened_border(ai_key)
-			AIStrategicPlanner.Strategy.CONSOLIDATE:
-				_consolidate_garrison(source_tiles, faction_id)
-			_:
-				# Default: chance-based raid for backward compat
-				_try_legacy_raid(player_id, source_tiles, faction_id)
+		# ── Phase 0.5: Advanced tactical intelligence ──
+		var tactical_plan: Dictionary = AIStrategicPlanner.get_tactical_plan(ai_key)
+		var plan_type: String = tactical_plan.get("type", "normal")
+
+		# Execute strategic retreats before anything else
+		if plan_type == "retreat":
+			for retreat_idx in tactical_plan.get("tiles", []):
+				AIStrategicPlanner.execute_retreat(ai_key, retreat_idx)
+
+		# Execute concentration (garrison transfer toward rally point)
+		if plan_type == "concentration":
+			AIStrategicPlanner.execute_concentration(ai_key)
+
+		# Execute feint: boost garrison near feint target to draw attention
+		if plan_type == "feint_setup":
+			var feint_plan: Dictionary = tactical_plan.get("plan", {})
+			var feint_src: int = feint_plan.get("feint_source", -1)
+			if feint_src >= 0 and feint_src < GameManager.tiles.size():
+				GameManager.tiles[feint_src]["garrison"] += 3
+				EventBus.message_log.emit("[%s] 佯攻部队集结中..." % ai_key)
+
+		# Execute diversion: raid enemy rear instead of defending
+		if plan_type == "diversion":
+			var div_plan: Dictionary = tactical_plan.get("plan", {})
+			var div_target: int = div_plan.get("target_tile", -1)
+			if div_target >= 0:
+				_execute_diversion_raid(player_id, source_tiles, faction_id, div_target)
+
+		# Normal strategic behavior
+		if plan_type == "normal" or plan_type == "retreat":
+			match strategy:
+				AIStrategicPlanner.Strategy.RAID:
+					_try_strategic_raid(player_id, source_tiles, faction_id)
+				AIStrategicPlanner.Strategy.EXPAND:
+					_try_strategic_raid(player_id, source_tiles, faction_id)
+				AIStrategicPlanner.Strategy.DEFEND:
+					AIStrategicPlanner.reinforce_threatened_border(ai_key)
+				AIStrategicPlanner.Strategy.CONSOLIDATE:
+					_consolidate_garrison(source_tiles, faction_id)
+				_:
+					_try_legacy_raid(player_id, source_tiles, faction_id)
+
+		# Execute pending feint real attack (turn 2)
+		if plan_type == "feint":
+			var feint_plan: Dictionary = tactical_plan.get("plan", {})
+			var real_target: int = feint_plan.get("real_target", -1)
+			if real_target >= 0:
+				_execute_diversion_raid(player_id, source_tiles, faction_id, real_target)
 
 	# Coordinated attacks: if this faction is part of a coordinated assault
 	if is_hostile:
@@ -103,6 +139,27 @@ func _try_strategic_raid(player_id: int, source_tiles: Array, faction_id: int) -
 
 	# Use strategic planner to find best target
 	var result: Dictionary = AIStrategicPlanner.select_raid_target(ai_key, source_tiles)
+
+	# ── Supply chokepoint consideration ──
+	var strategy: int = AIStrategicPlanner.get_current_strategy(ai_key)
+	if strategy == AIStrategicPlanner.Strategy.RAID:
+		# Check for supply-cut targets that may outperform normal raid targets
+		var human_pid: int = GameManager.get_human_player_id()
+		var chokepoints: Array = AIStrategicPlanner.find_supply_chokepoints(human_pid)
+		for cp in chokepoints:
+			var cp_idx: int = cp["tile_index"]
+			# Check if we have a source tile adjacent
+			for src in source_tiles:
+				if not GameManager.adjacency.has(src["index"]):
+					continue
+				if cp_idx in GameManager.adjacency[src["index"]]:
+					var supply_score: float = AIStrategicPlanner.score_supply_cut_attack(ai_key, cp_idx)
+					var current_best: float = result.get("score", 0.0)
+					if supply_score > current_best:
+						result = {"tile": GameManager.tiles[cp_idx], "score": supply_score, "source": src}
+						EventBus.message_log.emit("[%s] 选择切断补给线目标 #%d (可孤立%d个据点)" % [ai_key, cp_idx, cp["isolation_count"]])
+					break
+
 	if result.is_empty():
 		return
 
@@ -148,6 +205,69 @@ func _try_strategic_raid(player_id: int, source_tiles: Array, faction_id: int) -
 		EventBus.message_log.emit("击退了敌方突袭, 驻军-1")
 
 	_raid_cooldowns[faction_id] = 2  # Cooldown after raid
+
+
+func _execute_diversion_raid(player_id: int, source_tiles: Array, faction_id: int, target_tile: int) -> void:
+	## Execute a diversion/feint raid on a specific target tile.
+	if target_tile < 0 or target_tile >= GameManager.tiles.size():
+		return
+	var ai_key: String = _faction_to_ai_key(faction_id)
+	if _raid_cooldowns.get(faction_id, 0) > 0:
+		return
+
+	var target: Dictionary = GameManager.tiles[target_tile]
+	if target.get("owner_id", -1) < 0:
+		return  # Not a player tile
+
+	# Find closest source tile to launch the raid
+	var best_source: Dictionary = {}
+	for src in source_tiles:
+		if not GameManager.adjacency.has(src["index"]):
+			continue
+		# Check if target is reachable (1 or 2 hops)
+		if target_tile in GameManager.adjacency[src["index"]]:
+			best_source = src
+			break
+		# 2-hop check
+		for nb in GameManager.adjacency[src["index"]]:
+			if GameManager.adjacency.has(nb) and target_tile in GameManager.adjacency[nb]:
+				if best_source.is_empty():
+					best_source = src
+				break
+
+	if best_source.is_empty():
+		# Fallback: use strongest source tile
+		if not source_tiles.is_empty():
+			source_tiles.sort_custom(func(a, b): return a.get("garrison", 0) > b.get("garrison", 0))
+			best_source = source_tiles[0]
+		else:
+			return
+
+	var raid_strength: int = maxi(BalanceConfig.EVIL_RAID_MIN_STRENGTH, best_source.get("garrison", 0) / BalanceConfig.EVIL_RAID_STRENGTH_DIVISOR)
+	var tier: int = AIScaling.get_tier(ai_key)
+	if tier >= 2:
+		raid_strength += tier * 2
+
+	var target_garrison: int = target.get("garrison", 0)
+	var directive: int = AIStrategicPlanner.choose_tactical_directive(ai_key, true, raid_strength, target_garrison)
+	directive = _adjust_directive_for_weather(directive, ai_key)
+	var dir_data: Dictionary = CombatResolver.DIRECTIVE_DATA.get(directive, {})
+	var atk_mult: float = dir_data.get("atk_mult", 1.0)
+	var effective_strength: float = float(raid_strength) * atk_mult
+
+	EventBus.message_log.emit("[color=orange][%s] 战术奇袭据点#%d! (兵力: %d)[/color]" % [ai_key, target_tile, raid_strength])
+
+	if effective_strength > float(target_garrison):
+		target["garrison"] = maxi(0, target_garrison - int(effective_strength / float(BalanceConfig.EVIL_RAID_DAMAGE_DIVISOR)))
+		EventBus.message_log.emit("[color=red]奇袭成功! 后方据点驻军损失严重[/color]")
+		AIStrategicPlanner.record_player_attack(ai_key, target_tile)
+		AIStrategicPlanner.record_diversion_result(ai_key, true)
+	else:
+		target["garrison"] = maxi(0, target_garrison - 1)
+		EventBus.message_log.emit("击退了敌方奇袭, 驻军-1")
+		AIStrategicPlanner.record_diversion_result(ai_key, false)
+
+	_raid_cooldowns[faction_id] = 2
 
 
 func _try_legacy_raid(player_id: int, source_tiles: Array, faction_id: int) -> void:
