@@ -1,7 +1,6 @@
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
-const TacticalGridScript = preload("res://systems/combat/tactical_grid.gd")
 
 ## combat_resolver.gd - Turn-based Sengoku Rance-style combat (v1.0 rewrite)
 ## Front row (3 slots) + Back row (3 slots), SPD-based action queue, 12-round max.
@@ -427,13 +426,6 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 
 		_start_of_round(state, log)
 
-		# v5.2: Tactical Grid movement sub-phase
-		if state.get("grid_active", false) and state.get("tactical_grid", null) != null:
-			var _tg = state["tactical_grid"]
-			# Apply obstacle effects (fire damage, etc.)
-			var _obstacle_effects: Array = _tg.apply_obstacle_effects()
-			for _oe in _obstacle_effects:
-				log.append("%s 受到 %s 地形伤害 %d" % [_oe.get("unit_id", ""), _oe.get("obstacle", ""), _oe.get("damage", 0)])
 
 		# v4.6: time_slow — restore SPD after round 1
 		if round_num == 2:
@@ -595,45 +587,7 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 		"atk_decoy_slot": attacker.get("decoy_slot", -1),
 		"def_protected_slot": defender.get("protected_slot", -1),
 		"def_decoy_slot": defender.get("decoy_slot", -1),
-		# v5.2: Tactical Grid
-		"tactical_grid": null,
-		"grid_active": false,
 	}
-
-
-func _build_battle_state_with_grid(attacker: Dictionary, defender: Dictionary, tile: Dictionary) -> Dictionary:
-	var state: Dictionary = _build_battle_state(attacker, defender, tile)
-	var deployment_result: Dictionary = attacker.get("deployment_result", {})
-	if not deployment_result.is_empty() and deployment_result.has("tactical_grid"):
-		state["tactical_grid"] = deployment_result["tactical_grid"]
-		state["grid_active"] = true
-	elif attacker.get("use_grid", false) or defender.get("use_grid", false):
-		state["tactical_grid"] = TacticalGridScript.new()
-		state["grid_active"] = true
-		_auto_place_units_on_resolver_grid(state)
-	return state
-
-
-func _auto_place_units_on_resolver_grid(state: Dictionary) -> void:
-	var grid = state["tactical_grid"]
-	if grid == null:
-		return
-	var col: int = 0
-	for u in state["atk_units"]:
-		var y: int = 0 if u["row"] == "front" else 2
-		var x: int = col % TacticalGridScript.GRID_WIDTH
-		var grid_unit: Dictionary = u.duplicate()
-		grid_unit["side"] = "attacker"
-		grid.place_unit(grid_unit, x, y)
-		col += 1
-	col = 0
-	for u in state["def_units"]:
-		var y: int = 3 if u["row"] == "front" else 1
-		var x: int = col % TacticalGridScript.GRID_WIDTH
-		var grid_unit: Dictionary = u.duplicate()
-		grid_unit["side"] = "defender"
-		grid.place_unit(grid_unit, x, y)
-		col += 1
 
 
 func _assign_to_slots(raw_units: Array, player_id: int, side: String, tile: Dictionary) -> Array:
@@ -2582,25 +2536,6 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 	if attacker_unit["row"] == "back" and _count_alive_in_row(_own_units, "front") == 0:
 		base_damage *= 1.15
 
-	# v5.2: Grid-based positional bonuses (flanking +15%, rear +25%)
-	if state.get("grid_active", false) and state.get("tactical_grid", null) != null:
-		var _tg = state["tactical_grid"]
-		var _atk_pos: Vector2i = _tg.find_unit(attacker_unit.get("id", ""))
-		var _def_pos: Vector2i = _tg.find_unit(defender_unit.get("id", ""))
-		if _atk_pos.x >= 0 and _def_pos.x >= 0:
-			var _flank_info: Dictionary = _tg.check_flanking(_atk_pos, _def_pos)
-			if _flank_info["damage_multiplier"] != 1.0:
-				base_damage *= _flank_info["damage_multiplier"]
-			# Grid cell terrain DEF bonus (rubble: +2)
-			var _cell_bonus: Dictionary = _tg.get_terrain_bonus(_def_pos.x, _def_pos.y)
-			if _cell_bonus.has("def"):
-				base_damage = maxf(base_damage - float(_cell_bonus["def"]) * float(soldiers) / 10.0, 0.0)
-			# Artillery accuracy penalty at max range
-			var _unit_range: int = _tg.get_unit_attack_range(attacker_unit)
-			if _unit_range >= TacticalGridScript.RANGE_ARTILLERY:
-				var _acc_pen: float = _tg.get_artillery_accuracy_penalty(_atk_pos, _def_pos)
-				if _acc_pen > 0.0:
-					base_damage *= (1.0 - _acc_pen)
 
 	# FIX(MAJOR): 护盾buff改为取最强护盾生效，不再乘法叠加；使用后标记移除
 	var best_shield_idx: int = -1
