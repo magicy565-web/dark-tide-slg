@@ -1,6 +1,7 @@
 ## formation_preview.gd - Pre-battle popup showing detected formations for both sides.
 ## Highlights formation clashes and lets the player proceed with "Battle Begin".
 extends CanvasLayer
+const FormationSystem = preload("res://systems/combat/formation_system.gd")
 
 signal battle_confirmed()
 signal battle_cancelled()

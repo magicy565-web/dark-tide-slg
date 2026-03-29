@@ -1,5 +1,6 @@
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
 
 ## evil_faction_ai.gd - Strategic AI for unrecruited evil faction outposts (v4.0)
 ## Now uses AIStrategicPlanner for intelligent target selection, tactical directives,

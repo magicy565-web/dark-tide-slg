@@ -271,34 +271,34 @@ func _build_top_bar(parent: Control) -> void:
 	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(hbox)
 
-	turn_label = _make_label("Turn: ---", 14, Color.WHITE)
+	turn_label = _make_label("Turn: ---", ColorTheme.FONT_BODY, Color.WHITE)
 	turn_label.custom_minimum_size.x = 120
 	hbox.add_child(turn_label)
-	var gold_hb := _make_icon_label(_icon_gold, "0", 14, Color.GOLD, 50)
+	var gold_hb := _make_icon_label(_icon_gold, "0", ColorTheme.FONT_BODY, ColorTheme.RES_GOLD, 50)
 	gold_label = gold_hb.get_child(gold_hb.get_child_count() - 1)
 	hbox.add_child(gold_hb)
-	var food_hb := _make_icon_label(_icon_food, "0", 14, Color(0.6, 0.9, 0.4), 50)
+	var food_hb := _make_icon_label(_icon_food, "0", ColorTheme.FONT_BODY, ColorTheme.RES_FOOD, 50)
 	food_label = food_hb.get_child(food_hb.get_child_count() - 1)
 	hbox.add_child(food_hb)
-	var iron_hb := _make_icon_label(_icon_iron, "0", 14, Color(0.7, 0.7, 0.8), 50)
+	var iron_hb := _make_icon_label(_icon_iron, "0", ColorTheme.FONT_BODY, ColorTheme.RES_IRON, 50)
 	iron_label = iron_hb.get_child(iron_hb.get_child_count() - 1)
 	hbox.add_child(iron_hb)
-	var slave_hb := _make_icon_label(_icon_slave, "0", 14, Color(0.9, 0.6, 0.3), 60)
+	var slave_hb := _make_icon_label(_icon_slave, "0", ColorTheme.FONT_BODY, ColorTheme.RES_SLAVE, 60)
 	slaves_label = slave_hb.get_child(slave_hb.get_child_count() - 1)
 	hbox.add_child(slave_hb)
-	var prestige_hb := _make_icon_label(_icon_prestige, "0", 14, Color(1.0, 0.85, 0.3), 65)
+	var prestige_hb := _make_icon_label(_icon_prestige, "0", ColorTheme.FONT_BODY, ColorTheme.RES_PRESTIGE, 65)
 	prestige_label = prestige_hb.get_child(prestige_hb.get_child_count() - 1)
 	hbox.add_child(prestige_hb)
-	army_label = _make_label("Army:0", 14, Color.LIGHT_BLUE)
+	army_label = _make_label("Army:0", ColorTheme.FONT_BODY, Color.LIGHT_BLUE)
 	army_label.custom_minimum_size.x = 100
 	hbox.add_child(army_label)
-	pop_label = _make_label("Pop:0/0", 13, Color(0.9, 0.75, 0.5))
+	pop_label = _make_label("Pop:0/0", 13, ColorTheme.RES_SLAVE)
 	pop_label.custom_minimum_size.x = 80
 	hbox.add_child(pop_label)
-	ap_label = _make_label("AP:0", 14, Color.LIGHT_GREEN)
+	ap_label = _make_label("AP:0", ColorTheme.FONT_BODY, ColorTheme.TEXT_SUCCESS)
 	ap_label.custom_minimum_size.x = 45
 	hbox.add_child(ap_label)
-	stronghold_label = _make_label("Fort:0/4", 14, Color.ORANGE)
+	stronghold_label = _make_label("Fort:0/4", ColorTheme.FONT_BODY, Color.ORANGE)
 	stronghold_label.custom_minimum_size.x = 70
 	hbox.add_child(stronghold_label)
 
@@ -309,34 +309,34 @@ func _build_top_bar(parent: Control) -> void:
 	vbox.add_child(hbox2)
 
 	if _icon_order:
-		var order_hb := _make_icon_label(_icon_order, "50", 12, Color(0.5, 0.8, 1.0), 90)
+		var order_hb := _make_icon_label(_icon_order, "50", 12, ColorTheme.RES_ORDER, 90)
 		order_label = order_hb.get_child(order_hb.get_child_count() - 1)
 		hbox2.add_child(order_hb)
 	else:
-		order_label = _make_label("Order:50", 12, Color(0.5, 0.8, 1.0))
+		order_label = _make_label("Order:50", 12, ColorTheme.RES_ORDER)
 		order_label.custom_minimum_size.x = 90
 		hbox2.add_child(order_label)
 	if _icon_threat:
-		var threat_hb := _make_icon_label(_icon_threat, "0", 12, Color(1.0, 0.4, 0.3), 90)
+		var threat_hb := _make_icon_label(_icon_threat, "0", 12, ColorTheme.RES_THREAT, 90)
 		threat_label = threat_hb.get_child(threat_hb.get_child_count() - 1)
 		hbox2.add_child(threat_hb)
 	else:
-		threat_label = _make_label("Threat:0", 12, Color(1.0, 0.4, 0.3))
+		threat_label = _make_label("Threat:0", 12, ColorTheme.RES_THREAT)
 		threat_label.custom_minimum_size.x = 90
 		hbox2.add_child(threat_label)
-	waaagh_label = _make_label("", 12, Color(1.0, 0.2, 0.1))
+	waaagh_label = _make_label("", 12, ColorTheme.TEXT_WARNING)
 	waaagh_label.custom_minimum_size.x = 80
 	hbox2.add_child(waaagh_label)
-	var crystal_hb := _make_icon_label(_icon_crystal, "0", 11, Color(0.6, 0.4, 1.0), 55)
+	var crystal_hb := _make_icon_label(_icon_crystal, "0", ColorTheme.FONT_SMALL, ColorTheme.RES_CRYSTAL, 55)
 	magic_crystal_label = crystal_hb.get_child(crystal_hb.get_child_count() - 1)
 	hbox2.add_child(crystal_hb)
-	war_horse_label = _make_label("Horse:0", 11, Color(0.8, 0.6, 0.3))
+	war_horse_label = _make_label("Horse:0", ColorTheme.FONT_SMALL, Color(0.8, 0.6, 0.3))
 	war_horse_label.custom_minimum_size.x = 55
 	hbox2.add_child(war_horse_label)
-	gunpowder_label = _make_label("Gunpowder:0", 11, Color(0.9, 0.5, 0.2))
+	gunpowder_label = _make_label("Gunpowder:0", ColorTheme.FONT_SMALL, Color(0.9, 0.5, 0.2))
 	gunpowder_label.custom_minimum_size.x = 55
 	hbox2.add_child(gunpowder_label)
-	shadow_essence_label = _make_label("Shadow:0", 11, Color(0.5, 0.2, 0.7))
+	shadow_essence_label = _make_label("Shadow:0", ColorTheme.FONT_SMALL, Color(0.5, 0.2, 0.7))
 	shadow_essence_label.custom_minimum_size.x = 55
 	hbox2.add_child(shadow_essence_label)
 
@@ -355,7 +355,7 @@ func _build_action_panel(parent: Control) -> void:
 	vbox.add_theme_constant_override("separation", 4)
 	action_panel.add_child(vbox)
 
-	var title := _make_label("Actions", 15, Color(0.8, 0.8, 0.9))
+	var title := _make_label("Actions", ColorTheme.FONT_SUBHEADING, ColorTheme.TEXT_HEADING)
 	vbox.add_child(title)
 
 	btn_attack = _make_button("Attack (1AP)", _icon_action_attack)
@@ -482,7 +482,7 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 	vbox.add_theme_constant_override("separation", 4)
 	domestic_panel.add_child(vbox)
 
-	var title := _make_label("Domestic Menu", 13, Color(0.7, 0.8, 0.9))
+	var title := _make_label("Domestic Menu", 13, ColorTheme.TEXT_HEADING)
 	vbox.add_child(title)
 
 	btn_recruit = _make_button("Recruit", _icon_action_recruit)
@@ -557,7 +557,7 @@ func _build_target_panel(parent: Control) -> void:
 	var header := HBoxContainer.new()
 	vbox.add_child(header)
 
-	target_title_label = _make_label("Targets", 14, Color(0.9, 0.85, 0.7))
+	target_title_label = _make_label("Targets", ColorTheme.FONT_BODY, ColorTheme.TEXT_HEADING)
 	target_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(target_title_label)
 
@@ -594,7 +594,7 @@ func _build_item_panel(parent: Control) -> void:
 	item_container.add_theme_constant_override("separation", 3)
 	item_panel.add_child(item_container)
 
-	var title := _make_label("Inventory", 14, Color(0.8, 0.8, 0.9))
+	var title := _make_label("Inventory", ColorTheme.FONT_BODY, ColorTheme.TEXT_HEADING)
 	item_container.add_child(title)
 
 
@@ -620,7 +620,7 @@ func _build_tile_info(parent: Control) -> void:
 	tile_info_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	tile_info_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tile_info_label.text = "[b]Current Location[/b]\nWaiting for game to start..."
-	tile_info_label.add_theme_font_size_override("normal_font_size", 12)
+	tile_info_label.add_theme_font_size_override("normal_font_size", ColorTheme.FONT_SMALL + 1)
 	panel.add_child(tile_info_label)
 
 
@@ -641,8 +641,8 @@ func _build_message_log(parent: Control) -> void:
 	message_log_label.bbcode_enabled = true
 	message_log_label.scroll_following = true
 	message_log_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	message_log_label.add_theme_font_size_override("normal_font_size", 11)
-	message_log_label.add_theme_color_override("default_color", Color(0.8, 0.8, 0.85))
+	message_log_label.add_theme_font_size_override("normal_font_size", ColorTheme.FONT_SMALL)
+	message_log_label.add_theme_color_override("default_color", ColorTheme.TEXT_DIM)
 	panel.add_child(message_log_label)
 
 
@@ -660,8 +660,8 @@ func _build_game_over(parent: Control) -> void:
 	game_over_panel.offset_bottom = 200
 	game_over_panel.visible = false
 	game_over_style = StyleBoxFlat.new()
-	game_over_style.bg_color = Color(0.1, 0.06, 0.15, 0.95)
-	game_over_style.border_color = Color.GOLD
+	game_over_style.bg_color = ColorTheme.BG_VICTORY
+	game_over_style.border_color = ColorTheme.ACCENT_GOLD
 	game_over_style.set_border_width_all(3)
 	game_over_style.set_corner_radius_all(10)
 	game_over_style.set_content_margin_all(20)
@@ -673,11 +673,11 @@ func _build_game_over(parent: Control) -> void:
 	vbox.add_theme_constant_override("separation", 8)
 	game_over_panel.add_child(vbox)
 
-	game_over_label = _make_label("Game Over!", 26, Color.GOLD)
+	game_over_label = _make_label("Game Over!", ColorTheme.FONT_TITLE, ColorTheme.TEXT_GOLD)
 	game_over_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(game_over_label)
 
-	game_over_victory_type_label = _make_label("", 18, Color.GOLD)
+	game_over_victory_type_label = _make_label("", ColorTheme.FONT_HEADING - 2, ColorTheme.TEXT_GOLD)
 	game_over_victory_type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(game_over_victory_type_label)
 
@@ -685,7 +685,7 @@ func _build_game_over(parent: Control) -> void:
 	sep.add_theme_constant_override("separation", 8)
 	vbox.add_child(sep)
 
-	var stats_title := _make_label("-- Battle Stats --", 14, Color(0.7, 0.7, 0.8))
+	var stats_title := _make_label("-- Battle Stats --", ColorTheme.FONT_BODY, ColorTheme.TEXT_DIM)
 	stats_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(stats_title)
 
@@ -761,8 +761,8 @@ func _build_phase_banner(parent: Control) -> void:
 	_phase_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_phase_banner.visible = false
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.05, 0.1, 0.92)
-	style.border_color = Color(0.65, 0.55, 0.25)
+	style.bg_color = ColorTheme.PHASE_BG
+	style.border_color = ColorTheme.PHASE_BORDER
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(8)
 	style.set_content_margin_all(8)
@@ -772,8 +772,8 @@ func _build_phase_banner(parent: Control) -> void:
 	_phase_banner_label = Label.new()
 	_phase_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_phase_banner_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_phase_banner_label.add_theme_font_size_override("font_size", 18)
-	_phase_banner_label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.4))
+	_phase_banner_label.add_theme_font_size_override("font_size", ColorTheme.FONT_HEADING - 2)
+	_phase_banner_label.add_theme_color_override("font_color", ColorTheme.PHASE_HUMAN)
 	_phase_banner.add_child(_phase_banner_label)
 
 	_phase_banner_timer = Timer.new()
@@ -791,12 +791,12 @@ func _on_phase_banner_requested(text: String, is_ai_turn: bool) -> void:
 
 	if is_ai_turn:
 		# Stay visible and disable input during AI turn
-		_phase_banner_label.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5))
+		_phase_banner_label.add_theme_color_override("font_color", ColorTheme.PHASE_AI)
 		_phase_banner_timer.stop()
 		_set_all_buttons_disabled(true)
 	else:
 		# Human turn: show briefly then auto-hide
-		_phase_banner_label.add_theme_color_override("font_color", Color(0.95, 0.85, 0.4))
+		_phase_banner_label.add_theme_color_override("font_color", ColorTheme.PHASE_HUMAN)
 		_phase_banner_timer.start(1.5)
 		# Re-enable buttons (will be refined by _update_buttons)
 		_ai_turn_active = false
@@ -839,6 +839,7 @@ func _show_target_panel(title_text: String) -> void:
 	target_title_label.text = title_text
 	domestic_panel.visible = false
 	target_panel.visible = true
+	ColorTheme.animate_panel_open(target_panel)
 
 
 func _add_target_button(label_text: String, callback: Callable, is_disabled: bool = false) -> void:
@@ -987,8 +988,7 @@ func _on_domestic_pressed() -> void:
 		btn_tile_dev.disabled = true
 
 	domestic_panel.visible = true
-
-
+	ColorTheme.animate_panel_open(domestic_panel)
 func _on_diplomacy_pressed() -> void:
 	if _current_mode == ActionMode.DIPLOMACY:
 		_close_target_panel()
@@ -2498,19 +2498,11 @@ func _update_items() -> void:
 
 ## Flash a resource label yellow (gain) or red (loss) then back to white
 func _flash_resource_label(label: Label, is_gain: bool) -> void:
-	if not is_instance_valid(label): return
-	var flash_color := Color(1, 0.9, 0.2) if is_gain else Color(1, 0.2, 0.15)
-	var tw := create_tween()
-	tw.tween_property(label, "modulate", flash_color, 0.1)
-	tw.tween_property(label, "modulate", Color.WHITE, 0.35).set_ease(Tween.EASE_OUT)
+	ColorTheme.flash_label(label, is_gain)
 
 ## Brief scale pulse on a button after a successful action
 func _pulse_button(btn: Button) -> void:
-	if not is_instance_valid(btn): return
-	btn.pivot_offset = btn.size * 0.5
-	var tw := create_tween()
-	tw.tween_property(btn, "scale", Vector2(1.1, 1.1), 0.08).set_ease(Tween.EASE_OUT)
-	tw.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.15).set_ease(Tween.EASE_IN)
+	ColorTheme.pulse_button(btn)
 
 ## Slide the phase banner in from top with ease-out
 func _animate_phase_banner_in() -> void:
@@ -2748,30 +2740,31 @@ func _on_game_over(winner_id: int) -> void:
 	if is_victory:
 		victory_type = _detect_victory_type(human_id)
 		game_over_label.text = "%s Wins!" % GameManager.get_player_by_id(human_id).get("name", "Player")
-		game_over_label.add_theme_color_override("font_color", Color.GOLD)
+		game_over_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 		game_over_victory_type_label.text = victory_type
-		game_over_victory_type_label.add_theme_color_override("font_color", Color.GOLD)
-		game_over_style.border_color = Color.GOLD
-		game_over_style.bg_color = Color(0.12, 0.1, 0.02, 0.95)
+		game_over_victory_type_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
+		game_over_style.border_color = ColorTheme.BORDER_VICTORY
+		game_over_style.bg_color = ColorTheme.BG_VICTORY
 	else:
 		victory_type = "Defeat"
 		game_over_label.text = "Game Over..."
-		game_over_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		game_over_label.add_theme_color_override("font_color", ColorTheme.TEXT_RED)
 		game_over_victory_type_label.text = victory_type
-		game_over_victory_type_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
-		game_over_style.border_color = Color(0.8, 0.15, 0.15)
-		game_over_style.bg_color = Color(0.15, 0.04, 0.04, 0.95)
+		game_over_victory_type_label.add_theme_color_override("font_color", ColorTheme.TEXT_RED)
+		game_over_style.border_color = ColorTheme.BORDER_DEFEAT
+		game_over_style.bg_color = ColorTheme.BG_DEFEAT
 
 	# ── Populate stats ──
 	for child in game_over_stats_vbox.get_children():
 		child.queue_free()
 	var stats: Array = _get_victory_stats(human_id)
 	for stat_text in stats:
-		var lbl := _make_label(stat_text, 13, Color(0.85, 0.85, 0.9))
+		var lbl := _make_label(stat_text, 13, ColorTheme.TEXT_DIM)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		game_over_stats_vbox.add_child(lbl)
 
 	game_over_panel.visible = true
+	ColorTheme.animate_panel_open(game_over_panel)
 	_update_buttons()
 
 
@@ -2859,31 +2852,31 @@ func _make_frame_style(tex: Texture2D, tex_margin: Array, content_margin: Array,
 func _make_top_bar_style() -> StyleBox:
 	return _make_frame_style(_frame_top_bar,
 		[60, 30, 60, 20], [70, 14, 70, 8],
-		Color(0.06, 0.06, 0.1, 0.92))
+		ColorTheme.BG_PRIMARY)
 
 
 func _make_info_panel_style() -> StyleBox:
 	return _make_frame_style(_frame_info_panel,
 		[30, 50, 30, 20], [20, 45, 20, 12],
-		Color(0.06, 0.08, 0.12, 0.9))
+		ColorTheme.BG_SECONDARY)
 
 
 func _make_content_panel_style() -> StyleBox:
 	return _make_frame_style(_frame_content,
 		[25, 20, 25, 30], [14, 12, 14, 16],
-		Color(0.06, 0.06, 0.1, 0.88))
+		ColorTheme.BG_PANEL)
 
 
 func _make_action_bar_style() -> StyleBox:
 	return _make_frame_style(_frame_action_bar,
 		[30, 40, 30, 20], [16, 30, 16, 10],
-		Color(0.06, 0.06, 0.1, 0.88))
+		ColorTheme.BG_PANEL)
 
 
 func _make_parchment_style() -> StyleBox:
 	return _make_frame_style(_frame_parchment,
 		[8, 8, 8, 8], [10, 10, 10, 10],
-		Color(0.04, 0.04, 0.08, 0.85))
+		ColorTheme.BG_DARK)
 
 
 func _make_icon_label(icon: Texture2D, text: String, size: int, color: Color, min_w: float) -> HBoxContainer:
@@ -2903,11 +2896,7 @@ func _make_icon_label(icon: Texture2D, text: String, size: int, color: Color, mi
 
 
 func _make_label(text: String, size: int, color: Color) -> Label:
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", size)
-	lbl.add_theme_color_override("font_color", color)
-	return lbl
+	return ColorTheme.make_label(text, size, color)
 
 
 func _make_button(text: String, icon: Texture2D = null) -> Button:
@@ -2920,26 +2909,14 @@ func _make_button(text: String, icon: Texture2D = null) -> Button:
 	btn.custom_minimum_size = Vector2(180, 32)
 	btn.add_theme_font_size_override("font_size", 12)
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
-	if _btn_normal_tex:
-		var sn := StyleBoxTexture.new()
-		sn.texture = _btn_normal_tex
-		sn.texture_margin_left = 8
-		sn.texture_margin_right = 8
-		sn.texture_margin_top = 6
-		sn.texture_margin_bottom = 6
-		sn.content_margin_left = 10
-		sn.content_margin_right = 10
-		sn.content_margin_top = 4
-		sn.content_margin_bottom = 4
-		btn.add_theme_stylebox_override("normal", sn)
-		if _btn_hover_tex:
-			var sh := sn.duplicate()
-			sh.texture = _btn_hover_tex
-			btn.add_theme_stylebox_override("hover", sh)
-		if _btn_pressed_tex:
-			var sp := sn.duplicate()
-			sp.texture = _btn_pressed_tex
-			btn.add_theme_stylebox_override("pressed", sp)
+	var styles := ColorTheme.make_button_style_textured()
+	btn.add_theme_stylebox_override("normal", styles["normal"])
+	if styles.has("hover"):
+		btn.add_theme_stylebox_override("hover", styles["hover"])
+	if styles.has("pressed"):
+		btn.add_theme_stylebox_override("pressed", styles["pressed"])
+	# Add hover scale tween
+	ColorTheme.setup_button_hover(btn)
 	return btn
 
 

@@ -70,8 +70,8 @@ func _build_ui() -> void:
 	var style: StyleBox = UITheme.make_info_panel_style() if UITheme else null
 	if not style:
 		var sf := StyleBoxFlat.new()
-		sf.bg_color = Color(0.08, 0.06, 0.12, 0.97)
-		sf.border_color = Color(0.7, 0.45, 0.15)
+		sf.bg_color = ColorTheme.BG_SECONDARY
+		sf.border_color = ColorTheme.ACCENT_GOLD
 		sf.set_border_width_all(2)
 		sf.set_corner_radius_all(10)
 		sf.set_content_margin_all(20)

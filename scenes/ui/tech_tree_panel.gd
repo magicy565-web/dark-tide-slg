@@ -60,8 +60,8 @@ func _build_ui() -> void:
 	main_panel.offset_left = 30; main_panel.offset_right = -30
 	main_panel.offset_top = 30; main_panel.offset_bottom = -30
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.06, 0.1, 0.97)
-	style.border_color = Color(0.3, 0.5, 0.6)
+	style.bg_color = ColorTheme.BG_SECONDARY
+	style.border_color = ColorTheme.BORDER_DEFAULT
 	style.set_border_width_all(2); style.set_corner_radius_all(10)
 	style.set_content_margin_all(12)
 	main_panel.add_theme_stylebox_override("panel", style)
@@ -76,8 +76,8 @@ func _build_ui() -> void:
 	outer_vbox.add_child(header_row)
 	header_label = Label.new()
 	header_label.text = "Research Tree"
-	header_label.add_theme_font_size_override("font_size", 22)
-	header_label.add_theme_color_override("font_color", Color(0.5, 0.8, 1.0))
+	header_label.add_theme_font_size_override("font_size", ColorTheme.FONT_HEADING + 2)
+	header_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(header_label)
 	btn_close = Button.new()

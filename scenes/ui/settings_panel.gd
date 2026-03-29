@@ -95,21 +95,20 @@ func _build_ui() -> void:
 	panel.offset_right = 210
 	panel.offset_bottom = 290
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
-	style.border_color = Color(0.5, 0.45, 0.3)
-	style.border_width_top = 2
-	style.border_width_bottom = 2
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	style.content_margin_left = 20
-	style.content_margin_right = 20
-	style.content_margin_top = 16
-	style.content_margin_bottom = 16
+	var style: StyleBox
+	if UITheme.frame_content:
+		style = UITheme.make_content_style()
+	else:
+		var sf := StyleBoxFlat.new()
+		sf.bg_color = ColorTheme.BG_SECONDARY
+		sf.border_color = ColorTheme.BORDER_DEFAULT
+		sf.set_border_width_all(2)
+		sf.set_corner_radius_all(8)
+		sf.content_margin_left = 20
+		sf.content_margin_right = 20
+		sf.content_margin_top = 16
+		sf.content_margin_bottom = 16
+		style = sf
 	panel.add_theme_stylebox_override("panel", style)
 	root.add_child(panel)
 
@@ -127,8 +126,8 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "Settings"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
+	title.add_theme_font_size_override("font_size", ColorTheme.FONT_HEADING + 4)
+	title.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 	vbox.add_child(title)
 
 	vbox.add_child(HSeparator.new())
@@ -337,6 +336,7 @@ func toggle_settings() -> void:
 	_visible = not _visible
 	visible = _visible
 	if _visible:
+		ColorTheme.animate_panel_open(panel)
 		# Sync with current audio settings
 		var master_db: float = AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Master"))
 		master_slider.value = db_to_linear(master_db)

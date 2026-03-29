@@ -69,8 +69,8 @@ func _build_ui() -> void:
 	main_panel.offset_left = 40; main_panel.offset_right = -40
 	main_panel.offset_top = 30; main_panel.offset_bottom = -30
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.05, 0.1, 0.97)
-	style.border_color = Color(0.5, 0.4, 0.2)
+	style.bg_color = ColorTheme.BG_SECONDARY
+	style.border_color = ColorTheme.BORDER_DEFAULT
 	style.set_border_width_all(2); style.set_corner_radius_all(10)
 	style.set_content_margin_all(12)
 	main_panel.add_theme_stylebox_override("panel", style)
@@ -385,8 +385,8 @@ func _build_neutral_factions() -> void:
 func _build_faction_card(fname: String, status_text: String, status_color: Color, name_color: Color) -> PanelContainer:
 	var card := PanelContainer.new()
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.08, 0.07, 0.12, 0.9)
-	s.border_color = Color(0.3, 0.25, 0.2)
+	s.bg_color = ColorTheme.BG_PANEL
+	s.border_color = ColorTheme.BORDER_DIM
 	s.set_border_width_all(1); s.set_corner_radius_all(6); s.set_content_margin_all(10)
 	card.add_theme_stylebox_override("panel", s)
 	var vbox := VBoxContainer.new()

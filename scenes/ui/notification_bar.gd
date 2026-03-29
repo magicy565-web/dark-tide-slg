@@ -75,7 +75,7 @@ func show_notification(text: String, color: Color = Color(0.9, 0.8, 0.5), durati
 
 	var panel := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.06, 0.12, 0.92)
+	style.bg_color = ColorTheme.BG_PRIMARY
 	style.border_color = color * 0.6
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(6)

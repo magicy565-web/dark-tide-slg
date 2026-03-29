@@ -556,6 +556,498 @@ func _register_events() -> void:
 		]
 	})
 
+	# ═══════════════ HERO-SPECIFIC ENCOUNTERS (12 events) ═══════════════
+
+	_events.append({
+		"id": "hero_rivalry", "name": "英雄对立",
+		"desc": "两名招募的英雄因理念不合爆发了激烈争执，整个营地都能听到她们的争吵声。",
+		"condition": "has_multiple_heroes", "repeatable": true,
+		"choices": [
+			{"text": "调解双方 (秩序+3, 两人好感-1)", "effects": {"order": 3, "corruption_boost": -1}},
+			{"text": "让她们决斗解决 (+5威望, -1兵)", "effects": {"prestige": 5, "soldiers": -1}},
+		]
+	})
+	_events.append({
+		"id": "hero_training_event", "name": "英雄切磋",
+		"desc": "一位英雄主动提出要指导另一位英雄的战斗技巧，两人在训练场上热火朝天地对练。",
+		"condition": "has_multiple_heroes", "repeatable": true,
+		"choices": [
+			{"text": "鼓励训练 (-10粮, 随机英雄ATK+1)", "effects": {"food": -10, "hero_stat_boost": {"stat": "atk", "value": 1}}},
+			{"text": "让她们休息 (秩序+2)", "effects": {"order": 2}},
+		]
+	})
+	_events.append({
+		"id": "hero_homesick", "name": "思乡之情",
+		"desc": "一名被俘的英雄整夜望着窗外的月亮，低声呢喃着故乡的名字。看守报告她情绪极不稳定。",
+		"condition": "has_prisoners", "repeatable": true,
+		"choices": [
+			{"text": "安慰她 (+腐化1, 秩序+2)", "effects": {"corruption_boost": 1, "order": 2}},
+			{"text": "加强看守 (-2兵, 威望+3)", "effects": {"soldiers": -2, "prestige": 3}},
+		]
+	})
+	_events.append({
+		"id": "hero_confession", "name": "英雄的告白",
+		"desc": "一位与你关系亲密的英雄在深夜来访，面红耳赤地表示有话要说。",
+		"condition": "has_multiple_heroes", "repeatable": false,
+		"choices": [
+			{"text": "认真倾听 (随机英雄好感+2, 威望+5)", "effects": {"corruption_boost": 2, "prestige": 5}},
+			{"text": "婉拒她 (秩序+5)", "effects": {"order": 5}},
+		]
+	})
+	_events.append({
+		"id": "hero_duel_request", "name": "决斗请求",
+		"desc": "一位好胜的英雄向另一位发出了正式的决斗挑战书，要求在全军面前一决高下。",
+		"condition": "has_multiple_heroes", "repeatable": true,
+		"choices": [
+			{"text": "允许决斗 (随机英雄ATK+2, -1兵)", "effects": {"hero_stat_boost": {"stat": "atk", "value": 2}, "soldiers": -1}},
+			{"text": "禁止决斗 (秩序+3, 威望-2)", "effects": {"order": 3, "prestige": -2}},
+		]
+	})
+	_events.append({
+		"id": "hero_cooking", "name": "英雄的料理",
+		"desc": "一位英雄兴致勃勃地在营地里搭起了炊灶，声称要为全军做一顿大餐。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "让她做 (70%秩序+5, 30%-3兵食物中毒)", "effects": {"type": "gamble", "success_rate": 0.7, "success": {"order": 5}, "fail": {"soldiers": -3}}},
+			{"text": "委婉拒绝 (秩序+1)", "effects": {"order": 1}},
+		]
+	})
+	_events.append({
+		"id": "hero_nightmare", "name": "英雄的噩梦",
+		"desc": "深夜里，一位英雄被噩梦惊醒，尖叫声惊动了整个营地。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "亲自安慰 (腐化+1, 秩序+3)", "effects": {"corruption_boost": 1, "order": 3}},
+			{"text": "命令她安静 (秩序-2, 威望+2)", "effects": {"order": -2, "prestige": 2}},
+		]
+	})
+	_events.append({
+		"id": "hero_artifact_find", "name": "英雄的遗物",
+		"desc": "一位英雄在战场废墟中发现了与自己过去相关的神秘遗物，它散发着奇异的光芒。",
+		"condition": "always", "repeatable": false,
+		"choices": [
+			{"text": "允许她保留 (随机英雄永久DEF+2)", "effects": {"hero_stat_boost": {"stat": "def", "value": 2}}},
+			{"text": "收归军用 (+1遗物)", "effects": {"relic": true}},
+		]
+	})
+	_events.append({
+		"id": "hero_jealousy", "name": "英雄的嫉妒",
+		"desc": "两位英雄因为你对另一方的\"偏心\"而产生嫌隙，气氛变得微妙起来。",
+		"condition": "has_multiple_heroes", "repeatable": true,
+		"choices": [
+			{"text": "分别安抚 (-20金, 秩序+5)", "effects": {"gold": -20, "order": 5}},
+			{"text": "不予理会 (秩序-3)", "effects": {"order": -3}},
+		]
+	})
+	_events.append({
+		"id": "hero_sacrifice", "name": "英雄的请命",
+		"desc": "一位英雄主动请缨执行一项极其危险的侦察任务，这可能关乎战局的走向。",
+		"condition": "always", "repeatable": false,
+		"choices": [
+			{"text": "批准出击 (60%揭示6迷雾+20金, 40%损3兵)", "effects": {"type": "gamble", "success_rate": 0.6, "success": {"reveal": 6, "gold": 20}, "fail": {"soldiers": -3}}},
+			{"text": "不许冒险 (秩序+3)", "effects": {"order": 3}},
+		]
+	})
+	_events.append({
+		"id": "hero_festival", "name": "英雄的庆典",
+		"desc": "英雄们提议举办一场军中庆典来鼓舞士气，但这需要不少物资。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "举办庆典 (-50金, -15粮, 秩序+10, 全军ATK+10% 3回合)", "effects": {"gold": -50, "food": -15, "order": 10, "buff": {"type": "atk_pct", "value": 10, "duration": 3}}},
+			{"text": "节省物资 (+5威望)", "effects": {"prestige": 5}},
+		]
+	})
+	_events.append({
+		"id": "hero_secret", "name": "英雄的秘密",
+		"desc": "一位英雄在深夜找到你，犹豫再三后透露了一个关于自己过去的黑暗秘密。",
+		"condition": "has_multiple_heroes", "repeatable": false,
+		"choices": [
+			{"text": "接受她的过去 (腐化+2, 秩序+5)", "effects": {"corruption_boost": 2, "order": 5}},
+			{"text": "将此事公开 (威望+8, 秩序-5)", "effects": {"prestige": 8, "order": -5}},
+		]
+	})
+
+	# ═══════════════ SEASONAL/WEATHER EVENTS (8 events) ═══════════════
+
+	_events.append({
+		"id": "harsh_winter", "name": "严酷寒冬",
+		"desc": "一场百年不遇的暴风雪席卷了整片领地，粮食消耗急剧上升。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "开放粮仓 (-30粮, 秩序+5)", "effects": {"food": -30, "order": 5}},
+			{"text": "实行配给 (秩序-5, -3粮/回合x3)", "effects": {"order": -5, "type": "dot", "food": -3, "duration": 3}},
+		]
+	})
+	_events.append({
+		"id": "spring_bloom", "name": "春回大地",
+		"desc": "温暖的春风吹过领地，万物复苏，田野中百花齐放。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "扩大耕种 (-20金, +8粮/回合x3)", "effects": {"gold": -20, "type": "dot", "food": 8, "duration": 3}},
+			{"text": "举办春祭 (-10粮, 秩序+8)", "effects": {"food": -10, "order": 8}},
+		]
+	})
+	_events.append({
+		"id": "summer_drought", "name": "夏日旱灾",
+		"desc": "烈日炙烤大地，河流干涸，田地龟裂，粮食产量骤降。",
+		"condition": "turn_gte_5", "repeatable": true,
+		"choices": [
+			{"text": "修建水渠 (-30铁, -20金, 秩序+5)", "effects": {"iron": -30, "gold": -20, "order": 5}},
+			{"text": "强征粮食 (-5奴隶, +15粮, 秩序-5)", "effects": {"slaves": -5, "food": 15, "order": -5}},
+		]
+	})
+	_events.append({
+		"id": "autumn_harvest", "name": "丰收之秋",
+		"desc": "今年的收成出乎意料地好，仓库堆满了金黄的粮食。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "储存粮食 (+40粮)", "effects": {"food": 40}},
+			{"text": "出售余粮 (+60金, 秩序+3)", "effects": {"gold": 60, "order": 3}},
+		]
+	})
+	_events.append({
+		"id": "earthquake", "name": "大地震动",
+		"desc": "一场剧烈的地震撼动了领地，多处建筑出现裂缝，城墙也受到了损害。",
+		"condition": "turn_gte_5", "repeatable": true,
+		"choices": [
+			{"text": "紧急修缮 (-40铁, -20金, 所有据点+3城防)", "effects": {"iron": -40, "gold": -20, "wall_boost": 3}},
+			{"text": "趁乱掠夺 (+30金, 秩序-8)", "effects": {"gold": 30, "order": -8}},
+		]
+	})
+	_events.append({
+		"id": "eclipse", "name": "日蚀降临",
+		"desc": "天空忽然暗下来，一轮黑日悬于苍穹。士兵们惊恐不安，但暗精灵的力量似乎得到了增幅。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "安抚军心 (-20金, 秩序+5)", "effects": {"gold": -20, "order": 5}},
+			{"text": "利用黑暗 (全军ATK+15% 2回合, 秩序-5)", "effects": {"order": -5, "buff": {"type": "atk_pct", "value": 15, "duration": 2}}},
+		]
+	})
+	_events.append({
+		"id": "monsoon", "name": "暴雨季节",
+		"desc": "连绵不断的暴雨让道路泥泞不堪，行军速度大幅下降。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "就地扎营 (本回合不可移动, 秩序+3)", "effects": {"immobile": true, "order": 3}},
+			{"text": "冒雨行军 (-3兵, 威胁-5)", "effects": {"soldiers": -3, "threat": -5}},
+		]
+	})
+	_events.append({
+		"id": "meteor_shower", "name": "流星雨",
+		"desc": "壮丽的流星雨划过夜空，坠落处发现了罕见的陨石矿脉。",
+		"condition": "always", "repeatable": false,
+		"choices": [
+			{"text": "开采陨铁 (-5奴隶, +40铁, +2魔晶)", "effects": {"slaves": -5, "iron": 40, "magic_crystal": 2}},
+			{"text": "供奉祈愿 (秩序+10, 威望+8)", "effects": {"order": 10, "prestige": 8}},
+		]
+	})
+
+	# ═══════════════ DIPLOMATIC EVENTS (8 events) ═══════════════
+
+	_events.append({
+		"id": "spy_discovered", "name": "间谍现形",
+		"desc": "侍卫在营地中抓获了一名敌方间谍，此人掌握着大量情报。",
+		"condition": "threat_gte_30", "repeatable": false,
+		"choices": [
+			{"text": "策反为双面间谍 (揭示4迷雾, 威胁-5)", "effects": {"reveal": 4, "threat": -5}},
+			{"text": "公开处决 (秩序+8, 威望+5)", "effects": {"order": 8, "prestige": 5}},
+		]
+	})
+	_events.append({
+		"id": "defector_arrives", "name": "敌将来投",
+		"desc": "一位敌方指挥官携带部下前来投诚，声称对旧主失望透顶。",
+		"condition": "threat_gte_30", "repeatable": false,
+		"choices": [
+			{"text": "接纳来降 (+6兵, 声望-10, 威胁+5)", "effects": {"soldiers": 6, "reputation_all": -10, "threat": 5}},
+			{"text": "拒绝并遣返 (声望+10, 威望+5)", "effects": {"reputation_all": 10, "prestige": 5}},
+		]
+	})
+	_events.append({
+		"id": "border_skirmish", "name": "边境冲突",
+		"desc": "边境巡逻队与邻国势力发生了小规模交火，局势可能升级。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "全面反击 (战斗: 敌6兵, 威胁+5)", "effects": {"type": "combat", "enemy_soldiers": 6}},
+			{"text": "派遣使者缓和 (-30金, 声望+10)", "effects": {"gold": -30, "reputation_all": 10}},
+		]
+	})
+	_events.append({
+		"id": "peace_envoy", "name": "求和使者",
+		"desc": "敌方派来使者递交和平协议，条件是归还部分领土和资源。",
+		"condition": "threat_gte_50", "repeatable": false,
+		"choices": [
+			{"text": "接受和平 (威胁-20, -30金, 声望+15)", "effects": {"threat": -20, "gold": -30, "reputation_all": 15}},
+			{"text": "斩杀来使 (威望+10, 威胁+10, 声望-20)", "effects": {"prestige": 10, "threat": 10, "reputation_all": -20}},
+		]
+	})
+	_events.append({
+		"id": "trade_dispute", "name": "贸易纠纷",
+		"desc": "两个友好势力的商人在你的领地内发生了严重的贸易纠纷，双方都要求你主持公道。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "公正裁决 (-20金, 声望+10, 秩序+3)", "effects": {"gold": -20, "reputation_all": 10, "order": 3}},
+			{"text": "从中牟利 (+50金, 声望-10)", "effects": {"gold": 50, "reputation_all": -10}},
+		]
+	})
+	_events.append({
+		"id": "hostage_exchange", "name": "俘虏交换",
+		"desc": "敌方提议交换战俘，他们手中有你的一批士兵。",
+		"condition": "has_prisoners", "repeatable": false,
+		"choices": [
+			{"text": "同意交换 (+5兵, 声望+10)", "effects": {"soldiers": 5, "reputation_all": 10}},
+			{"text": "拒绝交换 (秩序-3, 威望+5)", "effects": {"order": -3, "prestige": 5}},
+		]
+	})
+	_events.append({
+		"id": "assassination_attempt", "name": "暗杀阴谋",
+		"desc": "侍卫在你的寝室中发现了毒药和暗器——有人试图暗杀你。",
+		"condition": "threat_gte_30", "repeatable": false,
+		"choices": [
+			{"text": "展开大清洗 (-3奴隶, 秩序+10, 威望+8)", "effects": {"slaves": -3, "order": 10, "prestige": 8}},
+			{"text": "秘密调查 (-30金, 揭示3迷雾, 威胁-5)", "effects": {"gold": -30, "reveal": 3, "threat": -5}},
+		]
+	})
+	_events.append({
+		"id": "alliance_betrayal", "name": "盟友背叛",
+		"desc": "情报显示你的一个盟友正在暗中与敌方接触，密谋倒戈。",
+		"condition": "threat_gte_50", "repeatable": false,
+		"choices": [
+			{"text": "先发制人 (战斗: 敌8兵, 威望+10)", "effects": {"type": "combat", "enemy_soldiers": 8}},
+			{"text": "外交施压 (-50金, 声望+5, 威胁-10)", "effects": {"gold": -50, "reputation_all": 5, "threat": -10}},
+		]
+	})
+
+	# ═══════════════ ECONOMIC EVENTS (8 events) ═══════════════
+
+	_events.append({
+		"id": "gold_rush", "name": "金矿发现",
+		"desc": "探矿队在领地深处发现了一条富含黄金的矿脉！",
+		"condition": "always", "repeatable": false,
+		"choices": [
+			{"text": "大规模开采 (-5奴隶, +15金/回合x5)", "effects": {"slaves": -5, "type": "dot", "gold": 15, "duration": 5}},
+			{"text": "秘密储备 (+80金, 威望+5)", "effects": {"gold": 80, "prestige": 5}},
+		]
+	})
+	_events.append({
+		"id": "famine", "name": "饥荒蔓延",
+		"desc": "连续的灾害导致大面积饥荒，领地内到处是饥民的哀号。",
+		"condition": "turn_gte_5", "repeatable": true,
+		"choices": [
+			{"text": "开放军粮 (-30粮, 秩序+8, +3兵)", "effects": {"food": -30, "order": 8, "soldiers": 3}},
+			{"text": "封锁消息 (秩序-10, 声望-10)", "effects": {"order": -10, "reputation_all": -10}},
+		]
+	})
+	_events.append({
+		"id": "arms_dealer", "name": "军火商人",
+		"desc": "一位来自远方的军火商人展示了一批精良的武器装备，开价不菲。",
+		"condition": "gold_gte_80", "repeatable": true,
+		"choices": [
+			{"text": "大量购入 (-100金, 全军ATK+15% 5回合)", "effects": {"gold": -100, "buff": {"type": "atk_pct", "value": 15, "duration": 5}}},
+			{"text": "仅购少量 (-40金, +15铁)", "effects": {"gold": -40, "iron": 15}},
+		]
+	})
+	_events.append({
+		"id": "slave_rebellion", "name": "奴隶大起义",
+		"desc": "暗精灵领地内的奴隶们在一位神秘领袖的带领下发动了大规模起义。",
+		"condition": "faction_dark_elf", "repeatable": false,
+		"choices": [
+			{"text": "铁血镇压 (-5兵, -8奴隶, 秩序+15)", "effects": {"soldiers": -5, "slaves": -8, "order": 15}},
+			{"text": "谈判安抚 (-50金, 秩序+5, 奴隶产出+10% 5回合)", "effects": {"gold": -50, "order": 5, "buff": {"type": "slave_efficiency", "value": 10, "duration": 5}}},
+		]
+	})
+	_events.append({
+		"id": "pirate_raid_coast", "name": "海岸劫掠",
+		"desc": "一支不明来历的海盗舰队袭击了沿海领地，烧杀抢掠。",
+		"condition": "faction_pirate", "repeatable": false,
+		"choices": [
+			{"text": "出海迎战 (战斗: 敌10兵, 胜利+80金)", "effects": {"type": "combat", "enemy_soldiers": 10}},
+			{"text": "加固海防 (-30铁, 所有据点+10城防)", "effects": {"iron": -30, "wall_boost": 10}},
+		]
+	})
+	_events.append({
+		"id": "orc_blood_moon", "name": "血月狂潮",
+		"desc": "天空中升起血红色的月亮，兽人战士们陷入了疯狂的战斗狂热。",
+		"condition": "faction_orc", "repeatable": false,
+		"choices": [
+			{"text": "释放狂暴 (全军ATK+25% 3回合, DEF-15% 3回合, WAAAGH+20)", "effects": {"waaagh": 20, "buff": {"type": "atk_pct", "value": 25, "duration": 3}}},
+			{"text": "克制部队 (WAAAGH+10, 秩序+5)", "effects": {"waaagh": 10, "order": 5}},
+		]
+	})
+	_events.append({
+		"id": "ancient_library_discovery", "name": "远古图书馆",
+		"desc": "在偏远山区发现了一座保存完好的远古图书馆，里面藏有大量失传的知识。",
+		"condition": "always", "repeatable": false,
+		"choices": [
+			{"text": "派学者研究 (-40金, 随机英雄永久INT+2)", "effects": {"gold": -40, "hero_stat_boost": {"stat": "int", "value": 2}}},
+			{"text": "搬回变卖 (+60金, +20铁)", "effects": {"gold": 60, "iron": 20}},
+		]
+	})
+	_events.append({
+		"id": "cursed_treasure", "name": "诅咒宝藏",
+		"desc": "探险队发现了一座散发着不祥气息的宝库，财宝堆积如山，但空气中弥漫着诅咒的力量。",
+		"condition": "always", "repeatable": false,
+		"choices": [
+			{"text": "冒险取宝 (60%+120金+1遗物, 40%-5兵+产出-20% 3回合)", "effects": {"type": "gamble", "success_rate": 0.6, "success": {"gold": 120, "relic": true}, "fail": {"soldiers": -5, "debuff": {"type": "income_pct", "value": -20, "duration": 3}}}},
+			{"text": "封印宝库 (秩序+5, 威望+5)", "effects": {"order": 5, "prestige": 5}},
+		]
+	})
+
+	# ═══════════════ NARRATIVE MINI-CHAINS (4 chains x 3 events = 12 events) ═══════════════
+
+	# Chain 1: "流浪先知" (The Wandering Prophet)
+	_events.append({
+		"id": "wandering_prophet", "name": "流浪先知",
+		"desc": "一位衣衫褴褛的老者来到领地，自称能预见未来，开始在集市上布道。",
+		"condition": "always", "repeatable": false,
+		"choices": [
+			{"text": "允许布道 (秩序-3, 威望+5)", "effects": {"order": -3, "prestige": 5}},
+			{"text": "驱逐先知 (秩序+3, 声望-5)", "effects": {"order": 3, "reputation_all": -5}},
+		]
+	})
+	_events.append({
+		"id": "prophet_gathering", "name": "先知的信众",
+		"desc": "那位先知已经聚集了大批信徒，他们日夜在营地外举行祈祷仪式，影响了军队的秩序。",
+		"condition": "chain:wandering_prophet:0", "repeatable": false,
+		"chain_parent": "wandering_prophet", "chain_choice": 0,
+		"choices": [
+			{"text": "加入祈祷 (-20金, 全军DEF+10% 3回合, 秩序+5)", "effects": {"gold": -20, "order": 5, "buff": {"type": "def_pct", "value": 10, "duration": 3}}},
+			{"text": "限制集会 (秩序+3, 声望-5)", "effects": {"order": 3, "reputation_all": -5}},
+		]
+	})
+	_events.append({
+		"id": "prophet_revelation", "name": "先知的预言",
+		"desc": "先知发出了最终的预言——他声称看见了领地未来的命运，信徒们屏息以待。",
+		"condition": "chain:prophet_gathering:0", "repeatable": false,
+		"chain_parent": "prophet_gathering", "chain_choice": 0,
+		"choices": [
+			{"text": "信任预言 (揭示6迷雾, 秩序+8, +1遗物)", "effects": {"reveal": 6, "order": 8, "relic": true}},
+			{"text": "揭穿骗局 (+40金, 威望+10, 声望-10)", "effects": {"gold": 40, "prestige": 10, "reputation_all": -10}},
+		]
+	})
+
+	# Chain 2: "龙之目击" (Dragon Sighting)
+	_events.append({
+		"id": "dragon_rumor", "name": "龙之传闻",
+		"desc": "边境的农民报告在山脉上方看到了巨大的飞行生物，恐慌开始蔓延。",
+		"condition": "turn_gte_5", "repeatable": false,
+		"choices": [
+			{"text": "派遣斥候调查 (-10金, -2兵)", "effects": {"gold": -10, "soldiers": -2}},
+			{"text": "安抚民心 (秩序+3)", "effects": {"order": 3}},
+		]
+	})
+	_events.append({
+		"id": "dragon_scouting", "name": "龙巢勘察",
+		"desc": "斥候确认了龙的存在——一头年迈但仍然强大的巨龙盘踞在北方山脉中。",
+		"condition": "chain:dragon_rumor:0", "repeatable": false,
+		"chain_parent": "dragon_rumor", "chain_choice": 0,
+		"choices": [
+			{"text": "准备讨伐 (-30铁, -20金, +5兵)", "effects": {"iron": -30, "gold": -20, "soldiers": 5}},
+			{"text": "尝试交涉 (-3魔晶)", "effects": {"magic_crystal": -3}},
+		]
+	})
+	_events.append({
+		"id": "dragon_confrontation_fight", "name": "屠龙之战",
+		"desc": "大军向龙巢进发，一场史诗级的战斗即将展开。",
+		"condition": "chain:dragon_scouting:0", "repeatable": false,
+		"chain_parent": "dragon_scouting", "chain_choice": 0,
+		"choices": [
+			{"text": "全力进攻 (战斗: 敌15兵, 胜利+5暗影精华+1遗物)", "effects": {"type": "combat", "enemy_soldiers": 15}},
+			{"text": "设置陷阱 (70%+100金+1遗物, 30%损5兵)", "effects": {"type": "gamble", "success_rate": 0.7, "success": {"gold": 100, "relic": true}, "fail": {"soldiers": -5}}},
+		]
+	})
+	_events.append({
+		"id": "dragon_confrontation_talk", "name": "龙的契约",
+		"desc": "使者小心翼翼地进入龙巢，巨龙的金色瞳孔注视着这个渺小的来客。",
+		"condition": "chain:dragon_scouting:1", "repeatable": false,
+		"chain_parent": "dragon_scouting", "chain_choice": 1,
+		"choices": [
+			{"text": "缔结盟约 (全军ATK+20% 5回合, 威望+15)", "effects": {"prestige": 15, "buff": {"type": "atk_pct", "value": 20, "duration": 5}}},
+			{"text": "索取龙鳞 (+50铁, +3暗影精华, 威望+10)", "effects": {"iron": 50, "shadow_essence": 3, "prestige": 10}},
+		]
+	})
+
+	# Chain 3: "瘟疫医生" (The Plague Doctor)
+	_events.append({
+		"id": "plague_spreads", "name": "疫病蔓延",
+		"desc": "一种不明疫病在领地中迅速扩散，士兵和平民纷纷倒下。",
+		"condition": "always", "repeatable": false,
+		"choices": [
+			{"text": "严格隔离 (-3兵, 秩序+5)", "effects": {"soldiers": -3, "order": 5}},
+			{"text": "寻求外援 (-30金)", "effects": {"gold": -30}},
+		]
+	})
+	_events.append({
+		"id": "plague_doctor_arrives", "name": "瘟疫医生",
+		"desc": "一位戴着鸟嘴面具的神秘医生出现在领地门前，声称能治愈瘟疫。",
+		"condition": "chain:plague_spreads", "repeatable": false,
+		"chain_parent": "plague_spreads",
+		"choices": [
+			{"text": "信任医生 (-50金)", "effects": {"gold": -50}},
+			{"text": "搜查此人 (-10金, -1兵)", "effects": {"gold": -10, "soldiers": -1}},
+		]
+	})
+	_events.append({
+		"id": "plague_cure_real", "name": "神医的灵药",
+		"desc": "瘟疫医生确实是一位真正的名医，他调配的药物迅速控制了疫情。",
+		"condition": "chain:plague_doctor_arrives:0", "repeatable": false,
+		"chain_parent": "plague_doctor_arrives", "chain_choice": 0,
+		"choices": [
+			{"text": "留下任命为军医 (+3兵, 秩序+10, 全军DEF+5% 5回合)", "effects": {"soldiers": 3, "order": 10, "buff": {"type": "def_pct", "value": 5, "duration": 5}}},
+			{"text": "厚礼送走 (声望+15, 秩序+5)", "effects": {"reputation_all": 15, "order": 5}},
+		]
+	})
+	_events.append({
+		"id": "plague_cure_fake", "name": "瘟疫骗子",
+		"desc": "搜查发现此人是个骗子，\"灵药\"不过是染色的糖水，真正的目的是盗取军中物资。",
+		"condition": "chain:plague_doctor_arrives:1", "repeatable": false,
+		"chain_parent": "plague_doctor_arrives", "chain_choice": 1,
+		"choices": [
+			{"text": "处决骗子 (+20金, 秩序+8, 威望+5)", "effects": {"gold": 20, "order": 8, "prestige": 5}},
+			{"text": "流放了事 (秩序+3, 声望+5)", "effects": {"order": 3, "reputation_all": 5}},
+		]
+	})
+
+	# Chain 4: "地下抵抗军" (Underground Resistance)
+	_events.append({
+		"id": "resistance_rumors", "name": "地下暗流",
+		"desc": "情报人员发现敌方领地内部存在一支秘密抵抗组织，对现任统治者心怀不满。",
+		"condition": "threat_gte_30", "repeatable": false,
+		"choices": [
+			{"text": "秘密接触 (-20金)", "effects": {"gold": -20}},
+			{"text": "向敌方告密 (声望+10, 威胁-5)", "effects": {"reputation_all": 10, "threat": -5}},
+		]
+	})
+	_events.append({
+		"id": "resistance_contact", "name": "地下接头",
+		"desc": "你的密使与抵抗组织的领袖成功接头，对方提出了合作条件。",
+		"condition": "chain:resistance_rumors:0", "repeatable": false,
+		"chain_parent": "resistance_rumors", "chain_choice": 0,
+		"choices": [
+			{"text": "提供武器 (-30铁, -20金)", "effects": {"iron": -30, "gold": -20}},
+			{"text": "提供情报 (揭示3迷雾)", "effects": {"reveal": 3}},
+		]
+	})
+	_events.append({
+		"id": "resistance_recruit", "name": "起义爆发",
+		"desc": "在你的支援下，抵抗组织发动了起义，敌方后方陷入混乱。",
+		"condition": "chain:resistance_contact:0", "repeatable": false,
+		"chain_parent": "resistance_contact", "chain_choice": 0,
+		"choices": [
+			{"text": "趁机进攻 (+8兵, 威胁-10, 揭示4迷雾)", "effects": {"soldiers": 8, "threat": -10, "reveal": 4}},
+			{"text": "收编抵抗军 (+5兵, 声望+10)", "effects": {"soldiers": 5, "reputation_all": 10}},
+		]
+	})
+	_events.append({
+		"id": "resistance_expose", "name": "里应外合",
+		"desc": "你提供的情报帮助抵抗组织策划了一次精准的破坏行动。",
+		"condition": "chain:resistance_contact:1", "repeatable": false,
+		"chain_parent": "resistance_contact", "chain_choice": 1,
+		"choices": [
+			{"text": "配合夹击 (战斗: 敌8兵, 威胁-10)", "effects": {"type": "combat", "enemy_soldiers": 8}},
+			{"text": "静待时机 (威胁-15, 声望+5)", "effects": {"threat": -15, "reputation_all": 5}},
+		]
+	})
+
 
 # ═══════════════ CONDITION CHECKS ═══════════════
 
@@ -615,6 +1107,8 @@ func check_condition(event: Dictionary) -> bool:
 			return false
 		"has_prisoners":
 			return HeroSystem.captured_heroes.size() > 0
+		"has_multiple_heroes":
+			return HeroSystem.recruited_heroes.size() >= 2 or (HeroSystem.recruited_heroes.size() >= 1 and HeroSystem.captured_heroes.size() >= 1)
 	return false
 
 

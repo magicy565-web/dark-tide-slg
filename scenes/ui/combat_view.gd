@@ -250,7 +250,7 @@ func _build_ui() -> void:
 	bg = ColorRect.new()
 	bg.anchor_right = 1.0
 	bg.anchor_bottom = 1.0
-	bg.color = Color(0.03, 0.04, 0.08, 0.97)
+	bg.color = ColorTheme.BG_COMBAT
 	root.add_child(bg)
 
 	# Pixel art battle background (loaded dynamically per terrain)
@@ -272,7 +272,7 @@ func _build_ui() -> void:
 	root.add_child(shake_container)
 
 	# Title
-	title_label = _make_label("COMBAT", 30, Color(1, 0.92, 0.75), Vector2(0, 8), Vector2(SCREEN_W, 38))
+	title_label = _make_label("COMBAT", 30, ColorTheme.TEXT_TITLE, Vector2(0, 8), Vector2(SCREEN_W, 38))
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	shake_container.add_child(title_label)
 
@@ -294,9 +294,9 @@ func _build_ui() -> void:
 	_build_turn_bar()
 
 	# Side labels with faction power tracking
-	side_label_atk = _make_label("[ATTACKER]", 18, Color(0.95, 0.7, 0.45), Vector2(60, GRID_TOP - 32), Vector2(260, 28))
+	side_label_atk = _make_label("[ATTACKER]", 18, ColorTheme.SIDE_ATTACKER, Vector2(60, GRID_TOP - 32), Vector2(260, 28))
 	shake_container.add_child(side_label_atk)
-	side_label_def = _make_label("[DEFENDER]", 18, Color(0.45, 0.7, 0.95), Vector2(SCREEN_W - 320, GRID_TOP - 32), Vector2(260, 28))
+	side_label_def = _make_label("[DEFENDER]", 18, ColorTheme.SIDE_DEFENDER, Vector2(SCREEN_W - 320, GRID_TOP - 32), Vector2(260, 28))
 	side_label_def.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	shake_container.add_child(side_label_def)
 
@@ -350,7 +350,7 @@ func _build_turn_bar() -> void:
 	var bar_bg := ColorRect.new()
 	bar_bg.position = Vector2(CENTER_X - 240, TURN_BAR_Y - 5)
 	bar_bg.size = Vector2(480, TURN_ICON_SIZE + 10)
-	bar_bg.color = Color(0.06, 0.06, 0.1, 0.9)
+	bar_bg.color = ColorTheme.BG_PRIMARY
 	shake_container.add_child(bar_bg)
 	# Border accent
 	var bar_border := ColorRect.new()
@@ -647,7 +647,7 @@ func _build_command_bar() -> void:
 	var bar_bg := ColorRect.new()
 	bar_bg.position = Vector2(CENTER_X - 260, SCREEN_H - 68)
 	bar_bg.size = Vector2(520, 52)
-	bar_bg.color = Color(0.06, 0.05, 0.1, 0.92)
+	bar_bg.color = ColorTheme.PHASE_BG
 	bar_bg.z_index = 79
 	bar_bg.name = "CommandBarBg"
 	bar_bg.visible = false
@@ -712,7 +712,7 @@ func _build_result_panel() -> void:
 	result_panel.position = Vector2(340, 270)
 	result_panel.size = Vector2(600, 140)
 	result_panel.visible = false
-	var rs := _make_card_style(Color(0.06, 0.06, 0.1, 0.97), Color(0.85, 0.65, 0.2))
+	var rs := _make_card_style(ColorTheme.BG_RESULT, ColorTheme.ACCENT_GOLD)
 	rs.border_width_top = 3; rs.border_width_bottom = 3
 	rs.border_width_left = 3; rs.border_width_right = 3
 	result_panel.add_theme_stylebox_override("panel", rs)
@@ -948,15 +948,15 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 			var unit_routed: bool = unit.get("is_routed", false)
 			if unit_routed:
 				morale_lbl.text = "溃逃!"
-				morale_lbl.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+				morale_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_RED)
 			else:
 				morale_lbl.text = "士气: %d" % unit_morale
 				if unit_morale >= 70:
-					morale_lbl.add_theme_color_override("font_color", Color(0.2, 0.8, 0.2))
+					morale_lbl.add_theme_color_override("font_color", ColorTheme.HP_HIGH)
 				elif unit_morale >= 30:
-					morale_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 0.2))
+					morale_lbl.add_theme_color_override("font_color", ColorTheme.HP_MID)
 				else:
-					morale_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+					morale_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_WARNING)
 
 			# Archetype badge from counter matrix
 			var archetype_lbl: Label = vbox.get_node_or_null("ArchetypeLabel")
@@ -1093,15 +1093,15 @@ func _update_card_morale(side: String, slot_idx: int, morale: int, is_routed: bo
 
 	if is_routed:
 		morale_lbl.text = "溃逃!"
-		morale_lbl.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+		morale_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_RED)
 	else:
 		morale_lbl.text = "士气: %d" % morale
 		if morale >= 70:
-			morale_lbl.add_theme_color_override("font_color", Color(0.2, 0.8, 0.2))
+			morale_lbl.add_theme_color_override("font_color", ColorTheme.HP_HIGH)
 		elif morale >= 30:
-			morale_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 0.2))
+			morale_lbl.add_theme_color_override("font_color", ColorTheme.HP_MID)
 		else:
-			morale_lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.2))
+			morale_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_WARNING)
 
 func _apply_death_overlay(side: String, slot_idx: int) -> void:
 	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
@@ -1680,15 +1680,15 @@ func _spawn_damage_number(pos: Vector2, damage: int, max_soldiers: int, is_crit:
 	if is_crit:
 		lbl.text = "-%d!" % damage
 		lbl.add_theme_font_size_override("font_size", 26)
-		lbl.add_theme_color_override("font_color", Color(1, 0.95, 0.2))
+		lbl.add_theme_color_override("font_color", ColorTheme.ACCENT_GOLD_BRIGHT)
 	elif damage > max_soldiers * 0.3:
 		lbl.text = "-%d" % damage
 		lbl.add_theme_font_size_override("font_size", 20)
-		lbl.add_theme_color_override("font_color", Color(1, 0.6, 0.3))
+		lbl.add_theme_color_override("font_color", ColorTheme.FLASH_GAIN)
 	else:
 		lbl.text = "-%d" % damage
 		lbl.add_theme_font_size_override("font_size", 15)
-		lbl.add_theme_color_override("font_color", Color(1, 0.4, 0.3))
+		lbl.add_theme_color_override("font_color", ColorTheme.TEXT_WARNING)
 
 	lbl.position = pos + Vector2(randf_range(-24, -8), -35)
 	lbl.z_index = 100
@@ -2548,12 +2548,7 @@ func _make_border_rect(w: float, h: float, color: Color) -> ColorRect:
 	return outer
 
 func _hp_color(ratio: float) -> Color:
-	if ratio > 0.6:
-		return Color(0.25, 0.75, 0.3)
-	elif ratio > 0.3:
-		return Color(0.85, 0.75, 0.15)
-	else:
-		return Color(0.9, 0.2, 0.15)
+	return ColorTheme.hp_color(ratio)
 
 func _get_terrain_name(terrain) -> String:
 	var tdata: Dictionary = FactionData.TERRAIN_DATA.get(terrain, {})
@@ -2757,17 +2752,19 @@ func _update_buff_label(side: String, slot_idx: int) -> void:
 			"slow": icons.append("SPD-")
 			_: icons.append("✦")
 	buff_lbl.text = " ".join(icons)
+	# Make buff indicators more prominent
+	buff_lbl.add_theme_font_size_override("font_size", 11)
 	# Color the label based on dominant buff type
 	if buffs.has("burn"):
-		buff_lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.2))
+		buff_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_WARNING)
 	elif buffs.has("poison"):
-		buff_lbl.add_theme_color_override("font_color", Color(0.3, 0.85, 0.3))
+		buff_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_SUCCESS)
 	elif buffs.has("atk_up"):
-		buff_lbl.add_theme_color_override("font_color", Color(1.0, 0.75, 0.3))
+		buff_lbl.add_theme_color_override("font_color", ColorTheme.ACCENT_GOLD_BRIGHT)
 	elif buffs.has("def_up"):
-		buff_lbl.add_theme_color_override("font_color", Color(0.4, 0.6, 1.0))
+		buff_lbl.add_theme_color_override("font_color", ColorTheme.SIDE_DEFENDER)
 	else:
-		buff_lbl.add_theme_color_override("font_color", Color(0.7, 0.8, 0.9))
+		buff_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_DIM)
 
 	# Spawn visual buff/debuff arrow indicators on the card
 	var has_any_buff := false

@@ -3,6 +3,8 @@ class_name CombatSystem
 ## v2.0 — SR07+TW:W数值对齐
 
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const FormationSystem = preload("res://systems/combat/formation_system.gd")
+const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
 ##
 ## Usage:
 ##   var combat = CombatSystem.new()

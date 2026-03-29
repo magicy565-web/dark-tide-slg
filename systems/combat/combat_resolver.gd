@@ -1,5 +1,6 @@
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
 
 ## combat_resolver.gd - Turn-based Sengoku Rance-style combat (v1.0 rewrite)
 ## Front row (3 slots) + Back row (3 slots), SPD-based action queue, 12-round max.

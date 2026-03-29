@@ -112,8 +112,8 @@ func _build_ui() -> void:
 	var style: StyleBox = UITheme.make_info_panel_style() if UITheme else null
 	if not style:
 		var sf := StyleBoxFlat.new()
-		sf.bg_color = Color(0.06, 0.04, 0.1, 0.97)
-		sf.border_color = Color(0.8, 0.3, 0.1)
+		sf.bg_color = ColorTheme.BG_SECONDARY
+		sf.border_color = ColorTheme.ACCENT_GOLD
 		sf.set_border_width_all(2)
 		sf.set_corner_radius_all(10)
 		sf.set_content_margin_all(16)
@@ -192,8 +192,8 @@ func _build_orders_ui() -> void:
 	var style2: StyleBox = UITheme.make_info_panel_style() if UITheme else null
 	if not style2:
 		var sf := StyleBoxFlat.new()
-		sf.bg_color = Color(0.04, 0.03, 0.08, 0.97)
-		sf.border_color = Color(0.2, 0.6, 0.9)
+		sf.bg_color = ColorTheme.BG_DARK
+		sf.border_color = ColorTheme.SIDE_DEFENDER
 		sf.set_border_width_all(2)
 		sf.set_corner_radius_all(10)
 		sf.set_content_margin_all(14)

@@ -72,8 +72,8 @@ func _build_ui() -> void:
 	main_panel.anchor_left = 0.15; main_panel.anchor_right = 0.85
 	main_panel.anchor_top = 0.1; main_panel.anchor_bottom = 0.9
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.04, 0.09, 0.97)
-	style.border_color = Color(0.45, 0.35, 0.15)
+	style.bg_color = ColorTheme.BG_SECONDARY
+	style.border_color = ColorTheme.BORDER_DEFAULT
 	style.set_border_width_all(2); style.set_corner_radius_all(10)
 	style.set_content_margin_all(14)
 	main_panel.add_theme_stylebox_override("panel", style)

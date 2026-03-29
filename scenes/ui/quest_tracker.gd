@@ -67,8 +67,8 @@ func _build_ui() -> void:
 	bg_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.05, 0.1, 0.78)
-	style.border_color = Color(0.45, 0.38, 0.2, 0.6)
+	style.bg_color = ColorTheme.BG_DARK
+	style.border_color = ColorTheme.BORDER_DEFAULT
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(6)
 	style.set_content_margin_all(8)

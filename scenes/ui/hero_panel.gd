@@ -92,12 +92,17 @@ func _build_ui() -> void:
 	main_panel.offset_right = -30
 	main_panel.offset_top = 30
 	main_panel.offset_bottom = -30
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.05, 0.1, 0.97)
-	style.border_color = Color(0.5, 0.35, 0.2)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
-	style.set_content_margin_all(12)
+	var style: StyleBox
+	if UITheme.frame_content:
+		style = UITheme.make_content_style()
+	else:
+		var sf := StyleBoxFlat.new()
+		sf.bg_color = ColorTheme.BG_SECONDARY
+		sf.border_color = ColorTheme.BORDER_DEFAULT
+		sf.set_border_width_all(2)
+		sf.set_corner_radius_all(10)
+		sf.set_content_margin_all(12)
+		style = sf
 	main_panel.add_theme_stylebox_override("panel", style)
 	root.add_child(main_panel)
 
@@ -112,8 +117,8 @@ func _build_ui() -> void:
 
 	header_label = Label.new()
 	header_label.text = "Hero Management"
-	header_label.add_theme_font_size_override("font_size", 22)
-	header_label.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
+	header_label.add_theme_font_size_override("font_size", ColorTheme.FONT_HEADING + 2)
+	header_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(header_label)
 
@@ -163,8 +168,8 @@ func _build_ui() -> void:
 	detail_panel.custom_minimum_size = Vector2(380, 0)
 	detail_panel.visible = false
 	var detail_style := StyleBoxFlat.new()
-	detail_style.bg_color = Color(0.07, 0.06, 0.11, 0.95)
-	detail_style.border_color = Color(0.35, 0.3, 0.25)
+	detail_style.bg_color = ColorTheme.BG_SECONDARY
+	detail_style.border_color = ColorTheme.BORDER_DEFAULT
 	detail_style.set_border_width_all(1)
 	detail_style.set_corner_radius_all(6)
 	detail_style.set_content_margin_all(12)
@@ -188,6 +193,7 @@ func _build_ui() -> void:
 func show_panel() -> void:
 	_visible = true
 	root.visible = true
+	ColorTheme.animate_panel_open(main_panel)
 	_current_tab = "roster"
 	_refresh_list()
 	_update_tab_highlight()
@@ -857,14 +863,7 @@ func _make_info_label(text: String, color: Color = Color(0.6, 0.6, 0.65)) -> Lab
 
 
 func _get_faction_color(faction: String) -> Color:
-	match faction:
-		"human": return Color(0.3, 0.6, 1.0)
-		"high_elf": return Color(0.3, 0.9, 0.4)
-		"mage": return Color(0.7, 0.4, 1.0)
-		"orc": return Color(0.9, 0.4, 0.2)
-		"pirate": return Color(0.4, 0.6, 0.9)
-		"dark_elf": return Color(0.6, 0.3, 0.8)
-		_: return Color(0.8, 0.8, 0.85)
+	return ColorTheme.get_faction_color(faction)
 
 
 func _get_rarity_color(rarity: String) -> Color:

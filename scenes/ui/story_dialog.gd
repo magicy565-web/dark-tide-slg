@@ -97,8 +97,8 @@ func _build_ui() -> void:
 	scene_panel.offset_left = 0; scene_panel.offset_right = 0
 	scene_panel.offset_top = 0; scene_panel.offset_bottom = 0
 	var scene_style := StyleBoxFlat.new()
-	scene_style.bg_color = Color(0.05, 0.03, 0.08, 0.85)
-	scene_style.border_color = Color(0.4, 0.3, 0.5, 0.6)
+	scene_style.bg_color = ColorTheme.BG_DARK
+	scene_style.border_color = ColorTheme.BORDER_DIM
 	scene_style.set_border_width_all(1)
 	scene_style.set_corner_radius_all(6)
 	scene_style.set_content_margin_all(14)
@@ -127,8 +127,8 @@ func _build_ui() -> void:
 	dialog_panel.offset_left = 0; dialog_panel.offset_right = 0
 	dialog_panel.offset_top = 0; dialog_panel.offset_bottom = 0
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.06, 0.04, 0.10, 0.95)
-	panel_style.border_color = Color(0.65, 0.4, 0.12)
+	panel_style.bg_color = ColorTheme.BG_PRIMARY
+	panel_style.border_color = ColorTheme.ACCENT_GOLD
 	panel_style.set_border_width_all(2)
 	panel_style.set_corner_radius_all(8)
 	panel_style.set_content_margin_all(16)

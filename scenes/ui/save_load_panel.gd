@@ -65,8 +65,8 @@ func _build_ui() -> void:
 	panel.offset_top = -220
 	panel.offset_bottom = 220
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.06, 0.05, 0.1, 0.97)
-	style.border_color = Color(0.4, 0.5, 0.7)
+	style.bg_color = ColorTheme.BG_SECONDARY
+	style.border_color = ColorTheme.BORDER_DEFAULT
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(10)
 	style.set_content_margin_all(16)

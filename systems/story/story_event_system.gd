@@ -54,6 +54,7 @@ const STORY_DATA_FILES: Dictionary = {
 	"kaede":    "res://systems/story/data/kaede_story.gd",
 	"akane":    "res://systems/story/data/akane_story.gd",
 	"hanabi":   "res://systems/story/data/hanabi_story.gd",
+	"epilogue": "res://systems/story/data/epilogue_events.gd",
 }
 
 # ═══════════════ LIFECYCLE ═══════════════

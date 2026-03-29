@@ -63,35 +63,35 @@ func make_frame_style(tex: Texture2D, tex_margin: Array, content_margin: Array, 
 func make_top_bar_style() -> StyleBox:
 	return make_frame_style(frame_top_bar,
 		[60, 30, 60, 20], [70, 14, 70, 8],
-		Color(0.06, 0.06, 0.1, 0.92))
+		ColorTheme.BG_PRIMARY)
 
 
 func make_info_panel_style() -> StyleBox:
 	return make_frame_style(frame_info_panel,
 		[30, 50, 30, 20], [20, 45, 20, 12],
-		Color(0.06, 0.08, 0.12, 0.9))
+		ColorTheme.BG_SECONDARY)
 
 
 func make_content_style() -> StyleBox:
 	return make_frame_style(frame_content,
 		[25, 20, 25, 30], [14, 12, 14, 16],
-		Color(0.06, 0.06, 0.1, 0.88))
+		ColorTheme.BG_PANEL)
 
 
 func make_action_bar_style() -> StyleBox:
 	return make_frame_style(frame_action_bar,
 		[30, 40, 30, 20], [16, 30, 16, 10],
-		Color(0.06, 0.06, 0.1, 0.88))
+		ColorTheme.BG_PANEL)
 
 
 func make_parchment_style() -> StyleBox:
 	return make_frame_style(frame_parchment,
 		[8, 8, 8, 8], [10, 10, 10, 10],
-		Color(0.04, 0.04, 0.08, 0.85))
+		ColorTheme.BG_DARK)
 
 
 func make_dark_panel_style(alpha: float = 0.9) -> StyleBox:
 	## Generic dark panel with golden border — used by detail panels, popups, etc.
 	return make_frame_style(frame_content,
 		[25, 20, 25, 30], [14, 12, 14, 16],
-		Color(0.06, 0.06, 0.1, alpha))
+		Color(ColorTheme.BG_PANEL.r, ColorTheme.BG_PANEL.g, ColorTheme.BG_PANEL.b, alpha))

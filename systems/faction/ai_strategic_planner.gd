@@ -3,6 +3,8 @@
 ## Tracks player behavior, adapts strategies, and coordinates multi-faction actions.
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
+const TroopRegistry = preload("res://systems/combat/troop_registry.gd")
 
 # ── Strategic Decisions ──
 enum Strategy { EXPAND, DEFEND, RAID, CONSOLIDATE, DIPLOMATIZE }
