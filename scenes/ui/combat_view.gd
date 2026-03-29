@@ -86,16 +86,29 @@ const PROJ_STYLES := {
 
 # ── Battle background mapping (terrain -> pixel art bg) ──
 const BATTLE_BG_PATHS := {
-	0: "res://assets/ui/battle_bg_ruins.png",    # PLAINS -> ruins (default)
-	1: "res://assets/ui/battle_bg_forest.png",   # FOREST
-	2: "res://assets/ui/battle_bg_volcano.png",  # MOUNTAIN -> volcano
-	3: "res://assets/ui/battle_bg_forest.png",   # SWAMP -> forest variant
-	4: "res://assets/ui/battle_bg_harbor.png",   # COASTAL -> harbor
-	5: "res://assets/ui/battle_bg_ruins.png",    # FORTRESS_WALL -> ruins
-	6: "res://assets/ui/battle_bg_harbor.png",   # RIVER -> harbor variant
-	7: "res://assets/ui/battle_bg_temple.png",   # RUINS -> temple
-	8: "res://assets/ui/battle_bg_desert.png",   # WASTELAND -> desert
-	9: "res://assets/ui/battle_bg_volcano.png",  # VOLCANIC -> volcano
+	0: "res://assets/ui/battle_bg/battle_bg_plains.png",      # PLAINS
+	1: "res://assets/ui/battle_bg_forest.png",                # FOREST
+	2: "res://assets/ui/battle_bg/battle_bg_mountain.png",    # MOUNTAIN
+	3: "res://assets/ui/battle_bg/battle_bg_swamp.png",       # SWAMP
+	4: "res://assets/ui/battle_bg/battle_bg_coastal.png",     # COASTAL
+	5: "res://assets/ui/battle_bg/battle_bg_fortress.png",    # FORTRESS_WALL
+	6: "res://assets/ui/battle_bg_harbor.png",                # RIVER -> harbor
+	7: "res://assets/ui/battle_bg_temple.png",                # RUINS -> temple
+	8: "res://assets/ui/battle_bg/battle_bg_wasteland.png",   # WASTELAND
+	9: "res://assets/ui/battle_bg_volcano.png",               # VOLCANIC
+}
+# Fallback paths for backwards compat
+const BATTLE_BG_FALLBACKS := {
+	0: "res://assets/ui/battle_bg_ruins.png",
+	1: "res://assets/ui/battle_bg_forest.png",
+	2: "res://assets/ui/battle_bg_volcano.png",
+	3: "res://assets/ui/battle_bg_forest.png",
+	4: "res://assets/ui/battle_bg_harbor.png",
+	5: "res://assets/ui/battle_bg_ruins.png",
+	6: "res://assets/ui/battle_bg_harbor.png",
+	7: "res://assets/ui/battle_bg_temple.png",
+	8: "res://assets/ui/battle_bg_desert.png",
+	9: "res://assets/ui/battle_bg_volcano.png",
 }
 var _bg_texture_rect: TextureRect = null
 
@@ -869,11 +882,13 @@ func show_battle(battle_result: Dictionary) -> void:
 		round_counter_label.text = "Round 0/%d" % MAX_ROUNDS
 		round_counter_label.add_theme_color_override("font_color", Color(0.9, 0.82, 0.6))
 
-	# Load terrain-specific battle background
+	# Load terrain-specific battle background (v2 with fallback)
 	var terrain_id = battle_result.get("terrain", 0)
 	if typeof(terrain_id) == TYPE_STRING:
 		terrain_id = int(terrain_id)
 	var bg_path: String = BATTLE_BG_PATHS.get(terrain_id, BATTLE_BG_PATHS[0])
+	if not ResourceLoader.exists(bg_path):
+		bg_path = BATTLE_BG_FALLBACKS.get(terrain_id, BATTLE_BG_FALLBACKS[0])
 	if ResourceLoader.exists(bg_path):
 		_bg_texture_rect.texture = load(bg_path)
 		_bg_texture_rect.visible = true

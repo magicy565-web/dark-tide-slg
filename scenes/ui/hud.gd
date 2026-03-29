@@ -30,6 +30,7 @@ var _frame_info_panel: Texture2D
 var _frame_content: Texture2D
 var _frame_parchment: Texture2D
 var _frame_action_bar: Texture2D
+var _frame_dialog: Texture2D
 
 func _safe_load(path: String) -> Resource:
 	if ResourceLoader.exists(path):
@@ -232,12 +233,17 @@ func _build_ui() -> void:
 	_icon_action_recruit = _safe_load("res://assets/map/actions/action_recruit.png")
 	_has_resource_icons = _icon_gold != null
 
-	# HD UI frame textures
-	_frame_top_bar = _safe_load("res://assets/ui/frames/top_bar_frame.png")
-	_frame_info_panel = _safe_load("res://assets/ui/frames/info_panel_frame.png")
-	_frame_content = _safe_load("res://assets/ui/frames/content_panel_frame.png")
+	# HD UI frame textures (v2 with fallback to v1)
+	_frame_top_bar = _safe_load("res://assets/ui/frames/top_bar_frame_v2.png")
+	if not _frame_top_bar: _frame_top_bar = _safe_load("res://assets/ui/frames/top_bar_frame.png")
+	_frame_info_panel = _safe_load("res://assets/ui/frames/info_panel_frame_v2.png")
+	if not _frame_info_panel: _frame_info_panel = _safe_load("res://assets/ui/frames/info_panel_frame.png")
+	_frame_content = _safe_load("res://assets/ui/frames/action_panel_frame_v2.png")
+	if not _frame_content: _frame_content = _safe_load("res://assets/ui/frames/content_panel_frame.png")
 	_frame_parchment = _safe_load("res://assets/ui/frames/parchment_bg.png")
-	_frame_action_bar = _safe_load("res://assets/ui/frames/inventory_bar_frame.png")
+	_frame_action_bar = _safe_load("res://assets/ui/frames/action_panel_frame_v2.png")
+	if not _frame_action_bar: _frame_action_bar = _safe_load("res://assets/ui/frames/inventory_bar_frame.png")
+	_frame_dialog = _safe_load("res://assets/ui/frames/dialog_frame_v2.png")
 
 	var root := Control.new()
 	root.name = "HUDRoot"
@@ -384,7 +390,7 @@ func _build_action_panel(parent: Control) -> void:
 	var section_combat := _make_label("-- Combat --", 10, Color(0.7, 0.5, 0.5))
 	vbox.add_child(section_combat)
 
-	btn_attack = _make_button("Attack [1] (1AP)", _icon_action_attack)
+	btn_attack = _make_button("Attack [1] (1AP)", _icon_action_attack, "danger")
 	btn_attack.tooltip_text = "Select an army and attack an adjacent enemy territory. Costs 1 Action Point."
 	btn_attack.pressed.connect(_on_attack_pressed)
 	vbox.add_child(btn_attack)
@@ -516,7 +522,7 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 	var title := _make_label("Domestic Menu", 13, ColorTheme.TEXT_HEADING)
 	vbox.add_child(title)
 
-	btn_recruit = _make_button("Recruit", _icon_action_recruit)
+	btn_recruit = _make_button("Recruit", _icon_action_recruit, "confirm")
 	btn_recruit.custom_minimum_size = Vector2(140, 30)
 	btn_recruit.pressed.connect(_on_domestic_recruit)
 	vbox.add_child(btn_recruit)
@@ -690,12 +696,16 @@ func _build_game_over(parent: Control) -> void:
 	game_over_panel.offset_top = -200
 	game_over_panel.offset_bottom = 200
 	game_over_panel.visible = false
-	game_over_style = StyleBoxFlat.new()
-	game_over_style.bg_color = ColorTheme.BG_VICTORY
-	game_over_style.border_color = ColorTheme.ACCENT_GOLD
-	game_over_style.set_border_width_all(3)
-	game_over_style.set_corner_radius_all(10)
-	game_over_style.set_content_margin_all(20)
+	var dialog_style := _make_dialog_style()
+	if dialog_style is StyleBoxTexture:
+		game_over_style = dialog_style
+	else:
+		game_over_style = StyleBoxFlat.new()
+		game_over_style.bg_color = ColorTheme.BG_VICTORY
+		game_over_style.border_color = ColorTheme.ACCENT_GOLD
+		game_over_style.set_border_width_all(3)
+		game_over_style.set_corner_radius_all(10)
+		game_over_style.set_content_margin_all(20)
 	game_over_panel.add_theme_stylebox_override("panel", game_over_style)
 	parent.add_child(game_over_panel)
 
@@ -3102,6 +3112,12 @@ func _make_parchment_style() -> StyleBox:
 		ColorTheme.BG_DARK)
 
 
+func _make_dialog_style() -> StyleBox:
+	return _make_frame_style(_frame_dialog,
+		[40, 40, 40, 40], [30, 30, 30, 30],
+		ColorTheme.BG_PRIMARY)
+
+
 func _make_icon_label(icon: Texture2D, text: String, size: int, color: Color, min_w: float) -> HBoxContainer:
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 2)
@@ -3149,7 +3165,7 @@ func _make_label(text: String, size: int, color: Color) -> Label:
 	return ColorTheme.make_label(text, size, color)
 
 
-func _make_button(text: String, icon: Texture2D = null) -> Button:
+func _make_button(text: String, icon: Texture2D = null, style_type: String = "default") -> Button:
 	var btn := Button.new()
 	btn.text = text
 	if icon:
@@ -3159,7 +3175,14 @@ func _make_button(text: String, icon: Texture2D = null) -> Button:
 	btn.custom_minimum_size = Vector2(180, 32)
 	btn.add_theme_font_size_override("font_size", 12)
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
-	var styles := ColorTheme.make_button_style_textured()
+	var styles: Dictionary
+	match style_type:
+		"danger":
+			styles = ColorTheme.make_button_style_danger()
+		"confirm":
+			styles = ColorTheme.make_button_style_confirm()
+		_:
+			styles = ColorTheme.make_button_style_textured()
 	btn.add_theme_stylebox_override("normal", styles["normal"])
 	if styles.has("hover"):
 		btn.add_theme_stylebox_override("hover", styles["hover"])

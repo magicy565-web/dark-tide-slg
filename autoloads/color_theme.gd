@@ -138,6 +138,8 @@ const PRESS_SCALE := Vector2(0.95, 0.95)
 var btn_normal_tex: Texture2D
 var btn_hover_tex: Texture2D
 var btn_pressed_tex: Texture2D
+var btn_danger_tex: Texture2D
+var btn_confirm_tex: Texture2D
 var _loaded: bool = false
 
 
@@ -148,9 +150,16 @@ func _ready() -> void:
 func _load_btn_textures() -> void:
 	if _loaded:
 		return
-	btn_normal_tex = _safe_tex("res://assets/ui/btn_normal.png")
-	btn_hover_tex = _safe_tex("res://assets/ui/btn_hover.png")
-	btn_pressed_tex = _safe_tex("res://assets/ui/btn_pressed.png")
+	# v2 buttons with fallback to v1
+	btn_normal_tex = _safe_tex("res://assets/ui/buttons/btn_action_normal.png")
+	if not btn_normal_tex: btn_normal_tex = _safe_tex("res://assets/ui/btn_normal.png")
+	btn_hover_tex = _safe_tex("res://assets/ui/buttons/btn_action_hover.png")
+	if not btn_hover_tex: btn_hover_tex = _safe_tex("res://assets/ui/btn_hover.png")
+	btn_pressed_tex = _safe_tex("res://assets/ui/buttons/btn_action_pressed.png")
+	if not btn_pressed_tex: btn_pressed_tex = _safe_tex("res://assets/ui/btn_pressed.png")
+	# Specialized button textures
+	btn_danger_tex = _safe_tex("res://assets/ui/buttons/btn_danger_normal.png")
+	btn_confirm_tex = _safe_tex("res://assets/ui/buttons/btn_confirm_normal.png")
 	_loaded = true
 
 
@@ -213,6 +222,64 @@ func make_button_style_textured() -> Dictionary:
 			result["pressed"] = sp
 	else:
 		result["normal"] = make_button_style_flat("normal")
+		result["hover"] = make_button_style_flat("hover")
+		result["pressed"] = make_button_style_flat("pressed")
+	return result
+
+
+func make_button_style_danger() -> Dictionary:
+	## Returns danger-styled button (red glow for war/attack actions)
+	var result := {}
+	if btn_danger_tex:
+		var sn := StyleBoxTexture.new()
+		sn.texture = btn_danger_tex
+		sn.texture_margin_left = 8; sn.texture_margin_right = 8
+		sn.texture_margin_top = 6; sn.texture_margin_bottom = 6
+		sn.content_margin_left = 10; sn.content_margin_right = 10
+		sn.content_margin_top = 4; sn.content_margin_bottom = 4
+		result["normal"] = sn
+		if btn_hover_tex:
+			var sh := sn.duplicate()
+			sh.texture = btn_hover_tex
+			result["hover"] = sh
+		if btn_pressed_tex:
+			var sp := sn.duplicate()
+			sp.texture = btn_pressed_tex
+			result["pressed"] = sp
+	else:
+		var sf := make_button_style_flat("normal")
+		sf.bg_color = Color(0.3, 0.08, 0.08, 0.9)
+		sf.border_color = Color(0.8, 0.2, 0.2)
+		result["normal"] = sf
+		result["hover"] = make_button_style_flat("hover")
+		result["pressed"] = make_button_style_flat("pressed")
+	return result
+
+
+func make_button_style_confirm() -> Dictionary:
+	## Returns confirm-styled button (green glow for recruit/confirm actions)
+	var result := {}
+	if btn_confirm_tex:
+		var sn := StyleBoxTexture.new()
+		sn.texture = btn_confirm_tex
+		sn.texture_margin_left = 8; sn.texture_margin_right = 8
+		sn.texture_margin_top = 6; sn.texture_margin_bottom = 6
+		sn.content_margin_left = 10; sn.content_margin_right = 10
+		sn.content_margin_top = 4; sn.content_margin_bottom = 4
+		result["normal"] = sn
+		if btn_hover_tex:
+			var sh := sn.duplicate()
+			sh.texture = btn_hover_tex
+			result["hover"] = sh
+		if btn_pressed_tex:
+			var sp := sn.duplicate()
+			sp.texture = btn_pressed_tex
+			result["pressed"] = sp
+	else:
+		var sf := make_button_style_flat("normal")
+		sf.bg_color = Color(0.08, 0.25, 0.08, 0.9)
+		sf.border_color = Color(0.2, 0.7, 0.3)
+		result["normal"] = sf
 		result["hover"] = make_button_style_flat("hover")
 		result["pressed"] = make_button_style_flat("pressed")
 	return result
