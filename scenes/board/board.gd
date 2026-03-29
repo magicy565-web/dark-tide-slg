@@ -408,6 +408,29 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 	else:
 		base_mi.material_override = _make_mat(Color(0.6, 0.6, 0.55))
 	root.add_child(base_mi)
+	# Faction territory glow disc
+	var owner_id: int = tile.get("owner_id", -1)
+	if owner_id >= 0:
+		var glow_fk: String = _get_tile_faction_key(tile)
+		var glow_color: Color = FACTION_COLORS.get(glow_fk, FACTION_COLORS["none"])
+		var glow_mesh := CylinderMesh.new()
+		glow_mesh.top_radius = TILE_RADIUS * 1.25
+		glow_mesh.bottom_radius = TILE_RADIUS * 1.25
+		glow_mesh.height = 0.02
+		glow_mesh.radial_segments = 6
+		var glow_mi := MeshInstance3D.new()
+		glow_mi.mesh = glow_mesh
+		glow_mi.name = "FactionGlow"
+		var gm := StandardMaterial3D.new()
+		gm.albedo_color = Color(glow_color.r, glow_color.g, glow_color.b, 0.18)
+		gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		gm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		gm.emission_enabled = true
+		gm.emission = glow_color
+		gm.emission_energy_multiplier = 0.5
+		glow_mi.material_override = gm
+		glow_mi.position.y = -0.02
+		root.add_child(glow_mi)
 	# Border ring
 	var brm := CylinderMesh.new()
 	brm.top_radius = TILE_RADIUS * 1.06; brm.bottom_radius = TILE_RADIUS * 1.06
@@ -542,6 +565,12 @@ func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
 		billboard.position = Vector3(0, y + 0.6 + level * 0.1, 0)
 		billboard.modulate = Color(1, 1, 1, 0.85)
 		parent.add_child(billboard)
+		# Subtle breathing animation for settlement icon
+		if tt == GameManager.TileType.CORE_FORTRESS:
+			var tw := create_tween()
+			tw.set_loops()
+			tw.tween_property(billboard, "scale", billboard.scale * 1.05, 1.5).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			tw.tween_property(billboard, "scale", billboard.scale, 1.5).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
 	else:
 		# Fallback to procedural geometry
 		if tt == GameManager.TileType.CORE_FORTRESS or terrain == FactionData.TerrainType.FORTRESS_WALL:
@@ -948,15 +977,40 @@ func _create_road_edge(from: Vector3, to: Vector3, fe: float, te: float) -> void
 	var diff := Vector3(to.x - from.x, 0, to.z - from.z)
 	var dist := diff.length()
 	if dist < 0.01: return
-	var seg_n: int = maxi(int(dist / 0.6), 1)
-	var gap: float = 0.15; var angle: float = atan2(diff.x, diff.z)
-	var seg_l: float = dist / float(seg_n) * (1.0 - gap)
+	# Add slight curve via perpendicular offset
+	var perp := Vector3(-diff.z, 0, diff.x).normalized()
+	var curve_offset: float = dist * 0.08 * (1.0 if randf() > 0.5 else -1.0)
+	var mid_point := Vector3(
+		(from.x + to.x) * 0.5 + perp.x * curve_offset,
+		0,
+		(from.z + to.z) * 0.5 + perp.z * curve_offset
+	)
+	var mid_elev: float = (fe + te) * 0.5
+	var seg_n: int = maxi(int(dist / 0.5), 2)
+	var gap: float = 0.12
 	for i in range(seg_n):
 		var t0: float = (float(i) + gap * 0.5) / float(seg_n)
-		var tm: float = t0 + (1.0 - gap) * 0.5 / float(seg_n)
-		var rd := _make_box_mesh(Vector3(0.3, 0.035, seg_l), Color(0.45, 0.38, 0.28))
-		rd.position = Vector3(lerpf(from.x, to.x, tm), lerpf(fe, te, tm) + TILE_HEIGHT + 0.015, lerpf(from.z, to.z, tm))
-		rd.rotation.y = angle; add_child(rd); edge_meshes.append(rd)
+		var t1: float = (float(i) + 1.0 - gap * 0.5) / float(seg_n)
+		var tm: float = (t0 + t1) * 0.5
+		# Quadratic bezier interpolation
+		var p0 := Vector3(from.x, fe, from.z)
+		var p1 := Vector3(mid_point.x, mid_elev, mid_point.z)
+		var p2 := Vector3(to.x, te, to.z)
+		var a := p0.lerp(p1, tm)
+		var b := p1.lerp(p2, tm)
+		var pos := a.lerp(b, tm)
+		# Direction for rotation
+		var da := p0.lerp(p1, t1)
+		var db := p1.lerp(p2, t1)
+		var next_pos := da.lerp(db, t1)
+		var seg_dir := Vector3(next_pos.x - pos.x, 0, next_pos.z - pos.z)
+		var angle: float = atan2(seg_dir.x, seg_dir.z) if seg_dir.length() > 0.001 else 0.0
+		var seg_len: float = dist / float(seg_n) * (1.0 - gap)
+		var rd := _make_box_mesh(Vector3(0.28, 0.03, seg_len), Color(0.42, 0.36, 0.26))
+		rd.position = Vector3(pos.x, pos.y + TILE_HEIGHT + 0.015, pos.z)
+		rd.rotation.y = angle
+		add_child(rd)
+		edge_meshes.append(rd)
 
 # ═══════════════ FACTION BORDERS ═══════════════
 func _draw_faction_borders() -> void:
@@ -979,7 +1033,7 @@ func _draw_faction_borders() -> void:
 			var perp := Vector3(-d.z, 0, d.x).normalized()
 			var my: float = (_get_elev(ta) + _get_elev(tb)) * 0.5 + TILE_HEIGHT + 0.06
 			var line := MeshInstance3D.new(); var lm := BoxMesh.new()
-			lm.size = Vector3(TILE_RADIUS * 0.8, 0.06, 0.06); line.mesh = lm
+			lm.size = Vector3(TILE_RADIUS * 0.9, 0.07, 0.07); line.mesh = lm
 			var fk: String = _get_tile_faction_key(ta)
 			var bc: Color = FLAG_COLORS.get(fk, Color(0.5, 0.5, 0.5))
 			var bmat := StandardMaterial3D.new()
@@ -987,7 +1041,7 @@ func _draw_faction_borders() -> void:
 			bmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			bmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			bmat.emission_enabled = true; bmat.emission = bc * 0.6
-			bmat.emission_energy_multiplier = 0.8; line.material_override = bmat
+			bmat.emission_energy_multiplier = 1.2; line.material_override = bmat
 			line.position = Vector3(mid.x, my, mid.z)
 			line.rotation.y = atan2(perp.x, perp.z)
 			add_child(line); faction_border_meshes.append(line)
@@ -1330,7 +1384,12 @@ func _update_fog() -> void:
 		vis["fog"].visible = not rev
 		if not rev:
 			var edge: bool = _has_revealed_neighbor(idx, pid)
-			vis["fog"].material_override = _fog_edge_mat if edge else _fog_mat
+			if edge:
+				vis["fog"].material_override = _fog_edge_mat
+				vis["fog"].scale = Vector3(1.0, 0.7, 1.0)  # Shorter fog at edges
+			else:
+				vis["fog"].material_override = _fog_mat
+				vis["fog"].scale = Vector3(1.0, 1.0, 1.0)  # Full fog
 		vis["label"].visible = rev; vis["garrison_label"].visible = rev
 		vis["flag_root"].visible = rev and GameManager.tiles[idx].get("owner_id", -1) >= 0
 

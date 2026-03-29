@@ -12,6 +12,7 @@ class_name MapGenerator
 extends RefCounted
 
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const LocationPresets = preload("res://systems/map/location_presets.gd")
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -267,18 +268,108 @@ func _place_fortresses() -> Array:
 # ---------------------------------------------------------------------------
 
 func _fill_positions(positions: Array, target_count: int) -> Array:
-	var max_attempts: int = 5000
-	var attempts: int = 0
-	while positions.size() < target_count and attempts < max_attempts:
+	# --- Poisson Disk Sampling via grid-accelerated dart throwing ---
+	# This produces a more even, natural-looking distribution than pure random.
+	var cell_size: float = MIN_NODE_DISTANCE / sqrt(2.0)
+	var grid_w: int = int(ceil(MAP_WIDTH / cell_size))
+	var grid_h: int = int(ceil(MAP_HEIGHT / cell_size))
+
+	# Grid stores index into positions array, -1 means empty.
+	var grid: Array = []
+	grid.resize(grid_w * grid_h)
+	for gi in range(grid.size()):
+		grid[gi] = -1
+
+	# Insert existing fortress positions into grid.
+	for idx in range(positions.size()):
+		var gx: int = int(positions[idx].x / cell_size)
+		var gy: int = int(positions[idx].y / cell_size)
+		gx = clampi(gx, 0, grid_w - 1)
+		gy = clampi(gy, 0, grid_h - 1)
+		grid[gy * grid_w + gx] = idx
+
+	# Active list for Poisson Disk iteration.
+	var active: Array = []
+	for idx in range(positions.size()):
+		active.append(idx)
+
+	# If no seeds yet, place one random seed.
+	if active.is_empty():
+		var seed_pos := Vector2(randf_range(30, MAP_WIDTH - 30), randf_range(30, MAP_HEIGHT - 30))
+		positions.append(seed_pos)
+		var gx: int = clampi(int(seed_pos.x / cell_size), 0, grid_w - 1)
+		var gy: int = clampi(int(seed_pos.y / cell_size), 0, grid_h - 1)
+		grid[gy * grid_w + gx] = 0
+		active.append(0)
+
+	var k_candidates: int = 30  # candidates per active point
+	while active.size() > 0 and positions.size() < target_count:
+		# Pick a random active point.
+		var active_idx: int = randi_range(0, active.size() - 1)
+		var point_idx: int = active[active_idx]
+		var center: Vector2 = positions[point_idx]
+		var found_any: bool = false
+
+		for _attempt in range(k_candidates):
+			# Generate random point in annulus [MIN_NODE_DISTANCE, 2 * MIN_NODE_DISTANCE].
+			var angle: float = randf() * TAU
+			var radius: float = randf_range(MIN_NODE_DISTANCE, MIN_NODE_DISTANCE * 2.0)
+			var candidate := center + Vector2(cos(angle), sin(angle)) * radius
+
+			# Bounds check.
+			if candidate.x < 30 or candidate.x > MAP_WIDTH - 30:
+				continue
+			if candidate.y < 30 or candidate.y > MAP_HEIGHT - 30:
+				continue
+
+			# Grid neighbourhood check (faster than scanning all points).
+			var cgx: int = int(candidate.x / cell_size)
+			var cgy: int = int(candidate.y / cell_size)
+			cgx = clampi(cgx, 0, grid_w - 1)
+			cgy = clampi(cgy, 0, grid_h - 1)
+			var too_close: bool = false
+			for dy in range(-2, 3):
+				for dx in range(-2, 3):
+					var nx: int = cgx + dx
+					var ny: int = cgy + dy
+					if nx < 0 or nx >= grid_w or ny < 0 or ny >= grid_h:
+						continue
+					var neighbor_idx: int = grid[ny * grid_w + nx]
+					if neighbor_idx != -1:
+						if candidate.distance_to(positions[neighbor_idx]) < MIN_NODE_DISTANCE:
+							too_close = true
+							break
+				if too_close:
+					break
+			if too_close:
+				continue
+
+			# Accept candidate.
+			var new_idx: int = positions.size()
+			positions.append(candidate)
+			grid[cgy * grid_w + cgx] = new_idx
+			active.append(new_idx)
+			found_any = true
+
+			if positions.size() >= target_count:
+				break
+
+		if not found_any:
+			# Remove exhausted point from active list.
+			active[active_idx] = active.back()
+			active.pop_back()
+
+	# Fallback: if Poisson didn't fill enough (rare on large maps), do random fill.
+	var fallback_attempts: int = 3000
+	while positions.size() < target_count and fallback_attempts > 0:
 		var candidate := Vector2(
 			randf_range(30, MAP_WIDTH - 30),
 			randf_range(30, MAP_HEIGHT - 30)
 		)
 		if _min_distance_to(candidate, positions) >= MIN_NODE_DISTANCE:
 			positions.append(candidate)
-		attempts += 1
+		fallback_attempts -= 1
 
-	# If we could not reach target_count (very unlikely), that is acceptable.
 	return positions
 
 # ---------------------------------------------------------------------------
@@ -334,11 +425,64 @@ func _build_edges(positions: Array, n: int) -> Dictionary:
 	for e in non_mst_edges:
 		if extras_added >= extra_count:
 			break
-		# Skip very long edges to keep the map playable.
-		if e["dist"] > 350.0:
+		# Skip very long edges to keep the map tight.
+		if e["dist"] > 250.0:
 			continue
 		mst_edges.append(e)
 		extras_added += 1
+
+	# --- Ensure fortress-to-fortress connections exist even if longer ---
+	var fortress_count: int = FORTRESS_DATA.size()
+	var existing_edges_set: Dictionary = {}
+	for e in mst_edges:
+		existing_edges_set["%d_%d" % [mini(e["a"], e["b"]), maxi(e["a"], e["b"])]] = true
+	for i in range(fortress_count):
+		for j in range(i + 1, fortress_count):
+			var key: String = "%d_%d" % [i, j]
+			if not existing_edges_set.has(key):
+				var d: float = positions[i].distance_to(positions[j])
+				# Connect fortresses up to 500 units apart (generous for strategic links).
+				if d <= 500.0:
+					mst_edges.append({"a": i, "b": j, "dist": d})
+					existing_edges_set[key] = true
+
+	# --- Strategic corridors: ensure each region pair has a path of <=3 hops ---
+	# Build a temporary adjacency from mst_edges so we can do BFS hop counting.
+	var temp_adj: Dictionary = {}
+	for i2 in range(n):
+		temp_adj[i2] = []
+	for e in mst_edges:
+		temp_adj[e["a"]].append(e["b"])
+		temp_adj[e["b"]].append(e["a"])
+
+	# For each fortress pair, check if they can reach in <=3 hops; if not, add
+	# a shortcut edge through the nearest intermediate node.
+	for i2 in range(fortress_count):
+		for j2 in range(i2 + 1, fortress_count):
+			var hops: int = _bfs_hops(temp_adj, i2, j2, 4)
+			if hops <= 3:
+				continue
+			# Find the non-fortress node nearest to midpoint of the two fortresses.
+			var mid: Vector2 = (positions[i2] + positions[j2]) * 0.5
+			var best_mid: int = -1
+			var best_dist: float = INF
+			for k in range(n):
+				if k < fortress_count:
+					continue
+				var dm: float = positions[k].distance_to(mid)
+				if dm < best_dist:
+					best_dist = dm
+					best_mid = k
+			if best_mid != -1:
+				# Add edges from both fortresses to the midpoint node.
+				for endpoint in [i2, j2]:
+					var ek: String = "%d_%d" % [mini(endpoint, best_mid), maxi(endpoint, best_mid)]
+					if not existing_edges_set.has(ek):
+						var de: float = positions[endpoint].distance_to(positions[best_mid])
+						mst_edges.append({"a": endpoint, "b": best_mid, "dist": de})
+						existing_edges_set[ek] = true
+						temp_adj[endpoint].append(best_mid)
+						temp_adj[best_mid].append(endpoint)
 
 	# Build adjacency dictionary {node_id: [connected_ids]}.
 	var adj: Dictionary = {}
@@ -671,7 +815,83 @@ func _create_chokepoints(positions: Array, edges: Dictionary, tile_regions: Arra
 			if _is_fully_connected(edges, n):
 				break
 
+	# --- Articulation point detection (bridge/gate logic) ---
+	# Find nodes whose removal would disconnect parts of the graph and flag them.
+	_chokepoint_flags = _find_articulation_points(edges, n)
+
 	return edges
+
+## Nodes flagged as chokepoints by articulation point analysis.
+## Keyed by node id -> true. Consumed later by _assign_nodes to set is_chokepoint.
+var _chokepoint_flags: Dictionary = {}
+
+## Find articulation points using iterative Tarjan's algorithm.
+## Returns a Dictionary {node_id: true} for every articulation point.
+func _find_articulation_points(edges: Dictionary, n: int) -> Dictionary:
+	var disc: Array = []      # discovery time
+	var low: Array = []       # low-link value
+	var parent: Array = []    # parent in DFS tree
+	var is_ap: Dictionary = {}
+	disc.resize(n)
+	low.resize(n)
+	parent.resize(n)
+	for i in range(n):
+		disc[i] = -1
+		low[i] = -1
+		parent[i] = -1
+
+	var timer: int = 0
+
+	# Iterative DFS for each unvisited component.
+	for start in range(n):
+		if disc[start] != -1:
+			continue
+		# Stack entries: [node, neighbor_index, is_returning]
+		var stack: Array = [[start, 0, false]]
+		disc[start] = timer
+		low[start] = timer
+		timer += 1
+		var child_count: Dictionary = {}  # root child count for AP detection
+		child_count[start] = 0
+
+		while stack.size() > 0:
+			var top: Array = stack.back()
+			var u: int = top[0]
+			var ni: int = top[1]
+			var neighbors: Array = edges.get(u, [])
+
+			if ni < neighbors.size():
+				var v: int = neighbors[ni]
+				top[1] = ni + 1  # advance neighbor index
+
+				if disc[v] == -1:
+					# Tree edge: push v.
+					parent[v] = u
+					disc[v] = timer
+					low[v] = timer
+					timer += 1
+					if parent[u] == -1:
+						child_count[u] = child_count.get(u, 0) + 1
+					stack.append([v, 0, false])
+				else:
+					# Back edge: update low-link.
+					if v != parent[u]:
+						low[u] = mini(low[u], disc[v])
+			else:
+				# Done with u — propagate low-link to parent and check AP condition.
+				stack.pop_back()
+				if stack.size() > 0:
+					var pu: int = parent[u]
+					low[pu] = mini(low[pu], low[u])
+					# Non-root AP condition: low[u] >= disc[parent].
+					if parent[pu] != -1 and low[u] >= disc[pu]:
+						is_ap[pu] = true
+				else:
+					# Root of DFS tree: AP if it has 2+ children.
+					if child_count.get(u, 0) >= 2:
+						is_ap[u] = true
+
+	return is_ap
 
 ## Check if the graph is fully connected via BFS.
 func _is_fully_connected(edges: Dictionary, n: int) -> bool:
