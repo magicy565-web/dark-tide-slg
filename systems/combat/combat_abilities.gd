@@ -226,3 +226,45 @@ func apply_conscript_bonus(player_id: int, tile_index: int) -> Array:
 	if not details.is_empty():
 		RecruitManager._sync_army_count(player_id)
 	return details
+
+
+# ---------------------------------------------------------------------------
+# Enchantment Passive Processing (v6.0)
+# ---------------------------------------------------------------------------
+
+## Process enchantment effects after an attack action.
+## Called from combat resolver after damage is calculated.
+## Returns modified action_result with enchantment_effects populated.
+func process_enchantment_passive(hero_id: String, action_result: Dictionary) -> Dictionary:
+	if hero_id.is_empty():
+		return action_result
+	return EnchantmentSystem.apply_enchantment_in_combat(hero_id, action_result)
+
+
+## Apply burn debuff damage at start of round for units with burn.
+func tick_burn_debuffs(units: Array, log: Array) -> void:
+	for unit in units:
+		if not unit.get("is_alive", false):
+			continue
+		var burn_found: bool = false
+		for debuff in unit.get("debuffs", []):
+			if debuff.get("id", "") == "burn":
+				burn_found = true
+				break
+		if burn_found:
+			var burn_dmg: int = 1
+			unit["soldiers"] = maxi(0, unit["soldiers"] - burn_dmg)
+			if unit["soldiers"] <= 0:
+				unit["is_alive"] = false
+			log.append("%s [%s] 灼烧伤害 -%d兵" % [unit.get("unit_type", ""), unit.get("side", ""), burn_dmg])
+
+
+## Apply slow debuff (reduce SPD) for units with slow.
+func apply_slow_debuffs(units: Array) -> void:
+	for unit in units:
+		if not unit.get("is_alive", false):
+			continue
+		for debuff in unit.get("debuffs", []):
+			if debuff.get("id", "") == "slow" and not debuff.get("_applied", false):
+				unit["spd"] = maxf(unit.get("spd", 5.0) - 2.0, 1.0)
+				debuff["_applied"] = true

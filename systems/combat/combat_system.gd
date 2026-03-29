@@ -5,6 +5,7 @@ class_name CombatSystem
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const FormationSystem = preload("res://systems/combat/formation_system.gd")
 const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
+const TacticalGridScript = preload("res://systems/combat/tactical_grid.gd")
 ##
 ## Usage:
 ##   var combat = CombatSystem.new()
@@ -103,6 +104,8 @@ class BattleState:
 	var city_def: int = 0
 	var mana_attacker: int = 0
 	var mana_defender: int = 0
+	var tactical_grid: RefCounted = null  ## TacticalGrid instance (null = legacy mode)
+	var grid_active: bool = false         ## True when grid positioning is in use
 
 	## Return all living units for a side.
 	func living_attackers() -> Array[BattleUnit]:
@@ -182,6 +185,27 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 
 	# -- Apply terrain penalties that persist for the whole battle ----------
 	_apply_terrain_modifiers(state)
+
+	# -- Initialize Tactical Grid if deployment data is provided ----------
+	var deployment_data: Dictionary = node_data.get("deployment_result", {})
+	if not deployment_data.is_empty() and deployment_data.has("tactical_grid"):
+		state.tactical_grid = deployment_data["tactical_grid"]
+		state.grid_active = true
+		# Sync grid unit references with BattleUnit objects
+		_sync_grid_to_battle_units(state)
+		state.action_log.append({
+			"action": "grid_init",
+			"desc": "格子战场已启用 (6×4)",
+		})
+	elif node_data.get("use_grid", false):
+		# Auto-create grid from unit row/slot data
+		state.tactical_grid = TacticalGridScript.new()
+		state.grid_active = true
+		_auto_place_units_on_grid(state)
+		state.action_log.append({
+			"action": "grid_init",
+			"desc": "格子战场自动部署 (6×4)",
+		})
 
 	# v4.6: time_slow — if any unit on one side has time_slow, enemy SPD-3 first round
 	var _time_slow_atk_on_def: bool = false
@@ -269,6 +293,19 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 
 		# Start-of-round passives (regen, mana charge)
 		_apply_round_start_passives(state)
+
+		# v5.2: Tactical Grid — movement sub-phase before actions
+		if state.grid_active:
+			_execute_grid_movement_phase(state)
+			# Apply obstacle effects (fire damage, etc.)
+			if state.tactical_grid != null:
+				var obstacle_log: Array = state.tactical_grid.apply_obstacle_effects()
+				for ol in obstacle_log:
+					state.action_log.append({
+						"action": "obstacle",
+						"round": state.round_number,
+						"desc": "%s 受到 %s 地形伤害 %d" % [ol.get("unit_id", ""), ol.get("obstacle", ""), ol.get("damage", 0)],
+					})
 
 		# v4.6: time_slow — restore SPD after round 1
 		if state.round_number == 2:
@@ -385,6 +422,8 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		"attacker_units_final": _snapshot_units(state.attacker_units),
 		"defender_units_final": _snapshot_units(state.defender_units),
 		"player_controlled": player_controlled,
+		"grid_active": state.grid_active,
+		"grid_data": state.tactical_grid.serialize() if state.tactical_grid != null else {},
 	}
 
 # ---------------------------------------------------------------------------
@@ -971,6 +1010,14 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		skill_mult = 1.5
 
 	var dmg := _calculate_damage(unit, target, state, skill_mult)
+
+	# v5.2: Apply grid positional bonuses (flanking, rear attack)
+	var _grid_pos_info: Dictionary = {"is_flank": false, "is_rear": false, "desc": ""}
+	if state.grid_active:
+		_grid_pos_info = _get_grid_positional_multiplier(unit, target, state)
+		if _grid_pos_info["multiplier"] != 1.0:
+			dmg = int(float(dmg) * _grid_pos_info["multiplier"])
+
 	_apply_damage(target, dmg, state, unit)
 	unit.first_attack = false
 
@@ -989,6 +1036,9 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		"max_soldiers": target.max_soldiers,
 		"round": state.round_number,
 		"desc": "%s 攻击 %s" % [unit.troop_id, target.troop_id],
+		"is_flank": _grid_pos_info.get("is_flank", false),
+		"is_rear": _grid_pos_info.get("is_rear", false),
+		"positional_desc": _grid_pos_info.get("desc", ""),
 	}
 
 	# On-hit passives (counter, death_burst, etc.)
@@ -1042,6 +1092,13 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 	if not defender.is_attacker:
 		terrain_def_mult = tdata_dmg.get("def_mult", 1.0)
 	def_val = int(float(def_val) * terrain_def_mult)
+
+	# v5.2: Grid cell terrain bonus (rubble DEF+2, etc.)
+	if state.grid_active and state.tactical_grid != null:
+		var def_pos: Vector2i = state.tactical_grid.find_unit(defender.id)
+		if def_pos.x >= 0:
+			var cell_bonus: Dictionary = state.tactical_grid.get_terrain_bonus(def_pos.x, def_pos.y)
+			def_val += cell_bonus.get("def", 0)
 
 	# Design doc formula: max(1, ATK - DEF) — was incorrectly max(10, ...) which
 	# made heavily-armored units take far too much damage (Bug fix Round 3).
@@ -1580,3 +1637,200 @@ func _sync_formation_to_battle_units(units: Array[BattleUnit], dicts: Array) -> 
 		u.atk = d.get("atk", u.atk)
 		u.def_stat = d.get("def", u.def_stat)
 		u.spd = d.get("spd", u.spd)
+
+# ---------------------------------------------------------------------------
+# Tactical Grid Integration
+# ---------------------------------------------------------------------------
+
+## Sync deployment grid unit references to BattleUnit objects after grid init.
+func _sync_grid_to_battle_units(state: BattleState) -> void:
+	if state.tactical_grid == null:
+		return
+	# Map grid units to BattleUnits by id
+	var bu_map: Dictionary = {}
+	for u in state.attacker_units:
+		bu_map[u.id] = u
+	for u in state.defender_units:
+		bu_map[u.id] = u
+
+	var all_grid_units: Array = state.tactical_grid.get_all_units()
+	for entry in all_grid_units:
+		var grid_unit: Dictionary = entry["unit"]
+		var uid: String = grid_unit.get("id", "")
+		if bu_map.has(uid):
+			var bu: BattleUnit = bu_map[uid]
+			bu.slot = entry["x"]
+			bu.row = 0 if entry["y"] <= 1 else 1
+
+
+## Auto-place BattleUnits on a fresh grid based on row/slot assignments.
+func _auto_place_units_on_grid(state: BattleState) -> void:
+	if state.tactical_grid == null:
+		return
+	# Place attacker units on bottom half (y=2,3 for back, y=0,1 for front)
+	var atk_front: Array[BattleUnit] = []
+	var atk_back: Array[BattleUnit] = []
+	for u in state.attacker_units:
+		if u.row == 0:
+			atk_front.append(u)
+		else:
+			atk_back.append(u)
+
+	var col: int = 0
+	for u in atk_front:
+		var y: int = 0 if col < 3 else 1
+		var x: int = col % 3 + 1  # Center columns 1-3 for front
+		if state.tactical_grid.place_unit(_bu_to_grid_dict(u, "attacker"), x, y):
+			col += 1
+		else:
+			# Try any open front cell
+			for try_y in range(2):
+				for try_x in range(TacticalGridScript.GRID_WIDTH):
+					if state.tactical_grid.place_unit(_bu_to_grid_dict(u, "attacker"), try_x, try_y):
+						col += 1
+						break
+				if col > atk_front.find(u):
+					break
+
+	col = 0
+	for u in atk_back:
+		var y: int = 2 if col < 3 else 3
+		var x: int = col % 3 + 1
+		if state.tactical_grid.place_unit(_bu_to_grid_dict(u, "attacker"), x, y):
+			col += 1
+		else:
+			for try_y in range(2, 4):
+				for try_x in range(TacticalGridScript.GRID_WIDTH):
+					if state.tactical_grid.place_unit(_bu_to_grid_dict(u, "attacker"), try_x, try_y):
+						col += 1
+						break
+				if col > atk_back.find(u):
+					break
+
+	# Place defender units mirrored (front at y=3, back at y=2, flipped perspective)
+	var def_front: Array[BattleUnit] = []
+	var def_back: Array[BattleUnit] = []
+	for u in state.defender_units:
+		if u.row == 0:
+			def_front.append(u)
+		else:
+			def_back.append(u)
+
+	# Defenders don't share the same grid in this model;
+	# they occupy a separate conceptual grid. For now, track positions as metadata.
+	var def_col: int = 0
+	for u in def_front:
+		u.slot = def_col % TacticalGridScript.GRID_WIDTH
+		def_col += 1
+	def_col = 0
+	for u in def_back:
+		u.slot = def_col % TacticalGridScript.GRID_WIDTH
+		def_col += 1
+
+
+## Convert a BattleUnit to a grid-compatible Dictionary.
+func _bu_to_grid_dict(u: BattleUnit, side: String) -> Dictionary:
+	return {
+		"id": u.id,
+		"side": side,
+		"troop_id": u.troop_id,
+		"unit_type": u.troop_id,
+		"atk": u.atk,
+		"def": u.def_stat,
+		"spd": u.spd,
+		"soldiers": u.soldiers,
+		"max_soldiers": u.max_soldiers,
+		"row": u.row,
+		"slot": u.slot,
+		"passive": u.passive,
+		"troop_class": _infer_unit_class(u.troop_id),
+	}
+
+
+## Grid-aware movement phase: move units before combat actions each round.
+func _execute_grid_movement_phase(state: BattleState) -> void:
+	if not state.grid_active or state.tactical_grid == null:
+		return
+
+	# Move each living attacker unit toward closest enemy position
+	var attacker_entries: Array = state.tactical_grid.get_units_on_side("attacker")
+	for entry in attacker_entries:
+		var unit: Dictionary = entry["unit"]
+		if unit.get("soldiers", 0) <= 0:
+			continue
+		var from_x: int = entry["x"]
+		var from_y: int = entry["y"]
+		var valid_moves: Array = state.tactical_grid.get_valid_moves(from_x, from_y)
+		if valid_moves.is_empty():
+			continue
+
+		# For AI movement: move toward the closest position that improves attack range
+		var attack_range: int = state.tactical_grid.get_unit_attack_range(unit)
+		var current_targets: Array = state.tactical_grid.get_attack_targets(from_x, from_y, attack_range)
+		if not current_targets.is_empty():
+			continue  # Already has targets, don't move
+
+		# Find best move that gets closer to any enemy
+		# (In player-controlled mode, this would be handled by UI)
+		var best_move: Vector2i = Vector2i(-1, -1)
+		var best_dist: int = 999
+		for move_pos in valid_moves:
+			# Check if moving here gives us attack targets
+			var potential_targets: Array = state.tactical_grid.get_attack_targets(move_pos.x, move_pos.y, attack_range)
+			if not potential_targets.is_empty():
+				best_move = move_pos
+				break
+			# Otherwise pick move that minimizes distance to nearest enemy
+			# (simplified: just move forward for attackers)
+			if move_pos.y < from_y or (move_pos.y == from_y and absi(move_pos.x - 3) < absi(from_x - 3)):
+				if move_pos.y < best_dist:
+					best_dist = move_pos.y
+					best_move = move_pos
+
+		if best_move.x >= 0:
+			if state.tactical_grid.move_unit(from_x, from_y, best_move.x, best_move.y):
+				state.action_log.append({
+					"action": "grid_move",
+					"unit": unit.get("id", ""),
+					"from": Vector2i(from_x, from_y),
+					"to": best_move,
+					"desc": "%s 移动 (%d,%d)->(%d,%d)" % [unit.get("troop_id", ""), from_x, from_y, best_move.x, best_move.y],
+				})
+				EventBus.grid_unit_moved.emit(unit.get("id", ""), Vector2i(from_x, from_y), best_move)
+
+
+## Get grid positional damage multiplier for an attack.
+func _get_grid_positional_multiplier(attacker: BattleUnit, target: BattleUnit, state: BattleState) -> Dictionary:
+	var result: Dictionary = {"multiplier": 1.0, "is_flank": false, "is_rear": false, "desc": ""}
+	if not state.grid_active or state.tactical_grid == null:
+		return result
+
+	var atk_pos: Vector2i = state.tactical_grid.find_unit(attacker.id)
+	var def_pos: Vector2i = state.tactical_grid.find_unit(target.id)
+	if atk_pos.x < 0 or def_pos.x < 0:
+		return result
+
+	var flanking: Dictionary = state.tactical_grid.check_flanking(atk_pos, def_pos)
+	result["multiplier"] = flanking["damage_multiplier"]
+	result["is_flank"] = flanking["is_flank"]
+	result["is_rear"] = flanking["is_rear"]
+
+	if flanking["is_rear"]:
+		result["desc"] = "背击+25%"
+	elif flanking["is_flank"]:
+		result["desc"] = "侧击+15%"
+
+	# Artillery accuracy penalty at max range
+	var atk_range: int = state.tactical_grid.get_unit_attack_range({"troop_id": attacker.troop_id})
+	if atk_range >= TacticalGridScript.RANGE_ARTILLERY:
+		var penalty: float = state.tactical_grid.get_artillery_accuracy_penalty(atk_pos, def_pos)
+		if penalty > 0.0:
+			result["multiplier"] *= (1.0 - penalty)
+			result["desc"] += " 远程精度-20%"
+
+	# Terrain bonus from grid cell
+	var def_terrain: Dictionary = state.tactical_grid.get_terrain_bonus(def_pos.x, def_pos.y)
+	if def_terrain.has("def"):
+		result["terrain_def_bonus"] = def_terrain["def"]
+
+	return result

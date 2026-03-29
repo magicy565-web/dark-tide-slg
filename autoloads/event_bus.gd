@@ -284,3 +284,27 @@ signal siege_progress(tile_index: int, wall_hp: float, morale: float, turns_left
 signal siege_ended(tile_index: int, result: String)
 signal sortie_triggered(tile_index: int, defender_won: bool)
 signal strategic_buff_changed(player_id: int, buffs: Dictionary)
+
+# ── Tactical Grid & Deployment Phase (v5.2) ──
+signal deployment_phase_started(player_units: Array, enemy_preview: Array, terrain: int)
+signal deployment_phase_completed(result: Dictionary)
+signal deployment_formation_updated(formations: Array)
+signal grid_unit_moved(unit_id: String, from: Vector2i, to: Vector2i)
+signal grid_unit_attacked(attacker_id: String, target_id: String, damage: int, positional: Dictionary)
+
+# ── Hero Skills Advanced (v6.0) ──
+signal ultimate_executed(hero_id: String, skill_name: String, result: Dictionary)
+signal combo_executed(combo_id: int, combo_name: String, result: Dictionary)
+signal hero_awakened(hero_id: String, stat_changes: Dictionary)
+signal awakening_ended(hero_id: String)
+
+# ── Enchantment System (v6.0) ──
+signal enchantment_changed(hero_id: String, enchantment_id: String)
+
+# ── Environment System (v6.0) ──
+signal time_of_day_changed(time_id: int, time_data: Dictionary)
+signal fatigue_changed(army_id: int, new_fatigue: int)
+signal fatigue_desertion(army_id: int)
+signal unit_promoted(unit_id: String, new_rank: String)
+signal loot_generated(loot: Array)
+signal loot_applied(loot: Array)

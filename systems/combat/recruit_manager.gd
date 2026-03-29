@@ -612,3 +612,31 @@ func _fix_int_keys(dict: Dictionary) -> void:
 		if not dict.has(int_key):
 			dict[int_key] = dict[k]
 		dict.erase(k)
+
+
+# ---------------------------------------------------------------------------
+# Fatigue & Veterancy Integration (v6.0)
+# ---------------------------------------------------------------------------
+
+## Get army fatigue level for display.
+func get_army_fatigue(player_id: int) -> int:
+	return EnvironmentSystem.get_fatigue(player_id)
+
+
+## Get fatigue tier info for army.
+func get_army_fatigue_tier(player_id: int) -> Dictionary:
+	return EnvironmentSystem.get_fatigue_tier(player_id)
+
+
+## Rest army to reduce fatigue (call when army is in friendly territory).
+func rest_army_at_territory(player_id: int) -> void:
+	EnvironmentSystem.rest_army(player_id)
+
+
+## Get veterancy info for a specific troop unit.
+func get_troop_veterancy(unit_id: String) -> Dictionary:
+	return {
+		"bonuses": EnvironmentSystem.get_veterancy_bonuses(unit_id),
+		"rank": EnvironmentSystem.VETERANCY_NAMES.get(EnvironmentSystem.check_promotion(unit_id), "新兵"),
+		"battles": EnvironmentSystem.get_unit_battles(unit_id),
+	}

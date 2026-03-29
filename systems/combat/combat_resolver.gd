@@ -1,6 +1,7 @@
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
+const TacticalGridScript = preload("res://systems/combat/tactical_grid.gd")
 
 ## combat_resolver.gd - Turn-based Sengoku Rance-style combat (v1.0 rewrite)
 ## Front row (3 slots) + Back row (3 slots), SPD-based action queue, 12-round max.
@@ -142,6 +143,73 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	# -- Phase 0: Build battle state --
 	var state: Dictionary = _build_battle_state(attacker, defender, tile)
 
+	# -- v6.0: Reset advanced systems for this battle --
+	HeroSkillsAdvanced.reset_battle()
+	EnchantmentSystem.reset_combat_state()
+
+	# -- v6.0: Apply environment modifiers (day/night, fatigue) --
+	var _env_time_mods: Dictionary = EnvironmentSystem.get_time_combat_modifiers()
+	var _atk_army_id: int = attacker.get("army_id", atk_pid)
+	var _def_army_id: int = defender.get("army_id", def_pid)
+	var _atk_fatigue_mods: Dictionary = EnvironmentSystem.get_fatigue_combat_modifiers(_atk_army_id)
+	var _def_fatigue_mods: Dictionary = EnvironmentSystem.get_fatigue_combat_modifiers(_def_army_id)
+
+	for _env_u in state["atk_units"]:
+		# Day/night: assassin ATK bonus
+		if "assassin" in _env_u.get("unit_type", "") or "ninja" in _env_u.get("unit_type", ""):
+			_env_u["atk"] += float(_env_time_mods.get("assassin_atk_bonus", 0))
+		# Day/night: undead ATK bonus
+		if "skeleton" in _env_u.get("unit_type", "") or "undead" in _env_u.get("unit_type", ""):
+			_env_u["atk"] += float(_env_time_mods.get("undead_atk_bonus", 0))
+		# Fatigue modifiers
+		if _atk_fatigue_mods.get("atk_pct", 0) != 0:
+			_env_u["atk"] = _env_u["atk"] * (1.0 + float(_atk_fatigue_mods["atk_pct"]) / 100.0)
+		if _atk_fatigue_mods.get("def_pct", 0) != 0:
+			_env_u["def"] = _env_u["def"] * (1.0 + float(_atk_fatigue_mods["def_pct"]) / 100.0)
+		_env_u["spd"] += float(_atk_fatigue_mods.get("spd_mod", 0))
+		# Enchantment stat bonuses
+		var _env_hero_id: String = _env_u.get("hero_id", "")
+		if not _env_hero_id.is_empty():
+			var _ench_bonuses: Dictionary = EnchantmentSystem.get_enchantment_bonuses(_env_hero_id)
+			_env_u["atk"] += float(_ench_bonuses.get("atk_bonus", 0))
+			_env_u["def"] += float(_ench_bonuses.get("def_bonus", 0))
+			_env_u["spd"] += float(_ench_bonuses.get("spd_bonus", 0))
+		# Veterancy bonuses
+		var _env_unit_id: String = _env_u.get("unit_type", "")
+		var _vet_bonuses: Dictionary = EnvironmentSystem.get_veterancy_bonuses(_env_unit_id)
+		_env_u["atk"] += float(_vet_bonuses.get("atk", 0))
+		_env_u["def"] += float(_vet_bonuses.get("def", 0))
+		_env_u["spd"] += float(_vet_bonuses.get("spd", 0))
+		_env_u["morale"] = _env_u.get("morale", MORALE_START) + _vet_bonuses.get("morale", 0) + _env_time_mods.get("morale_bonus", 0)
+
+	for _env_d in state["def_units"]:
+		if "assassin" in _env_d.get("unit_type", "") or "ninja" in _env_d.get("unit_type", ""):
+			_env_d["atk"] += float(_env_time_mods.get("assassin_atk_bonus", 0))
+		if "skeleton" in _env_d.get("unit_type", "") or "undead" in _env_d.get("unit_type", ""):
+			_env_d["atk"] += float(_env_time_mods.get("undead_atk_bonus", 0))
+		if _def_fatigue_mods.get("atk_pct", 0) != 0:
+			_env_d["atk"] = _env_d["atk"] * (1.0 + float(_def_fatigue_mods["atk_pct"]) / 100.0)
+		if _def_fatigue_mods.get("def_pct", 0) != 0:
+			_env_d["def"] = _env_d["def"] * (1.0 + float(_def_fatigue_mods["def_pct"]) / 100.0)
+		_env_d["spd"] += float(_def_fatigue_mods.get("spd_mod", 0))
+		var _env_hero_id_d: String = _env_d.get("hero_id", "")
+		if not _env_hero_id_d.is_empty():
+			var _ench_bonuses_d: Dictionary = EnchantmentSystem.get_enchantment_bonuses(_env_hero_id_d)
+			_env_d["atk"] += float(_ench_bonuses_d.get("atk_bonus", 0))
+			_env_d["def"] += float(_ench_bonuses_d.get("def_bonus", 0))
+			_env_d["spd"] += float(_ench_bonuses_d.get("spd_bonus", 0))
+		var _env_unit_id_d: String = _env_d.get("unit_type", "")
+		var _vet_bonuses_d: Dictionary = EnvironmentSystem.get_veterancy_bonuses(_env_unit_id_d)
+		_env_d["atk"] += float(_vet_bonuses_d.get("atk", 0))
+		_env_d["def"] += float(_vet_bonuses_d.get("def", 0))
+		_env_d["spd"] += float(_vet_bonuses_d.get("spd", 0))
+		_env_d["morale"] = _env_d.get("morale", MORALE_START) + _vet_bonuses_d.get("morale", 0) + _env_time_mods.get("morale_bonus", 0)
+
+	if _atk_fatigue_mods.get("atk_pct", 0) != 0 or _env_time_mods.get("assassin_atk_bonus", 0) != 0:
+		log.append("[环境] %s | 攻方疲劳: %s | 守方疲劳: %s" % [
+			EnvironmentSystem.TIME_NAMES.get(EnvironmentSystem.current_time, ""),
+			EnvironmentSystem.get_fatigue_tier(_atk_army_id).get("label", "良好"),
+			EnvironmentSystem.get_fatigue_tier(_def_army_id).get("label", "良好")])
 	# v4.6: time_slow — if any unit on one side has time_slow, enemy SPD-3 first round
 	var _ts_atk_on_def: bool = false
 	for _ts_u in state["atk_units"]:
@@ -359,6 +427,14 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 
 		_start_of_round(state, log)
 
+		# v5.2: Tactical Grid movement sub-phase
+		if state.get("grid_active", false) and state.get("tactical_grid", null) != null:
+			var _tg = state["tactical_grid"]
+			# Apply obstacle effects (fire damage, etc.)
+			var _obstacle_effects: Array = _tg.apply_obstacle_effects()
+			for _oe in _obstacle_effects:
+				log.append("%s 受到 %s 地形伤害 %d" % [_oe.get("unit_id", ""), _oe.get("obstacle", ""), _oe.get("damage", 0)])
+
 		# v4.6: time_slow — restore SPD after round 1
 		if round_num == 2:
 			if _ts_atk_on_def:
@@ -519,7 +595,45 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 		"atk_decoy_slot": attacker.get("decoy_slot", -1),
 		"def_protected_slot": defender.get("protected_slot", -1),
 		"def_decoy_slot": defender.get("decoy_slot", -1),
+		# v5.2: Tactical Grid
+		"tactical_grid": null,
+		"grid_active": false,
 	}
+
+
+func _build_battle_state_with_grid(attacker: Dictionary, defender: Dictionary, tile: Dictionary) -> Dictionary:
+	var state: Dictionary = _build_battle_state(attacker, defender, tile)
+	var deployment_result: Dictionary = attacker.get("deployment_result", {})
+	if not deployment_result.is_empty() and deployment_result.has("tactical_grid"):
+		state["tactical_grid"] = deployment_result["tactical_grid"]
+		state["grid_active"] = true
+	elif attacker.get("use_grid", false) or defender.get("use_grid", false):
+		state["tactical_grid"] = TacticalGridScript.new()
+		state["grid_active"] = true
+		_auto_place_units_on_resolver_grid(state)
+	return state
+
+
+func _auto_place_units_on_resolver_grid(state: Dictionary) -> void:
+	var grid = state["tactical_grid"]
+	if grid == null:
+		return
+	var col: int = 0
+	for u in state["atk_units"]:
+		var y: int = 0 if u["row"] == "front" else 2
+		var x: int = col % TacticalGridScript.GRID_WIDTH
+		var grid_unit: Dictionary = u.duplicate()
+		grid_unit["side"] = "attacker"
+		grid.place_unit(grid_unit, x, y)
+		col += 1
+	col = 0
+	for u in state["def_units"]:
+		var y: int = 3 if u["row"] == "front" else 1
+		var x: int = col % TacticalGridScript.GRID_WIDTH
+		var grid_unit: Dictionary = u.duplicate()
+		grid_unit["side"] = "defender"
+		grid.place_unit(grid_unit, x, y)
+		col += 1
 
 
 func _assign_to_slots(raw_units: Array, player_id: int, side: String, tile: Dictionary) -> Array:
@@ -1243,6 +1357,72 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 	# Mana regen: +1 per side per round
 	state["atk_mana"] = mini(state["atk_mana"] + 1, state["atk_mana_max"])
 	state["def_mana"] = mini(state["def_mana"] + 1, state["def_mana_max"])
+
+	# -- v6.0: Tick ultimate charges and combo charges for all heroes --
+	var _all_atk_heroes: Array = []
+	var _all_def_heroes: Array = []
+	for _ult_u in state["atk_units"]:
+		if _ult_u.get("is_alive", false) and not _ult_u.get("hero_id", "").is_empty():
+			var _hid: String = _ult_u["hero_id"]
+			HeroSkillsAdvanced.tick_charge(_hid)
+			_all_atk_heroes.append(_hid)
+	for _ult_d in state["def_units"]:
+		if _ult_d.get("is_alive", false) and not _ult_d.get("hero_id", "").is_empty():
+			var _hid_d: String = _ult_d["hero_id"]
+			HeroSkillsAdvanced.tick_charge(_hid_d)
+			_all_def_heroes.append(_hid_d)
+	HeroSkillsAdvanced.tick_combo_charges(_all_atk_heroes)
+	HeroSkillsAdvanced.tick_combo_charges(_all_def_heroes)
+
+	# -- v6.0: Tick awakening durations --
+	for _awk_u in state["atk_units"] + state["def_units"]:
+		if not _awk_u.get("is_alive", false):
+			continue
+		var _awk_hid: String = _awk_u.get("hero_id", "")
+		if not _awk_hid.is_empty() and HeroSkillsAdvanced.is_awakened(_awk_hid):
+			var _still_awake: bool = HeroSkillsAdvanced.tick_awakening(_awk_hid)
+			if not _still_awake:
+				# Revert awakening stat multipliers
+				var _awk_data: Dictionary = HeroSkillsAdvanced.awakening_data.get(_awk_hid, {})
+				_awk_u["atk"] = _awk_u["atk"] / _awk_data.get("atk_mult", 1.0)
+				_awk_u["def"] = _awk_u["def"] / _awk_data.get("def_mult", 1.0)
+				_awk_u["spd"] = _awk_u["spd"] / _awk_data.get("spd_mult", 1.0)
+				log.append("[觉醒] %s 觉醒结束，恢复常态" % _awk_u.get("unit_type", ""))
+
+	# -- v6.0: Check awakening trigger for damaged heroes --
+	for _chk_u in state["atk_units"] + state["def_units"]:
+		if not _chk_u.get("is_alive", false):
+			continue
+		var _chk_hid: String = _chk_u.get("hero_id", "")
+		if _chk_hid.is_empty() or HeroSkillsAdvanced.is_awakened(_chk_hid):
+			continue
+		var _chk_max_s: int = _chk_u.get("max_soldiers", 1)
+		var _chk_hp_ratio: float = float(_chk_u["soldiers"]) / float(maxi(1, _chk_max_s))
+		if HeroSkillsAdvanced.check_awakening(_chk_hid, _chk_hp_ratio):
+			var _awk_stats: Dictionary = HeroSkillsAdvanced.trigger_awakening(_chk_hid)
+			if not _awk_stats.is_empty():
+				_chk_u["atk"] = _chk_u["atk"] * _awk_stats.get("atk_mult", 1.0)
+				_chk_u["def"] = _chk_u["def"] * _awk_stats.get("def_mult", 1.0)
+				_chk_u["spd"] = _chk_u["spd"] * _awk_stats.get("spd_mult", 1.0)
+				log.append("[color=red][觉醒] %s — %s! ATK×%.1f DEF×%.1f SPD×%.1f[/color]" % [
+					_chk_u.get("unit_type", ""), _awk_stats.get("name", ""),
+					_awk_stats.get("atk_mult", 1.0), _awk_stats.get("def_mult", 1.0),
+					_awk_stats.get("spd_mult", 1.0)])
+
+	# -- v6.0: Auto-execute charged ultimates for AI side --
+	for _ult_exec_u in state["atk_units"] + state["def_units"]:
+		if not _ult_exec_u.get("is_alive", false):
+			continue
+		var _ult_hid: String = _ult_exec_u.get("hero_id", "")
+		if _ult_hid.is_empty() or not HeroSkillsAdvanced.is_charged(_ult_hid):
+			continue
+		var _ult_result: Dictionary = HeroSkillsAdvanced.execute_ultimate(_ult_hid, state)
+		if _ult_result.get("ok", false):
+			log.append("[color=yellow][必杀技] %s 发动 %s![/color]" % [
+				_ult_exec_u.get("unit_type", ""), _ult_result.get("name", "")])
+			for _hit in _ult_result.get("targets_hit", []):
+				log.append("  → %s 受到 %d 伤害" % [
+					_hit.get("unit", ""), _hit.get("damage", _hit.get("healed", 0))])
 
 	for unit in state["atk_units"] + state["def_units"]:
 		if not unit["is_alive"]:
@@ -2402,6 +2582,26 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 	if attacker_unit["row"] == "back" and _count_alive_in_row(_own_units, "front") == 0:
 		base_damage *= 1.15
 
+	# v5.2: Grid-based positional bonuses (flanking +15%, rear +25%)
+	if state.get("grid_active", false) and state.get("tactical_grid", null) != null:
+		var _tg = state["tactical_grid"]
+		var _atk_pos: Vector2i = _tg.find_unit(attacker_unit.get("id", ""))
+		var _def_pos: Vector2i = _tg.find_unit(defender_unit.get("id", ""))
+		if _atk_pos.x >= 0 and _def_pos.x >= 0:
+			var _flank_info: Dictionary = _tg.check_flanking(_atk_pos, _def_pos)
+			if _flank_info["damage_multiplier"] != 1.0:
+				base_damage *= _flank_info["damage_multiplier"]
+			# Grid cell terrain DEF bonus (rubble: +2)
+			var _cell_bonus: Dictionary = _tg.get_terrain_bonus(_def_pos.x, _def_pos.y)
+			if _cell_bonus.has("def"):
+				base_damage = maxf(base_damage - float(_cell_bonus["def"]) * float(soldiers) / 10.0, 0.0)
+			# Artillery accuracy penalty at max range
+			var _unit_range: int = _tg.get_unit_attack_range(attacker_unit)
+			if _unit_range >= TacticalGridScript.RANGE_ARTILLERY:
+				var _acc_pen: float = _tg.get_artillery_accuracy_penalty(_atk_pos, _def_pos)
+				if _acc_pen > 0.0:
+					base_damage *= (1.0 - _acc_pen)
+
 	# FIX(MAJOR): 护盾buff改为取最强护盾生效，不再乘法叠加；使用后标记移除
 	var best_shield_idx: int = -1
 	var best_shield_val: float = 0.0
@@ -2747,6 +2947,37 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		"details": log,
 		"gold_bonus_flags": gold_bonus_flags,
 	}
+
+	# -- v6.0: Record battle veterancy for surviving units --
+	for _vet_u in state["atk_units"] + state["def_units"]:
+		if _vet_u.get("is_alive", false):
+			var _vet_uid: String = _vet_u.get("unit_type", "")
+			if not _vet_uid.is_empty():
+				EnvironmentSystem.record_battle(_vet_uid)
+
+	# -- v6.0: Fatigue from battle --
+	var _atk_army_id_f: int = state.get("atk_pid", -1)
+	var _def_army_id_f: int = state.get("def_pid", -1)
+	EnvironmentSystem.on_battle(_atk_army_id_f)
+	EnvironmentSystem.on_battle(_def_army_id_f)
+
+	# -- v6.0: Generate war loot on victory --
+	if winner_pid >= 0 and winner_pid == GameManager.get_human_player_id():
+		var _battle_type: String = "normal"
+		if wall_destroyed:
+			_battle_type = "siege"
+		# Check for boss-tier enemies
+		var _max_tier: int = 1
+		var _loser_units: Array = state["def_units"] if winner == "attacker" else state["atk_units"]
+		for _lu in _loser_units:
+			_max_tier = maxi(_max_tier, int(_lu.get("tier", 1)))
+		if _max_tier >= 4:
+			_battle_type = "boss"
+		var _loot: Array = EnvironmentSystem.generate_loot(_battle_type, _max_tier)
+		if not _loot.is_empty():
+			EnvironmentSystem.apply_loot(_loot)
+			combat_result["loot"] = _loot
+			log.append("[战利品] 获得 %d 种战利品" % _loot.size())
 
 	# Restore retreated units (they survive with their soldiers intact)
 	if state.get("interventions_enabled", false):
