@@ -1137,13 +1137,88 @@ func _on_attack_target(tile_index: int) -> void:
 			return
 		# else: walls breached, proceed to normal attack (final assault)
 
+	# ── SR07: Open battle preparation panel for army composition ──
 	if _selected_army_id >= 0:
-		GameManager.action_attack_with_army(_selected_army_id, tile_index)
+		_open_battle_prep(_selected_army_id, tile_index)
 	else:
 		GameManager.action_attack(pid, tile_index)
-	_selected_army_id = -1
+		_selected_army_id = -1
+		_close_target_panel()
+		_after_action()
+
+
+# ═══════════════════════════════════════════════════════════════
+#           BATTLE PREPARATION (SR07 Style)
+# ═══════════════════════════════════════════════════════════════
+
+var _battle_prep_connected: bool = false
+
+func _open_battle_prep(army_id: int, tile_index: int) -> void:
+	## Open the SR07-style battle preparation panel.
+	var prep = _find_battle_prep()
+	if not prep:
+		# Fallback: skip prep, attack directly
+		GameManager.action_attack_with_army(army_id, tile_index)
+		_selected_army_id = -1
+		_close_target_panel()
+		_after_action()
+		return
+	if not _battle_prep_connected:
+		prep.battle_confirmed.connect(_on_battle_prep_confirmed)
+		prep.battle_cancelled.connect(_on_battle_prep_cancelled)
+		_battle_prep_connected = true
 	_close_target_panel()
+	prep.show_panel(army_id, tile_index)
+
+
+func _on_battle_prep_confirmed(army_id: int, target_tile: int, slot_assignments: Dictionary) -> void:
+	## Battle preparation confirmed — apply slot assignments and attack.
+	# Store slot preferences in GameManager before combat
+	var prefs: Dictionary = {}
+	for slot_idx in slot_assignments:
+		var assignment: Dictionary = slot_assignments[slot_idx]
+		prefs[assignment.get("troop_index", slot_idx)] = slot_idx
+	GameManager.army_slot_preferences[army_id] = prefs
+	# Reorder heroes array to match slot assignment
+	var army: Dictionary = GameManager.get_army(army_id)
+	if not army.is_empty():
+		var new_heroes: Array = []
+		var slot_hero_map: Array = []
+		for i in range(6):
+			if slot_assignments.has(i):
+				slot_hero_map.append(slot_assignments[i].get("hero_id", ""))
+			else:
+				slot_hero_map.append("")
+		for hid in slot_hero_map:
+			if hid != "":
+				new_heroes.append(hid)
+		# Append any heroes not in assignments (shouldn't happen but safety)
+		for hid in army.get("heroes", []):
+			if hid not in new_heroes:
+				new_heroes.append(hid)
+		army["heroes"] = new_heroes
+	GameManager.action_attack_with_army(army_id, target_tile)
+	_selected_army_id = -1
 	_after_action()
+
+
+func _on_battle_prep_cancelled() -> void:
+	## Battle preparation cancelled — return to normal state.
+	_selected_army_id = -1
+	_current_mode = ActionMode.NONE
+
+
+func _find_battle_prep():
+	## Find the battle_prep_panel node in the scene tree.
+	var main_node = get_parent()
+	if main_node and main_node.has_method("get") and main_node.get("battle_prep_panel"):
+		return main_node.battle_prep_panel
+	# Fallback: search siblings
+	if main_node:
+		for child in main_node.get_children():
+			if child.has_method("show_panel") and child.has_signal("battle_confirmed"):
+				return child
+	return null
 
 
 ## v5.0: Show siege options sub-menu for fortified tiles.

@@ -35,6 +35,7 @@ var espionage_panel = null
 var supply_overlay = null
 var formation_preview = null
 var combat_intervention_panel = null
+var battle_prep_panel = null
 
 # ── Game over overlay (v4.5) ──
 var game_over_panel_node = null
@@ -114,6 +115,11 @@ func _ready() -> void:
 	combat_intervention_panel = CanvasLayer.new()
 	combat_intervention_panel.set_script(CombatInterventionScript)
 	add_child(combat_intervention_panel)
+
+	var BattlePrepScript = preload("res://scenes/ui/battle_prep_panel.gd")
+	battle_prep_panel = CanvasLayer.new()
+	battle_prep_panel.set_script(BattlePrepScript)
+	add_child(battle_prep_panel)
 
 	# Game over overlay (v4.5) — high-layer CanvasLayer that covers everything
 	var GameOverPanelScript = preload("res://scenes/ui/game_over_panel.gd")
