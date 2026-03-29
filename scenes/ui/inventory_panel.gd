@@ -5,7 +5,7 @@ const FactionData = preload("res://systems/faction/faction_data.gd")
 
 # ── State ──
 var _visible: bool = false
-var _current_tab: String = "all"  # "all", "consumable", "equipment", "relic"
+var _current_tab: String = "all"  # "all", "consumable", "equipment", "relic", "heroes"
 var _selected_item_index: int = -1
 
 # ── UI refs ──
@@ -20,6 +20,8 @@ var btn_tab_all: Button
 var btn_tab_consumable: Button
 var btn_tab_equipment: Button
 var btn_tab_relic: Button
+var btn_tab_heroes: Button
+var hero_equip_container: VBoxContainer
 var item_scroll: ScrollContainer
 var item_container: VBoxContainer
 var detail_panel: PanelContainer
@@ -112,6 +114,12 @@ func _build_ui() -> void:
 	btn_tab_relic = _make_tab_button("Relic")
 	btn_tab_relic.pressed.connect(func(): _switch_tab("relic"))
 	tab_container.add_child(btn_tab_relic)
+	btn_tab_heroes = Button.new()
+	btn_tab_heroes.text = "Heroes"
+	btn_tab_heroes.custom_minimum_size = Vector2(70, 28)
+	btn_tab_heroes.add_theme_font_size_override("font_size", 12)
+	btn_tab_heroes.pressed.connect(func(): _switch_tab("heroes"))
+	tab_container.add_child(btn_tab_heroes)
 	outer_vbox.add_child(HSeparator.new())
 
 	# Content: left list + right detail
@@ -165,7 +173,7 @@ func _switch_tab(tab: String) -> void:
 	_current_tab = tab; _selected_item_index = -1; detail_panel.visible = false; _refresh()
 
 func _update_tab_highlight() -> void:
-	var m: Dictionary = {"all": btn_tab_all, "consumable": btn_tab_consumable, "equipment": btn_tab_equipment, "relic": btn_tab_relic}
+	var m: Dictionary = {"all": btn_tab_all, "consumable": btn_tab_consumable, "equipment": btn_tab_equipment, "relic": btn_tab_relic, "heroes": btn_tab_heroes}
 	for key in m:
 		if key == _current_tab: m[key].add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
 		else: m[key].remove_theme_color_override("font_color")
@@ -185,6 +193,8 @@ func _refresh_list() -> void:
 	_item_nodes.clear()
 	if _current_tab == "relic":
 		_build_relic_display(); return
+	if _current_tab == "heroes":
+		_refresh_hero_equip_tab(); return
 	var pid: int = GameManager.get_human_player_id()
 	var items: Array
 	match _current_tab:
@@ -293,6 +303,222 @@ func _build_relic_display() -> void:
 		bu.pressed.connect(_on_upgrade_relic)
 		vbox.add_child(bu)
 	item_container.add_child(card); _item_nodes.append(card)
+
+func _refresh_hero_equip_tab() -> void:
+	## SR07-style hero equipment overview: each hero card shows equipped item with swap buttons.
+	for c in _item_nodes:
+		if is_instance_valid(c): c.queue_free()
+	_item_nodes.clear()
+	detail_panel.visible = false
+
+	var pid: int = GameManager.get_human_player_id()
+	var heroes: Array = HeroSystem.get_recruited_heroes(pid)
+	if heroes.is_empty():
+		var empty_lbl := Label.new()
+		empty_lbl.text = "No heroes recruited."
+		empty_lbl.add_theme_font_size_override("font_size", 14)
+		empty_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+		item_container.add_child(empty_lbl)
+		_item_nodes.append(empty_lbl)
+		return
+
+	# Section header
+	var header := Label.new()
+	header.text = "Hero Equipment (%d heroes)" % heroes.size()
+	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
+	item_container.add_child(header)
+	_item_nodes.append(header)
+
+	for hero_id in heroes:
+		var hero_data: Dictionary = HeroSystem.get_hero_info(hero_id)
+		if hero_data.is_empty():
+			continue
+		var card := PanelContainer.new()
+		var cs := ColorTheme.make_panel_style(
+			Color(0.08, 0.08, 0.12, 0.85),
+			Color(0.3, 0.3, 0.38), 1, 6, 6
+		)
+		card.add_theme_stylebox_override("panel", cs)
+		item_container.add_child(card)
+		_item_nodes.append(card)
+
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", 8)
+		card.add_child(hb)
+
+		# Hero name + class
+		var info_vbox := VBoxContainer.new()
+		info_vbox.add_theme_constant_override("separation", 2)
+		info_vbox.custom_minimum_size.x = 120
+		hb.add_child(info_vbox)
+
+		var name_lbl := Label.new()
+		name_lbl.text = hero_data.get("name", hero_id)
+		name_lbl.add_theme_font_size_override("font_size", 13)
+		name_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_HEADING)
+		info_vbox.add_child(name_lbl)
+
+		var class_lbl := Label.new()
+		class_lbl.text = "Lv%d %s" % [hero_data.get("level", 1), hero_data.get("class", "???")]
+		class_lbl.add_theme_font_size_override("font_size", 10)
+		class_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_DIM)
+		info_vbox.add_child(class_lbl)
+
+		# Equipped item display
+		var equip_data: Dictionary = HeroSystem.get_hero_equipment(hero_id)
+		var equip_id: String = equip_data.get("item", "")
+
+		var equip_vbox := VBoxContainer.new()
+		equip_vbox.add_theme_constant_override("separation", 2)
+		equip_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hb.add_child(equip_vbox)
+
+		if equip_id != "":
+			var eq_def: Dictionary = FactionData.EQUIPMENT_DEFS.get(equip_id, {})
+			var eq_hb := HBoxContainer.new()
+			eq_hb.add_theme_constant_override("separation", 4)
+			equip_vbox.add_child(eq_hb)
+
+			# Item icon
+			var icon_name: String = eq_def.get("icon", "")
+			if icon_name != "":
+				var icon_path: String = "res://assets/icons/items/%s.png" % icon_name
+				if ResourceLoader.exists(icon_path):
+					var tex: Texture2D = load(icon_path)
+					if tex:
+						var tr := TextureRect.new()
+						tr.texture = tex
+						tr.custom_minimum_size = Vector2(28, 28)
+						tr.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+						tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+						eq_hb.add_child(tr)
+
+			var eq_name := Label.new()
+			eq_name.text = eq_def.get("name", equip_id)
+			eq_name.add_theme_font_size_override("font_size", 12)
+			eq_name.add_theme_color_override("font_color", _get_rarity_color(eq_def.get("rarity", "common")))
+			eq_hb.add_child(eq_name)
+
+			# Stats summary
+			var stats: Dictionary = eq_def.get("stats", {})
+			if not stats.is_empty():
+				var parts: Array = []
+				for key in stats:
+					parts.append("%s+%d" % [key.to_upper(), stats[key]])
+				var stat_lbl := Label.new()
+				stat_lbl.text = " ".join(parts)
+				stat_lbl.add_theme_font_size_override("font_size", 10)
+				stat_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 1.0))
+				equip_vbox.add_child(stat_lbl)
+		else:
+			var empty := Label.new()
+			empty.text = "-- Empty --"
+			empty.add_theme_font_size_override("font_size", 12)
+			empty.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+			equip_vbox.add_child(empty)
+
+		# Action buttons
+		var btn_hb := VBoxContainer.new()
+		btn_hb.add_theme_constant_override("separation", 2)
+		hb.add_child(btn_hb)
+
+		if equip_id != "":
+			var unequip_btn := Button.new()
+			unequip_btn.text = "Unequip"
+			unequip_btn.custom_minimum_size = Vector2(70, 24)
+			unequip_btn.add_theme_font_size_override("font_size", 10)
+			unequip_btn.pressed.connect(_on_hero_unequip.bind(hero_id))
+			btn_hb.add_child(unequip_btn)
+
+		# Equip from inventory button (only if inventory has equipment)
+		var avail_equip: Array = ItemManager.get_equipment_items(pid)
+		if not avail_equip.is_empty():
+			var equip_btn := Button.new()
+			equip_btn.text = "Equip..."
+			equip_btn.custom_minimum_size = Vector2(70, 24)
+			equip_btn.add_theme_font_size_override("font_size", 10)
+			equip_btn.pressed.connect(_on_hero_equip_picker.bind(hero_id))
+			btn_hb.add_child(equip_btn)
+
+
+func _on_hero_unequip(hero_id: String) -> void:
+	HeroSystem.unequip_item(hero_id, "item")
+	AudioManager.play_ui_click()
+	_refresh_hero_equip_tab()
+
+
+func _on_hero_equip_picker(hero_id: String) -> void:
+	## Show equipment picker in the detail panel for this hero.
+	var pid: int = GameManager.get_human_player_id()
+	var avail: Array = ItemManager.get_equipment_items(pid)
+	if avail.is_empty():
+		return
+	detail_panel.visible = true
+	for c in detail_container.get_children():
+		c.queue_free()
+
+	var title := Label.new()
+	title.text = "Select Equipment"
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
+	detail_container.add_child(title)
+	detail_container.add_child(HSeparator.new())
+
+	for item in avail:
+		var item_id: String = item.get("item_id", "")
+		var eq_def: Dictionary = FactionData.EQUIPMENT_DEFS.get(item_id, {})
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		detail_container.add_child(row)
+
+		# Icon
+		var icon_name: String = eq_def.get("icon", item.get("icon", ""))
+		if icon_name != "":
+			var icon_path: String = "res://assets/icons/items/%s.png" % icon_name
+			if ResourceLoader.exists(icon_path):
+				var tex: Texture2D = load(icon_path)
+				if tex:
+					var tr := TextureRect.new()
+					tr.texture = tex
+					tr.custom_minimum_size = Vector2(32, 32)
+					tr.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+					tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+					row.add_child(tr)
+
+		var info_vbox := VBoxContainer.new()
+		info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(info_vbox)
+
+		var name_lbl := Label.new()
+		name_lbl.text = eq_def.get("name", item_id)
+		name_lbl.add_theme_font_size_override("font_size", 13)
+		name_lbl.add_theme_color_override("font_color", _get_rarity_color(eq_def.get("rarity", "common")))
+		info_vbox.add_child(name_lbl)
+
+		var stats: Dictionary = eq_def.get("stats", {})
+		if not stats.is_empty():
+			var parts: Array = []
+			for key in stats:
+				parts.append("%s+%d" % [key.to_upper(), stats[key]])
+			var stat_lbl := Label.new()
+			stat_lbl.text = " ".join(parts)
+			stat_lbl.add_theme_font_size_override("font_size", 10)
+			stat_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 1.0))
+			info_vbox.add_child(stat_lbl)
+
+		var eq_btn := Button.new()
+		eq_btn.text = "Equip"
+		eq_btn.custom_minimum_size = Vector2(60, 26)
+		eq_btn.add_theme_font_size_override("font_size", 11)
+		eq_btn.pressed.connect(_on_hero_equip_confirm.bind(hero_id, item_id))
+		row.add_child(eq_btn)
+
+
+func _on_hero_equip_confirm(hero_id: String, equip_id: String) -> void:
+	HeroSystem.equip_item(hero_id, equip_id)
+	AudioManager.play_ui_click()
+	_refresh_hero_equip_tab()
 
 # ═══════════════ DETAIL VIEW ═══════════════
 

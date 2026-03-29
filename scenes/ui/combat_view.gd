@@ -168,6 +168,7 @@ var btn_auto: Button
 var result_panel: PanelContainer
 var result_label: Label
 var result_stats: Label
+var loot_container: VBoxContainer  # Post-battle loot display
 var anim_layer: Control
 var combo_label: Label
 var damage_tracker_atk: Label
@@ -728,7 +729,7 @@ func _on_cmd_retreat() -> void:
 func _build_result_panel() -> void:
 	result_panel = PanelContainer.new()
 	result_panel.position = Vector2(340, 270)
-	result_panel.size = Vector2(600, 140)
+	result_panel.size = Vector2(600, 220)
 	result_panel.visible = false
 	var rs := _make_card_style(ColorTheme.BG_RESULT, ColorTheme.ACCENT_GOLD)
 	rs.border_width_top = 3; rs.border_width_bottom = 3
@@ -752,6 +753,15 @@ func _build_result_panel() -> void:
 	result_stats.add_theme_font_size_override("font_size", 13)
 	result_stats.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
 	rvbox.add_child(result_stats)
+
+	# Loot section (SR07 style)
+	var loot_sep := HSeparator.new()
+	loot_sep.name = "LootSep"
+	rvbox.add_child(loot_sep)
+	loot_container = VBoxContainer.new()
+	loot_container.name = "LootContainer"
+	loot_container.add_theme_constant_override("separation", 3)
+	rvbox.add_child(loot_container)
 func _build_overlay_effects() -> void:
 	# Animation layer
 	anim_layer = Control.new()
@@ -2640,6 +2650,7 @@ func _finish_playback() -> void:
 		_total_atk_damage, _total_def_damage, _current_round,
 		_kills_atk, _kills_def, atk_survivors, def_survivors
 	]
+	_show_loot_results()
 
 	# Animated reveal
 	var tw := create_tween()
@@ -2663,6 +2674,81 @@ func _finish_playback() -> void:
 		if slot < def_final.size() and def_final[slot] != null:
 			if def_final[slot].get("soldiers", 0) <= 0:
 				_apply_death_overlay("defender", slot)
+
+func _show_loot_results() -> void:
+	## Display loot obtained from battle in SR07 style.
+	if not is_instance_valid(loot_container):
+		return
+	for c in loot_container.get_children():
+		c.queue_free()
+	var loot: Array = _battle_state.get("loot", [])
+	if loot.is_empty():
+		return
+	var title_lbl := Label.new()
+	title_lbl.text = "-- Loot --"
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 14)
+	title_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
+	loot_container.add_child(title_lbl)
+	var flow := HBoxContainer.new()
+	flow.add_theme_constant_override("separation", 8)
+	flow.alignment = BoxContainer.ALIGNMENT_CENTER
+	loot_container.add_child(flow)
+	for item in loot:
+		var item_hb := _build_loot_item(item)
+		flow.add_child(item_hb)
+
+
+func _build_loot_item(item: Dictionary) -> HBoxContainer:
+	## Build a single loot item display row (icon + name + quantity).
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 4)
+	# Try to load item icon
+	var icon_name: String = item.get("icon", "")
+	var item_type: String = item.get("type", "")
+	var item_id: String = item.get("id", "")
+	if icon_name == "" and item_id != "":
+		# Try to get icon from item definitions
+		var eq_def: Dictionary = FactionData.EQUIPMENT_DEFS.get(item_id, {})
+		if not eq_def.is_empty():
+			icon_name = eq_def.get("icon", "")
+		else:
+			var con_def: Dictionary = FactionData.ITEM_DEFS.get(item_id, {})
+			icon_name = con_def.get("icon", "")
+	if icon_name != "":
+		var icon_path: String = "res://assets/icons/items/%s.png" % icon_name
+		if ResourceLoader.exists(icon_path):
+			var tex: Texture2D = load(icon_path)
+			if tex:
+				var tr := TextureRect.new()
+				tr.texture = tex
+				tr.custom_minimum_size = Vector2(24, 24)
+				tr.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+				tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				hb.add_child(tr)
+	# Item name + quantity
+	var name_str: String = item.get("name", item_id)
+	var qty: int = item.get("quantity", 1)
+	var display_text: String = name_str
+	if qty > 1:
+		display_text += " x%d" % qty
+	var lbl := Label.new()
+	lbl.text = display_text
+	lbl.add_theme_font_size_override("font_size", 12)
+	# Color by type
+	match item_type:
+		"gold", "iron", "food":
+			lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.5))
+		"equipment_common":
+			lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+		"equipment_rare":
+			lbl.add_theme_color_override("font_color", Color(0.4, 0.7, 1.0))
+		"equipment_epic", "legendary_fragment":
+			lbl.add_theme_color_override("font_color", Color(0.8, 0.4, 1.0))
+		_:
+			lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.7))
+	hb.add_child(lbl)
+	return hb
 
 # ═══════════════════════════════════════════════════════════
 #                   CHIBI VIDEO HELPERS

@@ -10,6 +10,8 @@ const MAX_ITEMS: int = 8  # Increased from 4 to accommodate equipment
 # Per-player inventories: { player_id: Array of item_id strings }
 # Contains both consumable IDs (from ITEM_DEFS) and equipment IDs (from EQUIPMENT_DEFS)
 var _inventories: Dictionary = {}
+var _national_items: Dictionary = {}  # player_id -> Array of equip_id strings (max 3)
+const MAX_NATIONAL_ITEMS: int = 3
 
 func _ready() -> void:
 	pass
@@ -228,6 +230,85 @@ func is_consumable(item_id: String) -> bool:
 	return FactionData.ITEM_DEFS.has(item_id)
 
 
+# ═══════════════ NATIONAL ITEMS (SR07 style) ═══════════════
+
+func set_national_item(player_id: int, equip_id: String) -> bool:
+	## Equip an item from inventory as a national item (faction-wide bonus).
+	if not _inventories.has(player_id):
+		return false
+	if equip_id not in _inventories[player_id]:
+		return false
+	if not is_equipment(equip_id):
+		return false
+	if not _national_items.has(player_id):
+		_national_items[player_id] = []
+	if _national_items[player_id].size() >= MAX_NATIONAL_ITEMS:
+		return false
+	if equip_id in _national_items[player_id]:
+		return false
+	_inventories[player_id].erase(equip_id)
+	_national_items[player_id].append(equip_id)
+	EventBus.item_used.emit(player_id, equip_id)
+	return true
+
+
+func remove_national_item(player_id: int, equip_id: String) -> bool:
+	## Unequip a national item back to inventory.
+	if not _national_items.has(player_id):
+		return false
+	if equip_id not in _national_items[player_id]:
+		return false
+	if is_full(player_id):
+		return false
+	_national_items[player_id].erase(equip_id)
+	_inventories[player_id].append(equip_id)
+	EventBus.item_acquired.emit(player_id, equip_id)
+	return true
+
+
+func get_national_items(player_id: int) -> Array:
+	## Returns array of equipped national item IDs.
+	if not _national_items.has(player_id):
+		return []
+	return _national_items[player_id].duplicate()
+
+
+func get_national_item_details(player_id: int) -> Array:
+	## Returns array of dicts with full item info for display.
+	var result: Array = []
+	for eid in get_national_items(player_id):
+		var edef: Dictionary = FactionData.EQUIPMENT_DEFS.get(eid, {})
+		result.append({
+			"item_id": eid,
+			"name": edef.get("name", eid),
+			"desc": edef.get("desc", ""),
+			"icon": edef.get("icon", ""),
+			"rarity": edef.get("rarity", "common"),
+			"stats": edef.get("stats", {}),
+			"passive": edef.get("passive", "none"),
+			"passive_value": edef.get("passive_value", 0),
+		})
+	return result
+
+
+func get_national_stat_bonus(player_id: int, stat_key: String) -> int:
+	## Get total stat bonus from all national items for a given stat.
+	var total: int = 0
+	for eid in get_national_items(player_id):
+		var edef: Dictionary = FactionData.EQUIPMENT_DEFS.get(eid, {})
+		total += edef.get("stats", {}).get(stat_key, 0)
+	return total
+
+
+func has_national_passive(player_id: int, passive_name: String) -> bool:
+	## Check if any national item provides a specific passive.
+	for eid in get_national_items(player_id):
+		var edef: Dictionary = FactionData.EQUIPMENT_DEFS.get(eid, {})
+		if edef.get("passive", "none") == passive_name:
+			return true
+	return false
+
+
 # ═══════════════ LOOT TABLE (v0.8.7) ═══════════════
 
 func get_random_item() -> String:
@@ -331,6 +412,7 @@ func _get_item_display(item_id: String) -> Dictionary:
 func to_save_data() -> Dictionary:
 	return {
 		"inventories": _inventories.duplicate(true),
+		"national_items": _national_items.duplicate(true),
 	}
 
 
@@ -344,3 +426,9 @@ func from_save_data(data: Dictionary) -> void:
 	for k in keys_to_fix:
 		_inventories[int(k)] = _inventories[k]
 		_inventories.erase(k)
+	_national_items = data.get("national_items", {}).duplicate(true)
+	# Fix int keys for national items
+	var fixed_nat := {}
+	for key in _national_items:
+		fixed_nat[int(key)] = _national_items[key]
+	_national_items = fixed_nat
