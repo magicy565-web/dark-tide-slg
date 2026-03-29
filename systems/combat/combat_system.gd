@@ -1708,6 +1708,10 @@ func _tick_hero_skills(state: BattleState) -> void:
 		if not HeroSkillsAdvanced.is_awakened(hid) and HeroSkillsAdvanced.check_awakening(hid, hp_ratio):
 			var awk: Dictionary = HeroSkillsAdvanced.trigger_awakening(hid)
 			if not awk.is_empty():
+				# Store original stats before awakening to avoid float drift on revert
+				u.set_meta("pre_awaken_atk", u.atk)
+				u.set_meta("pre_awaken_def", u.def_stat)
+				u.set_meta("pre_awaken_spd", u.spd)
 				u.atk *= awk.get("atk_mult", 1.0)
 				u.def_stat *= awk.get("def_mult", 1.0)
 				u.spd *= awk.get("spd_mult", 1.0)
@@ -1722,11 +1726,17 @@ func _tick_hero_skills(state: BattleState) -> void:
 		# 3) Tick awakening duration
 		if HeroSkillsAdvanced.is_awakened(hid):
 			if not HeroSkillsAdvanced.tick_awakening(hid):
-				var awk_data: Dictionary = HeroSkillsAdvanced.awakening_data.get(hid, {})
-				if not awk_data.is_empty():
-					u.atk /= awk_data.get("atk_mult", 1.0)
-					u.def_stat /= awk_data.get("def_mult", 1.0)
-					u.spd /= awk_data.get("spd_mult", 1.0)
+				# Revert to stored pre-awakening stats to avoid float drift
+				if u.has_meta("pre_awaken_atk"):
+					u.atk = u.get_meta("pre_awaken_atk")
+					u.def_stat = u.get_meta("pre_awaken_def")
+					u.spd = u.get_meta("pre_awaken_spd")
+				else:
+					var awk_data: Dictionary = HeroSkillsAdvanced.awakening_data.get(hid, {})
+					if not awk_data.is_empty():
+						u.atk /= awk_data.get("atk_mult", 1.0)
+						u.def_stat /= awk_data.get("def_mult", 1.0)
+						u.spd /= awk_data.get("spd_mult", 1.0)
 
 		# 4) Execute charged ultimate
 		if HeroSkillsAdvanced.is_charged(hid):

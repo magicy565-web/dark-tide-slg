@@ -490,6 +490,20 @@ func from_save_data(data: Dictionary) -> void:
 	for k in keys_to_fix:
 		_tile_dev[int(k)] = _tile_dev[k]
 		_tile_dev.erase(k)
+	# Fix inner dict values after JSON round-trip (floats that should be ints)
+	for tile_key in _tile_dev:
+		var dev: Dictionary = _tile_dev[tile_key]
+		if dev.has("path"):
+			dev["path"] = int(dev["path"])
+		if dev.has("buildings"):
+			var fixed_buildings: Array = []
+			for b in dev["buildings"]:
+				if b is Dictionary:
+					for bk in b:
+						if b[bk] is float and bk in ["level", "tier", "slot"]:
+							b[bk] = int(b[bk])
+				fixed_buildings.append(b)
+			dev["buildings"] = fixed_buildings
 	var rb_keys_to_fix: Array = []
 	for k in _rebuilding_tiles:
 		if k is String and k.is_valid_int():

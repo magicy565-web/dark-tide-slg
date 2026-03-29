@@ -2715,8 +2715,9 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 	# Resolve combat: army vs garrison
 	var won: bool = await _resolve_army_combat(army, tile, defender_desc)
 
-	if not won and tile.get("light_faction", -1) >= 0:
-		tile["garrison"] = original_garrison
+	# Always restore garrison to original before post-combat processing
+	# (_capture_tile computes new garrison from this value)
+	tile["garrison"] = original_garrison
 
 	if won:
 		# Army moves into captured tile
@@ -4621,8 +4622,29 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 	var effects: Dictionary = option.get("effects", {})
 	EventBus.message_log.emit("选择: %s" % label)
 
+	# If effects contain "risk_army", it's a risk/reward gamble: success gives rewards, failure
+	# gives penalty. Process risk_army FIRST to determine outcome, then conditionally apply others.
+	var _risk_failed: bool = false
+	if effects.has("risk_army"):
+		var success_rate: float = effects.get("success_rate", 1.0)
+		var risk_value = effects["risk_army"]
+		if randf() > success_rate:
+			_risk_failed = true
+			ResourceManager.remove_army(player["id"], abs(risk_value))
+			player["army_count"] = ResourceManager.get_army(player["id"])
+			player["combat_power"] = player["army_count"] * COMBAT_POWER_PER_UNIT
+			EventBus.message_log.emit("失败! 损失 %d 军队" % abs(risk_value))
+		else:
+			EventBus.message_log.emit("成功!")
+
 	for key in effects:
 		var value = effects[key]
+		# Skip risk_army meta keys (already processed above)
+		if key in ["risk_army", "success_rate"]:
+			continue
+		# If risk_army failed, skip reward effects (risk/reward is mutually exclusive)
+		if _risk_failed and key in ["gold", "iron", "food", "slaves", "army", "item", "random_item", "prestige", "plunder", "waaagh"]:
+			continue
 		match key:
 			"slaves":
 				ResourceManager.apply_delta(player["id"], {"slaves": value})
@@ -4660,14 +4682,7 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 				BuffManager.add_buff(player["id"], "atk_buff", "atk_mult", 1.0 + value, effects.get("duration", 3), "event")
 				EventBus.message_log.emit("攻击力+%.0f%% 持续 %d 回合" % [value * 100, effects.get("duration", 3)])
 			"risk_army":
-				var success_rate: float = effects.get("success_rate", 1.0)
-				if randf() > success_rate:
-					ResourceManager.remove_army(player["id"], abs(value))
-					player["army_count"] = ResourceManager.get_army(player["id"])
-					player["combat_power"] = player["army_count"] * COMBAT_POWER_PER_UNIT
-					EventBus.message_log.emit("失败! 损失 %d 军队" % abs(value))
-				else:
-					EventBus.message_log.emit("成功!")
+				pass  # Handled above, before the loop
 			"mage_mana":
 				pass  # Mage mana effects handled by light faction system
 			"relic":
@@ -4962,8 +4977,8 @@ func action_attack(player_id: int, target_tile_index: int) -> bool:
 
 	var won: bool = _resolve_combat(player, tile, defender_desc)
 
-	if not won and tile.get("light_faction", -1) >= 0:
-		tile["garrison"] = original_garrison
+	# Always restore garrison to original before post-combat processing
+	tile["garrison"] = original_garrison
 
 	if won:
 		_capture_tile(player, tile)

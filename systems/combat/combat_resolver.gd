@@ -1266,6 +1266,32 @@ func _find_strongest_hero(units: Array) -> Dictionary:
 func _start_of_round(state: Dictionary, log: Array) -> void:
 	state["barrier_used_this_round"] = false
 
+	# -- v6.1: Tick burn debuffs at start of round --
+	for _burn_units_key in ["atk_units", "def_units"]:
+		for _bu in state[_burn_units_key]:
+			if not _bu.get("is_alive", false):
+				continue
+			var _burn_found: bool = false
+			var _burn_dmg: int = 1
+			var _debuffs_to_remove: Array = []
+			for _bd_idx in range(_bu["debuffs"].size()):
+				var _bd: Dictionary = _bu["debuffs"][_bd_idx]
+				if _bd.get("id", "") == "burn" and _bd.get("duration", 0) > 0:
+					_burn_found = true
+					_burn_dmg = _bd.get("value", 1)
+					_bd["duration"] -= 1
+					if _bd["duration"] <= 0:
+						_debuffs_to_remove.append(_bd_idx)
+			if _burn_found:
+				_bu["soldiers"] = maxi(0, _bu["soldiers"] - _burn_dmg)
+				if _bu["soldiers"] <= 0:
+					_bu["is_alive"] = false
+				log.append("%s [%s] 灼烧伤害 -%d兵" % [_bu.get("unit_type", ""), _bu.get("side", ""), _burn_dmg])
+			# Clean up expired debuffs (iterate in reverse to maintain indices)
+			_debuffs_to_remove.reverse()
+			for _rm_idx in _debuffs_to_remove:
+				_bu["debuffs"].remove_at(_rm_idx)
+
 	# v4.6: double_shot — unit attacks twice in round 1 (set max_actions=2)
 	if state["round"] == 1:
 		for _ds_unit in state["atk_units"] + state["def_units"]:
@@ -1839,6 +1865,57 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 
 	# Apply damage
 	_apply_damage_to_unit(state, target, damage, unit, log)
+
+	# -- v6.1: Process enchantment passive effects (burn, lifesteal, chain lightning, etc.) --
+	var _ench_hero: String = unit.get("hero_id", "")
+	if not _ench_hero.is_empty():
+		var _ench_result: Dictionary = {"damage": damage, "damage_taken": 0, "target_type": target.get("unit_type", "")}
+		_ench_result = EnchantmentSystem.apply_enchantment_in_combat(_ench_hero, _ench_result)
+		for _eff in _ench_result.get("enchantment_effects", []):
+			var _eff_type: String = _eff.get("type", "")
+			match _eff_type:
+				"burn":
+					if target["is_alive"]:
+						target["debuffs"].append({"id": "burn", "duration": _eff.get("duration", 2), "value": _eff.get("dot", 1)})
+						log.append("[附魔] %s 灼烧! %s 持续%d回合" % [unit["unit_type"], target["unit_type"], _eff.get("duration", 2)])
+				"slow":
+					if target["is_alive"]:
+						target["debuffs"].append({"id": "slow", "duration": _eff.get("duration", 2), "value": float(_eff.get("spd_reduction", 2))})
+						log.append("[附魔] %s 减速! %s SPD-%d" % [unit["unit_type"], target["unit_type"], _eff.get("spd_reduction", 2)])
+				"lifesteal":
+					var _heal_amt: int = _eff.get("heal", 0)
+					if _heal_amt > 0 and unit["is_alive"]:
+						unit["soldiers"] = mini(unit["soldiers"] + _heal_amt, unit.get("max_soldiers", unit["soldiers"] + _heal_amt))
+						log.append("[附魔] %s 吸血回复%d兵" % [unit["unit_type"], _heal_amt])
+				"chain_lightning":
+					var _chain_dmg: int = _eff.get("damage", 0)
+					if _chain_dmg > 0:
+						var _enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
+						for _ce in _enemies:
+							if _ce["is_alive"] and _ce != target:
+								_apply_damage_to_unit(state, _ce, _chain_dmg, unit, log)
+								log.append("[附魔] 连锁闪电击中 %s -%d兵" % [_ce["unit_type"], _chain_dmg])
+								break  # Chain hits one adjacent enemy
+				"critical":
+					var _crit_bonus: int = _eff.get("bonus_damage", 0)
+					if _crit_bonus > 0 and target["is_alive"]:
+						_apply_damage_to_unit(state, target, _crit_bonus, unit, log)
+						log.append("[附魔] 暴击额外%d伤害!" % _crit_bonus)
+				"double_attack":
+					var _extra_dmg: int = _eff.get("extra_damage", 0)
+					if _extra_dmg > 0 and target["is_alive"]:
+						_apply_damage_to_unit(state, target, _extra_dmg, unit, log)
+						log.append("[附魔] 二连击额外%d伤害!" % _extra_dmg)
+				"spell_amp":
+					var _amp_bonus: int = _eff.get("bonus_damage", 0)
+					if _amp_bonus > 0 and target["is_alive"]:
+						_apply_damage_to_unit(state, target, _amp_bonus, unit, log)
+						log.append("[附魔] 奥术增幅额外%d伤害!" % _amp_bonus)
+				"anti_undead":
+					var _holy_bonus: int = _eff.get("bonus_damage", 0)
+					if _holy_bonus > 0 and target["is_alive"]:
+						_apply_damage_to_unit(state, target, _holy_bonus, unit, log)
+						log.append("[附魔] 神圣克制额外%d伤害!" % _holy_bonus)
 
 	# Hakagure unleash: 25% instant kill on units with ≤2 soldiers
 	if "hakagure_instant_kill" in unit["passives"] and target["is_alive"] and target["soldiers"] <= 2:
