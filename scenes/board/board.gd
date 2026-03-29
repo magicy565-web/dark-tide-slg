@@ -102,6 +102,7 @@ var faction_border_meshes: Array = []
 var path_preview_meshes: Array = []
 var water_anim_nodes: Array = []  # [{node, type}]
 var attack_route_meshes: Array = []
+var march_route_meshes: Array = []  # Persistent march path visuals
 var settlement_nodes: Dictionary = {}
 var _settlement_cache: Dictionary = {}  # idx -> last icon_key to avoid redundant rebuilds
 # ── Material cache ──
@@ -193,6 +194,9 @@ func _ready() -> void:
 	EventBus.army_deployed.connect(_on_army_deployed)
 	EventBus.army_created.connect(_on_army_created_or_disbanded)
 	EventBus.army_disbanded.connect(_on_army_created_or_disbanded)
+	EventBus.army_march_started.connect(_on_march_started)
+	EventBus.army_march_arrived.connect(_on_march_arrived)
+	EventBus.army_march_cancelled.connect(_on_march_cancelled)
 	if not GameManager.tiles.is_empty():
 		_build_board()
 
@@ -248,11 +252,44 @@ func _setup_ground() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			var old_zoom := _camera_zoom_target
 			_camera_zoom_target = clampf(_camera_zoom_target - ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX)
+			_zoom_toward_cursor(event.position, old_zoom, _camera_zoom_target)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			var old_zoom := _camera_zoom_target
 			_camera_zoom_target = clampf(_camera_zoom_target + ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX)
+			_zoom_toward_cursor(event.position, old_zoom, _camera_zoom_target)
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			_deselect_tile()
+
+
+func _zoom_toward_cursor(mouse_pos: Vector2, old_zoom: float, new_zoom: float) -> void:
+	## Shift camera toward cursor when zooming in, away when zooming out.
+	if is_equal_approx(old_zoom, new_zoom):
+		return
+	var world_pos := _screen_to_world_xz(mouse_pos)
+	if world_pos == Vector3.ZERO:
+		return
+	var factor: float = 0.15  # How much to shift toward cursor
+	if new_zoom < old_zoom:  # Zooming in
+		camera_target_pos = camera_target_pos.lerp(world_pos, factor)
+	else:  # Zooming out
+		camera_target_pos = camera_target_pos.lerp(world_pos, -factor * 0.5)
+	_clamp_camera()
+
+
+func _screen_to_world_xz(screen_pos: Vector2) -> Vector3:
+	## Project screen position to world XZ plane at Y=0.
+	if not camera or not camera.is_inside_tree():
+		return Vector3.ZERO
+	var from := camera.project_ray_origin(screen_pos)
+	var dir := camera.project_ray_normal(screen_pos)
+	if absf(dir.y) < 0.001:
+		return Vector3.ZERO
+	var t: float = -from.y / dir.y
+	if t < 0.0:
+		return Vector3.ZERO
+	return from + dir * t
 
 func _process(delta: float) -> void:
 	camera_pivot.position = camera_pivot.position.lerp(camera_target_pos, CAM_LERP_SPEED * delta)
@@ -1374,9 +1411,108 @@ func _animate_army_move(fi: int, ti: int) -> void:
 	var lp: Vector3 = marker.position
 	var start_local := to_root.to_local(from_root.global_position + lp)
 	marker.position = start_local
+	# Smooth arc movement with slight Y bounce
+	var mid_y: float = lp.y + 0.3
 	var tw := create_tween()
-	tw.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_CUBIC)
-	tw.tween_property(marker, "position", lp, 0.5)
+	tw.set_parallel(true)
+	tw.tween_property(marker, "position:x", lp.x, 0.45).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(marker, "position:z", lp.z, 0.45).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_CUBIC)
+	# Y arc: rise then fall
+	var tw_y := create_tween()
+	tw_y.tween_property(marker, "position:y", mid_y, 0.22).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw_y.tween_property(marker, "position:y", lp.y, 0.23).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	# Spawn dust effect at origin
+	_spawn_move_dust(from_root.global_position + Vector3(0, TILE_HEIGHT + 0.05, 0))
+
+
+func _spawn_move_dust(pos: Vector3) -> void:
+	## Spawn a small dust puff at the departure tile.
+	var dust := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = 0.15
+	sm.height = 0.1
+	dust.mesh = sm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.6, 0.5, 0.35, 0.5)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dust.material_override = mat
+	dust.position = pos
+	add_child(dust)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(dust, "scale", Vector3(2.5, 0.5, 2.5), 0.6).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.6).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(dust.queue_free)
+
+# ═══════════════ MARCH ROUTE VISUALIZATION ═══════════════
+func _on_march_started(_army_id: int, path: Array) -> void:
+	_draw_march_route(path)
+
+func _on_march_arrived(_army_id: int, _tile: int) -> void:
+	_clear_march_routes()
+
+func _on_march_cancelled(_army_id: int) -> void:
+	_clear_march_routes()
+
+func _draw_march_route(path: Array) -> void:
+	_clear_march_routes()
+	if path.size() < 2: return
+	for i in range(path.size() - 1):
+		var fi: int = path[i]
+		var ti: int = path[i + 1]
+		if not GameManager.tiles.has(fi) or not GameManager.tiles.has(ti): continue
+		var fp: Vector3 = GameManager.tiles[fi]["position_3d"]
+		var tp: Vector3 = GameManager.tiles[ti]["position_3d"]
+		var fe: float = TERRAIN_ELEVATION.get(GameManager.tiles[fi].get("terrain", 0), 0.0)
+		var te: float = TERRAIN_ELEVATION.get(GameManager.tiles[ti].get("terrain", 0), 0.0)
+		var dist: float = fp.distance_to(tp)
+		var dot_count: int = maxi(int(dist / 0.6), 2)
+		for d in range(dot_count):
+			var t_ratio: float = float(d + 1) / float(dot_count + 1)
+			var pos := fp.lerp(tp, t_ratio)
+			pos.y = lerpf(fe, te, t_ratio) + TILE_HEIGHT + 0.12
+			var dot := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = 0.045
+			sm.height = 0.09
+			dot.mesh = sm
+			var mat := _make_emissive_mat(
+				ColorTheme.MARCH_PATH_FRIENDLY,
+				Color(0.3, 0.6, 1.0),
+				0.6
+			)
+			dot.material_override = mat
+			add_child(dot)
+			dot.position = pos
+			march_route_meshes.append(dot)
+	# Add waypoint rings at each step
+	for i in range(1, path.size()):
+		var idx: int = path[i]
+		if not GameManager.tiles.has(idx): continue
+		var p: Vector3 = GameManager.tiles[idx]["position_3d"]
+		var elev: float = TERRAIN_ELEVATION.get(GameManager.tiles[idx].get("terrain", 0), 0.0)
+		var ring := MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = 0.25
+		tm.outer_radius = 0.35
+		ring.mesh = tm
+		var ring_color: Color
+		if i == path.size() - 1:
+			ring_color = Color(1.0, 0.3, 0.1, 0.7)  # Final destination: red-orange
+		else:
+			ring_color = Color(0.3, 0.65, 1.0, 0.5)  # Waypoint: blue
+		var rmat := _make_emissive_mat(ring_color, ring_color.lightened(0.3), 0.5)
+		ring.material_override = rmat
+		ring.position = Vector3(p.x, elev + TILE_HEIGHT + 0.05, p.z)
+		ring.rotation_degrees.x = 90.0
+		add_child(ring)
+		march_route_meshes.append(ring)
+
+func _clear_march_routes() -> void:
+	for m in march_route_meshes:
+		if is_instance_valid(m): m.queue_free()
+	march_route_meshes.clear()
 
 # ═══════════════ CAMERA FOCUS ═══════════════
 func focus_on_tile(tile_index: int) -> void:
@@ -1692,7 +1828,8 @@ func _setup_minimap_overlay() -> void:
 	_minimap_overlay.name = "MinimapOverlay"
 	_minimap_overlay.anchor_right = 1.0
 	_minimap_overlay.anchor_bottom = 1.0
-	_minimap_overlay.mouse_filter = Control.MOUSE_FILTER_PASS
+	_minimap_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_minimap_overlay.gui_input.connect(_on_minimap_input)
 	minimap_container.add_child(_minimap_overlay)
 	# Camera viewport rectangle
 	_minimap_cam_rect = ColorRect.new()
@@ -1708,6 +1845,30 @@ func _setup_minimap_overlay() -> void:
 	border.border_width = 1.5
 	border.editor_only = false
 	_minimap_cam_rect.add_child(border)
+
+func _on_minimap_input(event: InputEvent) -> void:
+	## Click/drag on minimap to move main camera.
+	if not event is InputEventMouseButton and not event is InputEventMouseMotion:
+		return
+	var is_click := event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	var is_drag := event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	if not is_click and not is_drag:
+		return
+	if not is_instance_valid(minimap_container):
+		return
+	var msize: Vector2 = minimap_container.size
+	if msize.x < 1.0 or msize.y < 1.0:
+		return
+	var local_pos: Vector2 = event.position
+	var norm_x: float = clampf(local_pos.x / msize.x, 0.0, 1.0)
+	var norm_y: float = clampf(local_pos.y / msize.y, 0.0, 1.0)
+	# Map bounds must match update_minimap_overlay
+	var map_min := Vector2(-5, -25)
+	var map_max := Vector2(30, 5)
+	var map_size := map_max - map_min
+	camera_target_pos.x = map_min.x + norm_x * map_size.x
+	camera_target_pos.z = map_min.y + norm_y * map_size.y
+	_clamp_camera()
 
 # ═══════════════ TILE PULSE ANIMATION ═══════════════
 func pulse_tile(idx: int, color: Color, duration: float = 0.6) -> void:
