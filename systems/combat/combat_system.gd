@@ -217,11 +217,31 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		_fs.apply_formation_to_units(atk_unit_dicts, atk_bonuses)
 		_sync_formation_to_battle_units(state.attacker_units, atk_unit_dicts)
 		_fs.emit_formation_detected("attacker", atk_formations)
+		for _fid in atk_formations:
+			var _fkey: String = FormationSystem.FORMATION_NAMES.get(_fid, "Unknown").to_lower().replace(" ", "_")
+			var _fname_cn: String = FormationSystem.FORMATION_NAMES_CN.get(_fid, "")
+			state.action_log.append({
+				"action": "formation",
+				"side": "attacker",
+				"formation": _fkey,
+				"name_cn": _fname_cn,
+				"desc": "攻方阵型: %s" % _fname_cn,
+			})
 	if not def_formations.is_empty():
 		var def_bonuses: Dictionary = _fs.get_formation_bonuses(def_formations)
 		_fs.apply_formation_to_units(def_unit_dicts, def_bonuses)
 		_sync_formation_to_battle_units(state.defender_units, def_unit_dicts)
 		_fs.emit_formation_detected("defender", def_formations)
+		for _fid in def_formations:
+			var _fkey: String = FormationSystem.FORMATION_NAMES.get(_fid, "Unknown").to_lower().replace(" ", "_")
+			var _fname_cn: String = FormationSystem.FORMATION_NAMES_CN.get(_fid, "")
+			state.action_log.append({
+				"action": "formation",
+				"side": "defender",
+				"formation": _fkey,
+				"name_cn": _fname_cn,
+				"desc": "守方阵型: %s" % _fname_cn,
+			})
 	# Check formation clashes
 	var clashes: Dictionary = _fs.check_formation_clash(atk_formations, def_formations)
 	if not clashes.is_empty():
@@ -775,6 +795,14 @@ func _apply_round_start_passives(state: BattleState) -> void:
 		if u.has_passive("regen_1"):
 			u.hp = mini(u.hp + u.hp_per_soldier, u.max_hp)
 			_recalc_soldiers(u)
+			var _regen_side := "attacker" if u.is_attacker else "defender"
+			state.action_log.append({
+				"action": "passive_vfx",
+				"side": _regen_side,
+				"slot": u.slot,
+				"passive_type": "regen",
+				"desc": "%s 再生回复" % u.troop_id,
+			})
 
 		# charge_mana_1: gain 1 mana per round
 		if u.has_passive("charge_mana_1"):
@@ -811,6 +839,13 @@ func _apply_round_start_passives(state: BattleState) -> void:
 					"side": _ra_side,
 					"slot": u.slot,
 					"desc": "%s 再生光环: %s +1兵" % [u.troop_id, ra_best.troop_id],
+				})
+				state.action_log.append({
+					"action": "heal",
+					"side": _ra_side,
+					"slot": ra_best.slot,
+					"is_mass": false,
+					"desc": "%s 被再生光环治愈" % ra_best.troop_id,
 				})
 
 		# v4.6: poisoned_2 / poisoned_1 — poison DOT tick (1 hp_per_soldier damage/round)
@@ -1383,6 +1418,13 @@ func _apply_passive_on_hit(attacker: BattleUnit, defender: BattleUnit, damage: i
 				"target_side": _pa_tgt_side,
 				"desc": "%s 毒击! %s 中毒(2回合)" % [attacker.troop_id, defender.troop_id],
 			})
+			state.action_log.append({
+				"action": "debuff",
+				"side": _pa_tgt_side,
+				"slot": defender.slot,
+				"debuff_type": "poison",
+				"desc": "%s 中毒!" % defender.troop_id,
+			})
 
 # ---------------------------------------------------------------------------
 # Battle End Check
@@ -1439,8 +1481,19 @@ func _recalc_soldiers(unit: BattleUnit) -> void:
 func _reduce_morale(unit: BattleUnit, amount: int, state: BattleState) -> void:
 	if unit.is_routed or not unit.is_alive():
 		return
+	var old_morale: int = unit.morale
 	unit.morale = maxi(0, unit.morale - amount)
 	EventBus.unit_morale_changed.emit(unit.troop_id, "attacker" if unit.is_attacker else "defender", unit.morale)
+	# Log morale waver when morale drops below 50 but unit doesn't rout
+	if unit.morale > 0 and unit.morale <= 50 and old_morale > 50:
+		var _m_side := "attacker" if unit.is_attacker else "defender"
+		state.action_log.append({
+			"action": "morale",
+			"side": _m_side,
+			"slot": unit.slot,
+			"morale_type": "waver",
+			"desc": "%s 士气动摇! (%d)" % [unit.troop_id, unit.morale],
+		})
 	if unit.morale <= 0:
 		_rout_unit(unit, state)
 
@@ -1462,6 +1515,13 @@ func _rout_unit(unit: BattleUnit, state: BattleState) -> void:
 		"remaining_soldiers": unit.soldiers,
 		"round": state.round_number,
 		"desc": "%s 士气崩溃，溃败！损失%d兵" % [unit.troop_id, loss],
+	})
+	state.action_log.append({
+		"action": "morale",
+		"side": side_str,
+		"slot": unit.slot,
+		"morale_type": "rout",
+		"desc": "%s 溃败!" % unit.troop_id,
 	})
 	EventBus.unit_routed.emit(unit.troop_id, side_str)
 	# v4.3: Morale cascade — same-row allies lose extra morale when neighbor routs
@@ -1519,6 +1579,13 @@ func _apply_kill_heal(killer: BattleUnit, state: BattleState) -> void:
 		"slot": killer.slot,
 		"desc": "%s 击杀回复%d兵" % [killer.troop_id, heal_soldiers],
 	})
+	state.action_log.append({
+		"action": "heal",
+		"side": side_str,
+		"slot": killer.slot,
+		"is_mass": false,
+		"desc": "%s 击杀回血" % killer.troop_id,
+	})
 
 ## v4.5: dragon_slayer — on kill, gain ATK+1 permanently for this battle (like bloodlust).
 func _apply_dragon_slayer(killer: BattleUnit, state: BattleState) -> void:
@@ -1534,6 +1601,13 @@ func _apply_dragon_slayer(killer: BattleUnit, state: BattleState) -> void:
 		"side": side_str,
 		"slot": killer.slot,
 		"desc": "%s 龙杀! 击杀后ATK+1(累积:%d)" % [killer.troop_id, killer._dragon_slayer_bonus],
+	})
+	state.action_log.append({
+		"action": "passive_vfx",
+		"side": side_str,
+		"slot": killer.slot,
+		"passive_type": "bloodlust",
+		"desc": "%s 龙杀发动" % killer.troop_id,
 	})
 
 ## Try to fetch an autoload node by name at runtime.

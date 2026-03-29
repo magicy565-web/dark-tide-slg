@@ -1162,7 +1162,7 @@ func _update_turn_bar() -> void:
 	while idx < _action_log.size() and icons_added < 10:
 		var entry: Dictionary = _action_log[idx]
 		var action: String = entry.get("action", "")
-		if action in ["attack", "passive", "ability"]:
+		if action in ["attack", "passive", "ability", "buff", "debuff", "heal", "passive_vfx"]:
 			var side: String = entry.get("side", "attacker")
 			var slot: int = entry.get("slot", 0)
 			var unit_data: Dictionary = _live_units[side].get(slot, {})
@@ -2133,6 +2133,18 @@ func _play_next() -> void:
 			base_delay = 2.0  # full cinematic sequence
 		"awakening":
 			base_delay = 1.2  # awakening burst animation
+		"buff", "debuff":
+			base_delay = 0.6
+		"formation":
+			base_delay = 1.3  # formation banner display
+		"morale":
+			base_delay = 0.5
+		"heal":
+			base_delay = 0.6
+		"combo":
+			base_delay = 1.8  # cinematic combo sequence
+		"passive_vfx":
+			base_delay = 0.4
 
 	var delay := base_delay / _speed_mult
 	var gen := _playback_generation
@@ -2377,6 +2389,50 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			var hero_ko: String = entry.get("hero_knocked_out", "")
 			if hero_ko != "":
 				_play_hero_knockout(side, slot_idx, hero_ko)
+
+		"buff":
+			var buff_type: String = entry.get("buff_type", "atk_boost")
+			log_line = "[color=#fa8][Buff][/color] %s" % desc
+			if slot_idx >= 0 and not _is_finishing:
+				play_buff_vfx(side, slot_idx, buff_type)
+
+		"debuff":
+			var debuff_type: String = entry.get("debuff_type", "poison")
+			log_line = "[color=#f66][Debuff][/color] %s" % desc
+			if slot_idx >= 0 and not _is_finishing:
+				play_debuff_vfx(side, slot_idx, debuff_type)
+
+		"formation":
+			var formation_key: String = entry.get("formation", "")
+			var name_cn: String = entry.get("name_cn", "")
+			log_line = "[color=#8cf][Formation][/color] %s" % desc
+			if formation_key != "" and not _is_finishing:
+				play_formation_vfx(side, formation_key, name_cn)
+
+		"morale":
+			var morale_type: String = entry.get("morale_type", "waver")
+			log_line = "[color=#f88][Morale][/color] %s" % desc
+			if slot_idx >= 0 and not _is_finishing:
+				play_morale_vfx(side, slot_idx, morale_type)
+
+		"heal":
+			var is_mass_heal: bool = entry.get("is_mass", false)
+			log_line = "[color=#4f8][Heal][/color] %s" % desc
+			if slot_idx >= 0 and not _is_finishing:
+				play_heal_vfx(side, slot_idx, is_mass_heal)
+
+		"combo":
+			var combo_idx: int = entry.get("combo_index", 0)
+			var c_name: String = entry.get("combo_name", "")
+			log_line = "[color=#ff4][Combo][/color] %s" % desc
+			if not _is_finishing:
+				play_combo_vfx(combo_idx, c_name)
+
+		"passive_vfx":
+			var ptype: String = entry.get("passive_type", "")
+			log_line = "[color=#8cf][Passive][/color] %s" % desc
+			if slot_idx >= 0 and ptype != "" and not _is_finishing:
+				play_passive_vfx(side, slot_idx, ptype)
 
 		_:
 			log_line = desc if desc != "" else str(entry)
@@ -3291,6 +3347,594 @@ func play_awakening_vfx(hero_id: String, side: String, slot_idx: int) -> void:
 		card.pivot_offset = orig_pivot
 		awakening_vfx_finished.emit(hero_id)
 	)
+
+# ═══════════════════════════════════════════════════════════
+#                  BUFF / DEBUFF / STATUS VFX
+# ═══════════════════════════════════════════════════════════
+
+func play_buff_vfx(side: String, slot_idx: int, buff_type: String) -> void:
+	## Show buff aura on a unit card: fade in, pulse 2x, fade out.
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	if not cards.has(slot_idx):
+		return
+	var card: PanelContainer = cards[slot_idx]
+	var card_center := _get_card_center(side, slot_idx)
+	var spd := _speed_mult
+
+	var vfx_color: Color = VfxLoaderRef.get_buff_vfx_color(buff_type)
+	var vfx_size: Vector2 = VfxLoaderRef.get_buff_vfx_size(buff_type)
+	var tex: Texture2D = VfxLoaderRef.load_buff_vfx(buff_type)
+
+	# Colored aura overlay on card
+	var aura := ColorRect.new()
+	aura.size = card.size
+	aura.color = Color(vfx_color.r, vfx_color.g, vfx_color.b, 0.0)
+	aura.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	aura.z_index = 50
+	card.add_child(aura)
+
+	# Texture sprite centered on card
+	var sprite: TextureRect = null
+	if tex != null:
+		sprite = TextureRect.new()
+		sprite.texture = tex
+		sprite.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		sprite.custom_minimum_size = vfx_size
+		sprite.size = vfx_size
+		sprite.position = card_center - vfx_size * 0.5
+		sprite.pivot_offset = vfx_size * 0.5
+		sprite.modulate = Color(1, 1, 1, 0)
+		sprite.z_index = 51
+		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		anim_layer.add_child(sprite)
+
+	# Buff name label
+	var lbl := Label.new()
+	lbl.text = buff_type.replace("_", " ").to_upper()
+	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_color_override("font_color", vfx_color)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	lbl.add_theme_constant_override("outline_size", 2)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.position = Vector2(card_center.x - 50, card_center.y - CARD_H * 0.5 - 20)
+	lbl.modulate = Color(1, 1, 1, 0)
+	lbl.z_index = 52
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	anim_layer.add_child(lbl)
+
+	# Fade in
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(aura, "color:a", 0.35, 0.15 / spd)
+	tw.tween_property(lbl, "modulate:a", 1.0, 0.15 / spd)
+	if sprite != null:
+		tw.tween_property(sprite, "modulate:a", 0.9, 0.15 / spd)
+
+	# Pulse 2x
+	var tw_pulse := create_tween().set_loops(2)
+	tw_pulse.tween_interval(0.2 / spd)
+	tw_pulse.tween_property(aura, "color:a", 0.6, 0.2 / spd).set_ease(Tween.EASE_IN_OUT)
+	tw_pulse.tween_property(aura, "color:a", 0.25, 0.2 / spd).set_ease(Tween.EASE_IN_OUT)
+
+	# Cleanup
+	get_tree().create_timer(1.2 / spd).timeout.connect(func():
+		var tw_out := create_tween().set_parallel(true)
+		tw_out.tween_property(aura, "color:a", 0.0, 0.2 / spd)
+		tw_out.tween_property(lbl, "modulate:a", 0.0, 0.2 / spd)
+		if sprite != null and is_instance_valid(sprite):
+			tw_out.tween_property(sprite, "modulate:a", 0.0, 0.2 / spd)
+		tw_out.chain().tween_callback(func():
+			if is_instance_valid(aura): aura.queue_free()
+			if is_instance_valid(lbl): lbl.queue_free()
+			if sprite != null and is_instance_valid(sprite): sprite.queue_free()
+		)
+	)
+
+
+func play_debuff_vfx(side: String, slot_idx: int, debuff_type: String) -> void:
+	## Show debuff overlay on a unit card: quick flash, shake, linger.
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	if not cards.has(slot_idx):
+		return
+	var card: PanelContainer = cards[slot_idx]
+	var card_center := _get_card_center(side, slot_idx)
+	var spd := _speed_mult
+
+	var vfx_color: Color = VfxLoaderRef.get_debuff_vfx_color(debuff_type)
+	var vfx_size: Vector2 = VfxLoaderRef.get_debuff_vfx_size(debuff_type)
+	var tex: Texture2D = VfxLoaderRef.load_debuff_vfx(debuff_type)
+
+	# Flash overlay
+	var flash := ColorRect.new()
+	flash.size = card.size
+	flash.color = Color(vfx_color.r, vfx_color.g, vfx_color.b, 0.7)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flash.z_index = 50
+	card.add_child(flash)
+
+	# Texture sprite
+	var sprite: TextureRect = null
+	if tex != null:
+		sprite = TextureRect.new()
+		sprite.texture = tex
+		sprite.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		sprite.custom_minimum_size = vfx_size
+		sprite.size = vfx_size
+		sprite.position = card_center - vfx_size * 0.5
+		sprite.pivot_offset = vfx_size * 0.5
+		sprite.modulate = Color(1, 1, 1, 0)
+		sprite.z_index = 51
+		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		anim_layer.add_child(sprite)
+
+	# Debuff label
+	var lbl := Label.new()
+	lbl.text = debuff_type.to_upper()
+	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_color_override("font_color", vfx_color)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	lbl.add_theme_constant_override("outline_size", 2)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.position = Vector2(card_center.x - 40, card_center.y - 10)
+	lbl.modulate = Color(1, 1, 1, 0)
+	lbl.z_index = 52
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	anim_layer.add_child(lbl)
+
+	# Quick flash in
+	var tw := create_tween()
+	tw.tween_property(flash, "color:a", 0.7, 0.05 / spd)
+	tw.tween_property(flash, "color:a", 0.15, 0.15 / spd)
+	if sprite != null:
+		var tw_sp := create_tween()
+		tw_sp.tween_property(sprite, "modulate:a", 1.0, 0.1 / spd)
+	var tw_lbl := create_tween()
+	tw_lbl.tween_property(lbl, "modulate:a", 1.0, 0.1 / spd)
+
+	# Shake the card
+	var orig_pos := card.position
+	var tw_shake := create_tween().set_loops(3)
+	tw_shake.tween_property(card, "position", orig_pos + Vector2(randf_range(-4, 4), randf_range(-3, 3)), 0.04 / spd)
+	tw_shake.tween_property(card, "position", orig_pos, 0.04 / spd)
+
+	# Linger then fade out
+	get_tree().create_timer(1.0 / spd).timeout.connect(func():
+		card.position = orig_pos
+		var tw_out := create_tween().set_parallel(true)
+		tw_out.tween_property(flash, "color:a", 0.0, 0.25 / spd)
+		tw_out.tween_property(lbl, "modulate:a", 0.0, 0.25 / spd)
+		if sprite != null and is_instance_valid(sprite):
+			tw_out.tween_property(sprite, "modulate:a", 0.0, 0.25 / spd)
+		tw_out.chain().tween_callback(func():
+			if is_instance_valid(flash): flash.queue_free()
+			if is_instance_valid(lbl): lbl.queue_free()
+			if sprite != null and is_instance_valid(sprite): sprite.queue_free()
+		)
+	)
+
+
+func play_formation_vfx(side: String, formation_key: String, formation_name_cn: String) -> void:
+	## Full-width banner effect showing formation texture and name text.
+	var tex: Texture2D = VfxLoaderRef.load_formation_vfx(formation_key)
+	var vfx_color: Color = VfxLoaderRef.get_formation_vfx_color(formation_key)
+	var spd := _speed_mult
+
+	# Banner container on a high canvas layer
+	var vfx_layer := CanvasLayer.new()
+	vfx_layer.layer = 24
+	add_child(vfx_layer)
+
+	var vfx_root := Control.new()
+	vfx_root.anchor_right = 1.0
+	vfx_root.anchor_bottom = 1.0
+	vfx_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_layer.add_child(vfx_root)
+
+	# Dim overlay (lighter than ultimate)
+	var dim := ColorRect.new()
+	dim.anchor_right = 1.0
+	dim.anchor_bottom = 1.0
+	dim.color = Color(0, 0, 0, 0)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(dim)
+
+	# Formation texture banner across the side
+	var banner_y: float = GRID_TOP + 40.0 if side == "attacker" else GRID_TOP + 200.0
+	if tex != null:
+		var vfx_rect := TextureRect.new()
+		vfx_rect.texture = tex
+		vfx_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		vfx_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		vfx_rect.position = Vector2(0, banner_y)
+		vfx_rect.size = Vector2(SCREEN_W, 120)
+		vfx_rect.modulate = Color(1, 1, 1, 0)
+		vfx_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vfx_root.add_child(vfx_rect)
+
+		var tw_tex := create_tween()
+		tw_tex.tween_property(vfx_rect, "modulate:a", 0.85, 0.15 / spd)
+
+	# Color bar behind text
+	var bar := ColorRect.new()
+	bar.position = Vector2(0, banner_y + 30)
+	bar.size = Vector2(SCREEN_W, 50)
+	bar.color = Color(vfx_color.r, vfx_color.g, vfx_color.b, 0.0)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(bar)
+
+	# Formation name label
+	var name_lbl := Label.new()
+	name_lbl.text = formation_name_cn
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_lbl.position = Vector2(SCREEN_W * 0.2, banner_y + 32)
+	name_lbl.size = Vector2(SCREEN_W * 0.6, 46)
+	name_lbl.add_theme_font_size_override("font_size", 36)
+	name_lbl.add_theme_color_override("font_color", Color(1.0, 0.95, 0.8))
+	name_lbl.add_theme_color_override("font_outline_color", Color(0.1, 0.05, 0.0))
+	name_lbl.add_theme_constant_override("outline_size", 3)
+	name_lbl.modulate = Color(1, 1, 1, 0)
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(name_lbl)
+
+	# Animate in
+	var tw_in := create_tween().set_parallel(true)
+	tw_in.tween_property(dim, "color:a", 0.25, 0.15 / spd)
+	tw_in.tween_property(bar, "color:a", 0.5, 0.15 / spd)
+	tw_in.tween_property(name_lbl, "modulate:a", 1.0, 0.2 / spd).set_delay(0.1 / spd)
+
+	_screen_shake(SHAKE_LIGHT, 4.0)
+
+	# Fade out after hold
+	var total_hold := 0.9 / spd
+	var tw_out := create_tween()
+	tw_out.tween_interval(total_hold)
+	tw_out.tween_property(dim, "color:a", 0.0, 0.2 / spd)
+	tw_out.parallel().tween_property(bar, "color:a", 0.0, 0.2 / spd)
+	tw_out.parallel().tween_property(name_lbl, "modulate:a", 0.0, 0.15 / spd)
+
+	# Cleanup
+	get_tree().create_timer((total_hold + 0.3 / spd)).timeout.connect(func():
+		if is_instance_valid(vfx_layer):
+			vfx_layer.queue_free()
+	)
+
+
+func play_morale_vfx(side: String, slot_idx: int, morale_type: String) -> void:
+	## Show morale change VFX on a unit card.
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	if not cards.has(slot_idx):
+		return
+	var card: PanelContainer = cards[slot_idx]
+	var card_center := _get_card_center(side, slot_idx)
+	var spd := _speed_mult
+
+	var vfx_color: Color = VfxLoaderRef.get_morale_vfx_color(morale_type)
+	var vfx_size: Vector2 = VfxLoaderRef.get_morale_vfx_size(morale_type)
+	var tex: Texture2D = VfxLoaderRef.load_morale_vfx(morale_type)
+
+	# Texture overlay
+	var sprite: TextureRect = null
+	if tex != null:
+		sprite = TextureRect.new()
+		sprite.texture = tex
+		sprite.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		sprite.custom_minimum_size = vfx_size
+		sprite.size = vfx_size
+		sprite.position = card_center - vfx_size * 0.5
+		sprite.pivot_offset = vfx_size * 0.5
+		sprite.modulate = Color(1, 1, 1, 0)
+		sprite.z_index = 50
+		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		anim_layer.add_child(sprite)
+
+	match morale_type:
+		"rout":
+			# Red flash + downward scatter particles
+			var flash := ColorRect.new()
+			flash.size = card.size
+			flash.color = Color(0.6, 0.0, 0.0, 0.6)
+			flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			flash.z_index = 50
+			card.add_child(flash)
+			if sprite != null:
+				create_tween().tween_property(sprite, "modulate:a", 0.8, 0.1 / spd)
+			var particle_count := 8
+			for i in range(particle_count):
+				var p := ColorRect.new()
+				p.size = Vector2(3, 3)
+				p.color = Color(0.8, 0.1, 0.0, 0.9)
+				p.position = card_center + Vector2(randf_range(-20, 20), 0)
+				p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				p.z_index = 51
+				anim_layer.add_child(p)
+				var target_pos := p.position + Vector2(randf_range(-15, 15), randf_range(30, 60))
+				var tw_p := create_tween()
+				tw_p.tween_property(p, "position", target_pos, 0.4 / spd).set_ease(Tween.EASE_IN)
+				tw_p.parallel().tween_property(p, "modulate:a", 0.0, 0.5 / spd)
+				tw_p.tween_callback(func():
+					if is_instance_valid(p): p.queue_free()
+				)
+			get_tree().create_timer(0.8 / spd).timeout.connect(func():
+				if is_instance_valid(flash): flash.queue_free()
+				if sprite != null and is_instance_valid(sprite): sprite.queue_free()
+			)
+
+		"rally":
+			# Upward golden particles
+			if sprite != null:
+				create_tween().tween_property(sprite, "modulate:a", 0.9, 0.1 / spd)
+			var particle_count := 10
+			for i in range(particle_count):
+				var p := ColorRect.new()
+				p.size = Vector2(3, 3)
+				p.color = Color(1.0, 0.85, 0.3, 0.9)
+				p.position = card_center + Vector2(randf_range(-25, 25), randf_range(5, 15))
+				p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				p.z_index = 51
+				anim_layer.add_child(p)
+				var target_pos := p.position + Vector2(randf_range(-10, 10), randf_range(-50, -30))
+				var tw_p := create_tween()
+				tw_p.tween_property(p, "position", target_pos, 0.5 / spd).set_ease(Tween.EASE_OUT)
+				tw_p.parallel().tween_property(p, "modulate:a", 0.0, 0.6 / spd)
+				tw_p.tween_callback(func():
+					if is_instance_valid(p): p.queue_free()
+				)
+			get_tree().create_timer(0.8 / spd).timeout.connect(func():
+				if sprite != null and is_instance_valid(sprite): sprite.queue_free()
+			)
+
+		"waver":
+			# Shimmer effect
+			if sprite != null:
+				var tw_shimmer := create_tween().set_loops(3)
+				tw_shimmer.tween_property(sprite, "modulate:a", 0.6, 0.15 / spd)
+				tw_shimmer.tween_property(sprite, "modulate:a", 0.2, 0.15 / spd)
+			var overlay := ColorRect.new()
+			overlay.size = card.size
+			overlay.color = Color(0.7, 0.7, 0.5, 0.0)
+			overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			overlay.z_index = 50
+			card.add_child(overlay)
+			var tw_ov := create_tween().set_loops(2)
+			tw_ov.tween_property(overlay, "color:a", 0.25, 0.2 / spd)
+			tw_ov.tween_property(overlay, "color:a", 0.05, 0.2 / spd)
+			get_tree().create_timer(1.0 / spd).timeout.connect(func():
+				if is_instance_valid(overlay): overlay.queue_free()
+				if sprite != null and is_instance_valid(sprite): sprite.queue_free()
+			)
+
+
+func play_heal_vfx(side: String, slot_idx: int, is_mass: bool) -> void:
+	## Green/gold healing particles rising from card(s).
+	var spd := _speed_mult
+	var heal_type: String = "mass_heal" if is_mass else "heal_pulse"
+	var vfx_color: Color = VfxLoaderRef.get_heal_vfx_color(heal_type)
+	var vfx_size: Vector2 = VfxLoaderRef.get_heal_vfx_size(heal_type)
+	var tex: Texture2D = VfxLoaderRef.load_heal_vfx(heal_type)
+
+	var slots_to_heal: Array = []
+	if is_mass:
+		var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+		for s in cards.keys():
+			slots_to_heal.append(s)
+	else:
+		slots_to_heal.append(slot_idx)
+
+	for s_idx in slots_to_heal:
+		var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+		if not cards.has(s_idx):
+			continue
+		var card_center := _get_card_center(side, s_idx)
+
+		# Texture sprite
+		if tex != null:
+			var sprite := TextureRect.new()
+			sprite.texture = tex
+			sprite.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			sprite.custom_minimum_size = vfx_size
+			sprite.size = vfx_size
+			sprite.position = card_center - vfx_size * 0.5
+			sprite.pivot_offset = vfx_size * 0.5
+			sprite.modulate = Color(1, 1, 1, 0)
+			sprite.z_index = 50
+			sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			anim_layer.add_child(sprite)
+			var tw_sp := create_tween()
+			tw_sp.tween_property(sprite, "modulate:a", 0.85, 0.15 / spd)
+			tw_sp.tween_interval(0.5 / spd)
+			tw_sp.tween_property(sprite, "modulate:a", 0.0, 0.25 / spd)
+			tw_sp.tween_callback(func():
+				if is_instance_valid(sprite): sprite.queue_free()
+			)
+
+		# Rising heal particles
+		var particle_count := 8 if not is_mass else 5
+		for i in range(particle_count):
+			var p := ColorRect.new()
+			p.size = Vector2(3, 3)
+			p.color = Color(vfx_color.r, vfx_color.g, vfx_color.b, 0.85)
+			p.position = card_center + Vector2(randf_range(-20, 20), randf_range(5, 15))
+			p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			p.z_index = 51
+			anim_layer.add_child(p)
+			var target_pos := p.position + Vector2(randf_range(-8, 8), randf_range(-45, -25))
+			var tw_p := create_tween()
+			tw_p.tween_property(p, "position", target_pos, 0.5 / spd).set_ease(Tween.EASE_OUT)
+			tw_p.parallel().tween_property(p, "modulate:a", 0.0, 0.6 / spd)
+			tw_p.tween_callback(func():
+				if is_instance_valid(p): p.queue_free()
+			)
+
+
+func play_combo_vfx(combo_index: int, combo_name: String) -> void:
+	## Cinematic combo skill VFX, similar to play_ultimate_vfx.
+	var tex: Texture2D = VfxLoaderRef.load_combo_vfx(combo_index)
+	var skill_color: Color = VfxLoaderRef.get_combo_vfx_color(combo_index)
+	if combo_name == "":
+		combo_name = VfxLoaderRef.get_combo_vfx_name(combo_index)
+
+	# Canvas layer above combat
+	var vfx_layer := CanvasLayer.new()
+	vfx_layer.layer = 25
+	add_child(vfx_layer)
+
+	var vfx_root := Control.new()
+	vfx_root.anchor_right = 1.0
+	vfx_root.anchor_bottom = 1.0
+	vfx_root.mouse_filter = Control.MOUSE_FILTER_STOP
+	vfx_layer.add_child(vfx_root)
+
+	# Dim overlay
+	var dim := ColorRect.new()
+	dim.anchor_right = 1.0
+	dim.anchor_bottom = 1.0
+	dim.color = Color(0, 0, 0, 0)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(dim)
+
+	# Combo texture
+	var vfx_rect := TextureRect.new()
+	if tex != null:
+		vfx_rect.texture = tex
+	vfx_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	vfx_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	vfx_rect.anchor_right = 1.0
+	vfx_rect.anchor_bottom = 1.0
+	vfx_rect.modulate = Color(1, 1, 1, 0)
+	vfx_rect.pivot_offset = Vector2(SCREEN_W * 0.5, SCREEN_H * 0.5)
+	vfx_rect.scale = Vector2(0.85, 0.85)
+	vfx_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(vfx_rect)
+
+	# Combo name label
+	var name_lbl := Label.new()
+	name_lbl.text = combo_name
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_lbl.anchor_left = 0.15
+	name_lbl.anchor_right = 0.85
+	name_lbl.anchor_top = 0.40
+	name_lbl.anchor_bottom = 0.60
+	name_lbl.add_theme_font_size_override("font_size", 52)
+	name_lbl.add_theme_color_override("font_color", Color(1.0, 0.92, 0.4))
+	name_lbl.add_theme_color_override("font_outline_color", Color(0.15, 0.05, 0.0))
+	name_lbl.add_theme_constant_override("outline_size", 5)
+	name_lbl.modulate = Color(1, 1, 1, 0)
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(name_lbl)
+
+	# Cinematic letterbox bars
+	var bar_top := ColorRect.new()
+	bar_top.anchor_right = 1.0
+	bar_top.size = Vector2(SCREEN_W, 45)
+	bar_top.color = Color(skill_color.r, skill_color.g, skill_color.b, 0.0)
+	bar_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(bar_top)
+
+	var bar_bot := ColorRect.new()
+	bar_bot.anchor_right = 1.0
+	bar_bot.anchor_bottom = 1.0
+	bar_bot.anchor_top = 1.0
+	bar_bot.offset_top = -45
+	bar_bot.color = Color(skill_color.r, skill_color.g, skill_color.b, 0.0)
+	bar_bot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vfx_root.add_child(bar_bot)
+
+	var spd := _speed_mult
+
+	# Phase 1: Dim
+	var tw_dim := create_tween()
+	tw_dim.tween_property(dim, "color:a", 0.5, 0.2 / spd)
+	tw_dim.parallel().tween_property(bar_top, "color:a", 0.55, 0.2 / spd)
+	tw_dim.parallel().tween_property(bar_bot, "color:a", 0.55, 0.2 / spd)
+
+	# Phase 2: Texture in
+	var tw_vfx := create_tween()
+	tw_vfx.tween_interval(0.2 / spd)
+	tw_vfx.tween_property(vfx_rect, "modulate:a", 1.0, 0.2 / spd).set_ease(Tween.EASE_OUT)
+	tw_vfx.parallel().tween_property(vfx_rect, "scale", Vector2(1.05, 1.05), 0.2 / spd).set_ease(Tween.EASE_OUT)
+	tw_vfx.tween_property(vfx_rect, "scale", Vector2(1.0, 1.0), 0.1 / spd)
+
+	# Phase 3: Name in
+	var tw_name := create_tween()
+	tw_name.tween_interval(0.35 / spd)
+	tw_name.tween_property(name_lbl, "modulate:a", 1.0, 0.2 / spd).set_ease(Tween.EASE_OUT)
+
+	# Screen shake
+	_screen_shake(SHAKE_HEAVY, 6.0)
+
+	# Phase 4: Hold + fade out
+	var total_hold := 1.2 / spd
+	var tw_out := create_tween()
+	tw_out.tween_interval(total_hold)
+	tw_out.tween_property(dim, "color:a", 0.0, 0.3 / spd)
+	tw_out.parallel().tween_property(vfx_rect, "modulate:a", 0.0, 0.3 / spd)
+	tw_out.parallel().tween_property(name_lbl, "modulate:a", 0.0, 0.2 / spd)
+	tw_out.parallel().tween_property(bar_top, "color:a", 0.0, 0.3 / spd)
+	tw_out.parallel().tween_property(bar_bot, "color:a", 0.0, 0.3 / spd)
+
+	# Cleanup
+	get_tree().create_timer(total_hold + 0.35 / spd).timeout.connect(func():
+		if is_instance_valid(vfx_layer):
+			vfx_layer.queue_free()
+	)
+
+
+func play_passive_vfx(side: String, slot_idx: int, passive_type: String) -> void:
+	## Quick subtle passive effect on card: small texture flash + tiny label.
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	if not cards.has(slot_idx):
+		return
+	var card_center := _get_card_center(side, slot_idx)
+	var spd := _speed_mult
+
+	var vfx_color: Color = VfxLoaderRef.get_passive_vfx_color(passive_type)
+	var vfx_size: Vector2 = VfxLoaderRef.get_passive_vfx_size(passive_type)
+	var tex: Texture2D = VfxLoaderRef.load_passive_vfx(passive_type)
+
+	# Texture flash
+	if tex != null:
+		var sprite := TextureRect.new()
+		sprite.texture = tex
+		sprite.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		sprite.custom_minimum_size = vfx_size
+		sprite.size = vfx_size
+		sprite.position = card_center - vfx_size * 0.5
+		sprite.pivot_offset = vfx_size * 0.5
+		sprite.modulate = Color(1, 1, 1, 0)
+		sprite.z_index = 50
+		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		anim_layer.add_child(sprite)
+		var tw_sp := create_tween()
+		tw_sp.tween_property(sprite, "modulate:a", 0.8, 0.1 / spd)
+		tw_sp.tween_interval(0.3 / spd)
+		tw_sp.tween_property(sprite, "modulate:a", 0.0, 0.2 / spd)
+		tw_sp.tween_callback(func():
+			if is_instance_valid(sprite): sprite.queue_free()
+		)
+
+	# Tiny label
+	var lbl := Label.new()
+	lbl.text = passive_type.replace("_", " ")
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", vfx_color)
+	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	lbl.add_theme_constant_override("outline_size", 1)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.position = Vector2(card_center.x - 35, card_center.y + CARD_H * 0.3)
+	lbl.modulate = Color(1, 1, 1, 0)
+	lbl.z_index = 51
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	anim_layer.add_child(lbl)
+
+	var tw_lbl := create_tween()
+	tw_lbl.tween_property(lbl, "modulate:a", 1.0, 0.1 / spd)
+	tw_lbl.tween_property(lbl, "position:y", lbl.position.y - 12, 0.5 / spd).set_ease(Tween.EASE_OUT)
+	tw_lbl.parallel().tween_property(lbl, "modulate:a", 0.0, 0.3 / spd).set_delay(0.25 / spd)
+	tw_lbl.tween_callback(func():
+		if is_instance_valid(lbl): lbl.queue_free()
+	)
+
 
 # ═══════════════════════════════════════════════════════════
 #                      SAVE / LOAD
