@@ -1271,7 +1271,10 @@ func _animate_attack(source_side: String, source_slot: int, target_side: String,
 
 	# 4. Impact effects on target (delayed to sync with projectile arrival)
 	var impact_delay := 0.18 / _speed_mult
+	var vfx_type: String = proj["type"]
 	get_tree().create_timer(impact_delay).timeout.connect(func():
+		# VFX texture overlay at impact point
+		_spawn_attack_vfx(to_pos, vfx_type, is_crit)
 		# Flash target card
 		var flash_color := Color(1, 0.15, 0.1, 0.6) if is_heavy else Color(1, 0.25, 0.15, 0.45)
 		_flash_card(target_side, target_slot, flash_color)
@@ -1586,6 +1589,41 @@ func _draw_projectile_shuriken(from_pos: Vector2, to_pos: Vector2, proj: Diction
 	tw.tween_property(star, "rotation", TAU * 3, spd)
 	tw.chain().tween_callback(func():
 		if is_instance_valid(star): star.queue_free()
+	)
+
+func _spawn_attack_vfx(pos: Vector2, proj_type: String, is_crit: bool) -> void:
+	var tex: Texture2D = VfxLoaderRef.load_attack_vfx(proj_type)
+	if tex == null:
+		return
+	var vfx_size: Vector2 = VfxLoaderRef.get_attack_vfx_size(proj_type)
+	if is_crit:
+		vfx_size *= 1.35
+
+	var sprite := TextureRect.new()
+	sprite.texture = tex
+	sprite.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	sprite.custom_minimum_size = vfx_size
+	sprite.size = vfx_size
+	sprite.position = pos - vfx_size * 0.5
+	sprite.pivot_offset = vfx_size * 0.5
+	sprite.modulate = Color(1, 1, 1, 0)
+	sprite.z_index = 43
+	sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	anim_layer.add_child(sprite)
+
+	var dur := 0.35 / _speed_mult
+	var tw := create_tween().set_parallel(true)
+	# Fade in quickly
+	tw.tween_property(sprite, "modulate:a", 1.0, dur * 0.2)
+	# Scale burst
+	sprite.scale = Vector2(0.6, 0.6) if not is_crit else Vector2(0.5, 0.5)
+	tw.tween_property(sprite, "scale", Vector2(1.1, 1.1) if is_crit else Vector2.ONE, dur * 0.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	# Slight rotation jitter for organic feel
+	sprite.rotation = randf_range(-0.08, 0.08)
+	# Fade out
+	tw.chain().tween_property(sprite, "modulate:a", 0.0, dur * 0.5).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(sprite): sprite.queue_free()
 	)
 
 func _spawn_impact_particles(pos: Vector2, proj: Dictionary, is_crit: bool) -> void:

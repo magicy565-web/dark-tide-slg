@@ -52,3 +52,39 @@ static func get_skill_name(hero_id: String) -> String:
 
 static func clear_cache() -> void:
 	_cache.clear()
+
+
+# ---------------------------------------------------------------------------
+# Attack VFX (per troop class)
+# ---------------------------------------------------------------------------
+
+const ATK_VFX_BASE := "res://assets/vfx/attack/"
+
+const ATTACK_VFX: Dictionary = {
+	"slash":      {texture = "slash_melee.png",      size = Vector2(120, 120)},
+	"arrow":      {texture = "arrow_ranged.png",     size = Vector2(100, 100)},
+	"charge":     {texture = "cavalry_charge.png",   size = Vector2(140, 140)},
+	"cannonball": {texture = "cannon_blast.png",     size = Vector2(130, 130)},
+	"magic":      {texture = "magic_bolt.png",       size = Vector2(110, 110)},
+	"shuriken":   {texture = "shuriken_shadow.png",  size = Vector2(100, 100)},
+	"heal":       {texture = "heal_holy.png",        size = Vector2(120, 120)},
+	"shield":     {texture = "shield_defend.png",    size = Vector2(120, 120)},
+}
+
+static func load_attack_vfx(proj_type: String) -> Texture2D:
+	var key := "atk:" + proj_type
+	if _cache.has(key):
+		return _cache[key]
+	var data: Dictionary = ATTACK_VFX.get(proj_type, {})
+	if data.is_empty():
+		return null
+	var path: String = ATK_VFX_BASE + data["texture"]
+	if ResourceLoader.exists(path):
+		var tex: Texture2D = load(path)
+		_cache[key] = tex
+		return tex
+	return null
+
+static func get_attack_vfx_size(proj_type: String) -> Vector2:
+	var data: Dictionary = ATTACK_VFX.get(proj_type, {})
+	return data.get("size", Vector2(100, 100))
