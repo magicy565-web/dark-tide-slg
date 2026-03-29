@@ -97,6 +97,23 @@ const COMMON_BUILDINGS: Dictionary = {
 			3: {"cost": {"gold": 500, "iron": 35, "magic_crystal": 3}, "desc": "奥术速度+50%, 术师ATK+6, 法力再生+2/回合", "effects": {"arcane_research_speed": 0.50, "mage_atk_bonus": 6, "mana_regen": 2}, "upgrade_req": {"tile_level": 3}},
 		},
 	},
+	# v5.0: Strategic depth buildings
+	"supply_depot": {
+		"name": "兵站",
+		"max_level": 2,
+		"levels": {
+			1: {"cost": {"gold": 200, "iron": 50}, "desc": "补给范围+2格, 驻军恢复+5/回合", "effects": {"supply_range": 2, "garrison_recovery": 5}},
+			2: {"cost": {"gold": 350, "iron": 80}, "desc": "补给范围+3格, 驻军恢复+10/回合", "effects": {"supply_range": 3, "garrison_recovery": 10}, "upgrade_req": {"tile_level": 2}},
+		},
+	},
+	"watchtower": {
+		"name": "望楼",
+		"max_level": 2,
+		"levels": {
+			1: {"cost": {"gold": 100, "iron": 30}, "desc": "视野+3格, 拦截率+15%", "effects": {"vision_range": 3, "interception_bonus": 15}},
+			2: {"cost": {"gold": 180, "iron": 50}, "desc": "视野+4格, 拦截率+25%, 预警", "effects": {"vision_range": 4, "interception_bonus": 25, "early_warning": true}, "upgrade_req": {"tile_level": 2}},
+		},
+	},
 }
 
 # ── Faction-specific buildings (3 levels each, 2 per faction) ──

@@ -75,6 +75,17 @@ const PHASE_AI := Color(0.8, 0.5, 0.5)
 const PHASE_BG := Color(0.06, 0.05, 0.1, 0.92)
 const PHASE_BORDER := Color(0.65, 0.55, 0.25)
 
+# March system
+const MARCH_PATH_FRIENDLY := Color(0.3, 0.6, 1.0, 0.7)
+const MARCH_PATH_ENEMY := Color(0.9, 0.2, 0.15, 0.7)
+const MARCH_PATH_GOLD := Color(1.0, 0.85, 0.3, 0.7)
+const MARCH_DEST_PULSE := Color(1.0, 0.9, 0.3, 0.6)
+const MARCH_CHEVRON := Color(0.3, 0.7, 1.0, 0.9)
+const MARCH_DUST := Color(0.6, 0.5, 0.35, 0.5)
+const MARCH_SUPPLY_HIGH := Color(0.3, 0.85, 0.3)
+const MARCH_SUPPLY_MID := Color(0.85, 0.75, 0.15)
+const MARCH_SUPPLY_LOW := Color(0.9, 0.2, 0.15)
+
 # ═══════════════════════════════════════════════════════════════
 #                    FACTION COLORS
 # ═══════════════════════════════════════════════════════════════

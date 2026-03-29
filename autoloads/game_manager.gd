@@ -1642,6 +1642,12 @@ func begin_turn() -> void:
 	# ── Phase 2b: Recalculate research speed (building effects may have changed) ──
 	ResearchManager.update_research_speed(pid)
 
+	# ── Phase 2c: Supply line & territory classification ──
+	SupplySystem.recalculate_supply_lines(pid)
+	SupplySystem.classify_territories(pid)
+	SupplySystem.apply_isolation_penalties(pid)
+	SupplySystem.apply_rear_order_recovery(pid)
+
 	if income.values().any(func(v): return v != 0):
 		ResourceManager.apply_delta(pid, income)
 		var msg: String = "%s 产出: 金%d 粮%d 铁%d" % [
@@ -1742,6 +1748,9 @@ func begin_turn() -> void:
 		var repair_amt: int = int(_bld_eff.get("wall_repair_per_turn", 0))
 		if repair_amt > 0:
 			LightFactionAI.repair_wall(tile["index"], repair_amt)
+
+	# ── Phase 4b3: Siege processing (v5.0) ──
+	SiegeSystem.process_sieges(pid)
 
 	# ── Phase 4c: Dark Elf slave conversion tick ──
 	var _de_ftag: String = _get_faction_tag_for_player(pid)
@@ -2655,6 +2664,21 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 		EventBus.message_log.emit("目标必须与军团所在地域相邻!")
 		return false
 
+	# ── Siege check (v5.0): Fortified tiles require siege ──
+	if SiegeSystem.is_tile_fortified(target_tile_index):
+		var existing_siege: Dictionary = SiegeSystem.get_siege_at_tile(target_tile_index)
+		if existing_siege.is_empty():
+			# No active siege — start one instead of immediate combat
+			player["ap"] -= 1
+			SiegeSystem.start_siege(army_id, target_tile_index)
+			EventBus.player_arrived.emit(player_id, target_tile_index)
+			return false
+		elif existing_siege.get("wall_hp", 1.0) > 0.0 and existing_siege.get("turns_remaining", 1) > 0:
+			# Siege ongoing, walls not breached yet
+			EventBus.message_log.emit("[color=yellow]围攻进行中，城壁尚未崩塌! (剩余%d回合)[/color]" % existing_siege.get("turns_remaining", 0))
+			return false
+		# else: wall_hp <= 0 → proceed with final assault (attacker ATK bonus applied below)
+
 	player["ap"] -= 1
 	_had_combat_this_turn = true
 	_combat_slot_prefs = get_army_slot_preferences(army_id)
@@ -2702,6 +2726,32 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 
 	EventBus.player_arrived.emit(player_id, target_tile_index)
 	return won
+
+
+## v5.0: Storm the walls of a besieged tile. Costs 2 AP. Triggers combat with DEF penalty.
+func action_storm_walls(army_id: int, tile_index: int) -> bool:
+	if not armies.has(army_id):
+		return false
+	var army: Dictionary = armies[army_id]
+	var player_id: int = army["player_id"]
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < SiegeSystem.STORM_AP_COST:
+		EventBus.message_log.emit("强攻需要%d行动点!" % SiegeSystem.STORM_AP_COST)
+		return false
+	var siege: Dictionary = SiegeSystem.get_siege_at_tile(tile_index)
+	if siege.is_empty():
+		EventBus.message_log.emit("该据点没有进行中的围攻!")
+		return false
+	# Mark as stormed (applies DEF penalty in combat) and remove siege
+	SiegeSystem.storm_walls(siege["siege_id"])
+	# Spend extra AP (action_attack_with_army costs 1 more AP internally)
+	player["ap"] -= (SiegeSystem.STORM_AP_COST - 1)
+	return await action_attack_with_army(army_id, tile_index)
+
+
+## v5.0: Aggregate strategic resource buffs for a player.
+func get_strategic_buffs(player_id: int) -> Dictionary:
+	return SiegeSystem.get_strategic_buffs(player_id)
 
 
 func _get_defender_desc(tile: Dictionary) -> String:
@@ -2878,6 +2928,21 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		EventBus.message_log.emit("[color=cyan]防御部署生效! 守军DEF+50%%[/color]")
 
 	var attacker_data: Dictionary = {"units": attacker_units, "player_id": pid}
+
+	# ── Siege combat modifiers (v5.0) ──
+	var _siege_at_tile: Dictionary = SiegeSystem.get_siege_at_tile(tile.get("index", -1))
+	if not _siege_at_tile.is_empty():
+		if _siege_at_tile.get("stormed", false):
+			# Storm penalty: attacker DEF -30%
+			for au in attacker_units:
+				au["def"] = int(ceil(float(au.get("def", 5)) * (1.0 - SiegeSystem.STORM_DEF_PENALTY)))
+			EventBus.message_log.emit("[color=red]强攻惩罚: 攻方DEF-%.0f%%[/color]" % (SiegeSystem.STORM_DEF_PENALTY * 100.0))
+		elif _siege_at_tile.get("wall_hp", 1.0) <= 0.0:
+			# Final assault bonus: attacker ATK +20%
+			for au in attacker_units:
+				au["atk"] = int(ceil(float(au.get("atk", 5)) * (1.0 + SiegeSystem.ASSAULT_ATK_BONUS)))
+			EventBus.message_log.emit("[color=green]城壁崩塌! 攻方ATK+%.0f%%[/color]" % (SiegeSystem.ASSAULT_ATK_BONUS * 100.0))
+
 	# Apply pre-battle slot preferences for human player
 	if not _combat_slot_prefs.is_empty() and pid == get_human_player_id():
 		_apply_slot_preferences_to_units(attacker_units, _combat_slot_prefs)

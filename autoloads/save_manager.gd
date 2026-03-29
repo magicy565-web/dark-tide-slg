@@ -219,6 +219,8 @@ func _collect_save_data() -> Dictionary:
 		# so we no longer duplicate it at the top level to avoid double-serialize/deserialize.
 		"hero_leveling": HeroLeveling.serialize(),  # kept for backward compat on load
 		"tile_development": TileDevelopment.to_save_data(),
+		"supply_system": SupplySystem.to_save_data(),
+		"siege": SiegeSystem.to_save_data(),
 	}
 
 
@@ -355,6 +357,16 @@ func _apply_save_data(data: Dictionary) -> void:
 	# 4e. Restore tile development state (v3.5+)
 	if data.has("tile_development"):
 		TileDevelopment.from_save_data(data.get("tile_development", {}))
+
+	# 4f. Restore supply system state (v4.7+)
+	if data.has("supply_system"):
+		SupplySystem.from_save_data(data.get("supply_system", {}))
+	else:
+		SupplySystem.reset()
+
+	# 4g. Restore siege system state (v5.0+)
+	if data.has("siege"):
+		SiegeSystem.from_save_data(data.get("siege", {}))
 
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()

@@ -912,6 +912,12 @@ func _on_attack_army_selected(army_id: int) -> void:
 		if tile["owner_id"] >= 0:
 			var owner: Dictionary = GameManager.get_player_by_id(tile["owner_id"])
 			label_text += " [%s]" % owner.get("name", "???")
+		# v5.0: Show siege/fortification status
+		if SiegeSystem.is_tile_under_siege(tidx):
+			var siege: Dictionary = SiegeSystem.get_siege_at_tile(tidx)
+			label_text += " [围攻中 壁%.0f 气%.0f]" % [siege.get("wall_hp", 0), siege.get("defender_morale", 0)]
+		elif SiegeSystem.is_tile_fortified(tidx):
+			label_text += " [城壁]"
 		_add_target_button(label_text, _on_attack_target.bind(tidx))
 
 
@@ -1076,10 +1082,81 @@ func _on_explore_pressed() -> void:
 
 func _on_attack_target(tile_index: int) -> void:
 	var pid: int = GameManager.get_human_player_id()
+
+	# ── Siege UI (v5.0): Show siege options for fortified tiles ──
+	if _selected_army_id >= 0 and SiegeSystem.is_tile_fortified(tile_index):
+		var existing_siege: Dictionary = SiegeSystem.get_siege_at_tile(tile_index)
+		if existing_siege.is_empty():
+			# No siege yet — show siege confirmation dialog
+			_show_siege_options(tile_index, _selected_army_id, false)
+			return
+		elif existing_siege.get("wall_hp", 1.0) > 0.0 and existing_siege.get("turns_remaining", 1) > 0:
+			# Siege in progress — show storm/lift/wait options
+			_show_siege_options(tile_index, _selected_army_id, true)
+			return
+		# else: walls breached, proceed to normal attack (final assault)
+
 	if _selected_army_id >= 0:
 		GameManager.action_attack_with_army(_selected_army_id, tile_index)
 	else:
 		GameManager.action_attack(pid, tile_index)
+	_selected_army_id = -1
+	_close_target_panel()
+	_after_action()
+
+
+## v5.0: Show siege options sub-menu for fortified tiles.
+func _show_siege_options(tile_index: int, army_id: int, siege_in_progress: bool) -> void:
+	var tile: Dictionary = GameManager.tiles[tile_index]
+	var tile_name: String = tile.get("name", "据点")
+	var player: Dictionary = GameManager.get_player_by_id(GameManager.get_human_player_id())
+	var current_ap: int = player.get("ap", 0)
+
+	if siege_in_progress:
+		var siege: Dictionary = SiegeSystem.get_siege_at_tile(tile_index)
+		_show_target_panel("围攻进行中 - %s" % tile_name)
+		_add_target_label("城壁: %.0f/%.0f  士气: %.0f  剩余: %d回合" % [
+			siege.get("wall_hp", 0), siege.get("wall_max_hp", 0),
+			siege.get("defender_morale", 0), siege.get("turns_remaining", 0)],
+			Color(1.0, 0.8, 0.3))
+		_add_target_button("强攻城壁 (消耗%dAP, DEF-30%%)" % SiegeSystem.STORM_AP_COST,
+			_on_storm_walls.bind(army_id, tile_index),
+			current_ap < SiegeSystem.STORM_AP_COST)
+		_add_target_button("撤围 (放弃围攻)",
+			_on_lift_siege.bind(tile_index))
+		_add_target_button("继续围攻 (等待下回合)",
+			_close_target_panel)
+	else:
+		_show_target_panel("该据点有城壁防护 - %s" % tile_name)
+		_add_target_label("需要围攻才能攻陷，预计需要2-3回合。",
+			Color(1.0, 0.8, 0.3))
+		_add_target_button("开始围攻 (消耗1AP)",
+			_on_start_siege.bind(army_id, tile_index),
+			current_ap < 1)
+		_add_target_button("强攻 (消耗%dAP, DEF-30%%)" % SiegeSystem.STORM_AP_COST,
+			_on_storm_walls.bind(army_id, tile_index),
+			current_ap < SiegeSystem.STORM_AP_COST)
+		_add_target_button("取消", _close_target_panel)
+
+
+func _on_start_siege(army_id: int, tile_index: int) -> void:
+	GameManager.action_attack_with_army(army_id, tile_index)
+	_selected_army_id = -1
+	_close_target_panel()
+	_after_action()
+
+
+func _on_storm_walls(army_id: int, tile_index: int) -> void:
+	GameManager.action_storm_walls(army_id, tile_index)
+	_selected_army_id = -1
+	_close_target_panel()
+	_after_action()
+
+
+func _on_lift_siege(tile_index: int) -> void:
+	var siege: Dictionary = SiegeSystem.get_siege_at_tile(tile_index)
+	if not siege.is_empty():
+		SiegeSystem.lift_siege(siege["siege_id"])
 	_selected_army_id = -1
 	_close_target_panel()
 	_after_action()

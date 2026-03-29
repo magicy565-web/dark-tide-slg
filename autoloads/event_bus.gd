@@ -170,6 +170,14 @@ signal army_disbanded(player_id: int, army_id: int)
 signal army_selected(army_id: int)
 signal board_ready()
 
+# ── March System ──
+signal army_march_started(army_id: int, path: Array)
+signal army_march_step(army_id: int, from_tile: int, to_tile: int, progress: float)
+signal army_march_arrived(army_id: int, tile_index: int)
+signal army_march_cancelled(army_id: int)
+signal army_march_intercepted(army_id: int, interceptor_id: int, tile_index: int)
+signal army_supply_low(army_id: int, supply: float)
+
 # ── Tutorial ──
 signal tutorial_step(step_id: String)
 # KEPT: tutorial system compat — tutorial_manager has its own local signal but this may be needed
@@ -256,3 +264,18 @@ signal phase_banner_requested(text: String, is_ai_turn: bool)
 
 # ── Game Over Detailed (v4.5) ──
 signal game_over_detailed(data: Dictionary)
+
+# ── March System (v4.6) — additional signals ──
+signal army_march_battle(army_id: int, tile_index: int)
+
+# ── Supply Line & Territory Classification (v4.7) ──
+signal supply_line_cut(player_id: int, isolated_tiles: Array)
+signal supply_line_restored(player_id: int, tiles: Array)
+signal territory_classified(player_id: int)
+
+# ── Siege System (v5.0) ──
+signal siege_started(attacker_army_id: int, tile_index: int, turns: int)
+signal siege_progress(tile_index: int, wall_hp: float, morale: float, turns_left: int)
+signal siege_ended(tile_index: int, result: String)
+signal sortie_triggered(tile_index: int, defender_won: bool)
+signal strategic_buff_changed(player_id: int, buffs: Dictionary)

@@ -49,6 +49,8 @@ AIStrategicPlanner="*res://systems/faction/ai_strategic_planner.gd"
 SaveManager="*res://autoloads/save_manager.gd"
 ModManager="*res://systems/mod/mod_manager.gd"
 GameManager="*res://autoloads/game_manager.gd"
+SupplySystem="*res://systems/strategic/supply_system.gd"
+SiegeSystem="*res://systems/strategic/siege_system.gd"
 NeutralFactionAI="*res://systems/faction/neutral_faction_ai.gd"
 BalanceManager="*res://systems/balance/balance_manager.gd"
 QuestJournal="*res://systems/quest/quest_journal.gd"
@@ -59,6 +61,7 @@ StoryDialog="*res://scenes/ui/story_dialog.gd"
 NgPlusManager="*res://systems/ngplus/ngplus_manager.gd"
 UITheme="*res://autoloads/ui_theme_manager.gd"
 ColorTheme="*res://autoloads/color_theme.gd"
+MarchSystem="*res://systems/march/march_system.gd"
 
 [display]
 

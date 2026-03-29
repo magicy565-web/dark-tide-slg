@@ -66,6 +66,13 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		var f: int = int(roundf(float(base.get("food", 0)) * tile_mult * food_base_mult * tile_order_mult))
 		var ir: int = int(roundf(float(base.get("iron", 0)) * tile_mult * iron_base_mult * tile_order_mult))
 
+		# ── Supply line & classification production modifier ──
+		var _supply_mod: float = SupplySystem.get_tile_production_modifier(player_id, tile.get("index", -1))
+		if _supply_mod != 1.0:
+			g = int(float(g) * _supply_mod)
+			f = int(float(f) * _supply_mod)
+			ir = int(float(ir) * _supply_mod)
+
 		income["gold"] += g
 		income["food"] += f
 		income["iron"] += ir
