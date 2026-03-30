@@ -66,8 +66,8 @@ func _build_ui() -> void:
 
 	main_panel = PanelContainer.new()
 	main_panel.anchor_right = 1.0; main_panel.anchor_bottom = 1.0
-	main_panel.offset_left = 50; main_panel.offset_right = -50
-	main_panel.offset_top = 40; main_panel.offset_bottom = -40
+	main_panel.offset_left = 30; main_panel.offset_right = -30
+	main_panel.offset_top = 30; main_panel.offset_bottom = -30
 	var style := StyleBoxFlat.new()
 	style.bg_color = ColorTheme.BG_SECONDARY
 	style.border_color = ColorTheme.BORDER_DEFAULT
@@ -84,13 +84,13 @@ func _build_ui() -> void:
 	outer_vbox.add_child(header_row)
 	header_label = Label.new()
 	header_label.text = "Inventory"
-	header_label.add_theme_font_size_override("font_size", 22)
-	header_label.add_theme_color_override("font_color", Color(0.9, 0.75, 0.3))
+	header_label.add_theme_font_size_override("font_size", ColorTheme.FONT_HEADING + 2)
+	header_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(header_label)
 	capacity_label = Label.new()
 	capacity_label.add_theme_font_size_override("font_size", 14)
-	capacity_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	capacity_label.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 	header_row.add_child(capacity_label)
 	btn_close = Button.new()
 	btn_close.text = "X"; btn_close.custom_minimum_size = Vector2(36, 36)
@@ -114,10 +114,7 @@ func _build_ui() -> void:
 	btn_tab_relic = _make_tab_button("Relic")
 	btn_tab_relic.pressed.connect(func(): _switch_tab("relic"))
 	tab_container.add_child(btn_tab_relic)
-	btn_tab_heroes = Button.new()
-	btn_tab_heroes.text = "Heroes"
-	btn_tab_heroes.custom_minimum_size = Vector2(70, 28)
-	btn_tab_heroes.add_theme_font_size_override("font_size", 12)
+	btn_tab_heroes = _make_tab_button("Heroes")
 	btn_tab_heroes.pressed.connect(func(): _switch_tab("heroes"))
 	tab_container.add_child(btn_tab_heroes)
 	outer_vbox.add_child(HSeparator.new())
@@ -140,8 +137,8 @@ func _build_ui() -> void:
 	detail_panel = PanelContainer.new()
 	detail_panel.custom_minimum_size = Vector2(320, 0); detail_panel.visible = false
 	var ds := StyleBoxFlat.new()
-	ds.bg_color = Color(0.07, 0.06, 0.11, 0.95)
-	ds.border_color = Color(0.35, 0.3, 0.2)
+	ds.bg_color = ColorTheme.BG_SECONDARY
+	ds.border_color = ColorTheme.BORDER_DEFAULT
 	ds.set_border_width_all(1); ds.set_corner_radius_all(6); ds.set_content_margin_all(12)
 	detail_panel.add_theme_stylebox_override("panel", ds)
 	content_hbox.add_child(detail_panel)
@@ -175,7 +172,7 @@ func _switch_tab(tab: String) -> void:
 func _update_tab_highlight() -> void:
 	var m: Dictionary = {"all": btn_tab_all, "consumable": btn_tab_consumable, "equipment": btn_tab_equipment, "relic": btn_tab_relic, "heroes": btn_tab_heroes}
 	for key in m:
-		if key == _current_tab: m[key].add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+		if key == _current_tab: m[key].add_theme_color_override("font_color", ColorTheme.ACCENT_GOLD_BRIGHT)
 		else: m[key].remove_theme_color_override("font_color")
 
 # ═══════════════ REFRESH ═══════════════
@@ -205,7 +202,7 @@ func _refresh_list() -> void:
 		var lbl := Label.new()
 		lbl.text = "Inventory empty" if _current_tab != "equipment" else "No unequipped items"
 		lbl.add_theme_font_size_override("font_size", 14)
-		lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+		lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		item_container.add_child(lbl); _item_nodes.append(lbl); return
 	for i in range(items.size()):
@@ -215,7 +212,7 @@ func _refresh_list() -> void:
 func _build_item_row(item: Dictionary, index: int) -> PanelContainer:
 	var card := PanelContainer.new()
 	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.08, 0.07, 0.12, 0.9); s.border_color = Color(0.3, 0.25, 0.2)
+	s.bg_color = ColorTheme.BG_CARD; s.border_color = ColorTheme.BORDER_DIM
 	s.set_border_width_all(1); s.set_corner_radius_all(4); s.set_content_margin_all(8)
 	card.add_theme_stylebox_override("panel", s)
 	var hbox := HBoxContainer.new()
@@ -250,7 +247,7 @@ func _build_item_row(item: Dictionary, index: int) -> PanelContainer:
 		"equipment": type_lbl.text = "[Equipment]"
 		_: type_lbl.text = "[%s]" % tt
 	type_lbl.add_theme_font_size_override("font_size", 11)
-	type_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+	type_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 	hbox.add_child(type_lbl)
 	var btn_detail := Button.new()
 	btn_detail.text = "Details"; btn_detail.custom_minimum_size = Vector2(60, 26)
@@ -266,7 +263,7 @@ func _build_relic_display() -> void:
 		var lbl := Label.new()
 		lbl.text = "No relic selected"
 		lbl.add_theme_font_size_override("font_size", 14)
-		lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+		lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 		item_container.add_child(lbl); _item_nodes.append(lbl); return
 	var card := PanelContainer.new()
 	var s := StyleBoxFlat.new()
@@ -284,7 +281,7 @@ func _build_relic_display() -> void:
 	vbox.add_child(nl)
 	var dl := Label.new()
 	dl.text = relic.get("desc", ""); dl.add_theme_font_size_override("font_size", 13)
-	dl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+	dl.add_theme_color_override("font_color", ColorTheme.TEXT_DIM)
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	vbox.add_child(dl)
 	var effects: Dictionary = relic.get("effect", {})
@@ -415,7 +412,7 @@ func _refresh_hero_equip_tab() -> void:
 			var empty := Label.new()
 			empty.text = "-- Empty --"
 			empty.add_theme_font_size_override("font_size", 12)
-			empty.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+			empty.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 			equip_vbox.add_child(empty)
 
 		# Action buttons
@@ -548,7 +545,7 @@ func _refresh_detail(item: Dictionary) -> void:
 	detail_container.add_child(nl)
 	var dl := Label.new()
 	dl.text = item.get("desc", "No description"); dl.add_theme_font_size_override("font_size", 13)
-	dl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+	dl.add_theme_color_override("font_color", ColorTheme.TEXT_DIM)
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	detail_container.add_child(dl)
 	detail_container.add_child(HSeparator.new())
@@ -604,7 +601,7 @@ func _refresh_detail(item: Dictionary) -> void:
 			var equip_title := Label.new()
 			equip_title.text = "Equip to hero:"
 			equip_title.add_theme_font_size_override("font_size", 12)
-			equip_title.add_theme_color_override("font_color", Color(0.8, 0.75, 0.5))
+			equip_title.add_theme_color_override("font_color", ColorTheme.TEXT_HEADING)
 			equip_hero_vbox.add_child(equip_title)
 			for hid in heroes:
 				var hero_def: Dictionary = FactionData.HEROES.get(hid, {})
@@ -663,15 +660,17 @@ func _on_dim_bg_input(event: InputEvent) -> void:
 
 func _make_tab_button(text: String) -> Button:
 	var btn := Button.new()
-	btn.text = text; btn.custom_minimum_size = Vector2(90, 32)
-	btn.add_theme_font_size_override("font_size", 14)
+	btn.text = text; btn.custom_minimum_size = Vector2(90, 34)
+	btn.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
+	btn.add_theme_stylebox_override("normal", ColorTheme.make_button_style_flat("normal"))
+	btn.add_theme_stylebox_override("hover", ColorTheme.make_button_style_flat("hover"))
 	return btn
 
 func _get_rarity_color(rarity: String) -> Color:
 	match rarity:
 		"legendary": return Color(1.0, 0.7, 0.1)
 		"rare": return Color(0.4, 0.6, 1.0)
-	return Color(0.7, 0.7, 0.75)
+	return ColorTheme.TEXT_DIM
 
 func _make_icon_placeholder(item: Dictionary) -> ColorRect:
 	var placeholder := ColorRect.new()

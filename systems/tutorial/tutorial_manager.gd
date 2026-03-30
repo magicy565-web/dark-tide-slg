@@ -1,112 +1,103 @@
-## tutorial_manager.gd - Guided first-game tutorial for 暗潮 SLG (v1.5)
-## Tracks tutorial state and shows contextual hints.
+## tutorial_manager.gd - SR07-style guided first-game tutorial for 暗潮 SLG (v2.0)
+## Step-by-step teaching of game mechanics, triggered by game events.
+## Each step shows a tooltip/overlay pointing to the relevant UI element.
 extends Node
 
 signal tutorial_step_changed(step_id: String)
 signal tutorial_completed()
 
-# ── Tutorial steps ──
+# ── Tutorial steps (SR07-style: sequential, event-driven) ──
+# Steps 0-8 map to increasing game complexity.
+# "trigger" controls WHEN a step appears; steps that share a trigger with the
+# previous step chain automatically (pressing "Next" shows the next one).
+# Steps with unique triggers wait until the event fires.
 const STEPS: Array = [
+	# Step 0 — Welcome
 	{
 		"id": "welcome",
-		"title": "欢迎来到暗潮世界",
-		"text": "你将率领一个暗黑势力征服大陆。\n点击任意位置继续。",
+		"title": "Welcome to Dark Tide / 欢迎来到暗潮",
+		"text": "You command a dark faction vying for supremacy.\n你将率领一个暗黑势力征服大陆。\n\n[color=yellow]Tip:[/color] Each faction has unique mechanics — Orcs build WAAAGH!, Pirates plunder for gold, Dark Elves sacrifice slaves for power.\n\nPress [color=cyan]Next[/color] to learn the basics, or [color=gray]Skip Tutorial[/color] to jump right in.",
 		"trigger": "game_start",
 		"highlight": "",
 	},
+	# Step 1 — Map Navigation
 	{
-		"id": "faction_intro",
-		"title": "阵营特性",
-		"text": "你的阵营拥有独特机制。兽人有WAAAGH!战意，海盗靠掠夺致富，暗精灵可用奴隶祭祀。",
-		"trigger": "game_start",
-		"highlight": "",
-	},
-	{
-		"id": "map_overview",
-		"title": "地图导航",
-		"text": "用WASD或鼠标边缘滚动地图。\n滚轮缩放。\n你的领地以阵营色标示。",
+		"id": "map_navigation",
+		"title": "Map Navigation / 地图导航",
+		"text": "[color=yellow]Controls:[/color]\n• [color=cyan]WASD[/color] or mouse at screen edge — scroll the map\n• [color=cyan]Mouse wheel[/color] — zoom in/out\n• [color=cyan]Minimap[/color] (bottom-right) — click to jump to any area\n\nYour territory is highlighted in your faction color. Neutral and enemy lands are shown in gray and red.",
 		"trigger": "board_ready",
 		"highlight": "board",
 	},
+	# Step 2 — Territory & Resources
 	{
-		"id": "select_territory",
-		"title": "选择领地",
-		"text": "点击你拥有的领地来查看详情。\n有军团的领地会显示盾牌标志。",
+		"id": "territory",
+		"title": "Territory & Resources / 领地与资源",
+		"text": "[color=yellow]Click any tile[/color] you own to see its details.\n\nEach territory produces [color=gold]Gold[/color], [color=green]Food[/color], and [color=silver]Iron[/color] every turn. Different tile types specialize:\n• [color=gold]Mines[/color] produce extra Iron\n• [color=green]Farms[/color] produce extra Food\n• [color=cyan]Trading Posts[/color] produce extra Gold\n\nUpgrade tiles via [color=cyan]Domestic > Upgrade[/color] to boost output.",
 		"trigger": "board_ready",
 		"highlight": "board",
 	},
+	# Step 3 — Actions & AP
 	{
-		"id": "create_army",
-		"title": "创建军团",
-		"text": "点击左侧「军事」按钮，在你的领地创建军团。\n每支军团最多5个编制。",
+		"id": "actions",
+		"title": "Actions & AP / 行动与行动点",
+		"text": "Each turn you have [color=yellow]Action Points (AP)[/color] shown at the top.\n\nThe [color=cyan]left panel[/color] shows available actions:\n• [color=red]Attack[/color] — send armies against enemies (1 AP)\n• [color=cyan]Deploy[/color] — move armies between your tiles\n• [color=green]Domestic[/color] — recruit troops, upgrade tiles, build\n• [color=magenta]Diplomacy[/color] — negotiate with factions\n• [color=yellow]End Turn[/color] — finish and collect income\n\nMore territories = more AP (1 bonus AP per 7 tiles).",
 		"trigger": "first_turn",
-		"highlight": "btn_attack",
+		"highlight": "ActionPanel",
 	},
+	# Step 4 — Combat (triggered on first attack)
 	{
-		"id": "recruit_troops",
-		"title": "招募兵种",
-		"text": "点击「内政」→「招募」来补充军力。\n不同兵种有不同属性和被动技能。",
-		"trigger": "first_turn",
-		"highlight": "btn_domestic",
-	},
-	{
-		"id": "attack_enemy",
-		"title": "进攻敌方",
-		"text": "选中己方军团后，相邻敌方领地会显示红色高亮。\n点击红色区域发动进攻。",
-		"trigger": "army_created",
-		"highlight": "board",
-	},
-	{
-		"id": "combat_basics",
-		"title": "战斗机制",
-		"text": "战斗按速度排序轮流行动，最多12回合。\n地形影响战斗：森林利弓兵，平原利骑兵。",
+		"id": "combat",
+		"title": "Combat / 战斗系统",
+		"text": "Battle resolves automatically based on army composition.\n\n[color=yellow]Key factors:[/color]\n• Unit [color=cyan]Speed[/color] determines attack order\n• [color=green]Terrain[/color] matters — forests favor archers, plains favor cavalry\n• [color=red]Heroes[/color] stationed with armies provide powerful bonuses\n• Battles last up to 12 rounds; morale breaks can cause routs\n\nAfter combat, you may choose to [color=gold]plunder[/color], [color=cyan]occupy[/color], or [color=gray]raze[/color] conquered tiles.",
 		"trigger": "first_combat",
 		"highlight": "",
 	},
+	# Step 5 — Heroes (triggered on first hero panel open)
 	{
-		"id": "economy_basics",
-		"title": "经济系统",
-		"text": "每回合领地产出金币、粮草、铁矿。\n升级领地（内政→升级）可提升产出。\n注意粮食消耗！",
-		"trigger": "turn_2",
-		"highlight": "resource_bar",
-	},
-	{
-		"id": "order_threat",
-		"title": "秩序与威胁",
-		"text": "秩序值影响产出和叛乱概率。\n威胁值越高，光明阵营越会联合对抗你。\n释放俘虏可降低威胁。",
-		"trigger": "turn_3",
-		"highlight": "order_threat_bar",
-	},
-	{
-		"id": "diplomacy_intro",
-		"title": "外交系统",
-		"text": "点击「外交」与中立势力交涉。\n完成任务提升友好度，最终可招募他们的兵种。",
-		"trigger": "turn_5",
-		"highlight": "btn_diplomacy",
-	},
-	{
-		"id": "victory_conditions",
-		"title": "胜利条件",
-		"text": "三种胜利路径：\n征服: 占领所有核心要塞\n支配: 控制60%+领地\n暗影统治: 威胁100+终极兵种",
-		"trigger": "turn_5",
+		"id": "heroes",
+		"title": "Heroes / 英雄系统",
+		"text": "Heroes are powerful characters you can recruit and deploy.\n\n[color=yellow]Hero basics:[/color]\n• Captured enemy heroes can be [color=cyan]recruited[/color], [color=red]executed[/color], or [color=gold]ransomed[/color]\n• Heroes gain [color=cyan]EXP[/color] from battles and level up\n• Each hero has unique [color=yellow]passive skills[/color] and [color=magenta]ultimate abilities[/color]\n• Station heroes in armies to boost combat power\n\nPress [color=cyan]H[/color] anytime to open the Heroes panel.",
+		"trigger": "hero_panel_opened",
 		"highlight": "",
 	},
+	# Step 6 — Diplomacy (triggered on first diplomacy panel open)
 	{
-		"id": "tutorial_end",
-		"title": "教程完成",
-		"text": "基础教程已完成！\n按ESC随时查看帮助。\n祝征途顺利！",
-		"trigger": "turn_6",
+		"id": "diplomacy",
+		"title": "Diplomacy / 外交系统",
+		"text": "Negotiate with both neutral and rival factions.\n\n[color=yellow]Options include:[/color]\n• [color=cyan]Ceasefire[/color] — temporary peace with a rival\n• [color=green]Trade[/color] — exchange resources for mutual benefit\n• [color=magenta]Vassalize[/color] — subjugate neutral factions for tribute\n• [color=gold]Alliance[/color] — coordinate attacks with allies\n\nComplete faction quests to improve relations. High [color=red]Threat[/color] makes diplomacy harder — release prisoners to lower it.",
+		"trigger": "diplomacy_panel_opened",
+		"highlight": "",
+	},
+	# Step 7 — Economy (triggered on turn 3)
+	{
+		"id": "economy",
+		"title": "Economy & Income / 经济与收入",
+		"text": "By now you should see your income flowing each turn.\n\n[color=yellow]Key economy tips:[/color]\n• [color=gold]+/- numbers[/color] next to resources show net income\n• [color=red]Negative food[/color] causes army attrition — keep food positive!\n• [color=cyan]Order[/color] affects production — low order means rebellions\n• [color=red]Threat[/color] determines how aggressively the Light faction attacks you\n• Upgrade tiles and build [color=green]Farms/Mines[/color] to grow your economy\n\nBalance expansion with economic stability.",
+		"trigger": "turn_3",
+		"highlight": "resource_bar",
+	},
+	# Step 8 — Tutorial Complete
+	{
+		"id": "tutorial_complete",
+		"title": "Tutorial Complete! / 教程完成!",
+		"text": "[color=gold]Congratulations![/color] You now know the essentials.\n\n[color=yellow]Remember:[/color]\n• Press [color=cyan]ESC[/color] for settings and help\n• Press [color=cyan]H[/color] for Heroes, [color=cyan]J[/color] for Quest Journal\n• Three victory paths: [color=red]Conquest[/color] (capture all fortresses), [color=cyan]Domination[/color] (60%+ territory), [color=magenta]Shadow Rule[/color] (threat 100 + ultimate troops)\n\nGood luck, warlord! 祝征途顺利!",
+		"trigger": "_complete",
 		"highlight": "",
 	},
 ]
 
 # ── State ──
+var _tutorial_step: int = 0           # Current step index (0-8)
+var _tutorial_complete: bool = false   # Persisted flag — once true, tutorial never shows again
 var _active: bool = false
 var _current_step_index: int = 0
 var _completed_steps: Array = []
 var _tutorial_enabled: bool = true
-var _pending_triggers: Array = []
+var _pending_triggers: Array = []      # Triggers that fired while popup was showing
 var _turn_count: int = 0
+var _combat_seen: bool = false         # Track if first combat trigger already fired
+var _hero_panel_seen: bool = false     # Track if hero panel trigger already fired
+var _diplomacy_panel_seen: bool = false # Track if diplomacy panel trigger already fired
 
 # ── UI ──
 var _popup: PanelContainer
@@ -219,17 +210,52 @@ func _connect_signals() -> void:
 	EventBus.turn_started.connect(_on_turn_started)
 	EventBus.board_ready.connect(func(): _trigger("board_ready"))
 	EventBus.army_created.connect(func(_a, _b, _c): _trigger("army_created"))
-	EventBus.combat_result.connect(func(_a, _b, _c): _trigger("first_combat"))
+	EventBus.combat_result.connect(_on_first_combat)
+	# tutorial_step signal from EventBus — used by HUD to notify hero/diplomacy opens
+	EventBus.tutorial_step.connect(_on_external_trigger)
 
 
 func start_tutorial() -> void:
-	if not _tutorial_enabled:
+	if _tutorial_complete or not _tutorial_enabled:
 		return
 	_active = true
 	_current_step_index = 0
+	_tutorial_step = 0
 	_completed_steps.clear()
 	_turn_count = 0
+	_combat_seen = false
+	_hero_panel_seen = false
+	_diplomacy_panel_seen = false
 	_trigger("game_start")
+
+
+## Called by HUD or other systems via EventBus.tutorial_step signal.
+func _on_external_trigger(step_id: String) -> void:
+	_trigger(step_id)
+
+
+## First combat — only trigger once.
+func _on_first_combat(_a: int, _b: String, _c: bool) -> void:
+	if _combat_seen:
+		return
+	_combat_seen = true
+	_trigger("first_combat")
+
+
+## Called by HUD when player opens the hero panel for the first time.
+func notify_hero_panel_opened() -> void:
+	if _hero_panel_seen:
+		return
+	_hero_panel_seen = true
+	_trigger("hero_panel_opened")
+
+
+## Called by HUD when player opens the diplomacy panel for the first time.
+func notify_diplomacy_panel_opened() -> void:
+	if _diplomacy_panel_seen:
+		return
+	_diplomacy_panel_seen = true
+	_trigger("diplomacy_panel_opened")
 
 
 func _trigger(trigger_id: String) -> void:
@@ -237,6 +263,12 @@ func _trigger(trigger_id: String) -> void:
 		return
 	if _current_step_index >= STEPS.size():
 		_end_tutorial()
+		return
+
+	# If the popup is currently visible, queue the trigger for later
+	if _popup.visible:
+		if trigger_id not in _pending_triggers:
+			_pending_triggers.append(trigger_id)
 		return
 
 	var step: Dictionary = STEPS[_current_step_index]
@@ -265,6 +297,7 @@ func _show_step(step: Dictionary) -> void:
 func _advance_step() -> void:
 	_completed_steps.append(STEPS[_current_step_index]["id"])
 	_current_step_index += 1
+	_tutorial_step = _current_step_index
 	_remove_highlight()
 	_popup.visible = false
 	_overlay.visible = false
@@ -273,30 +306,48 @@ func _advance_step() -> void:
 		_end_tutorial()
 		return
 
-	# Check if next step triggers immediately
+	# Check if next step triggers immediately (same trigger as previous)
 	var next_step: Dictionary = STEPS[_current_step_index]
 	var prev_step: Dictionary = STEPS[_current_step_index - 1]
 	if next_step["trigger"] == prev_step["trigger"]:
 		# Same trigger, show immediately
 		_show_step(next_step)
+		return
+
+	# Check if next step's trigger is "_complete" — show it immediately
+	if next_step["trigger"] == "_complete":
+		_show_step(next_step)
+		return
+
+	# Replay any pending triggers that queued while popup was showing
+	var pending := _pending_triggers.duplicate()
+	_pending_triggers.clear()
+	for t in pending:
+		_trigger(t)
 
 
 func _skip_tutorial() -> void:
 	_active = false
+	_tutorial_complete = true
+	_tutorial_enabled = false
 	_remove_highlight()
 	_popup.visible = false
 	_overlay.visible = false
-	_tutorial_enabled = false
-	EventBus.message_log.emit("教程已跳过。按ESC查看帮助。")
+	_pending_triggers.clear()
+	EventBus.tutorial_completed.emit()
+	EventBus.message_log.emit("Tutorial skipped. Press ESC for help. / 教程已跳过。按ESC查看帮助。")
 
 
 func _end_tutorial() -> void:
 	_active = false
+	_tutorial_complete = true
 	_remove_highlight()
 	_popup.visible = false
 	_overlay.visible = false
+	_pending_triggers.clear()
 	tutorial_completed.emit()
-	EventBus.message_log.emit("[color=gold]教程完成! 祝征途顺利![/color]")
+	EventBus.tutorial_completed.emit()
+	EventBus.message_log.emit("[color=gold]Tutorial complete! Good luck, warlord! / 教程完成! 祝征途顺利![/color]")
 
 
 func _apply_highlight(target_name: String) -> void:
@@ -380,7 +431,7 @@ func _find_control_by_name(node: Node, node_name: String) -> Control:
 func _on_turn_started(_pid: int) -> void:
 	_turn_count += 1
 	if _active:
-		# Only trigger "first_turn" on turn 1, not every turn (Bug fix Round 3)
+		# Only trigger "first_turn" on turn 1, not every turn
 		if _turn_count == 1:
 			_trigger("first_turn")
 		_trigger("turn_%d" % _turn_count)
@@ -395,6 +446,26 @@ func get_overlay_control() -> ColorRect:
 func is_active() -> bool:
 	return _active
 
+func is_complete() -> bool:
+	return _tutorial_complete
+
+## Reset tutorial state for new game (called by game_over_panel on restart).
+func reset() -> void:
+	_active = false
+	_current_step_index = 0
+	_tutorial_step = 0
+	_completed_steps.clear()
+	_turn_count = 0
+	_combat_seen = false
+	_hero_panel_seen = false
+	_diplomacy_panel_seen = false
+	_pending_triggers.clear()
+	_remove_highlight()
+	_popup.visible = false
+	_overlay.visible = false
+	# Note: _tutorial_complete and _tutorial_enabled are NOT reset here
+	# so completed tutorials stay completed across new games.
+
 
 # ═══════════════ SAVE / LOAD ═══════════════
 
@@ -402,14 +473,28 @@ func to_save_data() -> Dictionary:
 	return {
 		"active": _active,
 		"current_step": _current_step_index,
+		"tutorial_step": _tutorial_step,
+		"tutorial_complete": _tutorial_complete,
 		"completed_steps": _completed_steps.duplicate(),
 		"tutorial_enabled": _tutorial_enabled,
 		"turn_count": _turn_count,
+		"combat_seen": _combat_seen,
+		"hero_panel_seen": _hero_panel_seen,
+		"diplomacy_panel_seen": _diplomacy_panel_seen,
 	}
 
 func from_save_data(data: Dictionary) -> void:
 	_active = data.get("active", false)
 	_current_step_index = data.get("current_step", 0)
+	_tutorial_step = data.get("tutorial_step", _current_step_index)
+	_tutorial_complete = data.get("tutorial_complete", false)
 	_completed_steps = data.get("completed_steps", []).duplicate()
 	_tutorial_enabled = data.get("tutorial_enabled", true)
 	_turn_count = data.get("turn_count", 0)
+	_combat_seen = data.get("combat_seen", false)
+	_hero_panel_seen = data.get("hero_panel_seen", false)
+	_diplomacy_panel_seen = data.get("diplomacy_panel_seen", false)
+	# If tutorial was completed in a previous save, don't show again
+	if _tutorial_complete:
+		_active = false
+		_tutorial_enabled = false

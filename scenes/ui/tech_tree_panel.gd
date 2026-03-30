@@ -111,8 +111,8 @@ func _build_ui() -> void:
 	detail_panel = PanelContainer.new()
 	detail_panel.custom_minimum_size = Vector2(340, 0); detail_panel.visible = false
 	var ds := StyleBoxFlat.new()
-	ds.bg_color = Color(0.07, 0.06, 0.12, 0.95)
-	ds.border_color = Color(0.3, 0.45, 0.5)
+	ds.bg_color = ColorTheme.BG_SECONDARY
+	ds.border_color = ColorTheme.BORDER_DEFAULT
 	ds.set_border_width_all(1); ds.set_corner_radius_all(6); ds.set_content_margin_all(12)
 	detail_panel.add_theme_stylebox_override("panel", ds)
 	content_hbox.add_child(detail_panel)
@@ -152,8 +152,8 @@ func _refresh_status() -> void:
 	if current == "":
 		var lbl := Label.new()
 		lbl.text = "No current research"
-		lbl.add_theme_font_size_override("font_size", 14)
-		lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+		lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
+		lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 		status_container.add_child(lbl)
 	else:
 		var data: Dictionary = ResearchManager.get_tech_data(current)
@@ -163,8 +163,8 @@ func _refresh_status() -> void:
 		status_container.add_child(row)
 		var lbl := Label.new()
 		lbl.text = "Researching: %s  [%d/%d turns]  Speed: %.1f" % [data.get("name", current), progress, turns_needed, speed]
-		lbl.add_theme_font_size_override("font_size", 14)
-		lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+		lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
+		lbl.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(lbl)
 		var bar := ProgressBar.new()
@@ -183,8 +183,8 @@ func _refresh_status() -> void:
 		for tid in queue: names.append(ResearchManager.get_tech_name(tid))
 		var ql := Label.new()
 		ql.text = "Queue: %s" % " -> ".join(names)
-		ql.add_theme_font_size_override("font_size", 12)
-		ql.add_theme_color_override("font_color", Color(0.6, 0.6, 0.7))
+		ql.add_theme_font_size_override("font_size", ColorTheme.FONT_SMALL + 1)
+		ql.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 		status_container.add_child(ql)
 
 func _refresh_tree() -> void:
@@ -208,8 +208,8 @@ func _refresh_tree() -> void:
 	if branches.is_empty():
 		var lbl := Label.new()
 		lbl.text = "No research available (build an academy first)"
-		lbl.add_theme_font_size_override("font_size", 14)
-		lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+		lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
+		lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 		tree_container.add_child(lbl); _tree_nodes.append(lbl); return
 
 	for branch_name in branches:
@@ -243,7 +243,7 @@ func _refresh_tree() -> void:
 
 			var card := PanelContainer.new()
 			var cs := StyleBoxFlat.new()
-			cs.bg_color = Color(0.08, 0.08, 0.12, 0.85)
+			cs.bg_color = ColorTheme.BG_CARD
 			cs.border_color = border_color
 			cs.border_width_left = 4
 			cs.border_width_top = 1; cs.border_width_right = 1; cs.border_width_bottom = 1
@@ -283,7 +283,7 @@ func _refresh_tree() -> void:
 			var turns_lbl := Label.new()
 			turns_lbl.text = "%dt" % d.get("turns", 1)
 			turns_lbl.add_theme_font_size_override("font_size", 10)
-			turns_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+			turns_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 			card_hbox.add_child(turns_lbl)
 
 			# Make clickable
@@ -326,19 +326,19 @@ func _refresh_detail() -> void:
 	# Name & meta
 	var nl := Label.new()
 	nl.text = data.get("name", _selected_tech_id)
-	nl.add_theme_font_size_override("font_size", 18)
-	nl.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
+	nl.add_theme_font_size_override("font_size", ColorTheme.FONT_HEADING - 2)
+	nl.add_theme_color_override("font_color", ColorTheme.TEXT_HEADING)
 	detail_container.add_child(nl)
 	var ml := Label.new()
 	ml.text = "Branch: %s  |  Tier: T%d" % [data.get("branch", "?"), data.get("tier", 0)]
 	ml.add_theme_font_size_override("font_size", 12)
-	ml.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+	ml.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 	detail_container.add_child(ml)
 	detail_container.add_child(HSeparator.new())
 	# Description
 	var dl := Label.new()
 	dl.text = data.get("desc", "No description"); dl.add_theme_font_size_override("font_size", 13)
-	dl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75))
+	dl.add_theme_color_override("font_color", ColorTheme.TEXT_DIM)
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	detail_container.add_child(dl)
 	# Cost
@@ -396,16 +396,12 @@ func _refresh_detail() -> void:
 		var bs := Button.new()
 		bs.text = "Start Research" if current == "" else "Queue Research"
 		bs.custom_minimum_size = Vector2(140, 34)
-		bs.add_theme_font_size_override("font_size", 14)
+		bs.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
 		bs.pressed.connect(_on_start_research.bind(_selected_tech_id))
-		var bs_style := StyleBoxFlat.new()
-		bs_style.bg_color = Color(0.15, 0.25, 0.15, 0.9)
-		bs_style.border_color = Color(0.3, 0.7, 0.3)
-		bs_style.set_border_width_all(1)
-		bs_style.set_corner_radius_all(6)
-		bs_style.set_content_margin_all(6)
-		bs.add_theme_stylebox_override("normal", bs_style)
-		bs.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
+		var bs_styles: Dictionary = ColorTheme.make_button_style_confirm()
+		for state_key in bs_styles:
+			bs.add_theme_stylebox_override(state_key, bs_styles[state_key])
+		bs.add_theme_color_override("font_color", ColorTheme.TEXT_SUCCESS)
 		detail_container.add_child(bs)
 	else:
 		var ll := Label.new()

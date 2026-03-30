@@ -146,15 +146,16 @@ func _on_game_started(faction_id: int) -> void:
 		board.rebuild()
 	EventBus.board_ready.emit()
 
-	# Start tutorial for new games
+	# Start tutorial for new games (skipped if previously completed)
 	TutorialManager.start_tutorial()
-	# Add tutorial UI to the scene tree
-	var overlay := TutorialManager.get_overlay_control()
-	var popup := TutorialManager.get_popup_control()
-	if overlay.get_parent() == null:
-		add_child(overlay)
-	if popup.get_parent() == null:
-		add_child(popup)
+	# Add tutorial UI to the scene tree if tutorial is active
+	if TutorialManager.is_active():
+		var overlay := TutorialManager.get_overlay_control()
+		var popup := TutorialManager.get_popup_control()
+		if overlay.get_parent() == null:
+			add_child(overlay)
+		if popup.get_parent() == null:
+			add_child(popup)
 
 
 func _on_combat_view_closed() -> void:

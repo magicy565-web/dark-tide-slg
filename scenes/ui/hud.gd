@@ -1061,6 +1061,9 @@ func _on_domestic_pressed() -> void:
 func _on_diplomacy_pressed() -> void:
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("button_click")
+	# Notify tutorial system that diplomacy panel was opened
+	if TutorialManager and TutorialManager.has_method("notify_diplomacy_panel_opened"):
+		TutorialManager.notify_diplomacy_panel_opened()
 	if _current_mode == ActionMode.DIPLOMACY:
 		_close_target_panel()
 		return
@@ -2082,6 +2085,9 @@ func _on_buy_slave() -> void:
 func _on_hero_pressed() -> void:
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("open_panel")
+	# Notify tutorial system that hero panel was opened
+	if TutorialManager and TutorialManager.has_method("notify_hero_panel_opened"):
+		TutorialManager.notify_hero_panel_opened()
 	# Hero panel is managed by main.gd scene — find it via tree
 	var hero_panel = get_tree().get_root().find_child("HeroPanel", true, false)
 	if hero_panel and hero_panel.has_method("show_panel"):

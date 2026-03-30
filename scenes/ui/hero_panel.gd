@@ -241,10 +241,10 @@ func _update_tab_highlight() -> void:
 
 func _set_tab_active(btn: Button, active: bool) -> void:
 	if active:
-		btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+		btn.add_theme_color_override("font_color", ColorTheme.ACCENT_GOLD_BRIGHT)
 		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.15, 0.12, 0.08)
-		style.border_color = Color(0.7, 0.5, 0.2)
+		style.bg_color = ColorTheme.BTN_NORMAL_BG
+		style.border_color = ColorTheme.ACCENT_GOLD
 		style.set_border_width_all(1)
 		style.set_corner_radius_all(4)
 		btn.add_theme_stylebox_override("normal", style)
@@ -327,8 +327,8 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.custom_minimum_size = Vector2(0, 72)
 	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = Color(0.08, 0.07, 0.12, 0.9)
-	card_style.border_color = Color(0.3, 0.25, 0.2)
+	card_style.bg_color = ColorTheme.BG_CARD
+	card_style.border_color = ColorTheme.BORDER_DIM
 	card_style.set_border_width_all(1)
 	card_style.set_corner_radius_all(6)
 	card_style.set_content_margin_all(8)
@@ -463,7 +463,7 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 		btn_execute.text = "Execute"
 		btn_execute.custom_minimum_size = Vector2(80, 28)
 		btn_execute.add_theme_font_size_override("font_size", 12)
-		btn_execute.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		btn_execute.add_theme_color_override("font_color", ColorTheme.TEXT_RED)
 		btn_execute.pressed.connect(_on_execute_hero.bind(hero_id))
 		btn_vbox.add_child(btn_execute)
 
@@ -472,7 +472,7 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 		btn_ransom.text = "Ransom"
 		btn_ransom.custom_minimum_size = Vector2(80, 28)
 		btn_ransom.add_theme_font_size_override("font_size", 12)
-		btn_ransom.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+		btn_ransom.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 		btn_ransom.pressed.connect(_on_ransom_hero.bind(hero_id))
 		btn_vbox.add_child(btn_ransom)
 
@@ -481,7 +481,7 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 		btn_exile.text = "Exile"
 		btn_exile.custom_minimum_size = Vector2(80, 28)
 		btn_exile.add_theme_font_size_override("font_size", 12)
-		btn_exile.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+		btn_exile.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 		btn_exile.pressed.connect(_on_exile_hero.bind(hero_id))
 		btn_vbox.add_child(btn_exile)
 
@@ -547,7 +547,7 @@ func _refresh_detail() -> void:
 	desc_lbl.append_text(hero_def.get("desc", ""))
 	desc_lbl.custom_minimum_size = Vector2(0, 40)
 	desc_lbl.add_theme_font_size_override("normal_font_size", 12)
-	desc_lbl.add_theme_color_override("default_color", Color(0.7, 0.7, 0.75))
+	desc_lbl.add_theme_color_override("default_color", ColorTheme.TEXT_DIM)
 	detail_container.add_child(desc_lbl)
 
 	var sep := HSeparator.new()
@@ -621,7 +621,7 @@ func _build_equipment_slots() -> void:
 	slot_lbl.text = "Item:"
 	slot_lbl.custom_minimum_size = Vector2(50, 0)
 	slot_lbl.add_theme_font_size_override("font_size", 12)
-	slot_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+	slot_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 	slot_row.add_child(slot_lbl)
 
 	var equip_id: String = ""
@@ -777,8 +777,8 @@ func _show_equip_selection_popup(hero_id: String, items: Array) -> void:
 	popup_bg.offset_bottom = 100
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.18, 0.98)
-	style.border_color = Color(0.6, 0.55, 0.35)
+	style.bg_color = ColorTheme.BG_SECONDARY
+	style.border_color = ColorTheme.BORDER_HIGHLIGHT
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(6)
 	style.content_margin_left = 12
@@ -795,8 +795,8 @@ func _show_equip_selection_popup(hero_id: String, items: Array) -> void:
 	var title := Label.new()
 	title.text = "Select Equipment"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 16)
-	title.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
+	title.add_theme_font_size_override("font_size", ColorTheme.FONT_SUBHEADING)
+	title.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 	vbox.add_child(title)
 
 	vbox.add_child(HSeparator.new())
@@ -880,13 +880,13 @@ func _add_stat_row(stat_name: String, value: int, color: Color, bonus: int = 0) 
 	name_lbl.text = stat_name
 	name_lbl.custom_minimum_size = Vector2(40, 0)
 	name_lbl.add_theme_font_size_override("font_size", 13)
-	name_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+	name_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 	row.add_child(name_lbl)
 
 	# Bar
 	var bar_bg := ColorRect.new()
 	bar_bg.custom_minimum_size = Vector2(160, 16)
-	bar_bg.color = Color(0.15, 0.15, 0.18)
+	bar_bg.color = ColorTheme.BG_DARK
 	row.add_child(bar_bg)
 
 	var bar_fill := ColorRect.new()
@@ -918,11 +918,13 @@ func _make_tab_button(text: String) -> Button:
 	var btn := Button.new()
 	btn.text = text
 	btn.custom_minimum_size = Vector2(140, 34)
-	btn.add_theme_font_size_override("font_size", 14)
+	btn.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
+	btn.add_theme_stylebox_override("normal", ColorTheme.make_button_style_flat("normal"))
+	btn.add_theme_stylebox_override("hover", ColorTheme.make_button_style_flat("hover"))
 	return btn
 
 
-func _make_info_label(text: String, color: Color = Color(0.6, 0.6, 0.65)) -> Label:
+func _make_info_label(text: String, color: Color = ColorTheme.TEXT_MUTED) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_font_size_override("font_size", 13)
@@ -938,8 +940,8 @@ func _get_rarity_color(rarity: String) -> Color:
 	match rarity:
 		"legendary": return Color(1.0, 0.7, 0.1)
 		"rare": return Color(0.4, 0.6, 1.0)
-		"common": return Color(0.7, 0.7, 0.75)
-		_: return Color(0.7, 0.7, 0.75)
+		"common": return ColorTheme.TEXT_DIM
+		_: return ColorTheme.TEXT_DIM
 
 func _get_affection_bonuses(hero_id: String) -> Dictionary:
 	var aff: int = HeroSystem.hero_affection.get(hero_id, 0) if "hero_affection" in HeroSystem else 0

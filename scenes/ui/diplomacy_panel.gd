@@ -68,7 +68,7 @@ func _build_ui() -> void:
 
 	main_panel = PanelContainer.new()
 	main_panel.anchor_right = 1.0; main_panel.anchor_bottom = 1.0
-	main_panel.offset_left = 40; main_panel.offset_right = -40
+	main_panel.offset_left = 30; main_panel.offset_right = -30
 	main_panel.offset_top = 30; main_panel.offset_bottom = -30
 	var style := StyleBoxFlat.new()
 	style.bg_color = ColorTheme.BG_SECONDARY
@@ -88,8 +88,8 @@ func _build_ui() -> void:
 	outer_vbox.add_child(header_row)
 	header_label = Label.new()
 	header_label.text = "Diplomacy Overview"
-	header_label.add_theme_font_size_override("font_size", 22)
-	header_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.4))
+	header_label.add_theme_font_size_override("font_size", ColorTheme.FONT_HEADING + 2)
+	header_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 	header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(header_label)
 	btn_close = Button.new()
@@ -144,7 +144,7 @@ func _update_tab_highlight() -> void:
 	var tabs_map: Dictionary = {"evil": btn_tab_evil, "light": btn_tab_light, "neutral": btn_tab_neutral}
 	for key in tabs_map:
 		if key == _current_tab:
-			tabs_map[key].add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+			tabs_map[key].add_theme_color_override("font_color", ColorTheme.ACCENT_GOLD_BRIGHT)
 		else:
 			tabs_map[key].remove_theme_color_override("font_color")
 
@@ -190,7 +190,7 @@ func _build_evil_factions() -> void:
 		elif hostile:
 			status_text = "Hostile"; status_color = Color(1.0, 0.4, 0.3)
 		else:
-			status_text = "Neutral"; status_color = Color(0.7, 0.7, 0.75)
+			status_text = "Neutral"; status_color = ColorTheme.TEXT_DIM
 
 		var card := _build_faction_card(fname, status_text, status_color, _get_evil_faction_color(fid))
 
@@ -270,7 +270,7 @@ func _build_evil_factions() -> void:
 					btn_break.text = "Break: %s" % DiplomacyManager._get_treaty_type_name(treaty["type"])
 					btn_break.custom_minimum_size = Vector2(140, 28)
 					btn_break.add_theme_font_size_override("font_size", 11)
-					btn_break.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
+					btn_break.add_theme_color_override("font_color", ColorTheme.TEXT_WARNING)
 					var ttype: String = treaty["type"]; var tfid: int = fid
 					btn_break.pressed.connect(_on_break_treaty.bind(tfid, ttype))
 					card.get_child(0).add_child(btn_break)
@@ -299,7 +299,7 @@ func _build_light_factions() -> void:
 		status_color = Color(1.0, 0.7, 0.3)
 	else:
 		status_text = "Vigilant (Threat %d)" % threat
-		status_color = Color(0.7, 0.7, 0.75)
+		status_color = ColorTheme.TEXT_DIM
 
 	var card := _build_faction_card("Light Alliance", status_text, status_color, Color(0.4, 0.6, 1.0))
 
@@ -329,8 +329,8 @@ func _build_light_factions() -> void:
 	# Description
 	var desc_lbl := Label.new()
 	desc_lbl.text = "The Light Alliance is naturally hostile to dark forces, but can negotiate ceasefires or extortion"
-	desc_lbl.add_theme_font_size_override("font_size", 11)
-	desc_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+	desc_lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_SMALL)
+	desc_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
 	card.get_child(0).add_child(desc_lbl)
 
@@ -374,7 +374,7 @@ func _build_neutral_factions() -> void:
 		var status_text: String; var status_color: Color
 		match tier:
 			"hostile": status_text = "Hostile"; status_color = Color(1.0, 0.4, 0.3)
-			"neutral": status_text = "Neutral"; status_color = Color(0.7, 0.7, 0.75)
+			"neutral": status_text = "Neutral"; status_color = ColorTheme.TEXT_DIM
 			"friendly": status_text = "Friendly"; status_color = Color(0.5, 0.8, 0.4)
 			"allied": status_text = "Allied"; status_color = Color(0.3, 0.7, 1.0)
 			"tamed": status_text = "Tamed"; status_color = Color(1.0, 0.85, 0.3)
@@ -427,7 +427,7 @@ func _build_faction_card(fname: String, status_text: String, status_color: Color
 	var s := StyleBoxFlat.new()
 	s.bg_color = ColorTheme.BG_PANEL
 	s.border_color = name_color.darkened(0.4)
-	s.set_border_width_all(1); s.set_corner_radius_all(6); s.set_content_margin_all(10)
+	s.set_border_width_all(1); s.set_corner_radius_all(6); s.set_content_margin_all(8)
 	card.add_theme_stylebox_override("panel", s)
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 4)
@@ -436,7 +436,7 @@ func _build_faction_card(fname: String, status_text: String, status_color: Color
 	title_row.add_theme_constant_override("separation", 12)
 	vbox.add_child(title_row)
 	var name_lbl := Label.new()
-	name_lbl.text = fname; name_lbl.add_theme_font_size_override("font_size", 16)
+	name_lbl.text = fname; name_lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_SUBHEADING)
 	name_lbl.add_theme_color_override("font_color", name_color)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(name_lbl)
@@ -533,21 +533,9 @@ func _on_threat_changed(_val: int) -> void:
 func _make_tab_button(text: String) -> Button:
 	var btn := Button.new()
 	btn.text = text; btn.custom_minimum_size = Vector2(140, 34)
-	btn.add_theme_font_size_override("font_size", 14)
-	var style_normal := StyleBoxFlat.new()
-	style_normal.bg_color = Color(0.1, 0.1, 0.15, 0.8)
-	style_normal.border_color = Color(0.3, 0.3, 0.35)
-	style_normal.set_border_width_all(1)
-	style_normal.set_corner_radius_all(6)
-	style_normal.set_content_margin_all(6)
-	btn.add_theme_stylebox_override("normal", style_normal)
-	var style_hover := StyleBoxFlat.new()
-	style_hover.bg_color = Color(0.15, 0.15, 0.22, 0.9)
-	style_hover.border_color = Color(0.5, 0.45, 0.3)
-	style_hover.set_border_width_all(1)
-	style_hover.set_corner_radius_all(6)
-	style_hover.set_content_margin_all(6)
-	btn.add_theme_stylebox_override("hover", style_hover)
+	btn.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
+	btn.add_theme_stylebox_override("normal", ColorTheme.make_button_style_flat("normal"))
+	btn.add_theme_stylebox_override("hover", ColorTheme.make_button_style_flat("hover"))
 	return btn
 
 func _get_evil_faction_color(fid: int) -> Color:
@@ -555,7 +543,7 @@ func _get_evil_faction_color(fid: int) -> Color:
 		FactionData.FactionID.ORC: return Color(0.9, 0.5, 0.2)
 		FactionData.FactionID.PIRATE: return Color(0.4, 0.6, 0.9)
 		FactionData.FactionID.DARK_ELF: return Color(0.6, 0.3, 0.8)
-	return Color(0.7, 0.7, 0.75)
+	return ColorTheme.TEXT_DIM
 
 func _get_faction_key(fid: int) -> String:
 	match fid:
