@@ -1297,6 +1297,10 @@ func to_save_data() -> Dictionary:
 		"recruitment_event_counter": _recruitment_event_counter,
 		"mercenary_loyalty": _mercenary_loyalty.duplicate(),
 		"wandering_hero_pool": _wandering_hero_pool.duplicate(),
+		# BUG FIX R17: save missing fields that were declared but not serialized
+		"exiled_heroes": _exiled_heroes.duplicate(),
+		"hero_stat_bonuses": _hero_stat_bonuses.duplicate(true),
+		"hidden_hero_notifications": _hidden_hero_notifications.duplicate(),
 	}
 	data["hero_leveling"] = HeroLeveling.serialize()
 	return data
@@ -1339,6 +1343,18 @@ func from_save_data(data: Dictionary) -> void:
 	_recruitment_event_counter = data.get("recruitment_event_counter", 0)
 	_mercenary_loyalty = data.get("mercenary_loyalty", {}).duplicate()
 	_wandering_hero_pool = data.get("wandering_hero_pool", []).duplicate()
+	# BUG FIX R17: restore missing fields
+	_exiled_heroes = data.get("exiled_heroes", {}).duplicate()
+	_hero_stat_bonuses = data.get("hero_stat_bonuses", {}).duplicate(true)
+	_hidden_hero_notifications = data.get("hidden_hero_notifications", []).duplicate()
+	# Fix int keys in exiled_heroes after JSON round-trip (hero_id is String, value is int)
+	for hid in _exiled_heroes:
+		_exiled_heroes[hid] = int(_exiled_heroes[hid])
+	# Fix int values in hero_stat_bonuses
+	for hid in _hero_stat_bonuses:
+		if _hero_stat_bonuses[hid] is Dictionary:
+			for stat_key in _hero_stat_bonuses[hid]:
+				_hero_stat_bonuses[hid][stat_key] = int(_hero_stat_bonuses[hid][stat_key])
 	# Re-register discovered hidden hero templates into runtime registry
 	_hidden_hero_data.clear()
 	for entry in BalanceConfig.HIDDEN_HEROES:

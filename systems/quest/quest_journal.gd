@@ -1096,6 +1096,14 @@ func from_save_data(data: Dictionary) -> void:
 			"expeditions_defended", "total_kills", "ap_purchased", "tiles_not_lost_streak"]:
 		if _stats.has(stat_key):
 			_stats[stat_key] = int(_stats[stat_key])
+	# BUG FIX R17: fix int values inside tiles_captured_log nested dicts after JSON round-trip
+	if _stats.has("tiles_captured_log") and _stats["tiles_captured_log"] is Array:
+		for entry in _stats["tiles_captured_log"]:
+			if entry is Dictionary:
+				if entry.has("turn"):
+					entry["turn"] = int(entry["turn"])
+				if entry.has("count"):
+					entry["count"] = int(entry["count"])
 	# Fix status/completed_at in progress dicts
 	for prog_dict in [_main_progress, _side_progress, _challenge_progress, _character_progress]:
 		for qid in prog_dict:
