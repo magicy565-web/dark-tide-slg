@@ -2,7 +2,7 @@
 ## Autoload singleton. Serializes full game state to JSON files.
 extends Node
 
-const SAVE_VERSION: String = "3.3.0"
+const SAVE_VERSION: String = "3.7.0"
 const SAVE_DIR: String = "user://saves/"
 const MAX_MANUAL_SLOTS: int = 5
 const AUTO_SLOT: int = 99
@@ -230,6 +230,8 @@ func _collect_save_data() -> Dictionary:
 		"treaty_system": TreatySystem.to_save_data() if TreatySystem != null else {},
 		"equipment_forge": EquipmentForge.to_save_data() if EquipmentForge != null else {},
 		"supply_logistics": SupplyLogistics.to_save_data() if SupplyLogistics != null else {},
+		"weather": WeatherSystem.to_save_data() if WeatherSystem != null else {},
+		"espionage": EspionageSystem.to_save_data() if EspionageSystem != null else {},
 	}
 
 
@@ -404,6 +406,14 @@ func _apply_save_data(data: Dictionary) -> void:
 	# 4l. Restore supply logistics state (v3.6+)
 	if data.has("supply_logistics") and SupplyLogistics != null:
 		SupplyLogistics.from_save_data(data.get("supply_logistics", {}))
+
+	# 4m. Restore weather system state (v3.7+)
+	if data.has("weather") and WeatherSystem != null:
+		WeatherSystem.from_save_data(data.get("weather", {}))
+
+	# 4n. Restore espionage system state (v3.7+)
+	if data.has("espionage") and EspionageSystem != null:
+		EspionageSystem.from_save_data(data.get("espionage", {}))
 
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()

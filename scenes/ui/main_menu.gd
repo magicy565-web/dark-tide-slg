@@ -25,6 +25,7 @@ var loading_label: Label
 var btn_new_game: Button
 var btn_continue: Button
 var btn_settings: Button
+var btn_credits: Button
 var version_label: Label
 
 # Faction selection refs
@@ -35,6 +36,11 @@ var faction_preview_panel: PanelContainer
 var faction_crest_display: TextureRect
 var btn_confirm: Button
 var btn_back: Button
+
+# Credits panel refs
+var credits_panel: PanelContainer
+var credits_scroll: ScrollContainer
+var btn_credits_back: Button
 
 # Faction crest paths
 const CREST_PATHS := {
@@ -126,6 +132,7 @@ func _build_ui() -> void:
 	_build_title_panel()
 	_build_faction_panel()
 	_build_loading_label()
+	_build_credits_panel()
 
 
 func _build_title_panel() -> void:
@@ -191,9 +198,13 @@ func _build_title_panel() -> void:
 	btn_settings.pressed.connect(_on_settings)
 	vbox.add_child(btn_settings)
 
+	btn_credits = _make_menu_button("Credits")
+	btn_credits.pressed.connect(_on_credits)
+	vbox.add_child(btn_credits)
+
 	# Version
 	version_label = Label.new()
-	version_label.text = "v4.0.0-pixel"
+	version_label.text = "v3.7.0-pixel"
 	_apply_font_to_label(version_label)
 	version_label.add_theme_font_size_override("font_size", 11)
 	version_label.add_theme_color_override("font_color", Color(0.4, 0.4, 0.45))
@@ -360,6 +371,119 @@ func _build_loading_label() -> void:
 	root.add_child(loading_label)
 
 
+func _build_credits_panel() -> void:
+	credits_panel = PanelContainer.new()
+	credits_panel.name = "CreditsPanel"
+	credits_panel.anchor_left = 0.5
+	credits_panel.anchor_right = 0.5
+	credits_panel.anchor_top = 0.5
+	credits_panel.anchor_bottom = 0.5
+	credits_panel.offset_left = -320
+	credits_panel.offset_right = 320
+	credits_panel.offset_top = -260
+	credits_panel.offset_bottom = 260
+	credits_panel.visible = false
+	var cstyle := StyleBoxFlat.new()
+	cstyle.bg_color = Color(0.06, 0.05, 0.1, 0.95)
+	cstyle.border_color = Color(0.6, 0.3, 0.1)
+	cstyle.set_border_width_all(2)
+	cstyle.set_corner_radius_all(12)
+	cstyle.set_content_margin_all(20)
+	credits_panel.add_theme_stylebox_override("panel", cstyle)
+	root.add_child(credits_panel)
+
+	var outer_vbox := VBoxContainer.new()
+	outer_vbox.add_theme_constant_override("separation", 12)
+	credits_panel.add_child(outer_vbox)
+
+	# Title
+	var cred_title := Label.new()
+	cred_title.text = "CREDITS"
+	_apply_font_to_label(cred_title)
+	cred_title.add_theme_font_size_override("font_size", 28)
+	cred_title.add_theme_color_override("font_color", Color(0.85, 0.55, 0.15))
+	cred_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	outer_vbox.add_child(cred_title)
+
+	var sep := HSeparator.new()
+	outer_vbox.add_child(sep)
+
+	# Scrollable credits content
+	credits_scroll = ScrollContainer.new()
+	credits_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	outer_vbox.add_child(credits_scroll)
+
+	var cred_rtl := RichTextLabel.new()
+	cred_rtl.bbcode_enabled = true
+	cred_rtl.fit_content = true
+	cred_rtl.scroll_active = false
+	_apply_font_to_rtl(cred_rtl)
+	cred_rtl.add_theme_font_size_override("normal_font_size", 14)
+	cred_rtl.add_theme_color_override("default_color", Color(0.85, 0.85, 0.88))
+	cred_rtl.text = _get_credits_text()
+	credits_scroll.add_child(cred_rtl)
+
+	# Back button
+	var btn_row := CenterContainer.new()
+	outer_vbox.add_child(btn_row)
+	btn_credits_back = _make_menu_button("Back")
+	btn_credits_back.custom_minimum_size = Vector2(140, 38)
+	btn_credits_back.pressed.connect(_on_credits_back)
+	btn_row.add_child(btn_credits_back)
+
+
+func _get_credits_text() -> String:
+	return """[center][color=orange][b]DARK TIDE[/b][/color]
+[color=gray]暗潮 — Sengoku Rance Style Turn-Based Strategy[/color][/center]
+
+[color=yellow][b]Game Design & Programming[/b][/color]
+magicy565
+
+[color=yellow][b]Art Direction[/b][/color]
+Character Illustrations & Chibi Animations
+UI Design & Pixel Art Assets
+
+[color=yellow][b]Systems Design[/b][/color]
+Combat System (Sengoku Rance 07 style)
+Strategic Map (Total War: Warhammer style)
+Faction AI & Diplomacy
+Weather & Season System
+Espionage & Intelligence Network
+Supply Logistics
+Hero Leveling & Equipment Forge
+
+[color=yellow][b]Characters[/b][/color]
+[color=#cc6666]Rin (凛)[/color] — Sworn Knight
+[color=#6666cc]Yukino (雪乃)[/color] — White Lily Priestess
+[color=#cc6633]Momiji (紅葉)[/color] — Maple Cavalry
+[color=#66cccc]Hyouka (冰華)[/color] — Temple Guardian
+[color=#33cc99]Suirei (翠玲)[/color] — Moonlight Archer
+[color=#9966cc]Gekka (月華)[/color] — Lunar Attendant
+[color=#669966]Hakagure (叶隐)[/color] — Shadow Shinobi
+[color=#6699cc]Sou (蒼)[/color] — Star Disciple
+[color=#cc66cc]Shion (紫苑)[/color] — Chrono Guardian
+[color=#cc3333]Homura (焔)[/color] — Flame Dancer
+[color=#3399cc]Sara (沙羅)[/color] — Desert Wanderer
+[color=#cc9933]Mei (芽衣)[/color] — Alchemist
+[color=#cc6699]Kaede (楓)[/color] — Blade Dancer
+[color=#cc3366]Akane (茜)[/color] — Blood Moon
+[color=#ff9966]Hanabi (花火)[/color] — Fireworks Master
+[color=#33cccc]Hibiki (響)[/color] — Sound Weaver
+[color=#cc9966]Youya (陽夜)[/color] — Dawn Seeker
+[color=#3366cc]Shion Pirate (紫苑·海盗)[/color] — Corsair
+
+[color=yellow][b]Engine[/b][/color]
+Godot Engine 4.2+
+GDScript
+
+[color=yellow][b]Special Thanks[/b][/color]
+Sengoku Rance (AliceSoft) — for the timeless battle system design
+Total War: Warhammer (Creative Assembly) — for the strategic map inspiration
+The Godot community — for the incredible open-source engine
+
+[center][color=gray]© 2026 Dark Tide Project[/color][/center]"""
+
+
 # ═══════════════════════════════════════════════════════════════
 #                       PHASE SWITCHING
 # ═══════════════════════════════════════════════════════════════
@@ -369,6 +493,7 @@ func _show_title() -> void:
 	title_panel.visible = true
 	faction_panel.visible = false
 	loading_label.visible = false
+	credits_panel.visible = false
 	# Check if save exists
 	btn_continue.disabled = not SaveManager.has_save(0)
 
@@ -414,6 +539,18 @@ func _on_settings() -> void:
 	var sp = get_tree().root.find_child("SettingsPanel", true, false)
 	if sp and sp.has_method("toggle_settings"):
 		sp.toggle_settings()
+
+
+func _on_credits() -> void:
+	_phase = "credits"
+	title_panel.visible = false
+	faction_panel.visible = false
+	loading_label.visible = false
+	credits_panel.visible = true
+
+
+func _on_credits_back() -> void:
+	_show_title()
 
 
 func _on_faction_button(faction_id: int) -> void:

@@ -2,6 +2,51 @@
 
 ---
 
+## v3.7.0 — 2026-03-30 (存档修复 + Credits画面)
+
+### 修复: WeatherSystem 未注册为 Autoload (P1)
+
+- **BUG**: WeatherSystem (`systems/world/weather_system.gd`) 有 `class_name` 但从未注册为 Autoload
+- 多处代码通过 `root.has_node("WeatherSystem")` 访问，运行时始终找不到节点
+- project.godot 新增 `WeatherSystem` Autoload 注册
+- 天气/季节/燃烧地块现在正常运作
+
+### 修复: WeatherSystem 未纳入存档 (P1)
+
+- **BUG**: 天气/季节/燃烧地块状态在存档后丢失
+- save_manager.gd `_collect_save_data()` 新增 `"weather"` 条目
+- save_manager.gd `_apply_save_data()` 新增恢复块 (4m)
+- 存档包含: current_season, current_weather, current_turn, season_turn, burning_tiles
+
+### 修复: EspionageSystem 未纳入存档 (P1)
+
+- **BUG**: 情报/反谍/冷却/侦察/破坏状态在存档后丢失
+- save_manager.gd `_collect_save_data()` 新增 `"espionage"` 条目
+- save_manager.gd `_apply_save_data()` 新增恢复块 (4n)
+- 存档包含: intel, counter_intel, cooldowns, revealed_tiles, intercepted_orders, sabotaged_tiles, wounded_heroes, consecutive_failures, scout_history
+
+### 新增: Credits 画面
+
+- 主菜单新增 "Credits" 按钮
+- 滚动面板显示: 制作团队/系统设计/18位角色/引擎/致谢
+- 返回按钮回到标题画面
+
+### 版本号更新
+
+- SAVE_VERSION: 3.3.0 → 3.7.0
+- main_menu 版本标签: v4.0.0-pixel → v3.7.0-pixel
+
+### 文件变更清单
+
+| 文件 | 变更类型 |
+|------|----------|
+| project.godot | 增强 (+WeatherSystem Autoload) |
+| autoloads/save_manager.gd | 增强 (天气+谍报存档/读档, 版本号) |
+| scenes/ui/main_menu.gd | 增强 (Credits画面 + 版本号) |
+| CHANGELOG.md | 新增条目 |
+
+---
+
 ## v3.6.1 — 2026-03-30 (关键集成修复: 孤立系统接入运行时)
 
 ### 修复: 兵种训练回合推进
