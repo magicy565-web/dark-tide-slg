@@ -234,14 +234,14 @@ func apply_difficulty(level: String) -> bool:
 # ═══════════════ POWER BUDGET CALCULATOR ═══════════════
 
 ## Calculate raw power: (ATK + DEF) × soldiers
-static func raw_power(troop: Dictionary) -> float:
+func raw_power(troop: Dictionary) -> float:
 	var atk: float = float(troop.get("base_atk", 0))
 	var def: float = float(troop.get("base_def", 0))
 	var soldiers: int = troop.get("max_soldiers", 1)
 	return (atk + def) * soldiers
 
 ## Calculate effective power: raw_power × passive_multiplier
-static func effective_power(troop: Dictionary) -> float:
+func effective_power(troop: Dictionary) -> float:
 	var rp: float = raw_power(troop)
 	var passive: String = troop.get("passive", "")
 	var mult: float = PASSIVE_POWER_MULT.get(passive, 1.0)
@@ -251,7 +251,7 @@ static func effective_power(troop: Dictionary) -> float:
 	return rp * mult
 
 ## Calculate cost efficiency: effective_power / recruit_cost
-static func cost_efficiency(troop: Dictionary) -> float:
+func cost_efficiency(troop: Dictionary) -> float:
 	var ep: float = effective_power(troop)
 	var cost: int = troop.get("recruit_cost", 1)
 	if cost <= 0:
@@ -259,7 +259,7 @@ static func cost_efficiency(troop: Dictionary) -> float:
 	return ep / float(cost)
 
 ## Calculate DPS estimate: ATK × soldiers / DAMAGE_DIVISOR × passive_mult
-static func dps_estimate(troop: Dictionary) -> float:
+func dps_estimate(troop: Dictionary) -> float:
 	var atk: float = float(troop.get("base_atk", 0))
 	var soldiers: int = troop.get("max_soldiers", 1)
 	var passive: String = troop.get("passive", "")
@@ -269,7 +269,7 @@ static func dps_estimate(troop: Dictionary) -> float:
 	return soldiers * effective_atk * mult / 10.0
 
 ## Calculate EHP (effective hit points): soldiers × hp_per_soldier × (1 + DEF/10) × passive_mult
-static func ehp_estimate(troop: Dictionary) -> float:
+func ehp_estimate(troop: Dictionary) -> float:
 	var def_val: float = float(troop.get("base_def", 0))
 	var soldiers: int = troop.get("max_soldiers", 1)
 	var hpp: int = troop.get("hp_per_soldier", 5)
@@ -284,7 +284,7 @@ static func ehp_estimate(troop: Dictionary) -> float:
 	return soldiers * hpp * (1.0 + def_val / 10.0) * tank_mult
 
 ## Calculate hero+troop combo power
-static func hero_combo_power(hero_id: String, troop: Dictionary, level: int = 1) -> Dictionary:
+func hero_combo_power(hero_id: String, troop: Dictionary, level: int = 1) -> Dictionary:
 	if not FactionData.HEROES.has(hero_id):
 		return {"atk": 0, "def": 0, "power": 0, "dps": 0}
 	var hero_atk: float
