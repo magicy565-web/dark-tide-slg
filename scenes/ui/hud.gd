@@ -91,6 +91,7 @@ var btn_quest_journal: Button
 var btn_armies: Button
 var btn_economy: Button
 var btn_guard: Button
+var btn_commander: Button
 var btn_interrogate: Button
 var btn_reinforce: Button
 var btn_sat_event: Button
@@ -421,6 +422,10 @@ func _build_action_panel(parent: Control) -> void:
 	btn_guard = _make_button("Guard (1AP)")
 	btn_guard.pressed.connect(_on_guard_pressed)
 	vbox.add_child(btn_guard)
+
+	btn_commander = _make_button("Commander (0AP)")
+	btn_commander.pressed.connect(_on_commander_pressed)
+	vbox.add_child(btn_commander)
 
 	btn_interrogate = _make_button("Interrogate (1AP)")
 	btn_interrogate.pressed.connect(_on_interrogate_pressed)
@@ -1361,6 +1366,86 @@ func _on_guard_target(tile_index: int) -> void:
 		GameManager.action_guard_territory(pid, tile_index)
 	_close_target_panel()
 	_after_action()
+
+
+func _on_commander_pressed() -> void:
+	## SR07: Open territory commander assignment panel.
+	if _current_mode == ActionMode.EXPLORE:
+		_close_target_panel()
+	_current_mode = ActionMode.EXPLORE
+	var pid: int = GameManager.get_human_player_id()
+	var owned_tiles: Array = GameManager.get_domestic_tiles(pid)
+
+	_show_target_panel("Assign Commander - Select Territory")
+
+	if owned_tiles.is_empty():
+		_add_target_label("(No territories)")
+		return
+
+	for tile in owned_tiles:
+		var tidx: int = tile["index"]
+		var stationed: String = HeroSystem.get_stationed_hero(tidx)
+		var label_text: String = "%s (Lv%d)" % [tile["name"], tile["level"]]
+		if stationed != "":
+			var hinfo: Dictionary = HeroSystem.get_hero_info(stationed)
+			label_text += " [%s]" % hinfo.get("name", stationed)
+		else:
+			label_text += " [Empty]"
+		_add_target_button(label_text, _on_commander_territory_selected.bind(tidx))
+
+
+func _on_commander_territory_selected(tile_index: int) -> void:
+	## Show available heroes to station at this territory.
+	var pid: int = GameManager.get_human_player_id()
+	var stationed: String = HeroSystem.get_stationed_hero(tile_index)
+	var tile_name: String = GameManager.tiles[tile_index]["name"]
+
+	_show_target_panel("Commander for %s" % tile_name)
+
+	# Option to remove current commander
+	if stationed != "":
+		var hinfo: Dictionary = HeroSystem.get_hero_info(stationed)
+		_add_target_button("[Remove] %s" % hinfo.get("name", stationed), _on_commander_remove.bind(tile_index))
+		_add_target_label("")  # spacer
+
+	# List available heroes (not in army, not stationed elsewhere)
+	var heroes: Array = HeroSystem.get_recruited_heroes(pid)
+	var any_available: bool = false
+	for hero_id in heroes:
+		if hero_id == stationed:
+			continue
+		if not HeroSystem.is_hero_available(hero_id):
+			continue
+		var hinfo: Dictionary = HeroSystem.get_hero_info(hero_id)
+		var stats: Dictionary = HeroSystem.get_hero_combat_stats(hero_id)
+		var label_text: String = "%s Lv%d (A%d D%d S%d)" % [
+			hinfo.get("name", hero_id), hinfo.get("level", 1),
+			stats.get("atk", 0), stats.get("def", 0), stats.get("spd", 0)
+		]
+		_add_target_button(label_text, _on_commander_assign.bind(hero_id, tile_index), false)
+		any_available = true
+
+	if not any_available and stationed == "":
+		_add_target_label("(No available heroes - all in armies or stationed)")
+
+
+func _on_commander_assign(hero_id: String, tile_index: int) -> void:
+	HeroSystem.station_hero(hero_id, tile_index)
+	var hinfo: Dictionary = HeroSystem.get_hero_info(hero_id)
+	var tile_name: String = GameManager.tiles[tile_index]["name"]
+	EventBus.message_log.emit("[color=orchid]%s[/color] assigned as commander of [color=gold]%s[/color]" % [hinfo.get("name", hero_id), tile_name])
+	_close_target_panel()
+	_update_tile_info()
+
+
+func _on_commander_remove(tile_index: int) -> void:
+	var hero_id: String = HeroSystem.unstation_hero(tile_index)
+	if hero_id != "":
+		var hinfo: Dictionary = HeroSystem.get_hero_info(hero_id)
+		var tile_name: String = GameManager.tiles[tile_index]["name"]
+		EventBus.message_log.emit("[color=orchid]%s[/color] relieved from [color=gold]%s[/color]" % [hinfo.get("name", hero_id), tile_name])
+	_close_target_panel()
+	_update_tile_info()
 
 
 func _on_sat_event_pressed() -> void:
@@ -2956,6 +3041,17 @@ func _update_tile_info_for(tile_index: int) -> void:
 	var garrison: int = tile.get("garrison", 0)
 	if garrison > 0:
 		info += "Garrison: %d\n" % garrison
+
+	# SR07: Garrison commander display
+	var stationed_hero_id: String = HeroSystem.get_stationed_hero(tile_index)
+	if stationed_hero_id != "":
+		var hero_info: Dictionary = HeroSystem.get_hero_info(stationed_hero_id)
+		var hero_name: String = hero_info.get("name", stationed_hero_id)
+		var cmd_bonus: Dictionary = HeroSystem.get_garrison_commander_bonus(tile_index)
+		info += "[color=orchid]Commander: %s[/color]\n" % hero_name
+		info += "[color=gray]  DEF+25%% Prod+15%% Order+%d Garrison+%d[/color]\n" % [cmd_bonus.get("order_bonus", 0), cmd_bonus.get("garrison_add", 0)]
+	elif tile["owner_id"] == pid and garrison > 0:
+		info += "[color=gray]No commander (can assign)[/color]\n"
 
 	# Guard status
 	if GameManager._guard_timers.has(tile_index):

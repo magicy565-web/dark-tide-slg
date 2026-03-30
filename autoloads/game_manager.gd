@@ -513,10 +513,13 @@ func get_tile_production(tile: Dictionary) -> Dictionary:
 	var base: Dictionary = tile.get("base_production", {})
 	var level: int = maxi(tile.get("level", 1), 1)
 	var mult: float = UPGRADE_PROD_MULT[level - 1] if level <= UPGRADE_PROD_MULT.size() else 1.0
+	# SR07: Apply garrison commander production bonus
+	var cmd_bonus: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1))
+	var cmd_mult: float = cmd_bonus.get("prod_mult", 1.0)
 	return {
-		"gold": int(float(base.get("gold", 0)) * mult),
-		"food": int(float(base.get("food", 0)) * mult),
-		"iron": int(float(base.get("iron", 0)) * mult),
+		"gold": int(float(base.get("gold", 0)) * mult * cmd_mult),
+		"food": int(float(base.get("food", 0)) * mult * cmd_mult),
+		"iron": int(float(base.get("iron", 0)) * mult * cmd_mult),
 		"pop":  base.get("pop", 0),
 	}
 
@@ -2959,6 +2962,16 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			du["def"] = int(ceil(float(du.get("def", 5)) * 1.5))
 		EventBus.message_log.emit("[color=cyan]防御部署生效! 守军DEF+50%%[/color]")
 
+	# SR07: Garrison commander DEF bonus
+	var _cmd_bonus: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1))
+	if _cmd_bonus.get("def_mult", 1.0) > 1.0:
+		for du in defender_units:
+			du["def"] = int(ceil(float(du.get("def", 5)) * _cmd_bonus["def_mult"]))
+		if _cmd_bonus.get("garrison_add", 0) > 0 and not defender_units.is_empty():
+			defender_units[0]["soldiers"] += _cmd_bonus["garrison_add"]
+			defender_units[0]["max_soldiers"] += _cmd_bonus["garrison_add"]
+		EventBus.message_log.emit("[color=cyan]驻防武将%s增援! DEF+25%%, 守军+%d[/color]" % [_cmd_bonus.get("hero_name", ""), _cmd_bonus.get("garrison_add", 0)])
+
 	var attacker_data: Dictionary = {"units": attacker_units, "player_id": pid}
 
 	# ── Siege combat modifiers (v5.0) ──
@@ -3866,6 +3879,16 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 		"units": def_units,
 	}
 
+	# SR07: Garrison commander DEF bonus (legacy combat path)
+	var _cmd_bonus2: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1))
+	if _cmd_bonus2.get("def_mult", 1.0) > 1.0:
+		for du in def_units:
+			if du.has("def"):
+				du["def"] = int(ceil(float(du.get("def", 5)) * _cmd_bonus2["def_mult"]))
+		if _cmd_bonus2.get("garrison_add", 0) > 0 and not def_units.is_empty():
+			def_units[0]["count"] = def_units[0].get("count", 0) + _cmd_bonus2["garrison_add"]
+		EventBus.message_log.emit("[color=cyan]驻防武将%s增援! DEF+25%%, 守军+%d[/color]" % [_cmd_bonus2.get("hero_name", ""), _cmd_bonus2.get("garrison_add", 0)])
+
 	EventBus.combat_started.emit(pid, tile["index"])
 	_had_combat_this_turn = true
 
@@ -4373,6 +4396,9 @@ func tick_tile_public_order() -> void:
 		# Building bonus
 		var bld_level: int = tile.get("building_level", 0)
 		drift += bld_level * BalanceConfig.TILE_ORDER_BUILDING_DRIFT
+		# SR07: Garrison commander order bonus
+		var _cmd_order: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1))
+		drift += _cmd_order.get("order_bonus", 0)
 		order = minf(order + drift, BalanceConfig.TILE_ORDER_NATURAL_CAP)
 		tile["public_order"] = clampf(order, 0.0, 1.0)
 

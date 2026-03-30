@@ -14,6 +14,10 @@ var hero_affection: Dictionary = {}    # hero_id -> int (0-10)
 # hero_id -> equip_id (String, "" if empty) — SR07-style single item slot per hero
 var hero_equipment: Dictionary = {}
 
+# ── Territory Commander (SR07 garrison commander) ──
+var stationed_heroes: Dictionary = {}  # tile_index -> hero_id (SR07 garrison commander)
+var hero_stations: Dictionary = {}     # hero_id -> tile_index (reverse lookup)
+
 # ── Active skill cooldowns (v0.9.0) ──
 # hero_id -> int (remaining cooldown turns, 0 = ready)
 var _skill_cooldowns: Dictionary = {}
@@ -46,6 +50,8 @@ func reset() -> void:
 	hero_corruption.clear()
 	hero_affection.clear()
 	hero_equipment.clear()
+	stationed_heroes.clear()
+	hero_stations.clear()
 	_skill_cooldowns.clear()
 	hero_submission.clear()
 	_pirate_mode = false
@@ -480,6 +486,88 @@ func get_equipment_passive_value(hero_id: String, passive_name: String) -> float
 	if data.get("passive", "none") == passive_name:
 		return data.get("passive_value", 0.0)
 	return 0.0
+
+
+# ═══════════════ TERRITORY COMMANDER (SR07) ═══════════════
+
+func station_hero(hero_id: String, tile_index: int) -> bool:
+	## Assign a hero as garrison commander to a territory.
+	if hero_id not in recruited_heroes:
+		return false
+	# Can't station a hero that's in an army
+	for army in GameManager.armies.values():
+		if hero_id in army.get("heroes", []):
+			return false
+	# Remove from previous station if any
+	unstation_hero_by_id(hero_id)
+	# Remove existing commander at this tile
+	if stationed_heroes.has(tile_index):
+		var old_hero: String = stationed_heroes[tile_index]
+		hero_stations.erase(old_hero)
+	stationed_heroes[tile_index] = hero_id
+	hero_stations[hero_id] = tile_index
+	EventBus.hero_stationed.emit(hero_id, tile_index)
+	return true
+
+
+func unstation_hero(tile_index: int) -> String:
+	## Remove garrison commander from a territory. Returns hero_id or "".
+	if not stationed_heroes.has(tile_index):
+		return ""
+	var hero_id: String = stationed_heroes[tile_index]
+	stationed_heroes.erase(tile_index)
+	hero_stations.erase(hero_id)
+	EventBus.hero_unstationed.emit(hero_id, tile_index)
+	return hero_id
+
+
+func unstation_hero_by_id(hero_id: String) -> void:
+	## Remove a hero from their stationed territory.
+	if hero_stations.has(hero_id):
+		var tile_idx: int = hero_stations[hero_id]
+		stationed_heroes.erase(tile_idx)
+		hero_stations.erase(hero_id)
+
+
+func get_stationed_hero(tile_index: int) -> String:
+	## Get the hero_id stationed at a tile, or "" if none.
+	return stationed_heroes.get(tile_index, "")
+
+
+func get_hero_station(hero_id: String) -> int:
+	## Get the tile_index where a hero is stationed, or -1 if not stationed.
+	return hero_stations.get(hero_id, -1)
+
+
+func is_hero_stationed(hero_id: String) -> bool:
+	return hero_stations.has(hero_id)
+
+
+func is_hero_available(hero_id: String) -> bool:
+	## Check if hero is free (not in army, not stationed, not captured).
+	if hero_id not in recruited_heroes:
+		return false
+	if hero_stations.has(hero_id):
+		return false
+	for army in GameManager.armies.values():
+		if hero_id in army.get("heroes", []):
+			return false
+	return true
+
+
+func get_garrison_commander_bonus(tile_index: int) -> Dictionary:
+	## Returns stat bonuses from the garrison commander at a tile.
+	var hero_id: String = get_stationed_hero(tile_index)
+	if hero_id == "":
+		return {"def_mult": 1.0, "prod_mult": 1.0, "order_bonus": 0, "garrison_add": 0}
+	var stats: Dictionary = get_hero_combat_stats(hero_id)
+	return {
+		"def_mult": 1.25,           # +25% garrison DEF
+		"prod_mult": 1.15,          # +15% territory production
+		"order_bonus": 10,           # +10 public order per turn
+		"garrison_add": maxi(stats.get("atk", 0) / 3, 1),  # ATK/3 extra garrison
+		"hero_name": _get_hero_name(hero_id),
+	}
 
 
 # ═══════════════ ACTIVE SKILLS (v0.9.0) ═══════════════
@@ -1043,6 +1131,7 @@ func to_save_data() -> Dictionary:
 		"hero_corruption": hero_corruption.duplicate(),
 		"hero_affection": hero_affection.duplicate(),
 		"hero_equipment": hero_equipment.duplicate(true),
+		"stationed_heroes": stationed_heroes.duplicate(true),
 		"skill_cooldowns": _skill_cooldowns.duplicate(),
 		"hero_submission": hero_submission.duplicate(),
 		"pirate_mode": _pirate_mode,
@@ -1109,6 +1198,14 @@ func from_save_data(data: Dictionary) -> void:
 			}
 	if data.has("hero_leveling"):
 		HeroLeveling.deserialize(data["hero_leveling"])
+	stationed_heroes.clear()
+	hero_stations.clear()
+	var sh: Dictionary = data.get("stationed_heroes", {})
+	for key in sh:
+		var tidx: int = int(key)
+		var hid: String = sh[key]
+		stationed_heroes[tidx] = hid
+		hero_stations[hid] = tidx
 
 
 # ═══════════════ INTERNAL ═══════════════

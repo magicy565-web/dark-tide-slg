@@ -133,6 +133,8 @@ signal hero_captured(hero_id: String)
 signal hero_recruited(hero_id: String)
 signal hero_affection_changed(hero_id: String, new_value: int)
 signal hero_released(hero_id: String)
+signal hero_stationed(hero_id: String, tile_index: int)
+signal hero_unstationed(hero_id: String, tile_index: int)
 
 # ── Event System (v0.8.2) ──
 signal event_choice_made(event_id: String, choice_index: int)
