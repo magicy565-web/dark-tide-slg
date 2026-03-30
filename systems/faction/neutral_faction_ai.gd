@@ -432,7 +432,7 @@ func to_save_data() -> Dictionary:
 	}
 
 
-static func _fix_int_keys(dict: Dictionary) -> void:
+func _fix_int_keys(dict: Dictionary) -> void:
 	var fix_keys = []
 	for k in dict.keys():
 		if k is String and k.is_valid_int():

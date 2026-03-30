@@ -262,7 +262,7 @@ func _generate_procedural_sounds() -> void:
 
 
 ## Create a short sine-wave "click" tone as an AudioStreamWAV.
-static func _make_click_tone(freq: float, duration: float, sample_rate: int = 22050) -> AudioStreamWAV:
+func _make_click_tone(freq: float, duration: float, sample_rate: int = 22050) -> AudioStreamWAV:
 	var num_samples: int = int(duration * sample_rate)
 	var data := PackedByteArray()
 	data.resize(num_samples * 2)  # 16-bit mono

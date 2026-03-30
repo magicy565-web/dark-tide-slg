@@ -504,11 +504,11 @@ func _apply_reward(reward: Dictionary, player_id: int) -> void:
 	if not delta.is_empty():
 		ResourceManager.apply_delta(player_id, delta)
 	if reward.has("shadow_essence"):
-		StrategicResourceManager.add_amount(player_id, "shadow_essence", reward["shadow_essence"])
+		ResourceManager.apply_delta(player_id, {"shadow_essence": reward["shadow_essence"]})
 	if reward.has("item"):
 		ItemManager.add_item(player_id, reward["item"])
 	if reward.has("relic"):
-		RelicManager.add_relic(player_id, reward["relic"])
+		RelicManager.select_relic(player_id, reward["relic"])
 	if reward.has("order_bonus"):
 		OrderManager.change_order(reward["order_bonus"])
 	if reward.has("waaagh"):

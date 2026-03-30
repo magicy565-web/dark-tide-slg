@@ -206,17 +206,16 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 			_ts_a.spd = maxi(1, _ts_a.spd - 3)
 
 	# ── Formation Detection & Synergy ──
-	var _fs := FormationSystem.new()
 	var atk_unit_dicts: Array = _build_formation_dicts(state.attacker_units)
 	var def_unit_dicts: Array = _build_formation_dicts(state.defender_units)
 	var terrain_str: String = FactionData.TERRAIN_DATA.get(state.terrain, {}).get("name", "plains")
-	var atk_formations: Array = _fs.detect_formations(atk_unit_dicts, terrain_str)
-	var def_formations: Array = _fs.detect_formations(def_unit_dicts, terrain_str)
+	var atk_formations: Array = FormationSystem.detect_formations(atk_unit_dicts, terrain_str)
+	var def_formations: Array = FormationSystem.detect_formations(def_unit_dicts, terrain_str)
 	if not atk_formations.is_empty():
-		var atk_bonuses: Dictionary = _fs.get_formation_bonuses(atk_formations)
-		_fs.apply_formation_to_units(atk_unit_dicts, atk_bonuses)
+		var atk_bonuses: Dictionary = FormationSystem.get_formation_bonuses(atk_formations)
+		FormationSystem.apply_formation_to_units(atk_unit_dicts, atk_bonuses)
 		_sync_formation_to_battle_units(state.attacker_units, atk_unit_dicts)
-		_fs.emit_formation_detected("attacker", atk_formations)
+		FormationSystem.emit_formation_detected("attacker", atk_formations)
 		for _fid in atk_formations:
 			var _fkey: String = FormationSystem.FORMATION_NAMES.get(_fid, "Unknown").to_lower().replace(" ", "_")
 			var _fname_cn: String = FormationSystem.FORMATION_NAMES_CN.get(_fid, "")
@@ -228,10 +227,10 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 				"desc": "攻方阵型: %s" % _fname_cn,
 			})
 	if not def_formations.is_empty():
-		var def_bonuses: Dictionary = _fs.get_formation_bonuses(def_formations)
-		_fs.apply_formation_to_units(def_unit_dicts, def_bonuses)
+		var def_bonuses: Dictionary = FormationSystem.get_formation_bonuses(def_formations)
+		FormationSystem.apply_formation_to_units(def_unit_dicts, def_bonuses)
 		_sync_formation_to_battle_units(state.defender_units, def_unit_dicts)
-		_fs.emit_formation_detected("defender", def_formations)
+		FormationSystem.emit_formation_detected("defender", def_formations)
 		for _fid in def_formations:
 			var _fkey: String = FormationSystem.FORMATION_NAMES.get(_fid, "Unknown").to_lower().replace(" ", "_")
 			var _fname_cn: String = FormationSystem.FORMATION_NAMES_CN.get(_fid, "")
@@ -243,9 +242,9 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 				"desc": "守方阵型: %s" % _fname_cn,
 			})
 	# Check formation clashes
-	var clashes: Dictionary = _fs.check_formation_clash(atk_formations, def_formations)
+	var clashes: Dictionary = FormationSystem.check_formation_clash(atk_formations, def_formations)
 	if not clashes.is_empty():
-		_fs.emit_formation_clashes(clashes)
+		FormationSystem.emit_formation_clashes(clashes)
 
 	# Snapshot initial unit states for combat visualization
 	var attacker_units_initial: Array = _snapshot_units(state.attacker_units)

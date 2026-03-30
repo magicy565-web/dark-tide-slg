@@ -222,6 +222,7 @@ signal cg_gallery_opened()
 signal hero_leveled_up(hero_id: String, new_level: int)
 signal hero_passive_unlocked(hero_id: String, passive_id: String)
 signal hero_exp_gained(hero_id: String, amount: int, new_total: int)
+signal hero_stat_changed(hero_id: String, stat_key: String, value: int)
 
 # ── UI Panel Requests ──
 signal open_hero_detail_requested(hero_id: String)

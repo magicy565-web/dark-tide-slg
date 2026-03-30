@@ -367,7 +367,7 @@ func grant_random_loot(player_id: int) -> String:
 
 const ITEM_ICON_DIR: String = "res://assets/icons/items/"
 
-static func get_icon_path(icon_name: String) -> String:
+func get_icon_path(icon_name: String) -> String:
 	## Resolve icon name to full path. Returns "" if no icon asset exists.
 	if icon_name == "":
 		return ""

@@ -673,7 +673,7 @@ func from_save_data(data: Dictionary) -> void:
 	_fix_int_keys(_scout_history)
 
 
-static func _fix_int_keys(dict: Dictionary) -> void:
+func _fix_int_keys(dict: Dictionary) -> void:
 	var fix_keys: Array = []
 	for k in dict.keys():
 		if k is String and k.is_valid_int():
