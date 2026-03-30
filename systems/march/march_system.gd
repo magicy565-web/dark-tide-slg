@@ -201,7 +201,12 @@ func modify_march_target(army_id: int, new_target: int) -> Dictionary:
 	if not march_orders.has(army_id):
 		return issue_march_order(army_id, new_target)
 	var order: Dictionary = march_orders[army_id]
-	var current_tile: int = order["path"][order["current_step"]]
+	# BUG FIX R13: bounds check before path access to prevent crash
+	var step: int = order.get("current_step", 0)
+	var path: Array = order.get("path", [])
+	if step < 0 or step >= path.size():
+		return issue_march_order(army_id, new_target)
+	var current_tile: int = path[step]
 	cancel_march_order(army_id)
 	# Re-issue from current position
 	if GameManager.armies.has(army_id):
@@ -409,6 +414,9 @@ func _calculate_effective_speed(army_id: int, order: Dictionary) -> float:
 	## Calculate speed after terrain, hero, and fatigue modifiers.
 	var base_speed: float = _get_army_march_speed(army_id)
 	var path: Array = order["path"]
+	# BUG FIX R13: guard against empty path (size=0 causes path[-1] crash)
+	if path.is_empty():
+		return maxf(base_speed, 0.1)
 	var next_step: int = mini(order["current_step"] + 1, path.size() - 1)
 	var next_tile_idx: int = path[next_step]
 	var tiles: Array = GameManager.tiles
@@ -432,7 +440,12 @@ func _calculate_effective_speed(army_id: int, order: Dictionary) -> float:
 
 func _consume_supply(army_id: int, order: Dictionary, army: Dictionary) -> void:
 	## Deduct supply based on territory ownership.
-	var current_tile_idx: int = order["path"][order["current_step"]]
+	# BUG FIX R13: bounds check before path access
+	var path: Array = order.get("path", [])
+	var step: int = order.get("current_step", 0)
+	if path.is_empty() or step < 0 or step >= path.size():
+		return
+	var current_tile_idx: int = path[step]
 	var tiles: Array = GameManager.tiles
 	if current_tile_idx < 0 or current_tile_idx >= tiles.size():
 		return

@@ -345,9 +345,11 @@ func _check_counter_intel_capture(attacker_id: int, target_id: int, op_name: Str
 	# resolve to the tile owner so we check/award counter-intel to the correct player.
 	var defender_pid: int = target_id
 	if target_id >= 0 and target_id < GameManager.tiles.size():
-		var tile_owner: int = GameManager.tiles[target_id].get("owner_id", -1)
-		if tile_owner >= 0:
-			defender_pid = tile_owner
+		# BUG FIX R13: null check on tile before .get()
+		if GameManager.tiles[target_id] != null:
+			var tile_owner: int = GameManager.tiles[target_id].get("owner_id", -1)
+			if tile_owner >= 0:
+				defender_pid = tile_owner
 	var target_ci: int = get_counter_intel(defender_pid)
 	if target_ci > COUNTER_INTEL_CAPTURE_THRESHOLD:
 		# Spy captured
@@ -583,7 +585,9 @@ func _track_consecutive_failure(player_id: int, target_id: int, succeeded: bool)
 		# Resolve the owning player from tile index to apply counter-intel correctly
 		var _bc_owner: int = -1
 		if target_id >= 0 and target_id < GameManager.tiles.size():
-			_bc_owner = GameManager.tiles[target_id].get("owner_id", -1)
+			# BUG FIX R13: null check on tile before .get()
+			if GameManager.tiles[target_id] != null:
+				_bc_owner = GameManager.tiles[target_id].get("owner_id", -1)
 		if _bc_owner < 0:
 			_bc_owner = target_id  # fallback: treat target_id as player_id
 		set_counter_intel(_bc_owner, get_counter_intel(_bc_owner) + BLOWN_COVER_CI_GAIN)

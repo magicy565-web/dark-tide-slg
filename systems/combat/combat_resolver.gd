@@ -649,7 +649,8 @@ func _apply_slot_preferences(units: Array, prefs: Dictionary) -> void:
 	for i in range(units.size()):
 		if prefs.has(i):
 			var desired_slot: int = prefs[i]
-			if not pref_assignments.has(desired_slot):
+			# BUG FIX R13: validate slot range to prevent invalid slot assignment
+			if desired_slot >= 0 and desired_slot < TOTAL_SLOTS and not pref_assignments.has(desired_slot):
 				pref_assignments[desired_slot] = units[i]
 				units[i]["slot"] = desired_slot
 				units[i]["row"] = "front" if desired_slot < FRONT_SLOTS else "back"

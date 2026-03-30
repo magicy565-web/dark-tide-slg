@@ -2266,6 +2266,9 @@ func _process_deferred_effects(player_id: int, player: Dictionary) -> void:
 	# not once per player, to prevent N× faster decay in multiplayer.
 	if player_id == 0:
 		for tile in tiles:
+			# BUG FIX R13: null check on tile
+			if tile == null:
+				continue
 			if not tile.has("deferred_effects"):
 				continue
 			var to_remove: Array = []
@@ -5822,6 +5825,9 @@ func check_win_condition() -> void:
 		# Only trigger if no garrison remains either (avoid false trigger at game start)
 		var has_garrison: bool = false
 		for tile in tiles:
+			# BUG FIX R13: null check on tile
+			if tile == null:
+				continue
 			if tile["owner_id"] == human_id and tile.get("garrison", 0) > 0:
 				has_garrison = true
 				break
@@ -5838,6 +5844,9 @@ func check_win_condition() -> void:
 	var total_sh: int = 0
 	var human_sh: int = 0
 	for tile in tiles:
+		# BUG FIX R13: null check on tile
+		if tile == null:
+			continue
 		if tile["type"] == TileType.LIGHT_STRONGHOLD or tile["type"] == TileType.CORE_FORTRESS:
 			total_sh += 1
 			if tile["owner_id"] == human_id:
