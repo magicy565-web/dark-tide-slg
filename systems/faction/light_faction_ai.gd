@@ -72,6 +72,8 @@ func from_save_data(data: Dictionary) -> void:
 func init_light_defenses() -> void:
 	## Called after map generation to set up light faction defenses.
 	for tile in GameManager.tiles:
+		if tile == null:
+			continue
 		var lf: int = tile.get("light_faction", -1)
 		if lf < 0:
 			continue
@@ -87,8 +89,9 @@ func init_light_defenses() -> void:
 	# Count mage tiles for mana pool
 	var mage_tile_count: int = 0
 	for tile in GameManager.tiles:
-		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile["owner_id"] < 0:
-			mage_tile_count += 1
+		if tile == null:
+			continue
+		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile.get("owner_id", -1) < 0:
 	_mana_max = mage_tile_count * BalanceConfig.MANA_PER_MAGE_TILE  # mana capacity per tile
 	_mana_pool[MAGE_FACTION_ID] = _mana_max
 
@@ -251,13 +254,16 @@ func get_mana() -> int:
 func regen_mana() -> void:
 	var regen: int = 0
 	for tile in GameManager.tiles:
-		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile["owner_id"] < 0:
+		if tile == null:
+			continue
+		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile.get("owner_id", -1) < 0:
 			regen += 3
 	# Recalculate max (decreases as tiles are lost)
 	var uncaptured_count: int = 0
 	for tile in GameManager.tiles:
-		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile["owner_id"] < 0:
-			uncaptured_count += 1
+		if tile == null:
+			continue
+		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile.get("owner_id", -1) < 0:			uncaptured_count += 1
 	_mana_max = uncaptured_count * BalanceConfig.MANA_PER_MAGE_TILE
 	# v0.9.0: mana_bonus equipment passive reduces enemy mana max & regen
 	var mana_reduction: int = 0
@@ -372,7 +378,9 @@ func _mage_ai_cast() -> void:
 		var most_threatened_idx: int = -1
 		var max_threat_score: int = 0
 		for tile in GameManager.tiles:
-			if tile["owner_id"] >= 0:
+			if tile == null:
+				continue
+			if tile.get("owner_id", -1) >= 0:
 				continue
 			if tile.get("light_faction", -1) < 0:
 				continue
@@ -456,8 +464,11 @@ func _try_light_faction_coordination() -> void:
 	var faction_threats: Dictionary = {}    # light_faction_id -> Set[evil_faction_id]
 
 	for tile in GameManager.tiles:
+		# BUG FIX R16: null check + safe dict access
+		if tile == null:
+			continue
 		var lf: int = tile.get("light_faction", -1)
-		if lf < 0 or tile["owner_id"] >= 0:
+		if lf < 0 or tile.get("owner_id", -1) >= 0:
 			continue  # Skip non-light or captured tiles
 
 		if not faction_garrisons.has(lf):
@@ -472,9 +483,12 @@ func _try_light_faction_coordination() -> void:
 			for nb_idx in GameManager.adjacency[tile["index"]]:
 				if nb_idx >= GameManager.tiles.size():
 					continue
-				var nb: Dictionary = GameManager.tiles[nb_idx]
+				var nb = GameManager.tiles[nb_idx]
+				# BUG FIX R16: null check + safe dict access
+				if nb == null:
+					continue
 				var evil_fac: int = nb.get("original_faction", -1)
-				if nb["owner_id"] < 0 and evil_fac >= 0:
+				if nb.get("owner_id", -1) < 0 and evil_fac >= 0:
 					faction_threats[lf][evil_fac] = true
 
 	# Find light factions that share the same evil attacker

@@ -304,8 +304,11 @@ func _coordinate_defense_focus() -> void:
 	var zone_tiles: Dictionary = {0: [], 1: [], 2: []}
 
 	for tile in GameManager.tiles:
+		# BUG FIX R16: null check + safe dict access
+		if tile == null:
+			continue
 		var lf: int = tile.get("light_faction", -1)
-		if lf < 0 or tile["owner_id"] >= 0:
+		if lf < 0 or tile.get("owner_id", -1) >= 0:
 			continue
 		if not zone_tiles.has(lf):
 			zone_tiles[lf] = []
@@ -314,8 +317,8 @@ func _coordinate_defense_focus() -> void:
 		if GameManager.adjacency.has(tile["index"]):
 			for nb_idx in GameManager.adjacency[tile["index"]]:
 				if nb_idx < GameManager.tiles.size():
-					var nb: Dictionary = GameManager.tiles[nb_idx]
-					if nb["owner_id"] >= 0:
+					var nb = GameManager.tiles[nb_idx]
+					if nb != null and nb.get("owner_id", -1) >= 0:
 						zone_threat[lf] += 1
 
 	var max_threat: int = 0
@@ -437,13 +440,17 @@ func _get_player_interior_tiles() -> Array:
 	## Player tiles NOT on the frontier (surrounded by friendly tiles).
 	var result: Array = []
 	for tile in GameManager.tiles:
-		if tile["owner_id"] < 0:
+		# BUG FIX R16: null check + safe dict access
+		if tile == null:
+			continue
+		if tile.get("owner_id", -1) < 0:
 			continue
 		var on_border: bool = false
 		if GameManager.adjacency.has(tile["index"]):
 			for nb_idx in GameManager.adjacency[tile["index"]]:
 				if nb_idx < GameManager.tiles.size():
-					if GameManager.tiles[nb_idx]["owner_id"] != tile["owner_id"]:
+					var nb_tile = GameManager.tiles[nb_idx]
+					if nb_tile != null and nb_tile.get("owner_id", -1) != tile.get("owner_id", -1):
 						on_border = true
 						break
 		if not on_border:
@@ -453,7 +460,10 @@ func _get_player_interior_tiles() -> Array:
 func _get_all_player_tiles() -> Array:
 	var result: Array = []
 	for tile in GameManager.tiles:
-		if tile["owner_id"] >= 0:
+		# BUG FIX R16: null check
+		if tile == null:
+			continue
+		if tile.get("owner_id", -1) >= 0:
 			result.append(tile)
 	return result
 
