@@ -197,6 +197,7 @@ signal settings_closed()
 
 # ── Quest Journal (v2.4) ──
 signal quest_journal_updated()
+signal main_quest_completed(quest_id: String)
 signal challenge_battle_requested(challenge_id: String, battle_data: Dictionary)
 signal challenge_battle_resolved(challenge_id: String, won: bool)
 

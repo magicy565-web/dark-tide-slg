@@ -56,6 +56,7 @@ const STORY_DATA_FILES: Dictionary = {
 	"hanabi":   "res://systems/story/data/hanabi_story.gd",
 	"epilogue": "res://systems/story/data/epilogue_events.gd",
 	"faction_intro": "res://systems/story/data/faction_intro_events.gd",
+	"main_quest": "res://systems/story/data/main_quest_events.gd",
 }
 
 # ── Faction ID → epilogue ending type mapping ──
@@ -101,6 +102,7 @@ func _connect_signals() -> void:
 	EventBus.hero_affection_changed.connect(_on_affection_changed)
 	EventBus.game_over_detailed.connect(_on_game_over_detailed)
 	EventBus.turn_started.connect(_on_turn_started_intro)
+	EventBus.main_quest_completed.connect(_on_main_quest_completed)
 	if EventBus.has_signal("story_choice_made"):
 		EventBus.story_choice_made.connect(_on_story_choice_made)
 
@@ -569,6 +571,26 @@ func _on_turn_started_intro(_player_id: int) -> void:
 		EventBus.story_event_triggered.emit(intro_id, event)
 
 
+## Main quest completion → story cutscene.
+func _on_main_quest_completed(quest_id: String) -> void:
+	var mq_id := "main_quest"
+	# Initialize progress if needed (route = quest_id, e.g. "main_1")
+	var data: Dictionary = _get_story_data(mq_id)
+	if not data.has(quest_id):
+		return  # No cutscene for this quest
+	# Set route to this quest's cutscene route and reset to event 0
+	story_progress[mq_id] = {
+		"route": quest_id,
+		"current_event": 0,
+		"completed_events": story_progress.get(mq_id, {}).get("completed_events", []),
+		"flags": story_progress.get(mq_id, {}).get("flags", {}),
+	}
+	var event: Dictionary = get_next_event(mq_id)
+	if not event.is_empty():
+		complete_current_event(mq_id)
+		EventBus.story_event_triggered.emit(mq_id, event)
+
+
 ## Victory → Epilogue bridge: map victory type to ending type and start epilogue.
 func _on_game_over_detailed(data: Dictionary) -> void:
 	if _epilogue_started:
@@ -604,7 +626,7 @@ func _on_game_over_detailed(data: Dictionary) -> void:
 func _determine_ending_type() -> String:
 	var pure_love_count: int = 0
 	for hero_id in story_progress:
-		if hero_id in ["epilogue", "faction_intro"]:
+		if hero_id in ["epilogue", "faction_intro", "main_quest"]:
 			continue
 		var flags: Dictionary = story_progress[hero_id].get("flags", {})
 		for key in flags:

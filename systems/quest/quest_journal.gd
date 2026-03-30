@@ -366,6 +366,7 @@ func _check_main_quests(player_id: int) -> void:
 					break
 			if all_done:
 				_complete_quest_entry(_main_progress, q["id"], q.get("reward", {}), player_id, "主线", q["name"])
+				EventBus.main_quest_completed.emit(q["id"])
 
 
 func _check_side_quests(player_id: int) -> void:
