@@ -233,7 +233,9 @@ func _refresh_slots() -> void:
 		if not vb:
 			continue
 		_clear_container(vb)
-		slot_panels[si].add_theme_stylebox_override("panel", _slot_style(si == _selected_slot))
+		# BUG FIX R14: bounds check on slot_panels before access
+		if si < slot_panels.size():
+			slot_panels[si].add_theme_stylebox_override("panel", _slot_style(si == _selected_slot))
 		if not _slot_assignments.has(si):
 			vb.add_child(_make_label("(empty)", 11, ColorTheme.TEXT_MUTED, HORIZONTAL_ALIGNMENT_CENTER))
 			continue

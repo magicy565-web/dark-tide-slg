@@ -348,15 +348,15 @@ func get_garrison_combat_units(tile_index: int) -> Array:
 		var gar_row_str: String = "back" if gar_row_int == GameData.Row.BACK else "front"
 		result.append({
 			"type": troop["troop_id"],
-			"atk": td["base_atk"],
-			"def": td["base_def"],
+			"atk": td.get("base_atk", 5),
+			"def": td.get("base_def", 3),
 			"hp": troop["soldiers"],
 			"special": td.get("passive", "none"),
 			"count": troop["soldiers"],
 			"soldiers": troop["soldiers"],
 			"troop_class": td.get("troop_class", GameData.TroopClass.ASHIGARU),
 			"row": gar_row_str,
-			"max_soldiers": troop.get("max_soldiers", td["max_soldiers"]),
+			"max_soldiers": troop.get("max_soldiers", td.get("max_soldiers", troop.get("soldiers", 10))),
 			"spd": td.get("spd", 5),
 			"int_stat": td.get("int_stat", 0),
 			"hero_id": troop.get("commander_id", ""),
@@ -423,8 +423,8 @@ func get_wanderer_combat_units(tile_index: int) -> Array:
 		var wnd_row_str: String = "back" if wnd_row_int == GameData.Row.BACK else "front"
 		result.append({
 			"type": troop["troop_id"],
-			"atk": td["base_atk"],
-			"def": td["base_def"],
+			"atk": td.get("base_atk", 5),
+			"def": td.get("base_def", 3),
 			"hp": troop["soldiers"],
 			"special": td.get("passive", "none"),
 			"count": troop["soldiers"],
@@ -480,8 +480,8 @@ func get_rebel_combat_units(tile_index: int) -> Array:
 		var reb_row_str: String = "back" if reb_row_int == GameData.Row.BACK else "front"
 		result.append({
 			"type": troop["troop_id"],
-			"atk": td["base_atk"],
-			"def": td["base_def"],
+			"atk": td.get("base_atk", 5),
+			"def": td.get("base_def", 3),
 			"hp": troop["soldiers"],
 			"special": td.get("passive", "none"),
 			"count": troop["soldiers"],

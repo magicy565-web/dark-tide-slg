@@ -2072,7 +2072,12 @@ func _start_crisis_rebellion(pid: int, turn: int) -> void:
 	var owned: Array = GameManager.get_cached_owned_tiles(pid)
 	var low_order_tiles: Array = []
 	for tidx in owned:
-		var tile: Dictionary = GameManager.tiles[tidx]
+		# BUG FIX R14: bounds & null check on tile access
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			continue
+		var tile = GameManager.tiles[tidx]
+		if tile == null:
+			continue
 		var po: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
 		if po < BalanceConfig.CRISIS_REBELLION_ORDER_THRESHOLD:
 			low_order_tiles.append(tidx)
@@ -2080,8 +2085,11 @@ func _start_crisis_rebellion(pid: int, turn: int) -> void:
 		# If no low-order tiles, pick 2 random tiles with lowest order
 		var sorted_tiles: Array = owned.duplicate()
 		sorted_tiles.sort_custom(func(a, b):
-			var po_a: float = GameManager.tiles[a].get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
-			var po_b: float = GameManager.tiles[b].get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+			# BUG FIX R14: safe tile access in sort lambda
+			var tile_a = GameManager.tiles[a] if a >= 0 and a < GameManager.tiles.size() else null
+			var tile_b = GameManager.tiles[b] if b >= 0 and b < GameManager.tiles.size() else null
+			var po_a: float = tile_a.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT) if tile_a != null else 1.0
+			var po_b: float = tile_b.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT) if tile_b != null else 1.0
 			return po_a < po_b)
 		low_order_tiles = sorted_tiles.slice(0, mini(2, sorted_tiles.size()))
 
@@ -2094,7 +2102,12 @@ func _start_crisis_rebellion(pid: int, turn: int) -> void:
 	}
 	# Spawn rebel armies — flip tiles to unowned with garrison
 	for tidx in low_order_tiles:
-		var tile: Dictionary = GameManager.tiles[tidx]
+		# BUG FIX R14: bounds & null check
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			continue
+		var tile = GameManager.tiles[tidx]
+		if tile == null:
+			continue
 		tile["owner_id"] = -1
 		tile["garrison"] = BalanceConfig.CRISIS_REBELLION_ARMY_STRENGTH
 		tile["public_order"] = 0.0
