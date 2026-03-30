@@ -248,6 +248,12 @@ signal reputation_threshold_crossed(faction_key: String, old_level: String, new_
 signal treaty_break_cascade(total_breaks: int)
 signal treachery_debuff_applied(player_id: int, duration: int)
 
+# ── Dynamic Diplomatic Events (SR07-style) ──
+signal diplomatic_event_triggered(event_data: Dictionary)
+# event_data: {type: String, faction_id: int, title: String, description: String,
+#   choices: [{text: String, callback: String}], event_id: String}
+signal diplomatic_event_resolved(event_id: String, choice_index: int)
+
 # ── Event Chains (v4.3) ──
 signal event_chain_triggered(parent_id: String, chain_id: String, delay_turns: int)
 signal event_chain_resolved(chain_id: String, choice_index: int)

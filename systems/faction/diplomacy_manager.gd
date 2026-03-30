@@ -34,6 +34,8 @@ func reset() -> void:
 	_light_extort_cooldown = 0
 	_pending_light_peace = {}
 	_reputation.clear()
+	_event_cooldowns.clear()
+	_diplo_event_counter = 0
 
 func init_player(player_id: int) -> void:
 	_relations[player_id] = {}
@@ -275,6 +277,22 @@ func tick_reputation_decay() -> void:
 
 ## Track total treaty-breaking count for "背信弃义" debuff
 var _treaty_breaks_total: int = 0
+
+# ── SR07-Style Dynamic Diplomatic Events ──
+# Cooldown tracker: { event_type_string: turns_remaining }
+var _event_cooldowns: Dictionary = {}
+# Running event ID counter for unique identification
+var _diplo_event_counter: int = 0
+# Event type constants
+const DIPLO_EVT_BORDER_INCIDENT := "border_incident"
+const DIPLO_EVT_TRADE_OPPORTUNITY := "trade_opportunity"
+const DIPLO_EVT_ALLIANCE_PROPOSAL := "alliance_proposal"
+const DIPLO_EVT_BETRAYAL := "betrayal"
+const DIPLO_EVT_REFUGEE_CRISIS := "refugee_crisis"
+# Chance range: 10-15% per eligible faction per turn
+const DIPLO_EVT_CHANCE_MIN: float = 0.10
+const DIPLO_EVT_CHANCE_MAX: float = 0.15
+const DIPLO_EVT_COOLDOWN_TURNS: int = 2  # Same event type can't fire 2 turns in a row
 
 
 func get_reputation_cost_multiplier(faction_key: String) -> float:
@@ -1033,6 +1051,306 @@ func get_light_actions(player_id: int) -> Array:
 	return actions
 
 
+# ═══════════════ SR07 DYNAMIC DIPLOMATIC EVENTS ═══════════════
+
+func process_diplomatic_events(player_id: int) -> void:
+	## Called each turn. Rolls for random diplomatic events per eligible faction.
+	## Events are queued via EventBus.diplomatic_event_triggered for the HUD to display.
+	_tick_event_cooldowns()
+
+	var faction_keys: Array = ["orc_ai", "pirate_ai", "dark_elf_ai"]
+	var faction_ids: Array = [FactionData.FactionID.ORC, FactionData.FactionID.PIRATE, FactionData.FactionID.DARK_ELF]
+
+	# Per-faction events
+	for i in range(faction_keys.size()):
+		var fkey: String = faction_keys[i]
+		var fid: int = faction_ids[i]
+		# Skip player's own faction
+		if fid == GameManager.get_player_faction(player_id):
+			continue
+		# Skip factions with no territory
+		if _count_faction_tiles(fid) <= 0:
+			continue
+
+		var rep: int = get_reputation(fkey)
+
+		# --- Betrayal: rep < -30 and has any treaty ---
+		if rep < -30 and not _is_event_on_cooldown(DIPLO_EVT_BETRAYAL):
+			if _roll_event_chance() and _has_any_treaty(player_id, fid):
+				event_betrayal(player_id, fid)
+				continue  # Max one event per faction per turn
+
+		# --- Border Incident: always eligible ---
+		if not _is_event_on_cooldown(DIPLO_EVT_BORDER_INCIDENT):
+			if _roll_event_chance():
+				event_border_incident(player_id, fid)
+				continue
+
+		# --- Trade Opportunity: rep > 20 ---
+		if rep > 20 and not _is_event_on_cooldown(DIPLO_EVT_TRADE_OPPORTUNITY):
+			if _roll_event_chance():
+				event_trade_opportunity(player_id, fid)
+				continue
+
+		# --- Alliance Proposal: rep > 50, no existing alliance ---
+		if rep > 50 and not _is_event_on_cooldown(DIPLO_EVT_ALLIANCE_PROPOSAL):
+			if not has_treaty(player_id, "alliance", fid) and _roll_event_chance():
+				event_alliance_proposal(player_id, fid)
+				continue
+
+	# Global events (not per-faction)
+	if not _is_event_on_cooldown(DIPLO_EVT_REFUGEE_CRISIS):
+		if _roll_event_chance():
+			event_refugee_crisis(player_id)
+
+
+func _roll_event_chance() -> bool:
+	var threshold: float = randf_range(DIPLO_EVT_CHANCE_MIN, DIPLO_EVT_CHANCE_MAX)
+	return randf() < threshold
+
+
+func _is_event_on_cooldown(event_type: String) -> bool:
+	return _event_cooldowns.get(event_type, 0) > 0
+
+
+func _set_event_cooldown(event_type: String) -> void:
+	_event_cooldowns[event_type] = DIPLO_EVT_COOLDOWN_TURNS
+
+
+func _tick_event_cooldowns() -> void:
+	for key in _event_cooldowns.keys():
+		_event_cooldowns[key] -= 1
+		if _event_cooldowns[key] <= 0:
+			_event_cooldowns.erase(key)
+
+
+func _next_diplo_event_id() -> String:
+	_diplo_event_counter += 1
+	return "diplo_%d" % _diplo_event_counter
+
+
+func _has_any_treaty(player_id: int, faction_id: int) -> bool:
+	for t in _get_player_treaties(player_id):
+		if t["target"] == faction_id and t["turns_left"] > 0:
+			return true
+	if is_ceasefire_active(player_id, faction_id):
+		return true
+	return false
+
+
+## ── Event: Border Incident ──
+
+func event_border_incident(player_id: int, faction_id: int) -> void:
+	_set_event_cooldown(DIPLO_EVT_BORDER_INCIDENT)
+	var fname: String = _get_faction_name(faction_id)
+	var fkey: String = _faction_to_ai_key(faction_id)
+	var eid: String = _next_diplo_event_id()
+	var event_data: Dictionary = {
+		"type": DIPLO_EVT_BORDER_INCIDENT,
+		"faction_id": faction_id,
+		"event_id": eid,
+		"title": "边境冲突",
+		"description": "[color=red]%s[/color]的巡逻队在边境与你的守军发生了小规模冲突。\n损失了少量部队，双方关系恶化。" % fname,
+		"choices": [
+			{"text": "派兵还击 (声望+5, 关系再-5)", "callback": "border_incident_retaliate"},
+			{"text": "忍气吞声 (仅承受损失)", "callback": "border_incident_ignore"},
+		],
+	}
+	# Immediate effect: -10 rep, small troop loss
+	change_reputation(fkey, -10)
+	var army: int = ResourceManager.get_resource(player_id, "soldiers")
+	var loss: int = mini(clampi(army / 20, 5, 30), army)
+	ResourceManager.apply_delta(player_id, {"soldiers": -loss})
+	EventBus.message_log.emit("[color=red]边境冲突: 损失%d名士兵, %s声望-10[/color]" % [loss, fname])
+	EventBus.diplomatic_event_triggered.emit(event_data)
+
+
+func resolve_border_incident(player_id: int, faction_id: int, choice: String) -> void:
+	var fkey: String = _faction_to_ai_key(faction_id)
+	if choice == "border_incident_retaliate":
+		ResourceManager.apply_delta(player_id, {"prestige": 5})
+		change_reputation(fkey, -5)
+		EventBus.message_log.emit("[color=yellow]你选择还击! 威望+5, %s声望再-5[/color]" % _get_faction_name(faction_id))
+	else:
+		EventBus.message_log.emit("[color=gray]你选择忍耐，边境冲突事件结束。[/color]")
+
+
+## ── Event: Trade Opportunity ──
+
+func event_trade_opportunity(player_id: int, faction_id: int) -> void:
+	_set_event_cooldown(DIPLO_EVT_TRADE_OPPORTUNITY)
+	var fname: String = _get_faction_name(faction_id)
+	var eid: String = _next_diplo_event_id()
+	var event_data: Dictionary = {
+		"type": DIPLO_EVT_TRADE_OPPORTUNITY,
+		"faction_id": faction_id,
+		"event_id": eid,
+		"title": "贸易商机",
+		"description": "[color=cyan]%s[/color]的商队带来了一批稀有货物，提议进行一次特别交易。\n如果接受，将获得[color=gold]50金币[/color]的额外利润。" % fname,
+		"choices": [
+			{"text": "接受交易 (+50金, 关系+5)", "callback": "trade_opportunity_accept"},
+			{"text": "婉拒 (无变化)", "callback": "trade_opportunity_reject"},
+		],
+	}
+	EventBus.diplomatic_event_triggered.emit(event_data)
+
+
+func resolve_trade_opportunity(player_id: int, faction_id: int, choice: String) -> void:
+	var fkey: String = _faction_to_ai_key(faction_id)
+	if choice == "trade_opportunity_accept":
+		ResourceManager.apply_delta(player_id, {"gold": 50})
+		change_reputation(fkey, 5)
+		EventBus.message_log.emit("[color=gold]贸易成功! +50金, %s声望+5[/color]" % _get_faction_name(faction_id))
+	else:
+		EventBus.message_log.emit("[color=gray]你婉拒了%s的贸易提议。[/color]" % _get_faction_name(faction_id))
+
+
+## ── Event: Alliance Proposal ──
+
+func event_alliance_proposal(player_id: int, faction_id: int) -> void:
+	_set_event_cooldown(DIPLO_EVT_ALLIANCE_PROPOSAL)
+	var fname: String = _get_faction_name(faction_id)
+	var eid: String = _next_diplo_event_id()
+	var event_data: Dictionary = {
+		"type": DIPLO_EVT_ALLIANCE_PROPOSAL,
+		"faction_id": faction_id,
+		"event_id": eid,
+		"title": "同盟提议",
+		"description": "[color=green]%s[/color]派遣使节，提议缔结军事同盟。\n同盟将带来战斗加成和外交收益。" % fname,
+		"choices": [
+			{"text": "接受同盟 (缔结同盟, 关系+10)", "callback": "alliance_proposal_accept"},
+			{"text": "拒绝提议 (关系-10)", "callback": "alliance_proposal_reject"},
+		],
+	}
+	EventBus.diplomatic_event_triggered.emit(event_data)
+
+
+func resolve_alliance_proposal(player_id: int, faction_id: int, choice: String) -> void:
+	var fkey: String = _faction_to_ai_key(faction_id)
+	if choice == "alliance_proposal_accept":
+		sign_alliance(player_id, faction_id)
+		change_reputation(fkey, 10)
+		EventBus.message_log.emit("[color=green]你与%s缔结了军事同盟! 声望+10[/color]" % _get_faction_name(faction_id))
+	else:
+		change_reputation(fkey, -10)
+		EventBus.message_log.emit("[color=yellow]你拒绝了%s的同盟提议, 声望-10[/color]" % _get_faction_name(faction_id))
+
+
+## ── Event: Betrayal ──
+
+func event_betrayal(player_id: int, faction_id: int) -> void:
+	_set_event_cooldown(DIPLO_EVT_BETRAYAL)
+	var fname: String = _get_faction_name(faction_id)
+	var eid: String = _next_diplo_event_id()
+	# Find an existing treaty to break
+	var broken_type: String = ""
+	for t in _get_player_treaties(player_id):
+		if t["target"] == faction_id and t["turns_left"] > 0:
+			broken_type = t["type"]
+			break
+	if broken_type == "":
+		# Ceasefire break
+		if is_ceasefire_active(player_id, faction_id):
+			broken_type = "ceasefire"
+		else:
+			return  # Nothing to betray
+
+	var type_label: String = _get_treaty_type_name(broken_type) if broken_type != "ceasefire" else "停战协议"
+	var event_data: Dictionary = {
+		"type": DIPLO_EVT_BETRAYAL,
+		"faction_id": faction_id,
+		"event_id": eid,
+		"title": "背叛!",
+		"description": "[color=red]%s[/color]撕毁了与你的[color=yellow]%s[/color]!\n对方关系已经恶化到极点，条约不复存在。" % [fname, type_label],
+		"choices": [
+			{"text": "宣战报复 (进入敌对)", "callback": "betrayal_war"},
+			{"text": "保持克制 (声望+5)", "callback": "betrayal_restrain"},
+		],
+		"_broken_treaty_type": broken_type,
+	}
+	# Immediately break the treaty from the AI side
+	if broken_type == "ceasefire":
+		if _ceasefire.has(player_id) and _ceasefire[player_id].has(faction_id):
+			_ceasefire[player_id][faction_id] = 0
+	else:
+		# Remove the treaty directly
+		var treaties: Array = _get_player_treaties(player_id)
+		for t in treaties:
+			if t["target"] == faction_id and t["type"] == broken_type and t["turns_left"] > 0:
+				t["turns_left"] = 0
+				EventBus.treaty_broken.emit(player_id, broken_type, faction_id)
+				break
+
+	EventBus.message_log.emit("[color=red]%s背叛了你! 撕毁%s![/color]" % [fname, type_label])
+	EventBus.diplomatic_event_triggered.emit(event_data)
+
+
+func resolve_betrayal(player_id: int, faction_id: int, choice: String) -> void:
+	var fkey: String = _faction_to_ai_key(faction_id)
+	if choice == "betrayal_war":
+		mark_hostile(player_id, faction_id)
+		EventBus.message_log.emit("[color=red]你向%s宣战![/color]" % _get_faction_name(faction_id))
+	else:
+		ResourceManager.apply_delta(player_id, {"prestige": 5})
+		EventBus.message_log.emit("[color=cyan]你保持克制, 威望+5[/color]")
+
+
+## ── Event: Refugee Crisis ──
+
+func event_refugee_crisis(player_id: int) -> void:
+	_set_event_cooldown(DIPLO_EVT_REFUGEE_CRISIS)
+	var eid: String = _next_diplo_event_id()
+	var event_data: Dictionary = {
+		"type": DIPLO_EVT_REFUGEE_CRISIS,
+		"faction_id": -1,
+		"event_id": eid,
+		"title": "难民危机",
+		"description": "一群因战乱流离失所的难民来到你的领地请求庇护。\n[color=green]接纳[/color]: 秩序+5, 但需消耗[color=yellow]30粮食[/color]\n[color=red]拒绝[/color]: 秩序-5, 无额外消耗",
+		"choices": [
+			{"text": "接纳难民 (秩序+5, 粮食-30)", "callback": "refugee_accept"},
+			{"text": "拒绝入境 (秩序-5)", "callback": "refugee_reject"},
+		],
+	}
+	EventBus.diplomatic_event_triggered.emit(event_data)
+
+
+func resolve_refugee_crisis(player_id: int, choice: String) -> void:
+	if choice == "refugee_accept":
+		var food: int = ResourceManager.get_resource(player_id, "food")
+		var cost: int = mini(30, food)
+		ResourceManager.apply_delta(player_id, {"food": -cost})
+		OrderManager.change_order(5)
+		EventBus.message_log.emit("[color=green]你接纳了难民! 秩序+5, 粮食-%d[/color]" % cost)
+	else:
+		OrderManager.change_order(-5)
+		EventBus.message_log.emit("[color=red]你拒绝了难民, 秩序-5[/color]")
+
+
+## ── Event Resolution Dispatcher ──
+
+func resolve_diplomatic_event(event_data: Dictionary, choice_index: int) -> void:
+	## Called by UI when player makes a choice on a diplomatic event.
+	var player_id: int = GameManager.get_human_player_id()
+	var faction_id: int = event_data.get("faction_id", -1)
+	var choices: Array = event_data.get("choices", [])
+	if choice_index < 0 or choice_index >= choices.size():
+		return
+	var callback: String = choices[choice_index].get("callback", "")
+	EventBus.diplomatic_event_resolved.emit(event_data.get("event_id", ""), choice_index)
+
+	match event_data.get("type", ""):
+		DIPLO_EVT_BORDER_INCIDENT:
+			resolve_border_incident(player_id, faction_id, callback)
+		DIPLO_EVT_TRADE_OPPORTUNITY:
+			resolve_trade_opportunity(player_id, faction_id, callback)
+		DIPLO_EVT_ALLIANCE_PROPOSAL:
+			resolve_alliance_proposal(player_id, faction_id, callback)
+		DIPLO_EVT_BETRAYAL:
+			resolve_betrayal(player_id, faction_id, callback)
+		DIPLO_EVT_REFUGEE_CRISIS:
+			resolve_refugee_crisis(player_id, callback)
+
+
 # ═══════════════ SAVE / LOAD ═══════════════
 
 func to_save_data() -> Dictionary:
@@ -1045,6 +1363,8 @@ func to_save_data() -> Dictionary:
 		"pending_light_peace": _pending_light_peace.duplicate(true),
 		"reputation": _reputation.duplicate(),
 		"treaty_breaks_total": _treaty_breaks_total,
+		"event_cooldowns": _event_cooldowns.duplicate(),
+		"diplo_event_counter": _diplo_event_counter,
 	}
 
 
@@ -1104,3 +1424,8 @@ func from_save_data(data: Dictionary) -> void:
 	# Fix reputation int values after JSON round-trip
 	for key in _reputation:
 		_reputation[key] = int(_reputation[key])
+	# SR07 diplomatic events
+	_event_cooldowns = data.get("event_cooldowns", {}).duplicate()
+	for key in _event_cooldowns:
+		_event_cooldowns[key] = int(_event_cooldowns[key])
+	_diplo_event_counter = int(data.get("diplo_event_counter", 0))

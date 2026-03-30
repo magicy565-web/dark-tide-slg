@@ -96,6 +96,21 @@ const MAX_COMBAT_ROUNDS: int = 8
 const FRONT_SLOTS: int = 3
 const BACK_SLOTS: int = 3
 
+## ── Formation Bonuses (SR07-style front/back placement bonuses) ──
+## Row bonuses (applied to every unit in that row)
+const FORMATION_FRONT_ATK_MULT: float = 1.10   # Front row: ATK +10% (melee advantage)
+const FORMATION_FRONT_DEF_MULT: float = 1.05   # Front row: DEF +5%
+const FORMATION_BACK_ATK_MULT: float = 0.95    # Back row: ATK -5% (non-ranged)
+const FORMATION_BACK_DEF_MULT: float = 1.15    # Back row: DEF +15% (defensive advantage)
+const FORMATION_BACK_RANGED_ATK_MULT: float = 1.10  # Back row ranged: ATK +10% instead of -5%
+
+## Named formation pattern bonuses (based on front/back unit counts)
+const FORMATION_WALL_DEF_MULT: float = 1.10       # Wall (3 front, 0 back): front DEF +10%
+const FORMATION_TURTLE_DEF_MULT: float = 1.20     # Turtle (0 front, 3 back): back DEF +20%
+const FORMATION_TURTLE_ATK_MULT: float = 0.85     # Turtle: back ATK -15%
+const FORMATION_RANGED_FOCUS_ATK_MULT: float = 1.05  # Ranged Focus (1F+2B): back ATK +5%
+const FORMATION_FLANKING_ATK_MULT: float = 1.15   # Flanking: enemy bonus ATK +15% for gap
+
 ## Damage formula: SR07 percentage-based (soldiers × (ATK-DEF)% × skill × terrain)
 const DAMAGE_DIVISOR: float = 100.0
 

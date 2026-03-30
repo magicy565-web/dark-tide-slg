@@ -154,6 +154,10 @@ var _prev_gold: int = -1
 var _prev_food: int = -1
 var _prev_iron: int = -1
 
+# ── SR07 Diplomatic Event Queue ──
+var _diplo_event_queue: Array = []  # Array of event_data Dictionaries
+var _diplo_event_active: bool = false  # True while a diplomatic popup is showing
+
 
 # ═══════════════════════════════════════════════════════════════
 #                          LIFECYCLE
@@ -191,6 +195,7 @@ func _connect_signals() -> void:
 	EventBus.territory_changed.connect(_on_territory_changed)
 	EventBus.army_deployed.connect(_on_army_deployed)
 	EventBus.strategic_resource_changed.connect(_on_strategic_resource_changed)
+	EventBus.diplomatic_event_triggered.connect(_on_diplomatic_event_triggered)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -3452,3 +3457,65 @@ func _on_unit_orders_reset(army_id: int) -> void:
 	GameManager.clear_army_unit_commands(army_id)
 	EventBus.message_log.emit("全部指令重置為自動")
 	_on_unit_orders_army(army_id)
+
+
+# ═══════════════════════════════════════════════════════════════
+#              SR07 DIPLOMATIC EVENT QUEUE & POPUP
+# ═══════════════════════════════════════════════════════════════
+
+func _on_diplomatic_event_triggered(event_data: Dictionary) -> void:
+	## Queue diplomatic events and show them one at a time via the existing event popup.
+	_diplo_event_queue.append(event_data)
+	if not _diplo_event_active:
+		_show_next_diplomatic_event()
+
+
+func _show_next_diplomatic_event() -> void:
+	if _diplo_event_queue.is_empty():
+		_diplo_event_active = false
+		return
+	_diplo_event_active = true
+	var evt: Dictionary = _diplo_event_queue.pop_front()
+
+	# Build choices array for event_popup format
+	var popup_choices: Array = []
+	var raw_choices: Array = evt.get("choices", [])
+	for c in raw_choices:
+		popup_choices.append({"text": c.get("text", "OK")})
+
+	# Use the existing show_event_popup signal which event_popup.gd listens to
+	EventBus.show_event_popup.emit(evt.get("title", "外交事件"), evt.get("description", ""), popup_choices)
+
+	# Connect choice handler (disconnect first if already connected from previous event)
+	if EventBus.event_choice_selected.is_connected(_on_diplo_popup_choice_any):
+		EventBus.event_choice_selected.disconnect(_on_diplo_popup_choice_any)
+	# Store current event for the choice handler
+	_diplo_current_event = evt
+	EventBus.event_choice_selected.connect(_on_diplo_popup_choice_any)
+
+
+var _diplo_current_event: Dictionary = {}
+
+
+func _on_diplo_popup_choice_any(choice_index: int) -> void:
+	## Handles the player's choice on the current diplomatic event popup.
+	if _diplo_current_event.is_empty():
+		return
+	var evt: Dictionary = _diplo_current_event
+	_diplo_current_event = {}
+
+	# Disconnect so we don't intercept non-diplomatic popups
+	if EventBus.event_choice_selected.is_connected(_on_diplo_popup_choice_any):
+		EventBus.event_choice_selected.disconnect(_on_diplo_popup_choice_any)
+
+	# Resolve: if dismiss (-1), treat as last choice (reject/ignore)
+	var actual_index: int = choice_index
+	var choices: Array = evt.get("choices", [])
+	if actual_index < 0 or actual_index >= choices.size():
+		actual_index = choices.size() - 1 if choices.size() > 0 else 0
+
+	# Dispatch to DiplomacyManager for resolution
+	DiplomacyManager.resolve_diplomatic_event(evt, actual_index)
+
+	# Show next queued event (deferred to let popup close)
+	call_deferred("_show_next_diplomatic_event")

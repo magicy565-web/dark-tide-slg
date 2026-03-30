@@ -1847,6 +1847,10 @@ func begin_turn() -> void:
 	# ── Phase 5e5: Reputation decay ──
 	DiplomacyManager.tick_reputation_decay()
 
+	# ── Phase 5e6: SR07-style dynamic diplomatic events ──
+	if pid == get_human_player_id():
+		DiplomacyManager.process_diplomatic_events(pid)
+
 	# ── Phase 5f: Alliance AI actions ──
 	AllianceAI.tick(ThreatManager.get_threat())
 

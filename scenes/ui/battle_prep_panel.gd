@@ -26,6 +26,7 @@ var hero_list_container: VBoxContainer
 var enemy_container: VBoxContainer
 var confirm_btn: Button
 var cancel_btn: Button
+var formation_label: Label
 
 func _ready() -> void:
 	layer = 6
@@ -142,6 +143,12 @@ func _build_left_side(parent: HBoxContainer) -> void:
 	for i in range(3, 6):
 		back.add_child(_create_slot_panel(i))
 
+	# Formation bonus indicator
+	formation_label = _make_label("Formation: --", 12, ColorTheme.TEXT_GOLD)
+	formation_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	formation_label.custom_minimum_size.x = 300
+	gv.add_child(formation_label)
+
 	# Hero assignment list
 	var lp := PanelContainer.new()
 	lp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -246,6 +253,7 @@ func _refresh_slots() -> void:
 			vb.add_child(_make_label("A%d D%d S%d" % [st.get("atk", 0), st.get("def", 0), st.get("spd", 0)], 9, ColorTheme.TEXT_DIM))
 		else:
 			vb.add_child(_make_label("[No Hero]", 9, ColorTheme.TEXT_MUTED))
+	_update_formation_label()
 
 func _refresh_enemy() -> void:
 	_clear_container(enemy_container)
@@ -331,6 +339,63 @@ func _on_confirm() -> void:
 func _on_cancel() -> void:
 	hide_panel()
 	battle_cancelled.emit()
+
+# ═══════════════════════════════════════════════════
+#              FORMATION DETECTION
+# ═══════════════════════════════════════════════════
+
+func _detect_formation() -> Dictionary:
+	## Analyzes current slot assignments to determine formation type and bonuses.
+	## Returns { "name": String, "desc": String, "front_count": int, "back_count": int }
+	var front_count: int = 0
+	var back_count: int = 0
+	for si in _slot_assignments:
+		if si < 3:
+			front_count += 1
+		else:
+			back_count += 1
+
+	var formation_name: String = "Standard"
+	var desc_parts: Array = []
+
+	# Base row bonuses (always active)
+	if front_count > 0:
+		desc_parts.append("Front: ATK+10%% DEF+5%%")
+	if back_count > 0:
+		desc_parts.append("Back: DEF+15%%, Ranged ATK+10%%")
+
+	# Named formation patterns
+	if front_count == 3 and back_count == 0:
+		formation_name = "Wall Formation"
+		desc_parts.append("Wall: Front DEF+10%%")
+	elif front_count == 0 and back_count == 3:
+		formation_name = "Turtle Formation"
+		desc_parts.append("Turtle: DEF+20%%, ATK-15%%")
+	elif front_count == 1 and back_count == 2:
+		formation_name = "Ranged Focus"
+		desc_parts.append("Ranged Focus: Back ATK+5%%")
+	elif front_count == 2 and back_count == 1:
+		formation_name = "Standard"
+	else:
+		formation_name = "Custom"
+
+	# Flanking warning
+	if front_count > 0 and front_count < 3:
+		desc_parts.append("WARNING: Gap in front row - enemy flanking ATK+15%%!")
+
+	return {
+		"name": formation_name,
+		"desc": " | ".join(desc_parts),
+		"front_count": front_count,
+		"back_count": back_count,
+	}
+
+func _update_formation_label() -> void:
+	if not formation_label:
+		return
+	var info: Dictionary = _detect_formation()
+	formation_label.text = "Formation: %s (%dF/%dB)\n%s" % [
+		info["name"], info["front_count"], info["back_count"], info["desc"]]
 
 # ═══════════════════════════════════════════════════
 #                    HELPERS

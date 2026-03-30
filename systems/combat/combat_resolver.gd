@@ -146,6 +146,12 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	HeroSkillsAdvanced.reset_battle()
 	EnchantmentSystem.reset_combat_state()
 
+	# -- Formation Bonuses (SR07-style row placement) --
+	var atk_formation: Dictionary = _calculate_formation_bonuses(state["atk_units"])
+	var def_formation: Dictionary = _calculate_formation_bonuses(state["def_units"])
+	_apply_formation_bonuses(state["atk_units"], atk_formation, state["def_units"], log, "攻方")
+	_apply_formation_bonuses(state["def_units"], def_formation, state["atk_units"], log, "守方")
+
 	# -- v6.0: Apply environment modifiers (day/night, fatigue) --
 	var _env_time_mods: Dictionary = EnvironmentSystem.get_time_combat_modifiers()
 	var _atk_army_id: int = attacker.get("army_id", atk_pid)
@@ -3190,6 +3196,103 @@ func _count_total_soldiers(units: Array) -> int:
 		if unit["is_alive"] and not unit.get("is_routed", false):
 			total += unit["soldiers"]
 	return total
+
+
+# ---------------------------------------------------------------------------
+# Formation Bonus System (SR07-style front/back placement bonuses)
+# ---------------------------------------------------------------------------
+
+## Returns true if a unit type is considered ranged (archers, cannons, mages, gunners).
+func _is_ranged_unit(unit_type: String) -> bool:
+	return (
+		unit_type.find("archer") != -1
+		or unit_type.find("cannon") != -1
+		or unit_type.find("mage") != -1
+		or unit_type.find("gunner") != -1
+		or unit_type.find("bombardier") != -1
+		or unit_type.find("artillery") != -1
+	)
+
+## Detect formation pattern from a side's units and return a dictionary:
+## { "name": String, "row_bonuses": { "front": {atk, def}, "back": {atk, def} } }
+func _calculate_formation_bonuses(units: Array) -> Dictionary:
+	var front_count: int = 0
+	var back_count: int = 0
+	for u in units:
+		if u["is_alive"] and u["soldiers"] > 0:
+			if u["row"] == "front":
+				front_count += 1
+			else:
+				back_count += 1
+
+	# Start with base row multipliers from BalanceConfig
+	var front_atk: float = BalanceConfig.FORMATION_FRONT_ATK_MULT
+	var front_def: float = BalanceConfig.FORMATION_FRONT_DEF_MULT
+	var back_atk: float = BalanceConfig.FORMATION_BACK_ATK_MULT
+	var back_atk_ranged: float = BalanceConfig.FORMATION_BACK_RANGED_ATK_MULT
+	var back_def: float = BalanceConfig.FORMATION_BACK_DEF_MULT
+
+	var formation_name: String = "Standard"
+
+	# Named formation patterns (additional bonuses on top of row bonuses)
+	if front_count == 3 and back_count == 0:
+		formation_name = "Wall Formation"
+		front_def *= BalanceConfig.FORMATION_WALL_DEF_MULT
+	elif front_count == 0 and back_count == 3:
+		formation_name = "Turtle Formation"
+		back_def *= BalanceConfig.FORMATION_TURTLE_DEF_MULT
+		back_atk *= BalanceConfig.FORMATION_TURTLE_ATK_MULT
+		back_atk_ranged *= BalanceConfig.FORMATION_TURTLE_ATK_MULT
+	elif front_count == 2 and back_count == 1:
+		formation_name = "Standard"
+		# No extra bonus
+	elif front_count == 1 and back_count == 2:
+		formation_name = "Ranged Focus"
+		back_atk *= BalanceConfig.FORMATION_RANGED_FOCUS_ATK_MULT
+		back_atk_ranged *= BalanceConfig.FORMATION_RANGED_FOCUS_ATK_MULT
+
+	return {
+		"name": formation_name,
+		"front_count": front_count,
+		"back_count": back_count,
+		"front_atk_mult": front_atk,
+		"front_def_mult": front_def,
+		"back_atk_mult": back_atk,
+		"back_atk_ranged_mult": back_atk_ranged,
+		"back_def_mult": back_def,
+	}
+
+## Apply formation bonuses to all units on a side. Also checks for flanking
+## punishment from the opposing side's empty front slots.
+func _apply_formation_bonuses(units: Array, formation: Dictionary, enemy_units: Array, log: Array, side_label: String) -> void:
+	log.append("[阵型] %s: %s (前排%d/后排%d)" % [
+		side_label, formation["name"], formation["front_count"], formation["back_count"]])
+
+	for u in units:
+		if not u["is_alive"] or u["soldiers"] <= 0:
+			continue
+		if u["row"] == "front":
+			u["atk"] *= formation["front_atk_mult"]
+			u["def"] *= formation["front_def_mult"]
+		else:
+			# Back row: ranged units get the ranged ATK mult, others get the standard back ATK mult
+			if _is_ranged_unit(u["unit_type"]):
+				u["atk"] *= formation["back_atk_ranged_mult"]
+			else:
+				u["atk"] *= formation["back_atk_mult"]
+			u["def"] *= formation["back_def_mult"]
+
+	# Flanking check: if this side has empty front slots, the enemy gets an ATK bonus
+	# on units adjacent to the gap. With < 3 front units, enemy front units get flanking.
+	var our_front_count: int = formation["front_count"]
+	if our_front_count < FRONT_SLOTS and our_front_count > 0:
+		# There is a gap in our front line - enemy adjacent front units get flanking bonus
+		var flanking_mult: float = BalanceConfig.FORMATION_FLANKING_ATK_MULT
+		for eu in enemy_units:
+			if eu["is_alive"] and eu["soldiers"] > 0 and eu["row"] == "front":
+				eu["atk"] *= flanking_mult
+		log.append("[阵型] %s前排有空位! 敌方前排获得侧袭ATK+%d%%" % [
+			side_label, int((BalanceConfig.FORMATION_FLANKING_ATK_MULT - 1.0) * 100)])
 
 
 func _find_most_wounded_ally(allies: Array, self_unit: Dictionary) -> Dictionary:
