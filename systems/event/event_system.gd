@@ -1589,7 +1589,10 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 				if HeroSystem.has_method("modify_hero_stat"):
 					HeroSystem.modify_hero_stat(boosted_hero, stat_key, stat_val)
 				EventBus.message_log.emit("[color=green]%s 的%s永久+%d![/color]" % [boosted_hero, stat_key.to_upper(), stat_val])
-		result["applied"].append("hero_stat_boost: %s+%d (%s)" % [stat_key, stat_val, boosted_hero])
+		if boosted_hero != "":
+			result["applied"].append("hero_stat_boost: %s+%d (%s)" % [stat_key, stat_val, boosted_hero])
+		else:
+			result["applied"].append("hero_stat_boost: %s+%d (无可用英雄)" % [stat_key, stat_val])
 
 	# v4.3: Shadow essence resource
 	if effects.has("shadow_essence"):

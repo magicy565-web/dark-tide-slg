@@ -737,7 +737,7 @@ func calculate_recruit_cost(troop_id: String, discount_pct: float = 0.0, cost_mu
 	var gold: int = maxi(1, int(float(base_gold) * (1.0 - discount_pct / 100.0) * cost_mult))
 
 	# v5.1: War exhaustion — recruit costs increase +1% per turn after turn 50
-	var current_turn: int = GameManager.current_turn if GameManager.get("current_turn") != null else 0
+	var current_turn: int = GameManager.turn_number if GameManager.get("turn_number") != null else 0
 	if current_turn > BalanceConfig.WAR_EXHAUSTION_START_TURN:
 		var exhaustion_turns: int = current_turn - BalanceConfig.WAR_EXHAUSTION_START_TURN
 		var exhaustion_mult: float = 1.0 + float(exhaustion_turns) * BalanceConfig.WAR_EXHAUSTION_PCT_PER_TURN

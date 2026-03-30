@@ -310,9 +310,16 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		log.append("防守方撤退! 总损失 %d 兵" % def_retreat_loss)
 		return _finalize_result(state, "attacker", false, log, tile)
 
-	# Morale: Order debuff on enemies
+	# Morale: Order debuff on enemies — high order intimidates the opposing side
+	# BUG FIX R11: only debuff the side OPPOSING the human player when order is high
 	if OrderManager.get_order() >= MORALE_ORDER_THRESHOLD:
-		for u in state["def_units"]:
+		var human_pid: int = GameManager.get_human_player_id()
+		var enemy_units: Array = []
+		if state["atk_pid"] == human_pid:
+			enemy_units = state["def_units"]
+		elif state["def_pid"] == human_pid:
+			enemy_units = state["atk_units"]
+		for u in enemy_units:
 			if "morale_immune" not in u["passives"] and not u.get("immovable", false):
 				u["morale"] = maxi(u["morale"] - MORALE_ORDER_DEBUFF, 0)
 
@@ -606,12 +613,19 @@ func _assign_to_slots(raw_units: Array, player_id: int, side: String, tile: Dict
 		else:
 			back_units.append(unit)
 
-	# Enforce slot limits: front max 3, back max 2
+	# Enforce slot limits: front max 3, back max 3
 	# Overflow front → back, overflow back → front
 	while front_units.size() > FRONT_SLOTS and back_units.size() < BACK_SLOTS:
 		back_units.append(front_units.pop_back())
 	while back_units.size() > BACK_SLOTS and front_units.size() < FRONT_SLOTS:
 		front_units.append(back_units.pop_back())
+	# BUG FIX R11: if both rows still exceed limits, truncate to prevent silent unit loss
+	if front_units.size() > FRONT_SLOTS:
+		push_warning("CombatResolver: truncating %d excess front units" % (front_units.size() - FRONT_SLOTS))
+		front_units.resize(FRONT_SLOTS)
+	if back_units.size() > BACK_SLOTS:
+		push_warning("CombatResolver: truncating %d excess back units" % (back_units.size() - BACK_SLOTS))
+		back_units.resize(BACK_SLOTS)
 
 	# Assign slot indices
 	var all_units: Array = []

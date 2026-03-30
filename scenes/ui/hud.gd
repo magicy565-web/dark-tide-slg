@@ -1634,6 +1634,11 @@ func _on_domestic_recruit() -> void:
 		var sel: int = board_node.get_selected_tile()
 		if sel >= 0 and sel < GameManager.tiles.size() and GameManager.tiles[sel]["owner_id"] == pid:
 			tile_idx = sel
+	# BUG FIX R11: bounds-check tile_idx before access
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		_show_target_panel("Recruit - Select Troop")
+		_add_target_label("(No valid tile selected)")
+		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 
 	_show_target_panel("Recruit - Select Troop")

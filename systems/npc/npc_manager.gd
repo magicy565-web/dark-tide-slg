@@ -433,6 +433,8 @@ func _check_event_chains(player_id: int, npc_id: String) -> void:
 	## 使用 _type_triggered_thresholds 按NPC ID去重，防止多次捕获同一NPC重复触发
 	if not NPC_DEFS.has(npc_id):
 		return
+	if not _npc_states.has(player_id) or not _npc_states[player_id].has(npc_id):
+		return
 	var def: Dictionary = NPC_DEFS[npc_id]
 	var npc_key: String = npc_id  # Use npc_id, not type, so different NPCs track independently
 	var state: Dictionary = _npc_states[player_id][npc_id]

@@ -521,10 +521,21 @@ func calculate_action_points(player_id: int) -> int:
 	return mini(ap, MAX_AP)
 
 
+## BUG FIX R11: get_army_count was referenced by production_calculator but never defined
+func get_army_count(player_id: int) -> int:
+	var count: int = 0
+	for army_id in armies:
+		if armies[army_id].get("player_id", -1) == player_id:
+			count += 1
+	return count
+
+
 func get_tile_production(tile: Dictionary) -> Dictionary:
 	var base: Dictionary = tile.get("base_production", {})
 	var level: int = maxi(tile.get("level", 1), 1)
-	var mult: float = UPGRADE_PROD_MULT[level - 1] if level <= UPGRADE_PROD_MULT.size() else 1.0
+	# BUG FIX R11: bounds-check level against UPGRADE_PROD_MULT size
+	var level_idx: int = clampi(level - 1, 0, UPGRADE_PROD_MULT.size() - 1) if UPGRADE_PROD_MULT.size() > 0 else 0
+	var mult: float = UPGRADE_PROD_MULT[level_idx] if UPGRADE_PROD_MULT.size() > 0 else 1.0
 	# SR07: Apply garrison commander production bonus
 	var cmd_bonus: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1))
 	var cmd_mult: float = cmd_bonus.get("prod_mult", 1.0)
@@ -5056,14 +5067,17 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 			"gold_next_visit":
 				# Store a gold bonus that triggers on next visit to a specific tile
 				var tile_idx: int = player.get("position", 0)
-				if not tiles[tile_idx].has("deferred_effects"):
-					tiles[tile_idx]["deferred_effects"] = {}
-				tiles[tile_idx]["deferred_effects"]["gold_next_visit"] = {
-					"player_id": player["id"],
-					"value": int(value),
-					"turns_remaining": effects.get("duration", -1),
-				}
-				EventBus.message_log.emit("下次访问此据点时获得 %d 金币" % int(value))
+				if tile_idx < 0 or tile_idx >= tiles.size():
+					push_warning("GameManager: gold_next_visit tile_idx %d out of bounds" % tile_idx)
+				else:
+					if not tiles[tile_idx].has("deferred_effects"):
+						tiles[tile_idx]["deferred_effects"] = {}
+					tiles[tile_idx]["deferred_effects"]["gold_next_visit"] = {
+						"player_id": player["id"],
+						"value": int(value),
+						"turns_remaining": effects.get("duration", -1),
+					}
+					EventBus.message_log.emit("下次访问此据点时获得 %d 金币" % int(value))
 			"attacked_next_turn":
 				# Schedule an enemy attack at the start of next turn
 				# BUG FIX: value is boolean true, use meaningful attack strength

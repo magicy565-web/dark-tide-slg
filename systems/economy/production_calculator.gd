@@ -96,18 +96,24 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 			income["gold"] += int(tile_dev_effects.get("gold_per_turn", 0))
 			income["gold"] += int(tile_dev_effects.get("gold_bonus", 0))
 			if tile_dev_effects.has("gold_mult"):
+				# BUG FIX R11: use current g (which includes supply_mod) as baseline,
+				# not the raw pre-supply value, to correctly adjust income
+				var g_before: int = g
 				g = int(float(g) * tile_dev_effects["gold_mult"])
-				# Adjust income by the penalty amount (g was already added at full value)
-				income["gold"] -= int(float(base.get("gold", 0)) * tile_mult * gold_base_mult * tile_order_mult) - g
+				income["gold"] -= g_before - g
 			income["iron"] += int(tile_dev_effects.get("iron_per_turn", 0))
 			income["iron"] += int(tile_dev_effects.get("iron_bonus", 0))
 			if tile_dev_effects.has("iron_mult"):
+				var ir_before: int = ir
 				var ir_adj: int = int(float(ir) * tile_dev_effects["iron_mult"])
-				income["iron"] -= ir - ir_adj
+				income["iron"] -= ir_before - ir_adj
+				ir = ir_adj
 			income["food"] += int(tile_dev_effects.get("food_per_turn", 0))
 			if tile_dev_effects.has("food_mult"):
+				var f_before: int = f
 				var f_adj: int = int(float(f) * tile_dev_effects["food_mult"])
-				income["food"] -= f - f_adj
+				income["food"] -= f_before - f_adj
+				f = f_adj
 			income["prestige"] += int(tile_dev_effects.get("prestige_per_turn", 0))
 
 			# Adjacent tile spillover effects from neighboring tiles
@@ -407,7 +413,7 @@ func calculate_gold_upkeep(player_id: int) -> int:
 		total_upkeep = ceili(float(total_upkeep) * scale_mult)
 
 	# 4. v5.1: War exhaustion — after turn 50, all costs +1% per turn
-	var current_turn: int = GameManager.current_turn if GameManager.get("current_turn") != null else 0
+	var current_turn: int = GameManager.turn_number if GameManager.get("turn_number") != null else 0
 	if current_turn > BalanceConfig.WAR_EXHAUSTION_START_TURN:
 		var exhaustion_turns: int = current_turn - BalanceConfig.WAR_EXHAUSTION_START_TURN
 		var exhaustion_mult: float = 1.0 + float(exhaustion_turns) * BalanceConfig.WAR_EXHAUSTION_PCT_PER_TURN

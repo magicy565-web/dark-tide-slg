@@ -504,16 +504,19 @@ func set_volume(bus_name: String, value: float) -> void:
 
 func set_bgm_volume(vol: float) -> void:
 	bgm_volume = clampf(vol, 0.0, 1.0)
-	_bgm_player.volume_db = linear_to_db(bgm_volume)
+	if _bgm_player != null:
+		_bgm_player.volume_db = linear_to_db(bgm_volume)
 
 func set_sfx_volume(vol: float) -> void:
 	sfx_volume = clampf(vol, 0.0, 1.0)
 	for player in _sfx_players:
-		player.volume_db = linear_to_db(sfx_volume)
+		if player != null:
+			player.volume_db = linear_to_db(sfx_volume)
 
 func set_ambient_volume(vol: float) -> void:
 	ambient_volume = clampf(vol, 0.0, 1.0)
-	_ambient_player.volume_db = linear_to_db(ambient_volume)
+	if _ambient_player != null:
+		_ambient_player.volume_db = linear_to_db(ambient_volume)
 
 func toggle_mute() -> void:
 	master_muted = not master_muted
