@@ -973,3 +973,19 @@ const SAT_REWARD_GOLD_BASE: int = 10
 const SAT_REWARD_GOLD_PER_AFF: int = 5
 const SAT_REWARD_MORALE_BUFF: int = 5       # morale boost to army
 const SAT_REWARD_MORALE_DURATION: int = 2   # turns
+
+# ═══════════════ PRISONER ACTIONS (SR07 aligned) ═══════════════
+
+## Execute prisoner: permanent kill, +threat, -reputation, +prestige
+const EXECUTE_THREAT_GAIN: int = 20
+const EXECUTE_REP_PENALTY: int = -15
+const EXECUTE_PRESTIGE_GAIN: int = 5
+
+## Ransom prisoner: gold reward based on hero level, +reputation
+const RANSOM_GOLD_PER_LEVEL: int = 20
+const RANSOM_GOLD_BASE: int = 50
+const RANSOM_REP_BONUS: int = 5
+
+## Exile prisoner: no reward, -threat, hero returns to enemy pool after N turns
+const EXILE_THREAT_REDUCTION: int = 5
+const EXILE_RETURN_TURNS: int = 5

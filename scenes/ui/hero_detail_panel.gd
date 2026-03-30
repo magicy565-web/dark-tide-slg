@@ -304,6 +304,31 @@ func _refresh() -> void:
 	rl.add_theme_font_size_override("font_size", 10)
 	rl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 	_add(rl)
+	# ── Affection Bonus Tier (universal, all factions) ──
+	var aff_bonus: Dictionary = HeroSystem.get_affection_bonus(_hero_id)
+	var tier_desc: String = aff_bonus.get("tier_desc", "")
+	if tier_desc != "":
+		var bonus_lbl := Label.new()
+		var title_str: String = aff_bonus.get("title", "")
+		if title_str != "":
+			bonus_lbl.text = "Affection %d: %s [%s]" % [affection, tier_desc, title_str]
+		else:
+			bonus_lbl.text = "Affection %d: %s" % [affection, tier_desc]
+		bonus_lbl.add_theme_font_size_override("font_size", 12)
+		bonus_lbl.add_theme_color_override("font_color", Color(0.9, 0.7, 0.3))
+		_add(bonus_lbl)
+	else:
+		var no_bonus_lbl := Label.new()
+		no_bonus_lbl.text = "Affection %d: No bonus yet (next at 3)" % affection
+		no_bonus_lbl.add_theme_font_size_override("font_size", 12)
+		no_bonus_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
+		_add(no_bonus_lbl)
+	if aff_bonus.get("loyal", false):
+		var loyal_lbl := Label.new()
+		loyal_lbl.text = "  [Loyal] This hero will not desert."
+		loyal_lbl.add_theme_font_size_override("font_size", 11)
+		loyal_lbl.add_theme_color_override("font_color", Color(0.4, 0.85, 0.4))
+		_add(loyal_lbl)
 
 	# ── Gift Giving ──
 	if _hero_id in HeroSystem.recruited_heroes:

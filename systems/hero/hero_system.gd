@@ -43,6 +43,9 @@ var _battles_won_count: int = 0               # total battles won (for iron_gene
 var _hidden_hero_data: Dictionary = {}        # hero_id -> hero data dict (runtime registry)
 var _hero_stat_bonuses: Dictionary = {}       # hero_id -> {stat_key: int} permanent bonuses from events
 
+# ── Exiled Heroes (流放后归还计时) ──
+var _exiled_heroes: Dictionary = {}           # hero_id -> int (remaining turns until return to enemy pool)
+
 
 func reset() -> void:
 	captured_heroes.clear()
@@ -65,6 +68,7 @@ func reset() -> void:
 	_battles_won_count = 0
 	_hidden_hero_data.clear()
 	_hero_stat_bonuses.clear()
+	_exiled_heroes.clear()
 
 
 ## Called when pirate faction is selected. Enables harem mechanics.
@@ -125,6 +129,8 @@ func process_prison_turn() -> void:
 		if _pirate_mode:
 			increment = ceili(float(increment) * FactionData.PIRATE_CORRUPTION_SPEED)
 		hero_corruption[hero_id] = mini(hero_corruption.get(hero_id, 0) + increment, 100)
+	# Also tick exile return timers
+	process_exile_turn()
 
 
 ## Attempt to recruit a captured hero
@@ -168,6 +174,92 @@ func release_hero(hero_id: String) -> bool:
 	EventBus.hero_released.emit(hero_id)
 	EventBus.message_log.emit("释放英雄: %s (威胁-10, 威望+5)" % _get_hero_name(hero_id))
 	return true
+
+
+## Execute a prisoner permanently. +threat, -faction reputation, +prestige (SR07 処刑)
+func execute_prisoner(hero_id: String) -> bool:
+	if hero_id not in captured_heroes:
+		return false
+	var hero_data: Dictionary = _get_hero_data(hero_id)
+	var hero_name: String = _get_hero_name(hero_id)
+	var faction_key: String = hero_data.get("faction", "")
+
+	captured_heroes.erase(hero_id)
+	hero_corruption.erase(hero_id)
+
+	# Threat gain
+	ThreatManager.change_threat(BalanceConfig.EXECUTE_THREAT_GAIN)
+	# Reputation penalty with hero's faction
+	if faction_key != "":
+		DiplomacyManager.change_reputation(faction_key, BalanceConfig.EXECUTE_REP_PENALTY)
+	# Prestige gain
+	var pid: int = GameManager.get_human_player_id()
+	ResourceManager.apply_delta(pid, {"prestige": BalanceConfig.EXECUTE_PRESTIGE_GAIN})
+
+	EventBus.hero_executed.emit(hero_id)
+	EventBus.message_log.emit("[color=red]処刑英雄: %s (威胁+%d, %s声望%d, 威望+%d)[/color]" % [
+		hero_name, BalanceConfig.EXECUTE_THREAT_GAIN, faction_key,
+		BalanceConfig.EXECUTE_REP_PENALTY, BalanceConfig.EXECUTE_PRESTIGE_GAIN])
+	return true
+
+
+## Ransom a prisoner back to their faction for gold. +reputation (SR07 身代金)
+func ransom_prisoner(hero_id: String) -> bool:
+	if hero_id not in captured_heroes:
+		return false
+	var hero_data: Dictionary = _get_hero_data(hero_id)
+	var hero_name: String = _get_hero_name(hero_id)
+	var faction_key: String = hero_data.get("faction", "")
+
+	# Gold reward = hero_level * per_level + base
+	var hero_level: int = HeroLeveling.get_hero_level(hero_id) if HeroLeveling.has_method("get_hero_level") else 1
+	var gold_reward: int = hero_level * BalanceConfig.RANSOM_GOLD_PER_LEVEL + BalanceConfig.RANSOM_GOLD_BASE
+
+	captured_heroes.erase(hero_id)
+	hero_corruption.erase(hero_id)
+
+	var pid: int = GameManager.get_human_player_id()
+	ResourceManager.apply_delta(pid, {"gold": gold_reward})
+	# Reputation bonus with hero's faction
+	if faction_key != "":
+		DiplomacyManager.change_reputation(faction_key, BalanceConfig.RANSOM_REP_BONUS)
+
+	EventBus.hero_ransomed.emit(hero_id)
+	EventBus.message_log.emit("[color=yellow]身代金: %s を身代金で解放 (金+%d, %s声望+%d)[/color]" % [
+		hero_name, gold_reward, faction_key, BalanceConfig.RANSOM_REP_BONUS])
+	return true
+
+
+## Exile a prisoner. No reward, -threat, hero returns to enemy pool after N turns (SR07 追放)
+func exile_prisoner(hero_id: String) -> bool:
+	if hero_id not in captured_heroes:
+		return false
+	var hero_name: String = _get_hero_name(hero_id)
+
+	captured_heroes.erase(hero_id)
+	hero_corruption.erase(hero_id)
+
+	# Threat reduction
+	ThreatManager.change_threat(-BalanceConfig.EXILE_THREAT_REDUCTION)
+	# Track exile return timer
+	_exiled_heroes[hero_id] = BalanceConfig.EXILE_RETURN_TURNS
+
+	EventBus.hero_exiled.emit(hero_id)
+	EventBus.message_log.emit("追放英雄: %s (威胁-%d, %d回合後帰還敵陣営)" % [
+		hero_name, BalanceConfig.EXILE_THREAT_REDUCTION, BalanceConfig.EXILE_RETURN_TURNS])
+	return true
+
+
+## Process exiled heroes each turn: decrement return timer, return to enemy pool when done.
+func process_exile_turn() -> void:
+	var returned: Array = []
+	for hero_id in _exiled_heroes.keys():
+		_exiled_heroes[hero_id] -= 1
+		if _exiled_heroes[hero_id] <= 0:
+			returned.append(hero_id)
+	for hero_id in returned:
+		_exiled_heroes.erase(hero_id)
+		EventBus.message_log.emit("[color=gray]追放された %s が敵陣営に帰還した[/color]" % _get_hero_name(hero_id))
 
 
 ## Interrogate a captured hero for resources/intel (消耗1AP, Rance 07 尋問)
@@ -265,6 +357,59 @@ func get_affection_unlocks(hero_id: String) -> Array:
 	return unlocks
 
 
+## Universal affection stat bonuses (all factions).
+## Returns {atk_pct, def_pct, all_pct, loyal, title, tier_desc} based on affection level.
+func get_affection_bonus(hero_id: String) -> Dictionary:
+	var aff: int = hero_affection.get(hero_id, 0)
+	var bonus := {
+		"atk_pct": 0.0,
+		"def_pct": 0.0,
+		"all_pct": 0.0,
+		"loyal": false,
+		"second_skill": false,
+		"title": "",
+		"tier_desc": "",
+	}
+	if aff >= 3:
+		bonus["atk_pct"] = 0.05
+		bonus["tier_desc"] = "ATK+5%"
+	if aff >= 5:
+		bonus["def_pct"] = 0.05
+		bonus["loyal"] = true
+		bonus["tier_desc"] = "ATK+5%, DEF+5%, Loyal"
+	if aff >= 7:
+		bonus["second_skill"] = true
+		bonus["tier_desc"] = "ATK+5%, DEF+5%, Loyal, 2nd Skill"
+	if aff >= 10:
+		bonus["all_pct"] = 0.10
+		bonus["title"] = "Sworn Companion"
+		bonus["tier_desc"] = "All Stats+10%, Sworn Companion"
+	return bonus
+
+
+## Apply affection-based percentage bonuses to a combat stats dictionary.
+## Modifies atk, def, spd, int_stat, hp, mp keys in-place and returns the result.
+func apply_affection_combat_bonus(hero_id: String, stats: Dictionary) -> Dictionary:
+	var bonus: Dictionary = get_affection_bonus(hero_id)
+	var atk_mult: float = 1.0 + bonus["atk_pct"] + bonus["all_pct"]
+	var def_mult: float = 1.0 + bonus["def_pct"] + bonus["all_pct"]
+	var other_mult: float = 1.0 + bonus["all_pct"]
+	if atk_mult != 1.0 and stats.has("atk"):
+		stats["atk"] = int(float(stats["atk"]) * atk_mult)
+	if def_mult != 1.0 and stats.has("def"):
+		stats["def"] = int(float(stats["def"]) * def_mult)
+	if other_mult != 1.0:
+		if stats.has("spd"):
+			stats["spd"] = int(float(stats["spd"]) * other_mult)
+		if stats.has("int_stat"):
+			stats["int_stat"] = int(float(stats["int_stat"]) * other_mult)
+		if stats.has("hp"):
+			stats["hp"] = int(float(stats["hp"]) * other_mult)
+		if stats.has("mp"):
+			stats["mp"] = int(float(stats["mp"]) * other_mult)
+	return stats
+
+
 # ═══════════════ PUBLIC API (hero_panel.gd) ═══════════════
 
 func get_recruited_heroes(_player_id: int) -> Array:
@@ -327,22 +472,14 @@ func get_hero_combat_stats(hero_id: String) -> Dictionary:
 	# Get level-scaled base stats from HeroLeveling autoload
 	var leveled: Dictionary = HeroLeveling.get_hero_stats(hero_id)
 
-	# Affection bonuses
-	var affection: int = hero_affection.get(hero_id, 0)
-	var atk_bonus: int = 0
-	var def_bonus: int = 0
-	if affection >= 5: atk_bonus += 1
-	if affection >= 7: def_bonus += 1
-	if affection >= 10: atk_bonus += 1; def_bonus += 1
-
 	# Equipment stat bonuses (v0.8.7)
 	var equip_stats: Dictionary = get_equipment_stat_totals(hero_id)
 
-	return {
+	var result := {
 		"name": hero_data.get("name", hero_id),
 		"troop": hero_data.get("troop", ""),
-		"atk": leveled.get("atk", hero_data.get("atk", 0)) + atk_bonus + equip_stats.get("atk", 0),
-		"def": leveled.get("def", hero_data.get("def", 0)) + def_bonus + equip_stats.get("def", 0),
+		"atk": leveled.get("atk", hero_data.get("atk", 0)) + equip_stats.get("atk", 0),
+		"def": leveled.get("def", hero_data.get("def", 0)) + equip_stats.get("def", 0),
 		"int_stat": leveled.get("int_stat", hero_data.get("int", 0)) + equip_stats.get("int_stat", 0),
 		"spd": leveled.get("spd", hero_data.get("spd", 0)) + equip_stats.get("spd", 0),
 		"hp": leveled.get("hp", hero_data.get("base_hp", 20)),
@@ -354,6 +491,11 @@ func get_hero_combat_stats(hero_id: String) -> Dictionary:
 		"level_passives": HeroLeveling.get_unlocked_passives(hero_id),
 		"equipment_passives": get_equipment_passives(hero_id),
 	}
+
+	# Apply universal affection percentage bonuses (all factions)
+	result = apply_affection_combat_bonus(hero_id, result)
+
+	return result
 
 
 ## Get all recruited heroes as a list of combat-ready data

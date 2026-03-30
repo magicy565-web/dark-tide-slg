@@ -2726,7 +2726,13 @@ func _update_tile_info() -> void:
 		info += "Output: Gold %d Food %d Iron %d Pop %d\n" % [prod["gold"], prod["food"], prod["iron"], prod["pop"]]
 
 	if tile["owner_id"] == pid:
-		info += "[color=green]Captured[/color]\n"
+		info += "[color=green]Captured[/color]"
+		# Capital & supply line indicators
+		if SupplySystem.is_capital_tile(pid, tile_idx):
+			info += " [color=gold][Capital][/color]"
+		if not SupplySystem.is_tile_supplied(pid, tile_idx):
+			info += " [color=red][ISOLATED][/color]"
+		info += "\n"
 		var bld: String = tile.get("building_id", "")
 		if bld != "":
 			var bld_level: int = tile.get("building_level", 1)
@@ -3014,7 +3020,12 @@ func _update_tile_info_for(tile_index: int) -> void:
 
 	# Owner info
 	if tile["owner_id"] == pid:
-		info += "[color=green]Own territory[/color]\n"
+		var own_label: String = "[color=green]Own territory[/color]"
+		if SupplySystem.is_capital_tile(pid, tile_index):
+			own_label += " [color=gold][Capital][/color]"
+		if not SupplySystem.is_tile_supplied(pid, tile_index):
+			own_label += " [color=red][ISOLATED — Supply cut!][/color]"
+		info += own_label + "\n"
 	elif tile["owner_id"] >= 0:
 		var _owner = GameManager.get_player_by_id(tile["owner_id"])
 		var oname: String = _owner.get("name", "Enemy") if _owner else "Enemy"
@@ -3072,16 +3083,29 @@ func _update_tile_info_for(tile_index: int) -> void:
 		info += "[color=yellow]━━ Army: %s ━━[/color]\n" % army["name"]
 		info += "Troops: %d/%d | Soldiers: %d | Power: %d\n" % [troop_count, GameManager.get_effective_max_troops(army.get("player_id", pid)), soldiers, power]
 		if army["player_id"] == pid:
-			var tile_idx: int = army.get("tile_index", -1)
-			var on_enemy: bool = tile_idx >= 0 and tile_idx < GameManager.tiles.size() and GameManager.tiles[tile_idx]["owner_id"] != pid and GameManager.tiles[tile_idx]["owner_id"] >= 0
-			if on_enemy:
-				info += "[color=orange]Supply: Enemy territory (%.0f%% attrition/turn)[/color]\n" % (BalanceConfig.SUPPLY_ENEMY_TERRITORY_ATTRITION * 100.0)
-			else:
-				info += "[color=green]Supply: Normal[/color]\n"
+			# Supply line status via SupplySystem
+			var supply_status: Dictionary = SupplySystem.get_army_supply_status(army)
+			var supply_label: String = supply_status.get("status_label", "[color=green]补给充足[/color]")
+			var supply_code: String = supply_status.get("status", "supplied")
+			info += "Supply: %s" % supply_label
+			var dist: int = supply_status.get("distance", -1)
+			if dist > 0:
+				info += " (distance: %d)" % dist
+			info += "\n"
+			# Show warning for cut-off or strained supply
+			if supply_code == "cut_off" or supply_code == "no_capital":
+				info += "[color=red]!! CUT OFF — No reinforcement, morale draining, troops attriting !![/color]\n"
+			elif supply_code == "extended":
+				info += "[color=orange]Supply line overextended — reduced efficiency[/color]\n"
+			# Show capital info
+			var cap_tile: int = supply_status.get("capital_tile", -1)
+			if cap_tile >= 0 and cap_tile < GameManager.tiles.size():
+				var cap_name: String = GameManager.tiles[cap_tile].get("name", "Unknown")
+				info += "[color=gray]Capital: %s[/color]\n" % cap_name
 		else:
 			var army_owner = GameManager.get_player_by_id(army["player_id"])
 			var army_owner_name: String = army_owner.get("name", "Unknown") if army_owner else "Unknown"
-			info += "[color=red]Owner: %s[/color]\n" % army_owner_name
+			info += "[color=red]Owner: %s[/color]\n"  % army_owner_name
 
 	# Neutral faction
 	if tile.get("neutral_faction_id", -1) >= 0:

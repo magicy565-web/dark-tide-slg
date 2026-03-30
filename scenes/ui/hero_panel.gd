@@ -458,6 +458,33 @@ func _build_hero_card(hero_id: String, context: String) -> PanelContainer:
 		btn_release.pressed.connect(_on_release_hero.bind(hero_id))
 		btn_vbox.add_child(btn_release)
 
+		# Execute button (red)
+		var btn_execute := Button.new()
+		btn_execute.text = "Execute"
+		btn_execute.custom_minimum_size = Vector2(80, 28)
+		btn_execute.add_theme_font_size_override("font_size", 12)
+		btn_execute.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		btn_execute.pressed.connect(_on_execute_hero.bind(hero_id))
+		btn_vbox.add_child(btn_execute)
+
+		# Ransom button (gold)
+		var btn_ransom := Button.new()
+		btn_ransom.text = "Ransom"
+		btn_ransom.custom_minimum_size = Vector2(80, 28)
+		btn_ransom.add_theme_font_size_override("font_size", 12)
+		btn_ransom.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+		btn_ransom.pressed.connect(_on_ransom_hero.bind(hero_id))
+		btn_vbox.add_child(btn_ransom)
+
+		# Exile button (gray)
+		var btn_exile := Button.new()
+		btn_exile.text = "Exile"
+		btn_exile.custom_minimum_size = Vector2(80, 28)
+		btn_exile.add_theme_font_size_override("font_size", 12)
+		btn_exile.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+		btn_exile.pressed.connect(_on_exile_hero.bind(hero_id))
+		btn_vbox.add_child(btn_exile)
+
 	elif context == "recruited":
 		# Gift button (increase affection)
 		var btn_gift := Button.new()
@@ -658,6 +685,45 @@ func _on_release_hero(hero_id: String) -> void:
 		EventBus.message_log.emit("%s has been released" % FactionData.HEROES.get(hero_id, {}).get("name", hero_id))
 		_refresh_list()
 		detail_panel.visible = false
+
+
+func _on_execute_hero(hero_id: String) -> void:
+	AudioManager.play_ui_confirm()
+	if HeroSystem.has_method("execute_prisoner"):
+		var result: bool = HeroSystem.execute_prisoner(hero_id)
+		if result:
+			var hero_name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
+			EventBus.message_log.emit("[color=red]%s has been executed![/color]" % hero_name)
+			_refresh_list()
+			detail_panel.visible = false
+		else:
+			EventBus.message_log.emit("[color=red]Execution failed[/color]")
+
+
+func _on_ransom_hero(hero_id: String) -> void:
+	AudioManager.play_ui_confirm()
+	if HeroSystem.has_method("ransom_prisoner"):
+		var result: bool = HeroSystem.ransom_prisoner(hero_id)
+		if result:
+			var hero_name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
+			EventBus.message_log.emit("[color=yellow]%s has been ransomed![/color]" % hero_name)
+			_refresh_list()
+			detail_panel.visible = false
+		else:
+			EventBus.message_log.emit("[color=red]Ransom failed[/color]")
+
+
+func _on_exile_hero(hero_id: String) -> void:
+	AudioManager.play_ui_click()
+	if HeroSystem.has_method("exile_prisoner"):
+		var result: bool = HeroSystem.exile_prisoner(hero_id)
+		if result:
+			var hero_name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
+			EventBus.message_log.emit("%s has been exiled" % hero_name)
+			_refresh_list()
+			detail_panel.visible = false
+		else:
+			EventBus.message_log.emit("[color=red]Exile failed[/color]")
 
 
 func _on_gift_hero(hero_id: String) -> void:

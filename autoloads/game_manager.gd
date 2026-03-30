@@ -2629,6 +2629,7 @@ func get_sat_points(pid: int) -> int:
 func action_sat_event(pid: int, hero_id: String) -> bool:
 	## Free action (costs 0 AP). Spends 1 SAT point to trigger a hero affection event.
 	## Increases hero affection by 1 and grants small rewards scaling with affection.
+	## Works for ALL factions with faction-appropriate flavor text.
 	if _sat_points.get(pid, 0) < BalanceConfig.SAT_EVENT_COST:
 		EventBus.message_log.emit("[color=red]満足度不足! (需要%d)[/color]" % BalanceConfig.SAT_EVENT_COST)
 		return false
@@ -2654,11 +2655,47 @@ func action_sat_event(pid: int, hero_id: String) -> bool:
 	var morale_dur: int = BalanceConfig.SAT_REWARD_MORALE_DURATION
 	BuffManager.apply_buff(pid, "sat_morale", {"morale_boost": morale_val}, morale_dur)
 
-	# Log results
+	# Faction-aware flavor text
 	var hero_name: String = HeroSystem.get_hero_display_name(hero_id) if HeroSystem.has_method("get_hero_display_name") else hero_id
-	EventBus.message_log.emit("[color=pink]【満足度事件】与 %s 交流! 好感度→%d, +%d金, 士気+%d(%d回合)[/color]" % [
-		hero_name, new_aff, gold_reward, morale_val, morale_dur])
+	var faction_tag: String = _get_faction_tag_for_player(pid)
+	var flavor: String
+	match faction_tag:
+		"pirate":
+			flavor = "【船上宴会】与 %s 畅饮!" % hero_name
+		"orc":
+			flavor = "【训练场】与 %s 切磋武艺!" % hero_name
+		"dark_elf":
+			flavor = "【暗影仪式】与 %s 共修暗术!" % hero_name
+		_:
+			flavor = "【训练时光】与 %s 共同训练!" % hero_name
+	EventBus.message_log.emit("[color=pink]%s 好感度→%d, +%d金, 士気+%d(%d回合)[/color]" % [
+		flavor, new_aff, gold_reward, morale_val, morale_dur])
 	return true
+
+
+func action_gift_hero(hero_id: String) -> Dictionary:
+	## Universal gift-giving action. Costs 30g, +1 affection, 1/turn cooldown per hero.
+	## Works for ALL factions — delegates to HeroSystem gift system.
+	var pid: int = get_human_player_id()
+	if hero_id not in HeroSystem.recruited_heroes:
+		return {"ok": false, "desc": "英雄未在麾下"}
+	if not HeroSystem.can_give_gift(hero_id):
+		if HeroSystem.hero_affection.get(hero_id, 0) >= FactionData.AFFECTION_MAX:
+			return {"ok": false, "desc": "好感度已满"}
+		return {"ok": false, "desc": "赠礼冷却中 (每回合限1次)"}
+	if not ResourceManager.can_afford(pid, {"gold": 30}):
+		return {"ok": false, "desc": "金币不足 (需要30金)"}
+
+	ResourceManager.spend(pid, {"gold": 30})
+	var current_aff: int = HeroSystem.hero_affection.get(hero_id, 0)
+	var new_aff: int = mini(current_aff + 1, FactionData.AFFECTION_MAX)
+	HeroSystem.hero_affection[hero_id] = new_aff
+	HeroSystem._gift_cooldowns[hero_id] = FactionData.GIFT_COOLDOWN_TURNS
+	EventBus.hero_affection_changed.emit(hero_id, new_aff)
+
+	var hero_name: String = HeroSystem.get_hero_display_name(hero_id) if HeroSystem.has_method("get_hero_display_name") else hero_id
+	EventBus.message_log.emit("[color=pink]赠礼 %s! -30金, 好感度+1 (当前: %d)[/color]" % [hero_name, new_aff])
+	return {"ok": true, "desc": "赠礼成功", "affection": new_aff}
 
 
 func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:

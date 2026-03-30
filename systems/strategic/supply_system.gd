@@ -40,30 +40,81 @@ func _ready() -> void:
 
 # ═══════════════ CAPITAL DETECTION ═══════════════
 
-## placeholder: detect_capital
 func detect_capital(player_id: int) -> int:
 	## Find the capital tile for a player.
-	## Priority: first CORE_FORTRESS owned, else tile with highest garrison.
+	## Priority order:
+	##   1. Player's original starting position (home base)
+	##   2. DARK_BASE tile matching player's original_faction
+	##   3. First CORE_FORTRESS still owned
+	##   4. First LIGHT_STRONGHOLD still owned
+	##   5. Tile with highest garrison (last resort)
+
+	# 1. Check player's starting position — the most reliable capital indicator
+	var player: Dictionary = _get_player_dict(player_id)
+	var start_pos: int = player.get("position", -1)
+	if start_pos >= 0 and start_pos < GameManager.tiles.size():
+		var start_tile: Dictionary = GameManager.tiles[start_pos]
+		if start_tile != null and start_tile.get("owner_id", -1) == player_id:
+			_player_capitals[player_id] = start_pos
+			return start_pos
+
+	# 2. For dark factions, find a DARK_BASE matching their original_faction
+	var faction_id: int = GameManager.get_player_faction(player_id) if GameManager.has_method("get_player_faction") else -1
+	var home_base: int = -1
 	var first_fortress: int = -1
+	var first_stronghold: int = -1
 	var best_garrison_tile: int = -1
 	var best_garrison: int = -1
+
 	for tile in GameManager.tiles:
 		if tile == null:
 			continue
 		if tile.get("owner_id", -1) != player_id:
 			continue
+		var tidx: int = tile["index"]
 		var tile_type: int = tile.get("type", -1)
-		if tile_type == GameManager.TileType.CORE_FORTRESS:
-			if first_fortress < 0:
-				first_fortress = tile["index"]
+
+		# 2. DARK_BASE with matching original_faction
+		if tile_type == GameManager.TileType.DARK_BASE and faction_id >= 0:
+			if tile.get("original_faction", -1) == faction_id and home_base < 0:
+				home_base = tidx
+
+		# 3. CORE_FORTRESS
+		if tile_type == GameManager.TileType.CORE_FORTRESS and first_fortress < 0:
+			first_fortress = tidx
+
+		# 4. LIGHT_STRONGHOLD
+		if tile_type == GameManager.TileType.LIGHT_STRONGHOLD and first_stronghold < 0:
+			first_stronghold = tidx
+
+		# 5. Highest garrison fallback
 		var gar: int = tile.get("garrison", 0)
 		if gar > best_garrison:
 			best_garrison = gar
-			best_garrison_tile = tile["index"]
-	var result: int = first_fortress if first_fortress >= 0 else best_garrison_tile
+			best_garrison_tile = tidx
+
+	# Pick best available in priority order
+	var result: int = -1
+	if home_base >= 0:
+		result = home_base
+	elif first_fortress >= 0:
+		result = first_fortress
+	elif first_stronghold >= 0:
+		result = first_stronghold
+	elif best_garrison_tile >= 0:
+		result = best_garrison_tile
+
 	if result >= 0:
 		_player_capitals[player_id] = result
 	return result
+
+
+func _get_player_dict(player_id: int) -> Dictionary:
+	## Look up a player dict from GameManager.players by id.
+	for p in GameManager.players:
+		if p.get("id", -1) == player_id:
+			return p
+	return {}
 
 
 func get_capital(player_id: int) -> int:
@@ -79,7 +130,6 @@ func get_capital(player_id: int) -> int:
 
 # ═══════════════ SUPPLY LINE CALCULATION ═══════════════
 
-## placeholder: recalculate_supply_lines
 func recalculate_supply_lines(player_id: int) -> void:
 	## BFS from capital through same-owner tiles. Mark connected vs isolated.
 	var capital: int = get_capital(player_id)
@@ -236,11 +286,119 @@ func get_supply_path(player_id: int, tile_index: int) -> Array:
 	return path
 
 
+# ═══════════════ ARMY SUPPLY CONNECTIVITY ═══════════════
+
+func is_army_supplied(army: Dictionary) -> bool:
+	## Check if an army has a supply line back to its capital.
+	## An army is supplied if:
+	##   1. It is on a friendly tile that is connected to the capital, OR
+	##   2. It is on an enemy/neutral tile but adjacent to a connected friendly tile
+	var player_id: int = army.get("player_id", -1)
+	var tile_index: int = army.get("tile_index", -1)
+	if player_id < 0 or tile_index < 0:
+		return false
+	if tile_index >= GameManager.tiles.size():
+		return false
+
+	var tile: Dictionary = GameManager.tiles[tile_index]
+	if tile == null:
+		return false
+
+	# On own territory — use standard tile supply check
+	if tile.get("owner_id", -1) == player_id:
+		return is_tile_supplied(player_id, tile_index)
+
+	# On enemy/neutral tile — check if adjacent to any connected friendly tile
+	var neighbors: Array = GameManager.adjacency.get(tile_index, [])
+	for nb in neighbors:
+		if nb < 0 or nb >= GameManager.tiles.size():
+			continue
+		if GameManager.tiles[nb] == null:
+			continue
+		if GameManager.tiles[nb].get("owner_id", -1) == player_id:
+			if is_tile_supplied(player_id, nb):
+				return true
+	return false
+
+
+func get_army_supply_status(army: Dictionary) -> Dictionary:
+	## Returns detailed supply status for an army.
+	## Keys: "connected" (bool), "capital_tile" (int), "distance" (int),
+	##        "status" (String: "supplied"/"strained"/"cut_off"),
+	##        "status_label" (String: Chinese label for HUD)
+	var player_id: int = army.get("player_id", -1)
+	var tile_index: int = army.get("tile_index", -1)
+	var capital: int = get_capital(player_id)
+	var connected: bool = is_army_supplied(army)
+
+	var result: Dictionary = {
+		"connected": connected,
+		"capital_tile": capital,
+		"distance": -1,
+		"status": "cut_off",
+		"status_label": "[color=red]补给断绝[/color]",
+	}
+
+	if capital < 0:
+		result["status"] = "no_capital"
+		result["status_label"] = "[color=red]无首都![/color]"
+		return result
+
+	if not connected:
+		return result
+
+	# Calculate distance through supply path
+	var tile_owner: int = -1
+	if tile_index >= 0 and tile_index < GameManager.tiles.size() and GameManager.tiles[tile_index] != null:
+		tile_owner = GameManager.tiles[tile_index].get("owner_id", -1)
+
+	var path: Array = []
+	if tile_owner == player_id:
+		path = get_supply_path(player_id, tile_index)
+	else:
+		# On enemy tile — find path from nearest connected friendly tile
+		var neighbors: Array = GameManager.adjacency.get(tile_index, [])
+		var shortest: Array = []
+		for nb in neighbors:
+			if nb < 0 or nb >= GameManager.tiles.size():
+				continue
+			if GameManager.tiles[nb] == null:
+				continue
+			if GameManager.tiles[nb].get("owner_id", -1) != player_id:
+				continue
+			if not is_tile_supplied(player_id, nb):
+				continue
+			var p: Array = get_supply_path(player_id, nb)
+			if not p.is_empty() and (shortest.is_empty() or p.size() < shortest.size()):
+				shortest = p
+		path = shortest
+
+	var dist: int = path.size() if not path.is_empty() else 999
+	result["distance"] = dist
+
+	if dist <= 3:
+		result["status"] = "supplied"
+		result["status_label"] = "[color=green]补给充足[/color]"
+	elif dist <= 6:
+		result["status"] = "strained"
+		result["status_label"] = "[color=yellow]补给紧张[/color]"
+	else:
+		result["status"] = "extended"
+		result["status_label"] = "[color=orange]补给线过长[/color]"
+
+	return result
+
+
+func is_capital_tile(player_id: int, tile_index: int) -> bool:
+	## Returns true if the given tile is the capital for the given player.
+	return get_capital(player_id) == tile_index
+
+
 # ═══════════════ ISOLATION PENALTIES ═══════════════
 
-## placeholder: apply_isolation_penalties
 func apply_isolation_penalties(player_id: int) -> void:
 	## Apply attrition and public order loss to isolated tiles.
+	## Also apply morale drain and reinforcement block to armies cut off from capital.
 	var isolated: Array = get_isolated_tiles(player_id)
 	for tidx in isolated:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
@@ -256,6 +414,38 @@ func apply_isolation_penalties(player_id: int) -> void:
 		# Public order loss: -3
 		var order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
 		tile["public_order"] = maxf(0.0, order - ISOLATION_ORDER_LOSS)
+
+	# Apply penalties to armies cut off from capital
+	_apply_army_isolation_penalties(player_id)
+
+
+const ARMY_CUTOFF_MORALE_DRAIN: float = 8.0      # -8 morale per turn when cut off
+const ARMY_CUTOFF_ATTRITION_PCT: float = 0.03     # 3% soldier loss per turn when cut off
+
+func _apply_army_isolation_penalties(player_id: int) -> void:
+	## Armies cut off from capital suffer morale drain and attrition.
+	if not GameManager.has_method("get_player_armies"):
+		return
+	var armies: Array = GameManager.get_player_armies(player_id)
+	for army in armies:
+		if not is_army_supplied(army):
+			var army_id: int = army.get("id", -1)
+			if army_id < 0:
+				continue
+			# Morale drain
+			var morale: float = army.get("morale", 100.0)
+			army["morale"] = maxf(0.0, morale - ARMY_CUTOFF_MORALE_DRAIN)
+			# Soldier attrition on each troop
+			var troops: Array = army.get("troops", [])
+			for troop in troops:
+				var soldiers: int = troop.get("soldiers", 0)
+				if soldiers > 0:
+					var loss: int = maxi(1, int(float(soldiers) * ARMY_CUTOFF_ATTRITION_PCT))
+					troop["soldiers"] = maxi(0, soldiers - loss)
+			# Emit warning for human player
+			if player_id == GameManager.get_human_player_id():
+				var army_name: String = army.get("name", "Army")
+				EventBus.message_log.emit("[color=red]%s 补给线断绝! 士气-%.0f, 减员中...[/color]" % [army_name, ARMY_CUTOFF_MORALE_DRAIN])
 
 
 func get_supply_production_mult(player_id: int, tile_index: int) -> float:
@@ -278,7 +468,6 @@ func can_build_at_tile(player_id: int, tile_index: int) -> bool:
 
 # ═══════════════ FRONT LINE / REAR CLASSIFICATION ═══════════════
 
-## placeholder: classify_territories
 func classify_territories(player_id: int) -> void:
 	## Classify all owned tiles as FRONT, MIDDLE, or REAR.
 	# Clear existing classification for this player
