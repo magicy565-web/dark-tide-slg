@@ -62,7 +62,8 @@ func try_rebellion() -> Dictionary:
 	var player_id: int = GameManager.get_human_player_id()
 	var owned_tiles: Array = []
 	for tile in GameManager.tiles:
-		if tile.get("owner_id", -1) == player_id:
+		# BUG FIX R18: null check on tile from GameManager.tiles
+		if tile != null and tile.get("owner_id", -1) == player_id:
 			owned_tiles.append(tile)
 
 	if owned_tiles.is_empty():
@@ -73,9 +74,12 @@ func try_rebellion() -> Dictionary:
 	rebel_tile["owner_id"] = -1
 	rebel_tile["garrison"] = garrison
 
-	EventBus.message_log.emit("[color=red]叛乱爆发! %s 脱离控制，叛军驻守%d![/color]" % [rebel_tile["name"], garrison])
-	EventBus.tile_lost.emit(player_id, rebel_tile["index"])
-	EventBus.rebellion_occurred.emit(rebel_tile["index"])
+	# BUG FIX R18: use .get() for safety on rebel_tile fields
+	var rebel_name: String = rebel_tile.get("name", "未知领地")
+	var rebel_index: int = rebel_tile.get("index", -1)
+	EventBus.message_log.emit("[color=red]叛乱爆发! %s 脱离控制，叛军驻守%d![/color]" % [rebel_name, garrison])
+	EventBus.tile_lost.emit(player_id, rebel_index)
+	EventBus.rebellion_occurred.emit(rebel_index)
 	# 秩序惩罚，但限制最低值为ORDER_MIN防止无限螺旋
 	var new_order: int = maxi(_order - 3, BalanceConfig.ORDER_MIN)
 	var penalty: int = new_order - _order
@@ -83,7 +87,7 @@ func try_rebellion() -> Dictionary:
 		change_order(penalty)
 	# 设置叛乱冷却
 	_rebellion_cooldown = REBELLION_COOLDOWN_TURNS
-	return {"rebelled": true, "strength": maxi(1, strength), "tile_index": rebel_tile["index"], "garrison": garrison}
+	return {"rebelled": true, "strength": maxi(1, strength), "tile_index": rebel_index, "garrison": garrison}
 
 
 # ═══════════════ TURN TICK (self-correcting drift) ═══════════════

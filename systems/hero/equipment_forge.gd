@@ -560,6 +560,21 @@ func from_save_data(data: Dictionary) -> void:
 	_legendary_crafted = data.get("legendary_crafted", []).duplicate()
 	_forge_level = data.get("forge_level", {}).duplicate()
 	_unclaimed_items = data.get("unclaimed_items", {}).duplicate(true)
+	# BUG FIX R18: Fix int keys after JSON round-trip for player_id-keyed dicts
+	for dict_ref in [_crafted_items, _forge_level, _unclaimed_items]:
+		var keys_to_fix: Array = []
+		for k in dict_ref:
+			if k is String and k.is_valid_int():
+				keys_to_fix.append(k)
+		for k in keys_to_fix:
+			dict_ref[int(k)] = dict_ref[k]
+			dict_ref.erase(k)
+	# Fix int values inside forge_queue entries
+	for entry in _forge_queue:
+		if entry is Dictionary:
+			for field in ["player_id", "turns_left", "turns_total"]:
+				if entry.has(field):
+					entry[field] = int(entry[field])
 	# Validate loaded legendary entries still match existing recipes
 	var valid_legendary: Array = []
 	for rid in _legendary_crafted:

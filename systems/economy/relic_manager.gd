@@ -55,8 +55,9 @@ func upgrade_relic(player_id: int) -> bool:
 		return false
 	ResourceManager.spend(player_id, cost)
 	_player_relics[player_id]["upgraded"] = true
-	var relic: Dictionary = FactionData.RELIC_DEFS[_player_relics[player_id]["relic_id"]]
-	EventBus.message_log.emit("[color=purple]遗物升级: %s 效果翻倍![/color]" % relic["name"])
+	# BUG FIX R18: use .get() to guard against missing relic_id in RELIC_DEFS
+	var relic: Dictionary = FactionData.RELIC_DEFS.get(_player_relics[player_id]["relic_id"], {})
+	EventBus.message_log.emit("[color=purple]遗物升级: %s 效果翻倍![/color]" % relic.get("name", "未知遗物"))
 	return true
 
 func get_relic_effect(player_id: int, effect_key: String) -> Variant:

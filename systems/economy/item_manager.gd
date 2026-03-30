@@ -428,8 +428,11 @@ func from_save_data(data: Dictionary) -> void:
 		_inventories[int(k)] = _inventories[k]
 		_inventories.erase(k)
 	_national_items = data.get("national_items", {}).duplicate(true)
-	# Fix int keys for national items
+	# BUG FIX R18: Fix int keys for national items (safe conversion with is_valid_int check)
 	var fixed_nat := {}
 	for key in _national_items:
-		fixed_nat[int(key)] = _national_items[key]
+		if key is String and key.is_valid_int():
+			fixed_nat[int(key)] = _national_items[key]
+		else:
+			fixed_nat[key] = _national_items[key]
 	_national_items = fixed_nat

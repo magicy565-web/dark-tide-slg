@@ -77,15 +77,19 @@ func can_diplomacy(player_id: int, faction_id: int) -> Dictionary:
 	if costs.is_empty():
 		return {"possible": false, "missing": ["无外交数据"]}
 
-	if ResourceManager.get_resource(player_id, "prestige") < costs.get("prestige", 0):
+	# BUG FIX R18: use .get() consistently for costs dictionary access
+	var prestige_cost: int = costs.get("prestige", 0)
+	var gold_cost: int = costs.get("gold", 0)
+	var order_min: int = costs.get("order_min", 0)
+	if ResourceManager.get_resource(player_id, "prestige") < prestige_cost:
 		result["possible"] = false
-		result["missing"].append("威望不足 (需要%d)" % costs["prestige"])
-	if ResourceManager.get_resource(player_id, "gold") < costs.get("gold", 0):
+		result["missing"].append("威望不足 (需要%d)" % prestige_cost)
+	if ResourceManager.get_resource(player_id, "gold") < gold_cost:
 		result["possible"] = false
-		result["missing"].append("金币不足 (需要%d)" % costs["gold"])
-	if OrderManager.get_order() < costs.get("order_min", 0):
+		result["missing"].append("金币不足 (需要%d)" % gold_cost)
+	if OrderManager.get_order() < order_min:
 		result["possible"] = false
-		result["missing"].append("秩序值不足 (需要%d)" % costs["order_min"])
+		result["missing"].append("秩序值不足 (需要%d)" % order_min)
 
 	return result
 
@@ -150,7 +154,8 @@ func tick_rebellion(player_id: int) -> void:
 			if n_idx < 0 or n_idx >= GameManager.tiles.size():
 				continue
 			var tile: Dictionary = GameManager.tiles[n_idx]
-			if tile["owner_id"] != player_id:
+			# BUG FIX R18: use .get() for owner_id
+			if tile.get("owner_id", -1) != player_id:
 				continue
 			if tile.get("original_faction", -1) != faction_id:
 				continue
@@ -190,10 +195,13 @@ func improve_relation(player_id: int, faction_id: int, amount: int) -> void:
 func _grant_faction_outposts(player_id: int, faction_id: int) -> void:
 	## Transfer all faction outposts to the player.
 	for tile in GameManager.tiles:
-		if tile.get("original_faction", -1) == faction_id and tile["owner_id"] < 0:
+		# BUG FIX R18: null check + .get() for safety
+		if tile == null:
+			continue
+		if tile.get("original_faction", -1) == faction_id and tile.get("owner_id", -1) < 0:
 			tile["owner_id"] = player_id
 			tile["original_faction"] = faction_id
-			EventBus.territory_changed.emit(tile["index"], player_id)
+			EventBus.territory_changed.emit(tile.get("index", -1), player_id)
 
 func _grant_weakened_abilities(player_id: int, faction_id: int) -> void:
 	## Unlock weakened abilities based on conquered/recruited faction.
@@ -855,7 +863,10 @@ func _count_faction_tiles(faction_id: int) -> int:
 	## Count tiles originally belonging to an evil faction (not captured by player).
 	var count: int = 0
 	for tile in GameManager.tiles:
-		if tile.get("original_faction", -1) == faction_id and tile["owner_id"] < 0:
+		# BUG FIX R18: null check + .get() for owner_id
+		if tile == null:
+			continue
+		if tile.get("original_faction", -1) == faction_id and tile.get("owner_id", -1) < 0:
 			count += 1
 	return count
 
