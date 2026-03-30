@@ -657,6 +657,14 @@ func _find_root(parent: Array, x: int) -> int:
 	return x
 
 
+func _find_troop_training_panel():
+	## Locate the TroopTrainingPanel node in the scene tree.
+	var scene = get_tree().current_scene
+	if scene and "troop_training_panel" in scene and scene.troop_training_panel:
+		return scene.troop_training_panel
+	return null
+
+
 func _add_extra_edges(positions: Array, mst: Array) -> Array:
 	var edge_set: Dictionary = {}
 	for edge in mst:
@@ -1212,6 +1220,8 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	LightFactionAI.reset()
 	AIStrategicPlanner.reset()
 	StoryEventSystem.reset()
+	if EquipmentForge != null:
+		EquipmentForge.reset()
 	# OrcMechanic/PirateMechanic/DarkElfMechanic reset via FactionManager.reset() above
 
 	# ── Create human player ──
@@ -1242,6 +1252,8 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	DiplomacyManager.init_player(0)
 	StrategicResourceManager.init_player(0)
 	ResearchManager.init_player(0)
+	if EquipmentForge != null:
+		EquipmentForge.init_player(0)
 	if chosen_faction == FactionData.FactionID.ORC:
 		OrcMechanic.init_player(0)
 
@@ -1828,6 +1840,16 @@ func begin_turn() -> void:
 	if pid == get_human_player_id():
 		ResearchManager.process_turn(pid)
 
+	# ── Phase 5b3: Troop training progress (v3.4) ──
+	if pid == get_human_player_id():
+		var _ttp = _find_troop_training_panel()
+		if _ttp and _ttp.has_method("process_turn"):
+			_ttp.process_turn()
+
+	# ── Phase 5b4: Equipment forge crafting progress (v3.6) ──
+	if EquipmentForge != null:
+		EquipmentForge.process_turn(pid)
+
 	# ── Phase 5c: NPC obedience decay/growth ──
 	NpcManager.tick_all(pid, turn_number)
 
@@ -1953,6 +1975,8 @@ func begin_turn() -> void:
 			_sys_root.get_node("SupplySystem").process_turn(pid)
 		if _sys_root.has_node("EspionageSystem"):
 			_sys_root.get_node("EspionageSystem").process_turn(pid)
+		if _sys_root.has_node("SupplyLogistics"):
+			_sys_root.get_node("SupplyLogistics").process_turn(pid)
 
 	# ── Phase 5h: Supply line attrition (v0.9.2) ──
 	_tick_supply_lines(pid)

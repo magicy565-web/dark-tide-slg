@@ -53,6 +53,9 @@ var action_visualizer = null
 var tile_indicator_system = null
 var intel_overlay = null
 
+# ── v3.6 Equipment Forge panel ──
+var equipment_forge_panel = null
+
 
 func _ready() -> void:
 	# Start with HUD hidden, menu visible (board stays visible - camera needs it)
@@ -188,6 +191,12 @@ func _ready() -> void:
 	intel_overlay.set_script(IntelOverlayScript)
 	add_child(intel_overlay)
 
+	# ── v3.6: Equipment Forge Panel ──
+	var EquipmentForgePanelScript = preload("res://scenes/ui/equipment_forge_panel.gd")
+	equipment_forge_panel = CanvasLayer.new()
+	equipment_forge_panel.set_script(EquipmentForgePanelScript)
+	add_child(equipment_forge_panel)
+
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)
 
@@ -257,6 +266,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if pirate_panel and pirate_panel.is_panel_visible():
 				return
 			if troop_training_panel and troop_training_panel.has_method("is_panel_visible") and troop_training_panel.is_panel_visible():
+				return
+			if equipment_forge_panel and equipment_forge_panel.has_method("is_panel_visible") and equipment_forge_panel.is_panel_visible():
 				return
 			if espionage_panel and espionage_panel.visible:
 				espionage_panel.hide_panel()  # BUG FIX: call hide_panel() for proper cleanup

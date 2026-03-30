@@ -124,6 +124,7 @@ var btn_upgrade_troop: Button
 var btn_formation: Button
 var btn_unit_orders: Button
 var btn_troop_training: Button
+var btn_equipment_forge: Button
 var _formation_army_id: int = -1
 var _orders_army_id: int = -1
 var _tile_dev_panel: Node = null
@@ -641,6 +642,12 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 	btn_troop_training.tooltip_text = "訓練兵種解鎖新能力 (U)"
 	btn_troop_training.pressed.connect(_on_troop_training)
 	vbox.add_child(btn_troop_training)
+
+	btn_equipment_forge = _make_button("装备锻造")
+	btn_equipment_forge.custom_minimum_size = Vector2(140, 30)
+	btn_equipment_forge.tooltip_text = "锻造装备与传说武器 (J)"
+	btn_equipment_forge.pressed.connect(_on_equipment_forge)
+	vbox.add_child(btn_equipment_forge)
 
 
 # ── Center panel: target / tile selector ──
@@ -1922,6 +1929,19 @@ func _on_troop_training() -> void:
 			panel.show_panel()
 		else:
 			EventBus.message_log.emit("Troop training panel not available.")
+
+
+func _on_equipment_forge() -> void:
+	var main_node = get_tree().current_scene
+	if main_node and "equipment_forge_panel" in main_node and main_node.equipment_forge_panel:
+		main_node.equipment_forge_panel.show_panel()
+	else:
+		# Fallback: search children for forge panel script
+		for child in get_tree().current_scene.get_children():
+			if child.has_method("show_panel") and child.get_script() and "equipment_forge" in child.get_script().resource_path:
+				child.show_panel()
+				return
+		EventBus.message_log.emit("Equipment forge panel not available.")
 
 
 func _on_upgrade_troop() -> void:
@@ -3234,6 +3254,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			KEY_U:
 				_on_troop_training()
+				get_viewport().set_input_as_handled()
+			KEY_J:
+				_on_equipment_forge()
 				get_viewport().set_input_as_handled()
 			KEY_ENTER, KEY_SPACE:
 				_on_end_turn_pressed()

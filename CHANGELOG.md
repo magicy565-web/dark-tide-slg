@@ -2,6 +2,56 @@
 
 ---
 
+## v3.6.1 — 2026-03-30 (关键集成修复: 孤立系统接入运行时)
+
+### 修复: 兵种训练回合推进
+
+- **BUG**: TroopTrainingPanel.process_turn() 从未被调用, 训练永远不会完成
+- game_manager.gd begin_turn() Phase 5b3 新增调用, 每回合推进训练进度
+- 训练完成后自动解锁能力并通知玩家
+
+### 修复: 装备锻造回合推进
+
+- **BUG**: EquipmentForge.process_turn() 从未被调用, 锻造永远不会完成
+- game_manager.gd begin_turn() Phase 5b4 新增调用
+- start_game() 新增 EquipmentForge.reset() 和 init_player() 初始化
+
+### 新增: 装备锻造 UI 面板 (equipment_forge_panel.gd)
+
+- **KEY_J** 打开/关闭, HUD 内政面板新增"装备锻造"按钮
+- 左侧配方列表: 按类型分组(武器/防具/饰品), 状态色彩编码(可锻造/锁定/队列中/已完成)
+- 右侧详情: 属性/被动/前置条件/锻造等级需求, 开始锻造按钮
+- 锻造队列: 进度条+取消按钮(50%退款)
+- 锻造炉升级: 当前等级+升级费用+升级按钮
+- 未领取物品: 背包满时暂存, 可手动领取
+
+### 修复: 补给后勤接入运行时
+
+- **BUG**: SupplyLogistics.process_turn() 从未被调用
+- game_manager.gd Phase 5g4 新增调用, 与 SupplySystem 并行运作
+
+### 修复: 存档系统遗漏
+
+- **BUG**: TreatySystem / EquipmentForge / SupplyLogistics 的存档/读档未接入
+- save_manager.gd _collect_save_data() 新增3个条目
+- save_manager.gd _apply_save_data() 新增3个恢复块 (4j/4k/4l)
+
+### ESC 优先级更新
+
+- main.gd _unhandled_input() ESC 级联新增 equipment_forge_panel 检查
+
+### 文件变更清单
+
+| 文件 | 变更类型 |
+|------|----------|
+| scenes/ui/equipment_forge_panel.gd | **新增** (装备锻造 UI 面板) |
+| autoloads/game_manager.gd | 增强 (process_turn 接入 + reset/init) |
+| autoloads/save_manager.gd | 增强 (3系统存档/读档) |
+| scenes/main.gd | 增强 (锻造面板实例化 + ESC) |
+| scenes/ui/hud.gd | 增强 (锻造按钮 + KEY_J 快捷键) |
+
+---
+
 ## v3.6.0 — 2026-03-30 (条约外交+补给后勤+装备锻造 三大深度系统)
 
 ### 新系统: 条约外交 (treaty_system.gd, 802行)

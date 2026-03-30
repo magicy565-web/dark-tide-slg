@@ -227,6 +227,9 @@ func _collect_save_data() -> Dictionary:
 		"hero_skills_advanced": HeroSkillsAdvanced.to_save_data() if HeroSkillsAdvanced != null else {},
 		"environment": EnvironmentSystem.to_save_data() if EnvironmentSystem != null else {},
 		"troop_training": _collect_troop_training(),
+		"treaty_system": TreatySystem.to_save_data() if TreatySystem != null else {},
+		"equipment_forge": EquipmentForge.to_save_data() if EquipmentForge != null else {},
+		"supply_logistics": SupplyLogistics.to_save_data() if SupplyLogistics != null else {},
 	}
 
 
@@ -389,6 +392,18 @@ func _apply_save_data(data: Dictionary) -> void:
 		var ttp = _find_troop_training_panel()
 		if ttp and ttp.has_method("from_save_data"):
 			ttp.from_save_data(data.get("troop_training", {}))
+
+	# 4j. Restore treaty system state (v3.6+)
+	if data.has("treaty_system") and TreatySystem != null:
+		TreatySystem.from_save_data(data.get("treaty_system", {}))
+
+	# 4k. Restore equipment forge state (v3.6+)
+	if data.has("equipment_forge") and EquipmentForge != null:
+		EquipmentForge.from_save_data(data.get("equipment_forge", {}))
+
+	# 4l. Restore supply logistics state (v3.6+)
+	if data.has("supply_logistics") and SupplyLogistics != null:
+		SupplyLogistics.from_save_data(data.get("supply_logistics", {}))
 
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
