@@ -1,0 +1,4519 @@
+{
+  "character": {
+    "id": "char10",
+    "name": "焔",
+    "name_romaji": "Homura",
+    "title": "战斗法师",
+    "faction": "法师·白塔同盟",
+    "troop_type": "战斗法师",
+    "stats": {
+      "ATK": 8,
+      "DEF": 3,
+      "INT": 7,
+      "SPD": 6
+    }
+  },
+  "scenes": [
+    {
+      "scene_id": "char10_train_01",
+      "title": "调教 Stage 01: 不灭的火焰（野兽的咆哮）",
+      "route": "training",
+      "stage": 1,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char10_train_01_npc_01",
+          "speaker": "焔",
+          "text": "哦哦哦哦！！终于来人了！！！等了老半天了你们这帮杂鱼！！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_01_npc_02",
+          "speaker": "焔",
+          "text": "来来来来来！！打一架！！把这破锁链解了我们堂堂正正干一场！！我用一只手就够了！！不——用脚也行！！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_01_npc_03",
+          "speaker": "焔",
+          "text": "你就是这儿的头？不错嘛身上有股战斗过的味道！来吧打我啊！把这破枷锁解了让我放一发爆裂火球给你看看什么叫真正的火力！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_01_npc_04",
+          "speaker": "焔",
+          "text": "冷静？！你跟一个战斗法师说冷静？！！拜托啊脑子是不是坏了？！让我冷静还不如直接杀了我——不对杀了也不行因为我死之前至少要再轰掉一栋建筑！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_01_npc_05",
+          "speaker": "焔",
+          "text": "嘁——！这破符文！！搞得我一点火星子都搓不出来！！你知不知道这有多难受？！就像、就像让鱼不能游泳！让鸟不能飞！让我不能爆炸——啊啊啊啊烦死了！！！",
+          "mood": "aggressive",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_01_npc_06",
+          "speaker": "焔",
+          "text": "啊？所以呢？",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_01_npc_07",
+          "speaker": "焔",
+          "text": "蒼老师很强的，白塔不会那么容易完蛋。而且就算完蛋了那又怎样！我又不是为了白塔打架的！我打架是因为打架很爽啊！！爆炸！轰隆！砰砰砰！那才是活着的感觉！！",
+          "mood": "aggressive",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_01_npc_08",
+          "speaker": "焔",
+          "text": "说够了没有！！废话少说来打架！！还是说你们弱得只敢锁着人说大道理？！那可太逊了！！比我见过最弱的史莱姆还逊！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_01_npc_09",
+          "speaker": "焔",
+          "text": "喂喂喂喂！！别走啊！！回来！！打完再走啊！！喂——！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_01_npc_10",
+          "speaker": "焔",
+          "text": "明天也来！！后天也来！！大后天也来！！我焔在这等着你！！！随时奉陪！！！",
+          "mood": "energetic",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_train_01_other_01",
+          "speaker": "主人公",
+          "text": "（牢房的铁门刚打开一条缝）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_01_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官走进牢房）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_01_other_03",
+          "speaker": "主人公",
+          "text": "（指挥官示意她冷静）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_01_other_04",
+          "speaker": "主人公",
+          "text": "（指挥官告诉她关于白塔同盟战败的消息）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_01_other_05",
+          "speaker": "主人公",
+          "text": "（指挥官转身准备离开）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_train_01_nar_01",
+          "text": ": 不灭的火焰（野兽的咆哮）",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_02",
+          "text": "能量抑制牢房的墙壁上密密麻麻刻满了灭火符文，蓝白色的符文光芒在黑暗中幽幽闪烁，空气中弥漫着臭氧和灼烧过的焦味。每当囚犯试图引燃哪怕一丝魔力，符文就会发出刺耳的嗡鸣，将火种扼杀于无形。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_03",
+          "text": "焔被能量枷锁铐住双手，锁链连接到牢房两侧的墙壁。枷锁内置的魔力抑制回路让她的火焰能力完全封锁——对这个以爆裂火球为生的战斗法师来说，这比斩断双手更加痛苦。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_04",
+          "text": "她浑身都是战斗留下的痕迹。火红的双马尾散乱地耷拉着，左脸颊的煤灰印还没擦掉，缠着绷带的右手上又添了几道新伤。红黑色的战斗法师外套破了好几个口子，露出里面黑色运动束胸裹着的结实腹肌。热裤上烧了个洞，单肩甲歪到了一边。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_05",
+          "text": "但她的眼睛——那双亮红橘色的眼睛，烧得比任何火焰都猛。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_06",
+          "text": "焔猛地从地上跳起来，锁链被拉到极限发出刺耳的金属声。她像被关在笼子里的野兽一样，全身的肌肉都绷紧了，随时准备扑上去。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_07",
+          "text": "焔上下打量了来人一眼，咧开嘴露出虎牙。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_08",
+          "text": "她飞起一脚踹向牢房的墙壁，灭火符文嗡嗡作响。石壁上留下了一个浅浅的脚印——即使没有魔力，她的体术也不容小觑。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_09",
+          "text": "焔眨了眨眼，然后——",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_10",
+          "text": "她完全不在意地歪了歪头。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_11",
+          "text": "她用力拽了拽锁链，手腕都被磨红了也浑不在意。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_01_nar_12",
+          "text": "铁门关上后，焔的怒吼声依然穿透了厚重的门板，在走廊里回荡。看守的士兵们已经是第三次申请调岗了。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_train_h_01",
+      "title": "H事件：火焰的束缚",
+      "route": "training",
+      "stage": 1,
+      "type": "h_event",
+      "npc": [
+        {
+          "id": "char10_train_h_01_npc_01",
+          "speaker": "焔",
+          "text": "哦！！你来了！！今天打不打？不打滚蛋！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_02",
+          "speaker": "焔",
+          "text": "哦？要上手段了？来啊！你以为我在蒼老师手下修行的时候没挨过打吗？！修行最狠的那次我被雷劈了七十二回——区区拷问算什么！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_03",
+          "speaker": "焔",
+          "text": "你——！！你干什么！！要打就打这算什么卑鄙招数！！放开——！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_04",
+          "speaker": "焔",
+          "text": "当我是软柿子啊！！来打架啊用这种下三滥的手段算什么男人！！——不对是不是男人我也不知道反正你很逊！！超级逊！！",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_05",
+          "speaker": "焔",
+          "text": "你——！！混蛋！！等我挣开这破锁链的第一件事就是往你脸上来一发业火全开的爆裂弹！！炸得你连渣都不剩！！",
+          "mood": "aggressive",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_06",
+          "speaker": "焔",
+          "text": "唔——！！（咬着不松口）",
+          "mood": "aggressive",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_07",
+          "speaker": "焔",
+          "text": "再来啊！！我牙齿还有很多！！脚也还能踢！！你碰一次我打一次看谁先撑不住！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_08",
+          "speaker": "焔",
+          "text": "哈——？什么……？",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_09",
+          "speaker": "焔",
+          "text": "少——少来这套！！这种软绵绵的攻击对我没——嗯——没用的！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_10",
+          "speaker": "焔",
+          "text": "那里——！别碰那里你这——啊！！不——不是啊那什么——嗯！！闭嘴那不是——我没有发出奇怪的声音！！那是战吼！！战、战吼——！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_11",
+          "speaker": "焔",
+          "text": "我说了不许碰——！！你——你这是犯规！！战斗中不准攻击——那种地方——！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_12",
+          "speaker": "焔",
+          "text": "放开——！！回来——！！等我出去了我要烧光这整个——呜——什、什么——不——不对——身体怎么——嗯嗯——！！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_13",
+          "speaker": "焔",
+          "text": "嗯——啊——不——不是——这不是——我在战斗——这是战斗——我没有——没有输——嗯啊！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_14",
+          "speaker": "焔",
+          "text": "哈——哈——……就——就这点程度……你以为……你以为这就赢了？",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_01_npc_15",
+          "speaker": "焔",
+          "text": "做梦吧……笨蛋！明天……明天继续……我一定会赢的……！！",
+          "mood": "vulnerable",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_train_h_01_other_01",
+          "speaker": "主人公",
+          "text": "（数日后。指挥官带着新的指令再次来到牢房）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_h_01_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官示意侍从调整了锁链的长度，迫使焔的双手被固定在头顶）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_h_01_other_03",
+          "speaker": "主人公",
+          "text": "（并非拷问。衣物开始被扒除）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_h_01_other_04",
+          "speaker": "主人公",
+          "text": "（触碰开始）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_train_h_01_nar_01",
+          "text": "焔依然精力充沛得不像个囚犯。她一直在牢房里做各种体能训练——仰卧起坐、俯卧撑、用锁链做引体向上——把能量抑制牢房活生生变成了健身房。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_01_nar_02",
+          "text": "焔的表情没有一丝恐惧——只有纯粹的战意。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_train_h_01_nar_03",
+          "text": "她把胸膛挺得直直的，像是在迎接挑战。结实的腹肌因为双臂上举而拉伸得更加分明，汗水沿着肌肉的纹路滑落。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_01_nar_04",
+          "text": "焔愣了一秒，然后暴怒。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_01_nar_05",
+          "text": "她开始疯狂挣扎。不同于一般人的无力扑腾——焔是真的在用全力。她的身体像一头被激怒的豹子，爆发出惊人的力量。膝盖、肘击、头槌，一切能用上的部位她都毫不犹豫地攻击。一个侍从被她一脚踹飞到墙上。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_01_nar_06",
+          "text": "红黑外套被强行扯开。黑色运动束胸包裹着她健美的上身——常年战斗锻造出的身材充满了爆发力，肩膀和手臂的肌肉线条分明却不失女性的曲线。腹部是漂亮的马甲线，肋下有几道旧烧伤的疤痕。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_01_nar_07",
+          "text": "束胸被掀起的瞬间，焔的反应不是害羞——而是更加凶猛的反击。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_01_nar_08",
+          "text": "她的身体剧烈扭动，锁链咣当作响。每一块肌肉都在拼命运作，汗水从古铜色的肌肤上甩落。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_01_nar_09",
+          "text": "当指尖第一次落在她裸露的腰侧时，焔的反应是——咬。她像野兽一样扭头狠狠咬住了最近的手臂，虎牙几乎刺穿皮肤。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_01_nar_10",
+          "text": "被迫松开后她吐了口血沫，依然气势不减。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_01_nar_11",
+          "text": "但触碰没有停止。当指尖从腰侧游移到腹部，沿着马甲线缓缓向上时，焔的怒吼声出现了一个极其短暂的——停顿。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_01_nar_12",
+          "text": "那种感觉是她完全没有经验处理的。在焔的世界里只有两种体感：战斗的痛快和受伤的疼痛。而这种不痛不痒却让身体发软的触感，像是一个她从未见过的敌人，找不到应对的战术。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_01_nar_13",
+          "text": "她的声音依然在吼，但音调出现了微妙的波动。当触碰移到胸口时，焔的身体猛地一弹，像是被电击了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_01_nar_14",
+          "text": "她拼命把一切反应都解释为战斗行为，脸涨得通红。不是害羞——焔根本不懂害羞——而是愤怒和困惑的混合。她的身体不听使唤了，这比被封印火焰更让她抓狂。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_train_h_01_nar_15",
+          "text": "当手指继续向下，触碰到热裤边缘时，焔的挣扎变得更加疯狂。她的双腿拼命夹紧，大腿内侧锻炼得结实的肌肉绷成了铁板。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_01_nar_16",
+          "text": "热裤被褪下。焔发出一声暴怒的嘶吼，整个人像一条被钉在地上的火蛇，疯狂扭动。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_01_nar_17",
+          "text": "当最敏感的地方被触碰到时，焔的怒吼碎成了断断续续的喘息。她的战斗本能让她持续反抗，但身体的反应开始脱离她的控制。瞳孔微微扩张，呼吸急促得像刚打完一场硬仗。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_01_nar_18",
+          "text": "她依然在骂，依然在踢，依然在挣扎。但力道在一点点减弱——不是因为放弃，而是因为陌生的快感像水一样浸透了她绷紧的肌肉，让爆发力一点点流失。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_01_nar_19",
+          "text": "当强制的高潮像一发她自己也没预料到的爆裂弹在体内炸开时，焔弓起背脊，发出了一声不像战吼也不像怒骂的声音——一声短促的、高亢的、带着困惑的尖叫。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_01_nar_20",
+          "text": "她的身体剧烈痉挛了好几秒，锁链被拉到极限发出刺耳的金属声。然后她瘫软下来，大口大口喘着气，全身都在发抖。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_01_nar_21",
+          "text": "但焔用了不到十秒就重新抬起头——红橘色的眼睛里，火焰一丝都没有减少。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_01_nar_22",
+          "text": "她咧开嘴，露出带血的虎牙——她刚才把自己的嘴唇咬破了。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_01_nar_23",
+          "text": "她的声音沙哑却滚烫，像未熄灭的余烬。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_01_nar_24",
+          "text": "焔的调教进度 [1/10]。火焰的意志丝毫未减，反而越挫越勇。但她的身体已经暴露了从未有过的弱点。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_train_02",
+      "title": "调教 Stage 02: 残留的火星（战意的动摇）",
+      "route": "training",
+      "stage": 2,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char10_train_02_npc_01",
+          "speaker": "焔",
+          "text": "……来了啊。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_02_npc_02",
+          "speaker": "焔",
+          "text": "今天……今天也要打吗！来啊！我热身完了！随时——",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_02_npc_03",
+          "speaker": "焔",
+          "text": "…………那个不算。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_02_npc_04",
+          "speaker": "焔",
+          "text": "哼……！我不是因为你给我才吃的！是因为——是因为战士不能空腹战斗！这是基本常识！连蒼老师都说过不吃饭的笨蛋才会在战场上死掉！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_02_npc_05",
+          "speaker": "焔",
+          "text": "……别用那种眼神看我。下次我一定忍住。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_02_npc_06",
+          "speaker": "焔",
+          "text": "那不就是因为你们人多我一个打不过一群嘛！等着吧等我出去了一个一个——不对十个十个地打回来！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_02_npc_07",
+          "speaker": "焔",
+          "text": "那——那又怎样！紫苑那家伙腿受伤了跑不快，我不断后谁断后！而且我才不是在保护她！是因为如果紫苑挂了就没人陪我吵架了很无聊！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_02_npc_08",
+          "speaker": "焔",
+          "text": "……紫苑和蒼老师……应该已经安全了吧。",
+          "mood": "tender",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_02_npc_09",
+          "speaker": "焔",
+          "text": "算了！不想了！想也没用！来打架！",
+          "mood": "energetic",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_train_02_other_01",
+          "speaker": "主人公",
+          "text": "（指挥官推开牢门）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_02_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官把一份热气腾腾的食物放在她面前）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_02_other_03",
+          "speaker": "主人公",
+          "text": "（指挥官坐在她对面，问她有没有想过为什么自己会被抓住）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_02_other_04",
+          "speaker": "主人公",
+          "text": "（指挥官指出她是在保护撤退的同伴时落单被捕的）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_train_02_nar_01",
+          "text": ": 残留的火星（战意的动摇）",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_02",
+          "text": "又过了数日。牢房里多了一些痕迹——墙上有好几个拳头和脚印大小的凹痕，是焔在没人的时候对着墙壁发泄的杰作。灭火符文依然忠实地工作着，蓝白色的光芒冷漠地压制着一切火种。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_03",
+          "text": "焔蹲在角落里，双手被枷锁固定在身前。她的精力终于开始出现消耗的迹象——不是战斗意志的减退，而是纯粹的体力透支。连续多日的高强度反抗加上牢房中有限的饮食，即使是她这种战斗疯子也扛不住。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_04",
+          "text": "红色双马尾彻底散开了，火红的头发乱蓬蓬地披在肩上，失去了平时那种张扬的冲劲。脸上的煤灰印已经模糊成了灰色的污渍，混着汗水和泪痕——虽然她绝不会承认自己哭过。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_05",
+          "text": "但最大的变化在她的眼神里。那双亮红橘色的眼睛依然在烧，但火焰的颜色变了——从狂暴的橙红变成了某种更深、更不稳定的色调，像是被水浇过的余烬，明灭不定。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_06",
+          "text": "焔听到声音，身体条件反射地弹起——然后又因为双腿发软而踉跄了一下。她用锁链撑住自己，咬牙站稳。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_07",
+          "text": "声音比之前小了几个分贝。不再是震耳欲聋的怒吼，更像是沙哑的低吼。但她还是用力挺了挺胸。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_08",
+          "text": "她的肚子发出了一声巨大的咕噜声，完美地破坏了她试图营造的气势。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_09",
+          "text": "焔盯着那碗食物，吞咽了一下口水。她的战斗本能告诉她不该接受敌人的东西，但她的胃发出了比本能更响亮的抗议。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_10",
+          "text": "她几乎是狼吞虎咽地把食物扫荡干净，吃相毫无淑女可言——但焔本来就不是淑女。她吃完后用手背擦了擦嘴，才意识到自己刚才完全没有防备。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_11",
+          "text": "焔皱起眉头。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_12",
+          "text": "焔的表情微微僵了一下。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_13",
+          "text": "她把脸扭到一边，声音低了下去。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_02_nar_14",
+          "text": "这是她第一次在牢房里展露出\"战斗\"以外的情感——一闪而过的担忧。但她很快就甩了甩头，像要把这种柔软的东西从脑子里甩出去。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_train_h_02",
+      "title": "H事件：被浇灭的骄傲",
+      "route": "training",
+      "stage": 2,
+      "type": "h_event",
+      "npc": [
+        {
+          "id": "char10_train_h_02_npc_01",
+          "speaker": "焔",
+          "text": "哼——又来了！今天、今天我绝对不会像上次那样——我想好战术了！只要一直集中精神想着爆裂火球的公式就不会被干扰！完美的防御策略！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_02",
+          "speaker": "焔",
+          "text": "来吧！这次我准备好了！你的攻击——唔！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_03",
+          "speaker": "焔",
+          "text": "爆裂火球——第一式——集束魔力于掌心——引燃点温度七百度——喷射角度三十五度——呃——嗯——三十五度——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_04",
+          "speaker": "焔",
+          "text": "三十五——三十……嗯——不——三十五度展开——火焰半径——半径——唔嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_05",
+          "speaker": "焔",
+          "text": "半——半径——啊——不行——再来——爆裂火球——第一式——集束魔——嗯啊——！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_06",
+          "speaker": "焔",
+          "text": "可恶——！！为什么——为什么念不下去——身体你给我争点气啊！！你是战斗法师的身体不是——不是——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_07",
+          "speaker": "焔",
+          "text": "不——不是这样的——战士的身体——不应该——这么软——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_08",
+          "speaker": "焔",
+          "text": "为什么——我明明——在战斗——这是战斗对吧——但是——嗯啊——但是为什么——身体在——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_09",
+          "speaker": "焔",
+          "text": "啊——！不——等——那里——碰那里的话——我——我会——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_10",
+          "speaker": "焔",
+          "text": "嗯——啊——不要——不是——这种感觉——不是战斗——我不知道——这是什么——唔——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_11",
+          "speaker": "焔",
+          "text": "……为什么。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_12",
+          "speaker": "焔",
+          "text": "我是战斗法师……我的身体是用来战斗的……为什么——会变成这样……",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_02_npc_13",
+          "speaker": "焔",
+          "text": "（闷闷的声音）……可恶……明天……明天一定……赢回来……",
+          "mood": "vulnerable",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_train_h_02_other_01",
+          "speaker": "主人公",
+          "text": "（深夜。牢房的灯火压到最低）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_h_02_other_02",
+          "speaker": "主人公",
+          "text": "（枷锁被调整。焔的双手被固定在身后）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_train_h_02_nar_01",
+          "text": "焔已经知道这意味着什么了。前几次的经历让她的身体记住了——当灯光变暗，锁链被调整，那些让她困惑到抓狂的事情就会开始。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_train_h_02_nar_02",
+          "text": "但焔是焔。她不会因为知道要发生什么就退缩。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_02_nar_03",
+          "text": "她咧嘴笑着，像是真的在期待一场复仇战。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_02_nar_04",
+          "text": "焔立刻切换到战斗状态——肌肉绷紧，重心下沉，随时准备反击。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_02_nar_05",
+          "text": "衣物被熟练地剥除。焔挣扎着，但比起第一次已经明显体力不足。她依然踢打咬，但动作的幅度小了很多。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_02_nar_06",
+          "text": "当触碰开始时，焔闭上眼睛，嘴里真的开始念叨：",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_02_nar_07",
+          "text": "手指从她的锁骨滑到胸口。焔的念叨出现了断裂。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_02_nar_08",
+          "text": "指尖在她胸前画圈。焔的公式念到一半就碎了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_02_nar_09",
+          "text": "她的\"防御策略\"在不到一分钟内彻底崩溃。焔咬牙切齿，脸涨得通红。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_02_nar_10",
+          "text": "触碰沿着她紧实的腹肌向下。焔的腹部肌肉痉挛性地收缩，像是在做无意识的仰卧起坐。她的呼吸变得急促，那些原本用来在战场上持续输出火力的肺活量，现在全被用来发出断断续续的喘息。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_02_nar_11",
+          "text": "她的声音从愤怒的吼叫变成了困惑的喃喃。这是焔最无法处理的状况——她不理解。在战斗中她是天才，任何攻击模式都能在瞬间分析出破绽。但这种攻击没有明确的伤害、没有可以格挡的方向、没有可以反击的间隙。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_train_h_02_nar_12",
+          "text": "当手指触碰到最敏感的地方时，焔的自欺欺人终于撑不住了。她的身体弓成了一张弓，嘴里发出的声音不再是任何可以被解释为\"战吼\"的东西。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_02_nar_13",
+          "text": "她拼命想夹紧双腿，但被锁链阻止了。大腿内侧的肌肉痉挛着，汗水沿着紧绷的肌肉线条流淌。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_02_nar_14",
+          "text": "她的眼眶泛红了。不是委屈，不是恐惧——而是某种更深层的困惑。焔的世界一直很简单：强者和弱者，战斗和非战斗，火焰和灰烬。但现在她的身体在告诉她，存在一种她从未归类过的东西，而她完全不知道该怎么应对。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_train_h_02_nar_15",
+          "text": "高潮来临时，焔的叫声撕裂了牢房的寂静。她的整个身体像被点燃了一样——讽刺的是这比她真正的火焰更加猛烈。双手在枷锁中攥紧到指节发白，背脊弓起，脖子向后仰，露出绷紧的喉咙线条。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_02_nar_16",
+          "text": "漫长的余韵过后。焔瘫在地上，胸口剧烈起伏，全身都在颤抖。汗水浸透了她残余的衣物，红色的头发黏在脸上。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_02_nar_17",
+          "text": "她盯着天花板，红橘色的眼睛里第一次出现了迷茫。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_train_h_02_nar_18",
+          "text": "声音很小。小到不像是焔说出来的。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_02_nar_19",
+          "text": "她翻过身，把脸埋在手臂里。肩膀微微抖动——如果她哭了，她绝对不会承认。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_02_nar_20",
+          "text": "但她的声音里少了平时那种绝对的确信。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_02_nar_21",
+          "text": "焔的调教进度 [4/10]。野兽的嘶吼开始变调。焔的战斗意志依然顽强，但她的身体已经学会了战斗以外的语言，而她的头脑还无法理解。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_train_03",
+      "title": "调教 Stage 03: 热度的转化（燃烧的方向改变）",
+      "route": "training",
+      "stage": 3,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char10_train_03_npc_01",
+          "speaker": "焔",
+          "text": "……哦，来了。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_03_npc_02",
+          "speaker": "焔",
+          "text": "我想了很久。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_03_npc_03",
+          "speaker": "焔",
+          "text": "别露出那种'你居然会思考'的表情！！烦死了！！我虽然脑子不太好用但又不是完全没有！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_03_npc_04",
+          "speaker": "焔",
+          "text": "我想明白了一件事。之前那些——那些乱七八糟的事情。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_03_npc_05",
+          "speaker": "焔",
+          "text": "那也是一种战斗对吧。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_03_npc_06",
+          "speaker": "焔",
+          "text": "我想了好几天！在战斗中，你用招式攻击对手的弱点。而那些事情——也是在攻击弱点。只不过攻击的不是身体的防御力而是——那个——什么来着——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_03_npc_07",
+          "speaker": "焔",
+          "text": "反正就是另一种战场！既然是战场——那我就不会一直输！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_03_npc_08",
+          "speaker": "焔",
+          "text": "上次、上上次、上上上次我都输了！但是！但是！焔从来不会在同一个战场上一直输下去！蒼老师说过——真正的战士是在失败中学会胜利的！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_03_npc_09",
+          "speaker": "焔",
+          "text": "所以——今天我要赢回来！！来吧！！这次我主动挑战！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_03_npc_10",
+          "speaker": "焔",
+          "text": "怎么了！不敢应战吗！你之前那么嚣张——现在我说要打你反而不打了？！看不起谁呢！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_03_npc_11",
+          "speaker": "焔",
+          "text": "就是——就是——不输给你啊！之前每次都是我单方面被打倒——战斗法师的骄傲不允许这种事！所以这次——这次至少要打成平手！不——要赢！绝对要赢！",
+          "mood": "energetic",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_train_03_other_01",
+          "speaker": "主人公",
+          "text": "（指挥官进入牢房）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_03_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官露出惊讶的表情）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_03_other_03",
+          "speaker": "主人公",
+          "text": "（指挥官没有回答）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_03_other_04",
+          "speaker": "主人公",
+          "text": "（指挥官注视着她，没有动）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_03_other_05",
+          "speaker": "主人公",
+          "text": "（指挥官问她所谓的\"赢\"是什么意思）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_train_03_nar_01",
+          "text": ": 热度的转化（燃烧的方向改变）",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_02",
+          "text": "牢房的条件改善了一些。灭火符文依然覆盖着墙壁，但枷锁换成了更轻便的单手环——只锁住焔的左手腕，连着一条较长的链子，允许她在牢房内自由活动。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_03",
+          "text": "角落里多了一个沙袋——是指挥官命人挂上去的。沙袋的表面已经被打得千疮百孔，填充物从裂口中漏出来。焔显然每天都在用它发泄多余的精力。地上散落着碎布和沙砾。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_04",
+          "text": "焔正盘腿坐在简陋的床铺上，右手缠着新的绷带——是她自己要来的。她在做一件让看守目瞪口呆的事情：安静地坐着。焔这个人安静下来的场景比爆裂火球不爆炸还稀罕。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_05",
+          "text": "她的表情也变了。不再是纯粹的暴怒和困惑，而是一种——思考。虽然焔式的思考看起来就是皱着眉头瞪着空气，像在跟虚空中的对手对峙。但对于一个据说生活智商为负数的战斗狂来说，这已经是巨大的进步了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_06",
+          "text": "焔抬头看了一眼，然后——没有暴跳如雷。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_07",
+          "text": "她站起身，活动了一下脖子，发出咔咔的响声。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_08",
+          "text": "她气呼呼地叉着腰，但很快又恢复了那个罕见的冷静表情。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_09",
+          "text": "她直勾勾地盯着指挥官，红橘色的眼睛里闪烁着某种全新的光芒。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_10",
+          "text": "她皱着眉使劲想。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_11",
+          "text": "她握紧拳头，眼睛亮得像两团火球。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_12",
+          "text": "她走近了一步，锁链哗啦作响。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_13",
+          "text": "焔有些焦躁地原地跺了跺脚。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_14",
+          "text": "焔歪了歪头，认真想了一下。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_03_nar_15",
+          "text": "她的拳头攥得咯咯响，但攥着的不是战杖「业火」，而是某种她还没完全理解的决心。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_train_h_03",
+      "title": "H事件：新的战场",
+      "route": "training",
+      "stage": 3,
+      "type": "h_event",
+      "npc": [
+        {
+          "id": "char10_train_h_03_npc_01",
+          "speaker": "焔",
+          "text": "规则很简单！这次不准用锁链绑我——让我自由行动！堂堂正正地来！谁先撑不住谁就输！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_02",
+          "speaker": "焔",
+          "text": "好——来吧！！焔全力出击！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_03",
+          "speaker": "焔",
+          "text": "…………",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_04",
+          "speaker": "焔",
+          "text": "那——那个——先——先从哪里开始来着——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_05",
+          "speaker": "焔",
+          "text": "等等等等——别笑！！谁准你笑的！！我——我在蓄力！！战斗前需要蓄力很正常吧！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_06",
+          "speaker": "焔",
+          "text": "这——这个距离——上次你就是从这个距离——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_07",
+          "speaker": "焔",
+          "text": "好——总之——先把这个——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_08",
+          "speaker": "焔",
+          "text": "武器准备完毕！！来吧——你之前碰的那些地方——这次我不会输了——嗯！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_09",
+          "speaker": "焔",
+          "text": "哼——嗯——这种程度——小意思——！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_10",
+          "speaker": "焔",
+          "text": "可恶——攻击判定在哪里——敌人的弱点——",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_11",
+          "speaker": "焔",
+          "text": "嗯——！不——不算——这个不算——还没——还没到——极限——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_12",
+          "speaker": "焔",
+          "text": "（闷声）唔唔——！！不——不算！！那个——那个是战术性撤退——不是——嗯！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_13",
+          "speaker": "焔",
+          "text": "啊——等——身体——你在干什么——不是说好了——这次要赢——嗯啊——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_14",
+          "speaker": "焔",
+          "text": "既——既然忍耐赢不了——那就——用另一种方式——赢——！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_15",
+          "speaker": "焔",
+          "text": "哈——哈——怎么样——被我压制了——这算是——我赢了一回合——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_16",
+          "speaker": "焔",
+          "text": "嗯——这、这个姿势——好奇怪——但是——身体好热——嗯啊——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_17",
+          "speaker": "焔",
+          "text": "啊——啊——好、好厉害——什么——这种感觉——比爆裂火球——嗯——还要——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_18",
+          "speaker": "焔",
+          "text": "更多——要更多——！这是——这是新的——新的战斗——我要——全力以赴——嗯啊！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_19",
+          "speaker": "焔",
+          "text": "哈……哈……这次……平手……对吧……",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_20",
+          "speaker": "焔",
+          "text": "你很强……比我在白塔遇到的任何对手都强。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_03_npc_21",
+          "speaker": "焔",
+          "text": "我喜欢和你战斗。明天——继续吧。",
+          "mood": "affection",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_train_h_03_other_01",
+          "speaker": "主人公",
+          "text": "（焔用一种几乎是宣战的眼神注视着指挥官）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_h_03_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官解开了她手腕上的锁链）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_train_h_03_nar_01",
+          "text": "焔活动了一下解放的手腕，脸上浮现出久违的自信笑容。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_02",
+          "text": "然后她僵住了。因为她完全不知道该怎么\"主动进攻\"。在战斗中她可以闭着眼睛施放爆裂火球，但在这个\"战场\"上，她的经验为零。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_03",
+          "text": "她笨拙地扯了扯自己残破外套的领口，动作生硬得像在拆解一个从没见过的魔法装置。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_04",
+          "text": "她深吸一口气，像是要冲锋一样助跑了两步——然后突然停下，把脸凑到指挥官面前，近到鼻尖快要碰到。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_05",
+          "text": "她的脸红得像她自己的头发。但焔是绝对不会退缩的——她把这当成了一场攻城战。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_06",
+          "text": "她粗暴地扯掉自己的外套甩到一边，又一把掀起束胸——动作之粗犷完全没有任何色气，更像是在战斗前卸甲。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_07",
+          "text": "当指挥官的手落在她裸露的腰侧时，焔果然没有退缩。她咬着牙，双腿稳稳地钉在地上，像是在承受一次冲击波。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_03_nar_08",
+          "text": "她甚至试图反击——笨拙地伸手去碰对方，但因为完全不知道该碰哪里，手在空中划了几个圈又尴尬地收了回来。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_09",
+          "text": "当触碰加深时，焔的\"防线\"开始动摇。她的膝盖微微打颤，呼吸变得急促。但她死死咬着牙，不肯发出声音——把这当成了一场忍耐力的较量。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_03_nar_10",
+          "text": "指尖抚过她胸前时，焔的身体猛地一颤，一声呻吟差点漏出来。她立刻用手捂住嘴。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_03_nar_11",
+          "text": "但随着触碰持续深入，焔发现了一件让她既惊恐又兴奋的事情——她的身体在主动迎合。不是被动的反应，而是肌肉记忆般的、追逐快感的运动。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_03_nar_12",
+          "text": "她的竞争意识发生了奇妙的转化。当她发现自己无法通过忍耐来\"赢\"的时候，焔的脑回路做出了一个只有她才会做的判断——",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_13",
+          "text": "她突然一把抓住指挥官的肩膀，使出战斗中的近身格斗技巧——翻身，将对方压在身下。虽然没有魔力加持，她作为战斗法师的格斗底子足够做到这一点。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_14",
+          "text": "但她压着对方的姿势，加上全身赤裸的状态，造成的画面完全不是她脑子里\"战斗\"的画面。她的大腿跨在对方腰侧，结实的腹肌上全是汗水，胸口因为剧烈的喘息而起伏不定。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_03_nar_15",
+          "text": "她自己也意识到了这个姿势的意味——或者说她的身体比她的脑子先意识到了。从接触面传来的热度让她浑身发软。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_03_nar_16",
+          "text": "她开始本能地移动腰部，完全是无意识的——像在战斗中调整攻击的节奏。但每一次摩擦都让她的声音拔高一个度。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_03_nar_17",
+          "text": "她放弃了一切伪装和自欺。双手撑在对方两侧，红色的头发垂落形成帷幕，汗水从发梢滴落。她的表情不再是愤怒或困惑——而是纯粹的、近乎狂热的兴奋。和她发现新魔法时的表情一模一样。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_train_h_03_nar_18",
+          "text": "高潮来临时焔发出了一声惊天动地的嘶吼——这一次确实像战吼。她的全身肌肉同时绷紧，身体弓成极限的弧度，然后像爆炸后的冲击波一样猛地瘫软下去。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_03_nar_19",
+          "text": "她趴在对方身上，大口喘着气，全身都在痉挛。但嘴角——嘴角翘起了一个角度。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_03_nar_20",
+          "text": "她抬起头，红橘色的眼睛里燃烧着全新的火焰。不是敌意，不是恐惧——而是一种强者对强者的认同。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_train_h_03_nar_21",
+          "text": "她咧开嘴笑了。带着虎牙的、毫无心机的、焔式的笑容。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_22",
+          "text": "这是她第一次没有用\"赢回来\"而是用\"继续\"。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_03_nar_23",
+          "text": "焔的调教进度 [7/10]。火焰没有熄灭——而是改变了燃烧的方向。焔开始将指挥官视为\"最强的对手\"，并以自己的方式接纳了这种关系。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_train_04",
+      "title": "调教 Stage 04: 忠犬之焔（永恒的战友）",
+      "route": "training",
+      "stage": 4,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char10_train_04_npc_01",
+          "speaker": "焔",
+          "text": "回来了！！你终于回来了！！今天的仗打得怎么样！！炸了几个敌人！！有没有用上我说的那个侧翼迂回爆破战术！！",
+          "mood": "aggressive",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_04_npc_02",
+          "speaker": "焔",
+          "text": "我等了好久啊！！训练兵太弱了一个能打的都没有！！没有人能陪我好好打一场——除了你！快快快陪我练一轮！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_04_npc_03",
+          "speaker": "焔",
+          "text": "啊——也对！回来了当然要先休息！我去给你弄吃的——等着！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_04_npc_04",
+          "speaker": "焔",
+          "text": "你想吃什么！！虽然我只会做烤肉因为其他的都会烧焦——但是烤肉我做得超好吃的！！用业火烤的那种！啊不对我现在不能用业火——那就用普通的火——反正肉！你要不要！！",
+          "mood": "excited",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_04_npc_05",
+          "speaker": "焔",
+          "text": "来！！焔特制烤肉！！我特意找了最大块的肉——战士就该吃大块的肉！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_04_npc_06",
+          "speaker": "焔",
+          "text": "好吃吗！！好吃吧！！虽然我尝了一下有一块烤焦了——那块我自己吃了——好吃的都给你！！",
+          "mood": "excited",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_04_npc_07",
+          "speaker": "焔",
+          "text": "因为你很强啊。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_04_npc_08",
+          "speaker": "焔",
+          "text": "你是我遇到过最强的对手。在那个战场——不管是打架的战场还是——那个——另一个战场——你都赢了我。",
+          "mood": "excited",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_04_npc_09",
+          "speaker": "焔",
+          "text": "蒼老师说过，遇到真正的强者，要么打赢要么跟着——我打不赢你。那就跟着你。很合理吧！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_04_npc_10",
+          "speaker": "焔",
+          "text": "焔这条命——以后就是你的了！你要打仗我给你冲第一个！你要爆破我给你炸！你要什么——呃——什么的——我也——给你！！",
+          "mood": "aggressive",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_04_npc_11",
+          "speaker": "焔",
+          "text": "总——总之！！我是你的人了！！这辈子！！下辈子也是！！不许反悔！！",
+          "mood": "energetic",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_train_04_other_01",
+          "speaker": "主人公",
+          "text": "（指挥官来到训练场）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_04_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官说刚从前线回来需要休息）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_04_other_03",
+          "speaker": "主人公",
+          "text": "（指挥官笑着点头）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_04_other_04",
+          "speaker": "主人公",
+          "text": "（片刻后，焔端着一盘卖相粗犷但香气四溢的烤肉回来）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_04_other_05",
+          "speaker": "主人公",
+          "text": "（指挥官问她为什么对自己这么好）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_train_04_nar_01",
+          "text": ": 忠犬之焔（永恒的战友）",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_02",
+          "text": "焔不再住在牢房里了。她被转移到了靠近训练场的一间武装宿舍——与其说是\"转移\"，不如说她自己吵着闹着非要搬过来的，理由是\"离训练场近才方便修行\"。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_03",
+          "text": "宿舍里一塌糊涂。床铺上堆满了各种武器保养工具，桌子上散落着烧焦的魔法笔记——是焔试图在没有火焰能力的情况下自创新招式的潦草记录。墙上被她用木炭画满了爆炸的图案和\"必胜\"两个歪歪扭扭的大字。唯一整齐的地方是门口——她把那里清理得干干净净，\"因为指挥官每次都从门口进来\"。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_04",
+          "text": "枷锁已经完全解除了。取而代之的是焔右手腕上的一条红色编织手环，上面嵌着一颗小小的魔力抑制珠——理论上可以限制她的火焰输出。但所有人都知道，以焔的实力，如果她真的想挣脱，这颗珠子撑不过三秒。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_05",
+          "text": "她自己选择戴着。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_06",
+          "text": "此刻的焔蹲在训练场边缘，正在往短杖「业火」上缠新的绷带。她已经被允许使用武器了——当然仅限于体术范畴，魔力输出依然受限。但焔完全不在乎，她能把一根短杖当铁锤使，照样打得训练兵哭爹喊娘。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_07",
+          "text": "她的状态比被捕时好了太多。红色双马尾重新扎了起来，冲天的发型张扬得像两团火苗。脸上的煤灰洗干净后露出意外白皙的皮肤——虽然很快又在训练中沾上了新的灰尘。红黑外套换了一件新的，依然大敞着，露出黑色束胸裹着的腹肌和单肩甲。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_08",
+          "text": "唯一的变化是她的眼神。那双亮红橘色的眼睛还是在烧——但不再是无差别的野火。那是认准了方向的、有目标的、燃烧着忠诚的火焰。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_09",
+          "text": "焔的头猛地弹起来，像感应到猎物的猎犬——不对，像感应到主人回家的大型犬。她丢下短杖，以近乎冲刺的速度跑过来。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_10",
+          "text": "她绕着指挥官转圈，活力多到快要溢出来，尾巴如果有的话一定在疯狂摇摆。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_11",
+          "text": "焔瞬间切换了状态——从兴奋的战斗狂变成了……还是很兴奋但有所收敛的战斗狂。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_12",
+          "text": "她风风火火地冲向食堂方向，跑了两步又急刹车跑回来。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_13",
+          "text": "焔发出了一声欢呼，连蹦带跳地冲走了。走廊里传来她震耳欲聋的声音：\"让开让开——指挥官要吃烤肉——！！谁挡路我踹谁——！！\"",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_14",
+          "text": "她把盘子往指挥官面前一推，然后在旁边蹲下来——不是坐，是蹲。像大型犬蹲在主人脚边一样，歪着头看指挥官吃东西，满脸期待。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_15",
+          "text": "焔歪头，露出\"你在问什么废话\"的表情。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_16",
+          "text": "她说得理所当然，像在陈述太阳从东方升起一样的事实。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_17",
+          "text": "她挠了挠头发，难得有点不好意思。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_18",
+          "text": "她突然站起来，拍了拍胸口，发出砰砰的响声。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_04_nar_19",
+          "text": "最后一句她说得飞快，脸红到连耳朵尖都是红的。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_train_h_04",
+      "title": "H事件：業火の献身",
+      "route": "training",
+      "stage": 4,
+      "type": "h_event",
+      "npc": [
+        {
+          "id": "char10_train_h_04_npc_01",
+          "speaker": "焔",
+          "text": "来了！！今晚我要和你——那个——对决！！全力的那种！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_02",
+          "speaker": "焔",
+          "text": "别——别笑！！我——我有准备！！这个衣服——紫苑穿着就很好看——为什么我穿就——啊啊啊算了那种东西不重要！！",
+          "mood": "tender",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_03",
+          "speaker": "焔",
+          "text": "这样比较像我！！反正——反正都要脱掉的对吧！！那不穿也一样！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_04",
+          "speaker": "焔",
+          "text": "准备好了！！来吧！！这次我是认真的——全力全开——百分之二百的焔在这里！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_05",
+          "speaker": "焔",
+          "text": "我先攻！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_06",
+          "speaker": "焔",
+          "text": "上次——上次我不是学了嘛——这次——我要赢——要让你——也像我一样——嗯——投降！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_07",
+          "speaker": "焔",
+          "text": "哈——嗯——我吻技是不是很烂——但是——火力覆盖——嗯——总有打中的时候——！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_08",
+          "speaker": "焔",
+          "text": "这里——碰这里你会——对吧！！看到了！！伤害判定——！！再来一次——！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_09",
+          "speaker": "焔",
+          "text": "嗯——啊——来——来啊——这种程度——不够——更用力——把你最强的——都拿出来——！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_10",
+          "speaker": "焔",
+          "text": "啊——啊——好厉害——嗯——果然——你最强——嗯啊——！但是——但是我——也不会——输——！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_11",
+          "speaker": "焔",
+          "text": "要——来了——嗯——去吧——焔——最大火力——全弹——发射——嗯啊啊啊——！！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_12",
+          "speaker": "焔",
+          "text": "哈——哈……又输了。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_13",
+          "speaker": "焔",
+          "text": "但是——没关系。输给你的话——没关系。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_14",
+          "speaker": "焔",
+          "text": "我——焔——这辈子只输给你一个人。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_15",
+          "speaker": "焔",
+          "text": "这只手——以后只为你点火。不管是战场的火还是——那个——嗯——另一种火。",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_16",
+          "speaker": "焔",
+          "text": "（超小声）……都是你的。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_train_h_04_npc_17",
+          "speaker": "焔",
+          "text": "——说完了！！别记住！！忘掉！！那个不算我说的是业火自动口述的！！来再打一轮我刚才没发挥好！！！",
+          "mood": "energetic",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_train_h_04_other_01",
+          "speaker": "主人公",
+          "text": "（深夜。焔不请自来地闯进了指挥官的房间）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_train_h_04_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官看着她忍住笑）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_train_h_04_nar_01",
+          "text": "不是偷偷摸摸地——焔不会做那种事。她直接踹开门，站在门口宣布：",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_02",
+          "text": "她穿着一件从不知哪里翻出来的红色短袍——大概是试图打扮一下的结果。但穿法完全不对，腰带系在了胸口，领口歪到了肩膀。加上她脸上还沾着训练时的灰尘和没来得及处理的绷带，整个人看上去与其说是来\"那个\"的不如说是来踢馆的。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_04_nar_03",
+          "text": "她三下五除二把那件倒霉的短袍扯掉，直接恢复了最熟悉的状态——红黑外套、黑色束胸、热裤。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_04",
+          "text": "她说干就干。外套甩飞，束胸扯掉，热裤踢到角落——动作之快像在限时拆弹。三秒之内她就站在了指挥官面前，赤条条的，双手叉腰，挺胸抬头。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_04_nar_05",
+          "text": "她的身体在烛光下闪着薄薄的汗光——是来之前做了一通训练的结果。紧实的肌肉线条像是被火焰锻造过的金属，腹肌的沟壑分明，肋下的旧烧伤在阴影中若隐若现。她浑身散发着年轻战士特有的生命力和热度。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_06",
+          "text": "焔走到床前——然后一把将指挥官推倒在床上。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_07",
+          "text": "她翻身跨坐上去，动作和在战场上骑乘魔兽冲锋时如出一辙——霸道、果决、毫不犹豫。她的双手按住对方的肩膀，红橘色的眼睛里燃烧着比任何时候都亮的火焰。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_08",
+          "text": "她低下头，嘴唇贴了上去。焔的吻和她的人一样——毫无技巧，全是力度。与其说是接吻不如说是在用嘴唇冲锋。但那份横冲直撞的热情反而有一种让人招架不住的冲击力。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_09",
+          "text": "她用战斗法师的方式来理解一切。她的双手在对方身上游走，动作粗犷直接，像在摸索敌人铠甲的缝隙。找到让对方反应强烈的位置时，她会发出\"哦！！找到弱点了！！\"的欢呼，然后集中火力攻击那个点。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_10",
+          "text": "她的竞争心在此刻全力燃烧。当对方反过来触碰她时，她也不再逃避——而是咬着牙硬扛，像在用身体格挡招式。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_train_h_04_nar_11",
+          "text": "两人的交锋变成了一场真正的较量——力与力、热与热、声音与声音的碰撞。焔把做这种事完完全全当成了一场要拼尽全力的战斗，每一个动作都带着百分之百的投入。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_12",
+          "text": "她的身体起伏如同海浪，腰部的肌肉随着节奏有力地运动。汗水从每一寸肌肤上渗出，让她古铜色的身体在烛光下闪闪发亮。红色的头发彻底散开了，像火焰一样飞舞。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_13",
+          "text": "她发出了战斗时才会有的嘶吼，双手紧紧攥住对方的手臂，十指陷入肌肉。她的全身都在发力——核心肌群、大腿肌肉、背部肌肉——像在做最后一击前的全力蓄能。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_14",
+          "text": "高潮的瞬间焔真的发出了堪比爆裂火球的声量。她的身体像被引爆了一样剧烈震颤，弓背、仰头、手指扣紧——然后带着余波一般的痉挛猛地扑倒在对方身上。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_train_h_04_nar_15",
+          "text": "她趴在对方胸口，大口大口地喘气，全身的肌肉都在抽搐着放松。心跳快得像打鼓——对方一定也能感受到。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_16",
+          "text": "好一会儿之后，焔抬起头。她的脸红得几乎和头发一个颜色，但嘴角挂着那个标志性的、露出虎牙的笑容。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_17",
+          "text": "她把脸埋回对方胸口，声音闷闷的但掩饰不住的开心。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_18",
+          "text": "沉默了一会儿。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_19",
+          "text": "她抬起右手——那只缠着绷带的、握着短杖「业火」征战过无数次的手——轻轻放在对方的胸口上。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_20",
+          "text": "她猛地把脸闷进被子里。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_21",
+          "text": "然后又突然弹起来——",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_train_h_04_nar_22",
+          "text": "焔的调教进度 [10/10]。调教完毕。焔以自己的方式完成了\"驯服\"——与其说被驯服，不如说她将指挥官认定为此生唯一的\"强者\"，并以战斗法师的全部热情宣誓效忠。解锁称号「驯服的業火」。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_pure_01",
+      "title": "纯爱 Stage 01: 修行开始！（战斗狂的追随）",
+      "route": "pure_love",
+      "stage": 1,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char10_pure_01_npc_01",
+          "speaker": "焔",
+          "text": "师父——！！不对——指挥官——！！不对——呃——反正你——！！打架！！现在！！来！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_02",
+          "speaker": "焔",
+          "text": "吃完饭正好运动啊！！消化！！促进消化！！蒼老师说过饭后运动有利于魔力循环——嗯她好像说的是不要运动——但是蒼老师总是说些无聊的话不用在意！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_03",
+          "speaker": "焔",
+          "text": "拜托了——！求你了——！今天就一场——不三场——不十场——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_04",
+          "speaker": "焔",
+          "text": "嗯——从早上四点开始——所以——嗯——八个小时？",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_05",
+          "speaker": "焔",
+          "text": "没——没有抖！！那是蓄力！！蓄力震动！！随时可以放爆裂火球的那种震动！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_06",
+          "speaker": "焔",
+          "text": "…………",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_07",
+          "speaker": "焔",
+          "text": "喂——！不要拉我——！我又不是小孩子——而且你拉我的手的话我的手会——会——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_08",
+          "speaker": "焔",
+          "text": "……会很热。嗯。因为我体温高。火属性嘛。不是别的意思。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_09",
+          "speaker": "焔",
+          "text": "（嘴里塞满食物）所以说——你上次那个格挡——用的什么技术——我研究了三天没想通——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_10",
+          "speaker": "焔",
+          "text": "原来如此——！！所以是利用了反作用力——好厉害——！你果然是天才——和我一样的天才——不——比我还天才——嗯不对我也很天才——总之我们都是天才来打一架吧！！",
+          "mood": "excited",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_11",
+          "speaker": "焔",
+          "text": "哈——哈——又输了……",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_12",
+          "speaker": "焔",
+          "text": "太爽了！！和你打架是世界上最爽的事！！明天继续！！后天也是！！每天都要！！",
+          "mood": "excited",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_13",
+          "speaker": "焔",
+          "text": "…………",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_14",
+          "speaker": "焔",
+          "text": "——我、我好像——不舒服——胸口——很奇怪——心脏跳得——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_15",
+          "speaker": "焔",
+          "text": "奇怪——难道被打中内脏了？！不对刚才没有被打中那里——怎么回事——不会是生病了吧——我从来不生病的——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_16",
+          "speaker": "焔",
+          "text": "回去要让蒼老师检查一下——万一是什么诅咒——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_17",
+          "speaker": "焔",
+          "text": "嗯——好像是——你身上有什么buff吗？！是不是战场上沾了什么debuff释放体质——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_18",
+          "speaker": "焔",
+          "text": "没有魔力残留味道啊——但是靠近你心脏就——又来了——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_01_npc_19",
+          "speaker": "焔",
+          "text": "你——你对我下了什么术！！快解除！！不然——不然明天打架我发挥不好——那很困扰！！",
+          "mood": "energetic",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_pure_01_other_01",
+          "speaker": "主人公",
+          "text": "（指挥官路过训练场）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_01_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官表示才刚吃完午饭）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_01_other_03",
+          "speaker": "主人公",
+          "text": "（指挥官问她今天已经练了多久）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_01_other_04",
+          "speaker": "主人公",
+          "text": "（指挥官指出她的手在抖）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_01_other_05",
+          "speaker": "主人公",
+          "text": "（指挥官叹气，拉着她去食堂）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_01_other_06",
+          "speaker": "主人公",
+          "text": "（食堂里，焔以惊人的速度消灭了三份套餐）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_01_other_07",
+          "speaker": "主人公",
+          "text": "（指挥官解释了战斗中的一些技巧）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_01_other_08",
+          "speaker": "主人公",
+          "text": "（傍晚，训练场。两人真的对练了一场）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_01_other_09",
+          "speaker": "主人公",
+          "text": "（指挥官问她是不是只有靠近自己时才会这样）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_pure_01_nar_01",
+          "text": ": 修行开始！（战斗狂的追随）",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_02",
+          "text": "训练场，正午。阳光毒辣得像焔的爆裂火球——而焔本人正以比阳光更高的热情在训练场上大闹。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_03",
+          "text": "三天前的决战中，焔被指挥官正面击败。不是靠人数优势，不是靠陷阱诡计——是堂堂正正的、压倒性的实力碾压。焔的爆裂火球被格挡，近身格斗被制服，最后的绝招「业火全开」被反弹。她被打得仰面朝天，天旋地转，人生中第一次被正面打倒在地爬不起来。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_04",
+          "text": "普通人会因此恐惧或怨恨。但焔的脑回路和普通人完全不同——她从地上爬起来的第一句话是：\"太帅了！！你太帅了！！再来一次！！\"",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_05",
+          "text": "然后她以\"修行\"为由，单方面宣布追随指挥官。没有人同意她也没有人能阻止她——蒼老师捂着额头叹气，紫苑翻了个白眼说\"随便你\"。焔就这样横冲直撞地赖在了指挥官身边。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_06",
+          "text": "此刻她正拿着短杖「业火」和三个训练假人战斗，嘴里喊着\"这个是指挥官！这个是指挥官！这个也是指挥官！！\"然后把三个假人轰成了碎片。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_07",
+          "text": "焔的反应速度堪比战场雷达。指挥官刚出现在视线边缘她就已经冲了过来，速度快得扬起了尘土。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_08",
+          "text": "她在指挥官面前原地蹦跳，像一只精力过剩的弹力球。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_09",
+          "text": "焔把手背到身后。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_10",
+          "text": "她的肚子适时地叫了一声。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_11",
+          "text": "她低头看着被握住的手，红橘色的眼睛眨了眨。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_12",
+          "text": "焔的眼睛越来越亮，像两颗即将点火的炮弹。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_13",
+          "text": "一切对话最终都通向\"打架\"。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_14",
+          "text": "焔全力以赴——她永远不会留手，因为留手是对强者的侮辱。短杖「业火」挥舞出残影，爆裂系的体术将空气都震得发颤。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_15",
+          "text": "但她还是输了。被一个精准的借力技巧掀翻在地，背部重重砸在尘土上。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_16",
+          "text": "焔躺在地上，胸口剧烈起伏，满身灰尘和汗水。红色的头发散了一地，像铺开的火焰。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_17",
+          "text": "但她笑得灿烂到耀眼。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_18",
+          "text": "她伸出手要指挥官拉她起来。当对方的手握住她的手将她拽起时，惯性让她撞进了对方怀里。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_19",
+          "text": "两人的脸近在咫尺。焔能感觉到对方的呼吸拂在脸上。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_20",
+          "text": "她的心脏突然跳得比战斗中还快。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_21",
+          "text": "她猛地推开对方退后三步，手捂着胸口。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_22",
+          "text": "她一脸认真地检查自己的身体，完全没有意识到那是什么感情。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_23",
+          "text": "焔想了想。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_24",
+          "text": "她凑近指挥官闻了闻。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_01_nar_25",
+          "text": "她退后一步，满脸警惕。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_pure_h_01",
+      "title": "H事件：勝負の果て",
+      "route": "pure_love",
+      "stage": 1,
+      "type": "h_event",
+      "npc": [
+        {
+          "id": "char10_pure_h_01_npc_01",
+          "speaker": "焔",
+          "text": "找到了！！你怎么自己偷偷训练！！不带上我算什么意思！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_02",
+          "speaker": "焔",
+          "text": "哈——哈——好——好厉害——差一点——差一点就——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_03",
+          "speaker": "焔",
+          "text": "又——又来了——这个感觉——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_04",
+          "speaker": "焔",
+          "text": "——唔！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_05",
+          "speaker": "焔",
+          "text": "什——我——我做了什么——为什么——身体自己——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_06",
+          "speaker": "焔",
+          "text": "那个——那个不是——不是我——是身体自己——战斗后的惯性动作——对！惯性！物理学的那个——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_07",
+          "speaker": "焔",
+          "text": "等——等一下——你、你不要过来——我现在——状态不太对——心脏——还有身体——到处都——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_08",
+          "speaker": "焔",
+          "text": "我——我说了——这是——什么术——快解除——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_09",
+          "speaker": "焔",
+          "text": "什——什么——这是什么——比挨打还——心脏要——要炸了——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_10",
+          "speaker": "焔",
+          "text": "再——再来一次——我要、我要确认——这到底是什么——是攻击还是——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_11",
+          "speaker": "焔",
+          "text": "嗯——啊——那里——碰到——嗯——为什么——比被火烧还热——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_12",
+          "speaker": "焔",
+          "text": "刚——刚才那是什么声音——不是我发出来的——一定是——风——嗯啊——！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_13",
+          "speaker": "焔",
+          "text": "嗯——啊——不——等——太——太厉害了——我的身体——在——嗯啊——！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_14",
+          "speaker": "焔",
+          "text": "……我。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_15",
+          "speaker": "焔",
+          "text": "……好像。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_16",
+          "speaker": "焔",
+          "text": "……不是生病。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_17",
+          "speaker": "焔",
+          "text": "但是我不知道这是什么。以前从来——从来没有——",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_18",
+          "speaker": "焔",
+          "text": "……明天去问紫苑。她虽然很烦但是好像比我懂这些。",
+          "mood": "tender",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_19",
+          "speaker": "焔",
+          "text": "但是——但是明天还是要打架的！！这个和打架是两回事！！不要以为——以为这个之后我就不打了——打架是打架——那个是那个——总之——！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_01_npc_20",
+          "speaker": "焔",
+          "text": "……总之明天见。",
+          "mood": "vulnerable",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_pure_h_01_other_01",
+          "speaker": "主人公",
+          "text": "（深夜。焔找不到指挥官，在整个城堡里暴走了一圈后发现对方在训练场）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_pure_h_01_nar_01",
+          "text": "她冲过来，二话不说举起短杖就开打。月光下的对练比白天更加激烈——没有阳光的限制，焔的火属性在夜晚反而更加张扬，每一击都带着灼热的气浪。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_02",
+          "text": "这一次打得格外久。焔使出了看家本领，短杖上虽然没有魔力加持的火焰，但凭纯粹的体术也打出了接近魔法的效果。汗水飞散如雨，战吼声惊醒了半个城堡的鸟。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_03",
+          "text": "最终，焔还是败了。但这次的胜负差距极小——指挥官赢得相当艰难。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_04",
+          "text": "两人都大口喘着气，距离极近。月光下，焔全身都是汗水，红黑外套的前襟已经大开，束胸被汗水浸透贴在身上，腹肌的线条清晰可见。她的脸上混杂着汗水、尘土、还有兴奋的红晕。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_05",
+          "text": "她抬起头看向对方。月光照在指挥官的脸上。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_06",
+          "text": "然后她的心脏又开始了那种诡异的狂跳。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_07",
+          "text": "战斗后的肾上腺素还在血液中沸腾。身体还处于高度兴奋的状态，每一个神经末梢都在叫嚣着\"更多\"。在这种状态下，焔被距离和月光和肾上腺素推着，做出了一个她清醒时绝对做不出的事——",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_08",
+          "text": "她一把揪住对方的衣领，把对方拽到自己面前，嘴巴撞了上去。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_09",
+          "text": "不是吻。是嘴巴撞上去。因为焔根本不知道\"吻\"是什么东西。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_10",
+          "text": "她自己先被吓到了。猛地退开，捂住嘴巴，红橘色的眼睛瞪得像铜铃。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_11",
+          "text": "她的脸红到前所未有的程度，脑子里一片空白——比被打晕还空白。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_12",
+          "text": "她语无伦次地试图解释，但指挥官走近了一步。焔条件反射地后退——然后发现自己的后背抵到了训练场的木栅栏。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_13",
+          "text": "指挥官的手抵在栅栏上，将她困在中间。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_14",
+          "text": "焔的呼吸急促得像要过呼吸。不是恐惧——焔不知道恐惧是什么。但她的身体在发出一种从未有过的信号，比任何战斗都让她手足无措。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_pure_h_01_nar_15",
+          "text": "这次是一个真正的吻。焔的大脑一片空白。她不知道自己应该做什么——闭眼？张嘴？她全做错了——先是睁着眼，然后咬到了对方的嘴唇，然后才笨拙地闭上眼睛，发出了一声近乎委屈的\"嗯——\"。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_pure_h_01_nar_16",
+          "text": "吻结束时焔整个人都在发抖——不是因为冷，也不是因为怕。是一种完全陌生的过载感，像是往只能装一发爆裂火球的容器里塞了十发。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_17",
+          "text": "她的手不知道什么时候抓住了对方的衣服，攥得死紧。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_18",
+          "text": "第二次吻比第一次长。焔的嘴唇在颤抖但拒绝退缩。战斗法师的骄傲不允许她在任何事情上认输——即使是接吻这种完全没经验的项目。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_pure_h_01_nar_19",
+          "text": "当吻从嘴唇蔓延到脖子、锁骨的时候，焔的身体反应超出了她能控制的范围。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_20",
+          "text": "月光下、栅栏边。衣物一件件落地。焔的理性在大声尖叫\"你在干什么\"，但她的身体以战斗直觉的速度响应着每一次触碰——闪避、迎合、反击，全是本能。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_21",
+          "text": "当最后一道防线被突破时，焔发出了一声她自己都不认识的声音。不是战吼，不是怒骂——是某种柔软的、脆弱的、从喉咙深处溢出的声音。她吓了一跳，用手捂住了嘴。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_pure_h_01_nar_22",
+          "text": "焔的身体和她的战斗方式一样——直接、猛烈、毫无保留。一旦放弃抵抗，她的反应比任何人都激烈。全身的肌肉像在进行高强度战斗一样运作，腰部的力量惊人，声音也完全控制不住。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_23",
+          "text": "她的手指扣紧了栅栏的木条，指节发白。全身的汗水在月光下闪烁如星辰。当一切在最高点爆炸的时候，焔感觉自己真的变成了一发爆裂火球——从核心开始燃烧，冲击波扩散到四肢百骸。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_24",
+          "text": "她瘫坐在地上，靠着栅栏，完全脱力。眼神涣散地看着满天星星。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_25",
+          "text": "过了很久，她才找回说话的力气。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_26",
+          "text": "她转过头看着身旁的人，红橘色的眼睛里倒映着月光和星辰，还有一种她还来不及命名的感情。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_27",
+          "text": "她低下头，声音小到不像焔。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_28",
+          "text": "然后她又猛地抬头——",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_29",
+          "text": "她的嘴角在月光下微微上翘。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_01_nar_30",
+          "text": "焔的纯爱好感度 [2/10]。战斗狂人第一次遭遇了\"战斗\"以外的心跳加速。她还不明白这是什么——但她已经决定要搞清楚。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_pure_02",
+      "title": "纯爱 Stage 02: 奇怪的火（不明白的感情）",
+      "route": "pure_love",
+      "stage": 2,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char10_pure_02_npc_01",
+          "speaker": "焔",
+          "text": "紫苑！！你懂不懂那个——那个——嗯——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_02",
+          "speaker": "焔",
+          "text": "就是——靠近一个人的时候——心脏会咚咚咚——然后——碰到手的时候——手会很烫——然后——看着那个人的脸——脑子就变成浆糊——这是什么病！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_03",
+          "speaker": "焔",
+          "text": "喜欢？？？喜欢是什么属性？？？火属性？冰属性？？无属性？？？",
+          "mood": "affection",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_04",
+          "speaker": "焔",
+          "text": "那是什么！！！详细说明！！技能描述！！冷却时间！！施放条件！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_05",
+          "speaker": "焔",
+          "text": "我是元気白痴有什么问题吗！！快说！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_06",
+          "speaker": "焔",
+          "text": "所以——喜欢——就是——想和那个人一直打架？",
+          "mood": "affection",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_07",
+          "speaker": "焔",
+          "text": "还有就是——看到那个人就——火焰变色？",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_08",
+          "speaker": "焔",
+          "text": "然后——还想——那个——嘴巴碰嘴巴——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_09",
+          "speaker": "焔",
+          "text": "对！那个！做了之后心脏更厉害了！然后还想——那个之后的——更多的——",
+          "mood": "excited",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_10",
+          "speaker": "焔",
+          "text": "做什么？哪个？嘴巴那个做了！然后——后面的——也——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_11",
+          "speaker": "焔",
+          "text": "所以这个到底是不是喜欢！！我需要明确判定！！",
+          "mood": "affection",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_12",
+          "speaker": "焔",
+          "text": "我——喜欢——指挥官？",
+          "mood": "affection",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_13",
+          "speaker": "焔",
+          "text": "（自言自语）喜欢……我喜欢他……所以——所以怎么办——打一架吗——不——紫苑说喜欢不是打架——但是不打架我不知道怎么——啊啊啊啊头好痛——！！",
+          "mood": "tender",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_14",
+          "speaker": "焔",
+          "text": "我——我没有在偷看！！我在——侦察！！侦察训练场的防御漏洞！！你知道第三排的栅栏有一根松了吗！！非常严重的安全隐患！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_15",
+          "speaker": "焔",
+          "text": "那——那个——我有话——要跟你——不——我没有话——我只是——来训练的——对训练——现在就——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_02_npc_16",
+          "speaker": "焔",
+          "text": "…………",
+          "mood": "energetic",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_pure_02_other_01",
+          "speaker": "主人公",
+          "text": "（焔在走廊里拦住了紫苑）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_02",
+          "speaker": "紫苑",
+          "text": "那叫喜欢。你喜欢上指挥官了。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_03",
+          "speaker": "紫苑",
+          "text": "……不是魔法属性。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_04",
+          "speaker": "紫苑",
+          "text": "你是白痴吗。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_05",
+          "speaker": "紫苑",
+          "text": "不完全是但随便你怎么理解吧。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_06",
+          "speaker": "紫苑",
+          "text": "那是你个人的问题。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_07",
+          "speaker": "紫苑",
+          "text": "……接吻。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_08",
+          "speaker": "紫苑",
+          "text": "你们已经做了？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_09",
+          "speaker": "紫苑",
+          "text": "好了我不需要详情。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_10",
+          "speaker": "紫苑",
+          "text": "是。百分之一千是。你可以走了。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_11",
+          "speaker": "紫苑",
+          "text": "……滚。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_12",
+          "speaker": "主人公",
+          "text": "（焔跑到训练场找指挥官）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_13",
+          "speaker": "主人公",
+          "text": "（指挥官发现了她，向她走来）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_02_other_14",
+          "speaker": "主人公",
+          "text": "（指挥官走到她面前）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_pure_02_nar_01",
+          "text": ": 奇怪的火（不明白的感情）",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_02",
+          "text": "城堡的各个角落都能听到焔的声音——这不稀奇。稀奇的是她今天的声音带着一种前所未有的焦躁，不是要打架的焦躁，而是一种抓耳挠腮想不通问题的焦躁。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_03",
+          "text": "自从那个月夜之后，焔变得奇怪了。她还是每天缠着指挥官打架，还是吼得整个城堡都能听到，还是把训练假人打成粉末。但在这些之间，她会突然愣住——盯着自己的手发呆，或者在对练时莫名脸红然后失误被打飞。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_04",
+          "text": "更诡异的是她的火焰魔法。一向稳定到可以精确控制爆破范围的焔，最近的火焰变得极不稳定。高兴时火焰自动窜出来烧焦了食堂的桌子，尴尬时火焰直接熄灭，看到指挥官时火焰会变成一种奇怪的粉红色——这种颜色在魔法学上根本不应该存在。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_05",
+          "text": "蒼老师远程传来了一封信：「焔的火焰色变……大概是情绪影响了魔力波长。换句话说——她恋爱了。不用担心，让她自己想明白比较好。PS：替我向她问好，提醒她别把城堡烧了。」",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_06",
+          "text": "紫苑（内心）：来了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_07",
+          "text": "紫苑叹了口气。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_08",
+          "text": "紫苑用了二十分钟试图向焔解释\"恋爱\"的概念。焔的理解：",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_09",
+          "text": "紫苑的表情经历了惊讶、理解、放弃等多个阶段。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_10",
+          "text": "焔愣在原地。红橘色的眼睛慢慢睁大。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_11",
+          "text": "她说出这句话的瞬间，她的手掌自动窜出了一团火焰——粉红色的。紫苑的刘海被烧焦了一截。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_12",
+          "text": "她远远地看到指挥官在和副官讨论战术。原本要冲过去的脚步突然——停了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_13",
+          "text": "焔从来不会犹豫。犹豫在她的字典里不存在。但此刻她躲在训练场的柱子后面，探出半个脑袋偷看。红色的双马尾在柱子后面像两面旗帜一样醒目——她的隐蔽技能是零。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_14",
+          "text": "她的手心出了汗——火属性战斗法师居然手心出汗。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_15",
+          "text": "她用力抓自己的头发。火焰在她指尖明灭不定——红色、橙色、粉色交替闪烁。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_16",
+          "text": "焔以战斗反应速度缩回柱子后面。然后意识到自己的双马尾早就暴露了，又慢慢探出头来。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_17",
+          "text": "焔的脸以肉眼可见的速度变红。手指不停地搓着短杖「业火」的杖身——这是她紧张时的习惯。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_18",
+          "text": "她试图逃跑。转身——脚绊到了自己的短杖——嘭的一声摔了个狗啃泥。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_02_nar_19",
+          "text": "趴在地上的焔，人生第一次想找个洞钻进去。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_pure_h_02",
+      "title": "H事件：意外着火",
+      "route": "pure_love",
+      "stage": 2,
+      "type": "h_event",
+      "npc": [
+        {
+          "id": "char10_pure_h_02_npc_01",
+          "speaker": "焔",
+          "text": "我——我想明白了！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_02",
+          "speaker": "焔",
+          "text": "紫苑说的——喜欢——那个东西——我搞懂了！！我确实——喜欢你！！",
+          "mood": "affection",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_03",
+          "speaker": "焔",
+          "text": "所以——所以——！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_04",
+          "speaker": "焔",
+          "text": "所以……嗯……接下来……要怎么办来着……",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_05",
+          "speaker": "焔",
+          "text": "总——总之——你也喜欢我对吧！！上次——上次的——那些——不喜欢的人不会做那些的对吧！！紫苑是这么说的！！",
+          "mood": "affection",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_06",
+          "speaker": "焔",
+          "text": "太好了！！！那就是说——我赢了！！喜欢的胜负——我赢了！！",
+          "mood": "defiant",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_07",
+          "speaker": "焔",
+          "text": "嘿嘿——嘿嘿嘿——",
+          "mood": "excited",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_08",
+          "speaker": "焔",
+          "text": "又来了——这个粉色的火——蒼老师信上说的魔力波长——好丢人——但是——停不下来——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_09",
+          "speaker": "焔",
+          "text": "我想——学——那个。上次的那个。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_10",
+          "speaker": "焔",
+          "text": "就——就是那个！嘴巴的——然后——还有——全部！！我要从头学！学会了才能——才能赢——不对——才能——嗯——好好地——做那个——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_11",
+          "speaker": "焔",
+          "text": "嗯——这个角度——不对——偏了——再来——嗯——这次好一点——但是——牙齿碰到了——再来——！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_12",
+          "speaker": "焔",
+          "text": "你的嘴唇往右偏了三毫米——我调整——嗯——好——这次——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_13",
+          "speaker": "焔",
+          "text": "嗯——好——好厉害——比上次——嗯——脑子又要——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_14",
+          "speaker": "焔",
+          "text": "碍事——碍事——都碍事——！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_15",
+          "speaker": "焔",
+          "text": "上次——你碰这里——我——嗯——变得很奇怪——那——如果我碰你——你也会——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_16",
+          "speaker": "焔",
+          "text": "这里——！碰到这里你——呼吸变了——！有效——！追击——！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_17",
+          "speaker": "焔",
+          "text": "嗯——啊——等——那边——不行——太——啊——犯规——同时攻防不行——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_18",
+          "speaker": "焔",
+          "text": "嗯啊——好——好厉害——又——又来了——那个——要炸了的感觉——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_19",
+          "speaker": "焔",
+          "text": "…………",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_20",
+          "speaker": "焔",
+          "text": "……我刚才是不是炸了。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_21",
+          "speaker": "焔",
+          "text": "…………",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_22",
+          "speaker": "焔",
+          "text": "以后——以后做这个——要去空旷的地方——不然——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_23",
+          "speaker": "焔",
+          "text": "（小声）……但是——很开心。比放爆裂火球还开心一百倍。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_24",
+          "speaker": "焔",
+          "text": "我决定了。要把这个也当修行。每天练。练到不会炸天花板为止。",
+          "mood": "aggressive",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_02_npc_25",
+          "speaker": "焔",
+          "text": "你负责陪我练。不许请假。",
+          "mood": "energetic",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_pure_h_02_other_01",
+          "speaker": "主人公",
+          "text": "（那天傍晚。焔堵在指挥官的房门口）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_h_02_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官肯定了她）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_h_02_other_03",
+          "speaker": "主人公",
+          "text": "（指挥官问她指的是什么）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_h_02_other_04",
+          "speaker": "主人公",
+          "text": "（指挥官说天花板被烧了个洞）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_pure_h_02_nar_01",
+          "text": "她在门口来回踱步了十分钟——看守的士兵以为她要发动什么进攻，差点拉响警报。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_02",
+          "text": "最终焔一脚踹开门——她永远不会敲门。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_03",
+          "text": "她站在门口，浑身还在冒热气——字面意义上的。她的体温高到周围的空气都在微微扭曲，红色头发的发梢隐隐有火星跳动。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_04",
+          "text": "她大声宣布，声量大到隔壁房间的人都听到了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_05",
+          "text": "她冲了进来，用力关上门，然后面对指挥官的脸——又卡壳了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_06",
+          "text": "紫苑教她的步骤全忘了。她只记得\"告白→对方回应→然后→然后什么来着\"。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_07",
+          "text": "焔的表情像是点燃了引信的烟花——先是一秒的空白，然后——",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_08",
+          "text": "她高兴地跳了起来——然后冲过来一把抱住了指挥官。力度之大差点把人撞倒。焔是真的在用格斗的力度拥抱。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_09",
+          "text": "她把脸埋在对方肩膀上傻笑，笑声闷闷的但充满了快乐。火焰从她的发梢窜出来——粉红色的、温暖的、完全没有伤害力的小火苗，在两人周围像萤火虫一样飘舞。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_10",
+          "text": "她抬起头，红橘色的眼睛亮得惊人。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_11",
+          "text": "她的表达能力在这件事上几乎为零，但她的意思已经足够明确了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_12",
+          "text": "焔用学习新魔法的态度来对待接吻——极其认真，极其笨拙，但进步神速。因为她的学习方式是\"做一百次直到会为止\"。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_13",
+          "text": "她在接吻之间还在做战术分析。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_14",
+          "text": "当吻终于成功地深入时，焔的战术分析终于被快感打断了。她发出\"唔嗯——\"的声音，双手攥紧了对方的衣服。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_pure_h_02_nar_15",
+          "text": "事情的发展和上次一样不可控制。焔的体温在不断上升——字面意义上的。她的皮肤滚烫到几乎发光，周围的空气都在扭曲。粉红色的火焰从她全身窜出来，在房间里飘舞——好在这些火焰不会烧伤人，只是暖洋洋的。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_16",
+          "text": "衣物在高温下自动变得碍事。焔粗暴地扯掉自己的外套，又一把撕开束胸——",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_17",
+          "text": "她的身体完全暴露在粉红色火焰的光芒中。紧实的肌肉上覆着一层薄汗，在火光中闪烁着古铜色的光泽。她像一尊被火焰雕刻的塑像——充满力量却又散发着与往常截然不同的柔软热度。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_18",
+          "text": "这一次焔不再完全被动。她用战斗的本能在触碰中摸索——发现对方的反应模式，记住有效的\"攻击点\"，然后集中精力\"进攻\"。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_19",
+          "text": "她的手指笨拙但勇敢地探索着，每发现一处有效的地方就兴奋得像找到了新魔法。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_20",
+          "text": "但当对方反过来进攻她的弱点时，焔的攻势立刻瓦解。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_21",
+          "text": "她试图保持攻势但完全做不到。两线作战超出了她在这个领域的经验。她的身体在快感面前毫无防御力，每一次触碰都让她的声音拔高一个调。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_pure_h_02_nar_22",
+          "text": "房间里的粉红色火焰越来越亮，随着焔的情绪和身体反应不断膨胀。当快感达到临界点时，那些小火焰突然汇聚成一团巨大的粉红色火球——然后\"砰\"地炸开了。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_pure_h_02_nar_23",
+          "text": "不是爆裂火球。是无伤害的、温暖的、璀璨的粉红色烟花，在房间的天花板上绽放。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_24",
+          "text": "焔在这场\"烟花\"中弓起身体，发出一声畅快到极点的长啸。她的全身都在发光——不是比喻，是真的在发光。火焰魔力在高潮的瞬间失控了，将她包裹在一层柔和的粉红色光晕中。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_pure_h_02_nar_25",
+          "text": "余韵过后，焔瘫在对方怀里，全身都是汗，头发乱成一团，房间里飘满了粉红色的火星，像下了一场荧光雪。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_26",
+          "text": "焔抬头看了一眼——确实，天花板上有一个完美的圆形焦痕。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_27",
+          "text": "她把脸闷进对方胸口。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_28",
+          "text": "粉红色的火星还在慢慢飘落。焔的手指在对方背上画着圈，像是在描绘一个爆裂火球的弹道轨迹。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_29",
+          "text": "她抬起头，虎牙笑。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_02_nar_30",
+          "text": "焔的纯爱好感度 [5/10]。焔用自己的方式理解了\"喜欢\"——虽然她的理解充满了战斗术语和爆炸比喻。她的火焰魔法已经和情感深度绑定，粉红色的火焰是恋爱的证明。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_pure_03",
+      "title": "纯爱 Stage 03: 最强的魔法（比爆裂火球更强的东西）",
+      "route": "pure_love",
+      "stage": 3,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char10_pure_03_npc_01",
+          "speaker": "焔",
+          "text": "太弱了！！你们太弱了！！七个人还不够我热身！！来来来再来一组！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_02",
+          "speaker": "焔",
+          "text": "你看到了吗！！刚才那一击！！业火第三式改良版！！我把你教我的借力技术融合进去了！！威力提升了三成！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_03",
+          "speaker": "焔",
+          "text": "那当然！毕竟我的目标是超越你嘛！总有一天——总有一天我要打赢你——然后——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_04",
+          "speaker": "焔",
+          "text": "（小声）然后——打赢你之后——做那个——赢了的人当主导——紫苑说的——",
+          "mood": "tender",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_05",
+          "speaker": "焔",
+          "text": "哦！是你啊！上次打架打不过我那个！现在能打了吗！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_06",
+          "speaker": "焔",
+          "text": "啧——又逃了。你手下的人都这么弱吗。除了你之外没一个能打的。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_07",
+          "speaker": "焔",
+          "text": "话说——今晚有空吗。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_08",
+          "speaker": "焔",
+          "text": "没什么大事就是——我新研发了一个魔法——想给你看看——只能给你一个人看——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_09",
+          "speaker": "焔",
+          "text": "到——到时候就知道了！！废话少说！！晚上训练场见！！不许迟到！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_10",
+          "speaker": "焔",
+          "text": "来了……嗯。看好了。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_11",
+          "speaker": "焔",
+          "text": "我一直以来——只会用火焰破坏东西。爆炸、燃烧、灰烬。蒼老师说过我的火只有破坏没有创造——我一直不服气但也反驳不了。",
+          "mood": "aggressive",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_12",
+          "speaker": "焔",
+          "text": "但是最近——我发现——我的火变了。因为——因为你。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_13",
+          "speaker": "焔",
+          "text": "这个——这个魔法——我练了整整两周——炸了十四次——烧掉了训练场的储物间三回——但是——",
+          "mood": "aggressive",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_14",
+          "speaker": "焔",
+          "text": "但是——我想让你知道——你改变了我的火。不只是颜色——是——本质。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_15",
+          "speaker": "焔",
+          "text": "我——焔——喜欢你！！",
+          "mood": "affection",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_03_npc_16",
+          "speaker": "焔",
+          "text": "不只是因为你强！！不只是因为打架很爽！！是因为——因为——和你在一起的时候——我的火不想破坏任何东西——只想——只想——暖和你——！！",
+          "mood": "affection",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_pure_03_other_01",
+          "speaker": "主人公",
+          "text": "（训练场。焔刚刚以一对七打赢了训练组的精锐小队）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_03_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官鼓掌走过来）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_03_other_03",
+          "speaker": "主人公",
+          "text": "（指挥官夸她进步很大）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_03_other_04",
+          "speaker": "主人公",
+          "text": "（走廊上偶遇其他军官）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_03_other_05",
+          "speaker": "主人公",
+          "text": "（指挥官问有什么事）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_03_other_06",
+          "speaker": "主人公",
+          "text": "（指挥官问是什么魔法）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_03_other_07",
+          "speaker": "主人公",
+          "text": "（晚上。训练场）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_pure_03_nar_01",
+          "text": ": 最强的魔法（比爆裂火球更强的东西）",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_02",
+          "text": "整个城堡都知道了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_03",
+          "text": "不是因为有人告密——是因为焔。这个毫无隐蔽能力的战斗狂人在确认自己\"喜欢\"指挥官之后，做出了完全焔式的举动：她站在城堡最高的了望台上，用扩音魔法对着全城堡大吼了一声——",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_04",
+          "text": "\"我焔喜欢指挥官！！！谁有意见站出来我打爆谁！！！\"",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_05",
+          "text": "副官差点吐血。蒼老师远程传来了第二封信：「我教出的学生……嗯。替我跟那位指挥官说声抱歉。」紫苑翻了一个响彻灵魂的白眼。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_06",
+          "text": "但焔完全不觉得自己做了什么了不得的事。在她的逻辑里：喜欢就要说出来→说出来就要大声说→大声说就要让所有人都听到→完美。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_07",
+          "text": "现在是宣言之后的第三天。焔的生活节奏完全没变——训练、吃饭、打架、缠着指挥官。唯一的变化是她现在会在打架的间隙突然说\"喜欢你\"然后接着打，毫无违和感。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_08",
+          "text": "她的火焰魔法在情感稳定后也变得更加强大了。粉红色的不稳定火焰消失了，取而代之的是比从前更加炽烈的正红色——蒼老师在信中解释说：\"情感成为了魔力的催化剂。焔本来就是直觉型天才，一旦心意确定，力量会成倍增长。\"",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_09",
+          "text": "简单来说——谈恋爱让焔变得更强了。而变得更强又让焔更加开心。形成了完美的正循环。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_10",
+          "text": "七名精锐士兵东倒西歪地躺在地上哀嚎。焔站在中间，短杖「业火」杵在地上，笑得露出虎牙。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_11",
+          "text": "焔的全身像被通了电。她丢下短杖——直接丢在一个倒地士兵的脸旁边——跑到指挥官面前。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_12",
+          "text": "焔嘿嘿笑着挠头发。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_13",
+          "text": "她突然凑近了指挥官的耳朵——这对焔来说是破天荒的低音量：",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_14",
+          "text": "紫苑到底在教她什么。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_15",
+          "text": "军官A看到指挥官和焔走在一起，脸上浮现出微妙的表情——整个城堡都听了那段了望台宣言。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_16",
+          "text": "军官A尴尬地摇头溜走了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_17",
+          "text": "她大摇大摆地走在指挥官身边——不是\"身旁\"，是非常近的\"身边\"。近到手臂时不时碰在一起。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_18",
+          "text": "焔的脸红了。对于一个能当着全城喊\"我喜欢指挥官\"的人来说，能让她脸红的事情屈指可数。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_19",
+          "text": "她以逃跑般的速度冲走了。走廊里传来她的自言自语：\"不是紧张——才没有紧张——只是——嗯——魔力循环不太稳定——嗯——\"",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_20",
+          "text": "月亮很圆。焔站在训练场中央，手里握着短杖「业火」。她换了一身——还是红黑色，但比平时干净整齐得多，甚至连头发都重新扎过了，双马尾扎得格外精神。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_21",
+          "text": "她看到指挥官来了，深吸了一口气。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_22",
+          "text": "她举起短杖。红橘色的眼睛里魔力开始汇聚——不是平时战斗时狂暴的能量潮，而是一种被情感驯化的、温暖的、柔和的魔力流。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_23",
+          "text": "她将短杖指向天空。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_24",
+          "text": "魔力从杖尖喷涌而出——不是爆裂火球，不是火焰风暴。是无数细小的、温暖的火星，像萤火虫一样在夜空中缓缓升起。它们旋转、汇聚、排列——最终在星空中组成了一幅画面。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_25",
+          "text": "一个火焰勾勒的人形——在和另一个火焰人形对练。然后两个人形走到一起，火星融合，变成一颗巨大的、脉动的、温暖的光球——像一颗小太阳悬挂在训练场上空。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_26",
+          "text": "焔的脸被火光照得通红——是火焰还是脸红已经分不清了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_27",
+          "text": "她放下短杖，转过身面对指挥官。红橘色的眼睛里映着头顶的小太阳，比任何时候都柔软。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_28",
+          "text": "她握紧拳头，深吸一口气——像是在蓄力发射最强的一击。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_29",
+          "text": "她已经喊过一次了，全城堡都听了。但这一次不同——这次不是宣言，而是告白。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_03_nar_30",
+          "text": "她说到最后，声音反而小了下去。这是焔能说出的最浪漫的话了——对她来说等同于史诗级情诗。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_pure_h_03",
+      "title": "H事件：全力の告白",
+      "route": "pure_love",
+      "stage": 3,
+      "type": "h_event",
+      "npc": [
+        {
+          "id": "char10_pure_h_03_npc_01",
+          "speaker": "焔",
+          "text": "嗯——今天——不会炸天花板了——因为在外面——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_03_npc_02",
+          "speaker": "焔",
+          "text": "今天——由我来——我说了——我要赢——用我的方式——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_03_npc_03",
+          "speaker": "焔",
+          "text": "看好了——焔——全力出击——！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_03_npc_04",
+          "speaker": "焔",
+          "text": "嗯——啊——这个——感觉——比任何魔法都——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_03_npc_05",
+          "speaker": "焔",
+          "text": "啊——嗯——好——好厉害——嗯啊——你——也——感觉到了吗——我能——从这里——感觉到——你——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_03_npc_06",
+          "speaker": "焔",
+          "text": "看着我——一直——看着我——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_03_npc_07",
+          "speaker": "焔",
+          "text": "嗯——啊——要——嗯——最大火力——全弹齐射——嗯——一起——和我——一起——！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_03_npc_08",
+          "speaker": "焔",
+          "text": "哈——哈——……怎么样……我赢了吧……这次……",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_03_npc_09",
+          "speaker": "焔",
+          "text": "（闷闷的声音）……我啊——找到了——比爆裂火球还强的魔法。",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_03_npc_10",
+          "speaker": "焔",
+          "text": "……你啊。笨蛋。",
+          "mood": "vulnerable",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_pure_h_03_other_01",
+          "speaker": "主人公",
+          "text": "（指挥官走向她）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_h_03_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官吻了她）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_h_03_other_03",
+          "speaker": "主人公",
+          "text": "（指挥官问是什么）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_pure_h_03_nar_01",
+          "text": "头顶的小太阳还在温柔地脉动。焔站在它的光芒下，全身笼罩着柔和的火色——像一个被自己的火焰拥抱的少女。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_02",
+          "text": "焔没有退后。红橘色的眼睛直直地看着走来的人，里面有火焰、有月光、还有一种连她自己都不知道原来自己能拥有的温柔。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_03",
+          "text": "焔\"唔\"了一声——然后以十倍的力度回吻了上去。她的吻技经过这段时间的\"修行\"已经大有进步，不再咬到人了，虽然依然热烈到有些粗暴。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_pure_h_03_nar_04",
+          "text": "她一边吻一边扒对方的衣服，动作之利落像在拆解陷阱装置。同时她也在以同样的速度卸自己的装备——单肩甲、外套、束胸、热裤——一件件飞出去，像战斗前的武装解除。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_05",
+          "text": "她将对方推倒在训练场的草地上。头顶的小太阳将温暖的光芒洒在两人身上，像一个橘红色的夜灯。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_06",
+          "text": "焔跨坐上去，双手撑在对方两侧。她赤裸的身体在火光中呈现出一种野性的美——肌肉的线条如同精心锻造的武器，腹肌随呼吸起伏，肋下的旧烧伤在光影中像战功勋章。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_07",
+          "text": "她是认真的。焔做任何事都是百分之二百的投入——这件事也不例外。她用对待战斗的认真态度来对待每一个动作：观察对方的反应、调整自己的方式、找到最有效的\"攻击模式\"。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_08",
+          "text": "不同的是，她的眼睛里没有战斗时的杀意——只有纯粹的、灼热的、不加修饰的爱意。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_09",
+          "text": "她的身体开始自主地运动，腰部发力的方式和挥舞短杖时一样有力但更加流畅。每一次起伏都让她发出短促有力的声音——像战场上的呼吸法，急促、有节奏、充满力量。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_10",
+          "text": "她俯下身去，额头贴着额头，鼻尖碰鼻尖。红橘色的眼睛直视着对方的眼睛，距离近到能看清虹膜里的火光。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_11",
+          "text": "头顶的小太阳随着她的情绪开始膨胀，光芒越来越亮。周围的空气变得温暖如夏，草地上的露水被蒸发成晶莹的水雾。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_12",
+          "text": "焔的声音越来越大——她控制不了音量，从来都控制不了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_13",
+          "text": "高潮的瞬间，两件事同时发生——焔发出了一声响彻训练场的长啸，同时头顶的小太阳\"轰\"地炸成了漫天烟花。红色的、橙色的、粉色的、金色的火星在夜空中绽放开来，照亮了半个城堡。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_pure_h_03_nar_14",
+          "text": "远处的巡逻兵以为遭到攻击拉响了三次警报，后来发现只是焔在\"训练\"。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_15",
+          "text": "焔瘫倒在对方身上，全身都在发抖，呼吸急促得像刚打完一场决战。漫天的火星在缓缓坠落，落在她裸露的背上立刻融化成温暖的光点。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_16",
+          "text": "她抬起头——满脸通红、头发全散了、眼角有泪光——但笑得比任何时候都灿烂。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_pure_h_03_nar_17",
+          "text": "她没等对方回答就把脸埋回去了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_18",
+          "text": "又一阵粉红色火星从她发梢窜出来。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_03_nar_19",
+          "text": "焔的纯爱好感度 [8/10]。焔用自己的方式完成了完美的告白——全城堡都见证了那场烟花。她的火焰已经进化为爱情的具象化，破坏力不减却多了一份温度。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_pure_04",
+      "title": "纯爱 Stage 04: 二人の業火（并肩燃烧）",
+      "route": "pure_love",
+      "stage": 4,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char10_pure_04_npc_01",
+          "speaker": "焔",
+          "text": "不对不对不对！！你这个出拳完全没有杀气！！打人就要像放爆裂火球一样——全力——毫无保留——！！来再打一次！！给我打出要把前面那堵墙轰碎的气势！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_02",
+          "speaker": "焔",
+          "text": "太弱了！看好——这样——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_03",
+          "speaker": "焔",
+          "text": "看到没！！这才叫攻击！！好了继续练！练到我满意为止不许吃午饭！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_04",
+          "speaker": "焔",
+          "text": "哦！！你来了！！早饭吃了没！！那个饭团——我做了三次——前两次炸了——第三次差点也炸了但是我忍住了——好吃吗！！",
+          "mood": "aggressive",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_05",
+          "speaker": "焔",
+          "text": "（对新兵）你们继续！！偷懒的人我回来加罚三十组！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_06",
+          "speaker": "焔",
+          "text": "今天的安排——上午训练——下午那个北边的魔兽清剿任务——我打先锋！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_07",
+          "speaker": "焔",
+          "text": "不要！！先锋是我的位置！！因为——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_08",
+          "speaker": "焔",
+          "text": "因为先锋最危险。我在最前面的话——后面的人就安全了。你也安全。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_09",
+          "speaker": "焔",
+          "text": "而且——先锋打架最爽嘛！！第一个碰到敌人——轰——爽——！就是这个原因！！别的原因不存在！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_10",
+          "speaker": "焔",
+          "text": "（低声）……我会变得更强的。比现在还强一百倍。强到——没有任何东西能伤害你。这是我——我作为焔——作为你的——那个——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_11",
+          "speaker": "焔",
+          "text": "——作为你的伴侣——唯一的誓言。",
+          "mood": "affection",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_04_npc_12",
+          "speaker": "焔",
+          "text": "好了！说完了！走了！打架去！！今天要消灭一百只魔兽——不两百只——不把北边的魔兽全部轰光！！冲啊——！！！",
+          "mood": "energetic",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_pure_04_other_01",
+          "speaker": "主人公",
+          "text": "（清晨。指挥官在房间里醒来，发现焔不见了）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_04_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官来到训练场）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_04_other_03",
+          "speaker": "主人公",
+          "text": "（焔发现了指挥官，表情瞬间切换）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_04_other_04",
+          "speaker": "主人公",
+          "text": "（指挥官说很好吃）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_04_other_05",
+          "speaker": "主人公",
+          "text": "（指挥官说她每次都打先锋，偶尔让别人上）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_04_other_06",
+          "speaker": "主人公",
+          "text": "（指挥官握住了她的手）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_pure_04_nar_01",
+          "text": ": 二人の業火（并肩燃烧）",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_02",
+          "text": "时间流逝如火焰——炽烈而不可逆。焔和指挥官的关系已经从\"修行搭档\"演变为整个军团公认的伴侣。这在军事组织中本来会引起争议，但焔用最简单的方式解决了所有质疑：谁有意见就打一架。至今没人能打过她。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_03",
+          "text": "焔的变化是微妙的——或者说，只有仔细观察才能察觉。她还是每天大吵大闹、精力无限、把训练场当游乐场。还是会在食堂里和人抢肉吃、在走廊里跑得尘土飞扬、动不动就向所有人发起挑战。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_04",
+          "text": "但她不再是一个\"只有战斗\"的人了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_05",
+          "text": "她会记住指挥官喜欢喝的茶的温度——虽然她的方式是用手指伸进去测温，然后烫到跳脚。她会在指挥官开会时安静地（以焔的标准）守在门外——所谓安静就是只踹了两次墙而不是平时的十二次。她会在夜里悄悄把自己的外套盖在对方身上——然后第二天死不承认，说\"那是业火自己飞过去的\"。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_06",
+          "text": "蒼老师的第三封信：「焔终于找到了比爆裂火球更重要的东西。作为老师，我很欣慰。但请转告她——不要再用火焰传送情书了。白塔的邮箱被烧了三个。」",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_07",
+          "text": "紫苑的评价更简洁：「以前是一个笨蛋，现在是两个。」但她说这话时嘴角是上扬的。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_08",
+          "text": "窗户大开着，晨风灌进来。枕头上留着一张被烧了边角的纸条，上面用歪歪扭扭的字迹写着：「去训练了。早饭在桌上。不许不吃。焔。」下面画了一个像是爆裂火球又像是爱心的图案——很难判断她到底想画什么。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_09",
+          "text": "桌上是一份烤肉饭团——形状不太规则，有几个地方烤焦了，但调味出奇地好。旁边还放着一朵野花——花瓣有些被烧焦的痕迹，大概是焔采花时魔力没控制好。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_10",
+          "text": "焔正在进行她的晨间训练——但不是一个人。她面前站着一排新兵，焔以一种充满压迫感的姿态指导他们。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_11",
+          "text": "新兵们瑟瑟发抖地挥拳。焔不满地摇头。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_12",
+          "text": "她后退一步，短杖「业火」横扫——气浪将面前的三个训练桩全部击碎。碎片在晨光中纷飞。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_13",
+          "text": "新兵们发出了绝望的哀嚎。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_14",
+          "text": "焔嘿嘿笑着原地蹦了两下，然后想起自己还在\"指导\"新兵。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_15",
+          "text": "她跑到指挥官身边，自然而然地走在旁边——不知从什么时候起，两人的步伐频率变得完全一致。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_16",
+          "text": "她难得认真地看着指挥官。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_17",
+          "text": "她说完立刻别过脸。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_18",
+          "text": "焔没有甩开——她早就不甩开了。她的手指反过来紧紧地扣住对方的手指，力度很大——战斗法师的握力让普通人可能会觉得疼，但那是焔表达温柔的最大限度了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_19",
+          "text": "她用力吞咽了一下。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_04_nar_20",
+          "text": "说完她立刻加大音量掩饰害羞：",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_pure_h_04a",
+      "title": "H事件·其一：星空の下で",
+      "route": "pure_love",
+      "stage": 4,
+      "type": "h_event",
+      "npc": [
+        {
+          "id": "char10_pure_h_04a_npc_01",
+          "speaker": "焔",
+          "text": "……嗯。你来了。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_02",
+          "speaker": "焔",
+          "text": "……星星好多。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_03",
+          "speaker": "焔",
+          "text": "以前——我不看星星。因为星星又不能打。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_04",
+          "speaker": "焔",
+          "text": "但是现在——觉得——和你一起看的话——很好。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_05",
+          "speaker": "焔",
+          "text": "……平时啊——如果有虫子停在我手上——我会不小心把它烤熟。",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_06",
+          "speaker": "焔",
+          "text": "但是最近——火焰——越来越听话了。不想伤害的东西就不会伤害。蒼老师说——这是因为我的心——变了。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_07",
+          "speaker": "焔",
+          "text": "……以前我觉得——火焰就是破坏。烧光一切、轰碎一切——那就是我存在的意义。但是——",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_08",
+          "speaker": "焔",
+          "text": "——现在我觉得，火焰也可以是温暖。可以是守护。可以是——只为一个人燃烧的东西。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_09",
+          "speaker": "焔",
+          "text": "（轻声）……今晚不要回帐篷了。",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_10",
+          "speaker": "焔",
+          "text": "嗯……",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_11",
+          "speaker": "焔",
+          "text": "……你知道吗——平时我不敢这样碰你——怕控制不住力气——弄疼你——",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_12",
+          "speaker": "焔",
+          "text": "但是今天——今天火焰很安静——我也——可以——安静地——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_13",
+          "speaker": "焔",
+          "text": "嗯……啊……好暖和……从里面——暖到外面——",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_14",
+          "speaker": "焔",
+          "text": "（哽咽）……为什么——哭了——我又不难过——但是——停不下来——",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_15",
+          "speaker": "焔",
+          "text": "嗯——我——啊——一直——和你——这样——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04a_npc_16",
+          "speaker": "焔",
+          "text": "……喜欢你。",
+          "mood": "vulnerable",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_pure_h_04a_other_01",
+          "speaker": "主人公",
+          "text": "（深夜。军事行动结束后的野外宿营地）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_h_04a_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官在她身旁坐下）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_h_04a_other_03",
+          "speaker": "主人公",
+          "text": "（两人在星空下）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_pure_h_04a_nar_01",
+          "text": "魔兽清剿任务大获成功——主要归功于焔的火力覆盖。她一个人消灭的魔兽数量比整支部队加起来还多，虽然也顺便烧掉了半片森林。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_02",
+          "text": "营地的篝火已经熄灭。士兵们都进了帐篷休息。只有焔还坐在营地边缘的山坡上——罕见地安静。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_03",
+          "text": "她的单肩甲和短杖放在身旁，红黑外套披在肩上。双马尾也解开了，火红的头发自然地散落在背后，在夜风中轻轻飘动。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_04",
+          "text": "没有了平时的吵闹和亢奋，焔坐在那里看着满天星空的样子——出奇地安静，出奇地好看。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_05",
+          "text": "焔转过头，红橘色的眼睛在星光下显得格外清澈。她没有像平时那样大喊大叫，只是轻轻地——",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_06",
+          "text": "声音很轻。焔偶尔会有这样的时刻——精力全部耗尽之后的空白期，所有的喧嚣都沉淀下来，露出底下意想不到的宁静。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_07",
+          "text": "蒼老师曾经说过：\"焔安静下来的时候——你会发现她的声音其实很好听。\"",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_08",
+          "text": "她仰着头，红色的头发铺在身后的草地上。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_09",
+          "text": "她勾起嘴角——不是平时张扬的虎牙笑，而是一个安静的、柔和的微笑。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_10",
+          "text": "夜风拂过。萤火虫从草丛中飞起来，在两人周围画出淡绿色的光轨。焔伸出手指去碰一只——一只萤火虫落在她的指尖上。她的手指一向是粗糙的、缠着绷带的、握惯了短杖的手指。但此刻那只小虫子安静地停在上面，一闪一闪。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_11",
+          "text": "她小心翼翼地看着那只萤火虫。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_12",
+          "text": "萤火虫飞走了。焔把手放下来，轻轻地放在对方的手背上。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_13",
+          "text": "她的声音很轻，轻到不像焔。但正因为不像焔，每一个字都带着特殊的重量。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_14",
+          "text": "她偏过头靠在对方肩上。红色的头发蹭在对方的脖颈上，带着淡淡的硝烟和阳光的味道——那是焔的味道。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_15",
+          "text": "焔的吻在安静时和吵闹时完全不同。没有了横冲直撞的力度，她的嘴唇意外地柔软，带着战斗之后的疲倦和温热。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_16",
+          "text": "衣物在星光下无声地褪去。焔的身体在萤火虫的微光中呈现出一种不同于白天的柔美——肌肉的线条依然分明，但被星光柔化了棱角。腹肌的起伏随着呼吸显得温和而有韵律，肩膀上还有今天战斗留下的几道浅浅红痕。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_17",
+          "text": "焔没有发出平时那种高亢的声音。在这个安静的夜晚，她的声音也变得安静了——细碎的、柔软的、像炉火中偶尔爆开的火星那样细小而温暖的声音。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_18",
+          "text": "只是这一个音节。但从焔嘴里说出来，比任何战吼都动听。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_19",
+          "text": "她的手指穿过对方的头发，动作轻柔到自己都难以置信。缠着绷带的右手小心翼翼地抚过对方的脸颊，像是在触碰世界上最珍贵的东西。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_20",
+          "text": "她的声音带着一丝脆弱——这个在战场上无所畏惧的人，此刻害怕的是弄疼心爱的人。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_21",
+          "text": "在星空和萤火虫的环绕下，一切都慢了下来。焔的动作不再有战斗时的凶猛，而是一种笨拙但认真的温柔。每一次触碰都像是第一次——小心的、试探的、生怕弄碎什么。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_22",
+          "text": "当两人融为一体时，焔咬住了自己的下唇——不是为了压制声音，而是因为她感受到了一种比快感更深的东西。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_23",
+          "text": "她的眼角渗出了泪水。焔几乎从不哭——上一次哭还是小时候差点被魔兽吃掉的时候。但此刻，在星光下，在萤火虫的微光中，她无声地流泪了。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_24",
+          "text": "不是悲伤。是太满了。心里的东西太满了，满到溢出来。她不知道该怎么处理这么多的感情——以前她只需要处理\"想打架\"和\"肚子饿\"就够了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_25",
+          "text": "指挥官吻去了她的眼泪。焔闭上眼睛，把脸贴在对方的手掌上。",
+          "mood": "vulnerable"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_26",
+          "text": "缓慢而深沉的结合在星空下持续。焔的声音始终保持着不像她的温柔——偶尔的叹息，轻微的呻吟，还有几声被月光溶解的呢喃。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_27",
+          "text": "当高潮缓缓来临时——不是爆裂，是缓慢燃烧到极致后的盛放——焔将对方紧紧抱住，把脸埋在对方的颈窝里。她的全身微微颤动，像被风吹拂的烛火。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_28",
+          "text": "没有尖叫，没有战吼。只有一声近乎耳语的、柔软到令人心碎的：",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_29",
+          "text": "萤火虫在两人头顶飘舞。焔的手指轻轻扣在对方背上，指尖画着无意识的圆圈——不是爆裂火球的弹道。只是圆圈。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04a_nar_30",
+          "text": "她就这样抱着对方，在星空下慢慢地、慢慢地闭上了眼睛。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char10_pure_h_04b",
+      "title": "H事件·其二：修行の朝",
+      "route": "pure_love",
+      "stage": 4,
+      "type": "h_event",
+      "npc": [
+        {
+          "id": "char10_pure_h_04b_npc_01",
+          "speaker": "焔",
+          "text": "啊——！睡得超好！！身体充满了力量！！今天也要来一场——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_02",
+          "speaker": "焔",
+          "text": "喂——！起床了——！！修行的时间到了！！早上不训练是对身体的侮辱！！蒼老师说的！！起来——！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_03",
+          "speaker": "焔",
+          "text": "一二三——！起来了——！今天先跑十圈——然后对练——然后吃早饭——然后——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_04",
+          "speaker": "焔",
+          "text": "呜哇——！什么——放——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_05",
+          "speaker": "焔",
+          "text": "……嗯——算了——五分钟——就五分钟——然后必须起来训练——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_06",
+          "speaker": "焔",
+          "text": "嗯——说好了——五分钟——这已经超过——嗯——不行——训练——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_07",
+          "speaker": "焔",
+          "text": "这——这也是训练的一种！！晨间对练！！特殊科目！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_08",
+          "speaker": "焔",
+          "text": "这个姿势——上位——攻击方优势——哈——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_09",
+          "speaker": "焔",
+          "text": "嗯——啊——早上——果然——身体——更——敏感——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_10",
+          "speaker": "焔",
+          "text": "啊——哈——太——嗯——不行——太厉害了——早上——为什么——比晚上——嗯啊——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_11",
+          "speaker": "焔",
+          "text": "嗯——今天——我要——赢——比昨晚——更——嗯——",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_12",
+          "speaker": "焔",
+          "text": "来——嗯——一起——来啊——焔——最大火力——嗯啊——！！",
+          "mood": "aroused",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_13",
+          "speaker": "焔",
+          "text": "早安！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_14",
+          "speaker": "焔",
+          "text": "好了！！晨间对练结束！！接下来——真正的训练——！！跑步去——！！",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_15",
+          "speaker": "焔",
+          "text": "啊？怎么了——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_16",
+          "speaker": "焔",
+          "text": "…………",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_17",
+          "speaker": "焔",
+          "text": "……啊。",
+          "mood": "vulnerable",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_18",
+          "speaker": "焔",
+          "text": "什——什么都没发生！！刚才的事情——是梦——你做了一个梦——对——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_19",
+          "speaker": "焔",
+          "text": "——不对。不是梦。",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_20",
+          "speaker": "焔",
+          "text": "是我的——每一天。从今以后的每一天。都要这样——吵吵闹闹地——一起——",
+          "mood": "energetic",
+          "type": "npc"
+        },
+        {
+          "id": "char10_pure_h_04b_npc_21",
+          "speaker": "焔",
+          "text": "走吧。今天也一起——并肩燃烧。",
+          "mood": "energetic",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char10_pure_h_04b_other_01",
+          "speaker": "主人公",
+          "text": "（指挥官在半梦半醒中把她拉倒）",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char10_pure_h_04b_other_02",
+          "speaker": "主人公",
+          "text": "（指挥官指了指她身上什么都没穿的状态）",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char10_pure_h_04b_nar_01",
+          "text": "[第二天清晨。营地]",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_02",
+          "text": "焔是被鸟叫声吵醒的——不对，是她吵醒了鸟。因为她一醒来就吼了一声\"早上好！！\"把方圆五十米的鸟全惊飞了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_03",
+          "text": "昨夜的温柔焔已经完全消失，取而代之的是满血复活的元気焔。她从毯子里弹起来——赤着上身——在晨雾中大声打了个哈欠。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_04",
+          "text": "她低头看了一眼身旁还在睡的指挥官，嘿嘿笑了一下。然后——",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_05",
+          "text": "她直接跳到对方身上——这是她的独家叫醒方式。六十一公斤的战斗法师精准命中。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_06",
+          "text": "被拉入怀中的焔挣扎了三秒就放弃了。不是挣扎不开——以她的力量完全可以。是因为——",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_07",
+          "text": "她的嘴上说着五分钟，身体已经主动靠了上去。清晨的她身上带着朝露和草地的味道，皮肤因为山间的凉意而微微起了鸡皮疙瘩。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_08",
+          "text": "然后\"五分钟\"不可避免地变成了别的东西。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_09",
+          "text": "是从一个懒洋洋的吻开始的。焔的嘴唇带着清晨的凉意，但很快就被体温暖热。然后吻从嘴唇蔓延到下巴、脖子——焔的呼吸急促起来。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_10",
+          "text": "但她自己的手已经在不由自主地解对方的衣服了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_11",
+          "text": "清晨的亲密和夜晚完全不同。焔在早上精力最为充沛——这意味着她的一切反应都是满格输出。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_12",
+          "text": "她翻身骑在对方身上——早晨的阳光从东方射来，将她的轮廓镀上金色。红色的头发在晨风中飞舞如旗，浑身的肌肉因为山间的凉意和内心的热度形成的温差而绷得格外好看。身上还留着昨晚的痕迹——脖子和锁骨上的红印在晨光下格外清晰。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_13",
+          "text": "她依然在用战斗术语。但她的动作已经比初次时成熟了太多——有力、自信、充满节奏感。她的腰部运动如同挥舞短杖一样流畅，每一次下沉都精准而有力。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_14",
+          "text": "汗水在晨光中闪烁如细碎的宝石。焔的声音在安静的山间格外响亮——她从来控制不了音量，尤其是在这种时候。鸟被再次惊飞了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_15",
+          "text": "她弯下腰，双手撑在对方胸口，红色的头发垂下来形成帷幕。汗珠从她的发梢滴落，一滴一滴落在对方脸上。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_16",
+          "text": "她的竞争心永远不会消失——即使在这种时候。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_17",
+          "text": "节奏加快。焔的腹肌剧烈收缩，全身的肌肉都在协同运作。她咬着下唇，红橘色的眼睛闪烁着同时包含战意和情意的光芒。",
+          "mood": "defiant"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_18",
+          "text": "她仰头向天，发出一声痛快淋漓的呐喊。清晨的山间回荡着她的声音，像战场上的冲锋号角。全身弓起，每一块肌肉同时绷紧——然后像弦断一样猛地松懈，重重倒在对方身上。",
+          "mood": "aroused"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_19",
+          "text": "她趴在对方胸口，大口喘气，全身都是汗和晨露的混合物。晨光照在她赤裸的后背上，映出肩胛骨随呼吸起伏的轮廓。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_20",
+          "text": "过了一会儿，她撑起身子，低头看着对方。红色的头发乱糟糟地垂在脸旁，脸颊因为运动和羞涩通红通红。但她笑了——虎牙笑，最灿烂的那种。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_21",
+          "text": "她在对方嘴上啵了一下——焔式早安吻，响亮、粗暴、充满活力。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_22",
+          "text": "她翻身跳起来，赤着上身就要往训练场跑——被指挥官一把拉住。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_23",
+          "text": "她低头看了看自己，然后以破纪录的速度穿好了衣服。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_24",
+          "text": "但她的嘴角怎么也压不下去。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_25",
+          "text": "她转过身，红橘色的眼睛在晨光中灿若星辰。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_26",
+          "text": "她伸出手——缠着绷带的、粗糙的、握过无数次短杖的右手。",
+          "mood": "scene"
+        },
+        {
+          "id": "char10_pure_h_04b_nar_27",
+          "text": "焔的纯爱好感度 [10/10]。纯爱路线完成。焔以最焔的方式成为了最忠诚的伴侣——用不灭的火焰守护唯一的人。解锁称号「業火の伴侶」。解锁焔专属结局「永不熄灭的火焰」。",
+          "mood": "system"
+        }
+      ]
+    }
+  ]
+}

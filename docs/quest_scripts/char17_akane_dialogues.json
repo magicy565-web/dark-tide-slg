@@ -1,0 +1,2291 @@
+{
+  "character": {
+    "id": "char17",
+    "name": "朱音",
+    "name_romaji": "Akane",
+    "title": "血月女祭司",
+    "faction": "中立·血月教团",
+    "troop_type": "祭司",
+    "stats": {
+      "ATK": 4,
+      "DEF": 3,
+      "INT": 8,
+      "SPD": 5
+    }
+  },
+  "scenes": [
+    {
+      "scene_id": "char17_training_01",
+      "title": "事件01: 月下圣域",
+      "route": "training",
+      "stage": 1,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_01_npc_01",
+          "speaker": "朱音",
+          "text": "血月之下，万物平等。来者……也是月光的孩子。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_01_other_01",
+          "speaker": "斥候",
+          "text": "大人，前方即是血月教团的古代圣地。守军约有三百，大部分是狂信徒……他们不会投降的。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_01_other_02",
+          "speaker": "主人公",
+          "text": "宗教狂热者……最难对付的敌人。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_01_other_03",
+          "speaker": "斥候",
+          "text": "而且他们的祭司——据说能用某种血之魔法强化全军。请务必小心。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_01_nar_01",
+          "text": "古代圣地外围，残破的石柱在月光下投射出诡异的长影。空气中弥漫着焚香与铁锈的气味。血月教团的信徒身着暗红长袍，静默地列阵于圣地入口。远处传来低沉的祈祷吟唱——那是朱音的声音，平静得如同晚风。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_01_nar_02",
+          "text": "远处高台上，朱音双手合十，面朝血色月亮。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_01_nar_03",
+          "text": "触发古代圣地攻略战。敌方全体受「血月祝福」效果，ATK+10%。建议先消灭外围巡逻队以削弱防御。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_02",
+      "title": "事件02: 狂信之壁",
+      "route": "training",
+      "stage": 2,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_02_npc_01",
+          "speaker": "朱音",
+          "text": "安息吧，迷途的羔羊。你们的血不会白流。月光会记住每一滴。",
+          "mood": "远处吟唱",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_02_other_01",
+          "speaker": "副官",
+          "text": "这些人……完全不怕死！刚才那一队，明知必败还发动了冲锋。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_02_other_02",
+          "speaker": "主人公",
+          "text": "这就是信仰的力量——或者说，这就是信仰的可怕之处。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_02_other_03",
+          "speaker": "狂信徒（临死）",
+          "text": "血月……在上……我的灵魂……将升华……",
+          "mood": "临死",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_02_other_04",
+          "speaker": "副官",
+          "text": "那个声音……是他们的祭司？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_02_other_05",
+          "speaker": "主人公",
+          "text": "听起来像是在做临终祈祷……为她自己的士兵。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_02_nar_01",
+          "text": "第一道防线被攻破后，圣地内部的景象令人震惊。石墙上绘满了月亮与鲜血的图腾，走廊两侧摆放着骨制祭器。狂信徒们高喊着\"月光即救赎\"冲向进攻部队，毫无畏惧。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_02_nar_02",
+          "text": "远处传来朱音清冷的声音，回荡在石壁之间。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_02_nar_03",
+          "text": "第二阶段战斗开始。狂信徒在HP低于30%时进入「殉道」状态，ATK翻倍但DEF归零。建议使用远程部队集火。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_03",
+      "title": "事件03: 血之祭坛",
+      "route": "training",
+      "stage": 3,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_03_npc_01",
+          "speaker": "朱音",
+          "text": "你终于来了。我在月光中看到过你的影子。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_03_npc_02",
+          "speaker": "朱音",
+          "text": "投降？……你误解了。这不是战争。这是一场仪式。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_03_npc_03",
+          "speaker": "朱音",
+          "text": "血月之下，无论胜败，灵魂都将得到净化。来吧——让我看看你的灵魂是什么颜色的。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_03_other_01",
+          "speaker": "主人公",
+          "text": "投降吧。你的信徒已经所剩无几了。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_03_other_02",
+          "speaker": "主人公",
+          "text": "……她是认真的。全军准备，最后一战！",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_03_nar_01",
+          "text": "推进至圣地核心——一座巨大的露天祭坛。月光从天窗直射而下，将祭坛上的暗红色液体照得发亮。朱音站在祭坛中央，短杖抵在胸前，周围环绕着最后一批精锐护卫。她的表情出奇地平静，甚至带着一丝微笑。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_03_nar_02",
+          "text": "她轻轻举起祭祀短杖，暗红色的光芒从杖端涌出。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_03_nar_03",
+          "text": "BOSS战：朱音（祭司）。朱音每2回合释放「血月祝福」，消耗场上倒下的单位强化存活友军。建议速攻，避免持久战。朱音HP降至20%时触发剧情。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_04",
+      "title": "事件04: 信仰崩塌",
+      "route": "training",
+      "stage": 4,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_04_npc_01",
+          "speaker": "朱音",
+          "text": "……结束了吗。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_04_npc_02",
+          "speaker": "朱音",
+          "text": "不……教团只是形式。信仰不会因为石墙倒塌而消失。",
+          "mood": "低语",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_04_npc_03",
+          "speaker": "朱音",
+          "text": "你赢了。按照你们的规矩——我是战利品，对吗？",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_04_npc_04",
+          "speaker": "朱音",
+          "text": "血月之下，万物平等。生者献血，死者得安。我既然活着……就还有可以献出的东西。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_04_other_01",
+          "speaker": "主人公",
+          "text": "结束了。你的教团已经不存在了。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_04_other_02",
+          "speaker": "主人公",
+          "text": "……你比我想象的冷静。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_04_nar_01",
+          "text": "朱音跪倒在祭坛上，祭祀短杖从手中滑落。月光依然照耀着她，但血之魔法已经消散。她的信徒或死或降，圣地一片狼藉。她低着头，长发散落，呼吸急促却依然努力维持着平静。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_04_nar_02",
+          "text": "她缓缓抬起头，眼中有泪光，但嘴角仍然挂着那种空灵的微笑。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_04_nar_03",
+          "text": "朱音被俘。选择处置方式——选项A：关入地牢（秩序+2）；选项B：作为特殊俘虏留在身边（进入后续调教路线）。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_05",
+      "title": "事件05: 月落之后",
+      "route": "training",
+      "stage": 5,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_05_npc_01",
+          "speaker": "朱音",
+          "text": "祈祷不是为了被救。祈祷是为了让灵魂保持清醒。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_05_npc_02",
+          "speaker": "朱音",
+          "text": "每一个灵魂都是自愿的。他们在月光中得到了安宁。你不会懂的——你只看到了血，却没有看到血背后的光。",
+          "mood": "平静地",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_05_npc_03",
+          "speaker": "朱音",
+          "text": "……不过，有时候我也会想。如果月亮不曾回应我的祈祷呢。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_05_npc_04",
+          "speaker": "朱音",
+          "text": "没什么。……今晚的月亮很美，不是吗？",
+          "mood": "迅速恢复平静",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_05_other_01",
+          "speaker": "主人公",
+          "text": "还在祈祷？你的血月可没有来救你。",
+          "mood": "推门进入",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_05_other_02",
+          "speaker": "主人公",
+          "text": "你们杀了多少人？用'献祭'的名义？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_05_other_03",
+          "speaker": "主人公",
+          "text": "什么？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_05_nar_01",
+          "text": "古代圣地被占领后的第三天夜晚。朱音被安置在主营帐篷旁的小房间里，双手被轻缚。月光从窗格透入，她面朝窗户跪坐，嘴唇无声地翕动——还在祈祷。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_05_nar_02",
+          "text": "她回过头，那双深红色的眼睛在月光下显得格外深邃。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_05_nar_03",
+          "text": "朱音正式加入（被俘状态）。解锁「血月祝福」技能（需要消耗奴隶）。秩序值-3。进入调教路线。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_06",
+      "title": "事件06: 裂隙",
+      "route": "training",
+      "stage": 6,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_06_npc_01",
+          "speaker": "朱音",
+          "text": "从我第一次看到月亮变红的那个夜晚。我八岁。整个村庄都在那一夜被瘟疫夺去了生命。只有我活了下来。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_06_npc_02",
+          "speaker": "朱音",
+          "text": "不是血月救了我。是血月让我明白了——死亡不是终结，而是转化。那些死去的人，他们的灵魂在月光中得到了自由。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_06_npc_03",
+          "speaker": "朱音",
+          "text": "……你说的话很残忍。但我不会生气。愤怒是对灵魂的污染。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_06_other_01",
+          "speaker": "主人公",
+          "text": "我读了你们的经典。'血月降世，万灵归一。祭血者引路，饮血者得道。'——你从什么时候开始信这些的？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_06_other_02",
+          "speaker": "主人公",
+          "text": "所以你认为是血月救了你？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_06_other_03",
+          "speaker": "主人公",
+          "text": "或者只是一个八岁的孩子无法承受那种失去，所以编造了一个故事来安慰自己。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_06_nar_01",
+          "text": "军营夜晚，朱音被带到主角的书房。她的手腕上还有束缚的痕迹，但举止依然从容，如同赴一场预约好的茶会。桌上摊开着缴获的血月教团典籍。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_06_nar_02",
+          "text": "朱音的微笑僵住了一瞬。只是一瞬。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_06_nar_03",
+          "text": "朱音好感度变化：信仰动摇值+5。持续质疑她的信仰核心可以逐步瓦解她的心理防线。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_07",
+      "title": "事件07: 温度",
+      "route": "training",
+      "stage": 7,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_07_npc_01",
+          "speaker": "朱音",
+          "text": "祭司不需要太多睡眠。月光就是我们的养分。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_07_npc_02",
+          "speaker": "朱音",
+          "text": "你不喜欢我这样说话？",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_07_npc_03",
+          "speaker": "朱音",
+          "text": "……我见过太多的血了。有时候会忘记血是温暖的。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_07_npc_04",
+          "speaker": "朱音",
+          "text": "意思是……当你每天都在做'神圣的仪式'，你就不会再想起那些人会疼、会怕、会哭。你必须不想起。否则你没有办法继续。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_07_other_01",
+          "speaker": "主人公",
+          "text": "睡不着？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_07_other_02",
+          "speaker": "主人公",
+          "text": "又是这种话。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_07_other_03",
+          "speaker": "主人公",
+          "text": "我不喜欢你永远躲在信仰后面说话。摘掉那层面具，你到底是什么样的人？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_07_other_04",
+          "speaker": "主人公",
+          "text": "什么意思？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_07_nar_01",
+          "text": "深夜，朱音的房间。主角以\"检查\"为由进入。朱音坐在窗边，手指无意识地抚摸着手腕上的束缚痕迹。月光将她的轮廓勾勒得如同一幅宗教画。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_07_nar_02",
+          "text": "沉默。朱音低下头，手指攥紧了衣角。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_h_07",
+      "title": "H事件: 温度",
+      "route": "training",
+      "stage": 7,
+      "type": "h_event",
+      "npc": [],
+      "other": [],
+      "narration": [
+        {
+          "id": "char17_training_h_07_nar_01",
+          "text": "主角靠近朱音，握住她冰凉的手。朱音浑身一颤——不是恐惧，而是太久没有被人以\"普通的方式\"触碰。主角强势地将她按在窗边，月光洒在她苍白的肌肤上。朱音始终没有闭眼，一直望着窗外的月亮，嘴唇无声地念着祈祷词——但念到一半，祈祷变成了喘息。她的身体诚实地回应着，与她的信仰形成了最残酷的对比。",
+          "mood": "h_scene"
+        },
+        {
+          "id": "char17_training_h_07_nar_02",
+          "text": "朱音信仰动摇值+10。她开始意识到肉体的感受与信仰之间的矛盾。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_08",
+      "title": "事件08: 经文与眼泪",
+      "route": "training",
+      "stage": 8,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_08_npc_01",
+          "speaker": "朱音",
+          "text": "经文。每日抄写是祭司的功课。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_08_npc_02",
+          "speaker": "朱音",
+          "text": "他们没有死。他们升华了。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_08_npc_03",
+          "speaker": "朱音",
+          "text": "……我没有。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_08_npc_04",
+          "speaker": "朱音",
+          "text": "……请你出去。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_08_other_01",
+          "speaker": "主人公",
+          "text": "在写什么？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_08_other_02",
+          "speaker": "主人公",
+          "text": "'以血为墨，以骨为笔，书写月亮的语言。'——你真的相信这些？在你亲眼看着你的信徒一个个死在我面前之后？",
+          "mood": "拿起纸张",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_08_other_03",
+          "speaker": "主人公",
+          "text": "朱音。你在发抖。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_08_other_04",
+          "speaker": "主人公",
+          "text": "你在发抖，而且你刚才哭过。一个真正相信'死亡是升华'的人，不会哭。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_08_nar_01",
+          "text": "翌日清晨。朱音跪在房间角落，面前摆着用记忆默写出的血月经文。纸上有几处被泪水洇开的墨迹。她听到脚步声时迅速擦掉眼泪，恢复了惯常的平静微笑。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_08_nar_02",
+          "text": "漫长的沉默。朱音的微笑终于维持不住了，嘴角剧烈地颤抖。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_08_nar_03",
+          "text": "朱音信仰动摇值+15。她的心理防线出现了严重裂痕。继续施压或给予安慰都会产生不同效果。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_09",
+      "title": "事件09: 空洞的月亮",
+      "route": "training",
+      "stage": 9,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_09_npc_01",
+          "speaker": "朱音",
+          "text": "月亮……看不到月亮了。",
+          "mood": "声音发颤",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_09_npc_02",
+          "speaker": "朱音",
+          "text": "不一样的！月亮看不到我了——她会忘记我的——那些人的灵魂会找不到路——",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_09_npc_03",
+          "speaker": "朱音",
+          "text": "你不懂！如果没有月光，那些死去的人就只是……就只是死了而已！没有升华、没有净化，只是——只是被我杀了！",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_09_npc_04",
+          "speaker": "朱音",
+          "text": "不……我没有……那是仪式……是神圣的……",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_09_npc_05",
+          "speaker": "朱音",
+          "text": "……如果月亮不曾回应我的祈祷呢？如果从始至终……都只是我自己在骗自己呢？",
+          "mood": "抬起满是泪痕的脸",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_09_other_01",
+          "speaker": "主人公",
+          "text": "只是下雨了而已。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_09_other_02",
+          "speaker": "主人公",
+          "text": "朱音。冷静下来。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_09_other_03",
+          "speaker": "主人公",
+          "text": "朱音。看着我。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_09_nar_01",
+          "text": "暴雨之夜，乌云遮蔽了月亮。朱音蜷缩在床角，双臂抱膝。没有月光的夜晚，她的平静完全消失了。主角推门进来时，看到的是一个瑟瑟发抖的普通女人。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_09_nar_02",
+          "text": "她捂住自己的嘴，像是被自己说出的话吓到了。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_h_09",
+      "title": "H事件: 空洞的月亮",
+      "route": "training",
+      "stage": 9,
+      "type": "h_event",
+      "npc": [],
+      "other": [],
+      "narration": [
+        {
+          "id": "char17_training_h_09_nar_01",
+          "text": "主角抱住崩溃的朱音，她拼命挣扎，然后疯狂地回抱，仿佛溺水之人抓住浮木。在暴雨声中，她第一次不是作为祭司而是作为女人被触碰。她哭着请求主角\"让她感受活着的感觉\"。窗外雷声滚滚，屋内她的声音混杂着哭泣与喘息——一个信仰崩塌之人最脆弱的模样。",
+          "mood": "h_scene"
+        },
+        {
+          "id": "char17_training_h_09_nar_02",
+          "text": "朱音信仰动摇值+25。信仰核心已严重动摇。她正处于完全崩溃与重建自我认知的临界点。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_10",
+      "title": "事件10: 废墟之上",
+      "route": "training",
+      "stage": 10,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_10_npc_01",
+          "speaker": "朱音",
+          "text": "……我做了一个梦。梦见那些被我献祭的人。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_10_npc_02",
+          "speaker": "朱音",
+          "text": "他们没说话。他们只是看着我。眼睛里没有怨恨，也没有感激。只是……空的。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_10_npc_03",
+          "speaker": "朱音",
+          "text": "如果他们的灵魂真的升华了，应该是幸福的。如果他们怨恨我，至少说明他们还存在。但是空的……空的意味着什么都没有。没有升华，没有救赎。我做的一切——",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_10_npc_04",
+          "speaker": "朱音",
+          "text": "我做的一切……就只是杀人而已。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_10_npc_05",
+          "speaker": "朱音",
+          "text": "不。我一直都知道。只是我终于……不再骗自己了。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_10_other_01",
+          "speaker": "主人公",
+          "text": "他们说了什么？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_10_other_02",
+          "speaker": "主人公",
+          "text": "你怎么理解这个梦？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_10_other_03",
+          "speaker": "主人公",
+          "text": "现在才明白这个？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_10_nar_01",
+          "text": "雨后清晨，阳光穿透残云。朱音靠在主角身边，神情疲惫但奇异地安详。她没有再去窗边祈祷，而是看着阳光在地面缓缓移动。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_10_nar_02",
+          "text": "她闭上眼睛，深深吸了一口气。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_10_nar_03",
+          "text": "朱音信仰动摇值达到最大。旧信仰已完全崩塌。进入重塑阶段。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_11",
+      "title": "事件11: 新的名字",
+      "route": "training",
+      "stage": 11,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_11_npc_01",
+          "speaker": "朱音",
+          "text": "今天的伤员名单我整理好了。另外，南线的补给需要重新分配。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_11_npc_02",
+          "speaker": "朱音",
+          "text": "祭司的工作说到底也是管理——管理人的信仰和恐惧。现在只是把对象换成了物资和伤员。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_11_npc_03",
+          "speaker": "朱音",
+          "text": "……血月还在天上。但我不再听它说话了。或者说，我终于承认——它从来没有说过话。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_11_npc_04",
+          "speaker": "朱音",
+          "text": "我不知道自己是谁了。以前我是'血月的祭司'。现在……我只是朱音。一个杀过很多人的女人。你愿意让这样的我留在你身边吗？",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_11_other_01",
+          "speaker": "主人公",
+          "text": "你适应得很快。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_11_other_02",
+          "speaker": "主人公",
+          "text": "你不再提血月了。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_11_nar_01",
+          "text": "朱音开始帮助处理军务，展现出令人意外的管理才能。她不再穿血月教团的红袍，换上了普通的灰色长衣，但依然保留着祭祀短杖——\"它只是一根杖子了，\"她这样说。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_11_nar_02",
+          "text": "她走到主角身边，伸出手——主动的，第一次。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_h_11",
+      "title": "H事件: 新的名字",
+      "route": "training",
+      "stage": 11,
+      "type": "h_event",
+      "npc": [],
+      "other": [],
+      "narration": [
+        {
+          "id": "char17_training_h_11_nar_01",
+          "text": "夜晚，朱音主动来到主角房间。她不再是被动的、祈祷着的、躲在信仰背后的人。她笨拙但认真地学着用自己的意志去接触另一个人——不是仪式，不是献祭，而是一个普通女人对一个男人的渴望。她的身体依然习惯性地颤抖，但这一次她没有念经，而是轻声叫着主角的名字。",
+          "mood": "h_scene"
+        },
+        {
+          "id": "char17_training_h_11_nar_02",
+          "text": "朱音进入「重塑」阶段。忠诚度+20。她正在建立新的自我认知，以主角为核心。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_12",
+      "title": "事件12: 血与月光",
+      "route": "training",
+      "stage": 12,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_12_npc_01",
+          "speaker": "朱音",
+          "text": "我做到了。全军ATK提升了10%。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_12_npc_02",
+          "speaker": "朱音",
+          "text": "因为我终于感受到了。以前做仪式的时候，我把自己的感觉关掉了。现在……我能感受到那些奴隶的恐惧了。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_12_npc_03",
+          "speaker": "朱音",
+          "text": "因为你需要。因为这是我唯一的价值。如果连这个都拿走——我就什么都不是了。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_12_npc_04",
+          "speaker": "朱音",
+          "text": "……是的。我把信仰给了月亮，月亮没有回应。现在我把自己给了你——请你至少……回应我。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_12_other_01",
+          "speaker": "主人公",
+          "text": "你在发抖。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_12_other_02",
+          "speaker": "主人公",
+          "text": "那你为什么还要做？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_training_12_other_03",
+          "speaker": "主人公",
+          "text": "你不是为了信仰。你是为了我。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_12_nar_01",
+          "text": "战场上，朱音第一次为主角的军队使用血月祝福。但这一次，她的表情不再是超然的平静，而是带着清晰可见的痛苦。仪式结束后，她躲在帐篷里双手发抖。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_12_nar_02",
+          "text": "朱音忠诚度+15。她已经将对信仰的依赖完全转移到了主角身上。血月祝福技能效果不变，但朱音每次使用后会暂时降低行动力。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_13",
+      "title": "事件13: 祭司的黄昏",
+      "route": "training",
+      "stage": 13,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_training_13_npc_01",
+          "speaker": "朱音",
+          "text": "我最后一次来这里。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_13_npc_02",
+          "speaker": "朱音",
+          "text": "告别。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_13_npc_03",
+          "speaker": "朱音",
+          "text": "血月大人……不，月亮。只是月亮而已。我曾经把你当作神明，把杀戮当作救赎，把恐惧当作虔诚。你从来没有回应过我，但这不是你的错。是我太害怕承认——我只是一个孤独的、害怕死亡的普通人。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_13_npc_04",
+          "speaker": "朱音",
+          "text": "从今天起，朱音不再是血月的祭司。我只是……你的朱音。仅此而已。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_training_13_npc_05",
+          "speaker": "朱音",
+          "text": "走吧。月亮只是月亮。但你是真实的。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_training_13_other_01",
+          "speaker": "主人公",
+          "text": "要做什么？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_training_13_nar_01",
+          "text": "满月之夜，古代圣地废墟。朱音独自回到曾经的祭坛，主角跟随在后。月光依旧如血，但祭坛上只有风和灰烬。朱音站在她曾经主持过无数次献祭的地方，闭上了眼睛。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_13_nar_02",
+          "text": "她将祭祀短杖横放在祭坛上，双手合十，最后一次面对血月。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_13_nar_03",
+          "text": "她睁开眼，转向主角。眼中有泪，但笑容是真实的。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_training_13_nar_04",
+          "text": "她重新拿起短杖——不是作为祭器，而是作为武器。",
+          "mood": "scene"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_training_h_13",
+      "title": "H事件: 祭司的黄昏",
+      "route": "training",
+      "stage": 13,
+      "type": "h_event",
+      "npc": [],
+      "other": [],
+      "narration": [
+        {
+          "id": "char17_training_h_13_nar_01",
+          "text": "在废弃的祭坛上，在血色月光下，朱音和主角完成了最后的\"仪式\"。她不再祈祷，不再颤抖，不再流泪。她只是笑着，用自己的方式与过去告别。月光落在两人身上，冰冷而美丽——但她终于感受到了另一个人的温度，比任何信仰都要真实。",
+          "mood": "h_scene"
+        },
+        {
+          "id": "char17_training_h_13_nar_02",
+          "text": "敌对路线完成。朱音忠诚度达到最大值。解锁称号「弃月之人」。朱音技能「血月祝福」升级为「红月的残响」——效果不变，但不再消耗奴隶，改为消耗朱音自身10%HP。获得特殊道具「熄灭的祭祀短杖」。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_01",
+      "title": "事件01: 血色试炼",
+      "route": "neutral",
+      "stage": 1,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_01_npc_01",
+          "speaker": "朱音",
+          "text": "血月之下，万物平等。无论你来自何方，只要血是红的——你就有资格接受试炼。",
+          "mood": "高台上，声音清澈",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_01_npc_02",
+          "speaker": "朱音",
+          "text": "试炼有三步。第一步——证明你的力量。在三回合之内，击败两名血月战士。月亮只庇佑强者。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_01_npc_03",
+          "speaker": "朱音",
+          "text": "血是最诚实的语言。它不会说谎。",
+          "mood": "微微一笑",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_01_other_01",
+          "speaker": "血月信徒",
+          "text": "外来者，你踏入了神圣之地。血月不接受无名之辈。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_01_other_02",
+          "speaker": "主人公",
+          "text": "我来完成你们的试炼。听说你们的祭司有一种特殊的祝福之力？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_01_other_03",
+          "speaker": "主人公",
+          "text": "只是打架？我以为宗教试炼会更神秘一些。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_01_nar_01",
+          "text": "古代圣地的外庭，血月教团的试炼场。地面刻满了复杂的月相图腾，四周竖着铁制火盆，燃烧着散发甜腥气味的暗红色火焰。数十名血月信徒围成圆圈，低声吟唱。朱音站在高台上，平静地注视着走入试炼场的主角。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_01_nar_02",
+          "text": "她缓缓走下台阶，每一步都带着仪式般的庄重。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_01_nar_03",
+          "text": "任务链第一步：在3回合内击败2名血月战士。血月战士受「狂热」增益，ATK较高但DEF较低。建议使用速攻策略。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_02",
+      "title": "事件02: 血战之证",
+      "route": "neutral",
+      "stage": 2,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_02_npc_01",
+          "speaker": "朱音",
+          "text": "红色。很纯净的红色。你的战斗方式很直接——没有犹豫，没有多余的动作。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_02_npc_02",
+          "speaker": "朱音",
+          "text": "……有趣。大多数来试炼的人不会在意这个。",
+          "mood": "微微偏头",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_02_npc_03",
+          "speaker": "朱音",
+          "text": "不是'没有好处'。是你不想杀。我看得出来。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_02_npc_04",
+          "speaker": "朱音",
+          "text": "第一关通过。血月已经看到了你。接下来——你需要参加一次献祭仪式。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_02_npc_05",
+          "speaker": "朱音",
+          "text": "不要害怕。这不是杀戮。这是解脱。灵魂在月光中升华。你只需要见证——然后决定你是否能接受月亮的旨意。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_02_other_01",
+          "speaker": "主人公",
+          "text": "你的人还活着。我控制了力道。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_02_other_02",
+          "speaker": "主人公",
+          "text": "杀死试炼者对我没有好处。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_02_other_03",
+          "speaker": "主人公",
+          "text": "献祭？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_02_nar_01",
+          "text": "试炼场上，两名血月战士已经倒下。主角的武器上沾着鲜血，周围的信徒发出低沉的赞叹声。朱音从高台走下，赤足踩在沾血的地面上，毫不在意。她蹲下身，用手指沾了一滴血，放在月光下端详。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_02_nar_02",
+          "text": "她站起身，将沾血的手指在自己的额头上画了一道红痕。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_02_nar_03",
+          "text": "第一步完成。获得「血战之证」。解锁第二步任务：参加血月献祭仪式。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_03",
+      "title": "事件03: 月下献祭",
+      "route": "neutral",
+      "stage": 3,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_03_npc_01",
+          "speaker": "朱音",
+          "text": "月亮升至最高处时，仪式开始。你站在我身边——作为见证者。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_03_npc_02",
+          "speaker": "朱音",
+          "text": "他们是自愿的。在教团中，献祭是最高的荣耀。他们的灵魂将在月光中永生。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_03_npc_03",
+          "speaker": "朱音",
+          "text": "……安神草。减轻仪式中的痛苦。这是慈悲，不是欺骗。",
+          "mood": "停顿了一瞬",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_03_npc_04",
+          "speaker": "朱音",
+          "text": "……完成了。你看到了。他们的灵魂已经融入月光。",
+          "mood": "仪式结束后",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_03_npc_05",
+          "speaker": "朱音",
+          "text": "你愿意相信吗？",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_03_other_01",
+          "speaker": "主人公",
+          "text": "这三个人……",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_03_other_02",
+          "speaker": "主人公",
+          "text": "他们的眼神是空的。你给他们下了药？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_03_nar_01",
+          "text": "满月之夜，圣地最深处的祭坛。三名奴隶被绑在月形石柱上，表情木然——像是被某种草药麻痹了意识。朱音身着全套祭司礼服，暗红长袍在夜风中飘动。她手持祭祀短杖，低声吟唱古老的祈祷文。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_03_nar_02",
+          "text": "仪式开始。朱音的短杖发出暗红色光芒，三名奴隶的身体渐渐失去温度。整个过程安静得可怕——没有惨叫，没有挣扎，只有朱音平静的吟唱和月光的流转。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_03_nar_03",
+          "text": "她转向主角，眼神中带着某种近乎恳求的东西。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_03_nar_04",
+          "text": "第二步完成：见证献祭仪式。消耗3名奴隶。选择「我相信」（朱音好感+10）或「我不确定」（好感+5，朱音沉默）。无论选择如何，任务继续。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_04",
+      "title": "事件04: 月亮的回答",
+      "route": "neutral",
+      "stage": 4,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_04_npc_01",
+          "speaker": "朱音",
+          "text": "还没走？仪式已经结束了。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_04_npc_02",
+          "speaker": "朱音",
+          "text": "这是什么问题。我是祭司。信仰是我的一切。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_04_npc_03",
+          "speaker": "朱音",
+          "text": "……你的眼睛很好。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_04_npc_04",
+          "speaker": "朱音",
+          "text": "我每天都在祈祷。每一次献祭后都在等待月亮的回应。十六年了。",
+          "mood": "依然望着月亮",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_04_npc_05",
+          "speaker": "朱音",
+          "text": "……月亮很美。它永远都很美。但美丽不等于回应。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_04_npc_06",
+          "speaker": "朱音",
+          "text": "第三关不需要你做任何事。明天起，你正式成为血月教团的盟友。而我……会跟随你。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_04_other_01",
+          "speaker": "主人公",
+          "text": "你刚才问我愿不愿意相信。现在我问你——你自己相信吗？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_04_other_02",
+          "speaker": "主人公",
+          "text": "你在仪式的最后……手抖了一下。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_04_other_03",
+          "speaker": "主人公",
+          "text": "回答我。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_04_other_04",
+          "speaker": "主人公",
+          "text": "它回应了吗？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_04_nar_01",
+          "text": "献祭仪式后的深夜。圣地庭院中，朱音独自坐在石阶上，仰望月亮。她的祭司礼服上还残留着仪式的痕迹。听到脚步声，她没有回头。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_04_nar_02",
+          "text": "长久的沉默。夜风吹过，远处传来信徒的晚祷声。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_04_nar_03",
+          "text": "她终于转过头，月光照亮了她的脸。那张永远平静的脸上，此刻有了一丝人类的疲倦。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_04_nar_04",
+          "text": "朱音好感度+15。她在主角面前第一次展现出信仰动摇的迹象。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_05",
+      "title": "事件05: 同行之路",
+      "route": "neutral",
+      "stage": 5,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_05_npc_01",
+          "speaker": "朱音",
+          "text": "我会回来的。月亮走到哪里，都照着同一片大地。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_05_npc_02",
+          "speaker": "朱音",
+          "text": "也庇佑你们。在我不在的日子里，维持好晚祷和月初的净化仪式。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_05_npc_03",
+          "speaker": "朱音",
+          "text": "从今天起，我的力量就是你的力量。血月祝福——需要献祭的时候，不要犹豫。这是神圣的，不是残忍的。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_05_npc_04",
+          "speaker": "朱音",
+          "text": "我必须这样认为。否则我过去十六年做的一切——",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_05_npc_05",
+          "speaker": "朱音",
+          "text": "走吧。前面的路很长。月光会为我们指引方向。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_05_other_01",
+          "speaker": "信徒首领",
+          "text": "祭司大人……血月庇佑您。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_05_other_02",
+          "speaker": "主人公",
+          "text": "……你真的这样认为？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_05_nar_01",
+          "text": "古代圣地大门前。朱音背着简单的行囊，祭祀短杖别在腰间。身后一群信徒跪地送行，眼中满是不舍与虔诚。朱音转身，最后一次面向圣地，双手合十。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_05_nar_02",
+          "text": "她转向主角，恢复了那种空灵的微笑。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_05_nar_03",
+          "text": "她没有说完，摇了摇头。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_05_nar_04",
+          "text": "朱音正式加入队伍（中立盟友状态）。解锁「血月祝福」技能。秩序值-5。同时获得血月狂战士部队。进入纯爱路线。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_06",
+      "title": "事件06: 不同的夜晚",
+      "route": "neutral",
+      "stage": 6,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_06_npc_01",
+          "speaker": "朱音",
+          "text": "祭司可以从月光中获取——",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_06_npc_02",
+          "speaker": "朱音",
+          "text": "……很烫。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_06_npc_03",
+          "speaker": "朱音",
+          "text": "正常人……吗。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_06_npc_04",
+          "speaker": "朱音",
+          "text": "……味道很奇怪。不是血的味道，也不是祭品的味道。就是……暖的。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_06_npc_05",
+          "speaker": "朱音",
+          "text": "好吃。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_06_other_01",
+          "speaker": "主人公",
+          "text": "吃点东西。你从早上就没吃了。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_06_other_02",
+          "speaker": "主人公",
+          "text": "朱音。喝汤。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_06_other_03",
+          "speaker": "主人公",
+          "text": "这叫做正常人吃饭。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_06_other_04",
+          "speaker": "主人公",
+          "text": "那叫'好吃'。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_06_nar_01",
+          "text": "行军途中的营地。篝火旁，士兵们饮酒谈笑。朱音独自坐在稍远处，面朝月亮静坐。火光与月光在她身上交织，将她的影子拉成两个方向。主角端着两碗热汤走过来。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_06_nar_02",
+          "text": "她愣了一下，接过碗，小口抿了一口。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_06_nar_03",
+          "text": "她又喝了一口，然后是第三口。喝得越来越快，直到碗底朝天。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_06_nar_04",
+          "text": "她把这两个字在嘴里念了几遍，像是在学习一门新的语言。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_06_nar_05",
+          "text": "朱音好感度+10。她开始接触信仰体系之外的日常体验。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_07",
+      "title": "事件07: 伤口与祈祷",
+      "route": "neutral",
+      "stage": 7,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_07_npc_01",
+          "speaker": "朱音",
+          "text": "伤口不深。我来处理。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_07_npc_02",
+          "speaker": "朱音",
+          "text": "祭司必须了解血液。它的流向、温度、凝固的速度……",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_07_npc_03",
+          "speaker": "朱音",
+          "text": "你的血是温的。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_07_npc_04",
+          "speaker": "朱音",
+          "text": "……是啊。活人的血是温的。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_07_npc_05",
+          "speaker": "朱音",
+          "text": "在仪式上……当血从他们身体流出来的时候，也是温的。然后一点点变凉。我以前觉得那是灵魂离去的证明——温度是灵魂的重量。现在……我不确定了。也许温度只是温度。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_07_npc_06",
+          "speaker": "朱音",
+          "text": "包好了。今晚换一次药就行。——不要用那种眼神看我。我没事的。",
+          "mood": "抬头微笑",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_07_other_01",
+          "speaker": "主人公",
+          "text": "你还会医疗？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_07_other_02",
+          "speaker": "主人公",
+          "text": "废话。活人的血当然是温的。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_07_other_03",
+          "speaker": "主人公",
+          "text": "朱音？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_07_nar_01",
+          "text": "小规模遭遇战后，主角手臂负伤。朱音主动上前处理伤口。她的手法熟练——祭司对血液和人体的了解远超常人。但她的手指碰触到温热鲜血的那一刻，明显僵住了。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_07_nar_02",
+          "text": "她的手指在伤口周围游移，动作轻柔得出奇。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_07_nar_03",
+          "text": "她低下头，继续包扎，声音变得很轻。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_07_nar_04",
+          "text": "朱音好感度+10。信仰反思值+10。她开始重新理解\"血液\"的含义——从神圣象征到生命本身。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_08",
+      "title": "事件08: 星星的名字",
+      "route": "neutral",
+      "stage": 8,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_08_npc_01",
+          "speaker": "朱音",
+          "text": "新月之夜……是祭司最脆弱的时候。月亮隐藏了她的脸，我们失去了与神的联系。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_08_npc_02",
+          "speaker": "朱音",
+          "text": "星星？那只是……月亮的碎片。经文上这样写的。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_08_npc_03",
+          "speaker": "朱音",
+          "text": "……真的像勺子。我从来没有这样看过天空。我只看月亮。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_08_npc_04",
+          "speaker": "朱音",
+          "text": "天空很大……不是只有月亮。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_08_npc_05",
+          "speaker": "朱音",
+          "text": "你能教我更多星星的名字吗？我想……看看月亮以外的东西。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_08_other_01",
+          "speaker": "主人公",
+          "text": "今晚没有月亮。你看起来不太舒服。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_08_other_02",
+          "speaker": "主人公",
+          "text": "但是有星星。你看过星星吗？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_08_other_03",
+          "speaker": "主人公",
+          "text": "忘了经文。你自己看。那颗最亮的，是北辰星。旁边那几颗组成的图案像一把勺子——行军的时候用来辨方向。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_08_other_04",
+          "speaker": "主人公",
+          "text": "天空很大。不是只有月亮。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_08_nar_01",
+          "text": "晴朗的夜晚，难得没有月亮的新月之夜。满天星斗清晰可见。朱音坐在山坡上，不安地绞着手指——没有月亮的夜晚让她焦虑。主角在她身边坐下。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_08_nar_02",
+          "text": "朱音歪着头看了很久。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_08_nar_03",
+          "text": "她把膝盖抱在胸前，头靠在主角肩上——也许是无意的，也许不是。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_08_nar_04",
+          "text": "朱音好感度+15。她主动要求了解信仰体系之外的世界。这是重要的转折信号。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_09",
+      "title": "事件09: 第一次笑",
+      "route": "neutral",
+      "stage": 9,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_09_npc_01",
+          "speaker": "朱音",
+          "text": "我不明白。我严格按照步骤做的——先加水，再加米，然后点火……",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_09_npc_02",
+          "speaker": "朱音",
+          "text": "经文说，水与米的比例应该如同月亮与潮汐——",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_09_npc_03",
+          "speaker": "朱音",
+          "text": "……经文里有关于烹饪的章节。'以圣火炼化五谷，取其精华——'",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_09_npc_04",
+          "speaker": "朱音",
+          "text": "我……我用血月经文……做粥……哈哈哈……",
+          "mood": "笑得喘不上气",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_09_npc_05",
+          "speaker": "朱音",
+          "text": "是吗……是吗。好像真的是。",
+          "mood": "渐渐止住笑",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_09_other_01",
+          "speaker": "主人公",
+          "text": "你加了多少水？",
+          "mood": "咳嗽着赶走烟雾",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_09_other_02",
+          "speaker": "主人公",
+          "text": "你用经文做饭？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_09_other_03",
+          "speaker": "主人公",
+          "text": "朱音。做饭不需要经文。水大概是米的六倍。小火。盖盖子。完了。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_09_other_04",
+          "speaker": "主人公",
+          "text": "……这是你第一次这样笑。",
+          "mood": "愣住",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_09_nar_01",
+          "text": "军营厨房。朱音尝试做饭——结果把粥煮糊了，厨房烟雾缭绕。她站在锅前手足无措，平时超然的祭司气质完全消失，变成了一个普通的、笨手笨脚的女孩。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_09_nar_02",
+          "text": "朱音眨了眨眼，看看锅里黑乎乎的糊状物，又看看主角一脸无语的表情。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_09_nar_03",
+          "text": "然后——",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_09_nar_04",
+          "text": "她笑了。不是平时那种空灵的、仪式性的微笑，而是真正的、发自内心的笑。弯着腰，捂着嘴，肩膀抖动的那种笑。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_09_nar_05",
+          "text": "朱音好感度+20。重要事件：朱音第一次发自内心地笑。信仰对她日常行为的控制正在瓦解。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_10",
+      "title": "事件10: 信仰与爱",
+      "route": "neutral",
+      "stage": 10,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_10_npc_01",
+          "speaker": "朱音",
+          "text": "圣地来信了。下个月是血月大祭。他们需要我回去主持献祭。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_10_npc_02",
+          "speaker": "朱音",
+          "text": "我是祭司。这是我的职责。我应该回去。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_10_npc_03",
+          "speaker": "朱音",
+          "text": "……有区别吗？",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_10_npc_04",
+          "speaker": "朱音",
+          "text": "我当祭司十六年。每天祈祷，每月献祭，每年大祭。我一直告诉自己这是'想要'的。但是……",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_10_npc_05",
+          "speaker": "朱音",
+          "text": "跟你在一起之后，我第一次喝到好喝的汤。第一次知道星星的名字。第一次笑到肚子疼。第一次觉得……活着不需要理由。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_10_npc_06",
+          "speaker": "朱音",
+          "text": "不想。但我不回去的话……那些信徒怎么办？他们的信仰——",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_10_other_01",
+          "speaker": "主人公",
+          "text": "你怎么想？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_10_other_02",
+          "speaker": "主人公",
+          "text": "你在说'应该'。不是'想要'。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_10_other_03",
+          "speaker": "主人公",
+          "text": "有。'应该'是别人告诉你的。'想要'是你自己的。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_10_other_04",
+          "speaker": "主人公",
+          "text": "那你想回去吗？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_10_other_05",
+          "speaker": "主人公",
+          "text": "他们的信仰是他们的。你的人生是你的。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_10_nar_01",
+          "text": "深夜，朱音的帐篷。她坐在床沿，手中握着祭祀短杖，表情复杂。案几上摊着一封从圣地传来的信件——信徒们在询问她何时归来主持大祭。主角掀帘进入。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_10_nar_02",
+          "text": "朱音低头看着手中的短杖，手指沿着杖身上的月相雕纹缓缓滑动。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_10_nar_03",
+          "text": "她抬起眼睛看着主角。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_10_nar_04",
+          "text": "关键抉择：朱音好感度+15。她正在\"责任\"与\"自我\"之间挣扎。后续事件将决定她的最终选择。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_11",
+      "title": "事件11: 月亮的另一面",
+      "route": "neutral",
+      "stage": 11,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_11_npc_01",
+          "speaker": "朱音",
+          "text": "我背叛了月亮。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_11_npc_02",
+          "speaker": "朱音",
+          "text": "……这有区别吗？十六年来，我和月亮之间没有'自己'。月亮就是我，我就是月亮。现在我把自己从月亮上撕下来了……好疼。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_11_npc_03",
+          "speaker": "朱音",
+          "text": "但是也好轻。撕下来之后，好轻好轻。原来信仰那么重。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_11_npc_04",
+          "speaker": "朱音",
+          "text": "后悔没有早一点遇到你。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_11_npc_05",
+          "speaker": "朱音",
+          "text": "你的眼睛里没有月亮。你的眼睛里只有我。这是我见过的……最美的光。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_11_other_01",
+          "speaker": "主人公",
+          "text": "你只是选择了自己。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_11_other_02",
+          "speaker": "主人公",
+          "text": "你后悔吗？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_11_nar_01",
+          "text": "朱音没有回去。她写了一封长信，将大祭的主持权交给了副祭司。信送出后的那个夜晚，她站在营地外的悬崖边，面朝月亮，沉默了很久。主角在她身后静静等待。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_11_nar_02",
+          "text": "她转过身。月光落在她身后，第一次，她背对着月亮。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_11_nar_03",
+          "text": "她走向主角，伸出双手捧住他的脸，认真地端详。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_11_nar_04",
+          "text": "她踮起脚尖，在月光下，轻轻吻了主角。这是她人生中第一次亲吻——笨拙的、颤抖的、但完全出于自己意愿的亲吻。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_11_nar_05",
+          "text": "朱音好感度+25。纯爱路线关键节点：朱音主动放弃祭司身份，选择了主角。信仰羁绊彻底松动。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_12",
+      "title": "事件12: 不再献祭",
+      "route": "neutral",
+      "stage": 12,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_12_npc_01",
+          "speaker": "朱音",
+          "text": "……不。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_12_npc_02",
+          "speaker": "朱音",
+          "text": "我说不。把他们带走。给他们吃的，放了他们。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_12_npc_03",
+          "speaker": "朱音",
+          "text": "我会找到其他办法。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_12_npc_04",
+          "speaker": "朱音",
+          "text": "我不能再假装这是'解脱'了。他们的眼睛在看着我。活人的眼睛。有恐惧的眼睛。我不能再——",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_12_npc_05",
+          "speaker": "朱音",
+          "text": "……谢谢你。谢谢你让我说'不'。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_12_npc_06",
+          "speaker": "朱音",
+          "text": "如果一定要有人流血——那就用我的。这是我最后一次使用血月祝福。用我自己的方式。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_12_other_01",
+          "speaker": "副官",
+          "text": "祭司大人，请开始吧。时间紧迫。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_12_other_02",
+          "speaker": "副官",
+          "text": "什么？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_12_other_03",
+          "speaker": "副官",
+          "text": "但是全军增益——",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_12_other_04",
+          "speaker": "主人公",
+          "text": "好。放了他们。这场仗，我们靠自己打。",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_12_nar_01",
+          "text": "一场大战在即。副官建议让朱音使用血月祝福来强化全军——这需要献祭奴隶。朱音站在军帐中，手持祭祀短杖，面前跪着三名准备好的祭品。她望着他们的眼睛，那里面有恐惧。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_12_nar_02",
+          "text": "朱音举起短杖。暗红色光芒亮起。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_12_nar_03",
+          "text": "然后，她放下了手。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_12_nar_04",
+          "text": "她转向主角，眼中有泪光但语气坚定。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_12_nar_05",
+          "text": "她低头看着手中的短杖，然后将杖端刺入自己的手掌。鲜血涌出，暗红色的光芒重新亮起——但这一次，是她用自己的血作为祭品。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_12_nar_06",
+          "text": "朱音技能「血月祝福」永久变更为「自献之祝福」——不再消耗奴隶，改为消耗朱音自身15%HP。效果：全军ATK+8%，3回合。秩序值+5。朱音好感度+20。",
+          "mood": "system"
+        }
+      ]
+    },
+    {
+      "scene_id": "char17_neutral_13",
+      "title": "事件13: 朝阳祭司",
+      "route": "neutral",
+      "stage": 13,
+      "type": "story",
+      "npc": [
+        {
+          "id": "char17_neutral_13_npc_01",
+          "speaker": "朱音",
+          "text": "以前每个清晨，我都在等月亮升起。现在我在等太阳。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_13_npc_02",
+          "speaker": "朱音",
+          "text": "你每次都问这个。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_13_npc_03",
+          "speaker": "朱音",
+          "text": "好吧。今天的回答是——",
+          "mood": "笑了",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_13_npc_04",
+          "speaker": "朱音",
+          "text": "我以前相信，救赎在血中。灵魂需要通过死亡来升华。我把所有的爱和虔诚都给了一颗不会回应的月亮。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_13_npc_05",
+          "speaker": "朱音",
+          "text": "然后我遇到了你。你给我喝了一碗汤。教我认了星星。让我第一次笑到停不下来。你做的每一件事都很小，但每一件都是月亮从来没有给过我的。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_13_npc_06",
+          "speaker": "朱音",
+          "text": "所以救赎不在血中。救赎在温度里。在一碗热汤里、在笑声里、在有人回应你的时候。",
+          "mood": "neutral",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_13_npc_07",
+          "speaker": "朱音",
+          "text": "我不再是血月的祭司了。如果非要有一个称号的话——",
+          "mood": "对主角",
+          "type": "npc"
+        },
+        {
+          "id": "char17_neutral_13_npc_08",
+          "speaker": "朱音",
+          "text": "叫我朝阳的祭司吧。专门治愈活着的人。",
+          "mood": "neutral",
+          "type": "npc"
+        }
+      ],
+      "other": [
+        {
+          "id": "char17_neutral_13_other_01",
+          "speaker": "主人公",
+          "text": "后悔吗？",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_13_other_02",
+          "speaker": "主人公",
+          "text": "因为每次你的回答都不一样。",
+          "mood": "neutral",
+          "type": "other"
+        },
+        {
+          "id": "char17_neutral_13_other_03",
+          "speaker": "主人公",
+          "text": "所以？",
+          "mood": "neutral",
+          "type": "other"
+        }
+      ],
+      "narration": [
+        {
+          "id": "char17_neutral_13_nar_01",
+          "text": "战争结束后的清晨。古代圣地已经成为了一座开放的疗养院——朱音将它从献祭圣殿改造成了治愈伤兵和收容孤儿的地方。晨光穿过石柱上残留的月相图腾，照亮了庭院中嬉闹的孩子们。朱音站在曾经的祭坛前，短杖在手，但姿态与从前完全不同。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_13_nar_02",
+          "text": "她走向主角，把头靠在他胸口。听着心跳声。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_13_nar_03",
+          "text": "她抬起头。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_13_nar_04",
+          "text": "远处孩子们跑过来围住朱音，拉她的衣角。她蹲下身一个一个摸他们的头，那曾经只做过献祭手势的手，现在温柔得像春天的风。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_13_nar_05",
+          "text": "她在晨光中笑了，那是世界上最温暖的笑容。",
+          "mood": "scene"
+        },
+        {
+          "id": "char17_neutral_13_nar_06",
+          "text": "中立路线完成。朱音好感度达到最大值。解锁称号「朝阳祭司」。技能「自献之祝福」升级为「朝阳之祝福」——消耗5%HP，全军ATK+10%且HP回复3%，持续3回合。古代圣地功能变更为「疗养圣地」——每回合自动回复驻军HP5%。获得特殊道具「黎明的祭祀短杖」。",
+          "mood": "system"
+        }
+      ]
+    }
+  ]
+}

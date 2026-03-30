@@ -1,0 +1,850 @@
+{
+  "character": {
+    "id": "char15",
+    "name": "冥",
+    "name_romaji": "Mei",
+    "title": "枯骨女王",
+    "faction": "中立·亡灵",
+    "troop_type": "死灵法师",
+    "stats": { "ATK": 3, "DEF": 4, "INT": 9, "SPD": 4 }
+  },
+  "scenes": [
+    {
+      "scene_id": "char15_hostile_01",
+      "title": "事件01：死域",
+      "route": "hostile",
+      "stage": 1,
+      "type": "story",
+      "npc": [
+        { "id": "char15_hostile_01_npc_01", "speaker": "侦察兵A", "text": "……队长，这地方不对劲。指南针在转。", "mood": "fearful", "type": "npc" },
+        { "id": "char15_hostile_01_npc_02", "speaker": "侦察队长", "text": "所有人武器不离手。记录地形，不要深入。", "mood": "cautious", "type": "npc" },
+        { "id": "char15_hostile_01_npc_03", "speaker": "侦察兵B", "text": "地上这些骨头……是人的。太多了。几百具？不……几千具。", "mood": "fearful", "type": "npc" },
+        { "id": "char15_hostile_01_npc_04", "speaker": "侦察兵A", "text": "队长！前方——有东西在看我们。", "mood": "fearful", "type": "npc" },
+        { "id": "char15_hostile_01_npc_05", "speaker": "侦察队长", "text": "……撤退。把情报带回去。这里，不是活人该来的地方。", "mood": "cautious", "type": "npc" }
+      ],
+      "other": [],
+      "narration": [
+        { "id": "char15_hostile_01_nar_01", "text": "侦察队进入废墟神殿外围区域。空气骤然冰冷，草木枯萎成灰色，地面覆盖着一层薄薄的白霜。没有虫鸣、没有风声——连空气本身都像是死去了。士兵们发现地上散落着无数白骨，排列方式诡异而整齐，仿佛某种仪式的痕迹。远方的废墟神殿在灰雾中若隐若现，紫色的灵火在塔尖闪烁。", "mood": "scene" },
+        { "id": "char15_hostile_01_nar_02", "text": "（远处废墟的阴影中，一双苍白的眼睛无声地注视着他们，随即消失）", "mood": "scene" },
+        { "id": "char15_hostile_01_nar_03", "text": "⚔ 侦察完成：废墟神殿外围已标记为「死域」。区域效果：非亡灵单位每回合受到1点持续伤害。建议携带抗亡灵装备或神圣系法术再行进攻。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_02",
+      "title": "事件02：骸骨之海",
+      "route": "hostile",
+      "stage": 2,
+      "type": "story",
+      "npc": [
+        { "id": "char15_hostile_02_npc_01", "speaker": "士兵", "text": "它们……它们从地里爬出来了！砍倒一个又站起来两个！", "mood": "fearful", "type": "npc" },
+        { "id": "char15_hostile_02_npc_02", "speaker": "指挥官", "text": "稳住阵型！长枪兵前排，法师准备净化术！", "mood": "commanding", "type": "npc" },
+        { "id": "char15_hostile_02_npc_03", "speaker": "牧师", "text": "主啊……这些灵魂，全部被束缚在此。数百年的怨念……", "mood": "fearful", "type": "npc" },
+        { "id": "char15_hostile_02_npc_04", "speaker": "指挥官", "text": "殿下，骸骨数量远超预估——至少三千以上，而且还在增加！", "mood": "urgent", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_02_other_01", "speaker": "主人公", "text": "它们的指挥者在哪？找到源头。", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_02_other_02", "speaker": "主人公", "text": "全军压上。用火攻和圣水开路，向神殿方向强行突破。", "mood": "commanding", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_02_nar_01", "text": "大军推进至死域深处，地面开始震动。白骨从泥土中破土而出，一具、十具、百具——无穷无尽的骸骨战士从大地中爬起，空洞的眼眶中燃烧着紫色的灵火。它们没有战吼，没有任何声音，只是沉默地举起锈蚀的武器，如同潮水般涌来。整片战场陷入令人窒息的寂静——只有骨骼碰撞的咔嚓声。", "mood": "scene" },
+        { "id": "char15_hostile_02_nar_02", "text": "（战斗持续了整整一天。骸骨军团不知疲倦，不知恐惧，如同大海一般无穷无尽）", "mood": "scene" },
+        { "id": "char15_hostile_02_nar_03", "text": "⚔ 战斗：骸骨军团（持续战）。敌方每回合自动补充2兵力。击破条件：坚持8回合以上或消灭总计50兵力。消耗战，建议携带足够的补给和替换部队。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_03",
+      "title": "事件03：冥途之门",
+      "route": "hostile",
+      "stage": 3,
+      "type": "story",
+      "npc": [
+        { "id": "char15_hostile_03_npc_01", "speaker": "冥", "text": "……你们来了。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_03_npc_02", "speaker": "冥", "text": "很多人来过。然后死了。骨头留下来了。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_03_npc_03", "speaker": "冥", "text": "主人。这个词……没有意义。我在这里。他们也在这里。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_03_npc_04", "speaker": "冥", "text": "你们想要什么？这里只有骨头和灰。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_03_npc_05", "speaker": "冥", "text": "……（歪头，毫无表情）臣服。这个词，我不理解。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_03_npc_06", "speaker": "冥", "text": "不过没关系。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_03_npc_07", "speaker": "冥", "text": "你们可以试着把我打碎。之前的人也是这么做的。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_03_npc_08", "speaker": "冥", "text": "结果都一样。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_03_other_01", "speaker": "主人公", "text": "你就是这片死域的主人？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_03_other_02", "speaker": "主人公", "text": "交出神殿，臣服于我。", "mood": "commanding", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_03_nar_01", "text": "废墟神殿的巨门缓缓打开。殿内一片漆黑，唯有中央祭坛上燃烧着一团紫色的灵火。灵火之下，一个少女静静地漂浮在半空——极度消瘦的身躯裹在破烂的哥特式黑裙中，纯白的长发末梢渐变为幽蓝色，脸上有从双眼延伸至下颌的黑色泪痕纹身。她头顶悬浮着一顶骨冠，手持骨杖「冥途」，杖顶的骷髅中跳动着紫色的魂火。她的眼睛——苍白如牛奶般的瞳孔——似乎什么都看不见，又似乎看穿了一切。", "mood": "scene" },
+        { "id": "char15_hostile_03_nar_02", "text": "她开口了。声音平淡得如同在朗读天气预报。", "mood": "scene" },
+        { "id": "char15_hostile_03_nar_03", "text": "（她轻轻举起骨杖。整座神殿开始震动，紫色的灵能如海啸般爆发）", "mood": "scene" },
+        { "id": "char15_hostile_03_nar_04", "text": "⚔ BOSS战：冥（枯骨女王）。ATK:8 INT:8。技能「冥途之门」：召唤大量亡灵护卫。技能「灵魂收割」：范围魔法攻击，对生者额外伤害。弱点：神圣属性、封印系法术。警告——冥的魔力极为强大，正面硬拼损失惨重，建议使用特殊战术。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_04",
+      "title": "事件04：灵魂之战",
+      "route": "hostile",
+      "stage": 4,
+      "type": "story",
+      "npc": [
+        { "id": "char15_hostile_04_npc_01", "speaker": "牧师长", "text": "封印阵启动！所有人后退！", "mood": "urgent", "type": "npc" },
+        { "id": "char15_hostile_04_npc_02", "speaker": "冥", "text": "……哦。这是封印术。（语气毫无波澜）", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_04_npc_03", "speaker": "冥", "text": "上一个用封印术的人……是三百年前。他成功了十二秒。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_04_npc_04", "speaker": "冥", "text": "…………（看着自己被束缚的手）", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_04_npc_05", "speaker": "冥", "text": "这次……持续了超过十二秒。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_04_npc_06", "speaker": "冥", "text": "有一点……意外。仅此而已。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_04_other_01", "speaker": "主人公", "text": "加大输出！用圣遗物！", "mood": "commanding", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_04_nar_01", "text": "战斗惨烈至极。冥的魔力远超预期——她一挥骨杖，紫色的灵魂之火便吞噬整排士兵；她低语一声，地面便裂开释放出无数亡灵。但她始终面无表情，既不愤怒也不悲伤，只是机械地释放着毁灭性的魔法，如同一台精密而冷漠的杀戮机器。", "mood": "scene" },
+        { "id": "char15_hostile_04_nar_02", "text": "牧师们拼尽全力施展圣光结界，封印术师们消耗了所有法力储备，才终于编织出一张足够强大的封印法阵。当金色的锁链缠上冥的身体时，她低头看了看，像是在看一件与自己无关的事情。", "mood": "scene" },
+        { "id": "char15_hostile_04_nar_03", "text": "（金色锁链从法阵中射出，缠绕住冥的四肢和骨杖）", "mood": "scene" },
+        { "id": "char15_hostile_04_nar_04", "text": "（冥轻轻挣动，数条锁链崩断）", "mood": "scene" },
+        { "id": "char15_hostile_04_nar_05", "text": "（领主将圣水浇在法阵核心，金色光芒暴涨。更多锁链涌出，冥的灵力被逐步压制）", "mood": "scene" },
+        { "id": "char15_hostile_04_nar_06", "text": "（冥的眼睛缓缓闭上，骨杖从手中滑落。紫色灵火熄灭。神殿陷入沉寂）", "mood": "scene" },
+        { "id": "char15_hostile_04_nar_07", "text": "⚔ BOSS战胜利。封印冥消耗大量圣系资源。获得：冥（封印状态）、骨杖「冥途」（暂时封存）、废墟神殿控制权。冥当前状态：灵力被压制90%，无法自主行动。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_05",
+      "title": "事件05：封印之笼",
+      "route": "hostile",
+      "stage": 5,
+      "type": "story",
+      "npc": [
+        { "id": "char15_hostile_05_npc_01", "speaker": "看守", "text": "报告殿下，囚犯……呃，她什么都没做。真的什么都没做。就坐在那里。", "mood": "uneasy", "type": "npc" },
+        { "id": "char15_hostile_05_npc_02", "speaker": "看守", "text": "没有。甚至……甚至没有眨眼。说实话，比暴怒的囚犯更让人发毛。", "mood": "uneasy", "type": "npc" },
+        { "id": "char15_hostile_05_npc_03", "speaker": "冥", "text": "……你来了。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_05_npc_04", "speaker": "冥", "text": "笼子。封印。囚犯。（平淡地陈述）这些词我知道。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_05_npc_05", "speaker": "冥", "text": "……为什么？", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_05_npc_06", "speaker": "冥", "text": "自由。（像是在品尝一个陌生的词）我在神殿里坐了四百年。现在在笼子里坐着。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_05_npc_07", "speaker": "冥", "text": "没有区别。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_05_npc_08", "speaker": "冥", "text": "…………（停顿很久）那里有花。（她突然看向窗外的花坛）", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_05_npc_09", "speaker": "冥", "text": "红色的……（声音微微变化，带了一丝不属于亡灵的柔软）", "mood": "soft", "type": "npc" },
+        { "id": "char15_hostile_05_npc_10", "speaker": "冥", "text": "……忘了。（语气重新归于死寂）", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_05_other_01", "speaker": "主人公", "text": "没有试图逃跑？没有使用魔法？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_05_other_02", "speaker": "主人公", "text": "你知道自己现在的处境吗？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_05_other_03", "speaker": "主人公", "text": "你不打算反抗？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_05_other_04", "speaker": "主人公", "text": "一般来说，被囚禁的人会想要自由。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_05_nar_01", "text": "冥被关押在特制的封印牢笼中——由圣银打造的鸟笼状囚室，刻满了抑制亡灵力量的符文。她安静地坐在笼中，双手放在膝上，苍白的眼睛直直地望着前方。她没有挣扎，没有哭泣，没有愤怒，甚至没有疑问。就像一尊被放错了位置的雕像。", "mood": "scene" },
+        { "id": "char15_hostile_05_nar_02", "text": "看守们报告说，她整夜不动、不眠、不食——当然，亡灵本来就不需要这些。偶尔，她会歪头看向窗外，说一句没有任何语境的话，然后继续沉默。", "mood": "scene" },
+        { "id": "char15_hostile_05_nar_03", "text": "（领主走近牢笼）", "mood": "scene" },
+        { "id": "char15_hostile_05_nar_04", "text": "🔓 冥已加入据点（封印状态）。当前好感度：0（无）。冥对一切事物不具有情感反应。进入调教路线。提示：冥并非抗拒，而是「不理解」——她已经遗忘了作为人类的一切感受。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_06",
+      "title": "事件06：人偶",
+      "route": "hostile",
+      "stage": 6,
+      "type": "story",
+      "npc": [
+        { "id": "char15_hostile_06_npc_01", "speaker": "冥", "text": "……明白。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_06_npc_02", "speaker": "冥", "text": "所有权。物品归属于持有者。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_06_npc_03", "speaker": "冥", "text": "我不是人。我是亡灵。（陈述事实的语气）物品的定义更接近。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_06_npc_04", "speaker": "冥", "text": "你希望我做什么？给出指令，我会执行。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_06_npc_05", "speaker": "冥", "text": "…………（长久的沉默）", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_06_npc_06", "speaker": "冥", "text": "想。这个概念……", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_06_npc_07", "speaker": "冥", "text": "不适用于我。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_06_other_01", "speaker": "主人公", "text": "从今天开始，你属于我。明白吗？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_06_other_02", "speaker": "主人公", "text": "你知道'属于'是什么意思吗？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_06_other_03", "speaker": "主人公", "text": "你是人，不是物品。", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_06_other_04", "speaker": "主人公", "text": "你就没有自己想做的事？", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_06_nar_01", "text": "领主尝试与冥建立基本的主从关系。命令她站起来——她站起来。命令她坐下——她坐下。命令她走到门口——她走到门口。每一个指令都被精确地执行，没有多余的动作，没有犹豫，也没有服从的意愿——她只是照做了，如同牵线木偶响应拉扯。", "mood": "scene" },
+        { "id": "char15_hostile_06_nar_02", "text": "她不理解\u201c为什么要这样做\u201d。她不抗拒，但也不配合。她只是……存在着。", "mood": "scene" },
+        { "id": "char15_hostile_06_nar_03", "text": "（冥站在原地，等待下一个指令。月光透过窗户照在她身上，苍白的头发泛着银光，面容精致而空洞——如同一个完美的、没有灵魂的人偶）", "mood": "scene" },
+        { "id": "char15_hostile_06_nar_04", "text": "📋 调教进度：1/8。冥完全服从指令但不具有主动性。好感度系统特殊：冥当前无「好感」概念，需要先唤醒情感基础。当前状态：人偶模式。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_h_07",
+      "title": "事件07：触碰（H事件）",
+      "route": "hostile",
+      "stage": 7,
+      "type": "h_event",
+      "npc": [
+        { "id": "char15_hostile_h_07_npc_01", "speaker": "冥", "text": "你在触碰我。（陈述句）", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_h_07_npc_02", "speaker": "冥", "text": "压力。你的手有温度。37度左右。我的体表温度是4度。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_h_07_npc_03", "speaker": "冥", "text": "温差33度。仅此而已。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_h_07_npc_04", "speaker": "冥", "text": "情感。（停顿）这个功能……不存在。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_h_07_npc_05", "speaker": "冥", "text": "你在对我的身体做某种行为。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_h_07_npc_06", "speaker": "冥", "text": "我观察到你的心率上升了。瞳孔扩张了。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_h_07_npc_07", "speaker": "冥", "text": "但我这里……什么都没有发生。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_h_07_npc_08", "speaker": "冥", "text": "……抱歉。如果这不是你期待的反应。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_h_07_other_01", "speaker": "主人公", "text": "你有什么感觉？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_h_07_other_02", "speaker": "主人公", "text": "不是物理层面的感觉……是情感上的。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_h_07_nar_01", "text": "领主第一次触碰冥的身体。她的皮肤冰冷得如同触摸大理石——不，比大理石更冷，带着一种渗入骨髓的寒意。她没有任何反应。不退缩、不颤抖、不抗拒。领主的手放在她肩上，她低头看了一眼那只手，然后抬头看向领主，苍白的眼睛里没有任何情绪。", "mood": "scene" },
+        { "id": "char15_hostile_h_07_nar_02", "text": "比起反抗，这种彻底的无反应更加令人不安。", "mood": "scene" },
+        { "id": "char15_hostile_h_07_nar_03", "text": "（领主加深接触，冥的身体毫无反应——不会脸红，因为没有血液循环；不会心跳加速，因为心脏早已停止）", "mood": "scene" },
+        { "id": "char15_hostile_h_07_nar_04", "text": "冥的身体冰冷、苍白，如同精雕细琢的瓷器。她配合所有的动作却不带任何主动性。全程无表情，偶尔用平淡的语气描述正在发生的物理现象——\"你的体温传导至我的表皮。局部温度上升了2度。\"这种全然的空白比任何抗拒都更加诡异和震撼。在最后，她说了一句：\"这就是活人之间会做的事吗？……我不记得了。\"", "mood": "h_scene" },
+        { "id": "char15_hostile_h_07_nar_05", "text": "📋 调教进度：2/8。首次H事件完成。冥的身体无物理反应（亡灵特性），但最后一句话暗示深处存在被封存的记忆碎片。好感度：0 → 1（微弱的「认知」产生）。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_08",
+      "title": "事件08：碎片",
+      "route": "hostile",
+      "stage": 8,
+      "type": "story",
+      "npc": [
+        { "id": "char15_hostile_08_npc_01", "speaker": "冥", "text": "——然后我把花编成花环，戴在妈妈头上……妈妈笑了……", "mood": "soft", "type": "npc" },
+        { "id": "char15_hostile_08_npc_02", "speaker": "冥", "text": "院子里的猫又来偷鱼了……爸爸假装生气……", "mood": "soft", "type": "npc" },
+        { "id": "char15_hostile_08_npc_03", "speaker": "冥", "text": "……明天想去河边……水很凉，但是阳光很暖……", "mood": "soft", "type": "npc" },
+        { "id": "char15_hostile_08_npc_04", "speaker": "冥", "text": "…………", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_08_npc_05", "speaker": "冥", "text": "……我刚才……说了什么？（恢复了平淡的语气）", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_08_npc_06", "speaker": "冥", "text": "花环……母亲……（每个词都像是在触碰滚烫的东西）这些词……让我的灵核产生了异常震颤。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_08_npc_07", "speaker": "冥", "text": "我不理解。我应该不具备这些数据。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_08_npc_08", "speaker": "冥", "text": "……花。（她低头看着自己枯瘦的手）我记得……红色的花。在某个很远的地方。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_08_npc_09", "speaker": "冥", "text": "但是想不起更多了。就像……隔着很厚的雾。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_08_npc_10", "speaker": "冥", "text": "……为什么我的灵核在疼？亡灵不应该会疼。", "mood": "confused", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_08_other_01", "speaker": "主人公", "text": "你在说花环。你的母亲。河边。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_08_nar_01", "text": "深夜，看守紧急报告——冥在笼中突然开始说话。她仍然坐着不动，但嘴唇在翕动，声音和之前完全不同——柔软的、带着笑意的、属于一个十六岁少女的声音。她在说着不连贯的话，像是在回忆一场梦。", "mood": "scene" },
+        { "id": "char15_hostile_08_nar_02", "text": "领主赶到时，冥的双眼中罕见地泛起了微弱的光——不是紫色的灵火，而是近乎人类的、温暖的光。但只持续了几秒钟。", "mood": "scene" },
+        { "id": "char15_hostile_08_nar_03", "text": "（领主走近。冥突然停下，转头看向领主——眼中的温暖光芒在迅速消退）", "mood": "scene" },
+        { "id": "char15_hostile_08_nar_04", "text": "⚡ 重要事件：冥的前世记忆碎片首次浮现。她生前是一个普通的人类少女，喜欢花、有父母、过着平凡的生活。死亡与变成亡灵的过程将记忆封存，但并未完全消除。好感度：1 → 3。情感系统开始觉醒。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_h_09",
+      "title": "事件09：温度（H事件）",
+      "route": "hostile",
+      "stage": 9,
+      "type": "h_event",
+      "npc": [
+        { "id": "char15_hostile_h_09_npc_01", "speaker": "冥", "text": "…………奇怪。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_h_09_npc_02", "speaker": "冥", "text": "你碰到我的时候……有什么东西……（她把手放在胸口——心脏的位置）……这里。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_h_09_npc_03", "speaker": "冥", "text": "不是物理压力。不是温差数据。是别的什么。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_h_09_npc_04", "speaker": "冥", "text": "暖的。从你的手……传进来的。但不是热量。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_h_09_npc_05", "speaker": "冥", "text": "感觉……（她攥紧了自己的手，又松开，反复几次）四百年来的第一次。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_h_09_npc_06", "speaker": "冥", "text": "我以为这个机能已经永久停止了。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_h_09_npc_07", "speaker": "冥", "text": "……暖的。（声音出现了极其微弱的波动——近似于颤抖）", "mood": "moved", "type": "npc" },
+        { "id": "char15_hostile_h_09_npc_08", "speaker": "冥", "text": "原来活着的感觉……是这样的。", "mood": "moved", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_h_09_other_01", "speaker": "主人公", "text": "怎么了？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_h_09_other_02", "speaker": "主人公", "text": "那叫做'感觉'。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_h_09_nar_01", "text": "这一次不同了。当领主触碰冥时，她的身体产生了微弱的反应——指尖轻颤，苍白的嘴唇微微张开。她感受到了温度——不是作为物理数据，而是作为一种\"感觉\"。这对于一个冰冷了四百年的亡灵来说，是翻天覆地的变化。", "mood": "scene" },
+        { "id": "char15_hostile_h_09_nar_02", "text": "她茫然地看着自己的手，然后看向领主，苍白的眼睛里第一次出现了困惑——那是一种活人才会有的、真实的困惑。", "mood": "scene" },
+        { "id": "char15_hostile_h_09_nar_03", "text": "（冥第一次主动伸出手，碰触领主的脸颊）", "mood": "scene" },
+        { "id": "char15_hostile_h_09_nar_04", "text": "与第一次完全不同。冥的身体虽然依旧冰冷，但开始出现微弱的反应——手指不自觉地攥紧，呼吸般的灵力起伏，以及偶尔从喉间溢出的、连她自己都不理解的细微声音。\"……痛。这就是'痛'。\"她说。\"不……不是痛。是别的。更复杂的……说不清。\"她第一次露出困惑的表情，苍白的眼睛微微泛红——虽然没有泪水，但那是属于\"悲伤\"还是\"欢喜\"的情感震颤，连她自己都分不清。", "mood": "h_scene" },
+        { "id": "char15_hostile_h_09_nar_05", "text": "📋 调教进度：4/8。第二次H事件完成。冥的感觉系统开始复苏——肉体层面仍是亡灵，但灵魂层面正在觉醒。好感度：3 → 6。警告：亡灵的情感觉醒具有不可预知的风险。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_10",
+      "title": "事件10：名前",
+      "route": "hostile",
+      "stage": 10,
+      "type": "story",
+      "npc": [
+        { "id": "char15_hostile_10_npc_01", "speaker": "冥", "text": "……我有个问题。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_10_npc_02", "speaker": "冥", "text": "我叫什么？", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_10_npc_03", "speaker": "冥", "text": "……冥。那是死后的名字。亡灵们这么叫我。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_10_npc_04", "speaker": "冥", "text": "我在问……之前的名字。活着的时候的名字。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_10_npc_05", "speaker": "冥", "text": "我记得花。记得院子。记得河水的温度。但是名字……（她把手按在头上）……没有。空白。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_10_npc_06", "speaker": "冥", "text": "有人叫过我的名字。很多次。很温柔的声音。但是……内容消失了。只剩下声音的温度。", "mood": "confused", "type": "npc" },
+        { "id": "char15_hostile_10_npc_07", "speaker": "冥", "text": "…………（很长的沉默）", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_10_npc_08", "speaker": "冥", "text": "你给我起一个吧。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_10_npc_09", "speaker": "冥", "text": "名字。你是我的……主人。对吧？那就由你来定。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_10_npc_10", "speaker": "冥", "text": "冥。（念了几遍）冥。冥。冥。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_10_npc_11", "speaker": "冥", "text": "……好。从现在开始，这是你给的名字。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_hostile_10_npc_12", "speaker": "冥", "text": "那就和之前不一样了。虽然是同一个字。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_10_other_01", "speaker": "主人公", "text": "什么？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_10_other_02", "speaker": "主人公", "text": "你叫冥。", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_10_other_03", "speaker": "主人公", "text": "……你不记得了？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_10_other_04", "speaker": "主人公", "text": "什么？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_10_other_05", "speaker": "主人公", "text": "……就叫冥。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_10_nar_01", "text": "午后，阳光透过窗户照进冥的房间——封印减弱后，她被允许住在一个普通房间里，虽然窗户上仍刻着封印符文。冥站在窗边，看着窗外的花坛。她的表情仍然极淡，但和最初的\"空白\"不同——这是一种\"安静\"，带着若有若无的思绪。", "mood": "scene" },
+        { "id": "char15_hostile_10_nar_02", "text": "她突然转向领主，问了一个出乎意料的问题。", "mood": "scene" },
+        { "id": "char15_hostile_10_nar_03", "text": "（她的嘴角似乎动了一下——那或许是四百年来第一个近似于微笑的表情，但转瞬即逝）", "mood": "scene" },
+        { "id": "char15_hostile_10_nar_04", "text": "⚡ 关键事件：冥接受了领主赐予的名字。虽然字面相同，但意义从\"亡灵的代号\"转变为\"被赋予的名字\"——这对冥而言是身份认同的重大转折。好感度：6 → 9。冥开始将领主视为特殊存在。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_h_11",
+      "title": "事件11：执念（H事件）",
+      "route": "hostile",
+      "stage": 11,
+      "type": "h_event",
+      "npc": [
+        { "id": "char15_hostile_h_11_npc_01", "speaker": "冥", "text": "你回来了。（领主进门的瞬间开口，仿佛一直在等）", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_hostile_h_11_npc_02", "speaker": "冥", "text": "……三小时十七分。", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_hostile_h_11_npc_03", "speaker": "冥", "text": "需要。（第一次如此笃定的语气）你不在的时候，温度会消失。", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_hostile_h_11_npc_04", "speaker": "冥", "text": "我不喜欢温度消失。这是我四百年来第一次……不喜欢某件事。", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_hostile_h_11_npc_05", "speaker": "冥", "text": "那个女人。（突然转换话题）白天和你说话的那个女人。她站得离你很近。", "mood": "jealous", "type": "npc" },
+        { "id": "char15_hostile_h_11_npc_06", "speaker": "冥", "text": "……我知道。（她走近领主，冰冷的手指攥住领主的衣袖）", "mood": "jealous", "type": "npc" },
+        { "id": "char15_hostile_h_11_npc_07", "speaker": "冥", "text": "但是我不想让别人靠近你。", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_hostile_h_11_npc_08", "speaker": "冥", "text": "你不会离开。不能离开。（苍白的眼睛直直地盯着领主，瞳孔中紫色灵火微微闪烁）", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_hostile_h_11_npc_09", "speaker": "冥", "text": "我等了四百年，才找到温度。", "mood": "obsessive", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_h_11_other_01", "speaker": "主人公", "text": "你一直在门口站着？", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_h_11_other_02", "speaker": "主人公", "text": "你不需要等我。", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_h_11_other_03", "speaker": "主人公", "text": "冥……", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_h_11_other_04", "speaker": "主人公", "text": "那是副官。工作需要。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_h_11_nar_01", "text": "情感觉醒的副作用开始显现。冥变了——她开始会在领主离开房间时无声地注视着门口；开始会在领主与其他人交谈时微微偏头倾听；开始会在独处时反复念叨领主的名字。", "mood": "scene" },
+        { "id": "char15_hostile_h_11_nar_02", "text": "她的眼神不再是空白的——取而代之的是一种幽深的、沉溺的注视，像是溺水者抓住了唯一的浮木。四百年的孤独在一瞬间找到了出口，所有被压抑的情感洪流般涌向唯一的对象。", "mood": "scene" },
+        { "id": "char15_hostile_h_11_nar_03", "text": "冥第一次主动索取接触。她的动作笨拙而执着，带着一种不容拒绝的固执——冰冷的手指紧紧缠绕，不肯松开。\"不要走。再多一点。再暖一点。\"她的声音终于有了起伏，带着渴求和执念。当感觉涌来时她整个身体都在颤抖——不是因为快感，而是因为四百年的空白在同一刻被填充。她在过程中反复呢喃领主的名字，如同念诵咒语，如同那是唯一能证明她还存在的证据。\"你是我的。\"最后她说。\"活的、死的、永远。\"", "mood": "h_scene" },
+        { "id": "char15_hostile_h_11_nar_04", "text": "⚠ 警告：冥的情感觉醒引发了亡灵特有的「执念化」——当一个亡灵产生执念，那份执念会超越生死，永远不会消退。好感度：9 → 13。冥的yandere属性已激活。注意：她不会伤害领主，但可能对接近领主的人产生敌意。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_12",
+      "title": "事件12：生与死",
+      "route": "hostile",
+      "stage": 12,
+      "type": "story",
+      "npc": [
+        { "id": "char15_hostile_12_npc_01", "speaker": "冥", "text": "……我是死人。", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_02", "speaker": "冥", "text": "死人不应该有感觉。不应该会暖。不应该会痛。不应该……想要谁留下。", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_03", "speaker": "冥", "text": "但是现在全部都有了。是你给我的。", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_04", "speaker": "冥", "text": "你给了一个死人心跳——但我没有心脏。", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_05", "speaker": "冥", "text": "你给了一个死人温度——但我的体温永远是4度。", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_06", "speaker": "冥", "text": "你让我想要活着——但我已经死了四百年。", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_07", "speaker": "冥", "text": "如果消除灵核……就不会再感觉了。不会痛了。回到空白里去……", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_08", "speaker": "冥", "text": "……你为什么要来。（转头，眼中第一次出现了泪光——虽然流不出泪水）", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_09", "speaker": "冥", "text": "你不应该对一具尸体产生执念。这不正常。", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_10", "speaker": "冥", "text": "而我也不应该……对活人产生执念。这更不正常。", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_11", "speaker": "冥", "text": "我已经死了。这是无法改变的事实。", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_12", "speaker": "冥", "text": "…………（灵力在掌心摇晃不定）", "mood": "despair", "type": "npc" },
+        { "id": "char15_hostile_12_npc_13", "speaker": "冥", "text": "好痛……原来感情这么痛的吗……活着的时候也这么痛吗……", "mood": "despair", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_12_other_01", "speaker": "主人公", "text": "住手！！", "mood": "urgent", "type": "other" },
+        { "id": "char15_hostile_12_other_02", "speaker": "主人公", "text": "但你现在在这里。这也是事实。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_12_nar_01", "text": "凌晨。冥独自一人站在窗边，盯着自己映在玻璃上的倒影。外面下着雨，水珠沿着窗户滑落，和她脸上永恒的黑色泪痕重叠在一起。她抬起枯瘦的手，放在胸口——那里没有心跳，没有温暖，什么都没有。", "mood": "scene" },
+        { "id": "char15_hostile_12_nar_02", "text": "她终于意识到了那个一直被她忽略的事实——她已经死了。而一个死去的存在，拥有感情，意味着永恒的痛苦。", "mood": "scene" },
+        { "id": "char15_hostile_12_nar_03", "text": "（冥对着自己的倒影说话）", "mood": "scene" },
+        { "id": "char15_hostile_12_nar_04", "text": "（冥举起手。紫色的灵力在掌心汇聚——那是自毁式的灵核崩解术）", "mood": "scene" },
+        { "id": "char15_hostile_12_nar_05", "text": "（领主闯入房间）", "mood": "scene" },
+        { "id": "char15_hostile_12_nar_06", "text": "⚠ 紧急事件：冥试图自我毁灭灵核！必须立即阻止。选择：【握住她的手】→ 进入事件13。冥的灵核状态不稳定——如果不干预，她将永久消亡。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_hostile_h_13",
+      "title": "事件13：永远（H事件）",
+      "route": "hostile",
+      "stage": 13,
+      "type": "h_event",
+      "npc": [
+        { "id": "char15_hostile_h_13_npc_01", "speaker": "冥", "text": "……你的手。烧伤了。", "mood": "concerned", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_02", "speaker": "冥", "text": "不会好的。灵核灼烧的伤痕不会完全愈合。你会留下疤。", "mood": "concerned", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_03", "speaker": "冥", "text": "…………（长久地看着两人交握的手）", "mood": "moved", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_04", "speaker": "冥", "text": "我想起来了。一点点。", "mood": "moved", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_05", "speaker": "冥", "text": "很久以前……有人也这样握过我的手。然后说……'别怕'。", "mood": "moved", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_06", "speaker": "冥", "text": "我忘了那是谁。但是那个温度……和你的一样。", "mood": "moved", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_07", "speaker": "冥", "text": "……咚、咚、咚。", "mood": "moved", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_08", "speaker": "冥", "text": "这就是心跳。我四百年没有听过了。", "mood": "moved", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_09", "speaker": "冥", "text": "我已经死了。这件事不会改变。明天不会改变，一百年后不会改变，一千年后也不会改变。", "mood": "solemn", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_10", "speaker": "冥", "text": "但是——", "mood": "solemn", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_11", "speaker": "冥", "text": "如果你允许一具不会腐烂的尸体……永远留在你身边的话。", "mood": "moved", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_12", "speaker": "冥", "text": "我可以永远听着这个声音。", "mood": "moved", "type": "npc" },
+        { "id": "char15_hostile_h_13_npc_13", "speaker": "冥", "text": "永远。这个词，对亡灵来说……不是修辞。是事实。", "mood": "solemn", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_hostile_h_13_other_01", "speaker": "主人公", "text": "会好的。", "mood": "neutral", "type": "other" },
+        { "id": "char15_hostile_h_13_other_02", "speaker": "主人公", "text": "那就留着。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_hostile_h_13_nar_01", "text": "领主握住了冥的手。灵力灼烧着领主的掌心——烫得如同抓住燃烧的煤炭。但领主没有松手。紫色的灵力慢慢消散，冥的手在领主掌心中不停颤抖——不是因为冰冷，而是因为她生平第一次（死后第一次）感受到了一种名为\"被挽留\"的情感。", "mood": "scene" },
+        { "id": "char15_hostile_h_13_nar_02", "text": "她看着领主被灼伤的手掌，枯瘦的手指一根一根地收拢，扣紧。", "mood": "scene" },
+        { "id": "char15_hostile_h_13_nar_03", "text": "窗外的雨停了。月光穿透云层，照进房间。", "mood": "scene" },
+        { "id": "char15_hostile_h_13_nar_04", "text": "（冥慢慢地、极其缓慢地将额头抵在领主胸口——那里有心跳。她闭上眼睛，听着）", "mood": "scene" },
+        { "id": "char15_hostile_h_13_nar_05", "text": "最后一次。冥的身体依然冰冷，但她的灵魂是灼热的——指尖攥紧不放，苍白的眼睛始终睁着凝视领主的脸，仿佛要将这张面孔刻入灵核最深处。\"记住我。\"她说，声音第一次带上了恳求。\"就算你死了——我也会记住你。我会记住这个温度。一百年、一千年、一万年。\"她的身体在月光下苍白如玉，黑色的泪痕像是永恒的泪河。当一切结束后，她把脸埋在领主颈间，紫色的灵火在她眼中安静地燃烧。\"谢谢你。\"她说。这是她四百年来说出的第一句带有情感的话。\"谢谢你让我知道——死了之后，也可以觉得活着。\"", "mood": "h_scene" },
+        { "id": "char15_hostile_h_13_nar_06", "text": "🎊 敌对路线完成！冥（枯骨女王）完全归属。好感度：MAX。冥的封印可以部分解除——她自愿将灵核与领主的生命力绑定，作为永恒的契约。获得特殊状态：「永远」——冥的忠诚度永远不会下降，且在领主死后将自动守护领主的后继者，直到世界终结。冥已解锁全部战斗技能，亡灵军团可编入正规军。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_01",
+      "title": "事件01：废墟的邀请",
+      "route": "neutral",
+      "stage": 1,
+      "type": "story",
+      "npc": [
+        { "id": "char15_neutral_01_npc_01", "speaker": "冥", "text": "……活人。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_01_npc_02", "speaker": "冥", "text": "多少年了。上一个走到这里的活人，已经变成了我脚下的骨粉。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_01_npc_03", "speaker": "冥", "text": "主人？……这个词没有意义。死者不需要主人，也不需要仆从。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_01_npc_04", "speaker": "冥", "text": "但你身上有我需要的东西——活人的气息。准确地说，是活人的……材料。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_01_npc_05", "speaker": "冥", "text": "给我三个奴隶。不需要强壮的，能呼吸就行。作为交换——", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_01_npc_06", "speaker": "冥", "text": "我会借你一支军队。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_01_npc_07", "speaker": "冥", "text": "实验。关于生与死的边界……的实验。你不需要知道细节。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_01_other_01", "speaker": "主人公", "text": "你是这里的主人？", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_01_other_02", "speaker": "主人公", "text": "你要奴隶做什么？", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_01_nar_01", "text": "废墟神殿深处，月光穿透破碎的穹顶洒在满地白骨之上。空气中弥漫着腐朽与魔力交织的气息。一个少女端坐在骨制王座上，苍白的肌肤如瓷器般毫无血色，空洞的双眸像两口枯井。她身着残破的黑色长裙，周身环绕着幽蓝色的灵魂之火。", "mood": "scene" },
+        { "id": "char15_neutral_01_nar_02", "text": "（她的声音没有任何起伏，像石头碰石头。）", "mood": "scene" },
+        { "id": "char15_neutral_01_nar_03", "text": "（她歪了歪头，动作僵硬得像提线木偶。）", "mood": "scene" },
+        { "id": "char15_neutral_01_nar_04", "text": "（她抬起骨杖，地面裂开，数十具骸骨整齐排列。）", "mood": "scene" },
+        { "id": "char15_neutral_01_nar_05", "text": "任务开启：「枯骨女王的契约」。任务目标：为冥提供3名奴隶作为实验素材。提示：完成亡灵巫师势力任务链可招募冥（中立路线）。冥的好感度初始值：0（无感）。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_02",
+      "title": "事件02：奴隶的价值",
+      "route": "neutral",
+      "stage": 2,
+      "type": "story",
+      "npc": [
+        { "id": "char15_neutral_02_npc_01", "speaker": "冥", "text": "放在那里。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_02_npc_02", "speaker": "奴隶A", "text": "求、求求你放了我……！", "mood": "fearful", "type": "npc" },
+        { "id": "char15_neutral_02_npc_03", "speaker": "冥", "text": "灵魂品质……尚可。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_02_npc_04", "speaker": "冥", "text": "准确地说，是剥离。灵魂是驱动亡灵的最佳燃料。活人的灵魂比游荡的怨灵稳定得多。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_02_npc_05", "speaker": "冥", "text": "你的眼神……是在恐惧？还是厌恶？", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_02_npc_06", "speaker": "冥", "text": "无所谓。死人不在意活人的情绪。交易继续——你的骸骨军团，准备好了。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_02_other_01", "speaker": "主人公", "text": "……你把他们的灵魂抽出来了？", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_02_nar_01", "text": "神殿地下实验室，墙壁上刻满了古老的亡灵术法阵。三名奴隶被锁链固定在石台上，恐惧地颤抖。冥站在法阵中央，骨杖轻点地面，幽蓝灵火沿着刻痕蔓延开来。", "mood": "scene" },
+        { "id": "char15_neutral_02_nar_02", "text": "（她看都没看奴隶一眼，手指在空中画出复杂的符文。）", "mood": "scene" },
+        { "id": "char15_neutral_02_nar_03", "text": "（灵火包裹住第一个奴隶，对方的惨叫在数秒后停止。奴隶的身体干瘪下去，一团淡金色的光球从胸腔升起。）", "mood": "scene" },
+        { "id": "char15_neutral_02_nar_04", "text": "（她将三团光球收入骨杖，面无表情地转向玩家。）", "mood": "scene" },
+        { "id": "char15_neutral_02_nar_05", "text": "任务完成：提交3名奴隶。新任务：接收骸骨军团。冥的好感度：+2（交易对象）。冥的评价：「效率尚可。」", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_03",
+      "title": "事件03：骸骨军团",
+      "route": "neutral",
+      "stage": 3,
+      "type": "story",
+      "npc": [
+        { "id": "char15_neutral_03_npc_01", "speaker": "冥", "text": "三百二十具。够你用一阵了。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_03_npc_02", "speaker": "冥", "text": "操控方式很简单。它们会服从持有这个的人。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_03_npc_03", "speaker": "冥", "text": "……不记得了。一百年？两百年？时间对死者没有意义。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_03_npc_04", "speaker": "冥", "text": "不要弄坏太多。修复很麻烦。……下一步，我需要你帮我做一件事。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_03_npc_05", "speaker": "冥", "text": "城东的白塔——法师公会的据点。里面有我需要的东西。两颗魔力结晶。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_03_npc_06", "speaker": "冥", "text": "当然，你一个人攻不下来。所以——我会亲自出手。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_03_other_01", "speaker": "主人公", "text": "这支军队……你花了多久建立的？", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_03_other_02", "speaker": "主人公", "text": "什么事？", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_03_nar_01", "text": "神殿前的广场上，数百具骸骨兵整齐列阵。它们的眼眶中燃烧着幽蓝色的灵火，手持锈蚀的武器，在月光下宛如一支幽灵大军。冥站在高台上，骨杖敲击地面，骸骨兵齐刷刷单膝跪地。", "mood": "scene" },
+        { "id": "char15_neutral_03_nar_02", "text": "（她从高台上飘下来，黑裙的下摆拖过白骨铺就的地面。）", "mood": "scene" },
+        { "id": "char15_neutral_03_nar_03", "text": "（她递过一枚刻着符文的骨片。）", "mood": "scene" },
+        { "id": "char15_neutral_03_nar_04", "text": "（玩家接过骨片，骸骨兵同时转向玩家，眼中灵火闪烁。）", "mood": "scene" },
+        { "id": "char15_neutral_03_nar_05", "text": "（冥歪着头看着玩家指挥骸骨兵的样子，眼中第一次出现了微弱的波动——但转瞬即逝。）", "mood": "scene" },
+        { "id": "char15_neutral_03_nar_06", "text": "获得：骸骨军团（兵力+320，亡灵属性，持续至任务链结束）。新任务：攻破白塔法师据点，获取2颗魔力结晶。冥的好感度：+1。下一步：准备攻城战。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_04",
+      "title": "事件04：白塔之役",
+      "route": "neutral",
+      "stage": 4,
+      "type": "story",
+      "npc": [
+        { "id": "char15_neutral_04_npc_01", "speaker": "冥", "text": "屏障是四元素锚定型。需要同时破坏四个节点。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_04_npc_02", "speaker": "冥", "text": "『冥途·开门。』", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_04_npc_03", "speaker": "法师长", "text": "亡灵——是枯骨女王！全力防御！圣光术——", "mood": "fearful", "type": "npc" },
+        { "id": "char15_neutral_04_npc_04", "speaker": "冥", "text": "圣光……是吗。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_04_npc_05", "speaker": "冥", "text": "三百年前你们的前辈就用这招对付我。没用的。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_04_npc_06", "speaker": "冥", "text": "……找到了。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_04_other_01", "speaker": "主人公", "text": "你来主攻？", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_04_nar_01", "text": "白塔外围，魔法屏障闪烁着金色光芒。法师公会的守卫在城墙上布阵，火球与雷电交织成防御网。冥漂浮在骸骨军团上方，黑发在魔力风暴中飞舞，骨杖指向白塔——她的眼睛第一次亮起了光，那是纯粹的、冰冷的杀意。", "mood": "scene" },
+        { "id": "char15_neutral_04_nar_02", "text": "（她没有回答，只是抬起骨杖。地面裂开，数十只巨型骸骨从地下涌出，每一只都有三米高。）", "mood": "scene" },
+        { "id": "char15_neutral_04_nar_03", "text": "（巨型骸骨撞向屏障的四个节点，金色光芒碎裂。法师们的惊恐呼喊被亡灵的嘶吼淹没。）", "mood": "scene" },
+        { "id": "char15_neutral_04_nar_04", "text": "（她张开左手，一片漆黑的虚空吞噬了圣光术。法师长瞳孔剧缩。）", "mood": "scene" },
+        { "id": "char15_neutral_04_nar_05", "text": "（白塔的上层被骸骨巨兵撕裂，战斗在一个时辰内结束。冥飘入塔顶的密室，取出两颗散发深紫色光芒的结晶。）", "mood": "scene" },
+        { "id": "char15_neutral_04_nar_06", "text": "（她握着结晶的手微微颤抖——这是玩家第一次在她身上看到类似\"情绪\"的东西。）", "mood": "scene" },
+        { "id": "char15_neutral_04_nar_07", "text": "战斗胜利：白塔法师据点攻陷。获得：魔力结晶 ×2、法师公会典籍若干。冥的好感度：+3。注意：冥在战斗中展现的力量远超预期。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_05",
+      "title": "事件05：契约",
+      "route": "neutral",
+      "stage": 5,
+      "type": "story",
+      "npc": [
+        { "id": "char15_neutral_05_npc_01", "speaker": "冥", "text": "……完成了。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_05_npc_02", "speaker": "冥", "text": "维持……存在。我的灵魂锚点已经腐朽了三百年。没有新的魔力源，再过几十年我就会彻底消散。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_05_npc_03", "speaker": "冥", "text": "你完成了交易。骸骨军团归你。但按照契约……", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_05_npc_04", "speaker": "冥", "text": "我也归你了。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_05_npc_05", "speaker": "冥", "text": "亡灵的契约。你给了我继续存在的理由，所以我的存在绑定在你身上。这不是忠诚——死人没有忠诚。这只是……规则。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_05_npc_06", "speaker": "冥", "text": "带我走吧。去哪里都行。……反正对我来说，哪里都一样。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_05_other_01", "speaker": "主人公", "text": "这些结晶是做什么用的？", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_05_other_02", "speaker": "主人公", "text": "……什么意思？", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_05_nar_01", "text": "废墟神殿最深处的祭坛，冥将两颗魔力结晶嵌入王座两侧的凹槽。结晶发出脉动的紫光，整座神殿随之震颤。冥闭上眼睛，灵魂之火在她周身剧烈燃烧，然后——归于平静。", "mood": "scene" },
+        { "id": "char15_neutral_05_nar_02", "text": "（她转过身，面无表情地看着玩家。）", "mood": "scene" },
+        { "id": "char15_neutral_05_nar_03", "text": "（她伸出苍白的手，一道暗紫色的锁链从她手心延伸出来，连接到玩家的手腕。）", "mood": "scene" },
+        { "id": "char15_neutral_05_nar_04", "text": "（她低下头，看着自己苍白的手。）", "mood": "scene" },
+        { "id": "char15_neutral_05_nar_05", "text": "任务链完成：「枯骨女王的契约」。冥正式加入！冥的属性已解锁，可编入队伍。冥的好感度：10（契约绑定）。冥当前状态：无感情，纯粹的契约关系。后续事件将逐步解锁冥的情感线。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_06",
+      "title": "事件06：空洞",
+      "route": "neutral",
+      "stage": 6,
+      "type": "story",
+      "npc": [
+        { "id": "char15_neutral_06_npc_01", "speaker": "士兵A", "text": "那个亡灵又站在院子里了……一整夜都不动，跟个雕像似的。", "mood": "uneasy", "type": "npc" },
+        { "id": "char15_neutral_06_npc_02", "speaker": "士兵B", "text": "你别看她，我上次跟她对视了一下，做了三天噩梦……", "mood": "uneasy", "type": "npc" },
+        { "id": "char15_neutral_06_npc_03", "speaker": "冥", "text": "……这里和那里没有区别。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_06_npc_04", "speaker": "冥", "text": "冷？……我不理解这个词的含义。我的身体没有温度，也感觉不到温度。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_06_npc_05", "speaker": "冥", "text": "你为什么来找我？契约不要求你这样做。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_06_npc_06", "speaker": "冥", "text": "……同伴。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_06_npc_07", "speaker": "冥", "text": "我不明白。但你说什么都行。反正……对我来说都一样。", "mood": "neutral", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_06_other_01", "speaker": "主人公", "text": "冥，你一直站在这里？", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_06_other_02", "speaker": "主人公", "text": "不冷吗？", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_06_other_03", "speaker": "主人公", "text": "因为你是我的同伴。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_06_nar_01", "text": "据点的走廊上，冥像幽灵一样飘过。她不吃饭，不睡觉，不说话，只是在夜晚时分站在月光下一动不动。其他成员远远地绕开她——那种死亡的气息让所有活人本能地恐惧。", "mood": "scene" },
+        { "id": "char15_neutral_06_nar_02", "text": "（玩家走向院中的冥。她站在枯树下，月光将她的影子拉得很长。）", "mood": "scene" },
+        { "id": "char15_neutral_06_nar_03", "text": "（她转过头，空洞的眼睛注视着玩家。）", "mood": "scene" },
+        { "id": "char15_neutral_06_nar_04", "text": "（她重复了这个词，像在咀嚼一块没有味道的东西。）", "mood": "scene" },
+        { "id": "char15_neutral_06_nar_05", "text": "（她重新将目光投向月亮，沉默如初。但玩家注意到——她站的位置，比昨天离据点的中心近了一步。）", "mood": "scene" },
+        { "id": "char15_neutral_06_nar_06", "text": "冥的好感度：+2。冥的状态：空洞——不理解人类情感，但开始注意玩家的行为。据点成员士气略有下降（亡灵存在的影响）。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_07",
+      "title": "事件07：第一滴光",
+      "route": "neutral",
+      "stage": 7,
+      "type": "story",
+      "npc": [
+        { "id": "char15_neutral_07_npc_01", "speaker": "冥", "text": "……花。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_07_npc_02", "speaker": "冥", "text": "……为什么给我这个？", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_07_npc_03", "speaker": "冥", "text": "好看……", "mood": "neutral", "type": "npc" },
+        { "id": "char15_neutral_07_npc_04", "speaker": "冥", "text": "……它死了。", "mood": "soft", "type": "npc" },
+        { "id": "char15_neutral_07_npc_05", "speaker": "冥", "text": "死了……", "mood": "soft", "type": "npc" },
+        { "id": "char15_neutral_07_npc_06", "speaker": "冥", "text": "我好像……想起了什么。很模糊。有一个人，也给过我花……很久很久以前。", "mood": "soft", "type": "npc" },
+        { "id": "char15_neutral_07_npc_07", "speaker": "冥", "text": "再给我一朵。……如果你愿意的话。", "mood": "soft", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_07_other_01", "speaker": "主人公", "text": "送你的。", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_07_other_02", "speaker": "主人公", "text": "好看的东西应该送给好看的人。", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_07_other_03", "speaker": "主人公", "text": "花都会凋谢的。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_07_nar_01", "text": "据点花园的角落，几朵不知名的白色小花顽强地开在碎石缝里。玩家摘了一朵，带到冥经常站立的枯树下。冥接过花时，她的动作比以往慢了半拍——仿佛有什么东西在她空洞的内部轻轻搅动。", "mood": "scene" },
+        { "id": "char15_neutral_07_nar_02", "text": "（她捏着花茎，凑近观察。她的眼神从空洞变成了某种难以描述的状态——不是好奇，也不是喜欢，而是更深层的、来自记忆废墟中的某种回响。）", "mood": "scene" },
+        { "id": "char15_neutral_07_nar_03", "text": "（旁边的士兵来来往往，天色从午后变成黄昏，又变成深夜。冥始终保持着同一个姿势，像一幅画。）", "mood": "scene" },
+        { "id": "char15_neutral_07_nar_04", "text": "（第二天清晨，玩家发现冥还在盯着那朵花。花已经枯萎了，但她依然没有放下。）", "mood": "scene" },
+        { "id": "char15_neutral_07_nar_05", "text": "（她的声音出现了第一次波动——极其微弱的，像远方传来的回声。）", "mood": "scene" },
+        { "id": "char15_neutral_07_nar_06", "text": "（她放下枯花，抬起头。眼中的灵火比平时亮了一些。）", "mood": "scene" },
+        { "id": "char15_neutral_07_nar_07", "text": "冥的好感度：+5。冥的状态变化：「空洞」->「微光」——开始产生模糊的记忆碎片。提示：冥的情感恢复已开始，持续互动将加速这一过程。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_08",
+      "title": "事件08：什么是温暖",
+      "route": "neutral",
+      "stage": 8,
+      "type": "story",
+      "npc": [
+        { "id": "char15_neutral_08_npc_01", "speaker": "冥", "text": "这就是……温暖？", "mood": "curious", "type": "npc" },
+        { "id": "char15_neutral_08_npc_02", "speaker": "冥", "text": "我知道热量的概念。但'温暖'……不只是热量。", "mood": "curious", "type": "npc" },
+        { "id": "char15_neutral_08_npc_03", "speaker": "冥", "text": "你们活人围在火边的时候会笑。笑不是因为热量。是因为……什么？", "mood": "curious", "type": "npc" },
+        { "id": "char15_neutral_08_npc_04", "speaker": "冥", "text": "重要的人……", "mood": "curious", "type": "npc" },
+        { "id": "char15_neutral_08_npc_05", "speaker": "冥", "text": "……这样做对吗。我在某个地方见过这样的画面。", "mood": "soft", "type": "npc" },
+        { "id": "char15_neutral_08_npc_06", "speaker": "冥", "text": "不是温暖。但好像……不那么空了。", "mood": "soft", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_08_other_01", "speaker": "主人公", "text": "想烤火？坐过来。", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_08_other_02", "speaker": "主人公", "text": "对，火的热量。", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_08_other_03", "speaker": "主人公", "text": "因为在一起吧。跟重要的人在一起，就会觉得暖和。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_08_nar_01", "text": "据点大厅的壁炉燃着旺火，屋外风雪交加。众人围坐取暖，唯独冥站在角落的阴影里。但今天不同——她在缓慢地、一步一步地向壁炉靠近，像一只谨慎的野猫。", "mood": "scene" },
+        { "id": "char15_neutral_08_nar_02", "text": "（冥在距离壁炉三步远的地方停了下来。火光映在她苍白的脸上，给她罩上一层暖橙色的光晕。）", "mood": "scene" },
+        { "id": "char15_neutral_08_nar_03", "text": "（她把手伸向火焰，又缩了回来。反复了几次。）", "mood": "scene" },
+        { "id": "char15_neutral_08_nar_04", "text": "（玩家拍了拍身边的位置。冥犹豫了很久——大约五分钟——然后坐了下来。她坐得笔直，像一具摆放端正的人偶。）", "mood": "scene" },
+        { "id": "char15_neutral_08_nar_05", "text": "（她偏过头看着玩家，灵火在眼眶中微微跳动。）", "mood": "scene" },
+        { "id": "char15_neutral_08_nar_06", "text": "（她沉默了许久，然后做了一件让所有人惊讶的事——她把头轻轻靠在了玩家的肩膀上。动作极其生硬，像是在模仿什么遥远的记忆。）", "mood": "scene" },
+        { "id": "char15_neutral_08_nar_07", "text": "（她的声音很轻。）", "mood": "scene" },
+        { "id": "char15_neutral_08_nar_08", "text": "冥的好感度：+5。冥的状态：「微光」深化——开始主动模仿人类行为。据点成员态度变化：部分人对冥的恐惧减轻。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_h_09",
+      "title": "事件09：心跳（H事件）",
+      "route": "neutral",
+      "stage": 9,
+      "type": "h_event",
+      "npc": [
+        { "id": "char15_neutral_h_09_npc_01", "speaker": "冥", "text": "你在跳。", "mood": "curious", "type": "npc" },
+        { "id": "char15_neutral_h_09_npc_02", "speaker": "冥", "text": "你的胸口。在跳。隔着门我都能感觉到。很有节奏。活着的节奏。", "mood": "curious", "type": "npc" },
+        { "id": "char15_neutral_h_09_npc_03", "speaker": "冥", "text": "……咚、咚、咚。", "mood": "devout", "type": "npc" },
+        { "id": "char15_neutral_h_09_npc_04", "speaker": "冥", "text": "我的胸口没有这个。三百年了，一直是安静的。", "mood": "devout", "type": "npc" },
+        { "id": "char15_neutral_h_09_npc_05", "speaker": "冥", "text": "让我再听一会儿。……求你了。", "mood": "devout", "type": "npc" },
+        { "id": "char15_neutral_h_09_npc_06", "speaker": "冥", "text": "原来这就是……活着的热度。", "mood": "moved", "type": "npc" },
+        { "id": "char15_neutral_h_09_npc_07", "speaker": "冥", "text": "我想感觉到你的温度……传到这里。", "mood": "moved", "type": "npc" },
+        { "id": "char15_neutral_h_09_npc_08", "speaker": "冥", "text": "不要停下来……心跳。永远不要停。", "mood": "moved", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_h_09_other_01", "speaker": "主人公", "text": "冥？！你怎么——", "mood": "surprised", "type": "other" },
+        { "id": "char15_neutral_h_09_other_02", "speaker": "主人公", "text": "什么？", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_h_09_other_03", "speaker": "主人公", "text": "冥……", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_h_09_nar_01", "text": "深夜，玩家在房间里被一阵寒意惊醒。冥不知何时出现在床边，正用那双空洞又带着微弱灵光的眼睛注视着玩家。月光从窗户洒入，照亮她苍白的面容和微微前倾的身体。", "mood": "scene" },
+        { "id": "char15_neutral_h_09_nar_02", "text": "（她伸出手，犹豫了一下，然后按在了玩家的胸口。她的手冰凉如铁。）", "mood": "scene" },
+        { "id": "char15_neutral_h_09_nar_03", "text": "（她在跟着心跳的节奏念。她的表情第一次出现了清晰的变化——不是笑，而是一种深深的、近乎虔诚的专注。）", "mood": "scene" },
+        { "id": "char15_neutral_h_09_nar_04", "text": "（这是她第一次说\"求\"这个字。）", "mood": "scene" },
+        { "id": "char15_neutral_h_09_nar_05", "text": "冥把耳朵贴在玩家胸口，倾听心跳。她的手慢慢攥紧玩家的衣服。寒冷的身体在玩家的体温中一点点变化——不是变暖，而是那种冰冷开始有了某种柔软的质感。她抬起头，嘴唇几乎贴着玩家的脖颈——", "mood": "h_scene" },
+        { "id": "char15_neutral_h_09_nar_06", "text": "她主动亲吻了玩家的喉结，嘴唇冰凉但动作颤抖。然后她引导玩家的手放在她胸口——那里空空荡荡，没有心跳，但她说：「我想感觉到你的温度……传到这里。」", "mood": "h_scene" },
+        { "id": "char15_neutral_h_09_nar_07", "text": "两人的身体交缠在月光中。冥的动作生涩而僵硬，但每一次接触都让她发出微弱的、像是第一次学会呼吸的声音。她不懂得什么是快感——她感受到的是更原始的东西：存在感。有人的体温在证明她还在这个世界上。", "mood": "h_scene" },
+        { "id": "char15_neutral_h_09_nar_08", "text": "事后，她蜷缩在玩家怀里，手依然按在玩家胸口。", "mood": "h_scene" },
+        { "id": "char15_neutral_h_09_nar_09", "text": "冥的好感度：+8。关系进展：冥第一次主动寻求身体接触。冥的状态：「微光」->「脉动」——情感加速觉醒。注意：冥对玩家的依赖度显著上升。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_10",
+      "title": "事件10：我曾经是谁",
+      "route": "neutral",
+      "stage": 10,
+      "type": "story",
+      "npc": [
+        { "id": "char15_neutral_10_npc_01", "speaker": "冥", "text": "不——不要……娘、娘亲……", "mood": "fearful", "type": "npc" },
+        { "id": "char15_neutral_10_npc_02", "speaker": "冥", "text": "好烫……身上好烫……为什么大家都在倒下……", "mood": "fearful", "type": "npc" },
+        { "id": "char15_neutral_10_npc_03", "speaker": "冥", "text": "我叫……小雪。我叫小雪……！", "mood": "fearful", "type": "npc" },
+        { "id": "char15_neutral_10_npc_04", "speaker": "冥", "text": "永安城……永安城的瘟疫。所有人都在死。娘亲先倒下了，然后是爹……然后是邻居家的妹妹……", "mood": "fearful", "type": "npc" },
+        { "id": "char15_neutral_10_npc_05", "speaker": "冥", "text": "我在床上躺了七天。高烧不退。没有人来救我……因为能救人的人都已经死了。", "mood": "fearful", "type": "npc" },
+        { "id": "char15_neutral_10_npc_06", "speaker": "冥", "text": "第七天晚上，有一个穿黑袍的人站在我床边。他说——", "mood": "fearful", "type": "npc" },
+        { "id": "char15_neutral_10_npc_07", "speaker": "冥", "text": "'你想活下去吗？'", "mood": "fearful", "type": "npc" },
+        { "id": "char15_neutral_10_npc_08", "speaker": "冥", "text": "我说想。然后……然后我就变成了这样。", "mood": "despair", "type": "npc" },
+        { "id": "char15_neutral_10_npc_09", "speaker": "冥", "text": "三百年了。我忘了自己是谁……忘了自己曾经是个活着的人。", "mood": "despair", "type": "npc" },
+        { "id": "char15_neutral_10_npc_10", "speaker": "冥", "text": "小雪……已经死了。但她好像还在我里面……某个地方。", "mood": "despair", "type": "npc" }
+      ],
+      "other": [],
+      "narration": [
+        { "id": "char15_neutral_10_nar_01", "text": "冥突然跪倒在据点的走廊上，双手抱头，全身的灵火疯狂闪烁。周围的骸骨兵失控般颤抖。她的嘴里发出断断续续的、不属于她平时的声音——那是一个小女孩的声音。", "mood": "scene" },
+        { "id": "char15_neutral_10_nar_02", "text": "（玩家冲过去扶住她。她的身体剧烈颤抖，灵火忽明忽暗。）", "mood": "scene" },
+        { "id": "char15_neutral_10_nar_03", "text": "（她猛地抬头，眼中不再是灵火——而是一双充满恐惧的、属于普通少女的眼睛。）", "mood": "scene" },
+        { "id": "char15_neutral_10_nar_04", "text": "（记忆如洪水般涌来。）", "mood": "scene" },
+        { "id": "char15_neutral_10_nar_05", "text": "（她看着自己苍白的手，泪水从空洞的眼眶中滑落——亡灵不应该有泪水，但那确实是泪水。）", "mood": "scene" },
+        { "id": "char15_neutral_10_nar_06", "text": "（玩家抱住她。她没有挣扎，只是在玩家怀里颤抖着、无声地哭泣。）", "mood": "scene" },
+        { "id": "char15_neutral_10_nar_07", "text": "冥的好感度：+10。重大剧情：冥恢复了生前记忆——她是永安城瘟疫中死去的少女「小雪」。冥的状态：「脉动」->「记忆」——过去与现在开始融合。特殊事件已解锁（条件满足后可触发）。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_h_11",
+      "title": "事件11：活着的感觉（H事件）",
+      "route": "neutral",
+      "stage": 11,
+      "type": "h_event",
+      "npc": [
+        { "id": "char15_neutral_h_11_npc_01", "speaker": "冥", "text": "味道。小雪记得味道。甜的、咸的、酸的……但我现在什么都尝不到。", "mood": "confused", "type": "npc" },
+        { "id": "char15_neutral_h_11_npc_02", "speaker": "冥", "text": "教我笑。", "mood": "curious", "type": "npc" },
+        { "id": "char15_neutral_h_11_npc_03", "speaker": "冥", "text": "小雪会笑。我看到了记忆里的画面——她笑起来的样子。但我不知道怎么做。", "mood": "curious", "type": "npc" },
+        { "id": "char15_neutral_h_11_npc_04", "speaker": "冥", "text": "……不对。不是这样的。", "mood": "confused", "type": "npc" },
+        { "id": "char15_neutral_h_11_npc_05", "speaker": "冥", "text": "你在笑。为什么？", "mood": "curious", "type": "npc" },
+        { "id": "char15_neutral_h_11_npc_06", "speaker": "冥", "text": "可爱……？", "mood": "confused", "type": "npc" },
+        { "id": "char15_neutral_h_11_npc_07", "speaker": "冥", "text": "又是这个……眼睛里的水。为什么笑着笑着就会流出来？", "mood": "moved", "type": "npc" },
+        { "id": "char15_neutral_h_11_npc_08", "speaker": "冥", "text": "我想感觉更多……活着的东西。你能教我吗？", "mood": "curious", "type": "npc" },
+        { "id": "char15_neutral_h_11_npc_09", "speaker": "冥", "text": "原来是这样的吗……这就是活人会做的事……", "mood": "moved", "type": "npc" },
+        { "id": "char15_neutral_h_11_npc_10", "speaker": "冥", "text": "我感觉到了。一点点。像火苗一样小……但确实在那里。", "mood": "moved", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_h_11_other_01", "speaker": "主人公", "text": "笑？", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_h_11_other_02", "speaker": "主人公", "text": "因为你很可爱。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_h_11_nar_01", "text": "自从恢复记忆后，冥开始了一系列奇怪的尝试。今天，据点的厨房里一片狼藉——冥坐在桌前，面前摆满了各种食物。她正机械地将食物送入口中，咀嚼，然后面露困惑。", "mood": "scene" },
+        { "id": "char15_neutral_h_11_nar_02", "text": "（她放下筷子，看着玩家。）", "mood": "scene" },
+        { "id": "char15_neutral_h_11_nar_03", "text": "（她扯了扯嘴角，表情诡异而僵硬，像是破碎的瓷娃娃在模仿微笑。）", "mood": "scene" },
+        { "id": "char15_neutral_h_11_nar_04", "text": "（玩家忍不住轻笑出声。）", "mood": "scene" },
+        { "id": "char15_neutral_h_11_nar_05", "text": "（她的嘴角微微颤动，然后——笑了。很小很小的弧度，但那确实是笑容。不是模仿，是从内部涌上来的、真实的笑。同时，两行泪水滑落。）", "mood": "scene" },
+        { "id": "char15_neutral_h_11_nar_06", "text": "那天晚上，冥主动来到玩家房间。她穿着据点里找到的白色睡裙——不再是那身破败的黑色长裙。", "mood": "h_scene" },
+        { "id": "char15_neutral_h_11_nar_07", "text": "她的动作不再像上次那样僵硬。记忆的回归让她的身体开始记住某些本能。她的手指在玩家身上游走时带着探索的好奇，每一次新的触感都让她微微睁大眼睛。", "mood": "h_scene" },
+        { "id": "char15_neutral_h_11_nar_08", "text": "她在高潮的瞬间流下了眼泪，却绽放出那个笨拙而真实的笑容。这一次她感受到了——不只是存在感，而是某种更深层的、可以称之为\"喜悦\"的东西。", "mood": "h_scene" },
+        { "id": "char15_neutral_h_11_nar_09", "text": "冥的好感度：+8。关系深化：冥学会了微笑与哭泣。冥的状态：「记忆」->「萌芽」——人性碎片开始重组。注意：冥的情感觉醒可能引发不稳定的反应。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_12",
+      "title": "事件12：执念与爱",
+      "route": "neutral",
+      "stage": 12,
+      "type": "story",
+      "npc": [
+        { "id": "char15_neutral_12_npc_01", "speaker": "冥", "text": "你受伤了。", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_neutral_12_npc_02", "speaker": "冥", "text": "你差点死了。", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_neutral_12_npc_03", "speaker": "冥", "text": "不要出去了。", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_neutral_12_npc_04", "speaker": "冥", "text": "不要出去了。外面会死的。所有人都会死——我见过。瘟疫、战争、衰老……活着的东西最终都会死。", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_neutral_12_npc_05", "speaker": "冥", "text": "我不能让你死。你是唯一让我感觉到自己还在的人。如果你消失了……我就真的什么都不是了。", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_neutral_12_npc_06", "speaker": "冥", "text": "所以——留在这里。我会保护你。用锁链，用骸骨，用一切……", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_neutral_12_npc_07", "speaker": "冥", "text": "永远留在我身边好不好？我可以让你不会老、不会病。只要你愿意……我可以让你也变成像我一样——", "mood": "obsessive", "type": "npc" },
+        { "id": "char15_neutral_12_npc_08", "speaker": "冥", "text": "……害怕？", "mood": "confused", "type": "npc" },
+        { "id": "char15_neutral_12_npc_09", "speaker": "冥", "text": "……我、我不想……再失去了……", "mood": "despair", "type": "npc" },
+        { "id": "char15_neutral_12_npc_10", "speaker": "冥", "text": "对不起……对不起。我只是太害怕了……", "mood": "despair", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_12_other_01", "speaker": "主人公", "text": "只是皮外伤——", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_12_other_02", "speaker": "主人公", "text": "冥？", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_12_other_03", "speaker": "主人公", "text": "冥！", "mood": "urgent", "type": "other" },
+        { "id": "char15_neutral_12_other_04", "speaker": "主人公", "text": "你在害怕。", "mood": "neutral", "type": "other" },
+        { "id": "char15_neutral_12_other_05", "speaker": "主人公", "text": "你害怕失去。因为你已经失去过一次了——小雪失去了所有人。所以你害怕再来一次。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_12_nar_01", "text": "玩家带着伤回到据点的那一刻，空气骤然变冷。冥站在大门口，灵火从幽蓝色变成了暗紫色——那是她暴怒时才有的颜色。她的表情不再是空洞，而是一种扭曲的、可怕的执着。", "mood": "scene" },
+        { "id": "char15_neutral_12_nar_02", "text": "（她的声音颤抖，但不是因为恐惧——是因为某种远比恐惧更深的情绪。她伸出手，暗紫色的锁链从地面涌出，缠绕住玩家的脚踝。）", "mood": "scene" },
+        { "id": "char15_neutral_12_nar_03", "text": "（她走近，双手捧着玩家的脸，眼中的灵火疯狂跳动。）", "mood": "scene" },
+        { "id": "char15_neutral_12_nar_04", "text": "（她的声音变得甜蜜而恐怖。）", "mood": "scene" },
+        { "id": "char15_neutral_12_nar_05", "text": "（玩家握住她的手。冥的身体一颤。）", "mood": "scene" },
+        { "id": "char15_neutral_12_nar_06", "text": "（冥的眼睛猛地睁大。灵火从暗紫色慢慢退回幽蓝色。锁链松开了。）", "mood": "scene" },
+        { "id": "char15_neutral_12_nar_07", "text": "（她跪在地上，抱着玩家的腰，哭得像三百年前那个十六岁的小女孩。）", "mood": "scene" },
+        { "id": "char15_neutral_12_nar_08", "text": "冥的好感度：+5。冥的「病娇」特性觉醒——源于生前失去一切的创伤。冥的状态：「萌芽」->「执念」——情感强烈但不稳定。提示：正确引导可帮助冥走出执念。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_neutral_h_13",
+      "title": "事件13：永恒的花（H事件·最终）",
+      "route": "neutral",
+      "stage": 13,
+      "type": "h_event",
+      "npc": [
+        { "id": "char15_neutral_h_13_npc_01", "speaker": "冥", "text": "你还记得吗？你给我的第一朵花。", "mood": "soft", "type": "npc" },
+        { "id": "char15_neutral_h_13_npc_02", "speaker": "冥", "text": "那时候我不明白。现在我明白了。", "mood": "soft", "type": "npc" },
+        { "id": "char15_neutral_h_13_npc_03", "speaker": "冥", "text": "花会枯萎。活人会死去。我知道。", "mood": "solemn", "type": "npc" },
+        { "id": "char15_neutral_h_13_npc_04", "speaker": "冥", "text": "我可以活很久很久。也许一千年，也许一万年。但你不行。你会老，会病，有一天会离开我。", "mood": "solemn", "type": "npc" },
+        { "id": "char15_neutral_h_13_npc_05", "speaker": "冥", "text": "以前的我会因此把你锁起来。但现在……", "mood": "soft", "type": "npc" },
+        { "id": "char15_neutral_h_13_npc_06", "speaker": "冥", "text": "我想通了。重要的不是永恒。重要的是——现在，在这里，你在我身边。这朵花今天很美。就算明天枯了，今天的美也不会消失。", "mood": "moved", "type": "npc" },
+        { "id": "char15_neutral_h_13_npc_07", "speaker": "冥", "text": "所以我不再害怕了。不管你能陪我多久——十年、五十年——每一天，都是我三百年空白里最珍贵的一天。", "mood": "moved", "type": "npc" },
+        { "id": "char15_neutral_h_13_npc_08", "speaker": "冥", "text": "谢谢你。让小雪又活了一次。", "mood": "moved", "type": "npc" },
+        { "id": "char15_neutral_h_13_npc_09", "speaker": "冥", "text": "我想把每一刻都刻在灵魂里。这样就算千年之后……我也永远记得你。", "mood": "moved", "type": "npc" },
+        { "id": "char15_neutral_h_13_npc_10", "speaker": "冥", "text": "……我感觉到了。在我这里……好像有什么在跳。", "mood": "moved", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_neutral_h_13_other_01", "speaker": "主人公", "text": "记得。你盯着它看了一整夜。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_neutral_h_13_nar_01", "text": "春天来了。据点花园里百花盛开。冥站在花丛中，指尖轻触花瓣。她的灵火比以往任何时候都柔和——几乎看不出是亡灵的标志，更像是笼罩在一个普通少女周围的淡淡光晕。", "mood": "scene" },
+        { "id": "char15_neutral_h_13_nar_02", "text": "（她摘下一朵白色的花，别在自己耳边。然后转过身，对着玩家微笑——不再僵硬，不再笨拙，是一个真正的、带着温度的笑容。）", "mood": "scene" },
+        { "id": "char15_neutral_h_13_nar_03", "text": "（她走到玩家面前，握住玩家的手。她的手依然凉，但不再是冰冷的——那种凉，像秋天清晨的露水。）", "mood": "scene" },
+        { "id": "char15_neutral_h_13_nar_04", "text": "（她踮起脚尖，吻了玩家。）", "mood": "scene" },
+        { "id": "char15_neutral_h_13_nar_05", "text": "花园的深处，花瓣纷飞。冥第一次主动而自信地拥抱玩家，不再是探索，不再是模仿——是真正的、发自内心的渴望。", "mood": "h_scene" },
+        { "id": "char15_neutral_h_13_nar_06", "text": "她的身体依然没有体温，但在每一次接触中都传递着某种超越温度的东西——那是三百年孤独积攒下来的、全部的深情。她在玩家耳边说着小雪的名字，也说着冥的名字，两个身份在这一刻完全融合。", "mood": "h_scene" },
+        { "id": "char15_neutral_h_13_nar_07", "text": "在最后的缠绵中，玩家胸口的心跳透过贴合的肌肤传递到她胸腔里——冥的眼睛猛地睁大。", "mood": "h_scene" },
+        { "id": "char15_neutral_h_13_nar_08", "text": "那不是真正的心跳。但对于一个死了三百年的少女来说，那已经是最接近\"活着\"的瞬间。", "mood": "h_scene" },
+        { "id": "char15_neutral_h_13_nar_09", "text": "冥的好感度：MAX（100）。关系达成：冥接受了爱的有限与珍贵。冥的最终状态：「执念」->「永恒之花」——在有限的爱中找到了无限的意义。成就解锁：「三百年后的心跳」。特殊事件现已开放触发。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_special_01",
+      "title": "特殊事件01：小雪的日记",
+      "route": "neutral",
+      "stage": 14,
+      "type": "special",
+      "npc": [
+        { "id": "char15_special_01_npc_01", "speaker": "冥", "text": "这里是……我的房间。小雪的房间。", "mood": "shaken", "type": "npc" },
+        { "id": "char15_special_01_npc_02", "speaker": "冥", "text": "……不敢打开。", "mood": "shaken", "type": "npc" },
+        { "id": "char15_special_01_npc_03", "speaker": "冥", "text": "……嗯。", "mood": "shaken", "type": "npc" },
+        { "id": "char15_special_01_npc_04", "speaker": "冥", "text": "小雪不想死……她只是不想一个人。", "mood": "despair", "type": "npc" },
+        { "id": "char15_special_01_npc_05", "speaker": "冥", "text": "谢谢你带我回来。现在我……终于能和她好好告别了。", "mood": "moved", "type": "npc" },
+        { "id": "char15_special_01_npc_06", "speaker": "冥", "text": "小雪。你受苦了。但没关系……我会替你，把没过完的日子过下去。", "mood": "moved", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_special_01_other_01", "speaker": "主人公", "text": "要我替你念吗？", "mood": "neutral", "type": "other" },
+        { "id": "char15_special_01_other_02", "speaker": "主人公", "text": "三月初七。今天娘买了糖葫芦给我，好甜好甜。隔壁的阿青说我吃东西的样子像小仓鼠，讨厌！", "mood": "neutral", "type": "other" },
+        { "id": "char15_special_01_other_03", "speaker": "主人公", "text": "五月十二。城里来了很多大夫。说是南边有瘟病传过来了。爹让我不要出门。好无聊。", "mood": "neutral", "type": "other" },
+        { "id": "char15_special_01_other_04", "speaker": "主人公", "text": "六月初一。阿青病了。我想去看她，但娘不让。街上的人越来越少了。", "mood": "neutral", "type": "other" },
+        { "id": "char15_special_01_other_05", "speaker": "主人公", "text": "六月十五。娘倒下了。爹也开始咳血。我好害怕。", "mood": "neutral", "type": "other" },
+        { "id": "char15_special_01_other_06", "speaker": "主人公", "text": "六月二十。爹死了。就死在我旁边。我推他，他不动。身上好冷好冷。", "mood": "neutral", "type": "other" },
+        { "id": "char15_special_01_other_07", "speaker": "主人公", "text": "六月二十三。我也发烧了。好烫。好难受。没有人来。", "mood": "neutral", "type": "other" },
+        { "id": "char15_special_01_other_08", "speaker": "主人公", "text": "六月二十九。有人来了。穿黑衣服的。他问我想不想活。我说想。", "mood": "neutral", "type": "other" },
+        { "id": "char15_special_01_other_09", "speaker": "主人公", "text": "之后……没有了。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_special_01_nar_01", "text": "废墟神殿的地下深处，一间被封印的小房间。推开石门，里面保存着一张小小的木床、一个破旧的木箱、墙上用炭笔画着歪歪扭扭的花和蝴蝶——这是三百年前一个小女孩的房间。冥站在门口，浑身颤抖。", "mood": "scene" },
+        { "id": "char15_special_01_nar_02", "text": "（她走进去，手指划过满是灰尘的木桌。在木箱的最底层，一本已经泛黄脆裂的日记安静地躺着。）", "mood": "scene" },
+        { "id": "char15_special_01_nar_03", "text": "（玩家小心翼翼地翻开日记。字迹歪斜稚嫩，是一个十四五岁的女孩写的。）", "mood": "scene" },
+        { "id": "char15_special_01_nar_04", "text": "（冥蹲在地上，抱着日记本，把脸埋在泛黄的纸页里。）", "mood": "scene" },
+        { "id": "char15_special_01_nar_05", "text": "（她抬起头，满脸泪痕。）", "mood": "scene" },
+        { "id": "char15_special_01_nar_06", "text": "（她将日记本贴在胸口。灵火温柔地包裹了那本小小的日记。）", "mood": "scene" },
+        { "id": "char15_special_01_nar_07", "text": "冥的好感度：+10。获得关键道具：「小雪的日记」——冥生前的全部记忆。冥的灵魂稳定性大幅提升。成就解锁：「永安城的最后记忆」。剧情解锁：冥的完整生前故事——永安城瘟疫中最后死去的少女。", "mood": "system" }
+      ]
+    },
+    {
+      "scene_id": "char15_special_02",
+      "title": "特殊事件02：最后的选择",
+      "route": "neutral",
+      "stage": 15,
+      "type": "special",
+      "npc": [
+        { "id": "char15_special_02_npc_01", "speaker": "黑袍残魂", "text": "……没想到你还在。三百年了。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_special_02_npc_02", "speaker": "冥", "text": "是你。是你把我变成了这样。", "mood": "shaken", "type": "npc" },
+        { "id": "char15_special_02_npc_03", "speaker": "黑袍残魂", "text": "我当时也快死了。瘟疫不分术士与凡人。你是我最后的实验……也是唯一成功的。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_special_02_npc_04", "speaker": "黑袍残魂", "text": "我残留在这座祭坛里，就是为了等这一天。你的灵魂锚已经换过了——那两颗魔力结晶。这意味着我可以解除最初的亡灵术式。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_special_02_npc_05", "speaker": "冥", "text": "解除……？", "mood": "shaken", "type": "npc" },
+        { "id": "char15_special_02_npc_06", "speaker": "黑袍残魂", "text": "简单地说——我可以让你真正地死去。灵魂会离开躯壳，前往彼岸。没有痛苦，没有孤独。只有安眠。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_special_02_npc_07", "speaker": "黑袍残魂", "text": "你已经活了三百年，够了。背负着死亡的身体去感受活人的情感，只会让你越来越痛苦。不如——", "mood": "neutral", "type": "npc" },
+        { "id": "char15_special_02_npc_08", "speaker": "冥", "text": "……", "mood": "neutral", "type": "npc" },
+        { "id": "char15_special_02_npc_09", "speaker": "冥", "text": "你说呢？", "mood": "soft", "type": "npc" },
+        { "id": "char15_special_02_npc_10", "speaker": "冥", "text": "……不。你告诉我。你想让我留下吗？", "mood": "soft", "type": "npc" },
+        { "id": "char15_special_02_npc_11", "speaker": "冥", "text": "我的答案是——", "mood": "resolved", "type": "npc" },
+        { "id": "char15_special_02_npc_12", "speaker": "冥", "text": "小雪已经死了。三百年前就死了。但'冥'活着。这三百年的前两百九十九年是空白的。但最后这一年……", "mood": "resolved", "type": "npc" },
+        { "id": "char15_special_02_npc_13", "speaker": "冥", "text": "最后这一年，我活得比小雪的十六年都要满。", "mood": "resolved", "type": "npc" },
+        { "id": "char15_special_02_npc_14", "speaker": "冥", "text": "我不要安眠。我要和你一起看花开花落。哪怕你的一辈子对我来说只是一瞬——那也是我最想要的一瞬。", "mood": "resolved", "type": "npc" },
+        { "id": "char15_special_02_npc_15", "speaker": "黑袍残魂", "text": "……你确定？亡灵的道路没有终点。", "mood": "neutral", "type": "npc" },
+        { "id": "char15_special_02_npc_16", "speaker": "冥", "text": "那就没有终点好了。只要他在我身边的这段路……有光。", "mood": "resolved", "type": "npc" },
+        { "id": "char15_special_02_npc_17", "speaker": "冥", "text": "走吧。回家。", "mood": "happy", "type": "npc" }
+      ],
+      "other": [
+        { "id": "char15_special_02_other_01", "speaker": "主人公", "text": "这是你的选择，冥。", "mood": "neutral", "type": "other" },
+        { "id": "char15_special_02_other_02", "speaker": "主人公", "text": "我想让你做让自己幸福的选择。", "mood": "neutral", "type": "other" }
+      ],
+      "narration": [
+        { "id": "char15_special_02_nar_01", "text": "一个月圆之夜，废墟神殿的祭坛突然亮起了从未见过的金色光芒。一个半透明的老者身影浮现在祭坛上方——那是三百年前将小雪变为亡灵的黑袍术士，如今只剩下一缕残魂。", "mood": "scene" },
+        { "id": "char15_special_02_nar_02", "text": "（残魂叹了口气。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_03", "text": "（冥的身体剧烈颤抖。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_04", "text": "（沉默。很长的沉默。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_05", "text": "（她转过头，看着玩家。眼中的灵火在金色光芒和幽蓝之间摇摆不定。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_06", "text": "（冥闭上了眼睛。灵火熄灭了。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_07", "text": "（在一片黑暗中，她看到了两个画面：一边是温暖的光，小雪的父母在微笑着招手；另一边是玩家的脸，据点的火炉，枯树下的月光，第一朵花。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_08", "text": "（她睁开眼。灵火重新亮起——比任何时候都亮。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_09", "text": "（她走向玩家，背对着金色光芒。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_10", "text": "（她握住玩家的手。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_11", "text": "（金色光芒消散。黑袍残魂化为一声叹息，彻底消失。祭坛归于沉寂。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_12", "text": "（冥转过身，对玩家笑了。是那种最温暖的、最像活人的、最真实的笑。）", "mood": "scene" },
+        { "id": "char15_special_02_nar_13", "text": "冥的好感度：MAX（强化）。成就解锁：「她选择了光」——冥放弃永眠，选择留在玩家身边。冥获得永久强化：灵魂稳定性MAX，情感波动趋于平稳。冥的最终状态：「永恒之花·绽放」——以亡灵之身活出了人类的一生。特殊奖励：冥的技能进化——「冥途·归途」（亡灵召唤强化+治愈效果）。冥的中立路线（纯爱）——全线完成。", "mood": "system" }
+      ]
+    }
+  ]
+}
