@@ -2134,7 +2134,11 @@ func _start_crisis_invasion(pid: int, turn: int) -> void:
 	if best_tile < 0:
 		# Fallback: pick first unowned tile
 		for i in range(GameManager.tiles.size()):
-			if GameManager.tiles[i]["owner_id"] != pid:
+			# BUG FIX R15: null check on tile
+			var _inv_tile = GameManager.tiles[i]
+			if _inv_tile == null:
+				continue
+			if _inv_tile.get("owner_id", -1) != pid:
 				best_tile = i
 				break
 	if best_tile < 0:

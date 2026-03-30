@@ -2272,7 +2272,8 @@ func _process_deferred_effects(player_id: int, player: Dictionary) -> void:
 	var pos: int = player.get("position", -1)
 	if pos >= 0 and pos < tiles.size():
 		var tile: Dictionary = tiles[pos]
-		if tile.has("deferred_effects"):
+		# BUG FIX R15: null check on tile
+		if tile != null and tile.has("deferred_effects"):
 			var def_fx: Dictionary = tile["deferred_effects"]
 			if def_fx.has("gold_next_visit"):
 				var fx: Dictionary = def_fx["gold_next_visit"]
@@ -2964,6 +2965,9 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 		return false
 
 	var tile: Dictionary = tiles[target_tile_index]
+	# BUG FIX R15: null check on tile
+	if tile == null:
+		return false
 	if tile["owner_id"] == player_id:
 		EventBus.message_log.emit("不能攻击自己的领地!")
 		return false
@@ -5198,9 +5202,13 @@ func _reveal_around(tile_index: int, player_id: int) -> void:
 
 
 func is_revealed_for(tile_index: int, player_id: int) -> bool:
+	# BUG FIX R15: null check + safe "revealed" access
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
-	return tiles[tile_index]["revealed"].get(player_id, false)
+	var _rv_tile = tiles[tile_index]
+	if _rv_tile == null:
+		return false
+	return _rv_tile.get("revealed", {}).get(player_id, false)
 
 
 # ═══════════════ ACTION SYSTEM (v0.8) ═══════════════
@@ -5210,11 +5218,17 @@ func get_attackable_tiles(player_id: int) -> Array:
 	var result: Array = []
 	var owned_indices: Dictionary = {}
 	for tile in tiles:
+		# BUG FIX R15: null check
+		if tile == null:
+			continue
 		if tile["owner_id"] == player_id:
 			owned_indices[tile["index"]] = true
 
 	var seen: Dictionary = {}
 	for tile in tiles:
+		# BUG FIX R15: null check
+		if tile == null:
+			continue
 		if tile["owner_id"] == player_id:
 			if adjacency.has(tile["index"]):
 				for nb_idx in adjacency[tile["index"]]:
@@ -5230,6 +5244,9 @@ func get_domestic_tiles(player_id: int) -> Array:
 	## Returns owned tiles where domestic actions (recruit/upgrade/build) are possible.
 	var result: Array = []
 	for tile in tiles:
+		# BUG FIX R15: null check
+		if tile == null:
+			continue
 		if tile["owner_id"] == player_id:
 			result.append(tile)
 	return result
@@ -5274,6 +5291,9 @@ func get_explorable_tiles(player_id: int) -> Array:
 	## Returns owned tiles that can be explored.
 	var result: Array = []
 	for tile in tiles:
+		# BUG FIX R15: null check
+		if tile == null:
+			continue
 		if tile["owner_id"] == player_id:
 			result.append(tile)
 	return result
@@ -5291,6 +5311,9 @@ func action_attack(player_id: int, target_tile_index: int) -> bool:
 		return false
 
 	var tile: Dictionary = tiles[target_tile_index]
+	# BUG FIX R15: null check on tile
+	if tile == null:
+		return false
 	if tile["owner_id"] == player_id:
 		EventBus.message_log.emit("不能攻击自己的领地!")
 		return false

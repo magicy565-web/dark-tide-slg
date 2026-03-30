@@ -869,7 +869,12 @@ func find_supply_chokepoints(target_player_id: int) -> Array:
 
 func score_supply_cut_attack(faction_key: String, tile_index: int) -> float:
 	## Score a supply-cut attack. Higher = better target.
-	var tile: Dictionary = GameManager.tiles[tile_index]
+	# BUG FIX R15: bounds check before tiles[] access
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return 0.0
+	var tile = GameManager.tiles[tile_index]
+	if tile == null:
+		return 0.0
 	var target_player_id: int = tile.get("owner_id", -1)
 	if target_player_id < 0:
 		return 0.0

@@ -750,7 +750,15 @@ func _reveal_extended(tile_index: int, player_id: int, depth: int) -> void:
 	while queue.size() > 0:
 		var current: int = queue.pop_front()
 		var d: int = visited[current]
-		GameManager.tiles[current]["revealed"][player_id] = true
+		# BUG FIX R15: bounds & null check, ensure "revealed" dict exists
+		if current < 0 or current >= GameManager.tiles.size():
+			continue
+		var _rv_tile = GameManager.tiles[current]
+		if _rv_tile == null:
+			continue
+		if not _rv_tile.has("revealed"):
+			_rv_tile["revealed"] = {}
+		_rv_tile["revealed"][player_id] = true
 		if d >= depth:
 			continue
 		if GameManager.adjacency.has(current):
