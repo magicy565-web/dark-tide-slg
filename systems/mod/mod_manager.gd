@@ -4,7 +4,7 @@
 extends Node
 
 const MOD_DIR: String = "user://mods/"
-const GAME_VERSION: String = "3.3.0"
+const GAME_VERSION: String = "3.7.0"
 
 # ── MOD state ──
 var _installed_mods: Array = []   # Array of mod.json metadata dicts
