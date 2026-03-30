@@ -7,6 +7,7 @@ const FactionData = preload("res://systems/faction/faction_data.gd")
 const QuestDefs = preload("res://systems/quest/quest_definitions.gd")
 const ChallengeData = preload("res://systems/quest/challenge_quest_data.gd")
 const SideQuestData = preload("res://systems/quest/side_quest_data.gd")
+const DevQuestData = preload("res://systems/quest/development_quest_data.gd")
 
 # ═══════════════ STATE ═══════════════
 
@@ -88,6 +89,8 @@ func init_journal(player_faction: int) -> void:
 	for q in SideQuestData.INTEL_QUESTS:
 		_side_progress[q["id"]] = {"status": QuestDefs.QuestStatus.LOCKED, "completed_at": -1}
 	for q in SideQuestData.OUTPOST_QUESTS:
+		_side_progress[q["id"]] = {"status": QuestDefs.QuestStatus.LOCKED, "completed_at": -1}
+	for q in DevQuestData.DEVELOPMENT_QUESTS:
 		_side_progress[q["id"]] = {"status": QuestDefs.QuestStatus.LOCKED, "completed_at": -1}
 
 	# Init challenge quests (only for player's faction)
@@ -402,8 +405,8 @@ func _check_side_quests(player_id: int) -> void:
 			if all_done:
 				_complete_quest_entry(_side_progress, q["id"], q.get("reward", {}), player_id, "支线", q["name"])
 
-	# Check expanded side quests (story/bonus/intel/outpost)
-	for q in SideQuestData.STORY_QUESTS + SideQuestData.BONUS_QUESTS + SideQuestData.INTEL_QUESTS + SideQuestData.OUTPOST_QUESTS:
+	# Check expanded side quests (story/bonus/intel/outpost/development)
+	for q in SideQuestData.STORY_QUESTS + SideQuestData.BONUS_QUESTS + SideQuestData.INTEL_QUESTS + SideQuestData.OUTPOST_QUESTS + DevQuestData.DEVELOPMENT_QUESTS:
 		var state: Dictionary = _side_progress.get(q["id"], {})
 		if state.get("status", -1) == QuestDefs.QuestStatus.LOCKED:
 			if _evaluate_trigger(q.get("trigger", {}), player_id):
@@ -672,6 +675,12 @@ func get_all_quests(player_id: int) -> Array:
 			var entry: Dictionary = _format_quest(q, state, "side", player_id)
 			entry["sub_category"] = "outpost"
 			result.append(entry)
+	for q in DevQuestData.DEVELOPMENT_QUESTS:
+		var state: Dictionary = _side_progress.get(q["id"], {})
+		if state.get("status", -1) != QuestDefs.QuestStatus.LOCKED:
+			var entry: Dictionary = _format_quest(q, state, "side", player_id)
+			entry["sub_category"] = "development"
+			result.append(entry)
 	# Challenge
 	var faction_id: int = GameManager.get_player_faction(player_id)
 	if ChallengeData.CHALLENGES.has(faction_id):
@@ -741,7 +750,7 @@ func get_tracked_quests(player_id: int) -> Array:
 			result.append(_format_tracked(q, "主线", player_id))
 			break  # Only first active main quest
 	# Side quests (original + expanded)
-	var side_lists: Array = [QuestDefs.SIDE_QUESTS, SideQuestData.STORY_QUESTS, SideQuestData.BONUS_QUESTS, SideQuestData.INTEL_QUESTS, SideQuestData.OUTPOST_QUESTS]
+	var side_lists: Array = [QuestDefs.SIDE_QUESTS, SideQuestData.STORY_QUESTS, SideQuestData.BONUS_QUESTS, SideQuestData.INTEL_QUESTS, SideQuestData.OUTPOST_QUESTS, DevQuestData.DEVELOPMENT_QUESTS]
 	for arr in side_lists:
 		for q in arr:
 			var state: Dictionary = _side_progress.get(q["id"], {})

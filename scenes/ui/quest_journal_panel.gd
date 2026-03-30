@@ -1,13 +1,14 @@
-## quest_journal_panel.gd — Quest Journal UI Panel for Dark Tide SLG (v2.4)
-## Modal panel showing all quest types: main, side, challenge, character.
+## quest_journal_panel.gd — Quest Journal UI Panel for Dark Tide SLG (v2.5)
+## Modal panel showing all quest types: main, side, challenge, character, h_event.
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const QuestDefs = preload("res://systems/quest/quest_definitions.gd")
 const SideQuestData = preload("res://systems/quest/side_quest_data.gd")
+const HEventData = preload("res://systems/story/data/h_event_data.gd")
 
 # ── State ──
 var _visible: bool = false
-var _current_tab: String = "main"  # "main", "side", "challenge", "character"
+var _current_tab: String = "main"  # "main", "side", "challenge", "character", "h_event"
 
 # ── UI refs ──
 var root: Control
@@ -22,6 +23,7 @@ var btn_tab_main: Button
 var btn_tab_side: Button
 var btn_tab_challenge: Button
 var btn_tab_character: Button
+var btn_tab_h_event: Button
 
 # Content area
 var content_scroll: ScrollContainer
@@ -146,6 +148,10 @@ func _build_ui() -> void:
 	btn_tab_character.pressed.connect(func(): _switch_tab("character"))
 	tab_container.add_child(btn_tab_character)
 
+	btn_tab_h_event = _make_tab_button("H Events")
+	btn_tab_h_event.pressed.connect(func(): _switch_tab("h_event"))
+	tab_container.add_child(btn_tab_h_event)
+
 	# Separator
 	var sep := HSeparator.new()
 	outer_vbox.add_child(sep)
@@ -206,6 +212,7 @@ func _update_tab_highlight() -> void:
 		"side": btn_tab_side,
 		"challenge": btn_tab_challenge,
 		"character": btn_tab_character,
+		"h_event": btn_tab_h_event,
 	}
 	for key in tabs_map:
 		var btn: Button = tabs_map[key]
@@ -233,6 +240,12 @@ func _refresh() -> void:
 		"challenge": "challenge",
 		"character": "character",
 	}
+
+	# H Events tab uses a special display path
+	if _current_tab == "h_event":
+		_refresh_h_events()
+		return
+
 	var target_cat: String = category_map.get(_current_tab, "main")
 	var filtered: Array = []
 	for q in all_quests:
@@ -251,28 +264,42 @@ func _refresh() -> void:
 		var story: Array = []
 		var bonus: Array = []
 		var intel: Array = []
+		var outpost: Array = []
+		var development: Array = []
 		for quest in filtered:
 			match quest.get("sub_category", ""):
 				"story": story.append(quest)
 				"bonus": bonus.append(quest)
 				"intel": intel.append(quest)
+				"outpost": outpost.append(quest)
+				"development": development.append(quest)
 				_: no_sub.append(quest)
 		# Original side quests (no sub-category)
 		for quest in no_sub:
 			_add_quest_card(quest)
+		# Development sub-header (teal)
+		if not development.is_empty():
+			_add_sub_header("Development", Color(0.4, 0.85, 0.85))
+			for quest in development:
+				_add_quest_card(quest)
+		# Outpost sub-header (orange)
+		if not outpost.is_empty():
+			_add_sub_header("Outpost", Color(1.0, 0.65, 0.3))
+			for quest in outpost:
+				_add_quest_card(quest)
 		# Story sub-header
 		if not story.is_empty():
-			_add_sub_header("Story")
+			_add_sub_header("Story", Color(0.7, 0.8, 0.5))
 			for quest in story:
 				_add_quest_card(quest)
 		# Bonus sub-header
 		if not bonus.is_empty():
-			_add_sub_header("Bonus")
+			_add_sub_header("Bonus", Color(0.8, 0.75, 0.4))
 			for quest in bonus:
 				_add_quest_card(quest)
 		# Intel sub-header
 		if not intel.is_empty():
-			_add_sub_header("Intel")
+			_add_sub_header("Intel", Color(0.6, 0.7, 0.9))
 			for quest in intel:
 				_add_quest_card(quest)
 	else:
@@ -285,9 +312,59 @@ func _clear_content() -> void:
 		child.queue_free()
 
 
+## Sub-category color map for colored indicator dots on quest cards.
+const SUB_CAT_COLORS: Dictionary = {
+	"story": Color(0.7, 0.8, 0.5),
+	"bonus": Color(0.8, 0.75, 0.4),
+	"intel": Color(0.6, 0.7, 0.9),
+	"outpost": Color(1.0, 0.65, 0.3),
+	"development": Color(0.4, 0.85, 0.85),
+	"h_event": Color(1.0, 0.55, 0.7),
+}
+
+
+func _refresh_h_events() -> void:
+	## Display H events grouped by heroine, showing completed and available.
+	var active_count: int = QuestJournal.get_active_count()
+	status_label.text = "Active: %d" % active_count
+
+	var h_progress: Dictionary = StoryEventSystem.story_progress.get("h_event", {})
+	var completed_ids: Array = h_progress.get("completed_events", [])
+
+	var any_shown: bool = false
+	for hero_id in HEventData.EVENTS:
+		var events: Array = HEventData.EVENTS[hero_id]
+		# Only show heroines that are recruited or captured
+		if hero_id not in HeroSystem.recruited_heroes and hero_id not in HeroSystem.captured_heroes:
+			continue
+		var hero_name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
+		_add_sub_header(hero_name, Color(1.0, 0.55, 0.7))
+		for ev in events:
+			var is_completed: bool = ev["id"] in completed_ids
+			var quest_display: Dictionary = {
+				"name": ev.get("name", "???"),
+				"desc": ev.get("scene", "").left(60) + "...",
+				"status": QuestDefs.QuestStatus.COMPLETED if is_completed else QuestDefs.QuestStatus.LOCKED,
+				"objectives": [],
+				"reward_preview": "",
+				"sub_category": "h_event",
+			}
+			# Check if available but not yet completed
+			if not is_completed:
+				var affection: int = HeroSystem.hero_affection.get(hero_id, 0)
+				var trigger: Dictionary = ev.get("trigger", {})
+				if affection >= trigger.get("affection_min", 99):
+					quest_display["status"] = QuestDefs.QuestStatus.AVAILABLE
+			_add_quest_card(quest_display)
+			any_shown = true
+
+	if not any_shown:
+		_add_empty_notice("h_event")
+
+
 func _add_empty_notice(category: String) -> void:
 	var names: Dictionary = {
-		"main": "Main", "side": "Side", "challenge": "Challenge", "character": "Character"
+		"main": "Main", "side": "Side", "challenge": "Challenge", "character": "Character", "h_event": "H Event"
 	}
 	var lbl := Label.new()
 	lbl.text = "No %s quests" % names.get(category, "")
@@ -297,14 +374,14 @@ func _add_empty_notice(category: String) -> void:
 	content_container.add_child(lbl)
 
 
-func _add_sub_header(title: String) -> void:
+func _add_sub_header(title: String, color: Color = Color(0.7, 0.8, 0.5)) -> void:
 	## Add a sub-category header label within the side quest tab.
 	var sep := HSeparator.new()
 	content_container.add_child(sep)
 	var lbl := Label.new()
 	lbl.text = "— %s —" % title
 	lbl.add_theme_font_size_override("font_size", 15)
-	lbl.add_theme_color_override("font_color", Color(0.7, 0.8, 0.5))
+	lbl.add_theme_color_override("font_color", color)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content_container.add_child(lbl)
 
@@ -350,6 +427,11 @@ func _add_quest_card(quest: Dictionary) -> void:
 			card_style.border_color = Color(0.3, 0.3, 0.3, 0.4)
 
 	card_style.set_border_width_all(1)
+	# Color-coded left border for sub-categories
+	var sub_cat: String = quest.get("sub_category", "")
+	if sub_cat != "" and SUB_CAT_COLORS.has(sub_cat):
+		card_style.border_width_left = 3
+		card_style.border_color = SUB_CAT_COLORS[sub_cat]
 	card_style.set_corner_radius_all(6)
 	card_style.set_content_margin_all(10)
 	card.add_theme_stylebox_override("panel", card_style)
@@ -359,9 +441,21 @@ func _add_quest_card(quest: Dictionary) -> void:
 	vbox.add_theme_constant_override("separation", 4)
 	card.add_child(vbox)
 
-	# Title row: name + status badge
+	# Title row: name + category tag + status badge
 	var title_row := HBoxContainer.new()
 	vbox.add_child(title_row)
+
+	# Category color tag
+	if sub_cat != "" and SUB_CAT_COLORS.has(sub_cat):
+		var tag_names: Dictionary = {
+			"story": "剧情", "bonus": "奖励", "intel": "情报",
+			"outpost": "据点", "development": "发展", "h_event": "亲密",
+		}
+		var tag_lbl := Label.new()
+		tag_lbl.text = "[%s]" % tag_names.get(sub_cat, sub_cat)
+		tag_lbl.add_theme_font_size_override("font_size", 11)
+		tag_lbl.add_theme_color_override("font_color", SUB_CAT_COLORS[sub_cat])
+		title_row.add_child(tag_lbl)
 
 	var name_lbl := Label.new()
 	name_lbl.text = quest.get("name", "???")

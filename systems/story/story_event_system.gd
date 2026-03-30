@@ -57,6 +57,7 @@ const STORY_DATA_FILES: Dictionary = {
 	"epilogue": "res://systems/story/data/epilogue_events.gd",
 	"faction_intro": "res://systems/story/data/faction_intro_events.gd",
 	"main_quest": "res://systems/story/data/main_quest_events.gd",
+	"h_event": "res://systems/story/data/h_event_data.gd",
 }
 
 # ── Faction ID → epilogue ending type mapping ──
@@ -538,6 +539,56 @@ func _on_hero_recruited(hero_id: String) -> void:
 func _on_affection_changed(hero_id: String, new_value: int) -> void:
 	# Check if affection threshold triggers next event
 	try_trigger_next(hero_id)
+	# Check if H events should trigger for this hero
+	_check_h_events(hero_id)
+
+
+## Check and trigger H events for a hero based on current affection/corruption.
+func _check_h_events(hero_id: String) -> void:
+	var h_data: Dictionary = _get_story_data("h_event")
+	if not h_data.has(hero_id):
+		return
+	var events: Array = h_data[hero_id]
+	var h_progress: Dictionary = story_progress.get("h_event", {})
+	var completed: Array = h_progress.get("completed_events", [])
+	for ev in events:
+		if ev["id"] in completed:
+			continue
+		if not _evaluate_h_trigger(hero_id, ev.get("trigger", {})):
+			continue
+		# Trigger this H event
+		if not story_progress.has("h_event"):
+			story_progress["h_event"] = {
+				"route": hero_id,
+				"current_event": 0,
+				"completed_events": completed.duplicate(),
+				"flags": {},
+			}
+		story_progress["h_event"]["completed_events"].append(ev["id"])
+		EventBus.story_event_triggered.emit(hero_id, ev)
+		break  # One H event per trigger check
+
+
+## Evaluate H event trigger conditions.
+func _evaluate_h_trigger(hero_id: String, trigger: Dictionary) -> bool:
+	var affection: int = HeroSystem.hero_affection.get(hero_id, 0)
+	var corruption: int = HeroSystem.hero_corruption.get(hero_id, 0)
+	if trigger.has("affection_min") and affection < trigger["affection_min"]:
+		return false
+	if trigger.has("corruption_min") and corruption < trigger["corruption_min"]:
+		return false
+	if trigger.has("requires_flag"):
+		var hero_prog: Dictionary = story_progress.get(hero_id, {})
+		var flags: Dictionary = hero_prog.get("flags", {})
+		for flag_key in trigger["requires_flag"]:
+			if not flags.get(flag_key, false):
+				return false
+	if trigger.has("prev_event"):
+		var h_progress: Dictionary = story_progress.get("h_event", {})
+		var completed: Array = h_progress.get("completed_events", [])
+		if trigger["prev_event"] not in completed:
+			return false
+	return true
 
 
 func _on_story_choice_made(hero_id: String, event_id: String, choice_index: int) -> void:
@@ -626,7 +677,7 @@ func _on_game_over_detailed(data: Dictionary) -> void:
 func _determine_ending_type() -> String:
 	var pure_love_count: int = 0
 	for hero_id in story_progress:
-		if hero_id in ["epilogue", "faction_intro", "main_quest"]:
+		if hero_id in ["epilogue", "faction_intro", "main_quest", "h_event"]:
 			continue
 		var flags: Dictionary = story_progress[hero_id].get("flags", {})
 		for key in flags:
