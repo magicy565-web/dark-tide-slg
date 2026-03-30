@@ -448,6 +448,11 @@ func _get_faction_tag_for_player(player_id: int) -> String:
 	return ""
 
 
+func _get_faction_key(player_id: int) -> String:
+	## Helper for AI indicator system — returns faction key string for signal emissions.
+	return _get_faction_tag_for_player(player_id)
+
+
 func get_player_by_id(player_id: int) -> Dictionary:
 	for p in players:
 		if p["id"] == player_id:
@@ -2761,6 +2766,7 @@ func action_deploy_army(army_id: int, target_tile: int) -> bool:
 	_reveal_around(target_tile, player_id)
 	EventBus.message_log.emit("%s 部署到 %s" % [army["name"], tiles[target_tile]["name"]])
 	EventBus.army_deployed.emit(player_id, army_id, from_tile, target_tile)
+	EventBus.action_visualize_deploy.emit(army_id, from_tile, target_tile)
 	return true
 
 
@@ -2991,6 +2997,8 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 	# Always restore garrison to original before post-combat processing
 	# (_capture_tile computes new garrison from this value)
 	tile["garrison"] = original_garrison
+
+	EventBus.action_visualize_attack.emit(army["tile_index"], target_tile_index, {"won": won, "army_id": army_id})
 
 	if won:
 		# Army moves into captured tile
@@ -4714,6 +4722,7 @@ func recruit_army() -> void:
 	player["ap"] -= 1
 
 	EventBus.message_log.emit("%s 招募了1个步兵! (金-%d 铁-%d)" % [player["name"], gold_cost, iron_cost])
+	EventBus.action_visualize_recruit.emit(player["position"], "infantry", 1)
 
 
 func can_recruit() -> bool:
@@ -4825,6 +4834,7 @@ func build_on_tile(building_id: String) -> void:
 	var bname: String = BuildingRegistry.get_building_name(building_id, target_level)
 	BuildingRegistry.apply_building_effects(player["id"], building_id, tile)
 	EventBus.building_constructed.emit(player["id"], tile["index"], building_id)
+	EventBus.action_visualize_build.emit(tile["index"], building_id)
 	if is_upgrade:
 		EventBus.message_log.emit("%s 升级了 %s 至 Lv%d" % [player["name"], bname, target_level])
 	else:
@@ -5290,6 +5300,8 @@ func action_attack(player_id: int, target_tile_index: int) -> bool:
 	# Always restore garrison to original before post-combat processing
 	tile["garrison"] = original_garrison
 
+	EventBus.action_visualize_attack.emit(player.get("position", -1), target_tile_index, {"won": won})
+
 	if won:
 		_capture_tile(player, tile)
 		_reveal_around(target_tile_index, player_id)
@@ -5343,6 +5355,7 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 			player["ap"] -= 1
 			sync_player_army(pid)
 			EventBus.message_log.emit("在 %s 招募了1个步兵" % tile["name"])
+			EventBus.action_visualize_recruit.emit(target_tile_index, "infantry", 1)
 			return true
 
 		"upgrade":
@@ -5382,6 +5395,7 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 			tile["building_level"] = target_level
 			BuildingRegistry.apply_building_effects(pid, building_id, tile)
 			EventBus.building_constructed.emit(pid, target_tile_index, building_id)
+			EventBus.action_visualize_build.emit(target_tile_index, building_id)
 			EventBus.message_log.emit("建造了 %s" % BuildingRegistry.get_building_name(building_id, target_level))
 			return true
 
@@ -6033,8 +6047,12 @@ func run_ai_turn() -> void:
 	if not player["is_ai"] or not game_active:
 		return
 	var pid: int = player["id"]
+	var _fk: String = _get_faction_key(pid)
+	var _total_phases: int = 6  # Phases 0-5 in generic AI
 
 	EventBus.message_log.emit("%s 正在行动..." % player["name"])
+	EventBus.ai_thinking.emit(_fk, true)
+	EventBus.ai_turn_progress.emit(_fk, 0, _total_phases)
 
 	# Orc AI: use aggressive WAAAGH-driven strategy instead of generic AI
 	var faction_id: int = get_player_faction(pid)
@@ -6083,6 +6101,7 @@ func run_ai_turn() -> void:
 					AIStrategicPlanner.execute_retreat(_ai_faction_key, _rt_idx)
 
 		# ── Phase 1: Attack with armies (prioritize high-value targets) ──
+		EventBus.ai_action_started.emit(_fk, "attack", "Evaluating targets")
 		for army in ai_armies:
 			if player["ap"] <= 0:
 				break
@@ -6119,6 +6138,7 @@ func run_ai_turn() -> void:
 								_skip_attack = true  # Too many sieges already
 				if not _skip_attack:
 					await action_attack_with_army(army["id"], best_tile_idx)
+					EventBus.ai_action_completed.emit(_fk, "attack", true)
 					ai_armies = get_player_armies(pid)  # Refresh after combat
 					did_action = true
 					break  # Re-evaluate after attack
@@ -6126,7 +6146,11 @@ func run_ai_turn() -> void:
 		if did_action:
 			continue
 
+		EventBus.ai_action_completed.emit(_fk, "attack", false)
+		EventBus.ai_turn_progress.emit(_fk, 1, _total_phases)
+
 		# ── Phase 2: Deploy armies toward frontlines ──
+		EventBus.ai_action_started.emit(_fk, "deploy", "Moving armies to front")
 		ai_armies = get_player_armies(pid)  # Refresh after possible combat
 		for army in ai_armies:
 			if player["ap"] <= 0:
@@ -6155,13 +6179,18 @@ func run_ai_turn() -> void:
 					best_deploy = dtile
 			if best_deploy >= 0:
 				action_deploy_army(army["id"], best_deploy)
+				EventBus.ai_action_completed.emit(_fk, "deploy", true)
 				did_action = true
 				break
 
 		if did_action:
 			continue
 
+		EventBus.ai_action_completed.emit(_fk, "deploy", false)
+		EventBus.ai_turn_progress.emit(_fk, 2, _total_phases)
+
 		# ── Phase 3: Recruit troops if under capacity ──
+		EventBus.ai_action_started.emit(_fk, "recruit", "Recruiting troops")
 		var owned_tiles: Array = get_domestic_tiles(pid)
 		if owned_tiles.size() > 0:
 			faction_id = get_player_faction(pid)
@@ -6176,9 +6205,13 @@ func run_ai_turn() -> void:
 						recruit_tile = army["tile_index"]
 						break
 				action_domestic(pid, recruit_tile, "recruit")
+				EventBus.ai_action_completed.emit(_fk, "recruit", true)
 				continue
 
+		EventBus.ai_turn_progress.emit(_fk, 3, _total_phases)
+
 		# ── Phase 4: Create additional armies if possible ──
+		EventBus.ai_action_started.emit(_fk, "create_army", "Creating armies")
 		if ai_armies.size() < MAX_ARMIES_BASE and owned_tiles.size() > 1:
 			# Create new army on a tile without an army that's near the front
 			for ot in owned_tiles:
@@ -6198,7 +6231,11 @@ func run_ai_turn() -> void:
 			if did_action:
 				continue
 
+		EventBus.ai_action_completed.emit(_fk, "create_army", false)
+		EventBus.ai_turn_progress.emit(_fk, 4, _total_phases)
+
 		# ── Phase 4b: Guard border tiles (30% chance if border tile has low garrison) ──
+		EventBus.ai_action_started.emit(_fk, "guard", "Guarding borders")
 		if not owned_tiles.is_empty() and randf() < 0.30:
 			for ot in owned_tiles:
 				if _guard_timers.has(ot["index"]):
@@ -6212,12 +6249,14 @@ func run_ai_turn() -> void:
 						break
 				if is_border and ot.get("garrison", 0) < 8:
 					action_guard_territory(pid, ot["index"])
+					EventBus.ai_action_completed.emit(_fk, "guard", true)
 					did_action = true
 					break
 			if did_action:
 				continue
 
 		# ── Phase 4c: Diplomacy with non-hostile factions (10% chance) ──
+		EventBus.ai_action_started.emit(_fk, "diplomacy", "Diplomatic negotiations")
 		if randf() < 0.10:
 			var evil_factions: Array = [FactionData.FactionID.ORC, FactionData.FactionID.PIRATE, FactionData.FactionID.DARK_ELF]
 			var my_faction: int = get_player_faction(pid)
@@ -6230,15 +6269,20 @@ func run_ai_turn() -> void:
 				# AI tries tribute to improve relations (if affordable)
 				if ResourceManager.can_afford(pid, {"gold": 80}):
 					action_diplomacy(pid, fid, "tribute")
+					EventBus.ai_action_completed.emit(_fk, "diplomacy", true)
 					did_action = true
 					break
 			if did_action:
 				continue
 
+		EventBus.ai_turn_progress.emit(_fk, 5, _total_phases)
+
 		# ── Phase 5: Explore for resources/events ──
+		EventBus.ai_action_started.emit(_fk, "explore", "Exploring territory")
 		if not owned_tiles.is_empty():
 			var explore_tile: Dictionary = owned_tiles[randi() % owned_tiles.size()]
 			action_explore(pid, explore_tile["index"])
+			EventBus.ai_action_completed.emit(_fk, "explore", true)
 			continue
 
 		# No valid action, break
@@ -6246,6 +6290,9 @@ func run_ai_turn() -> void:
 
 	# ── Siege management phase: process existing AI sieges ──
 	_ai_manage_sieges(pid)
+
+	EventBus.ai_turn_progress.emit(_fk, _total_phases, _total_phases)
+	EventBus.ai_thinking.emit(_fk, false)
 
 	await get_tree().create_timer(0.3).timeout
 	if game_active:
@@ -6378,6 +6425,12 @@ func _run_orc_ai(player_id: int) -> void:
 	if player.is_empty() or not game_active:
 		return
 
+	var _fk: String = _get_faction_key(player_id)
+	var _total_phases: int = 7  # Phases 0-6 in orc AI
+
+	EventBus.ai_thinking.emit(_fk, true)
+	EventBus.ai_turn_progress.emit(_fk, 0, _total_phases)
+
 	var waaagh: int = OrcMechanic.get_waaagh(player_id)
 	var in_frenzy: bool = OrcMechanic.is_in_frenzy(player_id)
 
@@ -6419,6 +6472,7 @@ func _run_orc_ai(player_id: int) -> void:
 					AIStrategicPlanner.execute_retreat("orc_ai", orc_rt_idx)
 
 		# ── Phase 1: AGGRESSIVE ATTACKS (primary behavior) ──
+		EventBus.ai_action_started.emit(_fk, "attack", "WAAAGH! Attacking")
 		# Orc aggression threshold based on WAAAGH: higher WAAAGH = attack even bad odds
 		var aggression_threshold: float = 0.0
 		if waaagh < 30:
@@ -6462,6 +6516,7 @@ func _run_orc_ai(player_id: int) -> void:
 							_orc_skip = true
 				if not _orc_skip:
 					await action_attack_with_army(army["id"], best_tile_idx)
+					EventBus.ai_action_completed.emit(_fk, "attack", true)
 					ai_armies = get_player_armies(player_id)  # Refresh after combat
 					did_action = true
 					break  # Re-evaluate after attack
@@ -6469,7 +6524,11 @@ func _run_orc_ai(player_id: int) -> void:
 		if did_action:
 			continue
 
+		EventBus.ai_action_completed.emit(_fk, "attack", false)
+		EventBus.ai_turn_progress.emit(_fk, 1, _total_phases)
+
 		# ── Phase 2: Deploy armies toward enemy territory (offensive positions) ──
+		EventBus.ai_action_started.emit(_fk, "deploy", "Repositioning forces")
 		ai_armies = get_player_armies(player_id)
 		for army in ai_armies:
 			if player["ap"] <= 0:
@@ -6499,13 +6558,18 @@ func _run_orc_ai(player_id: int) -> void:
 					best_deploy = dtile
 			if best_deploy >= 0:
 				action_deploy_army(army["id"], best_deploy)
+				EventBus.ai_action_completed.emit(_fk, "deploy", true)
 				did_action = true
 				break
 
 		if did_action:
 			continue
 
+		EventBus.ai_action_completed.emit(_fk, "deploy", false)
+		EventBus.ai_turn_progress.emit(_fk, 2, _total_phases)
+
 		# ── Phase 3: Create additional armies (quantity over quality) ──
+		EventBus.ai_action_started.emit(_fk, "create_army", "Raising new WAAAGH!")
 		ai_armies = get_player_armies(player_id)
 		var owned_tiles: Array = get_domestic_tiles(player_id)
 		if ai_armies.size() < get_max_armies(player_id) and owned_tiles.size() > 0:
@@ -6532,7 +6596,11 @@ func _run_orc_ai(player_id: int) -> void:
 			if did_action:
 				continue
 
+		EventBus.ai_action_completed.emit(_fk, "create_army", false)
+		EventBus.ai_turn_progress.emit(_fk, 3, _total_phases)
+
 		# ── Phase 4: Recruit troops - prefer cheap units to fill armies fast ──
+		EventBus.ai_action_started.emit(_fk, "recruit", "Recruiting horde")
 		if not owned_tiles.is_empty():
 			var recruited: bool = false
 			for army in ai_armies:
@@ -6555,14 +6623,19 @@ func _run_orc_ai(player_id: int) -> void:
 				# Use action_domestic recruit to spend AP and resources properly
 				if ResourceManager.can_afford(player_id, cheapest.get("cost", {})):
 					action_domestic(player_id, recruit_tile["index"], "recruit")
+					EventBus.ai_action_completed.emit(_fk, "recruit", true)
 					recruited = true
 					break
 			if recruited:
 				continue
 
+		EventBus.ai_turn_progress.emit(_fk, 4, _total_phases)
+
 		# ── Phase 5: Convert slaves to army (Orc war pit) ──
+		EventBus.ai_action_started.emit(_fk, "convert_slaves", "Converting slaves")
 		if ResourceManager.get_slaves(player_id) > 0:
 			OrcMechanic.convert_slave_to_army(player_id)
+			EventBus.ai_action_completed.emit(_fk, "convert_slaves", true)
 			# BUG FIX R10: Slave conversion doesn't cost AP - limit to 3 conversions
 			# per turn to avoid infinite loop, then fall through to explore/break.
 			idle_count += 1
@@ -6572,10 +6645,14 @@ func _run_orc_ai(player_id: int) -> void:
 			else:
 				continue
 
+		EventBus.ai_turn_progress.emit(_fk, 5, _total_phases)
+
 		# ── Phase 6: Explore only if nothing else to do (Orcs dislike idle turns) ──
+		EventBus.ai_action_started.emit(_fk, "explore", "Exploring territory")
 		if not owned_tiles.is_empty():
 			var explore_tile: Dictionary = owned_tiles[randi() % owned_tiles.size()]
 			action_explore(player_id, explore_tile["index"])
+			EventBus.ai_action_completed.emit(_fk, "explore", true)
 			continue
 
 		# No valid action, break
@@ -6583,6 +6660,9 @@ func _run_orc_ai(player_id: int) -> void:
 
 	# ── Siege management phase for Orc AI ──
 	_ai_manage_sieges(player_id)
+
+	EventBus.ai_turn_progress.emit(_fk, _total_phases, _total_phases)
+	EventBus.ai_thinking.emit(_fk, false)
 
 	await get_tree().create_timer(0.3).timeout
 	if game_active:

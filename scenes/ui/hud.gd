@@ -123,6 +123,7 @@ var btn_split_army: Button
 var btn_upgrade_troop: Button
 var btn_formation: Button
 var btn_unit_orders: Button
+var btn_troop_training: Button
 var _formation_army_id: int = -1
 var _orders_army_id: int = -1
 var _tile_dev_panel: Node = null
@@ -634,6 +635,12 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 	btn_unit_orders.custom_minimum_size = Vector2(140, 30)
 	btn_unit_orders.pressed.connect(_on_unit_orders)
 	vbox.add_child(btn_unit_orders)
+
+	btn_troop_training = _make_button("兵種訓練")
+	btn_troop_training.custom_minimum_size = Vector2(140, 30)
+	btn_troop_training.tooltip_text = "訓練兵種解鎖新能力 (U)"
+	btn_troop_training.pressed.connect(_on_troop_training)
+	vbox.add_child(btn_troop_training)
 
 
 # ── Center panel: target / tile selector ──
@@ -1895,6 +1902,24 @@ func _on_split_target(army_id: int) -> void:
 	GameManager.action_split_army(army_id)
 	_close_target_panel()
 	_after_action()
+
+
+func _on_troop_training() -> void:
+	var main_node = get_tree().current_scene
+	if main_node and "troop_training_panel" in main_node and main_node.troop_training_panel:
+		main_node.troop_training_panel.show_panel()
+	else:
+		var panel = get_tree().current_scene.get_node_or_null("troop_training_panel")
+		if panel == null:
+			# Try searching children
+			for child in get_tree().current_scene.get_children():
+				if child.has_method("show_panel") and child.get_script() and "troop_training" in child.get_script().resource_path:
+					panel = child
+					break
+		if panel and panel.has_method("show_panel"):
+			panel.show_panel()
+		else:
+			EventBus.message_log.emit("Troop training panel not available.")
 
 
 func _on_upgrade_troop() -> void:
@@ -3204,6 +3229,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			KEY_E:
 				_on_event_manager_pressed()
+				get_viewport().set_input_as_handled()
+			KEY_U:
+				_on_troop_training()
 				get_viewport().set_input_as_handled()
 			KEY_ENTER, KEY_SPACE:
 				_on_end_turn_pressed()

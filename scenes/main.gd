@@ -1,4 +1,4 @@
-## main.gd - Root scene controller for 暗潮 SLG (v1.5)
+## main.gd - Root scene controller for 暗潮 SLG (v3.4)
 ## Manages game flow: MainMenu -> FactionSelect -> GameStart -> Gameplay
 extends Node3D
 
@@ -42,6 +42,12 @@ var game_over_panel_node = null
 
 # ── Army Management Panel (SR07-style) ──
 var army_panel = null
+
+# ── v3.4 New panels ──
+var ai_indicator = null
+var debug_console = null
+var troop_training_panel = null
+var action_visualizer = null
 
 
 func _ready() -> void:
@@ -137,6 +143,33 @@ func _ready() -> void:
 	game_over_panel_node.set_script(GameOverPanelScript)
 	add_child(game_over_panel_node)
 
+	# ── v3.4: AI Indicator overlay ──
+	var AIIndicatorScript = preload("res://scenes/ui/ai_indicator.gd")
+	ai_indicator = CanvasLayer.new()
+	ai_indicator.layer = 8
+	ai_indicator.set_script(AIIndicatorScript)
+	add_child(ai_indicator)
+
+	# ── v3.4: Action Visualizer overlay ──
+	var ActionVisualizerScript = preload("res://scenes/ui/action_visualizer.gd")
+	action_visualizer = CanvasLayer.new()
+	action_visualizer.layer = 7
+	action_visualizer.set_script(ActionVisualizerScript)
+	add_child(action_visualizer)
+
+	# ── v3.4: Troop Training Panel ──
+	var TroopTrainingScript = preload("res://scenes/ui/troop_training_panel.gd")
+	troop_training_panel = CanvasLayer.new()
+	troop_training_panel.set_script(TroopTrainingScript)
+	add_child(troop_training_panel)
+
+	# ── v3.4: Debug Console (highest layer) ──
+	var DebugConsoleScript = preload("res://scenes/ui/debug_console.gd")
+	debug_console = CanvasLayer.new()
+	debug_console.layer = 10
+	debug_console.set_script(DebugConsoleScript)
+	add_child(debug_console)
+
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)
 
@@ -188,6 +221,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		# ESC to show settings (if no other panel is open)
 		if event.keycode == KEY_ESCAPE and GameManager.game_active:
+			# Debug console has highest priority
+			if debug_console and debug_console.has_method("is_panel_visible") and debug_console.is_panel_visible():
+				return  # Let debug console handle ESC
 			if hero_panel and hero_panel.is_panel_visible():
 				return  # Let hero panel handle ESC first
 			if quest_journal_panel and quest_journal_panel.is_panel_visible():
@@ -201,6 +237,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if hero_detail_panel_node and hero_detail_panel_node.is_panel_visible():
 				return
 			if pirate_panel and pirate_panel.is_panel_visible():
+				return
+			if troop_training_panel and troop_training_panel.has_method("is_panel_visible") and troop_training_panel.is_panel_visible():
 				return
 			if espionage_panel and espionage_panel.visible:
 				espionage_panel.hide_panel()  # BUG FIX: call hide_panel() for proper cleanup

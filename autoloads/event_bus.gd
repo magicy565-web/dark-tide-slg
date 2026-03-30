@@ -326,3 +326,33 @@ signal crisis_quarantine_applied(tile_index: int, cost: int)
 signal grand_festival_executed(player_id: int)
 signal imperial_decree_executed(player_id: int)
 signal forge_alliance_executed(player_id: int, target_faction: int)
+
+# ── AI Indicator ──
+signal ai_action_started(faction_key: String, action_type: String, detail: String)
+signal ai_action_completed(faction_key: String, action_type: String, success: bool)
+signal ai_turn_progress(faction_key: String, phase: int, total_phases: int)
+signal ai_thinking(faction_key: String, is_thinking: bool)
+
+# ── Debug Console ──
+signal debug_command_executed(command: String, result: String)
+signal debug_state_changed(key: String, value: Variant)
+signal debug_log(level: String, message: String)
+
+# ── Action Visualization ──
+signal action_visualize_attack(attacker_tile: int, defender_tile: int, result: Dictionary)
+signal action_visualize_deploy(army_id: int, from_tile: int, to_tile: int)
+signal action_visualize_recruit(tile_index: int, troop_id: String, count: int)
+signal action_visualize_build(tile_index: int, building_id: String)
+signal action_visualize_research(tech_id: String, started: bool)
+
+# ── Troop Training ──
+signal troop_training_started(player_id: int, troop_id: String, turns_left: int)
+signal troop_training_completed(player_id: int, troop_id: String)
+signal troop_training_cancelled(player_id: int, troop_id: String)
+signal troop_ability_unlocked(player_id: int, troop_id: String, ability_id: String)
+
+# ── Task Panel ──
+signal task_assigned(task_id: String, task_data: Dictionary)
+signal task_progress_updated(task_id: String, progress: float)
+signal task_completed(task_id: String)
+signal task_panel_refresh_requested()

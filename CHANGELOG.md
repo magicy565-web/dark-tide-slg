@@ -2,6 +2,102 @@
 
 ---
 
+## v3.4.0 — 2026-03-30 (游戏体验优化 + 6大新系统)
+
+### 新系统: 行动可视化 (action_visualizer.gd, 732行)
+
+- **攻击可视化**: 红色虚线箭头+刀剑碰撞图标+屏幕边缘红闪+浮动结果文字("胜利!"/"失败!")
+- **部署可视化**: 蓝色箭头+旗帜沿路径移动+到达脉冲
+- **征募可视化**: 绿色粒子效果+"+兵 xN"浮动文字
+- **建造可视化**: 锤子动画+灰尘粒子+"建造完成!"浮动文字
+- **研究可视化**: 卷轴图标+紫色粒子拖尾+横幅公告
+- **回合过渡**: 大字"第N回合"缩放动画+阵营徽章水印+画面暗化
+- **领地占领**: 阵营色脉冲环+"占领!"文字
+- **效果队列系统**: 多效果顺序播放,25%重叠
+
+### 新系统: AI指示器 (ai_indicator.gd, 492行)
+
+- **位置**: 右上角紧凑覆盖层,仅AI回合时显示
+- **内容**: 阵营名称(阵营色)+当前行动("进攻中...")+阶段进度条+最近5条行动日志
+- **动画**: 从右侧滑入/滑出+阵营名脉冲发光+日志条目淡入
+- **行动类型中文化**: attack→进攻, deploy→部署, recruit→征募, build→建造, research→研究, explore→探索, diplomacy→外交
+- **跳过按钮**: 可跳过AI动画演出
+- **信号集成**: ai_action_started/completed, ai_turn_progress, ai_thinking
+
+### 新系统: 指令控制台 DEBUG (debug_console.gd, 1426行)
+
+- **切换**: 反引号键(`)打开/关闭, 底部40%高度面板
+- **4标签页**:
+  - **控制台**: 终端风格输入/输出, 命令历史(↑↓), Tab自动补全
+  - **游戏状态**: 实时资源/AP/领地/军队/回合数/威胁/秩序/英雄状态网格
+  - **平衡监视**: 阵营战力对比条/经济收支/军事力量/BalanceManager警告
+  - **事件日志**: 全部EventBus信号时间线, 分类过滤, 点击查看参数
+- **24条命令**: help, give gold/food/iron/ap, set turn/threat/order, spawn, tp, reveal, god, win, kill, heal, research, level, dump state/tiles/armies, eval, clear, speed, spy
+- **信号间谍模式**: 实时记录所有EventBus信号发射
+- **性能监控**: FPS/内存用量实时显示
+
+### 新系统: 兵种训练面板 (troop_training_panel.gd, 981行)
+
+- **核心概念**: 每种兵种3个能力升级槽, 花费金币+战略资源+等待N回合解锁
+- **布局**: 全屏模态 — 左侧兵种列表(按阵营分组) + 中央兵种详情 + 右侧能力树
+- **3级训练**:
+  - 基础训练(T1): 低费用, 1-2回合
+  - 进阶训练(T2): 中等费用, 2-3回合, 需要T1
+  - 精通训练(T3): 高费用, 3-4回合, 需要T2
+- **9种邪恶阵营兵种**: 兽人足轻/武士/骑兵, 海盗散兵/弓手/炮兵, 暗精灵武士/忍者/骑兵
+- **训练状态管理**: 内置状态字典, 支持开始/取消(50%退款)/回合推进/存档序列化
+- **快捷键**: U键打开, ESC关闭
+
+### 科技树面板重构 (tech_tree_panel.gd, 437→911行)
+
+- **节点图视图**: 从简单列表改为2D节点图, T1左/T2中/T3右, 前置连线
+- **增强卡片**: 160x100px, 分支色带(前锋=红/远程=黄/机动=蓝/法术=紫/特殊=金), 状态图标(✓/⟳/🔒/◇)
+- **连接线**: `_draw()`绘制贝塞尔曲线 — 灰色虚线(锁定)/金色实线(可用)/绿色发光(完成)/流动光点(研究中)
+- **研究队列条**: 顶部水平显示当前+排队研究, 进度环+简称+剩余回合
+- **详情面板升级**: BBCode描述/彩色效果列表(ATK↑绿/DEF↑蓝/被动✦金)/资源图标成本/前置状态勾选
+- **缩放控制**: 滚轮或+/-按钮, 50%-200%
+- **入场动画**: 卡片交错淡入
+
+### 任务面板增强 (quest_journal_panel.gd)
+
+- 支线任务子分类: 剧情/奖励/情报 三标签
+- 卡片色彩按状态区分: 完成=绿/激活=黄/可用=蓝/待战斗=红/失败=暗红/锁定=灰
+
+### EventBus新增22个信号
+
+- **AI指示器** (4): ai_action_started, ai_action_completed, ai_turn_progress, ai_thinking
+- **调试控制台** (3): debug_command_executed, debug_state_changed, debug_log
+- **行动可视化** (5): action_visualize_attack/deploy/recruit/build/research
+- **兵种训练** (4): troop_training_started/completed/cancelled, troop_ability_unlocked
+- **任务面板** (4): task_assigned, task_progress_updated, task_completed, task_panel_refresh_requested
+
+### GameManager集成 (game_manager.gd)
+
+- AI回合处理: 每阶段发射ai_action_started/completed/turn_progress信号
+- 玩家行动: 攻击/部署/征募/建造后发射action_visualize信号
+- 新增`_get_faction_key()`辅助函数
+
+### HUD集成 (hud.gd)
+
+- 国内面板新增"兵种训练"按钮 (快捷键U)
+- 连接到troop_training_panel.show_panel()
+
+### 文件变更清单
+
+| 文件 | 变更类型 |
+|------|----------|
+| scenes/ui/action_visualizer.gd | **新增** (732行, 行动可视化覆盖层) |
+| scenes/ui/ai_indicator.gd | **新增** (492行, AI回合指示器) |
+| scenes/ui/debug_console.gd | **新增** (1426行, 调试控制台) |
+| scenes/ui/troop_training_panel.gd | **新增** (981行, 兵种训练面板) |
+| scenes/ui/tech_tree_panel.gd | 重构 (437→911行, 节点图视图) |
+| autoloads/event_bus.gd | 增强 (+22个新信号) |
+| autoloads/game_manager.gd | 增强 (AI/行动可视化信号发射) |
+| scenes/main.gd | 增强 (4个新面板集成+ESC处理) |
+| scenes/ui/hud.gd | 增强 (兵种训练按钮+快捷键U) |
+
+---
+
 ## v3.3.0 — 2026-03-25 (战斗演出强化 + 装备系统完善 + 全面Debug)
 
 ### 战斗演出增强 (combat_view.gd)
