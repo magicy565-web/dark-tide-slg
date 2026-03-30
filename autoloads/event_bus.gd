@@ -356,3 +356,18 @@ signal task_assigned(task_id: String, task_data: Dictionary)
 signal task_progress_updated(task_id: String, progress: float)
 signal task_completed(task_id: String)
 signal task_panel_refresh_requested()
+
+# ── Tile Indicators ──
+signal tile_indicators_toggle(layer: String, visible: bool)
+signal tile_indicator_refresh(tile_index: int)
+signal tile_indicators_rebuild()
+
+# ── Intel Overlay ──
+signal intel_tile_scouted(player_id: int, tile_index: int, turns: int)
+signal intel_tile_sabotaged(player_id: int, tile_index: int, turns: int)
+signal intel_orders_intercepted(player_id: int, faction_key: String, orders: Array)
+signal intel_hero_wounded(player_id: int, hero_id: String, turns: int)
+signal intel_overlay_toggle(visible: bool)
+signal intel_report_requested()
+signal tile_tooltip_requested(tile_index: int)
+signal tile_tooltip_dismissed()

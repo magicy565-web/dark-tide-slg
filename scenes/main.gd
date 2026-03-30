@@ -1,4 +1,4 @@
-## main.gd - Root scene controller for 暗潮 SLG (v3.4)
+## main.gd - Root scene controller for 暗潮 SLG (v3.5)
 ## Manages game flow: MainMenu -> FactionSelect -> GameStart -> Gameplay
 extends Node3D
 
@@ -48,6 +48,10 @@ var ai_indicator = null
 var debug_console = null
 var troop_training_panel = null
 var action_visualizer = null
+
+# ── v3.5 Tile indicators & intel ──
+var tile_indicator_system = null
+var intel_overlay = null
 
 
 func _ready() -> void:
@@ -169,6 +173,20 @@ func _ready() -> void:
 	debug_console.layer = 10
 	debug_console.set_script(DebugConsoleScript)
 	add_child(debug_console)
+
+	# ── v3.5: Tile Indicator System (low layer, above board) ──
+	var TileIndicatorScript = preload("res://scenes/ui/tile_indicator_system.gd")
+	tile_indicator_system = CanvasLayer.new()
+	tile_indicator_system.layer = 3
+	tile_indicator_system.set_script(TileIndicatorScript)
+	add_child(tile_indicator_system)
+
+	# ── v3.5: Intel Overlay (above tile indicators) ──
+	var IntelOverlayScript = preload("res://scenes/ui/intel_overlay.gd")
+	intel_overlay = CanvasLayer.new()
+	intel_overlay.layer = 4
+	intel_overlay.set_script(IntelOverlayScript)
+	add_child(intel_overlay)
 
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)

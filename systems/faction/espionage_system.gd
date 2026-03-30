@@ -263,6 +263,8 @@ func execute_operation(player_id: int, operation_type: int, target) -> Dictionar
 func _handle_scout(player_id: int, tile_idx: int, succeeded: bool) -> Dictionary:
 	if succeeded:
 		_add_revealed_tile(player_id, tile_idx, SCOUT_REVEAL_DURATION)
+		if EventBus.has_signal("intel_tile_scouted"):
+			EventBus.intel_tile_scouted.emit(player_id, tile_idx, 3)
 		return {"success": true, "message": "侦察成功! 目标格#%d军情已揭露 (持续%d回合)" % [tile_idx, SCOUT_REVEAL_DURATION],
 			"details": {"tile": tile_idx, "duration": SCOUT_REVEAL_DURATION}}
 	return {"success": false, "message": "侦察失败! 间谍未能接近目标", "details": {}}
@@ -271,6 +273,8 @@ func _handle_scout(player_id: int, tile_idx: int, succeeded: bool) -> Dictionary
 func _handle_sabotage(player_id: int, tile_idx: int, succeeded: bool) -> Dictionary:
 	if succeeded:
 		_sabotaged_tiles[player_id].append({"tile": tile_idx, "turns_left": 2, "production_penalty": 0.20})
+		if EventBus.has_signal("intel_tile_sabotaged"):
+			EventBus.intel_tile_sabotaged.emit(player_id, tile_idx, 2)
 		return {"success": true, "message": "破坏成功! 目标格#%d建筑瘫痪2回合, 产出-20%%" % tile_idx,
 			"details": {"tile": tile_idx, "disabled_turns": 2, "production_penalty": 0.20}}
 	return {"success": false, "message": "破坏行动失败! 间谍被发现", "details": {}}
@@ -288,6 +292,8 @@ func _handle_assassinate(player_id: int, target_faction: int, succeeded: bool, r
 			"details": {"outcome": "kill", "target_faction": target_faction}}
 	elif sub_roll < 75:
 		# Wound: ATK/DEF -3 for 5 turns
+		if EventBus.has_signal("intel_hero_wounded"):
+			EventBus.intel_hero_wounded.emit(player_id, target_faction, 5)
 		return {"success": true, "message": "暗杀部分成功! 目标英雄负伤 (ATK/DEF-3, 5回合)",
 			"details": {"outcome": "wound", "target_faction": target_faction, "atk_penalty": 3, "def_penalty": 3, "duration": 5}}
 	else:
@@ -324,6 +330,9 @@ func _handle_spread_rumors(player_id: int, target_faction: int, succeeded: bool)
 func _handle_intercept_orders(player_id: int, target_faction: int, succeeded: bool) -> Dictionary:
 	if succeeded:
 		_intercepted_orders[player_id].append({"target_id": target_faction, "turns_left": 1, "moves": []})
+		if EventBus.has_signal("intel_orders_intercepted"):
+			var orders_array: Array = []
+			EventBus.intel_orders_intercepted.emit(player_id, target_faction, orders_array)
 		return {"success": true, "message": "截获命令成功! 下回合可查看目标阵营行动计划",
 			"details": {"target_faction": target_faction, "duration": 1}}
 	return {"success": false, "message": "截获命令失败! 信使未被拦截", "details": {}}
@@ -475,6 +484,9 @@ func process_turn(player_id: int) -> Array:
 			else:
 				events.append("英雄 %s 伤势痊愈" % entry["hero_id"])
 		_wounded_heroes[player_id] = active_wounds
+
+	if EventBus.has_signal("tile_indicator_refresh"):
+		EventBus.tile_indicator_refresh.emit(-1)
 
 	return events
 
