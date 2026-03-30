@@ -580,7 +580,13 @@ func _track_consecutive_failure(player_id: int, target_id: int, succeeded: bool)
 	if prev >= BLOWN_COVER_FAIL_THRESHOLD:
 		# Blown cover: intel network exposed
 		_set_intel(player_id, maxi(0, get_intel(player_id) - BLOWN_COVER_INTEL_LOSS))
-		set_counter_intel(target_id, get_counter_intel(target_id) + BLOWN_COVER_CI_GAIN)
+		# Resolve the owning player from tile index to apply counter-intel correctly
+		var _bc_owner: int = -1
+		if target_id >= 0 and target_id < GameManager.tiles.size():
+			_bc_owner = GameManager.tiles[target_id].get("owner_id", -1)
+		if _bc_owner < 0:
+			_bc_owner = target_id  # fallback: treat target_id as player_id
+		set_counter_intel(_bc_owner, get_counter_intel(_bc_owner) + BLOWN_COVER_CI_GAIN)
 		_consecutive_failures[player_id][target_id] = 0
 		EventBus.message_log.emit("[谍报] 情报网暴露! 连续%d次失败, 情报-%d, 对方反情报+%d" % [
 			BLOWN_COVER_FAIL_THRESHOLD, BLOWN_COVER_INTEL_LOSS, BLOWN_COVER_CI_GAIN])

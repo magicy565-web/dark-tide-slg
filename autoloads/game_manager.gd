@@ -1740,7 +1740,7 @@ func begin_turn() -> void:
 			if td_order > 0:
 				var t: Dictionary = tiles[tidx]
 				var cur_po: float = t.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
-				t["public_order"] = minf(cur_po + td_order, 100.0)
+				t["public_order"] = minf(cur_po + float(td_order) * 0.01, 1.0)
 
 	# ── Phase 4b: Troop per-turn passive effects (regen, self_destruct, etc.) ──
 	_tick_troop_passives(pid)
@@ -3792,8 +3792,7 @@ func _handle_stronghold(player: Dictionary, tile: Dictionary) -> void:
 	var won: bool = _resolve_combat(player, tile, defender_name)
 
 	# Restore original garrison so the bonus doesn't stack permanently
-	if not won:
-		tile["garrison"] = original_garrison
+	tile["garrison"] = original_garrison
 
 	if won:
 		_capture_tile(player, tile)
@@ -5758,6 +5757,8 @@ func check_win_condition() -> void:
 		return
 
 	# ── Defeat: All evil factions eliminated (rival AI wins) ──
+	# Only trigger if the human player also has no path to victory
+	# (i.e., the human is the last dark faction standing is handled by elimination above)
 	var all_rivals_dead: bool = true
 	for pid in range(1, players.size()):
 		if pid == human_id:
@@ -5765,7 +5766,7 @@ func check_win_condition() -> void:
 		if count_tiles_owned(pid) > 0:
 			all_rivals_dead = false
 			break
-	if all_rivals_dead:
+	if all_rivals_dead and human_tiles <= 0:
 		game_active = false
 		EventBus.message_log.emit("[color=red]所有暗黑势力已被光明联盟消灭...[/color]")
 		var score_data: Dictionary = _compute_end_game_score(human_id, "Defeat")

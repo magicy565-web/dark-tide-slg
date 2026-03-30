@@ -380,6 +380,9 @@ func _resolve_attack(target: Dictionary, strength: int, attacker_name: String) -
 
 	if exp_power > def_power:
 		# Attacker wins — tile lost
+		# Unstation garrison commander if any before changing ownership
+		if HeroSystem and HeroSystem.has_method("unstation_hero"):
+			HeroSystem.unstation_hero(target["index"])
 		target["owner_id"] = -1
 		target["garrison"] = maxi(1, strength - int(float(garrison) * BalanceConfig.EXPEDITION_CAPTURE_GARRISON_LOSS))
 		EventBus.territory_changed.emit(target["index"], -1)

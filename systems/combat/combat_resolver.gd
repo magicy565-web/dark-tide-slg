@@ -483,11 +483,11 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 
 	# 8 rounds elapsed → defender wins (unless HOLD_LINE directive)
 	if winner == "":
-		# BUG FIX: attacker HOLD_LINE should NOT grant attacker a timeout win;
-		# only defender HOLD_LINE grants defender timeout victory
+		# Defender HOLD_LINE: trade-off is +25% DEF but timeout = attacker wins
+		# (defender must eliminate attacker, can't just stall)
 		if state.get("def_directive", TacticalDirective.NONE) == TacticalDirective.HOLD_LINE:
-			winner = "defender"
-			log.append("坚守指令: 超时判定 — 防守方坚守成功!")
+			winner = "attacker"
+			log.append("坚守指令: 超时判定 — 防守方未能歼灭进攻方, 进攻方突破!")
 		else:
 			winner = "defender"
 			log.append("8回合结束，防守方胜利!")
@@ -1367,11 +1367,20 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 		if not _awk_hid.is_empty() and HeroSkillsAdvanced.is_awakened(_awk_hid):
 			var _still_awake: bool = HeroSkillsAdvanced.tick_awakening(_awk_hid)
 			if not _still_awake:
-				# Revert awakening stat multipliers
-				var _awk_data: Dictionary = HeroSkillsAdvanced.awakening_data.get(_awk_hid, {})
-				_awk_u["atk"] = _awk_u["atk"] / _awk_data.get("atk_mult", 1.0)
-				_awk_u["def"] = _awk_u["def"] / _awk_data.get("def_mult", 1.0)
-				_awk_u["spd"] = _awk_u["spd"] / _awk_data.get("spd_mult", 1.0)
+				# Revert awakening stats using stored pre-awakening values (avoid float drift)
+				if _awk_u.has("_pre_awaken_atk"):
+					_awk_u["atk"] = _awk_u["_pre_awaken_atk"]
+					_awk_u["def"] = _awk_u["_pre_awaken_def"]
+					_awk_u["spd"] = _awk_u["_pre_awaken_spd"]
+					_awk_u.erase("_pre_awaken_atk")
+					_awk_u.erase("_pre_awaken_def")
+					_awk_u.erase("_pre_awaken_spd")
+				else:
+					# Fallback: divide (legacy path, may drift)
+					var _awk_data: Dictionary = HeroSkillsAdvanced.awakening_data.get(_awk_hid, {})
+					_awk_u["atk"] = _awk_u["atk"] / _awk_data.get("atk_mult", 1.0)
+					_awk_u["def"] = _awk_u["def"] / _awk_data.get("def_mult", 1.0)
+					_awk_u["spd"] = _awk_u["spd"] / _awk_data.get("spd_mult", 1.0)
 				log.append("[觉醒] %s 觉醒结束，恢复常态" % _awk_u.get("unit_type", ""))
 
 	# -- v6.0: Check awakening trigger for damaged heroes --
@@ -1386,6 +1395,10 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 		if HeroSkillsAdvanced.check_awakening(_chk_hid, _chk_hp_ratio):
 			var _awk_stats: Dictionary = HeroSkillsAdvanced.trigger_awakening(_chk_hid)
 			if not _awk_stats.is_empty():
+				# Store pre-awakening stats for clean revert (avoid float drift)
+				_chk_u["_pre_awaken_atk"] = _chk_u["atk"]
+				_chk_u["_pre_awaken_def"] = _chk_u["def"]
+				_chk_u["_pre_awaken_spd"] = _chk_u["spd"]
 				_chk_u["atk"] = _chk_u["atk"] * _awk_stats.get("atk_mult", 1.0)
 				_chk_u["def"] = _chk_u["def"] * _awk_stats.get("def_mult", 1.0)
 				_chk_u["spd"] = _chk_u["spd"] * _awk_stats.get("spd_mult", 1.0)
@@ -1452,6 +1465,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				"war_cry_used": false, "root_bind_used": false,
 				"trade_hire_used": false, "blood_ritual_used": false,
 				"immovable": false,
+				"morale": MORALE_START, "is_routed": false,
 			}
 			if unit["side"] == "attacker":
 				skeleton["slot"] = state["atk_units"].size()
@@ -1530,6 +1544,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				"war_cry_used": false, "root_bind_used": false,
 				"trade_hire_used": false, "blood_ritual_used": false,
 				"immovable": false,
+				"morale": MORALE_START, "is_routed": false,
 			}
 			if unit["side"] == "attacker":
 				merc["slot"] = state["atk_units"].size()

@@ -41,6 +41,10 @@ const NO_SUPPLY_ATTRITION_PCT: float = 0.05
 var march_orders: Dictionary = {}
 
 
+func reset() -> void:
+	march_orders.clear()
+
+
 # ══════════════════ PATHFINDING ══════════════════
 
 func find_path(from_tile: int, to_tile: int) -> Array:
@@ -458,7 +462,12 @@ func _apply_attrition(army_id: int, order: Dictionary, army: Dictionary) -> Dict
 	var total_lost: int = 0
 	for troop in army.get("troops", []):
 		var soldiers: int = troop.get("soldiers", 0)
-		var loss: int = maxi(1, int(float(soldiers) * NO_SUPPLY_ATTRITION_PCT))
+		if soldiers <= 0:
+			continue
+		var loss: int = int(float(soldiers) * NO_SUPPLY_ATTRITION_PCT)
+		# For small squads, use probabilistic loss instead of guaranteed minimum 1
+		if loss <= 0:
+			loss = 1 if randf() < NO_SUPPLY_ATTRITION_PCT else 0
 		troop["soldiers"] = maxi(0, soldiers - loss)
 		total_lost += loss
 

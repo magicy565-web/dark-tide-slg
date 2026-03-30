@@ -432,6 +432,38 @@ func _roll_weather() -> Weather:
 	return Weather.CLEAR
 
 
+func reset() -> void:
+	current_season = Season.SPRING
+	current_weather = Weather.CLEAR
+	current_turn = 0
+	season_turn = 0
+	burning_tiles.clear()
+
+
+func to_save_data() -> Dictionary:
+	var burn_save: Dictionary = {}
+	for k in burning_tiles:
+		burn_save[str(k)] = burning_tiles[k]
+	return {
+		"current_season": int(current_season),
+		"current_weather": int(current_weather),
+		"current_turn": current_turn,
+		"season_turn": season_turn,
+		"burning_tiles": burn_save,
+	}
+
+
+func from_save_data(data: Dictionary) -> void:
+	current_season = int(data.get("current_season", 0)) as Season
+	current_weather = int(data.get("current_weather", 0)) as Weather
+	current_turn = int(data.get("current_turn", 0))
+	season_turn = int(data.get("season_turn", 0))
+	burning_tiles.clear()
+	var bt: Dictionary = data.get("burning_tiles", {})
+	for k in bt:
+		burning_tiles[int(k)] = int(bt[k])
+
+
 func _log(text: String) -> void:
 	if EventBus and EventBus.has_signal("message_log"):
 		EventBus.message_log.emit("[Weather] " + text)

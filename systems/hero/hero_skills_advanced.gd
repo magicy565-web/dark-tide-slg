@@ -691,17 +691,16 @@ func get_charge_progress(hero_id: String) -> Dictionary:
 # ---------------------------------------------------------------------------
 
 func to_save_data() -> Dictionary:
-	return {
-		"charge_counters": _charge_counters.duplicate(),
-		"awakened_heroes": _awakened_heroes.duplicate(true),
-		"combo_charges": _combo_charges.duplicate(),
-	}
+	# Per-battle state should NOT be persisted — it is reset each battle.
+	# Returning empty to avoid stale awakened_heroes blocking future awakenings.
+	return {}
 
 
-func from_save_data(data: Dictionary) -> void:
-	_charge_counters = data.get("charge_counters", {}).duplicate()
-	_awakened_heroes = data.get("awakened_heroes", {}).duplicate(true)
-	_combo_charges = data.get("combo_charges", {}).duplicate()
+func from_save_data(_data: Dictionary) -> void:
+	# Per-battle state is transient; always start clean.
+	_charge_counters.clear()
+	_awakened_heroes.clear()
+	_combo_charges.clear()
 
 
 # ---------------------------------------------------------------------------
@@ -714,11 +713,19 @@ func _get_hero_name(hero_id: String) -> String:
 
 
 func _find_hero_side(hero_id: String, battle_state: Dictionary) -> String:
+	# Check alive units first
 	for unit in battle_state.get("atk_units", []):
 		if unit.get("hero_id", "") == hero_id and unit.get("is_alive", false):
 			return "atk"
 	for unit in battle_state.get("def_units", []):
 		if unit.get("hero_id", "") == hero_id and unit.get("is_alive", false):
+			return "def"
+	# Fallback: search dead units to find correct side
+	for unit in battle_state.get("atk_units", []):
+		if unit.get("hero_id", "") == hero_id:
+			return "atk"
+	for unit in battle_state.get("def_units", []):
+		if unit.get("hero_id", "") == hero_id:
 			return "def"
 	return "atk"
 
@@ -746,16 +753,41 @@ func _get_ally_units(side: String, battle_state: Dictionary) -> Array:
 
 
 func _get_column_targets(enemy_units: Array) -> Array:
-	var front: Array = []
-	var back: Array = []
+	## Select a vertical column (one front + one back unit sharing the same slot index).
+	## Picks the column with the most total soldiers for maximum impact.
+	var front_by_slot: Dictionary = {}  # slot -> unit
+	var back_by_slot: Dictionary = {}
 	for u in enemy_units:
 		if not u.get("is_alive", false):
 			continue
+		var slot: int = u.get("slot", 0)
 		if u.get("row", "front") == "front":
-			front.append(u)
+			front_by_slot[slot] = u
 		else:
-			back.append(u)
-	# Pick the column (front or back) with more units
-	if front.size() >= back.size():
-		return front
-	return back
+			back_by_slot[slot] = u
+	# Collect all unique slot indices
+	var all_slots: Dictionary = {}
+	for s in front_by_slot:
+		all_slots[s] = true
+	for s in back_by_slot:
+		all_slots[s] = true
+	if all_slots.is_empty():
+		return []
+	# Pick the slot column with the most total soldiers
+	var best_slot: int = -1
+	var best_soldiers: int = -1
+	for s in all_slots:
+		var total: int = 0
+		if front_by_slot.has(s):
+			total += front_by_slot[s].get("soldiers", 0)
+		if back_by_slot.has(s):
+			total += back_by_slot[s].get("soldiers", 0)
+		if total > best_soldiers:
+			best_soldiers = total
+			best_slot = s
+	var result: Array = []
+	if front_by_slot.has(best_slot):
+		result.append(front_by_slot[best_slot])
+	if back_by_slot.has(best_slot):
+		result.append(back_by_slot[best_slot])
+	return result

@@ -114,7 +114,7 @@ func _load_persistent() -> void:
 	var json := JSON.new()
 	if json.parse(text) != OK:
 		return
-	var data: Variant = json.get_data()
+	var data: Variant = json.data
 	if data is Dictionary:
 		_ngplus_level = data.get("ngplus_level", 0)
 		_completed_heroes = data.get("completed_heroes", [])
