@@ -103,6 +103,9 @@ var path_preview_meshes: Array = []
 var water_anim_nodes: Array = []  # [{node, type}]
 var attack_route_meshes: Array = []
 var march_route_meshes: Array = []  # Persistent march path visuals
+var supply_line_meshes: Array = []  # Supply route dot visuals
+var supply_depot_markers: Array = []  # 3D depot crate markers
+var isolated_overlay_meshes: Array = []  # Red overlay for isolated tiles
 var settlement_nodes: Dictionary = {}
 var _settlement_cache: Dictionary = {}  # idx -> last icon_key to avoid redundant rebuilds
 var _upgrade_flash_tiles: Dictionary = {}  # idx -> true, tiles currently playing upgrade flash
@@ -200,8 +203,17 @@ func _ready() -> void:
 	EventBus.army_march_cancelled.connect(_on_march_cancelled)
 	if EventBus.has_signal("building_upgraded"):
 		EventBus.building_upgraded.connect(_on_building_upgraded)
+	if EventBus.has_signal("supply_line_cut"):
+		EventBus.supply_line_cut.connect(_on_supply_line_cut)
+	if EventBus.has_signal("supply_line_restored"):
+		EventBus.supply_line_restored.connect(_on_supply_line_restored)
+	if EventBus.has_signal("supply_depot_built"):
+		EventBus.supply_depot_built.connect(_on_supply_depot_built)
+	if EventBus.has_signal("supply_depot_destroyed"):
+		EventBus.supply_depot_destroyed.connect(_on_supply_depot_destroyed)
 	if not GameManager.tiles.is_empty():
 		_build_board()
+	_board_hud_init()
 
 func rebuild() -> void:
 	_clear_board(); _build_board()
@@ -365,6 +377,7 @@ func _clear_board() -> void:
 		if is_instance_valid(m): m.queue_free()
 	attack_route_meshes.clear()
 	_clear_march_routes()
+	_clear_supply_lines(); _clear_supply_depots(); _clear_isolated_overlays()
 	_clear_highlights(); _clear_path_preview(); _clear_pulse_ring()
 	if is_instance_valid(_hover_glow):
 		_hover_glow.queue_free()
@@ -1602,6 +1615,7 @@ func _on_turn_started(_pid: int) -> void:
 		_update_all_territories()
 		_fog_dirty_tiles.clear()  # Force full fog rebuild on turn start
 		_update_fog()
+	_update_supply_lines()
 func _on_game_over(_wid: int) -> void:
 	_clear_highlights()
 func _on_army_changed(_pid: int, _cnt: int) -> void:
@@ -2094,3 +2108,578 @@ func pulse_tile(idx: int, color: Color, duration: float = 0.6) -> void:
 	bmi.material_override = pm
 	var tw := create_tween()
 	tw.tween_callback(func(): bmi.material_override = orig).set_delay(duration)
+
+# ═══════════════ SUPPLY LINES ═══════════════
+
+const COL_SUPPLY_CONNECTED := Color(0.2, 0.8, 0.3, 0.55)
+const COL_SUPPLY_STRAINED := Color(0.9, 0.8, 0.2, 0.55)
+const COL_SUPPLY_DISCONNECTED := Color(0.85, 0.2, 0.2, 0.55)
+const COL_ISOLATED_OVERLAY := Color(0.85, 0.15, 0.1, 0.2)
+const COL_DEPOT_MARKER := Color(0.3, 0.6, 0.9, 0.85)
+const SUPPLY_LINE_DOT_SPACING := 0.7
+const SUPPLY_LINE_DOT_RADIUS := 0.035
+const SUPPLY_CONNECTED_THRESHOLD := 5
+var _isolated_pulse_tween: Tween = null
+
+func _update_supply_lines() -> void:
+	_clear_supply_lines()
+	_clear_supply_depots()
+	_clear_isolated_overlays()
+	var pid: int = GameManager.get_human_player_id()
+	if pid < 0: return
+	_draw_supply_lines(pid)
+	_draw_supply_depot_markers(pid)
+	_draw_isolated_overlays(pid)
+
+func _draw_supply_lines(player_id: int) -> void:
+	## Draw dotted supply route from each army back to capital.
+	if not GameManager.has_method("get_player_armies"): return
+	var armies: Array = GameManager.get_player_armies(player_id)
+	for army in armies:
+		var army_id: int = army.get("id", -1)
+		var tile_index: int = army.get("tile_index", -1)
+		if army_id < 0 or tile_index < 0: continue
+		if tile_index >= GameManager.tiles.size(): continue
+		# Get supply path through SupplySystem autoload
+		var path: Array = _get_army_supply_path(player_id, army)
+		if path.is_empty(): continue
+		# Determine line color based on path length
+		var line_color: Color
+		if path.size() <= SUPPLY_CONNECTED_THRESHOLD:
+			line_color = COL_SUPPLY_CONNECTED
+		elif path.size() <= SUPPLY_CONNECTED_THRESHOLD * 2:
+			line_color = COL_SUPPLY_STRAINED
+		else:
+			line_color = COL_SUPPLY_DISCONNECTED
+		_draw_supply_path_dots(path, line_color)
+
+func _get_army_supply_path(player_id: int, army: Dictionary) -> Array:
+	## Resolve supply path for an army using the strategic SupplySystem.
+	var tile_index: int = army.get("tile_index", -1)
+	if tile_index < 0: return []
+	# Use autoload SupplySystem (strategic)
+	if SupplySystem and SupplySystem.has_method("get_supply_path"):
+		var tile: Dictionary = GameManager.tiles[tile_index] if tile_index < GameManager.tiles.size() else {}
+		var owner_id: int = tile.get("owner_id", -1)
+		if owner_id == player_id:
+			return SupplySystem.get_supply_path(player_id, tile_index)
+		# Army on enemy/neutral tile — find path from nearest connected neighbor
+		var neighbors: Array = GameManager.adjacency.get(tile_index, [])
+		var best_path: Array = []
+		for nb in neighbors:
+			if nb < 0 or nb >= GameManager.tiles.size(): continue
+			if GameManager.tiles[nb] == null: continue
+			if GameManager.tiles[nb].get("owner_id", -1) != player_id: continue
+			if not SupplySystem.is_tile_supplied(player_id, nb): continue
+			var p: Array = SupplySystem.get_supply_path(player_id, nb)
+			if not p.is_empty() and (best_path.is_empty() or p.size() < best_path.size()):
+				best_path = p
+		if not best_path.is_empty():
+			return [tile_index] + best_path
+	return []
+
+func _draw_supply_path_dots(path: Array, color: Color) -> void:
+	## Draw small dotted line along a supply path, similar to march route dots.
+	if path.size() < 2: return
+	var mat: StandardMaterial3D = _make_supply_dot_mat(color)
+	for i in range(path.size() - 1):
+		var fi: int = path[i]; var ti: int = path[i + 1]
+		if fi < 0 or fi >= GameManager.tiles.size(): continue
+		if ti < 0 or ti >= GameManager.tiles.size(): continue
+		var fp: Vector3 = GameManager.tiles[fi]["position_3d"]
+		var tp: Vector3 = GameManager.tiles[ti]["position_3d"]
+		var fe: float = _get_elev(GameManager.tiles[fi])
+		var te: float = _get_elev(GameManager.tiles[ti])
+		var seg_dist: float = Vector3(tp.x - fp.x, 0, tp.z - fp.z).length()
+		if seg_dist < 0.1: continue
+		var dot_count: int = maxi(int(seg_dist / SUPPLY_LINE_DOT_SPACING), 2)
+		for d in range(dot_count):
+			var t_ratio: float = float(d + 1) / float(dot_count + 1)
+			var dot := MeshInstance3D.new()
+			var sm := SphereMesh.new()
+			sm.radius = SUPPLY_LINE_DOT_RADIUS
+			sm.height = SUPPLY_LINE_DOT_RADIUS * 2.0
+			dot.mesh = sm
+			dot.material_override = mat
+			dot.position = Vector3(
+				lerpf(fp.x, tp.x, t_ratio),
+				lerpf(fe, te, t_ratio) + TILE_HEIGHT + 0.1,
+				lerpf(fp.z, tp.z, t_ratio))
+			add_child(dot)
+			supply_line_meshes.append(dot)
+
+func _make_supply_dot_mat(color: Color) -> StandardMaterial3D:
+	var key := "supply_%s" % color
+	if _material_cache.has(key): return _material_cache[key]
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.emission_enabled = true
+	m.emission = Color(color.r, color.g, color.b, 1.0)
+	m.emission_energy_multiplier = 0.5
+	_material_cache[key] = m
+	return m
+
+func _clear_supply_lines() -> void:
+	for m in supply_line_meshes:
+		if is_instance_valid(m): m.queue_free()
+	supply_line_meshes.clear()
+
+# ═══════════════ SUPPLY DEPOT MARKERS ═══════════════
+
+func _draw_supply_depot_markers(player_id: int) -> void:
+	## Draw small 3D crate indicators on tiles that have supply depots.
+	# Check combat SupplySystem node for depot data
+	var depot_node: Node = null
+	if Engine.get_main_loop() is SceneTree:
+		depot_node = (Engine.get_main_loop() as SceneTree).root.get_node_or_null("SupplySystem")
+	# Also check for SupplyLogistics depot buildings
+	var logistics_node: Node = null
+	if Engine.get_main_loop() is SceneTree:
+		logistics_node = (Engine.get_main_loop() as SceneTree).root.get_node_or_null("SupplyLogistics")
+	# Gather depot tile indices
+	var depot_tiles: Array = []
+	# Method 1: SupplySystem._supply_depots (combat system, may be separate node)
+	if depot_node and depot_node.has_method("is_supply_depot"):
+		for tile in GameManager.tiles:
+			if tile == null: continue
+			if tile.get("owner_id", -1) != player_id: continue
+			if depot_node.is_supply_depot(tile["index"]):
+				depot_tiles.append(tile["index"])
+	# Method 2: Check building_id for depot buildings
+	var depot_building_ids: Array = ["supply_depot", "depot", "granary"]
+	for tile in GameManager.tiles:
+		if tile == null: continue
+		if tile.get("owner_id", -1) != player_id: continue
+		var bid: String = tile.get("building_id", "")
+		if bid in depot_building_ids and not depot_tiles.has(tile["index"]):
+			depot_tiles.append(tile["index"])
+	# Draw markers
+	for tidx in depot_tiles:
+		_create_depot_3d_marker(tidx)
+
+func _create_depot_3d_marker(idx: int) -> void:
+	if idx < 0 or idx >= GameManager.tiles.size(): return
+	if not tile_visuals.has(idx): return
+	var pos: Vector3 = GameManager.tiles[idx]["position_3d"]
+	var el: float = tile_visuals[idx].get("elevation", 0.0)
+	# Small box (crate) mesh
+	var crate := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.25, 0.2, 0.25)
+	crate.mesh = bm
+	var mat := _make_emissive_mat(
+		COL_DEPOT_MARKER,
+		Color(0.3, 0.55, 0.85),
+		0.6
+	)
+	crate.material_override = mat
+	crate.position = Vector3(pos.x + 0.6, el + TILE_HEIGHT + 0.15, pos.z + 0.6)
+	add_child(crate)
+	supply_depot_markers.append(crate)
+	# Label above crate
+	var lbl := _make_label3d(
+		"补给站", 8,
+		Vector3(pos.x + 0.6, el + TILE_HEIGHT + 0.4, pos.z + 0.6),
+		COL_DEPOT_MARKER
+	)
+	add_child(lbl)
+	supply_depot_markers.append(lbl)
+
+func _clear_supply_depots() -> void:
+	for m in supply_depot_markers:
+		if is_instance_valid(m): m.queue_free()
+	supply_depot_markers.clear()
+
+# ═══════════════ ISOLATED TERRITORY OVERLAY ═══════════════
+
+func _draw_isolated_overlays(player_id: int) -> void:
+	## Draw darkened red overlay on isolated (cut-off) tiles.
+	if not SupplySystem or not SupplySystem.has_method("get_isolated_tiles"): return
+	var isolated: Array = SupplySystem.get_isolated_tiles(player_id)
+	if isolated.is_empty(): return
+	for tidx in isolated:
+		_add_isolated_overlay(tidx)
+	_start_isolated_pulse()
+
+func _add_isolated_overlay(idx: int) -> void:
+	if idx < 0 or idx >= GameManager.tiles.size(): return
+	if not tile_visuals.has(idx): return
+	var pos: Vector3 = GameManager.tiles[idx]["position_3d"]
+	var el: float = tile_visuals[idx].get("elevation", 0.0)
+	var overlay := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = TILE_RADIUS * 0.95
+	cm.bottom_radius = TILE_RADIUS * 0.95
+	cm.height = 0.02
+	cm.radial_segments = 6
+	overlay.mesh = cm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = COL_ISOLATED_OVERLAY
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.emission_enabled = true
+	mat.emission = Color(0.85, 0.15, 0.1)
+	mat.emission_energy_multiplier = 0.4
+	overlay.material_override = mat
+	overlay.position = Vector3(pos.x, el + TILE_HEIGHT + 0.06, pos.z)
+	add_child(overlay)
+	isolated_overlay_meshes.append(overlay)
+
+func _start_isolated_pulse() -> void:
+	## Pulse the isolated overlays between dim and bright red.
+	if isolated_overlay_meshes.is_empty(): return
+	if _isolated_pulse_tween and _isolated_pulse_tween.is_valid():
+		_isolated_pulse_tween.kill()
+	_isolated_pulse_tween = create_tween()
+	_isolated_pulse_tween.set_loops()
+	for overlay in isolated_overlay_meshes:
+		if not is_instance_valid(overlay): continue
+		var mat: StandardMaterial3D = overlay.material_override
+		if mat == null: continue
+		_isolated_pulse_tween.set_parallel(true)
+		_isolated_pulse_tween.tween_property(mat, "albedo_color:a", 0.35, 0.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	_isolated_pulse_tween.chain()
+	for overlay in isolated_overlay_meshes:
+		if not is_instance_valid(overlay): continue
+		var mat: StandardMaterial3D = overlay.material_override
+		if mat == null: continue
+		_isolated_pulse_tween.set_parallel(true)
+		_isolated_pulse_tween.tween_property(mat, "albedo_color:a", 0.12, 0.8).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+
+func _clear_isolated_overlays() -> void:
+	if _isolated_pulse_tween and _isolated_pulse_tween.is_valid():
+		_isolated_pulse_tween.kill()
+		_isolated_pulse_tween = null
+	for m in isolated_overlay_meshes:
+		if is_instance_valid(m): m.queue_free()
+	isolated_overlay_meshes.clear()
+
+# ═══════════════ SUPPLY SIGNAL HANDLERS ═══════════════
+
+func _on_supply_line_cut(_player_id: int, isolated_tiles: Array) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	if _player_id != pid: return
+	# Add isolated overlays for newly cut tiles
+	for tidx in isolated_tiles:
+		_add_isolated_overlay(tidx)
+	_start_isolated_pulse()
+
+func _on_supply_line_restored(_player_id: int, _tiles: Array) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	if _player_id != pid: return
+	# Full refresh — rebuild isolated overlays from current state
+	_clear_isolated_overlays()
+	_draw_isolated_overlays(pid)
+	# Refresh supply lines as paths may have changed
+	_clear_supply_lines()
+	_draw_supply_lines(pid)
+
+func _on_supply_depot_built(_tile_index: int, _player_id: int) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	if _player_id != pid: return
+	# Refresh depot markers and supply lines
+	_clear_supply_depots()
+	_draw_supply_depot_markers(pid)
+	_clear_supply_lines()
+	_draw_supply_lines(pid)
+
+func _on_supply_depot_destroyed(_tile_index: int) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	_clear_supply_depots()
+	_draw_supply_depot_markers(pid)
+	_clear_supply_lines()
+	_draw_supply_lines(pid)
+
+
+# ═══════════════ AP COUNTER DISPLAY (CanvasLayer HUD) ═══════════════
+var _ap_canvas_layer: CanvasLayer
+var _ap_label: Label
+var _ap_flash_tween: Tween
+
+func _setup_ap_display() -> void:
+	## Creates a CanvasLayer with a Label showing current AP in the top-left.
+	_ap_canvas_layer = CanvasLayer.new()
+	_ap_canvas_layer.name = "APOverlay"
+	_ap_canvas_layer.layer = 10
+	add_child(_ap_canvas_layer)
+	var panel := PanelContainer.new()
+	panel.name = "APPanel"
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.08, 0.07, 0.06, 0.75)
+	sb.corner_radius_top_left = 6; sb.corner_radius_top_right = 6
+	sb.corner_radius_bottom_left = 6; sb.corner_radius_bottom_right = 6
+	sb.content_margin_left = 14; sb.content_margin_right = 14
+	sb.content_margin_top = 8; sb.content_margin_bottom = 8
+	sb.border_width_left = 2; sb.border_width_top = 2
+	sb.border_width_right = 2; sb.border_width_bottom = 2
+	sb.border_color = Color(0.85, 0.65, 0.13, 0.6)
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.position = Vector2(16, 16)
+	_ap_canvas_layer.add_child(panel)
+	_ap_label = Label.new()
+	_ap_label.name = "APLabel"
+	_ap_label.text = "⚡ AP: -- / --"
+	_ap_label.add_theme_font_size_override("font_size", 22)
+	_ap_label.add_theme_color_override("font_color", Color("#DAA520"))
+	panel.add_child(_ap_label)
+	EventBus.ap_changed.connect(_on_ap_changed_display)
+	EventBus.turn_started.connect(_on_ap_turn_started_display)
+
+func _on_ap_changed_display(_pid: int, _new_ap: int) -> void:
+	_refresh_ap_display()
+	_flash_ap_counter()
+
+func _on_ap_turn_started_display(_pid: int) -> void:
+	_refresh_ap_display()
+
+func _refresh_ap_display() -> void:
+	if not is_instance_valid(_ap_label):
+		return
+	var pid: int = GameManager.get_human_player_id()
+	var player: Dictionary = GameManager.get_player_by_id(pid)
+	if player.is_empty():
+		return
+	var current_ap: int = player.get("ap", 0)
+	var max_ap: int = GameManager.calculate_action_points(pid)
+	_ap_label.text = "⚡ AP: %d / %d" % [current_ap, max_ap]
+
+
+# ═══════════════ AP CHANGE FEEDBACK (Flash / Pulse) ═══════════════
+
+func _flash_ap_counter() -> void:
+	## Brief gold -> red -> gold flash on the AP label when AP is consumed.
+	if not is_instance_valid(_ap_label):
+		return
+	if is_instance_valid(_ap_flash_tween):
+		_ap_flash_tween.kill()
+	var gold_color := Color("#DAA520")
+	var red_color := Color(0.95, 0.2, 0.15)
+	_ap_label.add_theme_color_override("font_color", red_color)
+	_ap_flash_tween = create_tween()
+	_ap_flash_tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_ap_flash_tween.tween_method(func(c: Color): _ap_label.add_theme_color_override("font_color", c),
+		red_color, gold_color, 0.45)
+
+
+# ═══════════════ BATTLE RESULT TOAST ON MAP ═══════════════
+var _battle_toast_nodes: Array = []
+
+func _setup_battle_toast_listener() -> void:
+	EventBus.action_visualize_attack.connect(_on_battle_visualize)
+
+func _on_battle_visualize(_attacker_tile: int, defender_tile: int, result: Dictionary) -> void:
+	var won: bool = result.get("won", false)
+	var text: String = "⚔ 胜利!" if won else "⚔ 败北!"
+	var color: Color = Color(0.15, 0.9, 0.25) if won else Color(0.95, 0.2, 0.15)
+	_spawn_battle_toast(defender_tile, text, color)
+
+func _spawn_battle_toast(tile_index: int, text: String, color: Color) -> void:
+	## Floating Label3D at the tile that drifts upward and fades out over 1.5s.
+	if not tile_visuals.has(tile_index):
+		return
+	var vis: Dictionary = tile_visuals[tile_index]
+	var root: Node3D = vis["root"]
+	var toast := Label3D.new()
+	toast.text = text
+	toast.font_size = 48
+	toast.pixel_size = 0.012
+	toast.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	toast.no_depth_test = true
+	toast.modulate = color
+	toast.outline_modulate = Color(0, 0, 0, 0.95)
+	toast.outline_size = 14
+	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast.position = Vector3(0, 2.8, 0)
+	root.add_child(toast)
+	_battle_toast_nodes.append(toast)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(toast, "position:y", 5.0, 1.5)
+	tw.tween_property(toast, "modulate:a", 0.0, 1.5).set_delay(0.3)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(toast):
+			toast.queue_free()
+			_battle_toast_nodes.erase(toast)
+	)
+
+
+# ═══════════════ ARMY SUPPLY STATUS INDICATORS ═══════════════
+
+func _update_army_supply_bar(idx: int) -> void:
+	## Updates or creates the supply status bar for an army at tile idx.
+	if not tile_visuals.has(idx):
+		return
+	var vis: Dictionary = tile_visuals[idx]
+	var am: Node3D = vis["army_marker"]
+	if not am.visible:
+		var old_bar: Node3D = am.get_node_or_null("SupplyBar")
+		if old_bar:
+			old_bar.visible = false
+		return
+	var army: Dictionary = GameManager.get_army_at_tile(idx)
+	if army.is_empty():
+		return
+	var supply_pct: float = _get_army_supply_pct(army)
+	var bar_color: Color
+	if supply_pct > 60.0:
+		bar_color = Color(0.2, 0.85, 0.25)
+	elif supply_pct >= 40.0:
+		bar_color = Color(0.9, 0.85, 0.15)
+	else:
+		bar_color = Color(0.9, 0.2, 0.15)
+	var bar: MeshInstance3D = am.get_node_or_null("SupplyBar")
+	if not bar:
+		bar = MeshInstance3D.new()
+		bar.name = "SupplyBar"
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.35, 0.035, 0.06)
+		bar.mesh = bm
+		bar.position = Vector3(0, 0.05, 0)
+		am.add_child(bar)
+	bar.visible = true
+	var full_width: float = 0.35
+	var current_w: float = full_width * clampf(supply_pct / 100.0, 0.05, 1.0)
+	bar.scale.x = current_w / full_width
+	bar.position.x = -(full_width - current_w) * 0.5
+	bar.material_override = _make_mat(bar_color)
+
+func _get_army_supply_pct(army: Dictionary) -> float:
+	## Army supply as percentage (0-100). Uses MarchSystem if marching, else troop fullness.
+	var army_id: int = army.get("id", -1)
+	if MarchSystem.march_orders.has(army_id):
+		var order: Dictionary = MarchSystem.march_orders[army_id]
+		return clampf(float(order.get("supply", 100.0)), 0.0, 100.0)
+	var current_total: int = 0
+	var max_total: int = 0
+	for troop in army.get("troops", []):
+		current_total += troop.get("soldiers", 0)
+		max_total += troop.get("max_soldiers", troop.get("soldiers", 1))
+	if max_total <= 0:
+		return 100.0
+	return clampf(float(current_total) / float(max_total) * 100.0, 0.0, 100.0)
+
+func _update_all_army_supply_bars() -> void:
+	for idx in tile_visuals:
+		_update_army_supply_bar(idx)
+
+
+# ═══════════════ SIEGE PROGRESS INDICATOR ═══════════════
+var _siege_hp_nodes: Dictionary = {}
+
+func _setup_siege_listeners() -> void:
+	EventBus.siege_started.connect(_on_siege_started_visual)
+	EventBus.siege_progress.connect(_on_siege_progress_visual)
+	EventBus.siege_ended.connect(_on_siege_ended_visual)
+
+func _on_siege_started_visual(_attacker_id: int, tile_index: int, _turns: int) -> void:
+	_update_siege_hp_bar(tile_index)
+
+func _on_siege_progress_visual(tile_index: int, _wall_hp: float, _morale: float, _turns_left: int) -> void:
+	_update_siege_hp_bar(tile_index)
+
+func _on_siege_ended_visual(tile_index: int, _result: String) -> void:
+	_remove_siege_hp_bar(tile_index)
+
+func _update_siege_hp_bar(tile_index: int) -> void:
+	if not tile_visuals.has(tile_index):
+		return
+	var siege: Dictionary = SiegeSystem.get_siege_at_tile(tile_index)
+	if siege.is_empty():
+		_remove_siege_hp_bar(tile_index)
+		return
+	var wall_hp: float = siege.get("wall_hp", 0.0)
+	var wall_max: float = siege.get("wall_max_hp", 1.0)
+	if wall_max <= 0.0:
+		wall_max = 1.0
+	var pct: float = clampf(wall_hp / wall_max, 0.0, 1.0)
+	var bar_color: Color
+	if pct > 0.6:
+		bar_color = Color(0.3, 0.7, 0.9)
+	elif pct > 0.3:
+		bar_color = Color(0.9, 0.75, 0.15)
+	else:
+		bar_color = Color(0.9, 0.2, 0.1)
+	var vis: Dictionary = tile_visuals[tile_index]
+	var root: Node3D = vis["root"]
+	var bg_bar: MeshInstance3D = root.get_node_or_null("SiegeHPBg")
+	if not bg_bar:
+		bg_bar = MeshInstance3D.new()
+		bg_bar.name = "SiegeHPBg"
+		var bgm := BoxMesh.new()
+		bgm.size = Vector3(1.0, 0.06, 0.06)
+		bg_bar.mesh = bgm
+		bg_bar.position = Vector3(0, 2.55, 0)
+		bg_bar.material_override = _make_mat(Color(0.15, 0.12, 0.1, 0.8))
+		root.add_child(bg_bar)
+	bg_bar.visible = true
+	var hp_bar: MeshInstance3D = root.get_node_or_null("SiegeHPBar")
+	if not hp_bar:
+		hp_bar = MeshInstance3D.new()
+		hp_bar.name = "SiegeHPBar"
+		var hpm := BoxMesh.new()
+		hpm.size = Vector3(1.0, 0.06, 0.07)
+		hp_bar.mesh = hpm
+		hp_bar.position = Vector3(0, 2.55, 0)
+		root.add_child(hp_bar)
+	hp_bar.visible = true
+	hp_bar.material_override = _make_mat(bar_color)
+	hp_bar.scale.x = pct
+	hp_bar.position.x = -(1.0 - pct) * 0.5
+	var hp_label: Label3D = root.get_node_or_null("SiegeHPLabel")
+	if not hp_label:
+		hp_label = _make_label3d("", 22, Vector3(0, 2.72, 0), Color(0.9, 0.85, 0.7))
+		hp_label.name = "SiegeHPLabel"
+		root.add_child(hp_label)
+	hp_label.visible = true
+	hp_label.text = "🏰 %.0f / %.0f" % [wall_hp, wall_max]
+	_siege_hp_nodes[tile_index] = hp_bar
+
+func _remove_siege_hp_bar(tile_index: int) -> void:
+	if not tile_visuals.has(tile_index):
+		return
+	var root: Node3D = tile_visuals[tile_index]["root"]
+	for nname in ["SiegeHPBg", "SiegeHPBar", "SiegeHPLabel"]:
+		var n: Node = root.get_node_or_null(nname)
+		if n:
+			n.queue_free()
+	_siege_hp_nodes.erase(tile_index)
+
+
+# ═══════════════ BOARD HUD INITIALIZATION ═══════════════
+
+func _board_hud_init() -> void:
+	## Master init for all new HUD/feedback systems. Called at end of _ready.
+	_setup_ap_display()
+	_setup_battle_toast_listener()
+	_setup_siege_listeners()
+	_refresh_ap_display()
+	EventBus.army_changed.connect(_on_army_changed_supply_bar)
+	EventBus.army_deployed.connect(_on_army_deployed_supply_bar)
+	EventBus.army_created.connect(_on_army_created_supply_bar)
+	EventBus.army_disbanded.connect(_on_army_disbanded_supply_bar)
+	EventBus.army_supply_changed.connect(_on_army_supply_changed_bar)
+	EventBus.turn_started.connect(_on_turn_started_supply_bar)
+
+func _on_army_changed_supply_bar(_pid: int, _cnt: int) -> void:
+	_update_all_army_supply_bars()
+
+func _on_army_deployed_supply_bar(_pid: int, _aid: int, from_tile: int, to_tile: int) -> void:
+	_update_army_supply_bar(from_tile)
+	_update_army_supply_bar(to_tile)
+
+func _on_army_created_supply_bar(_pid: int, _aid: int, _extra = null) -> void:
+	_update_all_army_supply_bars()
+
+func _on_army_disbanded_supply_bar(_pid: int, _aid: int, _extra = null) -> void:
+	_update_all_army_supply_bars()
+
+func _on_army_supply_changed_bar(army_id: int, _supply_val: int) -> void:
+	var army: Dictionary = GameManager.get_army(army_id)
+	if not army.is_empty():
+		_update_army_supply_bar(army["tile_index"])
+
+func _on_turn_started_supply_bar(_pid: int) -> void:
+	_update_all_army_supply_bars()
