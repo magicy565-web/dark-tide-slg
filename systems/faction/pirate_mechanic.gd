@@ -1349,10 +1349,12 @@ func from_save_data(data: Dictionary) -> void:
 					if item.has("value"):
 						item["value"] = int(item["value"])
 	# Fix int values in _market_item after JSON round-trip
-	if _market_item.has("price"):
-		_market_item["price"] = int(_market_item["price"])
-	if _market_item.has("value"):
-		_market_item["value"] = int(_market_item["value"])
+	for _mi_pid in _market_item:
+		if _market_item[_mi_pid] is Dictionary:
+			if _market_item[_mi_pid].has("price"):
+				_market_item[_mi_pid]["price"] = int(_market_item[_mi_pid]["price"])
+			if _market_item[_mi_pid].has("value"):
+				_market_item[_mi_pid]["value"] = int(_market_item[_mi_pid]["value"])
 	# Fix int values in raid_parties after JSON round-trip
 	for pid in _raid_parties:
 		if _raid_parties[pid] is Array:

@@ -1626,12 +1626,12 @@ func _get_border_tiles(player_id: int) -> Array:
 	## Get tiles owned by player that border non-owned tiles.
 	var result: Array = []
 	for tile in GameManager.tiles:
-		if tile["owner_id"] != player_id:
+		if tile.get("owner_id", -1) != player_id:
 			continue
 		var neighbors: Array = GameManager.adjacency.get(tile["index"], [])
 		for n_idx in neighbors:
 			if n_idx < GameManager.tiles.size():
-				if GameManager.tiles[n_idx]["owner_id"] != player_id:
+				if GameManager.tiles[n_idx].get("owner_id", -1) != player_id:
 					result.append(tile)
 					break
 	return result

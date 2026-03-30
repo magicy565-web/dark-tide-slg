@@ -276,6 +276,9 @@ func try_trigger_next(hero_id: String) -> Dictionary:
 		# Emit both the local signal and EventBus signal for UI
 		story_choice_requested.emit(hero_id, event_id, choices)
 		EventBus.story_choice_requested.emit(hero_id, event_id, choices)
+	else:
+		# Non-choice events: auto-complete to advance progress and prevent re-triggering
+		complete_current_event(hero_id)
 	# Emit signal for UI to display the event
 	EventBus.story_event_triggered.emit(hero_id, event)
 	return event

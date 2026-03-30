@@ -62,7 +62,7 @@ func try_rebellion() -> Dictionary:
 	var player_id: int = GameManager.get_human_player_id()
 	var owned_tiles: Array = []
 	for tile in GameManager.tiles:
-		if tile["owner_id"] == player_id:
+		if tile.get("owner_id", -1) == player_id:
 			owned_tiles.append(tile)
 
 	if owned_tiles.is_empty():

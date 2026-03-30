@@ -69,6 +69,8 @@ func add_slaves(player_id: int, count: int) -> void:
 		return
 	if not _allocations.has(player_id):
 		init_player(player_id, count)
+		if not _syncing:
+			sync_slave_count(player_id)
 		return
 	_allocations[player_id]["idle"] += count
 	# 每次增加奴隶后同步ResourceManager（防止递归）

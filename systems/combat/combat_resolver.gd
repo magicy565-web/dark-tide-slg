@@ -1231,7 +1231,7 @@ func _attempt_duel(state: Dictionary, log: Array, atk_duel: bool, def_duel: bool
 	# Loser takes ATK*3 damage, morale -25
 	var duel_damage: int = int(winner_unit["atk"] * 3.0)
 	loser_unit["soldiers"] = maxi(loser_unit["soldiers"] - duel_damage, 0)
-	loser_unit["morale"] = loser_unit.get("morale", MORALE_START) - 25
+	loser_unit["morale"] = maxi(loser_unit.get("morale", MORALE_START) - 25, 0)
 	if loser_unit["soldiers"] <= 0:
 		loser_unit["is_alive"] = false
 	# Winner's side gets morale +15
@@ -1243,11 +1243,14 @@ func _attempt_duel(state: Dictionary, log: Array, atk_duel: bool, def_duel: bool
 	log.append("[color=yellow]%s [%s] 胜出! 对方损失%d兵, 士气-25. 己方全军士气+15[/color]" % [
 		winner_unit.get("unit_type", ""), winner_unit["side"], duel_damage])
 	# If winner side has DUEL directive, grant ATK+20% (as described in DIRECTIVE_DATA)
+	# Only apply once per battle to prevent compounding from multiple duels
 	if (atk_wins and atk_duel) or (not atk_wins and def_duel):
-		for u in state[winner_units_key]:
-			if u["is_alive"]:
-				u["atk"] = u["atk"] * 1.2
-		log.append("[color=cyan]一骑打胜利! %s全军ATK+20%%[/color]" % ("进攻方" if atk_wins else "防守方"))
+		if not state.get("_duel_atk_applied_" + winner_side, false):
+			state["_duel_atk_applied_" + winner_side] = true
+			for u in state[winner_units_key]:
+				if u["is_alive"]:
+					u["atk"] = u["atk"] * 1.2
+			log.append("[color=cyan]一骑打胜利! %s全军ATK+20%%[/color]" % ("进攻方" if atk_wins else "防守方"))
 
 
 func _find_strongest_hero(units: Array) -> Dictionary:
@@ -1586,7 +1589,8 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 		if "scatter" in unit["passives"]:
 			if float(unit["soldiers"]) < float(unit["max_soldiers"]) * 0.3:
 				unit["is_alive"] = false
-				unit["soldiers"] = 0  # BUG FIX: zero soldiers so loss tracking is accurate
+				unit["scattered"] = true  # Mark as retreated, not killed
+				# Keep soldiers intact — they escaped the battle alive
 				log.append("%s [%s] 溃散撤退!" % [unit["unit_type"], unit["side"]])
 				continue
 
@@ -2989,8 +2993,8 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 				EnvironmentSystem.record_battle(_vet_uid)
 
 	# -- v6.0: Fatigue from battle --
-	var _atk_army_id_f: int = state.get("atk_pid", -1)
-	var _def_army_id_f: int = state.get("def_pid", -1)
+	var _atk_army_id_f: int = state.get("atk_army_id", state.get("atk_pid", -1))
+	var _def_army_id_f: int = state.get("def_army_id", state.get("def_pid", -1))
 	EnvironmentSystem.on_battle(_atk_army_id_f)
 	EnvironmentSystem.on_battle(_def_army_id_f)
 
@@ -3053,8 +3057,8 @@ func _check_slave_capture(winner_id: int, loser_units: Array) -> int:
 			if HeroSystem.has_equipment_passive(hero["id"], "capture_essence_bonus"):
 				if randf() < 0.20:
 					count += 1
-				# Grant extra shadow essence
-				ResourceManager.apply_delta(winner_id, {"shadow_essence": 1})
+					# Grant extra shadow essence only on successful capture roll
+					ResourceManager.apply_delta(winner_id, {"shadow_essence": 1})
 				break
 	return count
 

@@ -119,9 +119,9 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 					var adj_gold_bonus: int = int(float(g) * (adj_effects["gold_mult_adjacent"] - 1.0))
 					income["gold"] += adj_gold_bonus
 				if adj_effects.has("order_per_turn_adjacent"):
-					# Apply order bonus to this tile's public order
-					var cur_order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
-					tile["public_order"] = minf(cur_order + adj_effects["order_per_turn_adjacent"], 100.0)
+					# NOTE: Do NOT mutate tile["public_order"] here — calculate_income must
+					# be read-only. Order bonuses are applied in begin_turn Phase 4a instead.
+					pass
 
 			# ── Seasonal tile development bonuses ──
 			var seasonal: Dictionary = TileDevelopment.get_seasonal_tile_bonus(tile_idx)

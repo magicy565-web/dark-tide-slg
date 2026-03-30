@@ -1815,17 +1815,11 @@ func begin_turn() -> void:
 	if pid == get_human_player_id():
 		var rolled_events: Array = EventSystem.roll_events()
 		for rev in rolled_events:
-			var ev_title: String = rev.get("name", "事件")
-			var ev_desc: String = rev.get("desc", "")
-			var ev_choices: Array = []
-			if rev.has("choices"):
-				for ch in rev["choices"]:
-					ev_choices.append({"text": ch.get("text", ch.get("label", ""))})
-			elif rev.has("option_a") and rev.has("option_b"):
-				ev_choices.append({"text": rev["option_a"].get("label", "选项A")})
-				ev_choices.append({"text": rev["option_b"].get("label", "选项B")})
-			EventBus.show_event_popup.emit(ev_title, ev_desc, ev_choices)
-			EventBus.message_log.emit("[color=yellow]随机事件: %s[/color]" % ev_title)
+			# BUG FIX R10: Use _show_random_event_popup so _pending_choice_event is set,
+			# otherwise player choices are silently dropped by _on_random_event_choice.
+			var player_for_event: Dictionary = get_player_by_id(pid)
+			_show_random_event_popup(player_for_event, rev)
+			EventBus.message_log.emit("[color=yellow]随机事件: %s[/color]" % rev.get("name", "事件"))
 
 	# ── Phase 5c3: Harem cooldown tick ──
 	if pid == get_human_player_id():
@@ -1837,7 +1831,9 @@ func begin_turn() -> void:
 		HeroSystem.process_prison_turn()
 
 	# ── Phase 5c4: Per-tile public order drift ──
-	tick_tile_public_order()
+	# Only tick once per round cycle, not once per player
+	if pid == get_human_player_id():
+		tick_tile_public_order()
 
 	# ── Phase 5d: Taming neglect / gift cooldown tick ──
 	QuestManager.tick_turn(pid)
@@ -2549,6 +2545,8 @@ func action_deploy_army(army_id: int, target_tile: int) -> bool:
 	var army: Dictionary = armies[army_id]
 	var player_id: int = army["player_id"]
 	var player: Dictionary = get_player_by_id(player_id)
+	if target_tile < 0 or target_tile >= tiles.size():
+		return false
 	var required_ap: int = tiles[target_tile].get("terrain_move_cost", 1)
 	if player.is_empty() or player["ap"] < required_ap:
 		EventBus.message_log.emit("行动点不足!")
@@ -2754,11 +2752,19 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 			player["ap"] -= 1
 			SiegeSystem.start_siege(army_id, target_tile_index)
 			EventBus.player_arrived.emit(player_id, target_tile_index)
-			return false
-		elif existing_siege.get("wall_hp", 1.0) > 0.0 and existing_siege.get("turns_remaining", 1) > 0:
-			# Siege ongoing, walls not breached yet
-			EventBus.message_log.emit("[color=yellow]围攻进行中，城壁尚未崩塌! (剩余%d回合)[/color]" % existing_siege.get("turns_remaining", 0))
-			return false
+			EventBus.ap_changed.emit(player_id, player["ap"])
+			return true  # BUG FIX R10: Return true since AP was consumed for siege start
+		elif existing_siege.get("wall_hp", 1.0) > 0.0:
+			if existing_siege.get("turns_remaining", 1) > 0:
+				# Siege ongoing, walls not breached yet
+				EventBus.message_log.emit("[color=yellow]围攻进行中，城壁尚未崩塌! (剩余%d回合)[/color]" % existing_siege.get("turns_remaining", 0))
+				return false
+			else:
+				# BUG FIX R10: Siege expired but walls not breached — siege fizzles,
+				# don't auto-trigger assault without storm penalty.
+				SiegeSystem.lift_siege(existing_siege.get("siege_id", ""))
+				EventBus.message_log.emit("[color=yellow]围攻超时，城壁未被攻破。围攻解除。[/color]")
+				return false
 		# else: wall_hp <= 0 → proceed with final assault (attacker ATK bonus applied below)
 
 	player["ap"] -= 1
@@ -6357,11 +6363,14 @@ func _run_orc_ai(player_id: int) -> void:
 		# ── Phase 5: Convert slaves to army (Orc war pit) ──
 		if ResourceManager.get_slaves(player_id) > 0:
 			OrcMechanic.convert_slave_to_army(player_id)
-			# Slave conversion doesn't cost AP, but keep looping
+			# BUG FIX R10: Slave conversion doesn't cost AP - limit to 3 conversions
+			# per turn to avoid infinite loop, then fall through to explore/break.
 			idle_count += 1
 			if idle_count > 3:
-				break
-			continue
+				idle_count = 0  # Reset so subsequent AP actions aren't blocked
+				pass  # Fall through to Phase 6 (explore) or break
+			else:
+				continue
 
 		# ── Phase 6: Explore only if nothing else to do (Orcs dislike idle turns) ──
 		if not owned_tiles.is_empty():

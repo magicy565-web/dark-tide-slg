@@ -430,21 +430,21 @@ func _tick_escaped_npcs(player_id: int) -> void:
 
 func _check_event_chains(player_id: int, npc_id: String) -> void:
 	## Trigger event chains at obedience thresholds.
-	## 使用 _type_triggered_thresholds 按NPC类型去重，防止多次捕获同类型NPC重复触发
+	## 使用 _type_triggered_thresholds 按NPC ID去重，防止多次捕获同一NPC重复触发
 	if not NPC_DEFS.has(npc_id):
 		return
 	var def: Dictionary = NPC_DEFS[npc_id]
-	var npc_type: String = def.get("type", npc_id)
+	var npc_key: String = npc_id  # Use npc_id, not type, so different NPCs track independently
 	var state: Dictionary = _npc_states[player_id][npc_id]
 	var ob: int = state["obedience"]
 	# 实例级别记录（向后兼容）
 	var triggered: Array = state.get("triggered_thresholds", [])
-	# 类型级别记录（跨捕获持久化）
+	# NPC级别记录（跨捕获持久化）
 	if not _type_triggered_thresholds.has(player_id):
 		_type_triggered_thresholds[player_id] = {}
-	if not _type_triggered_thresholds[player_id].has(npc_type):
-		_type_triggered_thresholds[player_id][npc_type] = []
-	var type_triggered: Array = _type_triggered_thresholds[player_id][npc_type]
+	if not _type_triggered_thresholds[player_id].has(npc_key):
+		_type_triggered_thresholds[player_id][npc_key] = []
+	var type_triggered: Array = _type_triggered_thresholds[player_id][npc_key]
 	var chains: Dictionary = def.get("event_chains", {})
 	for threshold in chains:
 		if ob >= threshold and not triggered.has(threshold):
@@ -457,7 +457,7 @@ func _check_event_chains(player_id: int, npc_id: String) -> void:
 			EventBus.message_log.emit("[NPC事件] %s 信任度达到%d, 触发特殊事件!" % [def["name"], threshold])
 			EventBus.quest_triggered.emit(player_id, quest_id, {"npc_id": npc_id, "threshold": threshold})
 	state["triggered_thresholds"] = triggered
-	_type_triggered_thresholds[player_id][npc_type] = type_triggered
+	_type_triggered_thresholds[player_id][npc_key] = type_triggered
 
 
 # ═══════════════ SAVE / LOAD ═══════════════
