@@ -1,6 +1,9 @@
-[gd_resource type="Theme" load_steps=46 format=3]
+[gd_resource type="Theme" load_steps=49 format=3]
 
 [ext_resource type="FontFile" path="res://assets/fonts/NotoSansCJKsc-Regular.otf" id="1"]
+[ext_resource type="FontFile" path="res://assets/fonts/NotoSerifCJKsc-Bold.otf" id="2"]
+[ext_resource type="FontFile" path="res://assets/fonts/NotoSerifCJKsc-Regular.otf" id="3"]
+[ext_resource type="FontFile" path="res://assets/fonts/JetBrainsMono-Bold.otf" id="4"]
 
 [sub_resource type="StyleBoxFlat" id="panel_bg"]
 bg_color = Color(0.08, 0.08, 0.12, 0.85)
@@ -590,7 +593,8 @@ Button/font_sizes/font_size = 16
 Label/styles/normal = SubResource("label_normal")
 Label/colors/font_color = Color(0.94, 0.94, 0.94, 1)
 Label/colors/font_shadow_color = Color(0, 0, 0, 0.4)
-Label/font_sizes/font_size = 16
+Label/fonts/font = ExtResource("3")
+Label/font_sizes/font_size = 20
 
 LineEdit/styles/normal = SubResource("lineedit_normal")
 LineEdit/styles/focus = SubResource("lineedit_focus")
@@ -688,3 +692,15 @@ OptionButton/colors/font_pressed_color = Color(0.855, 0.647, 0.125, 1)
 OptionButton/colors/font_disabled_color = Color(0.5, 0.5, 0.5, 0.6)
 OptionButton/colors/font_focus_color = Color(0.94, 0.94, 0.94, 1)
 OptionButton/font_sizes/font_size = 16
+
+HeaderLabel/base_type = "Label"
+HeaderLabel/fonts/font = ExtResource("2")
+HeaderLabel/font_sizes/font_size = 32
+HeaderLabel/colors/font_color = Color(0.855, 0.647, 0.125, 1)
+HeaderLabel/colors/font_shadow_color = Color(0, 0, 0, 0.6)
+
+DamageLabel/base_type = "Label"
+DamageLabel/fonts/font = ExtResource("4")
+DamageLabel/font_sizes/font_size = 22
+DamageLabel/colors/font_color = Color(1, 0.2, 0.2, 1)
+DamageLabel/colors/font_shadow_color = Color(0, 0, 0, 0.7)

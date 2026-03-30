@@ -28,6 +28,7 @@ const HERO_FOLDERS: Dictionary = {
 	"shion_pirate": "11_shion_pirate",
 	"youya": "12_youya",
 	"hibiki": "13_hibiki",
+	"sara": "14_sara",
 	"mei": "15_mei",
 	"kaede": "16_kaede",
 	"akane": "17_akane",
