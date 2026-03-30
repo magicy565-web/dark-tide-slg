@@ -126,6 +126,10 @@ var _hover_glow: MeshInstance3D = null
 var _hover_glow_mat: StandardMaterial3D = null
 var _pulse_tween: Tween = null
 var _pulse_ring: MeshInstance3D = null
+# ── Input mode & undo state ──
+var _input_mode: String = "normal"  # "normal", "attack", "deploy"
+var _undo_stack: Array = []  # [{type, army_id, from_tile, to_tile, ap_cost}]
+const _UNDO_MAX: int = 5
 # ── Camera state ──
 var camera: Camera3D
 var camera_pivot: Node3D
@@ -275,7 +279,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			_camera_zoom_target = clampf(_camera_zoom_target + ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX)
 			_zoom_toward_cursor(event.position, old_zoom, _camera_zoom_target)
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-			_deselect_tile()
+			if hovered_tile >= 0:
+				_show_context_menu(hovered_tile)
+			else:
+				_deselect_tile()
+		elif event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			_hide_context_menu()
+			if _input_mode == "attack" and hovered_tile >= 0:
+				_handle_mode_click_attack(hovered_tile)
+				get_viewport().set_input_as_handled()
+				return
+			elif _input_mode == "deploy" and hovered_tile >= 0:
+				_handle_mode_click_deploy(hovered_tile)
+				get_viewport().set_input_as_handled()
+				return
+	if event is InputEventKey and event.pressed and not event.echo:
+		_handle_keyboard_shortcut(event)
 
 
 func _zoom_toward_cursor(mouse_pos: Vector2, old_zoom: float, new_zoom: float) -> void:
@@ -316,6 +335,7 @@ func _process(delta: float) -> void:
 			camera_zoom = _camera_zoom_target
 		_apply_zoom()
 	_process_camera_input(delta); _process_edge_scroll(delta); _process_hover_path(); _process_water_animation(delta)
+	_process_hover_delay(delta); _redraw_custom_minimap()
 	update_minimap_overlay()
 
 func _process_camera_input(delta: float) -> void:
@@ -1279,6 +1299,9 @@ func _process_hover_path() -> void:
 	if not dep.has(hovered_tile) and not atk.has(hovered_tile):
 		_clear_path_preview(); return
 	_draw_path_preview(selected_tile, hovered_tile)
+	# 行军规划模式下显示路径消耗标签
+	if _march_planning_active:
+		_show_path_cost_label(selected_tile, hovered_tile)
 
 func _draw_path_preview(fi: int, ti: int) -> void:
 	_clear_path_preview()
@@ -1305,6 +1328,7 @@ func _clear_path_preview() -> void:
 	for m in path_preview_meshes:
 		if is_instance_valid(m): m.queue_free()
 	path_preview_meshes.clear()
+	_hide_path_cost_label()
 
 # ═══════════════ SELECTION & CLICK ═══════════════
 func _on_tile_input(_cn: Node, event: InputEvent, _p: Vector3, _n: Vector3, _si: int, tile_index: int) -> void:
@@ -1328,12 +1352,16 @@ func _on_tile_hover_enter(tile_index: int) -> void:
 		_animate_tile_hover(oh, false)
 	_update_territory_visual(tile_index); _animate_tile_hover(tile_index, true)
 	_show_hover_glow(tile_index)
+	# Reset hover info delay for new tile
+	_hover_delay = 0.0
+	_hover_active_tile = -1
 
 func _on_tile_hover_exit(tile_index: int) -> void:
 	if hovered_tile == tile_index:
 		hovered_tile = -1; _update_territory_visual(tile_index)
 		_animate_tile_hover(tile_index, false)
 		_hide_hover_glow()
+		_hide_hover_info()
 
 func _animate_tile_hover(idx: int, entering: bool) -> void:
 	if not tile_visuals.has(idx): return
@@ -1387,12 +1415,12 @@ func _on_tile_clicked(tile_index: int) -> void:
 		if not army.is_empty() and army["player_id"] == pid:
 			var dep: Array = GameManager.get_army_deployable_tiles(GameManager.selected_army_id)
 			if dep.has(tile_index):
-				GameManager.action_deploy_army(GameManager.selected_army_id, tile_index)
-				_deselect_tile(); return
+				_execute_deploy_with_undo(GameManager.selected_army_id, tile_index)
+				return
 			var atk: Array = GameManager.get_army_attackable_tiles(GameManager.selected_army_id)
 			if atk.has(tile_index):
-				GameManager.action_attack_with_army(GameManager.selected_army_id, tile_index)
-				_deselect_tile(); return
+				_request_attack_confirm(GameManager.selected_army_id, tile_index)
+				return
 	if selected_tile == tile_index: _deselect_tile(); return
 	selected_tile = tile_index
 	if old_sel >= 0: _update_territory_visual(old_sel)
@@ -1415,7 +1443,7 @@ func _on_tile_clicked(tile_index: int) -> void:
 func _deselect_tile() -> void:
 	var old: int = selected_tile; selected_tile = -1
 	_clear_highlights(); _clear_pulse_ring(); _clear_path_preview()
-	clear_attack_route()
+	clear_attack_route(); _exit_march_planning_mode()
 	GameManager.deselect_army()
 	if old >= 0: _update_territory_visual(old)
 	if EventBus.has_signal("territory_deselected"): EventBus.territory_deselected.emit()
@@ -1597,6 +1625,8 @@ func _on_tile_captured(_pid: int, ti: int) -> void:
 	_update_territory_visual(ti)
 	# Visual: flash captured tile white → faction color over 0.5s
 	_flash_tile_capture(ti)
+	# Conquest ripple effect (spawns after flash completes ~0.5s)
+	_spawn_conquest_ripple(ti)
 	# If the settlement was rebuilt due to level change, play upgrade flash
 	if was_upgrade:
 		_play_upgrade_flash(ti)
@@ -1609,13 +1639,16 @@ func _on_fog_updated(_pid: int) -> void:
 	_fog_dirty_tiles.clear()  # Full fog rebuild
 	_update_fog()
 func _on_turn_started(_pid: int) -> void:
-	_clear_highlights(); _deselect_tile()
+	_clear_highlights(); _deselect_tile(); _cancel_input_mode(); _undo_stack.clear()
 	if tile_visuals.is_empty() and not GameManager.tiles.is_empty(): _build_board()
 	else:
 		_update_all_territories()
 		_fog_dirty_tiles.clear()  # Force full fog rebuild on turn start
 		_update_fog()
 	_update_supply_lines()
+	# Show turn summary for human player
+	if _pid == GameManager.get_human_player_id():
+		_show_turn_summary()
 func _on_game_over(_wid: int) -> void:
 	_clear_highlights()
 func _on_army_changed(_pid: int, _cnt: int) -> void:
@@ -1623,6 +1656,8 @@ func _on_army_changed(_pid: int, _cnt: int) -> void:
 func _on_army_deployed(_pid: int, _aid: int, from_tile: int, to_tile: int) -> void:
 	_animate_army_move(from_tile, to_tile)
 	_update_territory_visual(from_tile); _update_territory_visual(to_tile)
+	# Camera follow army to destination after short delay
+	_camera_follow_delayed(to_tile, 0.3)
 func _on_army_created_or_disbanded(_pid: int, _aid: int, _extra = null) -> void:
 	_update_all_territories()
 
@@ -2474,6 +2509,11 @@ func _on_battle_visualize(_attacker_tile: int, defender_tile: int, result: Dicti
 	var text: String = "⚔ 胜利!" if won else "⚔ 败北!"
 	var color: Color = Color(0.15, 0.9, 0.25) if won else Color(0.95, 0.2, 0.15)
 	_spawn_battle_toast(defender_tile, text, color)
+	# Camera follow: pan + zoom to battle tile, then restore after toast
+	_camera_follow_tile(defender_tile, true)
+	var reset_tw := create_tween()
+	reset_tw.tween_interval(1.5)
+	reset_tw.tween_callback(func(): _camera_reset_zoom())
 
 func _spawn_battle_toast(tile_index: int, text: String, color: Color) -> void:
 	## Floating Label3D at the tile that drifts upward and fades out over 1.5s.
@@ -2656,6 +2696,9 @@ func _board_hud_init() -> void:
 	_setup_battle_toast_listener()
 	_setup_siege_listeners()
 	_refresh_ap_display()
+	_setup_context_menu()
+	_setup_attack_confirm_panel()
+	_init_new_hud()
 	EventBus.army_changed.connect(_on_army_changed_supply_bar)
 	EventBus.army_deployed.connect(_on_army_deployed_supply_bar)
 	EventBus.army_created.connect(_on_army_created_supply_bar)
@@ -2683,3 +2726,1334 @@ func _on_army_supply_changed_bar(army_id: int, _supply_val: int) -> void:
 
 func _on_turn_started_supply_bar(_pid: int) -> void:
 	_update_all_army_supply_bars()
+
+
+# ═══════════════ CONTEXT MENU ═══════════════
+var _ctx_canvas: CanvasLayer
+var _ctx_panel: PanelContainer
+var _ctx_vbox: VBoxContainer
+var _ctx_tile_index: int = -1
+
+func _setup_context_menu() -> void:
+	_ctx_canvas = CanvasLayer.new()
+	_ctx_canvas.name = "ContextMenuLayer"
+	_ctx_canvas.layer = 11
+	add_child(_ctx_canvas)
+	_ctx_panel = PanelContainer.new()
+	_ctx_panel.name = "ContextPanel"
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.08, 0.07, 0.06, 0.92)
+	sb.corner_radius_top_left = 4; sb.corner_radius_top_right = 4
+	sb.corner_radius_bottom_left = 4; sb.corner_radius_bottom_right = 4
+	sb.content_margin_left = 6; sb.content_margin_right = 6
+	sb.content_margin_top = 4; sb.content_margin_bottom = 4
+	sb.border_width_left = 2; sb.border_width_top = 2
+	sb.border_width_right = 2; sb.border_width_bottom = 2
+	sb.border_color = Color(0.85, 0.65, 0.13, 0.7)
+	_ctx_panel.add_theme_stylebox_override("panel", sb)
+	_ctx_panel.visible = false
+	_ctx_canvas.add_child(_ctx_panel)
+	_ctx_vbox = VBoxContainer.new()
+	_ctx_vbox.name = "ContextItems"
+	_ctx_vbox.add_theme_constant_override("separation", 2)
+	_ctx_panel.add_child(_ctx_vbox)
+
+func _show_context_menu(tile_index: int) -> void:
+	_hide_context_menu()
+	_ctx_tile_index = tile_index
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
+	var pid: int = GameManager.get_human_player_id()
+	var tile: Dictionary = GameManager.tiles[tile_index]
+	var owner_id: int = tile.get("owner_id", -1)
+	var army: Dictionary = GameManager.get_army_at_tile_for_player(tile_index, pid)
+	var has_selected_army: bool = GameManager.selected_army_id >= 0
+	var items: Array = []  # [{label, callback}]
+	if owner_id == pid:
+		if not army.is_empty():
+			var atk_tiles: Array = GameManager.get_army_attackable_tiles(army["id"])
+			if not atk_tiles.is_empty():
+				items.append({"label": "出击 (A)", "callback": "_ctx_attack"})
+			var dep_tiles: Array = GameManager.get_army_deployable_tiles(army["id"])
+			if not dep_tiles.is_empty():
+				items.append({"label": "部署 (D)", "callback": "_ctx_deploy"})
+			items.append({"label": "招募", "callback": "_ctx_recruit"})
+			items.append({"label": "建造", "callback": "_ctx_build"})
+			items.append({"label": "守卫", "callback": "_ctx_guard"})
+		else:
+			items.append({"label": "建造", "callback": "_ctx_build"})
+			items.append({"label": "查看详情", "callback": "_ctx_detail"})
+	elif has_selected_army:
+		var sel_army: Dictionary = GameManager.get_army(GameManager.selected_army_id)
+		if not sel_army.is_empty() and sel_army["player_id"] == pid:
+			var atk_tiles: Array = GameManager.get_army_attackable_tiles(GameManager.selected_army_id)
+			if atk_tiles.has(tile_index):
+				items.append({"label": "出击 (A)", "callback": "_ctx_attack_selected"})
+	else:
+		# Neutral adjacent tiles
+		if has_selected_army:
+			items.append({"label": "探索", "callback": "_ctx_explore"})
+			items.append({"label": "外交", "callback": "_ctx_diplomacy"})
+		elif owner_id < 0:
+			items.append({"label": "探索", "callback": "_ctx_explore"})
+			items.append({"label": "外交", "callback": "_ctx_diplomacy"})
+	if items.is_empty():
+		items.append({"label": "查看详情", "callback": "_ctx_detail"})
+	_populate_context_items(items)
+	var mpos: Vector2 = get_viewport().get_mouse_position()
+	_ctx_panel.position = mpos + Vector2(4, 4)
+	_ctx_panel.visible = true
+
+func _populate_context_items(items: Array) -> void:
+	for c in _ctx_vbox.get_children():
+		c.queue_free()
+	for item in items:
+		var btn := Button.new()
+		btn.text = item["label"]
+		btn.flat = true
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.add_theme_font_size_override("font_size", 16)
+		btn.add_theme_color_override("font_color", Color(0.95, 0.92, 0.85))
+		btn.add_theme_color_override("font_hover_color", Color(1.0, 0.85, 0.3))
+		btn.custom_minimum_size = Vector2(130, 28)
+		var cb_name: String = item["callback"]
+		btn.pressed.connect(_on_ctx_item_pressed.bind(cb_name))
+		_ctx_vbox.add_child(btn)
+
+func _on_ctx_item_pressed(callback_name: String) -> void:
+	_hide_context_menu()
+	call(callback_name)
+
+func _hide_context_menu() -> void:
+	if is_instance_valid(_ctx_panel):
+		_ctx_panel.visible = false
+
+func _ctx_attack() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	var army: Dictionary = GameManager.get_army_at_tile_for_player(_ctx_tile_index, pid)
+	if army.is_empty():
+		return
+	GameManager.select_army(army["id"])
+	selected_tile = _ctx_tile_index
+	_enter_attack_mode()
+
+func _ctx_deploy() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	var army: Dictionary = GameManager.get_army_at_tile_for_player(_ctx_tile_index, pid)
+	if army.is_empty():
+		return
+	GameManager.select_army(army["id"])
+	selected_tile = _ctx_tile_index
+	_enter_deploy_mode()
+
+func _ctx_recruit() -> void:
+	EventBus.territory_selected.emit(_ctx_tile_index)
+	EventBus.message_log.emit("招募: 请在领地面板中操作")
+
+func _ctx_build() -> void:
+	EventBus.territory_selected.emit(_ctx_tile_index)
+	EventBus.message_log.emit("建造: 请在领地面板中操作")
+
+func _ctx_guard() -> void:
+	EventBus.message_log.emit("守卫: 军团驻守当前领地")
+
+func _ctx_detail() -> void:
+	EventBus.territory_selected.emit(_ctx_tile_index)
+
+func _ctx_attack_selected() -> void:
+	if GameManager.selected_army_id < 0:
+		return
+	_request_attack_confirm(GameManager.selected_army_id, _ctx_tile_index)
+
+func _ctx_explore() -> void:
+	EventBus.message_log.emit("探索: 派遣军团前往该区域")
+
+func _ctx_diplomacy() -> void:
+	EventBus.message_log.emit("外交: 请在外交面板中操作")
+
+
+# ═══════════════ KEYBOARD SHORTCUTS ═══════════════
+
+func _handle_keyboard_shortcut(event: InputEventKey) -> void:
+	# Ctrl+Z: undo
+	if event.keycode == KEY_Z and event.ctrl_pressed:
+		_undo_last_action()
+		get_viewport().set_input_as_handled()
+		return
+	# Don't process shortcuts when a GUI element has focus (typing, etc.)
+	if get_viewport() and get_viewport().gui_get_focus_owner() != null:
+		return
+	match event.keycode:
+		KEY_ESCAPE:
+			if _input_mode != "normal":
+				_cancel_input_mode()
+			else:
+				_deselect_tile()
+				_hide_context_menu()
+				_hide_attack_confirm()
+			get_viewport().set_input_as_handled()
+		KEY_E:
+			if not event.ctrl_pressed:
+				GameManager.end_turn()
+				get_viewport().set_input_as_handled()
+		KEY_SPACE:
+			if GameManager.selected_army_id >= 0:
+				var army: Dictionary = GameManager.get_army(GameManager.selected_army_id)
+				if not army.is_empty():
+					focus_on_tile(army["tile_index"])
+			elif selected_tile >= 0:
+				focus_on_tile(selected_tile)
+			get_viewport().set_input_as_handled()
+		KEY_TAB:
+			_cycle_player_armies()
+			get_viewport().set_input_as_handled()
+		KEY_A:
+			if not event.ctrl_pressed and GameManager.selected_army_id >= 0:
+				_enter_attack_mode()
+				get_viewport().set_input_as_handled()
+		KEY_D:
+			if not event.ctrl_pressed and GameManager.selected_army_id >= 0:
+				_enter_deploy_mode()
+				get_viewport().set_input_as_handled()
+
+func _enter_attack_mode() -> void:
+	if GameManager.selected_army_id < 0:
+		return
+	var atk: Array = GameManager.get_army_attackable_tiles(GameManager.selected_army_id)
+	if atk.is_empty():
+		EventBus.message_log.emit("无可攻击目标")
+		return
+	_input_mode = "attack"
+	_clear_highlights()
+	show_attackable(atk)
+	EventBus.message_log.emit("出击模式: 点击红色目标发动攻击, Esc取消")
+
+func _enter_deploy_mode() -> void:
+	if GameManager.selected_army_id < 0:
+		return
+	var dep: Array = GameManager.get_army_deployable_tiles(GameManager.selected_army_id)
+	if dep.is_empty():
+		EventBus.message_log.emit("无可部署目标")
+		return
+	_input_mode = "deploy"
+	_clear_highlights()
+	show_deployable(dep)
+	EventBus.message_log.emit("部署模式: 点击绿色目标部署军团, Esc取消")
+
+func _cancel_input_mode() -> void:
+	_input_mode = "normal"
+	_clear_highlights()
+	# Re-show highlights for selected army if any
+	if GameManager.selected_army_id >= 0 and selected_tile >= 0:
+		var pid: int = GameManager.get_human_player_id()
+		var army: Dictionary = GameManager.get_army(GameManager.selected_army_id)
+		if not army.is_empty() and army["player_id"] == pid:
+			for dt in GameManager.get_army_deployable_tiles(army["id"]):
+				_add_highlight_fill(dt, COL_DEPLOY_FILL)
+				_add_highlight_ring(dt, Color(0.2, 0.9, 0.3, 0.6))
+			for at in GameManager.get_army_attackable_tiles(army["id"]):
+				_add_highlight_fill(at, COL_ATTACK_FILL)
+				_add_highlight_ring(at, Color(0.9, 0.2, 0.2, 0.6))
+
+func _handle_mode_click_attack(tile_index: int) -> void:
+	if GameManager.selected_army_id < 0:
+		_cancel_input_mode()
+		return
+	var atk: Array = GameManager.get_army_attackable_tiles(GameManager.selected_army_id)
+	if atk.has(tile_index):
+		_request_attack_confirm(GameManager.selected_army_id, tile_index)
+	_cancel_input_mode()
+
+func _handle_mode_click_deploy(tile_index: int) -> void:
+	if GameManager.selected_army_id < 0:
+		_cancel_input_mode()
+		return
+	var dep: Array = GameManager.get_army_deployable_tiles(GameManager.selected_army_id)
+	if dep.has(tile_index):
+		_execute_deploy_with_undo(GameManager.selected_army_id, tile_index)
+	_cancel_input_mode()
+
+func _cycle_player_armies() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	var armies: Array = GameManager.get_player_armies(pid)
+	if armies.is_empty():
+		EventBus.message_log.emit("没有军团")
+		return
+	var current_id: int = GameManager.selected_army_id
+	var next_idx: int = 0
+	if current_id >= 0:
+		for i in range(armies.size()):
+			if armies[i]["id"] == current_id:
+				next_idx = (i + 1) % armies.size()
+				break
+	var next_army: Dictionary = armies[next_idx]
+	GameManager.select_army(next_army["id"])
+	selected_tile = next_army["tile_index"]
+	_clear_highlights(); _start_pulse_ring(selected_tile)
+	_update_territory_visual(selected_tile)
+	focus_on_tile(selected_tile)
+	for dt in GameManager.get_army_deployable_tiles(next_army["id"]):
+		_add_highlight_fill(dt, COL_DEPLOY_FILL)
+		_add_highlight_ring(dt, Color(0.2, 0.9, 0.3, 0.6))
+	for at in GameManager.get_army_attackable_tiles(next_army["id"]):
+		_add_highlight_fill(at, COL_ATTACK_FILL)
+		_add_highlight_ring(at, Color(0.9, 0.2, 0.2, 0.6))
+	EventBus.message_log.emit("选中军团: %s" % next_army.get("name", "军团"))
+
+
+# ═══════════════ ATTACK CONFIRMATION ═══════════════
+var _atk_confirm_canvas: CanvasLayer
+var _atk_confirm_panel: PanelContainer
+var _atk_confirm_army_id: int = -1
+var _atk_confirm_target_tile: int = -1
+var _atk_info_label: RichTextLabel
+var _atk_confirm_btn: Button
+var _atk_cancel_btn: Button
+
+func _setup_attack_confirm_panel() -> void:
+	_atk_confirm_canvas = CanvasLayer.new()
+	_atk_confirm_canvas.name = "AttackConfirmLayer"
+	_atk_confirm_canvas.layer = 12
+	add_child(_atk_confirm_canvas)
+	# Dimmed background
+	var dim := ColorRect.new()
+	dim.name = "Dim"
+	dim.color = Color(0, 0, 0, 0.45)
+	dim.anchor_right = 1.0; dim.anchor_bottom = 1.0
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.visible = false
+	_atk_confirm_canvas.add_child(dim)
+	# Center container
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.anchor_right = 1.0; center.anchor_bottom = 1.0
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.visible = false
+	_atk_confirm_canvas.add_child(center)
+	# Main panel
+	_atk_confirm_panel = PanelContainer.new()
+	_atk_confirm_panel.name = "AtkConfirmPanel"
+	_atk_confirm_panel.custom_minimum_size = Vector2(420, 300)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.06, 0.05, 0.95)
+	sb.corner_radius_top_left = 8; sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8; sb.corner_radius_bottom_right = 8
+	sb.content_margin_left = 16; sb.content_margin_right = 16
+	sb.content_margin_top = 12; sb.content_margin_bottom = 12
+	sb.border_width_left = 2; sb.border_width_top = 2
+	sb.border_width_right = 2; sb.border_width_bottom = 2
+	sb.border_color = Color(0.85, 0.55, 0.13, 0.8)
+	_atk_confirm_panel.add_theme_stylebox_override("panel", sb)
+	center.add_child(_atk_confirm_panel)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	_atk_confirm_panel.add_child(vbox)
+	# Title
+	var title := Label.new()
+	title.text = "⚔ 出击确认"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	vbox.add_child(title)
+	# Separator
+	var sep := HSeparator.new()
+	sep.add_theme_constant_override("separation", 4)
+	vbox.add_child(sep)
+	# Info label (RichTextLabel for flexible layout)
+	_atk_info_label = RichTextLabel.new()
+	_atk_info_label.bbcode_enabled = true
+	_atk_info_label.fit_content = true
+	_atk_info_label.scroll_active = false
+	_atk_info_label.custom_minimum_size = Vector2(390, 160)
+	_atk_info_label.add_theme_font_size_override("normal_font_size", 16)
+	_atk_info_label.add_theme_color_override("default_color", Color(0.9, 0.88, 0.82))
+	vbox.add_child(_atk_info_label)
+	# Button row
+	var hbox := HBoxContainer.new()
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	hbox.add_theme_constant_override("separation", 20)
+	vbox.add_child(hbox)
+	_atk_confirm_btn = Button.new()
+	_atk_confirm_btn.text = "确认出击 (1 AP)"
+	_atk_confirm_btn.custom_minimum_size = Vector2(160, 38)
+	_atk_confirm_btn.add_theme_font_size_override("font_size", 16)
+	_atk_confirm_btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.85))
+	var btn_sb := StyleBoxFlat.new()
+	btn_sb.bg_color = Color(0.7, 0.15, 0.1, 0.9)
+	btn_sb.corner_radius_top_left = 4; btn_sb.corner_radius_top_right = 4
+	btn_sb.corner_radius_bottom_left = 4; btn_sb.corner_radius_bottom_right = 4
+	btn_sb.border_width_left = 1; btn_sb.border_width_top = 1
+	btn_sb.border_width_right = 1; btn_sb.border_width_bottom = 1
+	btn_sb.border_color = Color(0.9, 0.3, 0.2, 0.7)
+	_atk_confirm_btn.add_theme_stylebox_override("normal", btn_sb)
+	var btn_sb_h := btn_sb.duplicate()
+	btn_sb_h.bg_color = Color(0.85, 0.2, 0.12, 0.95)
+	_atk_confirm_btn.add_theme_stylebox_override("hover", btn_sb_h)
+	_atk_confirm_btn.pressed.connect(_on_attack_confirmed)
+	hbox.add_child(_atk_confirm_btn)
+	_atk_cancel_btn = Button.new()
+	_atk_cancel_btn.text = "取消"
+	_atk_cancel_btn.custom_minimum_size = Vector2(100, 38)
+	_atk_cancel_btn.add_theme_font_size_override("font_size", 16)
+	var cbtn_sb := StyleBoxFlat.new()
+	cbtn_sb.bg_color = Color(0.3, 0.3, 0.28, 0.85)
+	cbtn_sb.corner_radius_top_left = 4; cbtn_sb.corner_radius_top_right = 4
+	cbtn_sb.corner_radius_bottom_left = 4; cbtn_sb.corner_radius_bottom_right = 4
+	_atk_cancel_btn.add_theme_stylebox_override("normal", cbtn_sb)
+	var cbtn_sb_h := cbtn_sb.duplicate()
+	cbtn_sb_h.bg_color = Color(0.4, 0.4, 0.38, 0.9)
+	_atk_cancel_btn.add_theme_stylebox_override("hover", cbtn_sb_h)
+	_atk_cancel_btn.pressed.connect(_on_attack_cancelled)
+	hbox.add_child(_atk_cancel_btn)
+	_hide_attack_confirm()
+
+func _request_attack_confirm(army_id: int, target_tile: int) -> void:
+	_atk_confirm_army_id = army_id
+	_atk_confirm_target_tile = target_tile
+	var army: Dictionary = GameManager.get_army(army_id)
+	if army.is_empty():
+		return
+	var tile: Dictionary = GameManager.tiles[target_tile]
+	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
+	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
+	var terrain_name: String = terrain_data.get("name", "未知")
+	var atk_mult: float = terrain_data.get("atk_mult", 1.0)
+	var def_mult: float = terrain_data.get("def_mult", 1.0)
+	# Attacker info
+	var atk_soldiers: int = GameManager.get_army_soldier_count(army_id)
+	var atk_name: String = army.get("name", "军团")
+	var heroes: Array = army.get("heroes", [])
+	var hero_count: int = heroes.size()
+	# Defender info
+	var garrison: int = tile.get("garrison", 0)
+	var defender_army: Dictionary = GameManager.get_army_at_tile(target_tile)
+	var def_soldiers: int = garrison
+	if not defender_army.is_empty():
+		def_soldiers += GameManager.get_army_soldier_count(defender_army.get("id", -1))
+	# Build BBCode info text
+	var bbtext: String = ""
+	bbtext += "[color=#daa520]【攻击方】[/color]\n"
+	bbtext += "  军团: %s\n" % atk_name
+	bbtext += "  兵力: %d\n" % atk_soldiers
+	if hero_count > 0:
+		bbtext += "  英雄: %d人\n" % hero_count
+	bbtext += "\n[color=#cc4444]【防御方】[/color]\n"
+	bbtext += "  驻军: %d\n" % garrison
+	if not defender_army.is_empty():
+		bbtext += "  军团兵力: %d\n" % GameManager.get_army_soldier_count(defender_army.get("id", -1))
+	bbtext += "  地形: %s\n" % terrain_name
+	bbtext += "\n[color=#aaaaaa]地形效果: %s  防御×%.2f  攻击×%.2f[/color]\n" % [terrain_name, def_mult, atk_mult]
+	if tile.get("is_chokepoint", false):
+		bbtext += "[color=#ff6633]⚠ 关隘: 额外+20%%防御[/color]\n"
+	_atk_info_label.text = bbtext
+	_show_attack_confirm()
+
+func _show_attack_confirm() -> void:
+	if not is_instance_valid(_atk_confirm_canvas):
+		return
+	var dim: ColorRect = _atk_confirm_canvas.get_node_or_null("Dim")
+	var center: CenterContainer = _atk_confirm_canvas.get_node_or_null("Center")
+	if dim:
+		dim.visible = true
+	if center:
+		center.visible = true
+
+func _hide_attack_confirm() -> void:
+	if not is_instance_valid(_atk_confirm_canvas):
+		return
+	var dim: ColorRect = _atk_confirm_canvas.get_node_or_null("Dim")
+	var center: CenterContainer = _atk_confirm_canvas.get_node_or_null("Center")
+	if dim:
+		dim.visible = false
+	if center:
+		center.visible = false
+	_atk_confirm_army_id = -1
+	_atk_confirm_target_tile = -1
+
+func _on_attack_confirmed() -> void:
+	var aid: int = _atk_confirm_army_id
+	var tid: int = _atk_confirm_target_tile
+	_hide_attack_confirm()
+	_cancel_input_mode()
+	if aid >= 0 and tid >= 0:
+		GameManager.action_attack_with_army(aid, tid)
+		_deselect_tile()
+
+func _on_attack_cancelled() -> void:
+	_hide_attack_confirm()
+	_cancel_input_mode()
+
+
+# ═══════════════ UNDO SYSTEM ═══════════════
+
+func _execute_deploy_with_undo(army_id: int, target_tile: int) -> void:
+	## Deploy army and push to undo stack for Ctrl+Z reversal.
+	var army: Dictionary = GameManager.get_army(army_id)
+	if army.is_empty():
+		return
+	var from_tile: int = army["tile_index"]
+	var tile: Dictionary = GameManager.tiles[target_tile] if target_tile < GameManager.tiles.size() else {}
+	var ap_cost: int = tile.get("terrain_move_cost", 1)
+	var success: bool = GameManager.action_deploy_army(army_id, target_tile)
+	if success:
+		if _undo_stack.size() >= _UNDO_MAX:
+			_undo_stack.pop_front()
+		_undo_stack.append({
+			"type": "deploy",
+			"army_id": army_id,
+			"from_tile": from_tile,
+			"to_tile": target_tile,
+			"ap_cost": ap_cost,
+		})
+		_deselect_tile()
+
+func _undo_last_action() -> void:
+	if _undo_stack.is_empty():
+		EventBus.message_log.emit("没有可撤销的操作")
+		return
+	var action: Dictionary = _undo_stack.pop_back()
+	if action["type"] == "deploy":
+		_undo_deploy(action)
+
+func _undo_deploy(action: Dictionary) -> void:
+	var army_id: int = action["army_id"]
+	var from_tile: int = action["from_tile"]
+	var to_tile: int = action["to_tile"]
+	var ap_cost: int = action["ap_cost"]
+	var army: Dictionary = GameManager.get_army(army_id)
+	if army.is_empty():
+		EventBus.message_log.emit("撤销失败: 军团不存在")
+		return
+	if army["tile_index"] != to_tile:
+		EventBus.message_log.emit("撤销失败: 军团已移动到其他位置")
+		return
+	# Check the original tile is free
+	var occupant: Dictionary = GameManager.get_army_at_tile(from_tile)
+	if not occupant.is_empty():
+		EventBus.message_log.emit("撤销失败: 原位置已有其他军团")
+		return
+	# Directly reverse: move army back and restore AP
+	army["tile_index"] = from_tile
+	var pid: int = army["player_id"]
+	var player: Dictionary = GameManager.get_player_by_id(pid)
+	if not player.is_empty():
+		player["ap"] = player.get("ap", 0) + ap_cost
+		EventBus.ap_changed.emit(pid, player["ap"])
+	EventBus.army_deployed.emit(pid, army_id, to_tile, from_tile)
+	_update_territory_visual(from_tile)
+	_update_territory_visual(to_tile)
+	_spawn_undo_toast(from_tile)
+	EventBus.message_log.emit("↩ 已撤销部署")
+
+func _spawn_undo_toast(tile_index: int) -> void:
+	## Floating "↩ 已撤销" text at the tile.
+	if not tile_visuals.has(tile_index):
+		return
+	var vis: Dictionary = tile_visuals[tile_index]
+	var root: Node3D = vis["root"]
+	var toast := Label3D.new()
+	toast.text = "↩ 已撤销"
+	toast.font_size = 36
+	toast.pixel_size = 0.01
+	toast.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	toast.no_depth_test = true
+	toast.modulate = Color(0.3, 0.85, 1.0)
+	toast.outline_modulate = Color(0, 0, 0, 0.9)
+	toast.outline_size = 12
+	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast.position = Vector3(0, 2.5, 0)
+	root.add_child(toast)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tw.tween_property(toast, "position:y", 4.5, 1.2)
+	tw.tween_property(toast, "modulate:a", 0.0, 1.2).set_delay(0.2)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(toast):
+			toast.queue_free()
+	)
+
+
+# ═══════════════ HOVER INFO PANEL ═══════════════
+var _hover_canvas: CanvasLayer
+var _hover_panel: PanelContainer
+var _hover_vbox: VBoxContainer
+var _hover_name_lbl: Label
+var _hover_terrain_lbl: Label
+var _hover_sep1: HSeparator
+var _hover_faction_lbl: Label
+var _hover_garrison_lbl: Label
+var _hover_army_lbl: Label
+var _hover_sep2: HSeparator
+var _hover_atk_lbl: Label
+var _hover_def_lbl: Label
+var _hover_prod_lbl: Label
+var _hover_building_lbl: Label
+var _hover_delay: float = 0.0
+var _hover_active_tile: int = -1
+const HOVER_DELAY_SEC: float = 0.3
+
+# placeholder: hover setup, show, hide, update
+
+func _setup_hover_panel() -> void:
+	_hover_canvas = CanvasLayer.new()
+	_hover_canvas.name = "HoverInfoLayer"
+	_hover_canvas.layer = 9
+	add_child(_hover_canvas)
+	_hover_panel = PanelContainer.new()
+	_hover_panel.name = "HoverInfoPanel"
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.06, 0.05, 0.92)
+	sb.corner_radius_top_left = 6; sb.corner_radius_top_right = 6
+	sb.corner_radius_bottom_left = 6; sb.corner_radius_bottom_right = 6
+	sb.content_margin_left = 12; sb.content_margin_right = 12
+	sb.content_margin_top = 8; sb.content_margin_bottom = 8
+	sb.border_width_left = 2; sb.border_width_top = 2
+	sb.border_width_right = 2; sb.border_width_bottom = 2
+	sb.border_color = Color(0.85, 0.65, 0.13, 0.7)
+	_hover_panel.add_theme_stylebox_override("panel", sb)
+	_hover_panel.visible = false
+	_hover_canvas.add_child(_hover_panel)
+	_hover_vbox = VBoxContainer.new()
+	_hover_vbox.add_theme_constant_override("separation", 2)
+	_hover_panel.add_child(_hover_vbox)
+	_hover_name_lbl = _make_hover_label(20, Color(1.0, 0.85, 0.3))
+	_hover_terrain_lbl = _make_hover_label(14, Color(0.8, 0.78, 0.7))
+	_hover_sep1 = HSeparator.new()
+	_hover_sep1.add_theme_constant_override("separation", 2)
+	_hover_vbox.add_child(_hover_sep1)
+	_hover_faction_lbl = _make_hover_label(14, Color(0.9, 0.88, 0.82))
+	_hover_garrison_lbl = _make_hover_label(14, Color(0.9, 0.88, 0.82))
+	_hover_army_lbl = _make_hover_label(14, Color(1.0, 0.6, 0.3))
+	_hover_sep2 = HSeparator.new()
+	_hover_sep2.add_theme_constant_override("separation", 2)
+	_hover_vbox.add_child(_hover_sep2)
+	_hover_atk_lbl = _make_hover_label(13, Color(0.85, 0.75, 0.65))
+	_hover_def_lbl = _make_hover_label(13, Color(0.85, 0.75, 0.65))
+	_hover_prod_lbl = _make_hover_label(13, Color(0.85, 0.75, 0.65))
+	_hover_building_lbl = _make_hover_label(13, Color(0.85, 0.75, 0.65))
+
+func _make_hover_label(font_size: int, color: Color) -> Label:
+	var lbl := Label.new()
+	lbl.add_theme_font_size_override("font_size", font_size)
+	lbl.add_theme_color_override("font_color", color)
+	_hover_vbox.add_child(lbl)
+	return lbl
+
+func _show_hover_info(tile_index: int) -> void:
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		_hide_hover_info(); return
+	var pid: int = GameManager.get_human_player_id()
+	if not GameManager.is_revealed_for(tile_index, pid):
+		_hide_hover_info(); return
+	var tile: Dictionary = GameManager.tiles[tile_index]
+	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
+	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
+	var terrain_name: String = terrain_data.get("name", "未知")
+	var tile_name: String = tile.get("name", "#%d" % tile_index)
+	var type_str: String = ""
+	var tt = tile.get("type", -1)
+	if tile.get("is_chokepoint", false):
+		type_str = "关隘"
+	elif tt == GameManager.TileType.CORE_FORTRESS:
+		type_str = "主城"
+	elif tt == GameManager.TileType.TRADING_POST:
+		type_str = "贸易站"
+	elif tt == GameManager.TileType.WATCHTOWER:
+		type_str = "瞭望塔"
+	elif tt == GameManager.TileType.HARBOR:
+		type_str = "港口"
+	elif tt == GameManager.TileType.RUINS:
+		type_str = "遗迹"
+	elif tt == GameManager.TileType.MINE_TILE:
+		type_str = "矿场"
+	elif tt == GameManager.TileType.EVENT_TILE:
+		type_str = "事件"
+	_hover_name_lbl.text = tile_name
+	_hover_terrain_lbl.text = terrain_name + (" · " + type_str if type_str != "" else "")
+	var owner_id: int = tile.get("owner_id", -1)
+	if owner_id >= 0:
+		var fid: int = GameManager.get_player_faction(owner_id)
+		var faction_name: String = FactionData.FACTION_NAMES.get(fid, "")
+		if faction_name == "":
+			var lf: int = tile.get("light_faction", -1)
+			faction_name = FactionData.LIGHT_FACTION_NAMES.get(lf, "中立")
+		var fk: String = _get_tile_faction_key(tile)
+		var fc: Color = FACTION_COLORS.get(fk, FACTION_COLORS["none"])
+		_hover_faction_lbl.text = "阵营: " + faction_name
+		_hover_faction_lbl.add_theme_color_override("font_color", fc.lightened(0.3))
+	else:
+		_hover_faction_lbl.text = "阵营: 中立"
+		_hover_faction_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.65))
+	var garrison: int = tile.get("garrison", 0)
+	var max_garrison: int = tile.get("max_garrison", garrison)
+	if max_garrison <= 0:
+		max_garrison = garrison
+	_hover_garrison_lbl.text = "驻军: %d/%d" % [garrison, max_garrison] if garrison > 0 else "驻军: 无"
+	var army: Dictionary = GameManager.get_army_at_tile(tile_index)
+	if not army.is_empty():
+		var sc: int = GameManager.get_army_soldier_count(army.get("id", -1))
+		_hover_army_lbl.text = "军团: %s (⚔%d)" % [army.get("name", "军团"), sc]
+		_hover_army_lbl.visible = true
+	else:
+		_hover_army_lbl.text = ""
+		_hover_army_lbl.visible = false
+	var atk_mult: float = terrain_data.get("atk_mult", 1.0)
+	var def_mult: float = terrain_data.get("def_mult", 1.0)
+	_hover_atk_lbl.text = "攻击修正: ×%.2f" % atk_mult
+	_hover_def_lbl.text = "防御修正: ×%.2f" % def_mult
+	var prod_text: String = ""
+	var tile_type_prod = tile.get("type", -1)
+	if GameManager.PROD_RANGES.has(tile_type_prod):
+		var pr: Dictionary = GameManager.PROD_RANGES[tile_type_prod]
+		var parts: Array = []
+		for rk in ["gold", "food", "iron"]:
+			if pr.has(rk):
+				var avg: int = int((pr[rk][0] + pr[rk][1]) * 0.5)
+				if avg > 0:
+					var label_cn: String = "金" if rk == "gold" else ("粮" if rk == "food" else "铁")
+					parts.append("%s%d" % [label_cn, avg])
+		if not parts.is_empty():
+			prod_text = "产出: " + " ".join(parts)
+	_hover_prod_lbl.text = prod_text
+	_hover_prod_lbl.visible = prod_text != ""
+	var building_id: String = tile.get("building_id", "")
+	var building_level: int = tile.get("building_level", 0)
+	if building_id != "" and building_level > 0:
+		_hover_building_lbl.text = "建筑: %s Lv.%d" % [building_id, building_level]
+		_hover_building_lbl.visible = true
+	else:
+		_hover_building_lbl.text = ""
+		_hover_building_lbl.visible = false
+	_hover_panel.visible = true
+
+func _hide_hover_info() -> void:
+	if is_instance_valid(_hover_panel):
+		_hover_panel.visible = false
+	_hover_delay = 0.0
+	_hover_active_tile = -1
+
+func _update_hover_panel_position() -> void:
+	if not is_instance_valid(_hover_panel) or not _hover_panel.visible:
+		return
+	var vp := get_viewport()
+	if not vp:
+		return
+	var mpos: Vector2 = vp.get_mouse_position()
+	var vs: Vector2 = vp.get_visible_rect().size
+	var offset := Vector2(20, 20)
+	var pos := mpos + offset
+	if pos.x + 240 > vs.x:
+		pos.x = mpos.x - 260
+	if pos.y + 300 > vs.y:
+		pos.y = mpos.y - 320
+	_hover_panel.position = pos
+
+func _process_hover_delay(delta: float) -> void:
+	if hovered_tile < 0:
+		_hide_hover_info()
+		return
+	if _hover_active_tile == hovered_tile and is_instance_valid(_hover_panel) and _hover_panel.visible:
+		_update_hover_panel_position()
+		return
+	if _hover_active_tile != hovered_tile:
+		_hover_delay = 0.0
+		_hover_active_tile = hovered_tile
+		if is_instance_valid(_hover_panel):
+			_hover_panel.visible = false
+	_hover_delay += delta
+	if _hover_delay >= HOVER_DELAY_SEC:
+		_show_hover_info(_hover_active_tile)
+		_update_hover_panel_position()
+
+
+# ═══════════════ TURN SUMMARY ═══════════════
+var _turn_summary_canvas: CanvasLayer
+var _turn_summary_panel: PanelContainer
+var _turn_summary_title: Label
+var _turn_summary_body: RichTextLabel
+var _turn_summary_btn: Button
+var _last_turn_snapshot: Dictionary = {}
+
+# placeholder: turn summary setup, show, dismiss, snapshot
+
+func _setup_turn_summary() -> void:
+	_turn_summary_canvas = CanvasLayer.new()
+	_turn_summary_canvas.name = "TurnSummaryLayer"
+	_turn_summary_canvas.layer = 13
+	add_child(_turn_summary_canvas)
+	# Dimmed backdrop
+	var dim := ColorRect.new()
+	dim.name = "TurnSummaryDim"
+	dim.color = Color(0, 0, 0, 0.5)
+	dim.anchor_right = 1.0; dim.anchor_bottom = 1.0
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.visible = false
+	_turn_summary_canvas.add_child(dim)
+	# Centered container
+	var center := CenterContainer.new()
+	center.name = "TurnSummaryCenter"
+	center.anchor_right = 1.0; center.anchor_bottom = 1.0
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.visible = false
+	_turn_summary_canvas.add_child(center)
+	# Panel
+	_turn_summary_panel = PanelContainer.new()
+	_turn_summary_panel.name = "TurnSummaryPanel"
+	_turn_summary_panel.custom_minimum_size = Vector2(500, 400)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.06, 0.05, 0.95)
+	sb.corner_radius_top_left = 8; sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8; sb.corner_radius_bottom_right = 8
+	sb.content_margin_left = 20; sb.content_margin_right = 20
+	sb.content_margin_top = 16; sb.content_margin_bottom = 16
+	sb.border_width_left = 2; sb.border_width_top = 2
+	sb.border_width_right = 2; sb.border_width_bottom = 2
+	sb.border_color = Color(0.85, 0.65, 0.13, 0.8)
+	_turn_summary_panel.add_theme_stylebox_override("panel", sb)
+	center.add_child(_turn_summary_panel)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	_turn_summary_panel.add_child(vbox)
+	# Title
+	_turn_summary_title = Label.new()
+	_turn_summary_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_turn_summary_title.add_theme_font_size_override("font_size", 28)
+	_turn_summary_title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
+	vbox.add_child(_turn_summary_title)
+	var sep := HSeparator.new()
+	sep.add_theme_constant_override("separation", 4)
+	vbox.add_child(sep)
+	# Body
+	_turn_summary_body = RichTextLabel.new()
+	_turn_summary_body.bbcode_enabled = true
+	_turn_summary_body.fit_content = true
+	_turn_summary_body.scroll_active = true
+	_turn_summary_body.custom_minimum_size = Vector2(460, 260)
+	_turn_summary_body.add_theme_font_size_override("normal_font_size", 15)
+	_turn_summary_body.add_theme_color_override("default_color", Color(0.9, 0.88, 0.82))
+	vbox.add_child(_turn_summary_body)
+	# Button
+	var btn_hbox := HBoxContainer.new()
+	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(btn_hbox)
+	_turn_summary_btn = Button.new()
+	_turn_summary_btn.text = "开始行动"
+	_turn_summary_btn.custom_minimum_size = Vector2(160, 40)
+	_turn_summary_btn.add_theme_font_size_override("font_size", 18)
+	_turn_summary_btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.85))
+	var btn_sb := StyleBoxFlat.new()
+	btn_sb.bg_color = Color(0.65, 0.5, 0.12, 0.9)
+	btn_sb.corner_radius_top_left = 4; btn_sb.corner_radius_top_right = 4
+	btn_sb.corner_radius_bottom_left = 4; btn_sb.corner_radius_bottom_right = 4
+	btn_sb.border_width_left = 1; btn_sb.border_width_top = 1
+	btn_sb.border_width_right = 1; btn_sb.border_width_bottom = 1
+	btn_sb.border_color = Color(0.85, 0.65, 0.13, 0.7)
+	_turn_summary_btn.add_theme_stylebox_override("normal", btn_sb)
+	var btn_sb_h := btn_sb.duplicate()
+	btn_sb_h.bg_color = Color(0.8, 0.6, 0.15, 0.95)
+	_turn_summary_btn.add_theme_stylebox_override("hover", btn_sb_h)
+	_turn_summary_btn.pressed.connect(_dismiss_turn_summary)
+	btn_hbox.add_child(_turn_summary_btn)
+	_hide_turn_summary()
+
+func _take_turn_snapshot() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	var owned: Array = []
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) == pid:
+			owned.append(tile["index"])
+	var visible_armies: Array = []
+	for aid in GameManager.armies:
+		var a: Dictionary = GameManager.armies[aid]
+		if a["player_id"] != pid and GameManager.is_revealed_for(a["tile_index"], pid):
+			visible_armies.append({"id": aid, "tile": a["tile_index"], "name": a.get("name", "")})
+	var res: Dictionary = {}
+	if ResourceManager and ResourceManager.has_method("get_all"):
+		res = ResourceManager.get_all(pid)
+	_last_turn_snapshot = {
+		"owned_tiles": owned,
+		"visible_armies": visible_armies,
+		"resources": res,
+		"turn": GameManager.turn_number,
+	}
+
+func _show_turn_summary() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	var turn_num: int = GameManager.turn_number
+	# Skip turn 1 summary (nothing happened yet)
+	if turn_num <= 1 and _last_turn_snapshot.is_empty():
+		_take_turn_snapshot()
+		return
+	_turn_summary_title.text = "第 %d 回合" % turn_num
+	var bb: String = ""
+	# Territory changes
+	var current_owned: Array = []
+	for tile in GameManager.tiles:
+		if tile.get("owner_id", -1) == pid:
+			current_owned.append(tile["index"])
+	var prev_owned: Array = _last_turn_snapshot.get("owned_tiles", [])
+	var gained: Array = []
+	var lost: Array = []
+	for idx in current_owned:
+		if not prev_owned.has(idx):
+			gained.append(idx)
+	for idx in prev_owned:
+		if not current_owned.has(idx):
+			lost.append(idx)
+	bb += "[color=#daa520]【领地变动】[/color]\n"
+	if gained.is_empty() and lost.is_empty():
+		bb += "  无变化\n"
+	else:
+		if not gained.is_empty():
+			var names: Array = []
+			for idx in gained:
+				if idx < GameManager.tiles.size():
+					names.append(GameManager.tiles[idx].get("name", "#%d" % idx))
+			bb += "  [color=#66cc66]占领: %s[/color]\n" % ", ".join(names)
+		if not lost.is_empty():
+			var names: Array = []
+			for idx in lost:
+				if idx < GameManager.tiles.size():
+					names.append(GameManager.tiles[idx].get("name", "#%d" % idx))
+			bb += "  [color=#cc4444]失去: %s[/color]\n" % ", ".join(names)
+	# Enemy movements
+	bb += "\n[color=#daa520]【敌军动向】[/color]\n"
+	var prev_armies: Array = _last_turn_snapshot.get("visible_armies", [])
+	var current_vis: Array = []
+	for aid in GameManager.armies:
+		var a: Dictionary = GameManager.armies[aid]
+		if a["player_id"] != pid and GameManager.is_revealed_for(a["tile_index"], pid):
+			current_vis.append({"id": aid, "tile": a["tile_index"], "name": a.get("name", "")})
+	if current_vis.is_empty():
+		bb += "  未发现敌军活动\n"
+	else:
+		var new_sightings: int = 0
+		for vis in current_vis:
+			var was_seen: bool = false
+			for prev in prev_armies:
+				if prev["id"] == vis["id"] and prev["tile"] == vis["tile"]:
+					was_seen = true; break
+			if not was_seen:
+				new_sightings += 1
+		if new_sightings > 0:
+			bb += "  发现 %d 支敌军移动\n" % new_sightings
+		else:
+			bb += "  敌军位置未变\n"
+	# Resources
+	bb += "\n[color=#daa520]【资源】[/color]\n"
+	var res: Dictionary = {}
+	if ResourceManager and ResourceManager.has_method("get_all"):
+		res = ResourceManager.get_all(pid)
+	if not res.is_empty():
+		var gold_val: int = res.get("gold", 0)
+		var food_val: int = res.get("food", 0)
+		var iron_val: int = res.get("iron", 0)
+		bb += "  金: %d  粮: %d  铁: %d\n" % [gold_val, food_val, iron_val]
+	else:
+		bb += "  暂无数据\n"
+	_turn_summary_body.text = bb
+	# Show with fade-in
+	var dim: ColorRect = _turn_summary_canvas.get_node_or_null("TurnSummaryDim")
+	var center: CenterContainer = _turn_summary_canvas.get_node_or_null("TurnSummaryCenter")
+	if dim:
+		dim.visible = true; dim.modulate.a = 0.0
+	if center:
+		center.visible = true; center.modulate.a = 0.0
+	var tw := create_tween()
+	tw.set_parallel(true)
+	if dim:
+		tw.tween_property(dim, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT)
+	if center:
+		tw.tween_property(center, "modulate:a", 1.0, 0.3).set_ease(Tween.EASE_OUT)
+	# Take snapshot for next turn comparison
+	_take_turn_snapshot()
+
+func _dismiss_turn_summary() -> void:
+	_hide_turn_summary()
+
+func _hide_turn_summary() -> void:
+	if not is_instance_valid(_turn_summary_canvas):
+		return
+	var dim: ColorRect = _turn_summary_canvas.get_node_or_null("TurnSummaryDim")
+	var center: CenterContainer = _turn_summary_canvas.get_node_or_null("TurnSummaryCenter")
+	if dim:
+		dim.visible = false
+	if center:
+		center.visible = false
+
+
+# ═══════════════ MINIMAP ═══════════════
+var _minimap_canvas: CanvasLayer
+var _minimap_draw: Control
+var _minimap_bg: ColorRect
+const MINIMAP_W: float = 200.0
+const MINIMAP_H: float = 150.0
+const MINIMAP_MARGIN: float = 12.0
+const MINIMAP_MAP_MIN := Vector2(-5.0, -25.0)
+const MINIMAP_MAP_MAX := Vector2(30.0, 5.0)
+
+# placeholder: minimap setup, draw, click
+
+func _setup_custom_minimap() -> void:
+	_minimap_canvas = CanvasLayer.new()
+	_minimap_canvas.name = "CustomMinimapLayer"
+	_minimap_canvas.layer = 8
+	add_child(_minimap_canvas)
+	# Background frame
+	var frame := PanelContainer.new()
+	frame.name = "MinimapFrame"
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.05, 0.05, 0.04, 0.85)
+	sb.corner_radius_top_left = 4; sb.corner_radius_top_right = 4
+	sb.corner_radius_bottom_left = 4; sb.corner_radius_bottom_right = 4
+	sb.border_width_left = 2; sb.border_width_top = 2
+	sb.border_width_right = 2; sb.border_width_bottom = 2
+	sb.border_color = Color(0.85, 0.65, 0.13, 0.6)
+	sb.content_margin_left = 0; sb.content_margin_right = 0
+	sb.content_margin_top = 0; sb.content_margin_bottom = 0
+	frame.add_theme_stylebox_override("panel", sb)
+	frame.custom_minimum_size = Vector2(MINIMAP_W, MINIMAP_H)
+	frame.anchor_left = 1.0; frame.anchor_right = 1.0
+	frame.anchor_top = 1.0; frame.anchor_bottom = 1.0
+	frame.offset_left = -(MINIMAP_W + MINIMAP_MARGIN)
+	frame.offset_right = -MINIMAP_MARGIN
+	frame.offset_top = -(MINIMAP_H + MINIMAP_MARGIN)
+	frame.offset_bottom = -MINIMAP_MARGIN
+	_minimap_canvas.add_child(frame)
+	# Draw control
+	_minimap_draw = MinimapDrawControl.new()
+	_minimap_draw.name = "MinimapDraw"
+	_minimap_draw.custom_minimum_size = Vector2(MINIMAP_W, MINIMAP_H)
+	_minimap_draw.board_ref = self
+	_minimap_draw.mouse_filter = Control.MOUSE_FILTER_STOP
+	_minimap_draw.gui_input.connect(_on_custom_minimap_input)
+	frame.add_child(_minimap_draw)
+
+func _on_custom_minimap_input(event: InputEvent) -> void:
+	var is_click := event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	var is_drag := event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	if not is_click and not is_drag:
+		return
+	if not is_instance_valid(_minimap_draw):
+		return
+	var msize: Vector2 = _minimap_draw.size
+	if msize.x < 1.0 or msize.y < 1.0:
+		return
+	var local_pos: Vector2 = event.position
+	var norm_x: float = clampf(local_pos.x / msize.x, 0.0, 1.0)
+	var norm_y: float = clampf(local_pos.y / msize.y, 0.0, 1.0)
+	var map_size := MINIMAP_MAP_MAX - MINIMAP_MAP_MIN
+	camera_target_pos.x = MINIMAP_MAP_MIN.x + norm_x * map_size.x
+	camera_target_pos.z = MINIMAP_MAP_MIN.y + norm_y * map_size.y
+	_clamp_camera()
+
+func _redraw_custom_minimap() -> void:
+	if is_instance_valid(_minimap_draw):
+		_minimap_draw.queue_redraw()
+
+
+# ── Inner class for minimap custom drawing ──
+class MinimapDrawControl:
+	extends Control
+	var board_ref  # Reference to Board (avoid cyclic typed ref)
+
+	func _draw() -> void:
+		if board_ref == null:
+			return
+		var map_min: Vector2 = board_ref.MINIMAP_MAP_MIN
+		var map_max: Vector2 = board_ref.MINIMAP_MAP_MAX
+		var map_size: Vector2 = map_max - map_min
+		var ctrl_size: Vector2 = size
+		if ctrl_size.x < 1.0 or ctrl_size.y < 1.0:
+			return
+		var pid: int = GameManager.get_human_player_id()
+		# Draw all tiles as colored circles
+		for tile in GameManager.tiles:
+			if tile == null:
+				continue
+			var pos3: Vector3 = tile["position_3d"]
+			var nx: float = (pos3.x - map_min.x) / map_size.x
+			var ny: float = (pos3.z - map_min.y) / map_size.y
+			var draw_pos := Vector2(nx * ctrl_size.x, ny * ctrl_size.y)
+			var idx: int = tile["index"]
+			var revealed: bool = GameManager.is_revealed_for(idx, pid)
+			if not revealed:
+				draw_circle(draw_pos, 3.0, Color(0.4, 0.38, 0.32, 0.6))
+				continue
+			var fk: String = board_ref._get_tile_faction_key(tile)
+			var col: Color = board_ref.FACTION_COLORS.get(fk, board_ref.FACTION_COLORS["none"])
+			draw_circle(draw_pos, 3.5, col)
+		# Draw player armies as white diamonds
+		for aid in GameManager.armies:
+			var army: Dictionary = GameManager.armies[aid]
+			var ti: int = army["tile_index"]
+			if ti < 0 or ti >= GameManager.tiles.size():
+				continue
+			if army["player_id"] != pid:
+				if not GameManager.is_revealed_for(ti, pid):
+					continue
+			var tpos: Vector3 = GameManager.tiles[ti]["position_3d"]
+			var nx: float = (tpos.x - map_min.x) / map_size.x
+			var ny: float = (tpos.z - map_min.y) / map_size.y
+			var dp := Vector2(nx * ctrl_size.x, ny * ctrl_size.y)
+			var diamond_col: Color
+			if army["player_id"] == pid:
+				diamond_col = Color(1.0, 1.0, 1.0, 0.95)
+			else:
+				diamond_col = Color(0.95, 0.25, 0.2, 0.9)
+			var ds: float = 4.0
+			var diamond := PackedVector2Array([
+				dp + Vector2(0, -ds), dp + Vector2(ds, 0),
+				dp + Vector2(0, ds), dp + Vector2(-ds, 0)
+			])
+			draw_colored_polygon(diamond, diamond_col)
+		# Draw camera viewport rectangle
+		var pivot_pos: Vector3 = board_ref.camera_pivot.global_position if is_instance_valid(board_ref.camera_pivot) else Vector3(9, 0, -8)
+		var cam_nx: float = clampf((pivot_pos.x - map_min.x) / map_size.x, 0.0, 1.0)
+		var cam_ny: float = clampf((pivot_pos.z - map_min.y) / map_size.y, 0.0, 1.0)
+		var view_w: float = 0.2 * ctrl_size.x
+		var view_h: float = 0.15 * ctrl_size.y
+		var rect_pos := Vector2(cam_nx * ctrl_size.x - view_w * 0.5, cam_ny * ctrl_size.y - view_h * 0.5)
+		var rect := Rect2(rect_pos, Vector2(view_w, view_h))
+		draw_rect(rect, Color(1.0, 0.9, 0.3, 0.5), false, 1.5)
+
+
+# ═══════════════ NEW HUD MASTER INIT ═══════════════
+
+func _init_new_hud() -> void:
+	_setup_hover_panel()
+	_setup_turn_summary()
+	_setup_custom_minimap()
+
+
+# ═══════════════ CAMERA FOLLOW ═══════════════
+
+var _camera_auto_follow: bool = true
+var _camera_follow_tween: Tween = null
+var _camera_zoom_restore_tween: Tween = null
+var _camera_zoom_before_follow: float = -1.0
+
+func _camera_follow_tile(tile_index: int, zoom_in: bool = false) -> void:
+	## 平滑将镜头移至指定地块，可选轻微拉近。
+	if not _camera_auto_follow: return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size(): return
+	var p: Vector3 = GameManager.tiles[tile_index]["position_3d"]
+	var target := Vector3(p.x, 0.0, p.z)
+	if _camera_follow_tween and _camera_follow_tween.is_valid():
+		_camera_follow_tween.kill()
+	_camera_follow_tween = create_tween()
+	_camera_follow_tween.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_CUBIC)
+	_camera_follow_tween.tween_property(self, "camera_target_pos", target, 0.5)
+	if zoom_in:
+		_camera_zoom_before_follow = _camera_zoom_target
+		var zoomed := clampf(_camera_zoom_target - 0.15, ZOOM_MIN, ZOOM_MAX)
+		_camera_follow_tween.parallel().tween_property(self, "_camera_zoom_target", zoomed, 0.5)
+
+func _camera_follow_delayed(tile_index: int, delay: float) -> void:
+	## 延迟后平滑跟随至目标地块（用于军队部署后跟随）。
+	if not _camera_auto_follow: return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size(): return
+	var tw := create_tween()
+	tw.tween_interval(delay)
+	tw.tween_callback(func(): _camera_follow_tile(tile_index, false))
+
+func _camera_reset_zoom() -> void:
+	## 战斗结束后恢复拉近前的缩放级别。
+	if _camera_zoom_before_follow < 0.0: return
+	if _camera_zoom_restore_tween and _camera_zoom_restore_tween.is_valid():
+		_camera_zoom_restore_tween.kill()
+	_camera_zoom_restore_tween = create_tween()
+	_camera_zoom_restore_tween.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_CUBIC)
+	_camera_zoom_restore_tween.tween_property(self, "_camera_zoom_target", _camera_zoom_before_follow, 0.5)
+	_camera_zoom_restore_tween.tween_callback(func(): _camera_zoom_before_follow = -1.0)
+
+
+# ═══════════════ CONQUEST RIPPLE ═══════════════
+
+func _spawn_conquest_ripple(tile_index: int) -> void:
+	## 占领地块后生成向外扩散的涟漪环效果。
+	if tile_index < 0 or tile_index >= GameManager.tiles.size(): return
+	if not tile_visuals.has(tile_index): return
+	var tile: Dictionary = GameManager.tiles[tile_index]
+	var pos: Vector3 = tile["position_3d"]
+	var el: float = tile_visuals[tile_index].get("elevation", 0.0)
+	var fk: String = _get_tile_faction_key(tile)
+	var fc: Color = FACTION_COLORS.get(fk, FACTION_COLORS["none"])
+	# 主涟漪环
+	_spawn_single_ripple(pos, el, fc, TILE_RADIUS, TILE_RADIUS * 4.0, 0.4, 1.0, 0.0)
+	# 相邻地块级联次级涟漪
+	if GameManager.adjacency.has(tile_index):
+		var adj_delay: float = 0.2
+		for ni in GameManager.adjacency[tile_index]:
+			if ni < 0 or ni >= GameManager.tiles.size(): continue
+			if not tile_visuals.has(ni): continue
+			var np: Vector3 = GameManager.tiles[ni]["position_3d"]
+			var ne: float = tile_visuals[ni].get("elevation", 0.0)
+			_spawn_single_ripple(np, ne, fc, TILE_RADIUS * 0.6, TILE_RADIUS * 2.5, 0.25, 0.8, adj_delay)
+			adj_delay += 0.2
+
+func _spawn_single_ripple(pos: Vector3, elev: float, color: Color, start_r: float, end_r: float, start_alpha: float, duration: float, delay: float) -> void:
+	## 生成单个涟漪环：薄圆柱从 start_r 扩展到 end_r 并淡出。
+	var ring := MeshInstance3D.new()
+	ring.name = "ConquestRipple"
+	var cm := CylinderMesh.new()
+	cm.top_radius = start_r
+	cm.bottom_radius = start_r
+	cm.height = 0.02
+	cm.radial_segments = 24
+	ring.mesh = cm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(color.r, color.g, color.b, start_alpha)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.emission_enabled = true
+	mat.emission = color
+	mat.emission_energy_multiplier = 1.5
+	ring.material_override = mat
+	ring.position = Vector3(pos.x, elev + TILE_HEIGHT + 0.04, pos.z)
+	ring.visible = false
+	add_child(ring)
+	var scale_factor: float = end_r / maxf(start_r, 0.01)
+	var tw := create_tween()
+	if delay > 0.0:
+		tw.tween_interval(delay)
+	tw.tween_callback(func(): ring.visible = true)
+	tw.tween_property(ring, "scale", Vector3(scale_factor, 1.0, scale_factor), duration).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.parallel().tween_property(mat, "albedo_color:a", 0.0, duration).set_ease(Tween.EASE_IN)
+	tw.parallel().tween_property(mat, "emission_energy_multiplier", 0.0, duration).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func():
+		if is_instance_valid(ring): ring.queue_free()
+	)
+
+
+# ═══════════════ MARCH PLANNING ═══════════════
+
+var _march_planning_active: bool = false
+var _march_planning_army_id: int = -1
+var _march_planning_meshes: Array = []
+var _march_cost_label: Label3D = null
+
+func _enter_march_planning_mode(army_id: int) -> void:
+	## 进入行军规划模式：显示1/2/3步可达范围及路径预览。
+	_exit_march_planning_mode()
+	var army: Dictionary = GameManager.get_army(army_id)
+	if army.is_empty(): return
+	_march_planning_active = true
+	_march_planning_army_id = army_id
+	var origin: int = army.get("tile_index", -1)
+	if origin < 0: return
+	# BFS 计算1/2/3步可达地块
+	var frontier: Array = [origin]
+	var visited: Dictionary = {origin: 0}
+	var step_tiles: Dictionary = {}
+	for step in range(1, 4):
+		var next_frontier: Array = []
+		for fi in frontier:
+			if not GameManager.adjacency.has(fi): continue
+			for ni in GameManager.adjacency[fi]:
+				if visited.has(ni): continue
+				if ni < 0 or ni >= GameManager.tiles.size(): continue
+				visited[ni] = step
+				step_tiles[ni] = step
+				next_frontier.append(ni)
+		frontier = next_frontier
+	# 绘制不同透明度的高亮
+	for tidx in step_tiles:
+		var steps: int = step_tiles[tidx]
+		var alpha: float
+		var green_col: Color
+		match steps:
+			1:
+				green_col = Color(0.2, 0.9, 0.3)
+				alpha = 0.30
+			2:
+				green_col = Color(0.2, 0.75, 0.3)
+				alpha = 0.18
+			_:
+				green_col = Color(0.2, 0.6, 0.25)
+				alpha = 0.10
+		if not tile_visuals.has(tidx): continue
+		var pos: Vector3 = GameManager.tiles[tidx]["position_3d"]
+		var el: float = tile_visuals[tidx].get("elevation", 0.0)
+		var fill := MeshInstance3D.new()
+		fill.name = "MarchPlanFill"
+		var fm := CylinderMesh.new()
+		fm.top_radius = TILE_RADIUS * 0.92
+		fm.bottom_radius = TILE_RADIUS * 0.92
+		fm.height = 0.02
+		fm.radial_segments = 6
+		fill.mesh = fm
+		var fmat := StandardMaterial3D.new()
+		fmat.albedo_color = Color(green_col.r, green_col.g, green_col.b, alpha)
+		fmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		fmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		fmat.emission_enabled = true
+		fmat.emission = green_col
+		fmat.emission_energy_multiplier = 0.4
+		fill.material_override = fmat
+		fill.position = Vector3(pos.x, el + TILE_HEIGHT + 0.035, pos.z)
+		add_child(fill)
+		_march_planning_meshes.append(fill)
+
+func _exit_march_planning_mode() -> void:
+	## 退出行军规划模式，清理所有临时视觉元素。
+	_march_planning_active = false
+	_march_planning_army_id = -1
+	for m in _march_planning_meshes:
+		if is_instance_valid(m): m.queue_free()
+	_march_planning_meshes.clear()
+	_hide_path_cost_label()
+
+func _show_path_cost_label(from_idx: int, to_idx: int) -> void:
+	## 在路径中点显示 AP 消耗和补给损耗的浮动标签。
+	_hide_path_cost_label()
+	if from_idx < 0 or from_idx >= GameManager.tiles.size(): return
+	if to_idx < 0 or to_idx >= GameManager.tiles.size(): return
+	var fp: Vector3 = GameManager.tiles[from_idx]["position_3d"]
+	var tp: Vector3 = GameManager.tiles[to_idx]["position_3d"]
+	var fe: float = _get_elev(GameManager.tiles[from_idx])
+	var te: float = _get_elev(GameManager.tiles[to_idx])
+	# 计算路径 AP 消耗
+	var route: Array = GameManager.calculate_attack_route(from_idx, to_idx)
+	var full_path: Array = [from_idx] + route if not route.is_empty() else [from_idx, to_idx]
+	var total_ap: float = 0.0
+	var total_supply_drain: int = 0
+	for i in range(1, full_path.size()):
+		var ti: int = full_path[i]
+		if ti < 0 or ti >= GameManager.tiles.size(): continue
+		var terrain_type: int = GameManager.tiles[ti].get("terrain", FactionData.TerrainType.PLAINS)
+		var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
+		var move_cost: int = terrain_data.get("move_cost", 1)
+		total_ap += move_cost
+		total_supply_drain += maxi(move_cost, 1) * 4
+	# 预计回合数
+	var est_turns: int = maxi(ceili(total_ap / 3.0), 1)
+	var label_text: String = "AP: %d" % int(total_ap)
+	if est_turns > 1:
+		label_text += " | %d回合" % est_turns
+	label_text += " | 补给: -%d" % total_supply_drain
+	var mid_pos := Vector3(
+		(fp.x + tp.x) * 0.5,
+		maxf(fe, te) + TILE_HEIGHT + 2.0,
+		(fp.z + tp.z) * 0.5
+	)
+	_march_cost_label = Label3D.new()
+	_march_cost_label.name = "MarchCostLabel"
+	_march_cost_label.text = label_text
+	_march_cost_label.font_size = 28
+	_march_cost_label.pixel_size = 0.009
+	_march_cost_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_march_cost_label.no_depth_test = true
+	_march_cost_label.modulate = Color(1.0, 0.95, 0.3, 0.95)
+	_march_cost_label.outline_modulate = Color(0, 0, 0, 0.9)
+	_march_cost_label.outline_size = 12
+	_march_cost_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_march_cost_label.position = mid_pos
+	add_child(_march_cost_label)
+
+func _hide_path_cost_label() -> void:
+	## 清除浮动路径消耗标签。
+	if is_instance_valid(_march_cost_label):
+		_march_cost_label.queue_free()
+	_march_cost_label = null
