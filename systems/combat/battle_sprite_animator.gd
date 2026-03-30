@@ -194,6 +194,74 @@ func play_hit(damage_ratio: float = 0.3) -> void:
 	tw.finished.connect(func(): _on_anim_done("hit"))
 	_active_tween = tw
 
+## Block: shield flash + slight pushback (DEF > ATK scenario).
+func play_block() -> void:
+	if _is_defeated or _sprite == null:
+		return
+	_kill_active_tween()
+	_is_animating = true
+
+	var tw := _create_tween()
+	# Slight pushback
+	var push_back := _origin_pos + Vector2(0, -3.0)
+	tw.tween_property(_sprite, "position", push_back, 0.06) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+	# Shield flash (bright white-blue burst)
+	_sprite.material = _flash_material
+	_flash_material.set_shader_parameter("flash_color", Color(0.7, 0.85, 1.0, 1.0))
+	tw.parallel().tween_method(_set_flash_amount, 0.0, 0.7, 0.06)
+	tw.tween_method(_set_flash_amount, 0.7, 0.0, 0.12)
+
+	# Return to origin with a firm settle
+	tw.tween_property(_sprite, "position", _origin_pos, 0.1) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(func(): _sprite.material = null)
+
+	# Spawn shield particle burst
+	tw.tween_callback(func(): _spawn_block_particles())
+	tw.finished.connect(func(): _on_anim_done("block"))
+	_active_tween = tw
+
+## Dodge: sidestep evasion (high SPD / ninja units).
+func play_dodge(dodge_right: bool = true) -> void:
+	if _is_defeated or _sprite == null:
+		return
+	_kill_active_tween()
+	_is_animating = true
+
+	var dodge_dir := 1.0 if dodge_right else -1.0
+	var dodge_offset := Vector2(dodge_dir * 25.0, -8.0)
+	var tw := _create_tween()
+
+	# Quick sidestep
+	tw.tween_property(_sprite, "position", _origin_pos + dodge_offset, 0.08) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	# Brief transparency (afterimage feel)
+	tw.parallel().tween_property(_sprite, "modulate:a", 0.4, 0.08)
+
+	# Hold
+	tw.tween_interval(0.06)
+
+	# Slide back to origin
+	tw.tween_property(_sprite, "position", _origin_pos, 0.14) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	tw.parallel().tween_property(_sprite, "modulate:a", 1.0, 0.14)
+
+	tw.finished.connect(func(): _on_anim_done("dodge"))
+	_active_tween = tw
+
+## Dispatcher: pick the appropriate defender reaction based on context.
+## reaction: "hit", "block", "dodge"
+func play_hit_reaction(reaction: String = "hit", damage_ratio: float = 0.3) -> void:
+	match reaction:
+		"block":
+			play_block()
+		"dodge":
+			play_dodge()
+		_:
+			play_hit(damage_ratio)
+
 ## Defeat: grayscale desaturation + fall + fade out.
 func play_defeat() -> void:
 	if _sprite == null:
@@ -435,3 +503,33 @@ func _create_particle(color: Color) -> ColorRect:
 	p.pivot_offset = Vector2(sz / 2.0, sz / 2.0)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return p
+
+## Spawn shield block particles (white-blue sparks in a defensive arc).
+func _spawn_block_particles() -> void:
+	if _sprite == null:
+		return
+	var parent := _sprite.get_parent()
+	if parent == null:
+		return
+	var shield_colors := [
+		Color(0.7, 0.85, 1.0),
+		Color(0.9, 0.95, 1.0),
+		Color(0.5, 0.7, 1.0),
+	]
+	for i in range(6):
+		var color: Color = shield_colors[i % shield_colors.size()]
+		var particle := _create_particle(color)
+		parent.add_child(particle)
+		particle.global_position = _sprite.global_position + Vector2(
+			randf_range(-15.0, 15.0), randf_range(-20.0, 5.0)
+		)
+		var angle := randf_range(-PI * 0.6, PI * 0.6)  # front arc
+		var dist := randf_range(15.0, 35.0)
+		var target_pos := particle.global_position + Vector2(cos(angle), sin(angle)) * dist
+		var life := randf_range(0.3, 0.5)
+		var ptw := particle.create_tween()
+		ptw.set_parallel(true)
+		ptw.tween_property(particle, "global_position", target_pos, life) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		ptw.tween_property(particle, "modulate:a", 0.0, life * 0.7).set_delay(life * 0.3)
+		ptw.chain().tween_callback(func(): if is_instance_valid(particle): particle.queue_free())

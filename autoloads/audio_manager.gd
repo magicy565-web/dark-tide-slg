@@ -24,6 +24,8 @@ enum BGMTrack {
 	OVERWORLD_TENSE,
 	COMBAT_NORMAL,
 	COMBAT_BOSS,
+	COMBAT_CRISIS,      # Dynamic: our HP < 30%
+	COMBAT_ADVANTAGE,   # Dynamic: enemy HP < 30%
 	VICTORY,
 	DEFEAT,
 	EVENT,
@@ -41,6 +43,18 @@ enum SFX {
 	COMBAT_DEATH,
 	COMBAT_SIEGE,
 	COMBAT_ABILITY,
+	COMBAT_SWORD,       # Weapon-specific SFX
+	COMBAT_ARROW,
+	COMBAT_MAGIC,
+	COMBAT_CANNON,
+	COMBAT_SHURIKEN,
+	COMBAT_CHARGE,
+	COMBAT_HEAL,
+	COMBAT_BUFF,
+	COMBAT_DEBUFF,
+	COMBAT_BLOCK,
+	COMBAT_DODGE,
+	COMBAT_MORALE_BREAK,
 	MAP_CAPTURE,
 	MAP_LOST,
 	MAP_DEPLOY,
@@ -99,6 +113,8 @@ func _init_audio_paths() -> void:
 		BGMTrack.OVERWORLD_TENSE: "res://assets/audio/bgm/overworld_tense.ogg",
 		BGMTrack.COMBAT_NORMAL: "res://assets/audio/bgm/combat_normal.ogg",
 		BGMTrack.COMBAT_BOSS: "res://assets/audio/bgm/combat_boss.ogg",
+		BGMTrack.COMBAT_CRISIS: "res://assets/audio/bgm/combat_crisis.ogg",
+		BGMTrack.COMBAT_ADVANTAGE: "res://assets/audio/bgm/combat_advantage.ogg",
 		BGMTrack.VICTORY: "res://assets/audio/bgm/victory.ogg",
 		BGMTrack.DEFEAT: "res://assets/audio/bgm/defeat.ogg",
 		BGMTrack.EVENT: "res://assets/audio/bgm/event.ogg",
@@ -114,6 +130,18 @@ func _init_audio_paths() -> void:
 		SFX.COMBAT_DEATH: "res://assets/audio/sfx/combat_death.ogg",
 		SFX.COMBAT_SIEGE: "res://assets/audio/sfx/combat_siege.ogg",
 		SFX.COMBAT_ABILITY: "res://assets/audio/sfx/combat_ability.ogg",
+		SFX.COMBAT_SWORD: "res://assets/audio/sfx/combat_sword.ogg",
+		SFX.COMBAT_ARROW: "res://assets/audio/sfx/combat_arrow.ogg",
+		SFX.COMBAT_MAGIC: "res://assets/audio/sfx/combat_magic.ogg",
+		SFX.COMBAT_CANNON: "res://assets/audio/sfx/combat_cannon.ogg",
+		SFX.COMBAT_SHURIKEN: "res://assets/audio/sfx/combat_shuriken.ogg",
+		SFX.COMBAT_CHARGE: "res://assets/audio/sfx/combat_charge.ogg",
+		SFX.COMBAT_HEAL: "res://assets/audio/sfx/combat_heal.ogg",
+		SFX.COMBAT_BUFF: "res://assets/audio/sfx/combat_buff.ogg",
+		SFX.COMBAT_DEBUFF: "res://assets/audio/sfx/combat_debuff.ogg",
+		SFX.COMBAT_BLOCK: "res://assets/audio/sfx/combat_block.ogg",
+		SFX.COMBAT_DODGE: "res://assets/audio/sfx/combat_dodge.ogg",
+		SFX.COMBAT_MORALE_BREAK: "res://assets/audio/sfx/combat_morale_break.ogg",
 		SFX.MAP_CAPTURE: "res://assets/audio/sfx/map_capture.ogg",
 		SFX.MAP_LOST: "res://assets/audio/sfx/map_lost.ogg",
 		SFX.MAP_DEPLOY: "res://assets/audio/sfx/map_deploy.ogg",
@@ -157,6 +185,30 @@ func _build_sfx_name_map() -> void:
 		"combat_siege": SFX.COMBAT_SIEGE,
 		"combat_ability": SFX.COMBAT_ABILITY,
 		"skill_activate": SFX.COMBAT_ABILITY,
+		"combat_sword": SFX.COMBAT_SWORD,
+		"sword_hit": SFX.COMBAT_SWORD,
+		"combat_arrow": SFX.COMBAT_ARROW,
+		"arrow_hit": SFX.COMBAT_ARROW,
+		"combat_magic": SFX.COMBAT_MAGIC,
+		"magic_hit": SFX.COMBAT_MAGIC,
+		"combat_cannon": SFX.COMBAT_CANNON,
+		"cannon_hit": SFX.COMBAT_CANNON,
+		"combat_shuriken": SFX.COMBAT_SHURIKEN,
+		"shuriken_hit": SFX.COMBAT_SHURIKEN,
+		"combat_charge": SFX.COMBAT_CHARGE,
+		"charge_hit": SFX.COMBAT_CHARGE,
+		"combat_heal": SFX.COMBAT_HEAL,
+		"heal": SFX.COMBAT_HEAL,
+		"combat_buff": SFX.COMBAT_BUFF,
+		"buff_apply": SFX.COMBAT_BUFF,
+		"combat_debuff": SFX.COMBAT_DEBUFF,
+		"debuff_apply": SFX.COMBAT_DEBUFF,
+		"combat_block": SFX.COMBAT_BLOCK,
+		"block": SFX.COMBAT_BLOCK,
+		"combat_dodge": SFX.COMBAT_DODGE,
+		"dodge": SFX.COMBAT_DODGE,
+		"combat_morale_break": SFX.COMBAT_MORALE_BREAK,
+		"morale_break": SFX.COMBAT_MORALE_BREAK,
 		"capture": SFX.MAP_CAPTURE,
 		"map_capture": SFX.MAP_CAPTURE,
 		"tile_capture": SFX.MAP_CAPTURE,
@@ -417,6 +469,18 @@ func _get_procedural_fallback(sfx_id: int) -> AudioStream:
 			return _procedural_critical
 		SFX.COMBAT_DEATH, SFX.COMBAT_ABILITY:
 			return _procedural_attack
+		SFX.COMBAT_SWORD, SFX.COMBAT_ARROW, SFX.COMBAT_MAGIC, SFX.COMBAT_CANNON:
+			return _procedural_attack
+		SFX.COMBAT_SHURIKEN, SFX.COMBAT_CHARGE:
+			return _procedural_attack
+		SFX.COMBAT_HEAL, SFX.COMBAT_BUFF:
+			return _procedural_confirm
+		SFX.COMBAT_DEBUFF:
+			return _procedural_attack
+		SFX.COMBAT_BLOCK, SFX.COMBAT_DODGE:
+			return _procedural_click
+		SFX.COMBAT_MORALE_BREAK:
+			return _procedural_defeat
 		SFX.VICTORY:
 			return _procedural_victory
 		SFX.DEFEAT:
@@ -460,6 +524,8 @@ func play_music(track) -> void:
 			"overworld_tense": BGMTrack.OVERWORLD_TENSE,
 			"combat_normal": BGMTrack.COMBAT_NORMAL,
 			"combat_boss": BGMTrack.COMBAT_BOSS,
+			"combat_crisis": BGMTrack.COMBAT_CRISIS,
+			"combat_advantage": BGMTrack.COMBAT_ADVANTAGE,
 			"victory": BGMTrack.VICTORY,
 			"defeat": BGMTrack.DEFEAT,
 			"event": BGMTrack.EVENT,
@@ -579,7 +645,59 @@ func _on_sfx_attack(_unit_class: String, is_crit: bool) -> void:
 	if is_crit:
 		play_sfx(SFX.COMBAT_CRITICAL)
 	else:
-		play_sfx(SFX.COMBAT_ATTACK)
+		# Play weapon-specific SFX based on unit class
+		var weapon_sfx: int = _get_weapon_sfx(_unit_class)
+		play_sfx(weapon_sfx)
+
+## Map unit_class to weapon-specific SFX.
+func _get_weapon_sfx(unit_class: String) -> int:
+	match unit_class:
+		"samurai", "ashigaru":
+			return SFX.COMBAT_SWORD
+		"archer":
+			return SFX.COMBAT_ARROW
+		"cavalry":
+			return SFX.COMBAT_CHARGE
+		"cannon":
+			return SFX.COMBAT_CANNON
+		"ninja":
+			return SFX.COMBAT_SHURIKEN
+		"mage", "mage_unit", "priest":
+			return SFX.COMBAT_MAGIC
+		_:
+			return SFX.COMBAT_ATTACK
+
+## Play SFX for heal events.
+func play_combat_heal() -> void:
+	play_sfx(SFX.COMBAT_HEAL)
+
+## Play SFX for buff/debuff application.
+func play_combat_buff(is_debuff: bool = false) -> void:
+	if is_debuff:
+		play_sfx(SFX.COMBAT_DEBUFF)
+	else:
+		play_sfx(SFX.COMBAT_BUFF)
+
+## Play SFX for block/dodge reactions.
+func play_combat_reaction(reaction: String) -> void:
+	match reaction:
+		"block":
+			play_sfx(SFX.COMBAT_BLOCK)
+		"dodge":
+			play_sfx(SFX.COMBAT_DODGE)
+
+## Dynamic BGM switching based on combat HP state.
+## Call this after each action to check if BGM should change.
+func update_combat_bgm(our_hp_ratio: float, enemy_hp_ratio: float, is_boss: bool = false) -> void:
+	if is_boss:
+		play_bgm(BGMTrack.COMBAT_BOSS, 1.5)
+		return
+	if our_hp_ratio < 0.3:
+		play_bgm(BGMTrack.COMBAT_CRISIS, 1.5)
+	elif enemy_hp_ratio < 0.3:
+		play_bgm(BGMTrack.COMBAT_ADVANTAGE, 1.5)
+	else:
+		play_bgm(BGMTrack.COMBAT_NORMAL, 1.5)
 
 func _on_sfx_unit_killed(_side: String) -> void:
 	play_sfx(SFX.COMBAT_DEATH)

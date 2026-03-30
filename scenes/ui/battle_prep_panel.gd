@@ -3,6 +3,7 @@
 ## Shows 6-slot grid (3 front, 3 back), enemy garrison preview, and confirm/cancel.
 extends CanvasLayer
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const ChibiLoader = preload("res://systems/combat/chibi_sprite_loader.gd")
 
 signal battle_confirmed(army_id: int, target_tile: int, slot_assignments: Dictionary)
 signal battle_cancelled()
@@ -207,6 +208,28 @@ func _create_slot_panel(idx: int) -> PanelContainer:
 	var vb := VBoxContainer.new()
 	vb.add_theme_constant_override("separation", 1)
 	p.add_child(vb)
+	# Chibi preview overlay (top-right corner of slot)
+	var chibi_tex := TextureRect.new()
+	chibi_tex.name = "ChibiPreview"
+	chibi_tex.custom_minimum_size = Vector2(48, 48)
+	chibi_tex.size = Vector2(48, 48)
+	chibi_tex.position = Vector2(SLOT_SIZE.x - 52, 2)
+	chibi_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chibi_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chibi_tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chibi_tex.visible = false
+	p.add_child(chibi_tex)
+	# Troop class icon overlay (bottom-left corner)
+	var class_icon := TextureRect.new()
+	class_icon.name = "ClassIcon"
+	class_icon.custom_minimum_size = Vector2(20, 20)
+	class_icon.size = Vector2(20, 20)
+	class_icon.position = Vector2(4, SLOT_SIZE.y - 24)
+	class_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	class_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	class_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	class_icon.visible = false
+	p.add_child(class_icon)
 	slot_panels.append(p)
 	slot_labels.append(vb)
 	return p
@@ -236,12 +259,36 @@ func _refresh_slots() -> void:
 		# BUG FIX R14: bounds check on slot_panels before access
 		if si < slot_panels.size():
 			slot_panels[si].add_theme_stylebox_override("panel", _slot_style(si == _selected_slot))
+		# Update chibi preview
+		var chibi_preview: TextureRect = slot_panels[si].get_node_or_null("ChibiPreview") if si < slot_panels.size() else null
 		if not _slot_assignments.has(si):
 			vb.add_child(_make_label("(empty)", 11, ColorTheme.TEXT_MUTED, HORIZONTAL_ALIGNMENT_CENTER))
+			if chibi_preview:
+				chibi_preview.visible = false
 			continue
 		var asgn: Dictionary = _slot_assignments[si]
 		var ti: int = asgn.get("troop_index", -1)
 		var hid: String = asgn.get("hero_id", "")
+		# Load chibi for assigned hero
+		if chibi_preview:
+			if hid != "" and ChibiLoader.has_png(hid):
+				var idle_tex := ChibiLoader.load_png(hid, "idle")
+				if idle_tex:
+					chibi_preview.texture = idle_tex
+					chibi_preview.visible = true
+					# Enlarge chibi when slot is selected
+					if si == _selected_slot:
+						chibi_preview.custom_minimum_size = Vector2(64, 64)
+						chibi_preview.size = Vector2(64, 64)
+						chibi_preview.position = Vector2(SLOT_SIZE.x - 68, 2)
+					else:
+						chibi_preview.custom_minimum_size = Vector2(48, 48)
+						chibi_preview.size = Vector2(48, 48)
+						chibi_preview.position = Vector2(SLOT_SIZE.x - 52, 2)
+				else:
+					chibi_preview.visible = false
+			else:
+				chibi_preview.visible = false
 		# Troop info
 		if ti >= 0 and ti < troops.size():
 			var troop: Dictionary = troops[ti]

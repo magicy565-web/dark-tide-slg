@@ -136,7 +136,25 @@ var _waiting_for_command: bool = false
 
 # ── Buff/debuff tracking (side -> slot -> Array[String]) ──
 var _active_buffs: Dictionary = {}
+var _buff_stacks: Dictionary = {}  # side -> slot -> { buff_key: int count }
 var _dot_timers: Dictionary = {}  # side -> slot -> float (accumulator for DoT particles)
+
+# ── Enchantment glow tracking (side -> slot -> { glow_rect: ColorRect, tween: Tween }) ──
+var _enchant_glows: Dictionary = {"attacker": {}, "defender": {}}
+
+# ── Combo color progression (white→yellow→orange→red→purple) ──
+const COMBO_COLORS := [
+	Color(1, 1, 1),          # 2 hits - white
+	Color(1, 0.9, 0.3),      # 3 hits - yellow
+	Color(1, 0.65, 0.15),    # 4 hits - orange
+	Color(1, 0.2, 0.15),     # 5 hits - red
+	Color(0.75, 0.3, 1.0),   # 6+ hits - purple
+]
+
+# ── Cinematic bars for kill finisher ──
+var _cinema_bar_top: ColorRect = null
+var _cinema_bar_bot: ColorRect = null
+var _kill_name_label: Label = null
 
 # ── Unit tracking (side -> slot -> dict with live data) ──
 var _live_units: Dictionary = {"attacker": {}, "defender": {}}
@@ -193,6 +211,9 @@ var defender_cards: Dictionary = {}
 var _shake_intensity: float = 0.0
 var _shake_decay: float = 0.0
 var _shake_offset: Vector2 = Vector2.ZERO
+# Camera zoom state
+var _zoom_tween: Tween = null
+var _is_zooming: bool = false
 var _intervention_panel = null  # CombatInterventionPanel instance
 var _cmd_bar: HBoxContainer = null  # Interactive command bar
 var _cmd_continue_btn: Button = null
@@ -225,9 +246,9 @@ func _process(delta: float) -> void:
 	if _combo_count > 0:
 		_combo_timer -= delta
 		if _combo_timer <= 0:
+			if _combo_count >= 2:
+				_combo_shatter()
 			_combo_count = 0
-			if combo_label:
-				combo_label.visible = false
 
 	# DoT persistent particles (poison/burn)
 	for side_key in _active_buffs.keys():
@@ -901,13 +922,20 @@ func show_battle(battle_result: Dictionary) -> void:
 		bg_path = BATTLE_BG_FALLBACKS.get(terrain_id, BATTLE_BG_FALLBACKS[0])
 	if ResourceLoader.exists(bg_path):
 		_bg_texture_rect.texture = load(bg_path)
+		_bg_texture_rect.modulate = Color(1, 1, 1, 0)
 		_bg_texture_rect.visible = true
+		# Fade-in transition for battle background
+		var bg_tw := create_tween()
+		bg_tw.tween_property(_bg_texture_rect, "modulate", Color(1, 1, 1, 0.35), 0.8) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	else:
 		_bg_texture_rect.visible = false
 
 	# Initialize live unit data
 	_live_units = {"attacker": {}, "defender": {}}
 	_active_buffs = {"attacker": {}, "defender": {}}
+	_buff_stacks = {"attacker": {}, "defender": {}}
+	_enchant_glows = {"attacker": {}, "defender": {}}
 	_dot_timers = {"attacker": {}, "defender": {}}
 	var atk_units: Array = battle_result.get("attacker_units_initial", [])
 	var def_units: Array = battle_result.get("defender_units_initial", [])
@@ -918,6 +946,14 @@ func show_battle(battle_result: Dictionary) -> void:
 
 	# Intro animation: cards slide in from sides
 	_intro_animation()
+
+	# Task 9: Start combat BGM (boss or normal)
+	if AudioManager:
+		var is_boss: bool = _battle_state.get("is_boss", false)
+		if is_boss and AudioManager.has_method("play_bgm"):
+			AudioManager.play_bgm(AudioManager.BGMTrack.COMBAT_BOSS, 0.5)
+		elif AudioManager.has_method("play_bgm"):
+			AudioManager.play_bgm(AudioManager.BGMTrack.COMBAT_NORMAL, 0.5)
 
 	# Start VS label pulse animation
 	if _vs_tween and _vs_tween.is_valid():
@@ -1304,12 +1340,21 @@ func _animate_attack(source_side: String, source_slot: int, target_side: String,
 
 	# SFX hook
 	EventBus.sfx_attack.emit(uclass, damage > max_soldiers * 0.4)
-	# Direct audio trigger for attack hit
+	# Direct audio trigger for weapon-specific attack SFX
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		if damage > max_soldiers * 0.4:
 			AudioManager.play_sfx_by_name("critical_hit")
 		else:
-			AudioManager.play_sfx_by_name("attack_hit")
+			# Weapon-type specific SFX
+			var weapon_sfx_name: String = "attack_hit"
+			match uclass:
+				"samurai", "ashigaru": weapon_sfx_name = "sword_hit"
+				"archer": weapon_sfx_name = "arrow_hit"
+				"cavalry": weapon_sfx_name = "charge_hit"
+				"cannon": weapon_sfx_name = "cannon_hit"
+				"ninja": weapon_sfx_name = "shuriken_hit"
+				"mage", "mage_unit", "priest": weapon_sfx_name = "magic_hit"
+			AudioManager.play_sfx_by_name(weapon_sfx_name)
 
 	var is_crit := damage > max_soldiers * 0.4
 	var is_heavy := damage > max_soldiers * 0.6
@@ -2134,23 +2179,34 @@ func _update_combo(side: String, damage: int) -> void:
 	if side == _combo_side:
 		_combo_count += 1
 	else:
+		# Combo broken - shatter the old counter
+		if _combo_count >= 2:
+			_combo_shatter()
 		_combo_count = 1
 		_combo_side = side
 	_combo_timer = COMBO_DECAY_TIME
 
 	if _combo_count >= 2 and is_instance_valid(combo_label):
-		var combo_color: Color = Color(1, 0.85, 0.2) if side == "attacker" else Color(0.4, 0.7, 1.0)
-		combo_label.text = "%d HIT" % _combo_count if _combo_count < 5 else "%d HIT!" % _combo_count
+		# Color progression: white → yellow → orange → red → purple
+		var combo_color: Color = _get_combo_color(_combo_count, side)
+		combo_label.text = "×%d COMBO" % _combo_count if _combo_count < 5 else "×%d COMBO!" % _combo_count
 		combo_label.add_theme_color_override("font_color", combo_color)
+		combo_label.add_theme_constant_override("outline_size", 3)
+		combo_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 		combo_label.visible = true
-		# Pop animation
-		combo_label.scale = Vector2(1.3, 1.3)
+		# Pop animation (bigger pop for higher combos)
+		var pop_scale := 1.3 + float(mini(_combo_count - 2, 4)) * 0.08
+		combo_label.scale = Vector2(pop_scale, pop_scale)
 		combo_label.pivot_offset = Vector2(100, 24)
 		var tw := create_tween()
 		tw.tween_property(combo_label, "scale", Vector2(1.0, 1.0), 0.15 / _speed_mult).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
-		# Extra effects for big combos
-		if _combo_count >= 5:
+		# Progressive font size and effects
+		if _combo_count >= 6:
+			combo_label.add_theme_font_size_override("font_size", 52)
+			_screen_flash_effect(Color(combo_color.r, combo_color.g, combo_color.b, 0.08), 0.25)
+			_screen_shake(SHAKE_LIGHT, 12.0)
+		elif _combo_count >= 5:
 			combo_label.add_theme_font_size_override("font_size", 48)
 			_screen_flash_effect(Color(combo_color.r, combo_color.g, combo_color.b, 0.06), 0.2)
 		elif _combo_count >= 3:
@@ -2412,6 +2468,15 @@ func _apply_log_entry(entry: Dictionary) -> void:
 				# Chibi: attacker shows attack pose, target shows hurt pose
 				_set_chibi_state(side, slot_idx, "attack", 0.6)
 				_set_chibi_state(target_side, target_slot, "hurt", 0.5)
+				# Task 2: Camera zoom on critical hits
+				if is_crit:
+					_camera_zoom_crit(target_side, target_slot)
+				# Task 6: Track debuff stacks from damage-over-time attacks
+				var dot_type: String = entry.get("dot_type", "")
+				if dot_type != "":
+					_add_buff_stack(target_side, target_slot, dot_type)
+				# Task 9: Check dynamic BGM after each attack
+				_check_dynamic_bgm()
 
 				# AoE: check for additional targets in same log batch
 				if is_aoe:
@@ -2479,6 +2544,8 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			if slot_idx >= 0:
 				_glow_card(side, slot_idx)
 				_set_chibi_state(side, slot_idx, "cast", 1.8)
+				# Task 2: Full camera zoom for ultimate
+				_camera_zoom_ultimate(side, slot_idx)
 			if not _is_finishing and hero_id != "":
 				play_ultimate_vfx(hero_id)
 
@@ -2499,8 +2566,15 @@ func _apply_log_entry(entry: Dictionary) -> void:
 				# Kill cutscene handles death overlay
 				if not _is_finishing:
 					_play_kill_cutscene(side, slot_idx)
+					# Task 8: Enhanced kill finisher with cinematic bars
+					var last_attacker_side := "attacker" if side == "defender" else "defender"
+					var last_attacker_slot := entry.get("killer_slot", 0)
+					var kill_skill := entry.get("kill_skill", "")
+					_play_kill_finisher(last_attacker_side, last_attacker_slot, side, slot_idx, kill_skill)
 				else:
 					_apply_death_overlay(side, slot_idx)
+				# Task 9: Check dynamic BGM after death
+				_check_dynamic_bgm()
 
 			# Check for hero knockout
 			var hero_ko: String = entry.get("hero_knocked_out", "")
@@ -2512,12 +2586,26 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			log_line = "[color=#fa8][Buff][/color] %s" % desc
 			if slot_idx >= 0 and not _is_finishing:
 				play_buff_vfx(side, slot_idx, buff_type)
+				# Task 3: Play buff SFX
+				if AudioManager and AudioManager.has_method("play_combat_buff"):
+					AudioManager.play_combat_buff(false)
+				# Task 5: Check for enchantment glow
+				var enchant := _detect_enchantment(desc)
+				if enchant != "":
+					_apply_enchantment_glow(side, slot_idx, enchant)
+				# Task 6: Track buff stacks
+				_add_buff_stack(side, slot_idx, buff_type)
 
 		"debuff":
 			var debuff_type: String = entry.get("debuff_type", "poison")
 			log_line = "[color=#f66][Debuff][/color] %s" % desc
 			if slot_idx >= 0 and not _is_finishing:
 				play_debuff_vfx(side, slot_idx, debuff_type)
+				# Task 3: Play debuff SFX
+				if AudioManager and AudioManager.has_method("play_combat_buff"):
+					AudioManager.play_combat_buff(true)
+				# Task 6: Track debuff stacks
+				_add_buff_stack(side, slot_idx, debuff_type)
 
 		"formation":
 			var formation_key: String = entry.get("formation", "")
@@ -2531,12 +2619,19 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			log_line = "[color=#f88][Morale][/color] %s" % desc
 			if slot_idx >= 0 and not _is_finishing:
 				play_morale_vfx(side, slot_idx, morale_type)
+				# Task 3: Morale break SFX
+				if morale_type in ["rout", "collapse", "break"] and AudioManager:
+					if AudioManager.has_method("play_sfx_by_name"):
+						AudioManager.play_sfx_by_name("morale_break")
 
 		"heal":
 			var is_mass_heal: bool = entry.get("is_mass", false)
 			log_line = "[color=#4f8][Heal][/color] %s" % desc
 			if slot_idx >= 0 and not _is_finishing:
 				play_heal_vfx(side, slot_idx, is_mass_heal)
+				# Task 3: Play heal SFX
+				if AudioManager and AudioManager.has_method("play_combat_heal"):
+					AudioManager.play_combat_heal()
 
 		"combo":
 			var combo_idx: int = entry.get("combo_index", 0)
@@ -3001,6 +3096,360 @@ func _intro_animation() -> void:
 	# (VS label is already added; we animate it)
 	# Title flash
 	_screen_flash_effect(Color(0.9, 0.8, 0.5, 0.1), 0.5)
+
+# ═══════════════════════════════════════════════════════════
+#        TASK 2: CAMERA ZOOM (push/pull via node scaling)
+# ═══════════════════════════════════════════════════════════
+
+## Zoom the shake_container toward a focal point.
+## zoom_scale: 1.05 (crit), 1.10 (kill), 1.15 (ultimate)
+## duration: total time for push-in + pull-out
+## focal_pos: screen-space point to zoom toward (pivot)
+func _camera_zoom(zoom_scale: float, duration: float, focal_pos: Vector2 = Vector2(CENTER_X, SCREEN_H * 0.4)) -> void:
+	if not is_instance_valid(shake_container) or _is_finishing:
+		return
+	if _zoom_tween and _zoom_tween.is_valid():
+		_zoom_tween.kill()
+	_is_zooming = true
+	shake_container.pivot_offset = focal_pos
+	var push_time := duration * 0.35
+	var hold_time := duration * 0.15
+	var pull_time := duration * 0.5
+	_zoom_tween = create_tween()
+	_zoom_tween.tween_property(shake_container, "scale", Vector2(zoom_scale, zoom_scale), push_time / _speed_mult) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	_zoom_tween.tween_interval(hold_time / _speed_mult)
+	_zoom_tween.tween_property(shake_container, "scale", Vector2.ONE, pull_time / _speed_mult) \
+		.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_QUAD)
+	_zoom_tween.finished.connect(func():
+		_is_zooming = false
+		if is_instance_valid(shake_container):
+			shake_container.scale = Vector2.ONE
+	)
+
+## Zoom + slow-motion for kill moments.
+func _camera_zoom_kill(side: String, slot_idx: int) -> void:
+	var focal := _get_card_center(side, slot_idx)
+	_camera_zoom(1.10, 0.6, focal)
+
+## Micro-zoom for critical hits.
+func _camera_zoom_crit(side: String, slot_idx: int) -> void:
+	var focal := _get_card_center(side, slot_idx)
+	_camera_zoom(1.05, 0.3, focal)
+
+## Full zoom for ultimate skill release.
+func _camera_zoom_ultimate(side: String, slot_idx: int) -> void:
+	var focal := _get_card_center(side, slot_idx)
+	_camera_zoom(1.15, 0.9, focal)
+
+# ═══════════════════════════════════════════════════════════
+#        TASK 5: ENCHANTMENT GLOW VISUAL FEEDBACK
+# ═══════════════════════════════════════════════════════════
+
+## Enchantment type → glow color mapping.
+const ENCHANT_COLORS := {
+	"fire": Color(1.0, 0.3, 0.1, 0.5),
+	"ice": Color(0.2, 0.6, 1.0, 0.5),
+	"lightning": Color(0.6, 0.2, 1.0, 0.5),
+	"holy": Color(1.0, 0.85, 0.3, 0.5),
+}
+
+## Apply or update enchantment glow on a unit card.
+func _apply_enchantment_glow(side: String, slot_idx: int, enchant_type: String) -> void:
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	if not cards.has(slot_idx):
+		return
+	var card: PanelContainer = cards[slot_idx]
+	var glow_color: Color = ENCHANT_COLORS.get(enchant_type, Color(1, 1, 1, 0.3))
+
+	# Remove existing glow if any
+	_remove_enchantment_glow(side, slot_idx)
+
+	# Create glow border rect
+	var glow := ColorRect.new()
+	glow.name = "EnchantGlow"
+	glow.anchor_right = 1.0
+	glow.anchor_bottom = 1.0
+	glow.color = Color(0, 0, 0, 0)  # transparent fill
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow.z_index = 5
+	card.add_child(glow)
+
+	# Use a StyleBoxFlat as visual border glow
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(glow_color.r, glow_color.g, glow_color.b, 0.05)
+	style.border_color = glow_color
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(6)
+	var glow_panel := PanelContainer.new()
+	glow_panel.name = "EnchantGlowPanel"
+	glow_panel.anchor_right = 1.0
+	glow_panel.anchor_bottom = 1.0
+	glow_panel.add_theme_stylebox_override("panel", style)
+	glow_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow_panel.z_index = 5
+	card.add_child(glow_panel)
+
+	# Breathing animation (pulse border opacity)
+	var tw := create_tween().set_loops()
+	tw.tween_property(glow_panel, "modulate:a", 0.4, 1.2) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(glow_panel, "modulate:a", 1.0, 1.2) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+	_enchant_glows[side][slot_idx] = {"panel": glow_panel, "glow": glow, "tween": tw}
+
+## Remove enchantment glow with shrink animation.
+func _remove_enchantment_glow(side: String, slot_idx: int) -> void:
+	if not _enchant_glows[side].has(slot_idx):
+		return
+	var data: Dictionary = _enchant_glows[side][slot_idx]
+	if data.has("tween") and data["tween"] is Tween and data["tween"].is_valid():
+		data["tween"].kill()
+	if data.has("panel") and is_instance_valid(data["panel"]):
+		var panel = data["panel"]
+		panel.pivot_offset = panel.size * 0.5
+		var tw := create_tween()
+		tw.tween_property(panel, "scale", Vector2(0.8, 0.8), 0.2 / _speed_mult)
+		tw.parallel().tween_property(panel, "modulate:a", 0.0, 0.2 / _speed_mult)
+		tw.tween_callback(func():
+			if is_instance_valid(panel): panel.queue_free()
+		)
+	if data.has("glow") and is_instance_valid(data["glow"]):
+		data["glow"].queue_free()
+	_enchant_glows[side].erase(slot_idx)
+
+## Detect enchantment type from battle log description text.
+func _detect_enchantment(desc: String) -> String:
+	var lower := desc.to_lower()
+	if "fire" in lower or "火" in lower or "炎" in lower:
+		return "fire"
+	elif "ice" in lower or "冰" in lower or "凍" in lower:
+		return "ice"
+	elif "lightning" in lower or "雷" in lower or "電" in lower:
+		return "lightning"
+	elif "holy" in lower or "神聖" in lower or "聖" in lower:
+		return "holy"
+	return ""
+
+# ═══════════════════════════════════════════════════════════
+#        TASK 6: DEBUFF STACK COUNT BADGES
+# ═══════════════════════════════════════════════════════════
+
+## Add or increment a buff/debuff stack for a unit.
+func _add_buff_stack(side: String, slot_idx: int, buff_key: String) -> void:
+	if not _buff_stacks.has(side):
+		_buff_stacks[side] = {}
+	if not _buff_stacks[side].has(slot_idx):
+		_buff_stacks[side][slot_idx] = {}
+	var stacks: Dictionary = _buff_stacks[side][slot_idx]
+	stacks[buff_key] = stacks.get(buff_key, 0) + 1
+	_update_buff_stack_badges(side, slot_idx)
+
+## Remove a buff/debuff stack.
+func _remove_buff_stack(side: String, slot_idx: int, buff_key: String) -> void:
+	if not _buff_stacks.has(side) or not _buff_stacks[side].has(slot_idx):
+		return
+	_buff_stacks[side][slot_idx].erase(buff_key)
+	_update_buff_stack_badges(side, slot_idx)
+
+## Update the visual stack count badge on the buff label area.
+func _update_buff_stack_badges(side: String, slot_idx: int) -> void:
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	if not cards.has(slot_idx):
+		return
+	var card: PanelContainer = cards[slot_idx]
+	# Remove old badge nodes
+	for child in card.get_children():
+		if child.name.begins_with("StackBadge_"):
+			child.queue_free()
+
+	if not _buff_stacks.has(side) or not _buff_stacks[side].has(slot_idx):
+		return
+	var stacks: Dictionary = _buff_stacks[side][slot_idx]
+	var badge_x := 4.0
+	for buff_key in stacks.keys():
+		var count: int = stacks[buff_key]
+		if count <= 1:
+			badge_x += 22.0
+			continue
+		# Create stack count badge
+		var badge := Label.new()
+		badge.name = "StackBadge_%s" % buff_key
+		badge.text = "×%d" % count
+		badge.add_theme_font_size_override("font_size", 12)
+		badge.add_theme_constant_override("outline_size", 2)
+		badge.add_theme_color_override("font_outline_color", Color(0.6, 0.05, 0.05))
+		badge.add_theme_color_override("font_color", Color.WHITE)
+		badge.position = Vector2(badge_x + 12, CARD_H - 18)
+		badge.z_index = 10
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(badge)
+		badge_x += 22.0
+
+# ═══════════════════════════════════════════════════════════
+#     TASK 8: ENHANCED KILL FINISHER CLOSE-UP
+# ═══════════════════════════════════════════════════════════
+
+## Cinematic widescreen bars + skill name + killer chibi zoom.
+func _play_kill_finisher(killer_side: String, killer_slot: int, victim_side: String, victim_slot: int, skill_name: String = "") -> void:
+	if _is_finishing:
+		return
+
+	# Camera zoom on the victim
+	_camera_zoom_kill(victim_side, victim_slot)
+
+	# ── Cinematic black bars (top + bottom) ──
+	if _cinema_bar_top == null:
+		_cinema_bar_top = ColorRect.new()
+		_cinema_bar_top.name = "CinemaBarTop"
+		_cinema_bar_top.size = Vector2(SCREEN_W, 60)
+		_cinema_bar_top.position = Vector2(0, -60)
+		_cinema_bar_top.color = Color(0, 0, 0, 0.85)
+		_cinema_bar_top.z_index = 80
+		_cinema_bar_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(_cinema_bar_top)
+	if _cinema_bar_bot == null:
+		_cinema_bar_bot = ColorRect.new()
+		_cinema_bar_bot.name = "CinemaBarBot"
+		_cinema_bar_bot.size = Vector2(SCREEN_W, 60)
+		_cinema_bar_bot.position = Vector2(0, SCREEN_H)
+		_cinema_bar_bot.color = Color(0, 0, 0, 0.85)
+		_cinema_bar_bot.z_index = 80
+		_cinema_bar_bot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(_cinema_bar_bot)
+
+	# Animate bars sliding in
+	var bar_tw := create_tween().set_parallel(true)
+	bar_tw.tween_property(_cinema_bar_top, "position:y", 0.0, 0.2 / _speed_mult) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	bar_tw.tween_property(_cinema_bar_bot, "position:y", SCREEN_H - 60, 0.2 / _speed_mult) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+
+	# ── Skill name in gold centered text ──
+	if skill_name != "":
+		if _kill_name_label == null:
+			_kill_name_label = Label.new()
+			_kill_name_label.name = "KillNameLabel"
+			_kill_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_kill_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			_kill_name_label.size = Vector2(SCREEN_W, 60)
+			_kill_name_label.position = Vector2(0, SCREEN_H * 0.42)
+			_kill_name_label.add_theme_font_size_override("font_size", 36)
+			_kill_name_label.add_theme_color_override("font_color", Color(1, 0.85, 0.3))
+			_kill_name_label.add_theme_constant_override("outline_size", 4)
+			_kill_name_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+			_kill_name_label.z_index = 85
+			_kill_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			root.add_child(_kill_name_label)
+		_kill_name_label.text = skill_name
+		_kill_name_label.modulate = Color(1, 1, 1, 0)
+		_kill_name_label.visible = true
+		var name_tw := create_tween()
+		name_tw.tween_property(_kill_name_label, "modulate:a", 1.0, 0.15 / _speed_mult)
+		name_tw.tween_interval(1.0 / _speed_mult)
+		name_tw.tween_property(_kill_name_label, "modulate:a", 0.0, 0.3 / _speed_mult)
+
+	# ── Killer chibi zoom to center ──
+	var killer_hero_id: String = _chibi_hero_map.get(killer_side, {}).get(killer_slot, "")
+	if killer_hero_id != "" and ChibiLoader.has_png(killer_hero_id):
+		var chibi_tex := ChibiLoader.load_png(killer_hero_id, "victory")
+		if chibi_tex == null:
+			chibi_tex = ChibiLoader.load_png(killer_hero_id, "idle")
+		if chibi_tex:
+			var chibi_big := TextureRect.new()
+			chibi_big.name = "KillChibiBig"
+			chibi_big.texture = chibi_tex
+			chibi_big.custom_minimum_size = Vector2(128, 128)
+			chibi_big.size = Vector2(128, 128)
+			chibi_big.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			chibi_big.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			chibi_big.position = Vector2(CENTER_X - 64, SCREEN_H * 0.22)
+			chibi_big.z_index = 82
+			chibi_big.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			chibi_big.modulate = Color(1, 1, 1, 0)
+			chibi_big.scale = Vector2(0.5, 0.5)
+			chibi_big.pivot_offset = Vector2(64, 64)
+			root.add_child(chibi_big)
+			var c_tw := create_tween()
+			c_tw.tween_property(chibi_big, "modulate:a", 1.0, 0.15 / _speed_mult)
+			c_tw.parallel().tween_property(chibi_big, "scale", Vector2(1.0, 1.0), 0.2 / _speed_mult) \
+				.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+			c_tw.tween_interval(1.0 / _speed_mult)
+			c_tw.tween_property(chibi_big, "modulate:a", 0.0, 0.3 / _speed_mult)
+			c_tw.tween_callback(func():
+				if is_instance_valid(chibi_big): chibi_big.queue_free()
+			)
+
+	# ── Dismiss cinematic bars after 1.5s ──
+	get_tree().create_timer(1.5 / _speed_mult).timeout.connect(func():
+		if is_instance_valid(_cinema_bar_top):
+			var dismiss_tw := create_tween().set_parallel(true)
+			dismiss_tw.tween_property(_cinema_bar_top, "position:y", -60.0, 0.3 / _speed_mult)
+			dismiss_tw.tween_property(_cinema_bar_bot, "position:y", SCREEN_H, 0.3 / _speed_mult)
+	)
+
+# ═══════════════════════════════════════════════════════════
+#      TASK 9: DYNAMIC COMBAT BGM SWITCHING
+# ═══════════════════════════════════════════════════════════
+
+## Evaluate HP ratios and switch BGM if state changed.
+func _check_dynamic_bgm() -> void:
+	if not AudioManager or _is_finishing:
+		return
+	var our_total := 0
+	var our_max := 0
+	var enemy_total := 0
+	var enemy_max := 0
+	for slot_key in _live_units["attacker"].keys():
+		var u: Dictionary = _live_units["attacker"][slot_key]
+		our_total += u.get("soldiers", 0)
+		our_max += u.get("max_soldiers", u.get("soldiers", 0))
+	for slot_key in _live_units["defender"].keys():
+		var u: Dictionary = _live_units["defender"][slot_key]
+		enemy_total += u.get("soldiers", 0)
+		enemy_max += u.get("max_soldiers", u.get("soldiers", 0))
+	var our_ratio: float = float(our_total) / max(1, our_max)
+	var enemy_ratio: float = float(enemy_total) / max(1, enemy_max)
+	var is_boss: bool = _battle_state.get("is_boss", false)
+	if AudioManager.has_method("update_combat_bgm"):
+		AudioManager.update_combat_bgm(our_ratio, enemy_ratio, is_boss)
+
+# ═══════════════════════════════════════════════════════════
+#      TASK 10: ENHANCED COMBO COUNTER
+# ═══════════════════════════════════════════════════════════
+
+## Get combo color based on hit count (color progression).
+func _get_combo_color(count: int, side: String) -> Color:
+	var idx := clampi(count - 2, 0, COMBO_COLORS.size() - 1)
+	return COMBO_COLORS[idx]
+
+## Spawn shatter particles when combo breaks.
+func _combo_shatter() -> void:
+	if not is_instance_valid(combo_label) or not combo_label.visible:
+		return
+	var pos := combo_label.position + combo_label.size * 0.5
+	for i in range(8):
+		var p := ColorRect.new()
+		p.size = Vector2(randf_range(3, 7), randf_range(3, 7))
+		p.color = Color(1, 0.7, 0.3, 0.9)
+		p.position = pos + Vector2(randf_range(-20, 20), randf_range(-10, 10))
+		p.z_index = 52
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(p)
+		var angle := randf() * TAU
+		var dist := randf_range(30, 80)
+		var target := p.position + Vector2(cos(angle), sin(angle)) * dist
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(p, "position", target, 0.4 / _speed_mult) \
+			.set_ease(Tween.EASE_OUT)
+		tw.tween_property(p, "modulate:a", 0.0, 0.5 / _speed_mult)
+		tw.tween_property(p, "rotation", randf_range(-3, 3), 0.4 / _speed_mult)
+		tw.chain().tween_callback(func():
+			if is_instance_valid(p): p.queue_free()
+		)
+	combo_label.visible = false
+
 # ═══════════════════════════════════════════════════════════
 #                 UTILITY & MISSING EFFECTS
 # ═══════════════════════════════════════════════════════════
@@ -3122,17 +3571,22 @@ func _update_buff_label(side: String, slot_idx: int) -> void:
 	if buffs.is_empty():
 		buff_lbl.text = ""
 		return
-	# Map buff keys to short indicators
+	# Map buff keys to short indicators with stack counts
 	var icons: Array[String] = []
+	var stacks: Dictionary = {}
+	if _buff_stacks.has(side) and _buff_stacks[side].has(slot_idx):
+		stacks = _buff_stacks[side][slot_idx]
 	for b in buffs:
+		var stack_count: int = stacks.get(b, 1)
+		var suffix := "×%d" % stack_count if stack_count > 1 else ""
 		match b:
-			"burn": icons.append("BRN")
-			"poison": icons.append("PSN")
-			"atk_up": icons.append("ATK+")
-			"def_up": icons.append("DEF+")
-			"spd_up": icons.append("SPD+")
-			"slow": icons.append("SPD-")
-			_: icons.append("✦")
+			"burn": icons.append("BRN%s" % suffix)
+			"poison": icons.append("PSN%s" % suffix)
+			"atk_up": icons.append("ATK+%s" % suffix)
+			"def_up": icons.append("DEF+%s" % suffix)
+			"spd_up": icons.append("SPD+%s" % suffix)
+			"slow": icons.append("SPD-%s" % suffix)
+			_: icons.append("✦%s" % suffix)
 	buff_lbl.text = " ".join(icons)
 	# Make buff indicators more prominent
 	buff_lbl.add_theme_font_size_override("font_size", 11)
