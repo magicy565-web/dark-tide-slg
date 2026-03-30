@@ -177,6 +177,7 @@ func _connect_signals() -> void:
 	EventBus.player_arrived.connect(_on_player_arrived)
 	EventBus.message_log.connect(_on_message_log)
 	EventBus.game_over.connect(_on_game_over)
+	EventBus.game_over_detailed.connect(_on_game_over_detailed)
 	EventBus.phase_banner_requested.connect(_on_phase_banner_requested)
 	EventBus.turn_started.connect(_on_turn_started_phase_cleanup)
 	EventBus.tile_captured.connect(_on_tile_captured)
@@ -196,6 +197,7 @@ func _connect_signals() -> void:
 	EventBus.army_deployed.connect(_on_army_deployed)
 	EventBus.strategic_resource_changed.connect(_on_strategic_resource_changed)
 	EventBus.diplomatic_event_triggered.connect(_on_diplomatic_event_triggered)
+	EventBus.recruitment_event_triggered.connect(_on_recruitment_event_triggered)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -701,10 +703,10 @@ func _build_game_over(parent: Control) -> void:
 	game_over_panel.anchor_right = 0.5
 	game_over_panel.anchor_top = 0.5
 	game_over_panel.anchor_bottom = 0.5
-	game_over_panel.offset_left = -250
-	game_over_panel.offset_right = 250
-	game_over_panel.offset_top = -200
-	game_over_panel.offset_bottom = 200
+	game_over_panel.offset_left = -280
+	game_over_panel.offset_right = 280
+	game_over_panel.offset_top = -280
+	game_over_panel.offset_bottom = 280
 	game_over_panel.visible = false
 	var dialog_style := _make_dialog_style()
 	if dialog_style is StyleBoxTexture:
@@ -742,7 +744,11 @@ func _build_game_over(parent: Control) -> void:
 
 	game_over_stats_vbox = VBoxContainer.new()
 	game_over_stats_vbox.add_theme_constant_override("separation", 4)
-	vbox.add_child(game_over_stats_vbox)
+	var stats_scroll := ScrollContainer.new()
+	stats_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stats_scroll.add_child(game_over_stats_vbox)
+	game_over_stats_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(stats_scroll)
 
 	var sep2 := HSeparator.new()
 	sep2.add_theme_constant_override("separation", 8)
@@ -916,6 +922,8 @@ func _add_target_label(label_text: String, color: Color = Color(0.6, 0.6, 0.65))
 # ═══════════════════════════════════════════════════════════════
 
 func _on_attack_pressed() -> void:
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("button_click")
 	if _current_mode == ActionMode.ATTACK:
 		_close_target_panel()
 		return
@@ -973,6 +981,8 @@ func _on_attack_army_selected(army_id: int) -> void:
 
 
 func _on_deploy_pressed() -> void:
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("button_click")
 	if _current_mode == ActionMode.DEPLOY:
 		_close_target_panel()
 		return
@@ -1017,6 +1027,8 @@ func _on_deploy_army_selected(army_id: int) -> void:
 
 
 func _on_domestic_pressed() -> void:
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("button_click")
 	if _current_mode == ActionMode.DOMESTIC:
 		_close_target_panel()
 		return
@@ -1047,6 +1059,8 @@ func _on_domestic_pressed() -> void:
 	domestic_panel.visible = true
 	ColorTheme.animate_panel_open(domestic_panel)
 func _on_diplomacy_pressed() -> void:
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("button_click")
 	if _current_mode == ActionMode.DIPLOMACY:
 		_close_target_panel()
 		return
@@ -1107,6 +1121,8 @@ func _on_diplomacy_pressed() -> void:
 
 
 func _on_explore_pressed() -> void:
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("button_click")
 	if _current_mode == ActionMode.EXPLORE:
 		_close_target_panel()
 		return
@@ -2064,6 +2080,8 @@ func _on_buy_slave() -> void:
 
 
 func _on_hero_pressed() -> void:
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("open_panel")
 	# Hero panel is managed by main.gd scene — find it via tree
 	var hero_panel = get_tree().get_root().find_child("HeroPanel", true, false)
 	if hero_panel and hero_panel.has_method("show_panel"):
@@ -2314,6 +2332,8 @@ func _on_event_manager_pressed() -> void:
 
 
 func _on_research_pressed() -> void:
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("open_panel")
 	# Show research/training tree in target panel
 	_current_mode = ActionMode.DOMESTIC_SUB
 	_domestic_sub_type = "research"
@@ -2386,6 +2406,8 @@ func _on_load_pressed() -> void:
 
 
 func _on_end_turn_pressed() -> void:
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("turn_end")
 	_close_target_panel()
 	GameManager.end_turn()
 
@@ -2462,10 +2484,10 @@ func _detect_victory_type(human_id: int) -> String:
 	if total_sh > 0 and human_sh >= total_sh:
 		return "Conquest Victory"
 
-	# Check domination: >= 60% tiles
+	# Check domination: >= 75% tiles
 	var total_tiles: int = GameManager.tiles.size()
 	var human_tiles: int = GameManager.count_tiles_owned(human_id)
-	if total_tiles > 0 and float(human_tiles) / float(total_tiles) >= 0.60:
+	if total_tiles > 0 and float(human_tiles) / float(total_tiles) >= BalanceConfig.DOMINANCE_VICTORY_PCT:
 		return "Domination Victory"
 
 	# Check shadow dominion: threat >= 100 + ultimate unit
@@ -2495,6 +2517,29 @@ func _detect_victory_type(human_id: int) -> String:
 	if human_faction == FactionData.FactionID.PIRATE and HeroSystem.check_harem_victory():
 		return "Harem Victory"
 
+	# Check diplomatic victory: alliance with all surviving evil factions
+	var surviving_rivals: Array = []
+	for pid in range(1, GameManager.players.size()):
+		if pid == human_id:
+			continue
+		if GameManager.count_tiles_owned(pid) > 0:
+			surviving_rivals.append(pid)
+	if surviving_rivals.size() > 0:
+		var all_allied: bool = true
+		for rival_pid in surviving_rivals:
+			var rival_faction: int = GameManager._player_factions.get(rival_pid, -1)
+			if not DiplomacyManager.has_treaty(human_id, "alliance", rival_faction):
+				all_allied = false
+				break
+		if all_allied:
+			return "Diplomatic Victory"
+
+	# Check survival victory
+	if BalanceConfig.SURVIVAL_TURN_GOAL > 0 and GameManager.turn_number >= BalanceConfig.SURVIVAL_TURN_GOAL:
+		var cap_idx: int = GameManager.game_stats.get("capital_tile", -1)
+		if cap_idx >= 0 and cap_idx < GameManager.tiles.size() and GameManager.tiles[cap_idx]["owner_id"] == human_id:
+			return "Survival Victory"
+
 	return "Victory"
 
 
@@ -2521,6 +2566,33 @@ func _get_victory_stats(player_id: int) -> Array:
 	stats.append("Gold: %d" % player_gold)
 
 	return stats
+
+
+func _get_score_breakdown(score_data: Dictionary) -> Array:
+	## Build detailed score breakdown lines from score data dictionary.
+	var lines: Array = []
+	lines.append("--- Score Breakdown ---")
+	lines.append("Territory: %d/%d  (+%d)" % [
+		score_data.get("territories_owned", 0),
+		score_data.get("territories_total", 0),
+		score_data.get("territory_score", 0)])
+	lines.append("Heroes: %d  (+%d)" % [
+		score_data.get("heroes_recruited", 0),
+		score_data.get("hero_score", 0)])
+	lines.append("Battles: %dW / %dL  (%+d)" % [
+		score_data.get("battles_won", 0),
+		score_data.get("battles_lost", 0),
+		score_data.get("battle_score", 0)])
+	lines.append("Turns: %d  (+%d)" % [
+		score_data.get("turns_taken", 0),
+		score_data.get("turn_score", 0)])
+	lines.append("Subtotal: %d" % score_data.get("subtotal", 0))
+	var vtype: String = score_data.get("victory_type", "")
+	var mult: float = score_data.get("multiplier", 1.0)
+	if vtype != "":
+		lines.append("%s bonus: x%.1f" % [vtype, mult])
+	lines.append("=== Final Score: %d ===" % score_data.get("final_score", 0))
+	return lines
 # ═══════════════════════════════════════════════════════════════
 #                  POST-ACTION REFRESH
 # ═══════════════════════════════════════════════════════════════
@@ -2895,6 +2967,10 @@ func _unhandled_input(event: InputEvent) -> void:
 # ═══════════════════════════════════════════════════════════════
 
 func _on_turn_started(_player_id: int) -> void:
+	# Audio trigger for new turn
+	if _player_id == GameManager.get_human_player_id():
+		if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+			AudioManager.play_sfx_by_name("turn_start")
 	_close_target_panel()
 	_update_player_info()
 	_update_tile_info()
@@ -3165,6 +3241,9 @@ func _on_message_log(text: String) -> void:
 
 
 func _on_game_over(winner_id: int) -> void:
+	# Legacy handler for game_over signal (no score data).
+	# The detailed handler below will be called by game_over_detailed with score data.
+	# If game_over_detailed fires, it will override this panel — safe to show basic view here.
 	var human_id: int = GameManager.get_human_player_id()
 	var is_victory: bool = (winner_id == human_id)
 
@@ -3187,7 +3266,7 @@ func _on_game_over(winner_id: int) -> void:
 		game_over_style.border_color = ColorTheme.BORDER_DEFEAT
 		game_over_style.bg_color = ColorTheme.BG_DEFEAT
 
-	# ── Populate stats ──
+	# ── Populate stats (basic fallback, detailed handler may override) ──
 	for child in game_over_stats_vbox.get_children():
 		child.queue_free()
 	var stats: Array = _get_victory_stats(human_id)
@@ -3195,6 +3274,65 @@ func _on_game_over(winner_id: int) -> void:
 		var lbl := _make_label(stat_text, 13, ColorTheme.TEXT_DIM)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		game_over_stats_vbox.add_child(lbl)
+
+	game_over_panel.visible = true
+	ColorTheme.animate_panel_open(game_over_panel)
+	_update_buttons()
+
+
+func _on_game_over_detailed(data: Dictionary) -> void:
+	## Enhanced game over handler with full score breakdown.
+	var human_id: int = GameManager.get_human_player_id()
+	var is_victory: bool = data.get("is_victory", false)
+	var victory_type: String = data.get("victory_type", "")
+	var reason: String = data.get("reason", "")
+	var score_data: Dictionary = data.get("score", {})
+
+	# ── Title and styling ──
+	if is_victory:
+		if victory_type == "":
+			victory_type = _detect_victory_type(human_id)
+		game_over_label.text = "%s Wins!" % GameManager.get_player_by_id(human_id).get("name", "Player")
+		game_over_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
+		game_over_victory_type_label.text = victory_type
+		game_over_victory_type_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
+		game_over_style.border_color = ColorTheme.BORDER_VICTORY
+		game_over_style.bg_color = ColorTheme.BG_VICTORY
+	else:
+		var defeat_label: String = "Defeat"
+		if reason != "":
+			defeat_label = "Defeat: %s" % reason
+		game_over_label.text = "Game Over..."
+		game_over_label.add_theme_color_override("font_color", ColorTheme.TEXT_RED)
+		game_over_victory_type_label.text = defeat_label
+		game_over_victory_type_label.add_theme_color_override("font_color", ColorTheme.TEXT_RED)
+		game_over_style.border_color = ColorTheme.BORDER_DEFEAT
+		game_over_style.bg_color = ColorTheme.BG_DEFEAT
+
+	# ── Populate stats with score breakdown ──
+	for child in game_over_stats_vbox.get_children():
+		child.queue_free()
+
+	# Basic stats first
+	var basic_stats: Array = _get_victory_stats(human_id)
+	for stat_text in basic_stats:
+		var lbl := _make_label(stat_text, 13, ColorTheme.TEXT_DIM)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		game_over_stats_vbox.add_child(lbl)
+
+	# Score breakdown if available
+	if not score_data.is_empty():
+		var score_lines: Array = _get_score_breakdown(score_data)
+		for line_text in score_lines:
+			var score_color: Color = ColorTheme.TEXT_GOLD if is_victory else ColorTheme.TEXT_DIM
+			# Highlight the final score line
+			var font_size: int = 13
+			if line_text.begins_with("==="):
+				font_size = 15
+				score_color = ColorTheme.TEXT_GOLD if is_victory else ColorTheme.TEXT_RED
+			var lbl := _make_label(line_text, font_size, score_color)
+			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			game_over_stats_vbox.add_child(lbl)
 
 	game_over_panel.visible = true
 	ColorTheme.animate_panel_open(game_over_panel)
@@ -3514,8 +3652,19 @@ func _on_diplo_popup_choice_any(choice_index: int) -> void:
 	if actual_index < 0 or actual_index >= choices.size():
 		actual_index = choices.size() - 1 if choices.size() > 0 else 0
 
-	# Dispatch to DiplomacyManager for resolution
-	DiplomacyManager.resolve_diplomatic_event(evt, actual_index)
+	# Dispatch to DiplomacyManager or HeroSystem for resolution
+	var evt_type: String = evt.get("type", "")
+	if evt_type.begins_with("recruit_"):
+		HeroSystem.resolve_recruitment_event(evt, actual_index)
+	else:
+		DiplomacyManager.resolve_diplomatic_event(evt, actual_index)
 
 	# Show next queued event (deferred to let popup close)
 	call_deferred("_show_next_diplomatic_event")
+
+
+func _on_recruitment_event_triggered(event_data: Dictionary) -> void:
+	## Queue recruitment events into the same diplomatic event popup pipeline.
+	_diplo_event_queue.append(event_data)
+	if not _diplo_event_active:
+		_show_next_diplomatic_event()

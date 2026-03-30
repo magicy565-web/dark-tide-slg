@@ -294,11 +294,26 @@ const TILE_ORDER_PROD_TABLE: Array = [
 ## Victory conditions
 const DOMINANCE_VICTORY_PCT: float = 0.75  # TW:W short campaign ~75 settlements
 const SHADOW_VICTORY_THREAT: int = 100
+const SURVIVAL_TURN_GOAL: int = 100         # Survive N turns without losing capital
+const CAPITAL_LOSS_DEFEAT: bool = true       # Lose capital = instant defeat
 
 ## Scoring
 const SCORE_PER_NODE: int = 10
 const SCORE_PER_HERO: int = 50
 const SCORE_PER_TURN: int = 2
+const SCORE_PER_BATTLE_WON: int = 15
+const SCORE_PER_BATTLE_LOST: int = -5
+
+## Victory type score multipliers (applied to final score)
+const VICTORY_SCORE_MULTIPLIER: Dictionary = {
+	"Conquest Victory": 2.0,
+	"Domination Victory": 1.5,
+	"Shadow Domination": 1.8,
+	"Harem Victory": 1.6,
+	"Diplomatic Victory": 1.4,
+	"Survival Victory": 1.2,
+	"Defeat": 0.5,
+}
 
 # ═══════════════ HERO (SR07 aligned) ═══════════════
 

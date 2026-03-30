@@ -1439,6 +1439,9 @@ func _shake_tile(idx: int) -> void:
 
 # ═══════════════ SIGNAL HANDLERS ═══════════════
 func _on_tile_captured(_pid: int, ti: int) -> void:
+	# Audio trigger for tile capture
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("tile_capture")
 	_update_territory_visual(ti)
 	# Visual: flash captured tile white → faction color over 0.5s
 	_flash_tile_capture(ti)
@@ -1513,6 +1516,9 @@ func _spawn_move_dust(pos: Vector3) -> void:
 
 # ═══════════════ MARCH ROUTE VISUALIZATION ═══════════════
 func _on_march_started(_army_id: int, path: Array) -> void:
+	# Audio trigger for army march
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("army_march")
 	_draw_march_route(path)
 
 func _on_march_arrived(_army_id: int, _tile: int) -> void:

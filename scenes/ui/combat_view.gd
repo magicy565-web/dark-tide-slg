@@ -1304,6 +1304,12 @@ func _animate_attack(source_side: String, source_slot: int, target_side: String,
 
 	# SFX hook
 	EventBus.sfx_attack.emit(uclass, damage > max_soldiers * 0.4)
+	# Direct audio trigger for attack hit
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		if damage > max_soldiers * 0.4:
+			AudioManager.play_sfx_by_name("critical_hit")
+		else:
+			AudioManager.play_sfx_by_name("attack_hit")
 
 	var is_crit := damage > max_soldiers * 0.4
 	var is_heavy := damage > max_soldiers * 0.6
@@ -1919,6 +1925,9 @@ func _flash_passive(side: String, slot_idx: int, desc: String = "") -> void:
 			_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-15, 15)), Color(0.5, 0.7, 1.0))
 
 func _show_passive_banner(text: String, side: String) -> void:
+	# Audio trigger for skill/passive activation
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("skill_activate")
 	if not is_instance_valid(passive_banner):
 		return
 	passive_banner_label.text = text
@@ -2314,6 +2323,9 @@ func _update_card_soldiers_instant(side: String, slot_idx: int, soldiers: int, m
 		_apply_death_overlay(side, slot_idx)
 
 func _on_close() -> void:
+	# Audio: close panel sound
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("close_panel")
 	Engine.time_scale = 1.0
 	_playing = false
 	_playback_generation += 1
@@ -2546,6 +2558,12 @@ func _apply_log_entry(entry: Dictionary) -> void:
 		log_text.append_text(log_line + "\n")
 
 func _show_battle_result_banner(is_victory: bool) -> void:
+	# Audio trigger for battle result
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		if is_victory:
+			AudioManager.play_sfx_by_name("victory_fanfare")
+		else:
+			AudioManager.play_sfx_by_name("defeat_horn")
 	var banner := PanelContainer.new()
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.08, 0.15, 0.95) if is_victory else Color(0.15, 0.05, 0.05, 0.95)

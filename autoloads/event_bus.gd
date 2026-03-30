@@ -250,6 +250,9 @@ signal treachery_debuff_applied(player_id: int, duration: int)
 
 # ── Dynamic Diplomatic Events (SR07-style) ──
 signal diplomatic_event_triggered(event_data: Dictionary)
+
+# ── Hero Recruitment Events (SR07-style) ──
+signal recruitment_event_triggered(event_data: Dictionary)
 # event_data: {type: String, faction_id: int, title: String, description: String,
 #   choices: [{text: String, callback: String}], event_id: String}
 signal diplomatic_event_resolved(event_id: String, choice_index: int)

@@ -46,6 +46,12 @@ var _hero_stat_bonuses: Dictionary = {}       # hero_id -> {stat_key: int} perma
 # ── Exiled Heroes (流放后归还计时) ──
 var _exiled_heroes: Dictionary = {}           # hero_id -> int (remaining turns until return to enemy pool)
 
+# ── SR07-style Recruitment Events ──
+var _recruitment_event_cooldown: int = 0      # turns remaining before next recruitment event can fire
+var _recruitment_event_counter: int = 0       # unique event ID counter
+var _mercenary_loyalty: Dictionary = {}       # hero_id -> int (remaining loyalty turns)
+var _wandering_hero_pool: Array = []          # hero_ids that were rejected and may return later
+
 
 func reset() -> void:
 	captured_heroes.clear()
@@ -69,6 +75,10 @@ func reset() -> void:
 	_hidden_hero_data.clear()
 	_hero_stat_bonuses.clear()
 	_exiled_heroes.clear()
+	_recruitment_event_cooldown = 0
+	_recruitment_event_counter = 0
+	_mercenary_loyalty.clear()
+	_wandering_hero_pool.clear()
 
 
 ## Called when pirate faction is selected. Enables harem mechanics.
@@ -1283,6 +1293,10 @@ func to_save_data() -> Dictionary:
 		"gift_cooldowns": _gift_cooldowns.duplicate(),
 		"discovered_hidden_heroes": _discovered_hidden_heroes.duplicate(),
 		"battles_won_count": _battles_won_count,
+		"recruitment_event_cooldown": _recruitment_event_cooldown,
+		"recruitment_event_counter": _recruitment_event_counter,
+		"mercenary_loyalty": _mercenary_loyalty.duplicate(),
+		"wandering_hero_pool": _wandering_hero_pool.duplicate(),
 	}
 	data["hero_leveling"] = HeroLeveling.serialize()
 	return data
@@ -1321,6 +1335,10 @@ func from_save_data(data: Dictionary) -> void:
 	_gift_cooldowns = data.get("gift_cooldowns", {}).duplicate()
 	_discovered_hidden_heroes = data.get("discovered_hidden_heroes", []).duplicate()
 	_battles_won_count = data.get("battles_won_count", 0)
+	_recruitment_event_cooldown = data.get("recruitment_event_cooldown", 0)
+	_recruitment_event_counter = data.get("recruitment_event_counter", 0)
+	_mercenary_loyalty = data.get("mercenary_loyalty", {}).duplicate()
+	_wandering_hero_pool = data.get("wandering_hero_pool", []).duplicate()
 	# Re-register discovered hidden hero templates into runtime registry
 	_hidden_hero_data.clear()
 	for entry in BalanceConfig.HIDDEN_HEROES:
@@ -1402,3 +1420,356 @@ func modify_hero_stat(hero_id: String, stat_key: String, value: int) -> void:
 			_hero_stat_bonuses[hero_id] = {}
 		_hero_stat_bonuses[hero_id][stat_key] = _hero_stat_bonuses[hero_id].get(stat_key, 0) + value
 	EventBus.hero_stat_changed.emit(hero_id, stat_key, value)
+
+
+# ═══════════════ SR07-STYLE RECRUITMENT EVENTS ═══════════════
+
+const _RECRUIT_EVT_WANDERING  := "recruit_wandering_hero"
+const _RECRUIT_EVT_DESERTER   := "recruit_deserter"
+const _RECRUIT_EVT_MERCENARY  := "recruit_mercenary_band"
+const _RECRUIT_EVT_LEGENDARY  := "recruit_legendary_hero"
+const _RECRUIT_COOLDOWN_TURNS := 3
+
+
+## Called each turn by GameManager. Rolls for at most one recruitment event.
+func process_recruitment_events(player_id: int) -> void:
+	# Tick mercenary loyalty — remove heroes whose loyalty expired
+	_tick_mercenary_loyalty(player_id)
+
+	# Tick cooldown
+	if _recruitment_event_cooldown > 0:
+		_recruitment_event_cooldown -= 1
+		return
+
+	# Only fire for human player
+	if player_id != GameManager.get_human_player_id():
+		return
+
+	# Collect eligible events and shuffle for fair priority
+	var candidates: Array = []
+
+	# Legendary hero: 2% chance
+	if randf() < 0.02:
+		candidates.append(_RECRUIT_EVT_LEGENDARY)
+
+	# Wandering hero: 10% chance
+	if randf() < 0.10:
+		candidates.append(_RECRUIT_EVT_WANDERING)
+
+	# Deserter: 10% chance
+	if randf() < 0.10:
+		candidates.append(_RECRUIT_EVT_DESERTER)
+
+	# Mercenary band: 10% chance
+	if randf() < 0.10:
+		candidates.append(_RECRUIT_EVT_MERCENARY)
+
+	if candidates.is_empty():
+		return
+
+	# Pick one at random (max 1 event per turn)
+	candidates.shuffle()
+	var chosen: String = candidates[0]
+
+	match chosen:
+		_RECRUIT_EVT_LEGENDARY:
+			_event_legendary_hero(player_id)
+		_RECRUIT_EVT_WANDERING:
+			_event_wandering_hero(player_id)
+		_RECRUIT_EVT_DESERTER:
+			_event_deserter(player_id)
+		_RECRUIT_EVT_MERCENARY:
+			_event_mercenary_band(player_id)
+
+
+## Tick down mercenary loyalty each turn. Remove heroes whose loyalty expires.
+func _tick_mercenary_loyalty(player_id: int) -> void:
+	var expired: Array = []
+	for hid in _mercenary_loyalty.keys():
+		_mercenary_loyalty[hid] -= 1
+		if _mercenary_loyalty[hid] <= 0:
+			# Check affection — if >= 5, mercenary stays permanently
+			var aff: int = hero_affection.get(hid, 0)
+			if aff >= 5:
+				_mercenary_loyalty.erase(hid)
+				EventBus.message_log.emit("[color=green]佣兵 %s 对你忠心耿耿，决定永久留下！[/color]" % _get_hero_name(hid))
+			else:
+				expired.append(hid)
+	for hid in expired:
+		_mercenary_loyalty.erase(hid)
+		recruited_heroes.erase(hid)
+		# Unstation if stationed
+		if hero_stations.has(hid):
+			var tidx: int = hero_stations[hid]
+			stationed_heroes.erase(tidx)
+			hero_stations.erase(hid)
+		hero_affection.erase(hid)
+		hero_equipment[hid] = ""
+		EventBus.message_log.emit("[color=orange]佣兵 %s 的合约到期，离开了你的队伍。[/color]" % _get_hero_name(hid))
+
+
+func _next_recruit_event_id() -> String:
+	_recruitment_event_counter += 1
+	return "recruit_%d" % _recruitment_event_counter
+
+
+## Get all hero_ids that are not captured, not recruited, not exiled — available for recruitment events.
+func _get_unrecruited_hero_ids() -> Array:
+	var result: Array = []
+	for hid in FactionData.HEROES.keys():
+		if hid in recruited_heroes or hid in captured_heroes or hid in _exiled_heroes:
+			continue
+		result.append(hid)
+	return result
+
+
+## ── Event: Wandering Hero ──
+func _event_wandering_hero(player_id: int) -> void:
+	# Pick a random unrecruited hero (prefer wandering pool if available)
+	var pool: Array = _wandering_hero_pool.duplicate()
+	if pool.is_empty():
+		pool = _get_unrecruited_hero_ids()
+	if pool.is_empty():
+		return
+
+	pool.shuffle()
+	var hero_id: String = pool[0]
+	var hero: Dictionary = _get_hero_data(hero_id)
+	if hero.is_empty():
+		return
+
+	var level: int = HeroLeveling.get_hero_stats(hero_id).get("level", 1)
+	var cost: int = level * 30
+	var hero_name: String = hero.get("name", hero_id)
+
+	var eid: String = _next_recruit_event_id()
+	var event_data: Dictionary = {
+		"type": _RECRUIT_EVT_WANDERING,
+		"event_id": eid,
+		"hero_id": hero_id,
+		"cost": cost,
+		"title": "流浪武将",
+		"description": "一位名叫[color=cyan]%s[/color]的武将在你的领地边境游荡，提出愿意为你效力。\n招募费用: [color=gold]%d金[/color]" % [hero_name, cost],
+		"choices": [
+			{"text": "招募 (-%d金)" % cost, "callback": "wandering_accept"},
+			{"text": "拒绝 (可能日后再来)", "callback": "wandering_reject"},
+		],
+	}
+	_recruitment_event_cooldown = _RECRUIT_COOLDOWN_TURNS
+	EventBus.recruitment_event_triggered.emit(event_data)
+
+
+## ── Event: Deserter ──
+func _event_deserter(player_id: int) -> void:
+	# Find an enemy hero from a faction where player reputation > 40
+	var eligible: Array = []
+	var faction_keys: Array = ["orc_ai", "pirate_ai", "dark_elf_ai"]
+	var faction_names: Dictionary = {
+		"orc_ai": "兽人部落", "pirate_ai": "暗黑海盗", "dark_elf_ai": "黑暗精灵议会"
+	}
+	var faction_tag_map: Dictionary = {
+		"orc_ai": "orc", "pirate_ai": "pirate", "dark_elf_ai": "dark_elf"
+	}
+	for fkey in faction_keys:
+		var rep: int = DiplomacyManager.get_reputation(fkey) if DiplomacyManager else 0
+		if rep > 40:
+			var ftag: String = faction_tag_map[fkey]
+			for hid in _get_unrecruited_hero_ids():
+				var hdata: Dictionary = _get_hero_data(hid)
+				if hdata.get("faction", "") == ftag:
+					eligible.append({"hero_id": hid, "faction_key": fkey, "faction_name": faction_names[fkey]})
+	if eligible.is_empty():
+		return
+
+	eligible.shuffle()
+	var pick: Dictionary = eligible[0]
+	var hero_id: String = pick["hero_id"]
+	var hero_name: String = _get_hero_name(hero_id)
+
+	var eid: String = _next_recruit_event_id()
+	var event_data: Dictionary = {
+		"type": _RECRUIT_EVT_DESERTER,
+		"event_id": eid,
+		"hero_id": hero_id,
+		"faction_key": pick["faction_key"],
+		"title": "叛逃武将",
+		"description": "[color=cyan]%s[/color]对[color=red]%s[/color]心生不满，秘密来投。\n免费加入，但原阵营声望[color=red]-10[/color]。" % [hero_name, pick["faction_name"]],
+		"choices": [
+			{"text": "接纳 (免费, 声望-10)", "callback": "deserter_accept"},
+			{"text": "拒绝", "callback": "deserter_reject"},
+		],
+	}
+	_recruitment_event_cooldown = _RECRUIT_COOLDOWN_TURNS
+	EventBus.recruitment_event_triggered.emit(event_data)
+
+
+## ── Event: Mercenary Band ──
+func _event_mercenary_band(player_id: int) -> void:
+	var pool: Array = _get_unrecruited_hero_ids()
+	if pool.is_empty():
+		return
+
+	pool.shuffle()
+	var hero_id: String = pool[0]
+	var hero: Dictionary = _get_hero_data(hero_id)
+	if hero.is_empty():
+		return
+
+	var hero_name: String = hero.get("name", hero_id)
+	var gold_cost: int = 80
+	var troop_bonus: int = randi_range(20, 40)
+
+	var eid: String = _next_recruit_event_id()
+	var event_data: Dictionary = {
+		"type": _RECRUIT_EVT_MERCENARY,
+		"event_id": eid,
+		"hero_id": hero_id,
+		"cost": gold_cost,
+		"troop_bonus": troop_bonus,
+		"title": "佣兵团",
+		"description": "佣兵[color=cyan]%s[/color]率领一支%d人的佣兵队前来投靠。\n费用: [color=gold]%d金[/color]。佣兵合约持续[color=yellow]10回合[/color]，好感度≥5则永久留下。" % [hero_name, troop_bonus, gold_cost],
+		"choices": [
+			{"text": "雇佣 (-%d金, +%d兵)" % [gold_cost, troop_bonus], "callback": "mercenary_accept"},
+			{"text": "拒绝", "callback": "mercenary_reject"},
+		],
+	}
+	_recruitment_event_cooldown = _RECRUIT_COOLDOWN_TURNS
+	EventBus.recruitment_event_triggered.emit(event_data)
+
+
+## ── Event: Legendary Hero ──
+func _event_legendary_hero(player_id: int) -> void:
+	# Pick a high-stat unrecruited hero (prefer atk+def+int >= 18)
+	var pool: Array = _get_unrecruited_hero_ids()
+	var legendary: Array = []
+	for hid in pool:
+		var hd: Dictionary = _get_hero_data(hid)
+		var total: int = hd.get("atk", 0) + hd.get("def", 0) + hd.get("int", 0)
+		if total >= 18:
+			legendary.append(hid)
+	if legendary.is_empty():
+		# Fallback: any unrecruited hero
+		if pool.is_empty():
+			return
+		legendary = pool
+	legendary.shuffle()
+	var hero_id: String = legendary[0]
+	var hero_name: String = _get_hero_name(hero_id)
+
+	var eid: String = _next_recruit_event_id()
+	var event_data: Dictionary = {
+		"type": _RECRUIT_EVT_LEGENDARY,
+		"event_id": eid,
+		"hero_id": hero_id,
+		"ap_cost": 2,
+		"gold_cost": 100,
+		"title": "传说武将",
+		"description": "传说中的武将[color=gold]%s[/color]出现了！\n完成挑战即可招募: 消耗[color=yellow]2 AP[/color] + [color=gold]100金[/color]。" % hero_name,
+		"choices": [
+			{"text": "接受挑战 (-2AP, -100金)", "callback": "legendary_accept"},
+			{"text": "放弃 (传说消散)", "callback": "legendary_reject"},
+		],
+	}
+	_recruitment_event_cooldown = _RECRUIT_COOLDOWN_TURNS
+	EventBus.recruitment_event_triggered.emit(event_data)
+
+
+## Resolve a recruitment event choice from the UI popup.
+func resolve_recruitment_event(event_data: Dictionary, choice_index: int) -> void:
+	var player_id: int = GameManager.get_human_player_id()
+	var choices: Array = event_data.get("choices", [])
+	if choice_index < 0 or choice_index >= choices.size():
+		return
+	var callback: String = choices[choice_index].get("callback", "")
+	var hero_id: String = event_data.get("hero_id", "")
+
+	match event_data.get("type", ""):
+		_RECRUIT_EVT_WANDERING:
+			_resolve_wandering(player_id, hero_id, event_data, callback)
+		_RECRUIT_EVT_DESERTER:
+			_resolve_deserter(player_id, hero_id, event_data, callback)
+		_RECRUIT_EVT_MERCENARY:
+			_resolve_mercenary(player_id, hero_id, event_data, callback)
+		_RECRUIT_EVT_LEGENDARY:
+			_resolve_legendary(player_id, hero_id, event_data, callback)
+
+
+func _resolve_wandering(player_id: int, hero_id: String, event_data: Dictionary, callback: String) -> void:
+	if callback == "wandering_accept":
+		var cost: int = event_data.get("cost", 0)
+		var gold: int = ResourceManager.get_resource(player_id, "gold")
+		if gold < cost:
+			EventBus.message_log.emit("[color=red]金币不足，无法招募流浪武将。[/color]")
+			return
+		ResourceManager.apply_delta(player_id, {"gold": -cost})
+		_directly_recruit_hero(hero_id)
+		_wandering_hero_pool.erase(hero_id)
+		EventBus.message_log.emit("[color=green]流浪武将 %s 加入了你的队伍！(-%d金)[/color]" % [_get_hero_name(hero_id), cost])
+	else:
+		# Rejected — add to wandering pool so they may return
+		if hero_id not in _wandering_hero_pool:
+			_wandering_hero_pool.append(hero_id)
+		EventBus.message_log.emit("[color=gray]你拒绝了 %s 的投靠，也许日后还会再见。[/color]" % _get_hero_name(hero_id))
+
+
+func _resolve_deserter(player_id: int, hero_id: String, event_data: Dictionary, callback: String) -> void:
+	if callback == "deserter_accept":
+		var fkey: String = event_data.get("faction_key", "")
+		_directly_recruit_hero(hero_id)
+		if DiplomacyManager and fkey != "":
+			DiplomacyManager.change_reputation(fkey, -10)
+		EventBus.message_log.emit("[color=green]叛逃武将 %s 加入了你的队伍！(原阵营声望-10)[/color]" % _get_hero_name(hero_id))
+	else:
+		EventBus.message_log.emit("[color=gray]你拒绝了叛逃武将的投靠。[/color]")
+
+
+func _resolve_mercenary(player_id: int, hero_id: String, event_data: Dictionary, callback: String) -> void:
+	if callback == "mercenary_accept":
+		var cost: int = event_data.get("cost", 80)
+		var troop_bonus: int = event_data.get("troop_bonus", 0)
+		var gold: int = ResourceManager.get_resource(player_id, "gold")
+		if gold < cost:
+			EventBus.message_log.emit("[color=red]金币不足，无法雇佣佣兵团。[/color]")
+			return
+		ResourceManager.apply_delta(player_id, {"gold": -cost, "soldiers": troop_bonus})
+		_directly_recruit_hero(hero_id)
+		_mercenary_loyalty[hero_id] = 10  # 10 turn contract
+		EventBus.message_log.emit("[color=green]佣兵 %s 带领%d士兵加入！(-%d金, 合约10回合)[/color]" % [_get_hero_name(hero_id), troop_bonus, cost])
+	else:
+		EventBus.message_log.emit("[color=gray]你拒绝了佣兵团的服务。[/color]")
+
+
+func _resolve_legendary(player_id: int, hero_id: String, event_data: Dictionary, callback: String) -> void:
+	if callback == "legendary_accept":
+		var ap_cost: int = event_data.get("ap_cost", 2)
+		var gold_cost: int = event_data.get("gold_cost", 100)
+		var gold: int = ResourceManager.get_resource(player_id, "gold")
+		var player: Dictionary = GameManager.players[player_id] if player_id < GameManager.players.size() else {}
+		var ap: int = player.get("ap", 0)
+		if gold < gold_cost:
+			EventBus.message_log.emit("[color=red]金币不足，无法挑战传说武将。[/color]")
+			return
+		if ap < ap_cost:
+			EventBus.message_log.emit("[color=red]行动力不足，无法挑战传说武将。(需要%d AP)[/color]" % ap_cost)
+			return
+		ResourceManager.apply_delta(player_id, {"gold": -gold_cost})
+		player["ap"] -= ap_cost
+		EventBus.ap_changed.emit(player_id, player["ap"])
+		_directly_recruit_hero(hero_id)
+		EventBus.message_log.emit("[color=gold]传说武将 %s 被你的实力折服，加入了队伍！(-2AP, -100金)[/color]" % _get_hero_name(hero_id))
+	else:
+		EventBus.message_log.emit("[color=gray]传说武将消失在迷雾中……[/color]")
+
+
+## Direct recruitment bypassing the prison system (for event-based recruitment).
+func _directly_recruit_hero(hero_id: String) -> void:
+	if hero_id in recruited_heroes:
+		return
+	# Remove from captured/exiled if somehow present
+	captured_heroes.erase(hero_id)
+	_exiled_heroes.erase(hero_id)
+	recruited_heroes.append(hero_id)
+	hero_affection[hero_id] = 0
+	_ensure_equip_slots(hero_id)
+	HeroLeveling.init_hero(hero_id)
+	EventBus.hero_recruited.emit(hero_id)

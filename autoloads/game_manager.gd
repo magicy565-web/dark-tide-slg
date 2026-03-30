@@ -292,6 +292,13 @@ var _active_territory_effects: Dictionary = {}  # Cached per-turn territory effe
 var _sat_points: Dictionary = {}  # SAT (満足度) points: player_id -> int
 var _guard_timers: Dictionary = {}  # tile_index -> { "player_id": int, "turns_remaining": int }
 
+# ── Game Statistics (tracked for end-game score screen) ──
+var game_stats: Dictionary = {
+	"battles_won": 0,
+	"battles_lost": 0,
+	"capital_tile": -1,  # Starting tile index (set during init)
+}
+
 # ── Commander Tactical Orders (player session state) ──
 # ── Pending random event choice (human player popup) ──
 var _pending_choice_event: Dictionary = {}   # The event dict awaiting player choice
@@ -1227,6 +1234,9 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	# Create starting army for human player
 	_create_starting_army(0, chosen_faction, human_start_tile)
 
+	# Track capital tile for defeat condition
+	game_stats = {"battles_won": 0, "battles_lost": 0, "capital_tile": human_start_tile}
+
 	# ── Create rival dark faction AI players ──
 	var rival_id: int = 1
 	for fid in [FactionData.FactionID.ORC, FactionData.FactionID.PIRATE, FactionData.FactionID.DARK_ELF]:
@@ -1850,6 +1860,10 @@ func begin_turn() -> void:
 	# ── Phase 5e6: SR07-style dynamic diplomatic events ──
 	if pid == get_human_player_id():
 		DiplomacyManager.process_diplomatic_events(pid)
+
+	# ── Phase 5e7: SR07-style hero recruitment events ──
+	if pid == get_human_player_id():
+		HeroSystem.process_recruitment_events(pid)
 
 	# ── Phase 5f: Alliance AI actions ──
 	AllianceAI.tick(ThreatManager.get_threat())
@@ -3135,6 +3149,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		EventBus.message_log.emit("[color=red]%s 进攻 %s 失败! (军团撤回)[/color]" % [army["name"], defender_desc])
 
 	EventBus.combat_result.emit(pid, defender_desc, won)
+	_record_battle_stat(pid, won)
 
 	# BUG FIX R7: Remove zombie troops with 0 soldiers from army after combat
 	var surviving_troops: Array = []
@@ -4045,6 +4060,7 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 					loot_msg = "战利品: 金+%d, 铁+%d" % [bonus_gold, bonus_iron]
 				EventBus.message_log.emit(loot_msg)
 		EventBus.combat_result.emit(pid, defender_desc, true)
+		_record_battle_stat(pid, true)
 		return true
 	else:
 		ResourceManager.remove_army(pid, maxi(attacker_losses, 1))
@@ -4054,6 +4070,7 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 		EventBus.message_log.emit("%s 攻打 %s 失败! 损失 %d 步兵" % [player["name"], defender_desc, attacker_losses])
 		_check_elimination(player)
 		EventBus.combat_result.emit(pid, defender_desc, false)
+		_record_battle_stat(pid, false)
 		return false
 
 
@@ -4155,6 +4172,7 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 		if pid == get_human_player_id():
 			ItemManager.grant_random_loot(pid)
 		EventBus.combat_result.emit(pid, npc_desc, true)
+		_record_battle_stat(pid, true)
 		return true
 	else:
 		ResourceManager.remove_army(pid, maxi(attacker_losses, 1))
@@ -4164,6 +4182,7 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 		EventBus.message_log.emit("%s 败于 %s! 损失 %d 兵" % [player["name"], npc_desc, attacker_losses])
 		_check_elimination(player)
 		EventBus.combat_result.emit(pid, npc_desc, false)
+		_record_battle_stat(pid, false)
 		return false
 
 
@@ -5493,6 +5512,48 @@ func action_explore(player_id: int, target_tile_index: int) -> bool:
 
 # ═══════════════ WIN CONDITION ═══════════════
 
+func _record_battle_stat(player_id: int, won: bool) -> void:
+	if player_id == get_human_player_id():
+		if won:
+			game_stats["battles_won"] = game_stats.get("battles_won", 0) + 1
+		else:
+			game_stats["battles_lost"] = game_stats.get("battles_lost", 0) + 1
+
+
+func _compute_end_game_score(player_id: int, victory_type: String) -> Dictionary:
+	## Compute detailed score breakdown for the end-game screen.
+	var owned: int = count_tiles_owned(player_id)
+	var heroes: int = HeroSystem.recruited_heroes.size()
+	var b_won: int = game_stats.get("battles_won", 0)
+	var b_lost: int = game_stats.get("battles_lost", 0)
+	var turns: int = turn_number
+
+	var territory_score: int = owned * BalanceConfig.SCORE_PER_NODE
+	var hero_score: int = heroes * BalanceConfig.SCORE_PER_HERO
+	var battle_score: int = b_won * BalanceConfig.SCORE_PER_BATTLE_WON + b_lost * BalanceConfig.SCORE_PER_BATTLE_LOST
+	var turn_score: int = maxi(0, (BalanceConfig.TURN_LIMIT - turns)) * BalanceConfig.SCORE_PER_TURN if BalanceConfig.TURN_LIMIT > 0 else turns * BalanceConfig.SCORE_PER_TURN
+	var subtotal: int = maxi(0, territory_score + hero_score + battle_score + turn_score)
+	var multiplier: float = BalanceConfig.VICTORY_SCORE_MULTIPLIER.get(victory_type, 1.0)
+	var final_score: int = int(float(subtotal) * multiplier)
+
+	return {
+		"territory_score": territory_score,
+		"hero_score": hero_score,
+		"battle_score": battle_score,
+		"turn_score": turn_score,
+		"subtotal": subtotal,
+		"multiplier": multiplier,
+		"final_score": final_score,
+		"territories_owned": owned,
+		"territories_total": tiles.size(),
+		"heroes_recruited": heroes,
+		"battles_won": b_won,
+		"battles_lost": b_lost,
+		"turns_taken": turns,
+		"victory_type": victory_type,
+	}
+
+
 func check_win_condition() -> void:
 	if not game_active:
 		return
@@ -5501,14 +5562,49 @@ func check_win_condition() -> void:
 	var human_faction: int = _player_factions.get(human_id, -1)
 	var human_tiles: int = count_tiles_owned(human_id)
 
+	# ── Defeat: Capital Lost ──
+	if BalanceConfig.CAPITAL_LOSS_DEFEAT and game_stats.get("capital_tile", -1) >= 0:
+		var cap_idx: int = game_stats["capital_tile"]
+		if cap_idx < tiles.size() and tiles[cap_idx]["owner_id"] != human_id:
+			game_active = false
+			EventBus.message_log.emit("[color=red]═══ 首都沦陷! ═══[/color]")
+			EventBus.message_log.emit("[color=red]你的首都已被敌军攻占, 暗潮势力土崩瓦解![/color]")
+			var score_data: Dictionary = _compute_end_game_score(human_id, "Defeat")
+			EventBus.game_over.emit(-1)
+			EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "Capital Lost", "victory_type": "", "score": score_data})
+			return
+
 	# ── Defeat: Turn Limit Exceeded (ターン制限) ──
 	if BalanceConfig.TURN_LIMIT > 0 and turn_number > BalanceConfig.TURN_LIMIT:
 		game_active = false
 		EventBus.message_log.emit("[color=red]═══ 回合超限! ═══[/color]")
 		EventBus.message_log.emit("[color=red]暗潮势力未能在%d回合内完成目标, 光明联盟集结反攻![/color]" % BalanceConfig.TURN_LIMIT)
+		var score_data: Dictionary = _compute_end_game_score(human_id, "Defeat")
 		EventBus.game_over.emit(-1)
-		EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "Turn Limit Exceeded", "victory_type": ""})
+		EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "Turn Limit Exceeded", "victory_type": "", "score": score_data})
 		return
+
+	# ── Defeat: All Armies Lost ──
+	var has_any_army: bool = false
+	for army_id in armies:
+		if armies[army_id]["player_id"] == human_id:
+			has_any_army = true
+			break
+	if human_tiles > 0 and not has_any_army:
+		# Only trigger if no garrison remains either (avoid false trigger at game start)
+		var has_garrison: bool = false
+		for tile in tiles:
+			if tile["owner_id"] == human_id and tile.get("garrison", 0) > 0:
+				has_garrison = true
+				break
+		if not has_garrison:
+			game_active = false
+			EventBus.message_log.emit("[color=red]═══ 全军覆没! ═══[/color]")
+			EventBus.message_log.emit("[color=red]所有军队已被消灭, 无力再战![/color]")
+			var score_data: Dictionary = _compute_end_game_score(human_id, "Defeat")
+			EventBus.game_over.emit(-1)
+			EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "All armies destroyed", "victory_type": "", "score": score_data})
+			return
 
 	# ── Victory Path 1: Conquest (攻占所有光明联盟要塞) ──
 	var total_sh: int = 0
@@ -5531,11 +5627,12 @@ func check_win_condition() -> void:
 				ResourceManager.apply_delta(human_id, {"prestige": speed_bonus})
 				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
+		var score_data: Dictionary = _compute_end_game_score(human_id, "Conquest Victory")
 		EventBus.game_over.emit(human_id)
-		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Conquest Victory"})
+		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Conquest Victory", "score": score_data})
 		return
 
-	# ── Victory Path 2: Domination (控制60%以上地图节点) ──
+	# ── Victory Path 2: Domination (控制75%以上地图节点) ──
 	var total_tiles: int = tiles.size()
 	var domination_threshold: float = BalanceConfig.DOMINANCE_VICTORY_PCT
 	if total_tiles > 0 and float(human_tiles) / float(total_tiles) >= domination_threshold:
@@ -5551,8 +5648,9 @@ func check_win_condition() -> void:
 				ResourceManager.apply_delta(human_id, {"prestige": speed_bonus})
 				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
+		var score_data: Dictionary = _compute_end_game_score(human_id, "Domination Victory")
 		EventBus.game_over.emit(human_id)
-		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Domination Victory"})
+		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Domination Victory", "score": score_data})
 		return
 
 	# ── Victory Path 3: Shadow Dominion (暗影统治 — 威胁值100 + 拥有终极兵种) ──
@@ -5588,8 +5686,9 @@ func check_win_condition() -> void:
 				ResourceManager.apply_delta(human_id, {"prestige": speed_bonus})
 				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
+		var score_data: Dictionary = _compute_end_game_score(human_id, "Shadow Domination")
 		EventBus.game_over.emit(human_id)
-		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Shadow Domination"})
+		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Shadow Domination", "score": score_data})
 		return
 
 	# ── Victory Path 4: Pirate Harem Collection (海盗后宫收集胜利) ──
@@ -5606,16 +5705,56 @@ func check_win_condition() -> void:
 				ResourceManager.apply_delta(human_id, {"prestige": speed_bonus})
 				EventBus.message_log.emit("[color=gold]速通奖励: %d回合完成 (节省%d回合), +%d威望![/color]" % [turn_number, turns_saved, speed_bonus])
 		NgPlusManager.on_victory()
+		var score_data: Dictionary = _compute_end_game_score(human_id, "Harem Victory")
 		EventBus.game_over.emit(human_id)
-		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Harem Victory"})
+		EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Harem Victory", "score": score_data})
 		return
+
+	# ── Victory Path 5: Diplomatic Victory (与所有存活势力结盟) ──
+	var surviving_rivals: Array = []
+	for pid in range(1, players.size()):
+		if pid == human_id:
+			continue
+		if count_tiles_owned(pid) > 0:
+			surviving_rivals.append(pid)
+	if surviving_rivals.size() > 0:
+		var all_allied: bool = true
+		for rival_pid in surviving_rivals:
+			var rival_faction: int = _player_factions.get(rival_pid, -1)
+			if not DiplomacyManager.has_treaty(human_id, "alliance", rival_faction):
+				all_allied = false
+				break
+		if all_allied:
+			game_active = false
+			EventBus.message_log.emit("[color=cyan]═══ 外交胜利! ═══[/color]")
+			EventBus.message_log.emit("[color=cyan]所有存活势力已与你缔结同盟! 暗潮联邦统一大陆![/color]")
+			NgPlusManager.on_victory()
+			var score_data: Dictionary = _compute_end_game_score(human_id, "Diplomatic Victory")
+			EventBus.game_over.emit(human_id)
+			EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Diplomatic Victory", "score": score_data})
+			return
+
+	# ── Victory Path 6: Survival Victory (存活N回合且首都未失) ──
+	if BalanceConfig.SURVIVAL_TURN_GOAL > 0 and turn_number >= BalanceConfig.SURVIVAL_TURN_GOAL:
+		var cap_idx: int = game_stats.get("capital_tile", -1)
+		var capital_held: bool = cap_idx >= 0 and cap_idx < tiles.size() and tiles[cap_idx]["owner_id"] == human_id
+		if capital_held:
+			game_active = false
+			EventBus.message_log.emit("[color=green]═══ 生存胜利! ═══[/color]")
+			EventBus.message_log.emit("[color=green]在%d回合的漫长战争中屹立不倒! 首都固若金汤![/color]" % turn_number)
+			NgPlusManager.on_victory()
+			var score_data: Dictionary = _compute_end_game_score(human_id, "Survival Victory")
+			EventBus.game_over.emit(human_id)
+			EventBus.game_over_detailed.emit({"winner_id": human_id, "is_victory": true, "reason": "", "victory_type": "Survival Victory", "score": score_data})
+			return
 
 	# ── Defeat: Elimination ──
 	if human_tiles <= 0:
 		game_active = false
 		EventBus.message_log.emit("[color=red]你的势力已被消灭...[/color]")
+		var score_data: Dictionary = _compute_end_game_score(human_id, "Defeat")
 		EventBus.game_over.emit(-1)
-		EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "Your faction was eliminated", "victory_type": ""})
+		EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "Your faction was eliminated", "victory_type": "", "score": score_data})
 		return
 
 	# ── Defeat: All evil factions eliminated (rival AI wins) ──
@@ -5629,8 +5768,9 @@ func check_win_condition() -> void:
 	if all_rivals_dead:
 		game_active = false
 		EventBus.message_log.emit("[color=red]所有暗黑势力已被光明联盟消灭...[/color]")
+		var score_data: Dictionary = _compute_end_game_score(human_id, "Defeat")
 		EventBus.game_over.emit(-1)
-		EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "All dark factions were destroyed", "victory_type": ""})
+		EventBus.game_over_detailed.emit({"winner_id": -1, "is_victory": false, "reason": "All dark factions were destroyed", "victory_type": "", "score": score_data})
 
 
 # ═══════════════ TERRITORY EFFECTS (国効果) ═══════════════

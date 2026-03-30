@@ -137,19 +137,32 @@ func _build_sfx_name_map() -> void:
 	## Map human-readable string names to SFX enum values for play_sfx_by_name()
 	_sfx_name_map = {
 		"ui_click": SFX.UI_CLICK,
+		"button_click": SFX.UI_CLICK,
+		"click": SFX.UI_CLICK,
 		"ui_confirm": SFX.UI_CONFIRM,
 		"ui_cancel": SFX.UI_CANCEL,
 		"ui_hover": SFX.UI_HOVER,
+		"hover": SFX.UI_HOVER,
+		"open_panel": SFX.UI_CONFIRM,
+		"close_panel": SFX.UI_CANCEL,
+		"notification": SFX.EVENT_TRIGGER,
+		"error": SFX.UI_CANCEL,
 		"combat_attack": SFX.COMBAT_ATTACK,
+		"attack_hit": SFX.COMBAT_ATTACK,
+		"attack_miss": SFX.COMBAT_DEFEND,
+		"critical_hit": SFX.COMBAT_CRITICAL,
 		"combat_defend": SFX.COMBAT_DEFEND,
 		"combat_critical": SFX.COMBAT_CRITICAL,
 		"combat_death": SFX.COMBAT_DEATH,
 		"combat_siege": SFX.COMBAT_SIEGE,
 		"combat_ability": SFX.COMBAT_ABILITY,
+		"skill_activate": SFX.COMBAT_ABILITY,
 		"capture": SFX.MAP_CAPTURE,
 		"map_capture": SFX.MAP_CAPTURE,
+		"tile_capture": SFX.MAP_CAPTURE,
 		"map_lost": SFX.MAP_LOST,
 		"map_deploy": SFX.MAP_DEPLOY,
+		"army_march": SFX.MAP_DEPLOY,
 		"resource_gain": SFX.RESOURCE_GAIN,
 		"resource_spend": SFX.RESOURCE_SPEND,
 		"research_complete": SFX.RESEARCH_COMPLETE,
@@ -164,15 +177,36 @@ func _build_sfx_name_map() -> void:
 		"turn_end": SFX.TURN_END,
 		"combat_start": SFX.COMBAT_ATTACK,
 		"victory": SFX.VICTORY,
+		"victory_fanfare": SFX.VICTORY,
 		"defeat": SFX.DEFEAT,
+		"defeat_horn": SFX.DEFEAT,
+		"slot_assign": SFX.UI_CONFIRM,
 	}
 
+
+## Procedural audio cache (extended)
+var _procedural_attack: AudioStream = null
+var _procedural_critical: AudioStream = null
+var _procedural_victory: AudioStream = null
+var _procedural_defeat: AudioStream = null
+var _procedural_march: AudioStream = null
+var _procedural_capture: AudioStream = null
+var _procedural_notify: AudioStream = null
+var _procedural_turn: AudioStream = null
 
 func _generate_procedural_sounds() -> void:
 	## Generate simple procedural audio for UI feedback so the game is not silent.
 	## These are used as fallbacks when .ogg files do not exist.
 	_procedural_click = _make_click_tone(800.0, 0.06)
 	_procedural_confirm = _make_click_tone(1000.0, 0.1)
+	_procedural_attack = _make_click_tone(200.0, 0.15)
+	_procedural_critical = _make_click_tone(150.0, 0.25)
+	_procedural_victory = _make_click_tone(600.0, 0.35)
+	_procedural_defeat = _make_click_tone(180.0, 0.4)
+	_procedural_march = _make_click_tone(300.0, 0.12)
+	_procedural_capture = _make_click_tone(500.0, 0.2)
+	_procedural_notify = _make_click_tone(900.0, 0.08)
+	_procedural_turn = _make_click_tone(700.0, 0.15)
 
 
 ## Create a short sine-wave "click" tone as an AudioStreamWAV.
@@ -377,6 +411,30 @@ func _get_procedural_fallback(sfx_id: int) -> AudioStream:
 			return _procedural_confirm
 		SFX.UI_CANCEL:
 			return _procedural_click
+		SFX.COMBAT_ATTACK, SFX.COMBAT_DEFEND, SFX.COMBAT_SIEGE:
+			return _procedural_attack
+		SFX.COMBAT_CRITICAL:
+			return _procedural_critical
+		SFX.COMBAT_DEATH, SFX.COMBAT_ABILITY:
+			return _procedural_attack
+		SFX.VICTORY:
+			return _procedural_victory
+		SFX.DEFEAT:
+			return _procedural_defeat
+		SFX.MAP_DEPLOY:
+			return _procedural_march
+		SFX.MAP_CAPTURE, SFX.MAP_LOST:
+			return _procedural_capture
+		SFX.EVENT_TRIGGER, SFX.WAAAGH:
+			return _procedural_notify
+		SFX.TURN_START, SFX.TURN_END:
+			return _procedural_turn
+		SFX.RESOURCE_GAIN, SFX.RESOURCE_SPEND:
+			return _procedural_click
+		SFX.BUILD_COMPLETE, SFX.RESEARCH_COMPLETE:
+			return _procedural_confirm
+		SFX.HERO_CAPTURE, SFX.HERO_RECRUIT, SFX.LEVEL_UP:
+			return _procedural_notify
 	return null
 
 

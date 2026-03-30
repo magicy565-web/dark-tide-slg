@@ -38,6 +38,9 @@ func _ready() -> void:
 # ═══════════════════════════════════════════════════
 
 func show_panel(army_id: int, target_tile_index: int) -> void:
+	# Audio trigger for opening battle prep
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("open_panel")
 	_army_id = army_id
 	_target_tile = target_tile_index
 	_army = GameManager.get_army(army_id)
@@ -307,6 +310,8 @@ func _refresh_hero_list() -> void:
 
 func _on_slot_input(event: InputEvent, idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+			AudioManager.play_sfx_by_name("button_click")
 		_selected_slot = idx
 		_refresh()
 
@@ -321,6 +326,9 @@ func _on_slot_hover(panel: PanelContainer, entering: bool) -> void:
 		panel.add_theme_stylebox_override("panel", _slot_style(false))
 
 func _on_hero_selected(hero_id: String) -> void:
+	# Audio trigger for hero slot assignment
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("slot_assign")
 	if _selected_slot >= 0 and _slot_assignments.has(_selected_slot):
 		_slot_assignments[_selected_slot]["hero_id"] = hero_id
 	_selected_slot = -1
@@ -333,10 +341,16 @@ func _on_clear_hero() -> void:
 	_refresh()
 
 func _on_confirm() -> void:
+	# Audio trigger for battle confirmation
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("ui_confirm")
 	hide_panel()
 	battle_confirmed.emit(_army_id, _target_tile, _slot_assignments.duplicate(true))
 
 func _on_cancel() -> void:
+	# Audio trigger for cancel
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("ui_cancel")
 	hide_panel()
 	battle_cancelled.emit()
 
