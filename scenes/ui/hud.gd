@@ -2101,6 +2101,18 @@ func _on_quest_journal_pressed() -> void:
 
 
 func _on_armies_pressed() -> void:
+	# Open the dedicated SR07-style Army Management Panel
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("open_panel")
+	var army_panel_node = get_tree().get_root().find_child("ArmyPanel", true, false)
+	if army_panel_node and army_panel_node.has_method("show_panel"):
+		army_panel_node.show_panel()
+	else:
+		# Fallback: inline army details (legacy)
+		_on_armies_pressed_legacy()
+
+
+func _on_armies_pressed_legacy() -> void:
 	if _current_mode == ActionMode.DOMESTIC_SUB and _domestic_sub_type == "armies_detail":
 		_close_target_panel()
 		return

@@ -40,6 +40,9 @@ var battle_prep_panel = null
 # ── Game over overlay (v4.5) ──
 var game_over_panel_node = null
 
+# ── Army Management Panel (SR07-style) ──
+var army_panel = null
+
 
 func _ready() -> void:
 	# Start with HUD hidden, menu visible (board stays visible - camera needs it)
@@ -120,6 +123,13 @@ func _ready() -> void:
 	battle_prep_panel = CanvasLayer.new()
 	battle_prep_panel.set_script(BattlePrepScript)
 	add_child(battle_prep_panel)
+
+	# Army Management Panel (SR07-style, code-only)
+	var ArmyPanelScript = preload("res://scenes/ui/army_panel.gd")
+	army_panel = CanvasLayer.new()
+	army_panel.name = "ArmyPanel"
+	army_panel.set_script(ArmyPanelScript)
+	add_child(army_panel)
 
 	# Game over overlay (v4.5) — high-layer CanvasLayer that covers everything
 	var GameOverPanelScript = preload("res://scenes/ui/game_over_panel.gd")

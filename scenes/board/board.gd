@@ -105,6 +105,7 @@ var attack_route_meshes: Array = []
 var march_route_meshes: Array = []  # Persistent march path visuals
 var settlement_nodes: Dictionary = {}
 var _settlement_cache: Dictionary = {}  # idx -> last icon_key to avoid redundant rebuilds
+var _upgrade_flash_tiles: Dictionary = {}  # idx -> true, tiles currently playing upgrade flash
 # ── Material cache ──
 var _material_cache: Dictionary = {}
 const _MATERIAL_CACHE_MAX: int = 512
@@ -197,6 +198,8 @@ func _ready() -> void:
 	EventBus.army_march_started.connect(_on_march_started)
 	EventBus.army_march_arrived.connect(_on_march_arrived)
 	EventBus.army_march_cancelled.connect(_on_march_cancelled)
+	if EventBus.has_signal("building_upgraded"):
+		EventBus.building_upgraded.connect(_on_building_upgraded)
 	if not GameManager.tiles.is_empty():
 		_build_board()
 
@@ -531,6 +534,8 @@ func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
 	for c in parent.get_children(): c.queue_free()
 	var terrain = tile.get("terrain", FactionData.TerrainType.PLAINS)
 	var level: int = tile.get("level", 1)
+	var building_level: int = tile.get("building_level", 0)
+	var effective_level: int = maxi(level, building_level) if building_level > 0 else level
 	var tt = tile.get("type", -1)
 	var y: float = TILE_HEIGHT
 	# Determine settlement icon key based on tile type and special properties
@@ -548,9 +553,17 @@ func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
 		var sscale: float = 0.8 + level * 0.2
 		if tt == GameManager.TileType.CORE_FORTRESS:
 			sscale = 1.4
+		# Level 3: slightly larger icon for progression feel
+		if effective_level >= 3:
+			sscale *= 1.1
 		sprite.scale = Vector3(sscale, sscale, sscale)
 		sprite.position = Vector3(0, y + 0.02, 0)
 		sprite.modulate = Color(1, 1, 1, 0.9)
+		# Level-based tinting on flat sprite
+		if effective_level >= 3:
+			sprite.modulate = Color(1.15, 1.05, 0.85, 0.95)
+		elif effective_level >= 2:
+			sprite.modulate = Color(1.05, 1.0, 0.88, 0.92)
 		parent.add_child(sprite)
 		# Also add a small upright billboard version for visibility from camera angle
 		var billboard := Sprite3D.new()
@@ -558,13 +571,50 @@ func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
 		billboard.pixel_size = 0.008
 		billboard.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		billboard.no_depth_test = true
+		billboard.name = "SettlementBillboard"
 		var bscale: float = 0.6 + level * 0.15
 		if tt == GameManager.TileType.CORE_FORTRESS:
 			bscale = 1.0
+		if effective_level >= 3:
+			bscale *= 1.12
 		billboard.scale = Vector3(bscale, bscale, bscale)
 		billboard.position = Vector3(0, y + 0.6 + level * 0.1, 0)
 		billboard.modulate = Color(1, 1, 1, 0.85)
+		# Level-based tinting on billboard
+		if effective_level >= 3:
+			billboard.modulate = Color(1.15, 1.05, 0.85, 0.9)
+		elif effective_level >= 2:
+			billboard.modulate = Color(1.05, 1.0, 0.88, 0.88)
 		parent.add_child(billboard)
+		# ── Level-based golden glow outline (levels 2+) ──
+		if effective_level >= 2:
+			var glow := Sprite3D.new()
+			glow.texture = tex
+			glow.pixel_size = billboard.pixel_size * 1.15
+			glow.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			glow.no_depth_test = true
+			glow.name = "LevelGlow"
+			var glow_scale: float = bscale * 1.18
+			if effective_level >= 3:
+				glow_scale = bscale * 1.25
+			glow.scale = Vector3(glow_scale, glow_scale, glow_scale)
+			glow.position = billboard.position
+			# Golden glow: brighter for level 3
+			if effective_level >= 3:
+				glow.modulate = Color(1.0, 0.85, 0.3, 0.35)
+			else:
+				glow.modulate = Color(1.0, 0.88, 0.4, 0.2)
+			parent.add_child(glow)
+			# Pulsing glow animation
+			var glow_tw := create_tween()
+			glow_tw.set_loops()
+			var glow_bright: float = glow.modulate.a + 0.12
+			var glow_dim: float = glow.modulate.a - 0.05
+			glow_tw.tween_property(glow, "modulate:a", glow_bright, 1.2).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			glow_tw.tween_property(glow, "modulate:a", glow_dim, 1.2).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+		# ── Star/pip level indicators below billboard ──
+		if effective_level >= 1:
+			_add_level_stars(parent, billboard.position, effective_level)
 		# Subtle breathing animation for settlement icon
 		if tt == GameManager.TileType.CORE_FORTRESS:
 			var tw := create_tween()
@@ -583,6 +633,9 @@ func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
 			_add_house(parent, y, Vector3(0.5, 0, 0.4)); _add_house(parent, y, Vector3(0.35, 0, 0.55))
 		else:
 			_add_house(parent, y, Vector3(0.3, 0, 0.3))
+		# ── Star indicators for procedural buildings too ──
+		if effective_level >= 1:
+			_add_level_stars(parent, Vector3(0, TILE_HEIGHT + 0.55, 0), effective_level)
 
 func _get_settlement_icon_key(tile: Dictionary) -> String:
 	var tt = tile.get("type", -1)
@@ -630,6 +683,85 @@ func _get_settlement_icon_key(tile: Dictionary) -> String:
 	if tile.get("level", 1) >= 3:
 		return "stronghold"
 	return "village"
+
+# ── Level star/pip indicators ──
+func _add_level_stars(parent: Node3D, ref_pos: Vector3, level: int) -> void:
+	## Add small gold star pips below/beside the building billboard to indicate level.
+	## Uses tiny emissive sphere meshes as pips (4-6px equivalent in 3D).
+	var star_count: int = clampi(level, 1, 3)
+	var star_container := Node3D.new()
+	star_container.name = "LevelStars"
+	# Position below the billboard reference
+	star_container.position = Vector3(ref_pos.x, ref_pos.y - 0.22, ref_pos.z)
+	parent.add_child(star_container)
+	# Spread stars horizontally, centered
+	var spacing: float = 0.12
+	var start_x: float = -spacing * (star_count - 1) * 0.5
+	for i in range(star_count):
+		var pip := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.035
+		sm.height = 0.07
+		sm.radial_segments = 6
+		sm.rings = 3
+		pip.mesh = sm
+		# Gold color, brighter at higher levels
+		var gold_col: Color
+		match star_count:
+			1: gold_col = Color(0.85, 0.7, 0.3)
+			2: gold_col = Color(0.95, 0.8, 0.3)
+			3, _: gold_col = Color(1.0, 0.9, 0.35)
+		pip.material_override = _make_emissive_mat(gold_col, gold_col * 0.7, 1.5)
+		pip.position = Vector3(start_x + i * spacing, 0, 0)
+		star_container.add_child(pip)
+
+# ── Upgrade flash animation ──
+func _on_building_upgraded(_player_id: int, tile_index: int, _building_id: String, _new_level: int) -> void:
+	## Plays a white flash on the settlement billboard when a building is upgraded.
+	if _upgrade_flash_tiles.has(tile_index):
+		return  # Already animating
+	_upgrade_flash_tiles[tile_index] = true
+	# First update the settlement visuals to reflect the new level
+	_update_territory_visual(tile_index)
+	# Then play the flash on top
+	_play_upgrade_flash(tile_index)
+
+func _play_upgrade_flash(idx: int) -> void:
+	if not settlement_nodes.has(idx):
+		_upgrade_flash_tiles.erase(idx)
+		return
+	var sett_node: Node3D = settlement_nodes[idx]
+	# Find the billboard sprite to flash
+	var billboard: Sprite3D = sett_node.get_node_or_null("SettlementBillboard")
+	if billboard == null:
+		# Try first Sprite3D child as fallback
+		for c in sett_node.get_children():
+			if c is Sprite3D:
+				billboard = c
+				break
+	if billboard == null:
+		_upgrade_flash_tiles.erase(idx)
+		return
+	# Store original modulate and flash white then restore
+	var original_mod: Color = billboard.modulate
+	var tw := create_tween()
+	# Flash to bright white
+	tw.tween_property(billboard, "modulate", Color(3.0, 3.0, 3.0, 1.0), 0.12).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	# Hold briefly
+	tw.tween_interval(0.08)
+	# Fade to golden highlight
+	tw.tween_property(billboard, "modulate", Color(1.4, 1.2, 0.7, 1.0), 0.15).set_ease(Tween.EASE_IN_OUT)
+	# Return to new appearance
+	tw.tween_property(billboard, "modulate", original_mod, 0.3).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tw.tween_callback(func(): _upgrade_flash_tiles.erase(idx))
+	# Also flash the glow layer if present
+	var glow_node = sett_node.get_node_or_null("LevelGlow")
+	if glow_node and is_instance_valid(glow_node):
+		var glow_orig: Color = glow_node.modulate
+		var gtw := create_tween()
+		gtw.tween_property(glow_node, "modulate", Color(1.5, 1.3, 0.6, 0.7), 0.12).set_ease(Tween.EASE_OUT)
+		gtw.tween_interval(0.08)
+		gtw.tween_property(glow_node, "modulate", glow_orig, 0.35).set_ease(Tween.EASE_IN)
 
 func _add_house(p: Node3D, y: float, o: Vector3) -> void:
 	var h := _make_box_mesh(Vector3(0.18, 0.15, 0.18), Color(0.6, 0.5, 0.38))
@@ -913,7 +1045,7 @@ func _update_territory_visual(idx: int) -> void:
 	else: vis["garrison_label"].text = ""
 	# Settlement update (only rebuild if tile state changed)
 	if settlement_nodes.has(idx):
-		var new_key: String = _get_settlement_icon_key(tile) + "_%d" % tile.get("level", 1)
+		var new_key: String = _get_settlement_icon_key(tile) + "_%d_%d" % [tile.get("level", 1), tile.get("building_level", 0)]
 		if _settlement_cache.get(idx, "") != new_key:
 			_build_settlement(settlement_nodes[idx], tile)
 			_settlement_cache[idx] = new_key
@@ -1439,12 +1571,22 @@ func _shake_tile(idx: int) -> void:
 
 # ═══════════════ SIGNAL HANDLERS ═══════════════
 func _on_tile_captured(_pid: int, ti: int) -> void:
+	# Check if this is a level upgrade (cache key changed means rebuild happened)
+	var was_upgrade: bool = false
+	if settlement_nodes.has(ti) and ti < GameManager.tiles.size():
+		var tile: Dictionary = GameManager.tiles[ti]
+		var new_key: String = _get_settlement_icon_key(tile) + "_%d_%d" % [tile.get("level", 1), tile.get("building_level", 0)]
+		if _settlement_cache.has(ti) and _settlement_cache[ti] != new_key:
+			was_upgrade = true
 	# Audio trigger for tile capture
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("tile_capture")
 	_update_territory_visual(ti)
 	# Visual: flash captured tile white → faction color over 0.5s
 	_flash_tile_capture(ti)
+	# If the settlement was rebuilt due to level change, play upgrade flash
+	if was_upgrade:
+		_play_upgrade_flash(ti)
 	# Update neighbors for border visuals
 	if GameManager.adjacency.has(ti):
 		for n in GameManager.adjacency[ti]:

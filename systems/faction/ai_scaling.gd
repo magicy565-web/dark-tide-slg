@@ -218,9 +218,14 @@ func get_tier_bonus_garrison(faction_key: String) -> int:
 
 func apply_tier_bonus_garrison(faction_key: String) -> void:
 	## Apply bonus garrison to border tiles based on threat tier.
+	## v5.1: Also applies ai_reinforce_mult from difficulty preset.
 	var bonus: int = get_tier_bonus_garrison(faction_key)
 	if bonus <= 0:
 		return
+	# v5.1: Scale reinforcement by difficulty preset multiplier
+	if BalanceManager != null and BalanceManager.has_method("get_ai_reinforce_mult"):
+		var reinforce_mult: float = BalanceManager.get_ai_reinforce_mult()
+		bonus = maxi(1, int(float(bonus) * reinforce_mult))
 	var applied: int = 0
 	for tile in GameManager.tiles:
 		if tile["owner_id"] >= 0:

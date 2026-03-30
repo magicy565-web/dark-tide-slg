@@ -69,6 +69,11 @@ const PASSIVE_POWER_MULT: Dictionary = {
 	"scatter": 0.80,           # auto-rout at <30%
 	"pillage": 1.05,           # +10 gold on win
 	"conscript": 0.90,         # +1 soldier near friendly
+	# ── v5.0: Elite faction troop passives ──
+	"flanking_charge": 1.30,   # ignores front-row taunt + charges back row
+	"siege_bombard": 1.40,     # ×3 siege + AoE splash
+	"shadow_stealth": 1.25,    # first-round stealth + ×1.5 counter
+	"veteran_resolve": 1.15,   # never routs, min morale 30
 }
 
 # ═══════════════ ECONOMY PROJECTIONS ═══════════════
@@ -87,16 +92,18 @@ const ECONOMY_PHASES: Dictionary = {
 const DIFFICULTY_PRESETS: Dictionary = {
 	"easy": {
 		"label": "简单",
-		"ai_atk_mult": 0.80,
+		"ai_atk_mult": 0.85,            # Enemy ATK -15%
 		"ai_def_mult": 0.80,
 		"ai_garrison_mult": 0.75,
 		"ai_expedition_chance_mult": 0.60,
-		"ai_threat_gain_mult": 0.70,
-		"ai_aggression": 0.30,          # Light AI barely counterattacks
-		"player_income_mult": 1.20,
+		"ai_threat_gain_mult": 0.70,     # Threat gain -30%
+		"ai_aggression": 0.30,           # Light AI barely counterattacks
+		"player_income_mult": 1.30,      # Income +30%
 		"player_xp_mult": 1.50,
 		"light_wall_hp_mult": 0.75,
 		"order_penalty_mult": 0.60,
+		"player_atk_mult": 1.20,         # Player ATK +20%
+		"ai_reinforce_mult": 1.00,       # No change
 	},
 	"normal": {
 		"label": "普通",
@@ -105,24 +112,28 @@ const DIFFICULTY_PRESETS: Dictionary = {
 		"ai_garrison_mult": 1.00,
 		"ai_expedition_chance_mult": 1.00,
 		"ai_threat_gain_mult": 1.00,
-		"ai_aggression": 1.00,          # Baseline counterattack frequency
+		"ai_aggression": 1.00,           # Baseline counterattack frequency
 		"player_income_mult": 1.00,
 		"player_xp_mult": 1.00,
 		"light_wall_hp_mult": 1.00,
 		"order_penalty_mult": 1.00,
+		"player_atk_mult": 1.00,         # No change (baseline)
+		"ai_reinforce_mult": 1.00,
 	},
 	"hard": {
 		"label": "困难",
-		"ai_atk_mult": 1.15,
+		"ai_atk_mult": 1.15,            # Enemy ATK +15%
 		"ai_def_mult": 1.15,
 		"ai_garrison_mult": 1.25,
 		"ai_expedition_chance_mult": 1.30,
-		"ai_threat_gain_mult": 1.20,
-		"ai_aggression": 1.60,          # Frequent counterattacks + raids
-		"player_income_mult": 0.85,
+		"ai_threat_gain_mult": 1.20,     # Threat gain +20%
+		"ai_aggression": 1.60,           # Frequent counterattacks + raids
+		"player_income_mult": 0.85,      # Income -15%
 		"player_xp_mult": 0.80,
 		"light_wall_hp_mult": 1.25,
 		"order_penalty_mult": 1.30,
+		"player_atk_mult": 0.90,         # Player ATK -10%
+		"ai_reinforce_mult": 1.00,
 	},
 	"nightmare": {
 		"label": "噩梦",
@@ -131,11 +142,28 @@ const DIFFICULTY_PRESETS: Dictionary = {
 		"ai_garrison_mult": 1.50,
 		"ai_expedition_chance_mult": 1.60,
 		"ai_threat_gain_mult": 1.50,
-		"ai_aggression": 2.20,          # Relentless assault, raids every turn
+		"ai_aggression": 2.20,           # Relentless assault, raids every turn
 		"player_income_mult": 0.70,
 		"player_xp_mult": 0.60,
 		"light_wall_hp_mult": 1.50,
 		"order_penalty_mult": 1.60,
+		"player_atk_mult": 0.80,         # Player ATK -20%
+		"ai_reinforce_mult": 1.30,       # Enemy reinforcement +30%
+	},
+	"lunatic": {
+		"label": "狂乱",
+		"ai_atk_mult": 1.30,            # Enemy ATK +30%
+		"ai_def_mult": 1.30,
+		"ai_garrison_mult": 1.75,
+		"ai_expedition_chance_mult": 2.00,
+		"ai_threat_gain_mult": 1.50,     # Threat gain +50%
+		"ai_aggression": 3.00,           # Maximum aggression, constant assault
+		"player_income_mult": 0.70,      # Income -30%
+		"player_xp_mult": 0.50,
+		"light_wall_hp_mult": 1.75,
+		"order_penalty_mult": 2.00,
+		"player_atk_mult": 0.80,         # Player ATK -20%
+		"ai_reinforce_mult": 1.50,       # Enemy reinforcement +50%
 	},
 }
 
@@ -182,6 +210,26 @@ func get_order_penalty_mult() -> float:
 
 func get_ai_aggression() -> float:
 	return get_diff().get("ai_aggression", 1.0)
+
+func get_player_atk_mult() -> float:
+	return get_diff().get("player_atk_mult", 1.0)
+
+func get_ai_reinforce_mult() -> float:
+	return get_diff().get("ai_reinforce_mult", 1.0)
+
+## Apply a difficulty preset by name. Validates the key and emits the
+## difficulty_changed signal. Returns true if the preset was found.
+## This is a convenience wrapper combining set_difficulty + confirmation.
+func apply_difficulty(level: String) -> bool:
+	if not DIFFICULTY_PRESETS.has(level):
+		push_warning("BalanceManager: apply_difficulty('%s') — unknown preset, valid: %s" % [level, ", ".join(DIFFICULTY_PRESETS.keys())])
+		return false
+	set_difficulty(level)
+	var d: Dictionary = DIFFICULTY_PRESETS[level]
+	print("[BalanceManager] Difficulty set to '%s' (%s): player_atk=×%.2f, ai_atk=×%.2f, income=×%.2f, threat=×%.2f, reinforce=×%.2f" % [
+		level, d["label"], d.get("player_atk_mult", 1.0), d["ai_atk_mult"],
+		d["player_income_mult"], d["ai_threat_gain_mult"], d.get("ai_reinforce_mult", 1.0)])
+	return true
 
 # ═══════════════ POWER BUDGET CALCULATOR ═══════════════
 

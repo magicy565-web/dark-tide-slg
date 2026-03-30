@@ -522,6 +522,15 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 		if tile_bonuses.get("morale", 0) > 0:
 			bu.morale = mini(100, bu.morale + tile_bonuses["morale"])
 
+		# v5.1: Difficulty player_atk_mult — scale player unit ATK by difficulty
+		var _is_player_side: bool = army.get("is_player", false)
+		if _is_player_side and _has_autoload("BalanceManager"):
+			var _bm: Node = _get_autoload("BalanceManager")
+			if _bm != null and _bm.has_method("get_player_atk_mult"):
+				var _p_atk_mult: float = _bm.get_player_atk_mult()
+				if _p_atk_mult != 1.0:
+					bu.atk = maxi(1, int(float(bu.atk) * _p_atk_mult))
+
 		units.append(bu)
 
 	# v4.6: command_bonus — if any unit has command_bonus, SPD+2 to all same-side units

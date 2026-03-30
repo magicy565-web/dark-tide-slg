@@ -368,6 +368,7 @@ func calculate_food_upkeep(player_id: int) -> int:
 func calculate_gold_upkeep(player_id: int) -> int:
 	## Returns total gold upkeep (军饷) for army maintenance this turn.
 	## Two components: per-soldier base cost + per-squad tier cost.
+	## v5.1: Scaling army upkeep — armies beyond 3 cost +20% each cumulative.
 	var faction_id: int = GameManager.get_player_faction(player_id)
 	var army: int = ResourceManager.get_army(player_id)
 	if army <= 0:
@@ -396,7 +397,23 @@ func calculate_gold_upkeep(player_id: int) -> int:
 		var tier: int = td.get("tier", 1)
 		tier_cost += BalanceConfig.TIER_GOLD_UPKEEP.get(tier, 0)
 
-	return base_cost + tier_cost
+	var total_upkeep: int = base_cost + tier_cost
+
+	# 3. v5.1: Scaling army upkeep — each army beyond free count costs +20% more
+	var army_count: int = GameManager.get_army_count(player_id) if GameManager.has_method("get_army_count") else 0
+	if army_count > BalanceConfig.ARMY_UPKEEP_FREE_COUNT:
+		var excess: int = army_count - BalanceConfig.ARMY_UPKEEP_FREE_COUNT
+		var scale_mult: float = 1.0 + float(excess) * BalanceConfig.ARMY_UPKEEP_SCALE_PCT
+		total_upkeep = ceili(float(total_upkeep) * scale_mult)
+
+	# 4. v5.1: War exhaustion — after turn 50, all costs +1% per turn
+	var current_turn: int = GameManager.current_turn if GameManager.get("current_turn") != null else 0
+	if current_turn > BalanceConfig.WAR_EXHAUSTION_START_TURN:
+		var exhaustion_turns: int = current_turn - BalanceConfig.WAR_EXHAUSTION_START_TURN
+		var exhaustion_mult: float = 1.0 + float(exhaustion_turns) * BalanceConfig.WAR_EXHAUSTION_PCT_PER_TURN
+		total_upkeep = ceili(float(total_upkeep) * exhaustion_mult)
+
+	return total_upkeep
 
 
 func calculate_plunder_value(player_id: int) -> int:

@@ -54,6 +54,20 @@ const GOLD_UPKEEP_PER_SOLDIER_DARK_ELF: float = 0.25  # 精灵适中 — 40兵=1
 ## Gold deficit combat penalty: ATK/DEF debuff when can't pay
 const GOLD_DEFICIT_COMBAT_PENALTY: float = 0.15  # -15% ATK/DEF
 
+## ── Scaling Army Upkeep (v5.1 balance pass) ──
+## Each army beyond ARMY_UPKEEP_FREE_COUNT costs ARMY_UPKEEP_SCALE_PCT more
+## cumulative upkeep. Prevents late-game army spam without punishing early play.
+## Example: 4 armies → 4th army costs base×1.20; 5th → base×1.40; 6th → base×1.60
+const ARMY_UPKEEP_FREE_COUNT: int = 3       # First 3 armies at base upkeep
+const ARMY_UPKEEP_SCALE_PCT: float = 0.20   # +20% per army beyond free count
+
+## ── War Exhaustion (v5.1 balance pass) ──
+## After WAR_EXHAUSTION_START_TURN, all costs increase by WAR_EXHAUSTION_PCT_PER_TURN
+## per turn. Encourages finishing the game rather than turtling indefinitely.
+## At turn 50+10 = turn 60 (the turn limit), costs are +10% — a nudge, not a wall.
+const WAR_EXHAUSTION_START_TURN: int = 50
+const WAR_EXHAUSTION_PCT_PER_TURN: float = 0.01  # +1% per turn past start
+
 ## Supply strain: armies in enemy territory take attrition
 const SUPPLY_ENEMY_TERRITORY_ATTRITION: float = 0.03  # 3% per turn in unowned tiles
 ## Overextension: if total soldiers > owned_tiles × 5, surplus soldiers take attrition

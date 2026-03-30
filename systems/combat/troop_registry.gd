@@ -211,16 +211,16 @@ static func _register_light_faction(d: Dictionary) -> void:
 	d["mage_battle"] = {
 		"name": "战斗法师", "faction": "mage",
 		"troop_class": TC_MAGE_UNIT, "row": ROW_BACK,
-		"base_atk": 8, "base_def": 4, "max_soldiers": 5, "hp_per_soldier": 4,
+		"base_atk": 9, "base_def": 3, "max_soldiers": 5, "hp_per_soldier": 4,
 		"recruit_cost": 25, "passive": "aoe_1_5_cost5", "category": CAT_FACTION,
-		"tier": 2, "desc": "AoE×1.5, 消耗5法力",
+		"tier": 2, "desc": "AoE×1.5, 消耗5法力, 高攻低防的玻璃炮",
 	}
 	d["mage_grand"] = {
 		"name": "大法师", "faction": "mage",
 		"troop_class": TC_MAGE_UNIT, "row": ROW_BACK,
-		"base_atk": 9, "base_def": 7, "max_soldiers": 8, "hp_per_soldier": 5,
+		"base_atk": 10, "base_def": 5, "max_soldiers": 8, "hp_per_soldier": 5,
 		"recruit_cost": 36, "passive": "death_burst", "category": CAT_FACTION,
-		"tier": 3, "desc": "死亡时对敌全体ATK×2伤害",
+		"tier": 3, "desc": "死亡时对敌全体ATK×2伤害, 高攻中低防",
 	}
 
 # ═══════════════ NEUTRAL TROOPS (13) ═══════════════
