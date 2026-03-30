@@ -38,9 +38,9 @@ var btn_back: Button
 
 # Faction crest paths
 const CREST_PATHS := {
-	0: "res://assets/ui/crest_orc.png",
-	1: "res://assets/ui/crest_pirate.png",
-	2: "res://assets/ui/crest_dark_elf.png",
+	0: "res://assets/icons/ui/crest_orc.png",
+	1: "res://assets/icons/ui/crest_pirate.png",
+	2: "res://assets/icons/ui/crest_dark_elf.png",
 }
 
 # Faction data for display

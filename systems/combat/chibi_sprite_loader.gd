@@ -62,20 +62,7 @@ static func load_video(hero_id: String, state: String = "idle") -> VideoStream:
 		_cache[cache_key] = stream
 		return stream
 
-	# Handle defeat/defeated inconsistency
-	if state == "defeated":
-		var alt := VIDEO_BASE + folder + "_chibi_defeat.ogv"
-		if ResourceLoader.exists(alt):
-			var stream := load(alt) as VideoStream
-			_cache[cache_key] = stream
-			return stream
-	elif state == "defeat":
-		var alt := VIDEO_BASE + folder + "_chibi_defeated.ogv"
-		if ResourceLoader.exists(alt):
-			var stream := load(alt) as VideoStream
-			_cache[cache_key] = stream
-			return stream
-
+	# Note: defeat/defeated naming has been standardized to "defeated" across all assets.
 	return null
 
 ## Load a PNG sprite as fallback (for heroes without video).
@@ -94,20 +81,7 @@ static func load_png(hero_id: String, state: String = "idle") -> Texture2D:
 		_cache[cache_key] = tex
 		return tex
 
-	# Handle defeat/defeated inconsistency
-	if state == "defeated":
-		var alt := CHIBI_BASE + folder + "/defeat.png"
-		if ResourceLoader.exists(alt):
-			var tex := load(alt) as Texture2D
-			_cache[cache_key] = tex
-			return tex
-	elif state == "defeat":
-		var alt := CHIBI_BASE + folder + "/defeated.png"
-		if ResourceLoader.exists(alt):
-			var tex := load(alt) as Texture2D
-			_cache[cache_key] = tex
-			return tex
-
+	# Note: defeat/defeated naming has been standardized to "defeated" across all assets.
 	return null
 
 ## Check if a hero has OGV video animations.
