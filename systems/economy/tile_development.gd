@@ -125,7 +125,8 @@ func get_tile_development(tile_idx: int) -> Dictionary:
 
 func get_available_slots(tile_idx: int) -> int:
 	var tile_level: int = _get_tile_level(tile_idx)
-	var max_slots: int = SLOTS_PER_LEVEL[mini(tile_level - 1, SLOTS_PER_LEVEL.size() - 1)]
+	# BUG FIX R12: clamp lower bound to 0 to prevent negative array index when tile_level=0
+	var max_slots: int = SLOTS_PER_LEVEL[clampi(tile_level - 1, 0, SLOTS_PER_LEVEL.size() - 1)]
 	var used: int = get_tile_development(tile_idx)["buildings"].size()
 	return maxi(max_slots - used, 0)
 
@@ -515,5 +516,8 @@ func from_save_data(data: Dictionary) -> void:
 
 func _get_tile_level(tile_idx: int) -> int:
 	if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
-		return GameManager.tiles[tile_idx].get("level", 1)
+		# BUG FIX R12: null check on tile before calling .get()
+		var tile = GameManager.tiles[tile_idx]
+		if tile != null:
+			return tile.get("level", 1)
 	return 1

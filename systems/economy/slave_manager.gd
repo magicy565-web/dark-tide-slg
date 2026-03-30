@@ -204,10 +204,11 @@ func get_labor_income(player_id: int) -> Dictionary:
 	var alloc: Dictionary = get_allocation(player_id)
 	var eff: float = get_efficiency_mult(player_id)
 	var params: Dictionary = FactionData.FACTION_PARAMS.get(FactionData.FactionID.DARK_ELF, {})
+	# BUG FIX R12: return ints, not floats — ResourceManager expects integer values
 	return {
-		"gold": float(alloc["mine"]) * 0.5 * eff,  # 03_战略设定: +0.5金/奴隶/节点
-		"iron": float(alloc["mine"]) * float(params.get("slave_mine_iron_per_turn", 1)) * eff,
-		"food": float(alloc["farm"]) * float(params.get("slave_farm_food_per_turn", 2)) * eff,
+		"gold": int(float(alloc["mine"]) * 0.5 * eff),
+		"iron": int(float(alloc["mine"]) * float(params.get("slave_mine_iron_per_turn", 1)) * eff),
+		"food": int(float(alloc["farm"]) * float(params.get("slave_farm_food_per_turn", 2)) * eff),
 	}
 
 

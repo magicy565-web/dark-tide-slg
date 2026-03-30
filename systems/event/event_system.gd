@@ -1566,6 +1566,22 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 			HeroSystem.hero_corruption[hid] = clampi(cur_cor + boost_val, 0, 100)
 		result["applied"].append("corruption_boost: +%d (all prisoners)" % boost_val)
 
+	# BUG FIX R12: affection_boost effect was defined in hero_confession event but never implemented
+	if effects.has("affection_boost"):
+		var aff_val: int = effects["affection_boost"]
+		if HeroSystem.has_method("get_recruited_heroes"):
+			var recruited: Array = HeroSystem.get_recruited_heroes(pid)
+			if not recruited.is_empty():
+				var target_hero: String = recruited[randi() % recruited.size()]
+				if HeroSystem.has_method("add_affection"):
+					HeroSystem.add_affection(target_hero, aff_val)
+				EventBus.message_log.emit("[color=pink]%s 好感度 +%d[/color]" % [target_hero, aff_val])
+				result["applied"].append("affection_boost: +%d (%s)" % [aff_val, target_hero])
+			else:
+				ResourceManager.apply_delta(pid, {"prestige": aff_val})
+				EventBus.message_log.emit("无可用英雄, 转化为 +%d 威望" % aff_val)
+				result["applied"].append("affection_boost: +%d (无英雄, 转化威望)" % aff_val)
+
 	# Wall boost: repair player-owned walls (not enemy walls)
 	if effects.has("wall_boost"):
 		var boost_amount: int = effects["wall_boost"]

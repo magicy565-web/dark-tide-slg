@@ -181,6 +181,8 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 	if faction_id == FactionData.FactionID.DARK_ELF:
 		var alloc: Dictionary = SlaveManager.get_allocation(player_id)
 		var efficiency: float = SlaveManager.get_efficiency_mult(player_id)
+		# BUG FIX R12: add missing gold income from slave miners (+0.5 gold per slave)
+		income["gold"] += int(float(alloc.get("mine", 0)) * 0.5 * efficiency)
 		income["iron"] += int(float(alloc.get("mine", 0)) * float(params["slave_mine_iron_per_turn"]) * efficiency)
 		income["food"] += int(float(alloc.get("farm", 0)) * float(params["slave_farm_food_per_turn"]) * efficiency)
 		# Altar: global atk bonus handled in SlaveManager tick

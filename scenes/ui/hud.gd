@@ -1116,6 +1116,8 @@ func _on_domestic_pressed() -> void:
 
 	domestic_panel.visible = true
 	ColorTheme.animate_panel_open(domestic_panel)
+
+
 func _on_diplomacy_pressed() -> void:
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("button_click")

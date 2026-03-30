@@ -4696,7 +4696,12 @@ func recruit_army() -> void:
 	var iron_cost: int = params["recruit_cost_iron"]
 
 	# Training ground discount
-	var tile: Dictionary = tiles[player["position"]]
+	# BUG FIX R12: bounds check before tiles[] access
+	var pos: int = player.get("position", -1)
+	if pos < 0 or pos >= tiles.size():
+		EventBus.message_log.emit("无效位置, 无法招募!")
+		return
+	var tile: Dictionary = tiles[pos]
 	if tile.get("building_id", "") == "training_ground":
 		var bld_level: int = tile.get("building_level", 1)
 		var bld_effects: Dictionary = BuildingRegistry.get_building_effects("training_ground", bld_level)
@@ -4736,7 +4741,11 @@ func can_recruit() -> bool:
 	var params: Dictionary = FactionData.FACTION_PARAMS[faction_id]
 	var gold_cost: int = params["recruit_cost_gold"]
 	var iron_cost: int = params["recruit_cost_iron"]
-	var tile: Dictionary = tiles[player["position"]]
+	# BUG FIX R12: bounds check before tiles[] access
+	var pos: int = player.get("position", -1)
+	if pos < 0 or pos >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[pos]
 	if tile.get("building_id", "") == "training_ground":
 		var bld_level: int = tile.get("building_level", 1)
 		var bld_effects: Dictionary = BuildingRegistry.get_building_effects("training_ground", bld_level)
