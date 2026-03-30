@@ -1,6 +1,7 @@
-## story_dialog.gd - Visual-novel style dialogue UI for story events (v1.0)
+## story_dialog.gd - Visual-novel style dialogue UI for story events (v2.0)
 ## Displays scene descriptions, character dialogues, H-events, choices, and system prompts.
-## Integrates with StoryEventSystem for progression tracking.
+## Supports fullscreen CG backgrounds, character portrait display with expression switching.
+## Integrates with StoryEventSystem and CGManager for progression & CG tracking.
 extends CanvasLayer
 
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -16,6 +17,11 @@ var _showing_h_event: bool = false
 var _text_revealing: bool = false       # True while text is being revealed char-by-char
 var _is_branch_choice: bool = false     # True when showing a story branch choice (vs inline dialogue choice)
 
+# ── CG / Portrait state ──
+var _current_cg_id: String = ""        # Currently displayed CG ID (empty = no CG)
+var _current_portrait_hero: String = "" # Hero ID of currently displayed portrait
+var _current_expression: String = ""    # Current expression variant
+
 # ── Text reveal settings ──
 const CHARS_PER_SECOND: float = 40.0
 var _reveal_timer: float = 0.0
@@ -25,10 +31,15 @@ var _reveal_current: int = 0
 # ── UI refs ──
 var root: Control
 var dim_bg: ColorRect
+var cg_layer: TextureRect              # Fullscreen CG background layer
+var portrait_container: Control        # Container for character portrait display
+var portrait_sprite: TextureRect       # Character portrait/head image
+var portrait_name_label: Label         # Small name label under portrait
 var dialog_panel: PanelContainer
 var speaker_label: Label
 var text_label: RichTextLabel
 var scene_label: RichTextLabel          # Scene description area
+var scene_panel: PanelContainer         # Scene description panel (for visibility toggling)
 var choice_container: VBoxContainer
 var btn_next: Button
 var btn_skip: Button
@@ -37,6 +48,8 @@ var progress_label: Label               # "Event 3/10" counter
 
 # ── Animation ──
 var _tween: Tween = null
+var _cg_tween: Tween = null
+var _portrait_tween: Tween = null
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -81,15 +94,63 @@ func _build_ui() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(root)
 
-	# Dimming background
+	# Dimming background (lowest layer)
 	dim_bg = ColorRect.new()
 	dim_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim_bg.color = Color(0.0, 0.0, 0.0, 0.75)
 	dim_bg.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(dim_bg)
 
+	# ── Fullscreen CG layer (behind all UI, above dim_bg) ──
+	cg_layer = TextureRect.new()
+	cg_layer.name = "CGLayer"
+	cg_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	cg_layer.offset_left = 0; cg_layer.offset_right = 0
+	cg_layer.offset_top = 0; cg_layer.offset_bottom = 0
+	cg_layer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	cg_layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cg_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cg_layer.visible = false
+	cg_layer.modulate = Color(1, 1, 1, 1)
+	root.add_child(cg_layer)
+
+	# ── Character portrait container (left side, above CG, below dialog) ──
+	portrait_container = Control.new()
+	portrait_container.name = "PortraitContainer"
+	# Position: left side of screen, vertically centered between scene_panel and dialog_panel
+	portrait_container.anchor_left = 0.02
+	portrait_container.anchor_right = 0.22
+	portrait_container.anchor_top = 0.20
+	portrait_container.anchor_bottom = 0.65
+	portrait_container.offset_left = 0; portrait_container.offset_right = 0
+	portrait_container.offset_top = 0; portrait_container.offset_bottom = 0
+	portrait_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	portrait_container.visible = false
+	root.add_child(portrait_container)
+
+	portrait_sprite = TextureRect.new()
+	portrait_sprite.name = "PortraitSprite"
+	portrait_sprite.set_anchors_preset(Control.PRESET_FULL_RECT)
+	portrait_sprite.offset_left = 0; portrait_sprite.offset_right = 0
+	portrait_sprite.offset_top = 0; portrait_sprite.offset_bottom = -24
+	portrait_sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait_sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait_sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	portrait_container.add_child(portrait_sprite)
+
+	portrait_name_label = Label.new()
+	portrait_name_label.name = "PortraitName"
+	portrait_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	portrait_name_label.anchor_left = 0.0; portrait_name_label.anchor_right = 1.0
+	portrait_name_label.anchor_top = 1.0; portrait_name_label.anchor_bottom = 1.0
+	portrait_name_label.offset_top = -22; portrait_name_label.offset_bottom = 0
+	portrait_name_label.offset_left = 0; portrait_name_label.offset_right = 0
+	portrait_name_label.add_theme_font_size_override("font_size", 12)
+	portrait_name_label.add_theme_color_override("font_color", Color(0.85, 0.8, 0.65))
+	portrait_container.add_child(portrait_name_label)
+
 	# ── Scene description area (top) ──
-	var scene_panel := PanelContainer.new()
+	scene_panel = PanelContainer.new()
 	scene_panel.anchor_left = 0.1
 	scene_panel.anchor_right = 0.9
 	scene_panel.anchor_top = 0.02
@@ -228,6 +289,19 @@ func show_story_event(hero_id: String, event: Dictionary) -> void:
 	if scene_text != "":
 		scene_label.append_text("[i]%s[/i]" % scene_text)
 
+	# ── CG: check for event-level CG background ──
+	var event_cg: String = event.get("cg", "")
+	if event_cg != "":
+		_show_cg(hero_id, event_cg)
+		# When CG is active, hide scene description panel (CG replaces it)
+		scene_panel.visible = false
+	else:
+		_hide_cg()
+		scene_panel.visible = scene_text != ""
+
+	# ── Portrait: show the event's hero portrait with default expression ──
+	_show_portrait(hero_id, "")
+
 	# Show progress
 	var route: String = StoryEventSystem.get_route(hero_id)
 	var events: Array = StoryEventSystem.get_route_events(hero_id, route)
@@ -251,6 +325,12 @@ func hide_dialog() -> void:
 	root.visible = false
 	_text_revealing = false
 	_dialogue_queue.clear()
+	# Reset CG/portrait state
+	_hide_cg()
+	_hide_portrait()
+	_current_cg_id = ""
+	_current_portrait_hero = ""
+	_current_expression = ""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -274,8 +354,12 @@ func _build_dialogue_queue(event: Dictionary) -> void:
 	# H-event dialogues (appended after main)
 	var h_event: Dictionary = event.get("h_event", {})
 	if not h_event.is_empty():
-		# Add H-event marker
-		_dialogue_queue.append({"type": "h_event_start", "title": h_event.get("title", "")})
+		# Add H-event marker (with optional CG)
+		var h_start_entry: Dictionary = {"type": "h_event_start", "title": h_event.get("title", "")}
+		var h_cg: String = h_event.get("cg", "")
+		if h_cg != "":
+			h_start_entry["cg"] = h_cg
+		_dialogue_queue.append(h_start_entry)
 		var h_dialogues: Array = h_event.get("dialogues", [])
 		for d in h_dialogues:
 			_dialogue_queue.append(d)
@@ -297,15 +381,38 @@ func _advance_dialogue() -> void:
 	choice_container.visible = false
 	system_prompt_label.visible = false
 
+	# ── Per-dialogue CG switch (any dialogue entry can change the CG) ──
+	var d_cg: String = entry.get("cg", "")
+	if d_cg != "":
+		_show_cg(_current_hero_id, d_cg)
+		scene_panel.visible = false
+	elif entry.get("clear_cg", false):
+		_hide_cg()
+		scene_panel.visible = true
+
+	# ── Per-dialogue expression switch ──
+	var d_expr: String = entry.get("expression", "")
+
 	match entry_type:
 		"narration":
 			speaker_label.text = ""
+			# Narration: dim the portrait slightly
+			_dim_portrait(true)
 			_start_text_reveal(entry.get("text", ""))
 		"action":
 			speaker_label.text = ""
+			_dim_portrait(true)
 			_start_text_reveal("[color=#8888aa]%s[/color]" % entry.get("text", ""))
 		"dialogue":
+			var speaker_id: String = entry.get("speaker_id", "")
 			speaker_label.text = entry.get("speaker", "")
+			# Update portrait to the speaking character (if speaker_id provided)
+			if speaker_id != "":
+				_show_portrait(speaker_id, d_expr)
+			elif d_expr != "":
+				# Expression change on current hero portrait
+				_update_expression(d_expr)
+			_dim_portrait(false)
 			var action: String = entry.get("action", "")
 			var text: String = entry.get("text", "")
 			if action != "":
@@ -323,6 +430,11 @@ func _advance_dialogue() -> void:
 			_showing_h_event = true
 			speaker_label.text = ""
 			var title: String = entry.get("title", "")
+			# H-event may have its own CG
+			var h_cg: String = entry.get("cg", "")
+			if h_cg != "":
+				_show_cg(_current_hero_id, h_cg)
+				scene_panel.visible = false
 			_start_text_reveal("[color=#ff6688]◆ %s ◆[/color]" % title if title != "" else "[color=#ff6688]◆ ◆[/color]")
 		"system_prompt":
 			speaker_label.text = "System"
@@ -389,6 +501,8 @@ func _on_choice_selected(index: int) -> void:
 # ═══════════════════════════════════════════════════════════════
 
 func _finish_event() -> void:
+	# Unlock any CGs that were displayed during this event
+	_unlock_event_cgs(_current_hero_id, _current_event)
 	# Mark event completed in story system
 	StoryEventSystem.complete_current_event(_current_hero_id)
 	_hide_animated()
@@ -491,11 +605,19 @@ func _show_animated() -> void:
 	root.visible = true
 	dim_bg.modulate.a = 0.0
 	dialog_panel.modulate.a = 0.0
+	cg_layer.modulate.a = 0.0
+	portrait_container.modulate.a = 0.0
 	if _tween:
 		_tween.kill()
 	_tween = create_tween().set_parallel(true)
 	_tween.tween_property(dim_bg, "modulate:a", 1.0, 0.25)
 	_tween.tween_property(dialog_panel, "modulate:a", 1.0, 0.3)
+	# CG fades in if visible
+	if cg_layer.visible:
+		_tween.tween_property(cg_layer, "modulate:a", 1.0, 0.4)
+	# Portrait fades in if visible
+	if portrait_container.visible:
+		_tween.tween_property(portrait_container, "modulate:a", 1.0, 0.35)
 
 
 func _hide_animated() -> void:
@@ -504,6 +626,10 @@ func _hide_animated() -> void:
 	_tween = create_tween().set_parallel(true)
 	_tween.tween_property(dim_bg, "modulate:a", 0.0, 0.2)
 	_tween.tween_property(dialog_panel, "modulate:a", 0.0, 0.2)
+	if cg_layer.visible:
+		_tween.tween_property(cg_layer, "modulate:a", 0.0, 0.25)
+	if portrait_container.visible:
+		_tween.tween_property(portrait_container, "modulate:a", 0.0, 0.2)
 	_tween.chain().tween_callback(hide_dialog)
 
 
@@ -514,3 +640,151 @@ func _hide_animated() -> void:
 func _get_hero_name(hero_id: String) -> String:
 	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
 	return hero_data.get("name", hero_id)
+
+
+# ═══════════════════════════════════════════════════════════════
+#                   CG DISPLAY MANAGEMENT
+# ═══════════════════════════════════════════════════════════════
+
+## Show a fullscreen CG background with crossfade transition.
+func _show_cg(hero_id: String, cg_id: String) -> void:
+	if cg_id == _current_cg_id:
+		return  # Already showing this CG
+	var tex: Texture2D = CGManager.load_cg_texture(hero_id, cg_id)
+	if tex == null:
+		# CG asset not found — keep current state, don't break
+		push_warning("StoryDialog: CG not found: %s/%s" % [hero_id, cg_id])
+		return
+	_current_cg_id = cg_id
+	# Crossfade transition
+	if _cg_tween:
+		_cg_tween.kill()
+	if cg_layer.visible:
+		# Crossfade: fade out then swap texture and fade in
+		_cg_tween = create_tween()
+		_cg_tween.tween_property(cg_layer, "modulate:a", 0.0, 0.15)
+		_cg_tween.tween_callback(func(): cg_layer.texture = tex)
+		_cg_tween.tween_property(cg_layer, "modulate:a", 1.0, 0.25)
+	else:
+		# First CG: just set and fade in
+		cg_layer.texture = tex
+		cg_layer.visible = true
+		cg_layer.modulate.a = 0.0
+		_cg_tween = create_tween()
+		_cg_tween.tween_property(cg_layer, "modulate:a", 1.0, 0.35)
+	# When CG is showing, reduce dim_bg opacity for better visibility
+	dim_bg.color.a = 0.4
+	# Emit signal for tracking
+	EventBus.cg_displayed.emit(cg_id, hero_id)
+
+
+## Hide the CG layer with fade out.
+func _hide_cg() -> void:
+	if not cg_layer.visible:
+		return
+	_current_cg_id = ""
+	if _cg_tween:
+		_cg_tween.kill()
+	_cg_tween = create_tween()
+	_cg_tween.tween_property(cg_layer, "modulate:a", 0.0, 0.2)
+	_cg_tween.tween_callback(func():
+		cg_layer.visible = false
+		cg_layer.texture = null
+	)
+	# Restore dim_bg opacity
+	dim_bg.color.a = 0.75
+
+
+# ═══════════════════════════════════════════════════════════════
+#                 CHARACTER PORTRAIT MANAGEMENT
+# ═══════════════════════════════════════════════════════════════
+
+## Show a character portrait with optional expression variant.
+func _show_portrait(hero_id: String, expression: String = "") -> void:
+	var tex: Texture2D = CGManager.load_head_texture(hero_id, expression)
+	if tex == null:
+		# No portrait asset — hide portrait area
+		_hide_portrait()
+		return
+	var is_new_hero: bool = (hero_id != _current_portrait_hero)
+	_current_portrait_hero = hero_id
+	_current_expression = expression
+	portrait_sprite.texture = tex
+	portrait_name_label.text = _get_hero_name(hero_id)
+	if not portrait_container.visible:
+		# First show: fade in
+		portrait_container.visible = true
+		portrait_container.modulate.a = 0.0
+		if _portrait_tween:
+			_portrait_tween.kill()
+		_portrait_tween = create_tween()
+		_portrait_tween.tween_property(portrait_container, "modulate:a", 1.0, 0.25)
+	elif is_new_hero:
+		# Switching to a different character: quick crossfade
+		if _portrait_tween:
+			_portrait_tween.kill()
+		_portrait_tween = create_tween()
+		_portrait_tween.tween_property(portrait_container, "modulate:a", 0.6, 0.08)
+		_portrait_tween.tween_property(portrait_container, "modulate:a", 1.0, 0.15)
+	# Undim when active speaker
+	portrait_sprite.modulate = Color(1, 1, 1, 1)
+
+
+## Update expression on the current portrait without changing hero.
+func _update_expression(expression: String) -> void:
+	if _current_portrait_hero == "":
+		return
+	if expression == _current_expression:
+		return
+	var tex: Texture2D = CGManager.load_head_texture(_current_portrait_hero, expression)
+	if tex == null:
+		return  # Expression variant not available, keep current
+	_current_expression = expression
+	portrait_sprite.texture = tex
+
+
+## Hide the portrait display.
+func _hide_portrait() -> void:
+	_current_portrait_hero = ""
+	_current_expression = ""
+	portrait_container.visible = false
+	portrait_sprite.texture = null
+	portrait_name_label.text = ""
+
+
+## Dim/undim the portrait (for narration vs dialogue).
+func _dim_portrait(dimmed: bool) -> void:
+	if not portrait_container.visible:
+		return
+	var target_color: Color = Color(0.5, 0.5, 0.5, 0.7) if dimmed else Color(1, 1, 1, 1)
+	if _portrait_tween:
+		_portrait_tween.kill()
+	_portrait_tween = create_tween()
+	_portrait_tween.tween_property(portrait_sprite, "modulate", target_color, 0.15)
+
+
+# ═══════════════════════════════════════════════════════════════
+#                     CG UNLOCK HELPER
+# ═══════════════════════════════════════════════════════════════
+
+## Scan an event for CG references and unlock them in CGManager.
+func _unlock_event_cgs(hero_id: String, event: Dictionary) -> void:
+	# Event-level CG
+	var cg_id: String = event.get("cg", "")
+	if cg_id != "":
+		CGManager.unlock_cg(cg_id, hero_id)
+	# H-event CG
+	var h_event: Dictionary = event.get("h_event", {})
+	var h_cg: String = h_event.get("cg", "")
+	if h_cg != "":
+		CGManager.unlock_cg(h_cg, hero_id)
+	# Inline dialogue CGs
+	for d in event.get("dialogues", []):
+		var d_cg: String = d.get("cg", "")
+		if d_cg != "":
+			CGManager.unlock_cg(d_cg, hero_id)
+	# H-event dialogue CGs
+	for d in h_event.get("dialogues", []):
+		var d_cg: String = d.get("cg", "")
+		if d_cg != "":
+			CGManager.unlock_cg(d_cg, hero_id)

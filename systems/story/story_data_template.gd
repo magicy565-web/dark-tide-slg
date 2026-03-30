@@ -1,4 +1,4 @@
-## story_data_template.gd - Reference template for character story data format
+## story_data_template.gd - Reference template for character story data format (v2.0)
 ## Each character's story file (e.g., rin_story.gd) follows this structure.
 ## DO NOT use this file directly — it exists as documentation.
 extends RefCounted
@@ -34,10 +34,16 @@ class_name StoryDataTemplate
 #
 #   "scene": "场景描写文本...",          # Scene description (narrative/setting)
 #
+#   "cg": "rin_cg_01",                # (v2.0) Optional: event CG ID (fullscreen background)
+#                                      # Resolves to: res://assets/cg/{hero_id}/{cg_id}.png
+#                                      # When set, replaces scene description panel with CG image
+#
 #   "dialogues": [                     # Sequential dialogue entries
 #     {
 #       "type": "narration",           # Narrative text (no speaker)
-#       "text": "叙述文本..."
+#       "text": "叙述文本...",
+#       "expression": "sad",           # (v2.0) Optional: change portrait expression
+#       "cg": "rin_cg_02",            # (v2.0) Optional: switch CG mid-dialogue
 #     },
 #     {
 #       "type": "action",              # Stage direction [in brackets]
@@ -45,9 +51,12 @@ class_name StoryDataTemplate
 #     },
 #     {
 #       "type": "dialogue",            # Character speech (default type)
-#       "speaker": "凛",               # Speaker name
+#       "speaker": "凛",               # Speaker display name
+#       "speaker_id": "rin",           # (v2.0) Optional: hero_id of speaker (for portrait switching)
 #       "text": "……又来了吗。",         # Spoken text
 #       "action": "凛抬起头",           # Optional: action before/during speech
+#       "expression": "angry",         # (v2.0) Optional: expression variant for this line
+#                                      # Values: normal, happy, angry, sad, surprised, shy, serious
 #     },
 #     {
 #       "type": "choice",              # Player choice point
@@ -61,9 +70,10 @@ class_name StoryDataTemplate
 #
 #   "h_event": {                       # Optional H-event data
 #     "title": "骑士的试炼",
+#     "cg": "rin_h_cg_01",            # (v2.0) Optional: H-event specific CG
 #     "dialogues": [                   # Same format as main dialogues
-#       {"type": "narration", "text": "..."},
-#       {"type": "dialogue", "speaker": "凛", "text": "..."},
+#       {"type": "narration", "text": "...", "expression": "shy"},
+#       {"type": "dialogue", "speaker": "凛", "speaker_id": "rin", "text": "...", "expression": "surprised"},
 #     ]
 #   },
 #
@@ -78,6 +88,27 @@ class_name StoryDataTemplate
 #   },
 # }
 
+# ═══════════════ EXPRESSION VALUES (v2.0) ═══════════════
+#
+# Each expression maps to a file suffix: {nn}_{hero_id}_head_{expression}.png
+# Supported expressions:
+#   "normal"    — Default/neutral (or omit expression field)
+#   "happy"     — 喜 (joy, smile, warmth)
+#   "angry"     — 怒 (anger, fury, defiance)
+#   "sad"       — 哀 (sadness, grief, melancholy)
+#   "surprised" — 惊 (shock, surprise, alarm)
+#   "shy"       — 羞 (embarrassment, blush, bashful)
+#   "serious"   — 真剣 (stern, focused, determined)
+#
+# If an expression variant file doesn't exist, the system falls back to the base head.
+
+# ═══════════════ CG NAMING CONVENTION (v2.0) ═══════════════
+#
+# Event CG:    {hero_id}_cg_{nn}     → res://assets/cg/{hero_id}/{hero_id}_cg_{nn}.png
+# H-event CG:  {hero_id}_h_cg_{nn}   → res://assets/cg/{hero_id}/{hero_id}_h_cg_{nn}.png
+# Resolution:   1920×1080 (fullscreen)
+# Per art spec: 3 event CGs per character minimum (training/affection milestones)
+
 # ═══════════════ EXAMPLE (abbreviated) ═══════════════
 
 const EVENTS: Dictionary = {
@@ -87,16 +118,19 @@ const EVENTS: Dictionary = {
 			"name": "调教 Stage 01: 抵抗",
 			"trigger": {"hero_captured": true},
 			"scene": "地下牢房的石壁上渗着冰冷的水珠...",
+			"cg": "rin_cg_01",
 			"dialogues": [
 				{"type": "action", "text": "指挥官推开牢房的铁门"},
-				{"speaker": "凛", "text": "……又来了吗。", "action": "凛抬起头，以冰冷的目光注视着来人"},
-				{"speaker": "凛", "text": "无论你来多少次，我的回答都不会改变。"},
+				{"speaker": "凛", "speaker_id": "rin", "text": "……又来了吗。", "action": "凛抬起头，以冰冷的目光注视着来人", "expression": "angry"},
+				{"speaker": "凛", "speaker_id": "rin", "text": "无论你来多少次，我的回答都不会改变。", "expression": "serious"},
+				{"type": "narration", "text": "她的眼中闪过一丝动摇。", "expression": "sad"},
 			],
 			"h_event": {
 				"title": "骑士的试炼",
+				"cg": "rin_h_cg_01",
 				"dialogues": [
 					{"type": "narration", "text": "场景描写..."},
-					{"speaker": "凛", "text": "住手……不要碰那里——！"},
+					{"speaker": "凛", "speaker_id": "rin", "text": "住手……不要碰那里——！", "expression": "surprised"},
 				]
 			},
 			"system_prompt": "凛的调教进度 [1/10]。骑士的信念依然坚不可摧。",

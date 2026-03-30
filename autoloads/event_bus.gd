@@ -207,6 +207,11 @@ signal story_route_completed(hero_id: String, route: String)
 signal story_choice_made(hero_id: String, event_id: String, choice_index: int)
 signal story_choice_requested(hero_id: String, event_id: String, choices: Array)
 
+# ── CG & Gallery System (v3.8) ──
+signal cg_unlocked(cg_id: String, hero_id: String)
+signal cg_displayed(cg_id: String, hero_id: String)
+signal cg_gallery_opened()
+
 # ── Hero Leveling (v3.1) ──
 signal hero_leveled_up(hero_id: String, new_level: int)
 signal hero_passive_unlocked(hero_id: String, passive_id: String)

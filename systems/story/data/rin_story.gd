@@ -8,16 +8,17 @@ const EVENTS: Dictionary = {
 		{
 			"id": "rin_training_01",
 			"name": "Stage 1: 俘虏（骄傲的骑士）",
+			"cg": "rin_cg_01",
 			"trigger": {"hero_captured": true},
 			"scene": "地下牢房。凛被铁链缚住双手，悬吊于牢房中央。她的圣殿骑士甲胄已被卸去，只剩下被撕裂的白色内衬。金色双眸中燃烧着不屈的火焰。即便双臂因长时间悬吊而发麻，她依然紧握双拳。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官推开牢房的铁门"},
-				{"speaker": "凛", "text": "……又来了吗。无论你来多少次，我的回答都不会改变。凛·阿斯特蕾亚——圣殿骑士团第七代团长，誓约编号〇七三一。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "angry", "text": "……又来了吗。无论你来多少次，我的回答都不会改变。凛·阿斯特蕾亚——圣殿骑士团第七代团长，誓约编号〇七三一。"},
 				{"type": "narration", "text": "她的声音沙哑但依然带着威严。"},
-				{"speaker": "凛", "text": "我宁愿死在这里，也不会背叛千姬殿下。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "我宁愿死在这里，也不会背叛千姬殿下。"},
 				{"type": "action", "text": "指挥官将截获的王国通信递到她面前——千姬已放弃营救她"},
 				{"type": "narration", "text": "凛的瞳孔猛地收缩，双手在铁链中颤抖。但火焰重新燃起。"},
-				{"speaker": "凛", "text": "即便如此。我的忠诚不是给予某个人的，而是给予'正义'本身的。所以——无论你对我做什么，都不会改变任何事情。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "angry", "text": "即便如此。我的忠诚不是给予某个人的，而是给予'正义'本身的。所以——无论你对我做什么，都不会改变任何事情。"},
 			],
 			"system_prompt": "凛被俘。骑士的信念坚不可摧，但被王国抛弃的打击已经种下了裂痕。",
 			"effects": {"training_progress": 1},
@@ -29,9 +30,9 @@ const EVENTS: Dictionary = {
 			"scene": "数日过去。凛的状态明显恶化，但眼中仍有火焰在摇晃。她正在用手指在床铺上反复描绘圣殿骑士团的纹章，但每次画到一半就停下来。",
 			"dialogues": [
 				{"type": "action", "text": "指挥官进入牢房，带着食物和水"},
-				{"speaker": "凛", "text": "……来了。"},
+				{"speaker": "凛", "speaker_id": "rin", "text": "……来了。"},
 				{"type": "narration", "text": "她的声音不再像第一天那样充满火焰，而是带着疲惫的平静。"},
-				{"speaker": "凛", "text": "王国宣布我阵亡了……骑士团有了新的团长。你到底想从我这里得到什么？"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "sad", "text": "王国宣布我阵亡了……骑士团有了新的团长。你到底想从我这里得到什么？"},
 				{"type": "narration", "text": "这是第一次，她主动问出了这个问题。骄傲的裂痕下露出了困惑。"},
 			],
 			"choices": [
@@ -73,9 +74,9 @@ const EVENTS: Dictionary = {
 			},
 			"scene": "凛被转移到了更好的房间。她仍然戒备，但开始接受食物和对话。",
 			"dialogues": [
-				{"speaker": "凛", "text": "你和我想象中的敌人不一样……但这不代表我会妥协。"},
+				{"speaker": "凛", "speaker_id": "rin", "text": "你和我想象中的敌人不一样……但这不代表我会妥协。"},
 				{"type": "narration", "text": "她开始松动，但仍保持骄傲。"},
-				{"speaker": "凛", "text": "……告诉我，你到底在追求什么？征服？权力？还是其他什么？"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "……告诉我，你到底在追求什么？征服？权力？还是其他什么？"},
 			],
 			"choices": [
 				{
@@ -110,7 +111,7 @@ const EVENTS: Dictionary = {
 			"scene": "凛蜷缩在牢房角落，项圈安静地环绕在她的脖子上。",
 			"dialogues": [
 				{"type": "narration", "text": "她的意志在动摇，但眼中仍有恨意。"},
-				{"speaker": "凛", "text": "……你还要继续吗。每天都来，每天都……我已经分不清你是在折磨我还是在试探我了。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "sad", "text": "……你还要继续吗。每天都来，每天都……我已经分不清你是在折磨我还是在试探我了。"},
 			],
 			"choices": [
 				{
@@ -145,7 +146,7 @@ const EVENTS: Dictionary = {
 			"scene": "训练场。凛被允许观看完整的军事演练。",
 			"dialogues": [
 				{"type": "narration", "text": "她对你的实力心生敬畏。作为骑士，她无法不尊敬强者。"},
-				{"speaker": "凛", "text": "你的战术部署……比王国的宫廷顾问强十倍。如果当初你是我的指挥官——"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "surprised", "text": "你的战术部署……比王国的宫廷顾问强十倍。如果当初你是我的指挥官——"},
 				{"type": "narration", "text": "她突然住口，意识到自己说了不该说的话。"},
 			],
 			"choices": [
@@ -172,6 +173,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "rin_training_04a",
 			"name": "Stage 4: 转折——纯爱之路",
+			"cg": "rin_cg_02",
 			"trigger": {
 				"prev_event": "rin_training_03a",
 				"affection_min": 5,
@@ -181,9 +183,9 @@ const EVENTS: Dictionary = {
 			"scene": "月光下的城墙。凛主动找到了你。",
 			"dialogues": [
 				{"type": "narration", "text": "她真正开始信任你。"},
-				{"speaker": "凛", "text": "我想了很久……你对我说的那些话。关于你的理想，关于这个世界应该是什么样子。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "我想了很久……你对我说的那些话。关于你的理想，关于这个世界应该是什么样子。"},
 				{"type": "narration", "text": "她转过身，金色双眸中没有了敌意，取而代之的是温暖而坚定的光。"},
-				{"speaker": "凛", "text": "也许……我的剑不一定要为王国而战。如果你的正义是真实的——那我愿意为你的正义拔剑。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "happy", "text": "也许……我的剑不一定要为王国而战。如果你的正义是真实的——那我愿意为你的正义拔剑。"},
 			],
 			"system_prompt": "纯爱路线解锁。凛获得永久ATK+2, DEF+2。解锁主动技能「誓约之刃」。",
 			"effects": {
@@ -203,9 +205,9 @@ const EVENTS: Dictionary = {
 			},
 			"scene": "战场结束后的营帐。你们刚并肩打赢了一场硬仗。",
 			"dialogues": [
-				{"speaker": "凛", "text": "并肩作战的感觉……比我想象的要好得多。你背后有我守护，感觉真好。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "happy", "text": "并肩作战的感觉……比我想象的要好得多。你背后有我守护，感觉真好。"},
 				{"type": "narration", "text": "她真正开始信任你。不是因为被征服，而是因为在战火中看到了彼此的本质。"},
-				{"speaker": "凛", "text": "从今天起，我的剑就是你的剑。不是因为命令——是因为我选择了你。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "从今天起，我的剑就是你的剑。不是因为命令——是因为我选择了你。"},
 			],
 			"system_prompt": "纯爱路线解锁（战友线）。凛获得永久ATK+2, DEF+2。解锁主动技能「誓约之刃」。",
 			"effects": {
@@ -226,9 +228,9 @@ const EVENTS: Dictionary = {
 			"scene": "花园。凛在阳光下第一次露出了微笑。",
 			"dialogues": [
 				{"type": "narration", "text": "她感恩你的仁慈，但保持距离。"},
-				{"speaker": "凛", "text": "你在最黑暗的时候给了我一线光……我不知道该怎么回报。但至少——我不再恨你了。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "sad", "text": "你在最黑暗的时候给了我一线光……我不知道该怎么回报。但至少——我不再恨你了。"},
 				{"type": "narration", "text": "她的微笑带着悲伤的温柔，像是在废墟中长出的花。"},
-				{"speaker": "凛", "text": "让我用自己的方式守护这个地方吧。不是为了你，是为了你让我看到的可能性。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "happy", "text": "让我用自己的方式守护这个地方吧。不是为了你，是为了你让我看到的可能性。"},
 			],
 			"system_prompt": "救赎路线解锁。凛获得永久DEF+4（防御专家）。解锁主动技能「圣盾」——全队减伤30%持续2回合。",
 			"effects": {
@@ -248,7 +250,7 @@ const EVENTS: Dictionary = {
 			"scene": "牢房。凛坐在地上，目光空洞。",
 			"dialogues": [
 				{"type": "narration", "text": "她的眼神变得空洞。"},
-				{"speaker": "凛", "text": "……告诉我做什么。不用再问了。只要告诉我……做什么。"},
+				{"speaker": "凛", "speaker_id": "rin", "text": "……告诉我做什么。不用再问了。只要告诉我……做什么。"},
 				{"type": "narration", "text": "曾经的骑士团长如今只是一个等待命令的空壳。但偶尔，在她眼底的深处，仍有一丝微光在挣扎。"},
 			],
 			"system_prompt": "黑暗路线解锁。凛获得ATK+4，但每回合有15%概率拒绝行动。解锁主动技能「狂化」——ATK×2持续3回合，但受到20%额外伤害。",
@@ -269,7 +271,7 @@ const EVENTS: Dictionary = {
 			"scene": "凛跪在你面前。不是骑士的单膝跪，而是完全的臣服。",
 			"dialogues": [
 				{"type": "narration", "text": "她的眼神变得空洞。"},
-				{"speaker": "凛", "text": "主人……我不再是骑士了。我是你的……你想让我成为的任何东西。"},
+				{"speaker": "凛", "speaker_id": "rin", "text": "主人……我不再是骑士了。我是你的……你想让我成为的任何东西。"},
 			],
 			"system_prompt": "黑暗路线解锁（臣服线）。凛获得ATK+4，但每回合有15%概率拒绝行动。解锁主动技能「狂化」。",
 			"effects": {
@@ -290,9 +292,9 @@ const EVENTS: Dictionary = {
 			"scene": "凛微笑着为你倒茶。她以为一切都是自愿的。",
 			"dialogues": [
 				{"type": "narration", "text": "她以为自己是自愿的。"},
-				{"speaker": "凛", "text": "我最近在想……也许从一开始你就在帮助我。是我太固执了，不愿意承认。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "happy", "text": "我最近在想……也许从一开始你就在帮助我。是我太固执了，不愿意承认。"},
 				{"type": "narration", "text": "她的笑容温暖而真诚——但这份真诚建立在谎言之上。"},
-				{"speaker": "凛", "text": "谢谢你……没有放弃我。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "happy", "text": "谢谢你……没有放弃我。"},
 			],
 			"system_prompt": "人偶路线解锁。凛的好感度上限锁定为7（除非后续'觉醒'）。ATK+3, DEF+1。",
 			"effects": {
@@ -312,9 +314,9 @@ const EVENTS: Dictionary = {
 			"scene": "紧急警报。王国的骑士团前来'营救'凛。",
 			"dialogues": [
 				{"type": "narration", "text": "凛的昔日战友率军进攻，声称要将她从'魔族的洗脑'中解救出来。"},
-				{"speaker": "凛", "text": "他们不明白……我不是被洗脑了，我是自己选择的。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "他们不明白……我不是被洗脑了，我是自己选择的。"},
 				{"type": "narration", "text": "她拔出刻有你名字的圣剑。"},
-				{"speaker": "凛", "text": "让我去面对他们。我要亲口告诉他们——凛·阿斯特蕾亚的剑，如今守护的是什么。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "让我去面对他们。我要亲口告诉他们——凛·阿斯特蕾亚的剑，如今守护的是什么。"},
 				{"type": "action", "text": "凛在战斗中挡下了致命一击，并说服了部分旧部撤退"},
 			],
 			"system_prompt": "纯爱危机。凛与昔日战友对峙，并选择站在你身边。",
@@ -335,7 +337,7 @@ const EVENTS: Dictionary = {
 			"scene": "紧急警报。王国的骑士团前来'营救'凛。",
 			"dialogues": [
 				{"type": "narration", "text": "凛的昔日战友率军进攻。"},
-				{"speaker": "凛", "text": "我以战友的身份站在这里，不是被俘，不是被迫。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "我以战友的身份站在这里，不是被俘，不是被迫。"},
 				{"type": "action", "text": "凛主动出阵，以压倒性的剑技击退了来犯者"},
 			],
 			"system_prompt": "纯爱危机（战友线）。凛证明了自己的选择。",
@@ -355,7 +357,7 @@ const EVENTS: Dictionary = {
 			},
 			"scene": "凛请求与人类王国进行和平谈判。",
 			"dialogues": [
-				{"speaker": "凛", "text": "我有一个请求……让我去和千姬殿下谈判。作为两个世界之间的桥梁。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "我有一个请求……让我去和千姬殿下谈判。作为两个世界之间的桥梁。"},
 				{"type": "narration", "text": "她的眼神坚定而平静。这不是请求——这是她找到的使命。"},
 			],
 			"choices": [
@@ -391,7 +393,7 @@ const EVENTS: Dictionary = {
 			"scene": "战场上。凛突然失控，转而攻击你方单位。",
 			"dialogues": [
 				{"type": "narration", "text": "凛在战斗中突然暴走，将剑指向了你的士兵。她的眼中闪烁着疯狂与痛苦的混合。"},
-				{"speaker": "凛", "text": "不要过来——！我分不清了——谁是敌人——谁是——！"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "angry", "text": "不要过来——！我分不清了——谁是敌人——谁是——！"},
 			],
 			"choices": [
 				{
@@ -427,7 +429,7 @@ const EVENTS: Dictionary = {
 			"scene": "战场上。凛突然失控。",
 			"dialogues": [
 				{"type": "narration", "text": "压抑太久的意志在一瞬间爆发。凛的剑无差别地斩向周围的一切。"},
-				{"speaker": "凛", "text": "放开我——！我不是……你的……！"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "angry", "text": "放开我——！我不是……你的……！"},
 			],
 			"choices": [
 				{
@@ -463,7 +465,7 @@ const EVENTS: Dictionary = {
 			"scene": "凛偶然发现了你最初的审讯记录和操控计划。",
 			"dialogues": [
 				{"type": "narration", "text": "凛发现了真相。她手中攥着那份文件，浑身颤抖。"},
-				{"speaker": "凛", "text": "这些……都是你计划好的？从一开始……我以为是自己的选择……全都是——"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "surprised", "text": "这些……都是你计划好的？从一开始……我以为是自己的选择……全都是——"},
 				{"type": "narration", "text": "泪水夺眶而出。她的表情在愤怒和绝望之间撕裂。"},
 			],
 			"choices": [
@@ -491,15 +493,16 @@ const EVENTS: Dictionary = {
 		{
 			"id": "rin_training_06a",
 			"name": "Stage 6: 结局——纯爱",
+			"cg": "rin_cg_03",
 			"trigger": {
 				"affection_min": 10,
 				"requires_flag": ["rin_pure_love", "rin_permanent_bond"],
 			},
 			"scene": "黎明的城墙上。凛身着全新设计的白色骑士铠甲，胸口佩戴着刻有你名字的银质吊坠。",
 			"dialogues": [
-				{"speaker": "凛", "text": "从今天起，我不再是失去主君的骑士了。我是你的剑、你的盾、你的伴侣。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "happy", "text": "从今天起，我不再是失去主君的骑士了。我是你的剑、你的盾、你的伴侣。"},
 				{"type": "narration", "text": "她单膝跪下，以骑士的最高礼仪向你宣誓。"},
-				{"speaker": "凛", "text": "凛·阿斯特蕾亚，在此立下新的誓约——与你并肩，直到世界的尽头。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "凛·阿斯特蕾亚，在此立下新的誓约——与你并肩，直到世界的尽头。"},
 				{"type": "narration", "text": "解锁「双剑合璧」阵型加成：凛+指挥官同阵=ATK×1.5"},
 			],
 			"system_prompt": "纯爱结局。解锁「双剑合璧」阵型加成。凛成为最忠诚的伴侣与骑士。",
@@ -516,9 +519,9 @@ const EVENTS: Dictionary = {
 			},
 			"scene": "和平条约签署仪式。凛站在两个世界的代表之间。",
 			"dialogues": [
-				{"speaker": "凛", "text": "我曾是战争的利刃，现在我选择成为和平的桥梁。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "我曾是战争的利刃，现在我选择成为和平的桥梁。"},
 				{"type": "narration", "text": "她将自己的旧圣剑插在谈判桌上。"},
-				{"speaker": "凛", "text": "从今天起，这把剑不再为战争而铸——它是两个世界友谊的象征。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "happy", "text": "从今天起，这把剑不再为战争而铸——它是两个世界友谊的象征。"},
 				{"type": "narration", "text": "解锁人类王国外交同盟。"},
 			],
 			"system_prompt": "救赎结局。解锁人类王国外交同盟路线。",
@@ -536,7 +539,7 @@ const EVENTS: Dictionary = {
 			},
 			"scene": "凛站在战场上，浑身沾满鲜血。她的眼神彻底空洞了。",
 			"dialogues": [
-				{"speaker": "凛", "text": "主人……他们都倒下了。还有谁需要我去杀？"},
+				{"speaker": "凛", "speaker_id": "rin", "text": "主人……他们都倒下了。还有谁需要我去杀？"},
 				{"type": "narration", "text": "曾经的骑士已经成为了一件纯粹的武器。无情、高效、致命。"},
 				{"type": "narration", "text": "解锁「恐怖统治」——所有敌方单位初始士气-20。"},
 			],
@@ -554,7 +557,7 @@ const EVENTS: Dictionary = {
 			},
 			"scene": "凛微笑着为你整理衣物。完美的笑容，完美的服务，完美的——空洞。",
 			"dialogues": [
-				{"speaker": "凛", "text": "主人，今天也辛苦了。需要我做什么吗？"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "happy", "text": "主人，今天也辛苦了。需要我做什么吗？"},
 				{"type": "narration", "text": "她以为自己是自愿的。也许她真的是。也许这已经不重要了。"},
 				{"type": "narration", "text": "解锁「完美人偶」——凛成为最强单位（全属性+3），但没有更多剧情。"},
 			],

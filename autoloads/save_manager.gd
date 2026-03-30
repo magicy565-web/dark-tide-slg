@@ -232,6 +232,7 @@ func _collect_save_data() -> Dictionary:
 		"supply_logistics": SupplyLogistics.to_save_data() if SupplyLogistics != null else {},
 		"weather": WeatherSystem.to_save_data() if WeatherSystem != null else {},
 		"espionage": EspionageSystem.to_save_data() if EspionageSystem != null else {},
+		"cg_gallery": CGManager.to_save_data() if CGManager != null else {},
 	}
 
 
@@ -414,6 +415,10 @@ func _apply_save_data(data: Dictionary) -> void:
 	# 4n. Restore espionage system state (v3.7+)
 	if data.has("espionage") and EspionageSystem != null:
 		EspionageSystem.from_save_data(data.get("espionage", {}))
+
+	# 4o. Restore CG gallery unlock state (v3.8+)
+	if data.has("cg_gallery") and CGManager != null:
+		CGManager.from_save_data(data.get("cg_gallery", {}))
 
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()

@@ -202,6 +202,11 @@ func _build_title_panel() -> void:
 	btn_credits.pressed.connect(_on_credits)
 	vbox.add_child(btn_credits)
 
+	# CG Gallery button
+	var btn_gallery := _make_menu_button("CG Gallery")
+	btn_gallery.pressed.connect(_on_cg_gallery)
+	vbox.add_child(btn_gallery)
+
 	# Version
 	version_label = Label.new()
 	version_label.text = "v3.7.0-pixel"
@@ -551,6 +556,11 @@ func _on_credits() -> void:
 
 func _on_credits_back() -> void:
 	_show_title()
+
+
+func _on_cg_gallery() -> void:
+	if CGGalleryPanel != null:
+		CGGalleryPanel.show_gallery()
 
 
 func _on_faction_button(faction_id: int) -> void:

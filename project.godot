@@ -70,6 +70,8 @@ SupplyLogistics="*res://systems/strategic/supply_logistics.gd"
 EquipmentForge="*res://systems/hero/equipment_forge.gd"
 EspionageSystem="*res://systems/faction/espionage_system.gd"
 WeatherSystem="*res://systems/world/weather_system.gd"
+CGManager="*res://autoloads/cg_manager.gd"
+CGGalleryPanel="*res://scenes/ui/cg_gallery_panel.gd"
 
 [display]
 
