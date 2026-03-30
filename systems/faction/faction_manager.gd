@@ -120,10 +120,14 @@ func get_faction_atk_bonus(player_id: int, faction_id: int) -> int:
 		FactionData.FactionID.ORC:
 			# WAAAGH! graduated ATK bonus (+1/+2/+4 by tier)
 			bonus += OrcMechanic.get_waaagh_atk_bonus(player_id)
+			# Blood Tribute permanent ATK bonus
+			bonus += OrcMechanic.get_blood_tribute_atk(player_id)
 		FactionData.FactionID.PIRATE:
 			# Rum morale ATK bonus (+2 or +4 drunk)
 			var rum_bonus: Dictionary = PirateMechanic.get_rum_combat_bonus(player_id)
 			bonus += rum_bonus.get("atk", 0)
+			# Intimidation ATK bonus (threat-based)
+			bonus += PirateMechanic.get_intimidation_atk_bonus(player_id)
 		FactionData.FactionID.DARK_ELF:
 			bonus += DarkElfMechanic.get_combat_atk_bonus(player_id)
 	return bonus
@@ -131,10 +135,14 @@ func get_faction_atk_bonus(player_id: int, faction_id: int) -> int:
 
 func get_damage_multiplier(player_id: int, faction_id: int) -> float:
 	## Returns faction-specific damage multiplier (Orc WAAAGH!).
+	var mult: float = 1.0
 	match faction_id:
 		FactionData.FactionID.ORC:
-			return OrcMechanic.get_damage_multiplier(player_id)
-	return 1.0
+			mult *= OrcMechanic.get_damage_multiplier(player_id)
+			mult *= OrcMechanic.get_waaagh_burst_mult(player_id)
+		FactionData.FactionID.PIRATE:
+			mult *= PirateMechanic.get_intimidation_mult(player_id)
+	return mult
 
 
 # ═══════════════ PRESTIGE ACTIONS ═══════════════
@@ -159,6 +167,50 @@ func spend_prestige_boost_order(player_id: int) -> bool:
 	OrderManager.change_order(10)
 	EventBus.message_log.emit("消耗%d威望，秩序值+10" % cost)
 	return true
+
+
+# ═══════════════ FACTION-SPECIFIC ABILITIES ═══════════════
+
+## Orc: Trigger WAAAGH! burst (spend 10 waaagh_power for +30% ATK, 3 turns).
+func orc_waaagh_burst(player_id: int) -> bool:
+	if GameManager.get_player_faction(player_id) != FactionData.FactionID.ORC:
+		return false
+	return OrcMechanic.trigger_waaagh_burst(player_id)
+
+
+## Orc: Blood Tribute - sacrifice a captured hero for permanent +2 ATK.
+func orc_blood_tribute(player_id: int, hero_id: String) -> bool:
+	if GameManager.get_player_faction(player_id) != FactionData.FactionID.ORC:
+		return false
+	return OrcMechanic.blood_tribute(player_id, hero_id)
+
+
+## Pirate: Buy rare black market item (50% markup, no rep cost).
+func pirate_buy_rare_item(player_id: int, item_index: int) -> bool:
+	if GameManager.get_player_faction(player_id) != FactionData.FactionID.PIRATE:
+		return false
+	return PirateMechanic.buy_rare_market_item(player_id, item_index)
+
+
+## Dark Elf: Toggle Shadow Network (reveals enemy armies, costs 10g/turn).
+func dark_elf_toggle_shadow_network(player_id: int) -> bool:
+	if GameManager.get_player_faction(player_id) != FactionData.FactionID.DARK_ELF:
+		return false
+	return DarkElfMechanic.toggle_shadow_network(player_id)
+
+
+## Dark Elf: Attempt assassination on enemy faction's strongest hero.
+func dark_elf_assassination(player_id: int, target_faction_id: int) -> Dictionary:
+	if GameManager.get_player_faction(player_id) != FactionData.FactionID.DARK_ELF:
+		return {"success": false}
+	return DarkElfMechanic.attempt_assassination(player_id, target_faction_id)
+
+
+## Dark Elf: Start corrupting a neutral tile (costs prestige, 3-turn process).
+func dark_elf_corrupt_tile(player_id: int, tile_index: int) -> bool:
+	if GameManager.get_player_faction(player_id) != FactionData.FactionID.DARK_ELF:
+		return false
+	return DarkElfMechanic.start_corruption(player_id, tile_index)
 
 
 # ═══════════════ SAVE / LOAD ═══════════════

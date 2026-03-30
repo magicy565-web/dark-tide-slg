@@ -315,3 +315,14 @@ signal fatigue_desertion(army_id: int)
 signal unit_promoted(unit_id: String, new_rank: String)
 signal loot_generated(loot: Array)
 signal loot_applied(loot: Array)
+
+# ── Endgame Crisis System (v7.0) ──
+signal crisis_started(crisis_type: String, crisis_data: Dictionary)
+signal crisis_ended(crisis_type: String)
+signal crisis_tick(crisis_type: String, turn_remaining: int, details: Dictionary)
+signal crisis_quarantine_applied(tile_index: int, cost: int)
+
+# ── Late-Game Prestige Actions (v7.0) ──
+signal grand_festival_executed(player_id: int)
+signal imperial_decree_executed(player_id: int)
+signal forge_alliance_executed(player_id: int, target_faction: int)

@@ -292,6 +292,11 @@ var _active_territory_effects: Dictionary = {}  # Cached per-turn territory effe
 var _sat_points: Dictionary = {}  # SAT (満足度) points: player_id -> int
 var _guard_timers: Dictionary = {}  # tile_index -> { "player_id": int, "turns_remaining": int }
 
+# ── Endgame Prestige Actions (v7.0) ──
+var _last_grand_festival_turn: int = -999  # Turn when last grand festival was held
+var _imperial_decree_used: bool = false     # Once per game
+var _forge_alliance_used: bool = false      # Once per game
+
 # ── Game Statistics (tracked for end-game score screen) ──
 var game_stats: Dictionary = {
 	"battles_won": 0,
@@ -1167,6 +1172,9 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
 	selected_army_id = -1
 	_sat_points.clear()
 	_pending_conquest_tile_index = -1
+	_last_grand_festival_turn = -999
+	_imperial_decree_used = false
+	_forge_alliance_used = false
 	turn_number = 0
 
 	# Reset all subsystems
@@ -1653,6 +1661,11 @@ func begin_turn() -> void:
 	if te_prestige > 0:
 		income["prestige"] = income.get("prestige", 0) + te_prestige
 
+	# ── Phase 2a2: Endgame Crisis — Famine food reduction (v7.0) ──
+	if EventSystem.is_famine_active():
+		var famine_mult: float = EventSystem.get_famine_food_mult()
+		income["food"] = int(float(income["food"]) * famine_mult)
+
 	# ── Phase 2b: Recalculate research speed (building effects may have changed) ──
 	ResearchManager.update_research_speed(pid)
 
@@ -1821,6 +1834,10 @@ func begin_turn() -> void:
 			_show_random_event_popup(player_for_event, rev)
 			EventBus.message_log.emit("[color=yellow]随机事件: %s[/color]" % rev.get("name", "事件"))
 
+	# ── Phase 5c2d: Endgame Crisis check (v7.0) ──
+	if pid == get_human_player_id():
+		EventSystem.check_endgame_crisis()
+
 	# ── Phase 5c3: Harem cooldown tick ──
 	if pid == get_human_player_id():
 		HeroSystem.tick_harem_cooldowns()
@@ -1961,6 +1978,10 @@ func begin_turn() -> void:
 			for t in tiles:
 				if t["owner_id"] != pid and t["owner_id"] >= 0:
 					t["garrison"] += 3
+		elif turn_number == 40:
+			EventBus.message_log.emit("[color=red]═══ 第40回合 — 终末时代降临! ═══[/color]")
+			EventBus.message_log.emit("[color=yellow]终末危机现已激活! 瘟疫、叛乱、远古入侵或饥荒可能随时爆发。[/color]")
+			EventBus.message_log.emit("[color=cyan]威望行动已解锁: 盛大祭典 / 帝国法令 / 铸造联盟[/color]")
 		elif turn_number == 45:
 			EventBus.message_log.emit("[color=red]═══ 第45回合 — 光明联盟孤注一掷! ═══[/color]")
 			EventBus.message_log.emit("敌方全据点驻军+5, 但你获得100金作为战争赔偿!")
@@ -2014,6 +2035,171 @@ func end_turn() -> void:
 		return
 	current_player_index = (current_player_index + 1) % players.size()
 	begin_turn()
+
+
+# ═══════════════ LATE-GAME PRESTIGE ACTIONS (v7.0) ═══════════════
+
+## Grand Festival: Costs 200g, +15 order to all territories, +3 affection to all heroes.
+## Can be used once per 10 turns.
+func action_grand_festival() -> bool:
+	var pid: int = get_human_player_id()
+	if not game_active:
+		EventBus.message_log.emit("[color=red]游戏未在进行中。[/color]")
+		return false
+
+	# Cooldown check
+	var cooldown: int = BalanceConfig.GRAND_FESTIVAL_COOLDOWN
+	if turn_number - _last_grand_festival_turn < cooldown:
+		var remaining: int = cooldown - (turn_number - _last_grand_festival_turn)
+		EventBus.message_log.emit("[color=red]盛大祭典冷却中! 还需%d回合。[/color]" % remaining)
+		return false
+
+	# Cost check
+	var cost: int = BalanceConfig.GRAND_FESTIVAL_COST_GOLD
+	var gold: int = ResourceManager.get_resource(pid, "gold")
+	if gold < cost:
+		EventBus.message_log.emit("[color=red]金币不足! 盛大祭典需要%d金。[/color]" % cost)
+		return false
+
+	# Apply effects
+	ResourceManager.apply_delta(pid, {"gold": -cost})
+	_last_grand_festival_turn = turn_number
+
+	# +15 order to all owned territories (as public_order percentage)
+	var order_bonus: float = float(BalanceConfig.GRAND_FESTIVAL_ORDER_BONUS) / 100.0
+	var owned_tiles: Array = get_cached_owned_tiles(pid)
+	for tidx in owned_tiles:
+		var tile: Dictionary = tiles[tidx]
+		var cur_po: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+		tile["public_order"] = minf(cur_po + order_bonus, 1.0)
+
+	# Also apply to global order
+	OrderManager.change_order(BalanceConfig.GRAND_FESTIVAL_ORDER_BONUS)
+
+	# +3 affection to all recruited heroes
+	var aff_bonus: int = BalanceConfig.GRAND_FESTIVAL_AFFECTION_BONUS
+	for hero_id in HeroSystem.recruited_heroes:
+		HeroSystem.add_affection(hero_id, aff_bonus)
+
+	EventBus.grand_festival_executed.emit(pid)
+	EventBus.message_log.emit("[color=green][b]═══ 盛大祭典! ═══[/b][/color]")
+	EventBus.message_log.emit("[color=green]花费%d金，全领地秩序+%d，所有英雄好感+%d![/color]" % [
+		cost, BalanceConfig.GRAND_FESTIVAL_ORDER_BONUS, aff_bonus])
+	return true
+
+
+## Imperial Decree: Costs 3 AP + 100g, permanently reduces threat by 20. Once per game.
+func action_imperial_decree() -> bool:
+	var pid: int = get_human_player_id()
+	if not game_active:
+		EventBus.message_log.emit("[color=red]游戏未在进行中。[/color]")
+		return false
+
+	if _imperial_decree_used:
+		EventBus.message_log.emit("[color=red]帝国法令每局游戏只能颁布一次![/color]")
+		return false
+
+	# Cost check: AP
+	var player: Dictionary = {}
+	for p in players:
+		if p["id"] == pid:
+			player = p
+			break
+	if player.is_empty():
+		return false
+
+	var ap_cost: int = BalanceConfig.IMPERIAL_DECREE_COST_AP
+	var gold_cost: int = BalanceConfig.IMPERIAL_DECREE_COST_GOLD
+	var current_ap: int = player.get("ap", 0)
+	if current_ap < ap_cost:
+		EventBus.message_log.emit("[color=red]行动点不足! 帝国法令需要%dAP。[/color]" % ap_cost)
+		return false
+
+	var gold: int = ResourceManager.get_resource(pid, "gold")
+	if gold < gold_cost:
+		EventBus.message_log.emit("[color=red]金币不足! 帝国法令需要%d金。[/color]" % gold_cost)
+		return false
+
+	# Apply effects
+	player["ap"] -= ap_cost
+	EventBus.ap_changed.emit(pid, player["ap"])
+	ResourceManager.apply_delta(pid, {"gold": -gold_cost})
+	ThreatManager.change_threat(-BalanceConfig.IMPERIAL_DECREE_THREAT_REDUCTION)
+	_imperial_decree_used = true
+
+	EventBus.imperial_decree_executed.emit(pid)
+	EventBus.message_log.emit("[color=green][b]═══ 帝国法令! ═══[/b][/color]")
+	EventBus.message_log.emit("[color=green]花费%dAP + %d金，威胁值永久降低%d![/color]" % [
+		ap_cost, gold_cost, BalanceConfig.IMPERIAL_DECREE_THREAT_REDUCTION])
+	return true
+
+
+## Forge Alliance: Costs 150g, auto-alliance with weakest surviving faction. Once per game.
+func action_forge_alliance() -> bool:
+	var pid: int = get_human_player_id()
+	if not game_active:
+		EventBus.message_log.emit("[color=red]游戏未在进行中。[/color]")
+		return false
+
+	if _forge_alliance_used:
+		EventBus.message_log.emit("[color=red]铸造联盟每局游戏只能使用一次![/color]")
+		return false
+
+	var cost: int = BalanceConfig.FORGE_ALLIANCE_COST_GOLD
+	var gold: int = ResourceManager.get_resource(pid, "gold")
+	if gold < cost:
+		EventBus.message_log.emit("[color=red]金币不足! 铸造联盟需要%d金。[/color]" % cost)
+		return false
+
+	# Find weakest surviving faction (fewest tiles, excluding human player)
+	var faction_tile_counts: Dictionary = {}  # faction_id -> tile_count
+	for t in tiles:
+		var owner: int = t.get("owner_id", -1)
+		if owner > 0:  # Exclude unowned (-1) and human player (0)
+			faction_tile_counts[owner] = faction_tile_counts.get(owner, 0) + 1
+
+	if faction_tile_counts.is_empty():
+		EventBus.message_log.emit("[color=red]没有存活的势力可以结盟![/color]")
+		return false
+
+	# Find the faction with fewest tiles
+	var weakest_id: int = -1
+	var min_tiles: int = 999
+	for fid in faction_tile_counts:
+		if faction_tile_counts[fid] < min_tiles:
+			min_tiles = faction_tile_counts[fid]
+			weakest_id = fid
+
+	if weakest_id < 0:
+		return false
+
+	# Apply effects
+	ResourceManager.apply_delta(pid, {"gold": -cost})
+	_forge_alliance_used = true
+
+	# Force-create a military alliance bypassing normal diplomatic checks
+	# (this is a special prestige action, not a normal treaty)
+	var alliance_duration: int = BalanceConfig.ALLIANCE_EVIL_DURATION
+	var treaty := {
+		"type": "alliance",
+		"target": weakest_id,
+		"turns_left": alliance_duration,
+	}
+	DiplomacyManager._get_player_treaties(pid).append(treaty)
+	EventBus.treaty_signed.emit(pid, "alliance", weakest_id)
+
+	# Get faction name for display
+	var faction_name: String = "未知势力"
+	for p in players:
+		if p["id"] == weakest_id:
+			faction_name = p.get("name", "势力%d" % weakest_id)
+			break
+
+	EventBus.forge_alliance_executed.emit(pid, weakest_id)
+	EventBus.message_log.emit("[color=green][b]═══ 铸造联盟! ═══[/b][/color]")
+	EventBus.message_log.emit("[color=green]花费%d金，与%s (最弱势力, %d地块) 建立军事同盟![/color]" % [
+		cost, faction_name, min_tiles])
+	return true
 
 
 ## Process deferred tile and turn effects (gold_next_visit, attacked_next_turn, etc.)

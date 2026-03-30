@@ -60,6 +60,8 @@ func reset() -> void:
 	_pending_chain_events.clear()
 	_active_story_windows.clear()
 	_story_window_notifications.clear()
+	_active_crisis.clear()
+	_invasion_tile = -1
 
 
 # ═══════════════ EVENT REGISTRATION ═══════════════
@@ -1967,8 +1969,310 @@ func _apply_miss_consequence(player_id: int, window: Dictionary) -> void:
 				BuffManager.add_buff(ai_id, "missed_hero_%s" % window["id"],
 					"atk_pct", 5, 8, "story_window_miss")
 
+# ── Endgame Crisis System (v7.0) ──
+# Tracks the currently active crisis event (max 1 at a time).
+# { "type": String, "turn_started": int, "duration": int, "affected_tiles": Array,
+#   "quarantined_tiles": Array }
+var _active_crisis: Dictionary = {}
+# Tiles where the Ancient Evil invasion army is stationed (crisis_invasion)
+var _invasion_tile: int = -1
 
-# ═══════════════ SAVE / LOAD ═══════════════
+
+## Check and possibly trigger an endgame crisis. Called once per human turn.
+func check_endgame_crisis() -> void:
+	var turn: int = GameManager.turn_number
+	if turn < BalanceConfig.CRISIS_START_TURN:
+		return
+	# Max 1 active crisis at a time
+	if not _active_crisis.is_empty():
+		_tick_active_crisis()
+		return
+
+	# Roll for crisis: base 5% + 1% per turn past threshold
+	var turns_past: int = turn - BalanceConfig.CRISIS_START_TURN
+	var chance: int = BalanceConfig.CRISIS_BASE_CHANCE_PCT + turns_past * BalanceConfig.CRISIS_CHANCE_INCREASE_PCT
+	var roll: int = randi() % 100
+	if roll >= chance:
+		return
+
+	# Pick a random crisis type
+	var crisis_types: Array = ["crisis_plague", "crisis_rebellion", "crisis_invasion", "crisis_famine"]
+	var chosen: String = crisis_types[randi() % crisis_types.size()]
+	_start_crisis(chosen)
+
+
+func _start_crisis(crisis_type: String) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	var turn: int = GameManager.turn_number
+	match crisis_type:
+		"crisis_plague":
+			_start_crisis_plague(pid, turn)
+		"crisis_rebellion":
+			_start_crisis_rebellion(pid, turn)
+		"crisis_invasion":
+			_start_crisis_invasion(pid, turn)
+		"crisis_famine":
+			_start_crisis_famine(pid, turn)
+
+
+func _start_crisis_plague(pid: int, turn: int) -> void:
+	var owned: Array = GameManager.get_cached_owned_tiles(pid)
+	if owned.is_empty():
+		return
+	# Pick a random owned tile as plague origin
+	var target_idx: int = owned[randi() % owned.size()]
+	_active_crisis = {
+		"type": "crisis_plague",
+		"turn_started": turn,
+		"duration": BalanceConfig.CRISIS_PLAGUE_DURATION,
+		"affected_tiles": [target_idx],
+		"quarantined_tiles": [],
+	}
+	# Apply initial troop loss
+	_apply_plague_damage([target_idx])
+	EventBus.crisis_started.emit("crisis_plague", _active_crisis.duplicate(true))
+	EventBus.message_log.emit("[color=red][b]═══ 终末危机: 瘟疫爆发! ═══[/b][/color]")
+	EventBus.message_log.emit("[color=red]瘟疫在第%d号地块爆发! 驻军损失30%%。下回合将蔓延至相邻地块![/color]" % target_idx)
+	EventBus.message_log.emit("[color=yellow]花费%d金可隔离每个受影响地块，持续%d回合。[/color]" % [
+		BalanceConfig.CRISIS_PLAGUE_QUARANTINE_COST, BalanceConfig.CRISIS_PLAGUE_DURATION])
+
+
+func _apply_plague_damage(tile_indices: Array) -> void:
+	for tidx in tile_indices:
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			continue
+		var tile: Dictionary = GameManager.tiles[tidx]
+		var garrison: int = tile.get("garrison", 0)
+		if garrison > 0:
+			var loss: int = maxi(1, int(float(garrison) * BalanceConfig.CRISIS_PLAGUE_TROOP_LOSS_PCT))
+			tile["garrison"] = maxi(0, garrison - loss)
+			EventBus.message_log.emit("[color=red]  瘟疫: 第%d号地块驻军损失%d人[/color]" % [tidx, loss])
+
+
+func _start_crisis_rebellion(pid: int, turn: int) -> void:
+	var owned: Array = GameManager.get_cached_owned_tiles(pid)
+	var low_order_tiles: Array = []
+	for tidx in owned:
+		var tile: Dictionary = GameManager.tiles[tidx]
+		var po: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+		if po < BalanceConfig.CRISIS_REBELLION_ORDER_THRESHOLD:
+			low_order_tiles.append(tidx)
+	if low_order_tiles.is_empty():
+		# If no low-order tiles, pick 2 random tiles with lowest order
+		var sorted_tiles: Array = owned.duplicate()
+		sorted_tiles.sort_custom(func(a, b):
+			var po_a: float = GameManager.tiles[a].get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+			var po_b: float = GameManager.tiles[b].get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+			return po_a < po_b)
+		low_order_tiles = sorted_tiles.slice(0, mini(2, sorted_tiles.size()))
+
+	_active_crisis = {
+		"type": "crisis_rebellion",
+		"turn_started": turn,
+		"duration": 1,  # Instant — rebel armies spawn and must be reconquered
+		"affected_tiles": low_order_tiles.duplicate(),
+		"quarantined_tiles": [],
+	}
+	# Spawn rebel armies — flip tiles to unowned with garrison
+	for tidx in low_order_tiles:
+		var tile: Dictionary = GameManager.tiles[tidx]
+		tile["owner_id"] = -1
+		tile["garrison"] = BalanceConfig.CRISIS_REBELLION_ARMY_STRENGTH
+		tile["public_order"] = 0.0
+		EventBus.rebel_spawned.emit(tidx)
+	EventBus.crisis_started.emit("crisis_rebellion", _active_crisis.duplicate(true))
+	EventBus.message_log.emit("[color=red][b]═══ 终末危机: 大规模叛乱! ═══[/b][/color]")
+	EventBus.message_log.emit("[color=red]%d个低秩序地块爆发叛乱! 叛军已占据这些据点(兵力%d)，必须重新征服![/color]" % [
+		low_order_tiles.size(), BalanceConfig.CRISIS_REBELLION_ARMY_STRENGTH])
+	# Rebellion is instant — clear crisis immediately
+	_active_crisis.clear()
+
+
+func _start_crisis_invasion(pid: int, turn: int) -> void:
+	# Find a map-edge tile (tile with fewest adjacencies, or unowned tile)
+	var best_tile: int = -1
+	var best_degree: int = 999
+	for i in range(GameManager.tiles.size()):
+		var tile: Dictionary = GameManager.tiles[i]
+		if tile["owner_id"] != pid:
+			var degree: int = GameManager.adjacency.get(i, []).size()
+			if degree < best_degree:
+				best_degree = degree
+				best_tile = i
+	if best_tile < 0:
+		# Fallback: pick first unowned tile
+		for i in range(GameManager.tiles.size()):
+			if GameManager.tiles[i]["owner_id"] != pid:
+				best_tile = i
+				break
+	if best_tile < 0:
+		return  # Player owns everything, skip
+
+	var tile: Dictionary = GameManager.tiles[best_tile]
+	tile["owner_id"] = -1
+	tile["garrison"] = BalanceConfig.CRISIS_INVASION_ARMY_STRENGTH
+	_invasion_tile = best_tile
+	_active_crisis = {
+		"type": "crisis_invasion",
+		"turn_started": turn,
+		"duration": 99,  # Lasts until defeated
+		"affected_tiles": [best_tile],
+		"quarantined_tiles": [],
+	}
+	EventBus.crisis_started.emit("crisis_invasion", _active_crisis.duplicate(true))
+	EventBus.message_log.emit("[color=red][b]═══ 终末危机: 远古邪灵入侵! ═══[/b][/color]")
+	EventBus.message_log.emit("[color=red]一支强大的远古邪灵军队(兵力%d)出现在第%d号地块! 击败它将获得传奇奖励![/color]" % [
+		BalanceConfig.CRISIS_INVASION_ARMY_STRENGTH, best_tile])
+
+
+func _start_crisis_famine(pid: int, turn: int) -> void:
+	_active_crisis = {
+		"type": "crisis_famine",
+		"turn_started": turn,
+		"duration": BalanceConfig.CRISIS_FAMINE_DURATION,
+		"affected_tiles": [],
+		"quarantined_tiles": [],
+	}
+	EventBus.crisis_started.emit("crisis_famine", _active_crisis.duplicate(true))
+	EventBus.message_log.emit("[color=red][b]═══ 终末危机: 严重饥荒! ═══[/b][/color]")
+	EventBus.message_log.emit("[color=red]饥荒席卷全境! 粮食产出减半，持续%d回合。合理管理军队否则将大量逃亡![/color]" % [
+		BalanceConfig.CRISIS_FAMINE_DURATION])
+
+
+func _tick_active_crisis() -> void:
+	if _active_crisis.is_empty():
+		return
+
+	var crisis_type: String = _active_crisis["type"]
+	_active_crisis["duration"] -= 1
+	var remaining: int = _active_crisis["duration"]
+
+	match crisis_type:
+		"crisis_plague":
+			_tick_plague(remaining)
+		"crisis_invasion":
+			_tick_invasion()
+		"crisis_famine":
+			_tick_famine(remaining)
+		# crisis_rebellion is instant — no tick needed
+
+	EventBus.crisis_tick.emit(crisis_type, remaining, _active_crisis.duplicate(true))
+
+	if remaining <= 0:
+		_end_crisis(crisis_type)
+
+
+func _tick_plague(remaining: int) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	# Spread to adjacent tiles (unless quarantined)
+	var current_affected: Array = _active_crisis.get("affected_tiles", [])
+	var quarantined: Array = _active_crisis.get("quarantined_tiles", [])
+	var new_affected: Array = current_affected.duplicate()
+
+	for tidx in current_affected:
+		if tidx in quarantined:
+			continue
+		var neighbors: Array = GameManager.adjacency.get(tidx, [])
+		for ntidx in neighbors:
+			if ntidx in new_affected or ntidx in quarantined:
+				continue
+			if ntidx >= 0 and ntidx < GameManager.tiles.size():
+				var ntile: Dictionary = GameManager.tiles[ntidx]
+				if ntile["owner_id"] == pid:
+					new_affected.append(ntidx)
+					EventBus.message_log.emit("[color=red]  瘟疫蔓延至第%d号地块![/color]" % ntidx)
+
+	# Apply damage to all non-quarantined affected tiles
+	var damage_tiles: Array = []
+	for tidx in new_affected:
+		if tidx not in quarantined:
+			damage_tiles.append(tidx)
+	_apply_plague_damage(damage_tiles)
+	_active_crisis["affected_tiles"] = new_affected
+
+	if remaining > 0:
+		EventBus.message_log.emit("[color=yellow]瘟疫剩余%d回合。花费%d金/地块可隔离。[/color]" % [
+			remaining, BalanceConfig.CRISIS_PLAGUE_QUARANTINE_COST])
+
+
+func _tick_invasion() -> void:
+	# Check if invasion tile has been reconquered
+	if _invasion_tile >= 0 and _invasion_tile < GameManager.tiles.size():
+		var tile: Dictionary = GameManager.tiles[_invasion_tile]
+		var pid: int = GameManager.get_human_player_id()
+		if tile["owner_id"] == pid or tile.get("garrison", 0) <= 0:
+			# Player defeated the Ancient Evil — grant legendary rewards
+			ResourceManager.apply_delta(pid, {
+				"gold": BalanceConfig.CRISIS_INVASION_REWARD_GOLD,
+			})
+			var current_prestige: int = ResourceManager.get_resource(pid, "prestige")
+			ResourceManager.set_resource(pid, "prestige",
+				current_prestige + BalanceConfig.CRISIS_INVASION_REWARD_PRESTIGE)
+			EventBus.message_log.emit("[color=green][b]远古邪灵被击败! 获得传奇奖励: %d金, %d威望![/b][/color]" % [
+				BalanceConfig.CRISIS_INVASION_REWARD_GOLD, BalanceConfig.CRISIS_INVASION_REWARD_PRESTIGE])
+			_active_crisis["duration"] = 0  # End crisis
+			_invasion_tile = -1
+
+
+func _tick_famine(_remaining: int) -> void:
+	EventBus.message_log.emit("[color=red]饥荒持续中: 粮食产出减半 (剩余%d回合)[/color]" % _remaining)
+
+
+## Check if famine crisis is active (called by ProductionCalculator)
+func is_famine_active() -> bool:
+	return not _active_crisis.is_empty() and _active_crisis.get("type", "") == "crisis_famine"
+
+
+## Get famine production multiplier
+func get_famine_food_mult() -> float:
+	if is_famine_active():
+		return BalanceConfig.CRISIS_FAMINE_PRODUCTION_MULT
+	return 1.0
+
+
+## Quarantine a plague-affected tile (player action, costs gold)
+func quarantine_plague_tile(tile_index: int) -> bool:
+	if _active_crisis.is_empty() or _active_crisis.get("type", "") != "crisis_plague":
+		return false
+	var affected: Array = _active_crisis.get("affected_tiles", [])
+	var quarantined: Array = _active_crisis.get("quarantined_tiles", [])
+	if tile_index not in affected or tile_index in quarantined:
+		return false
+
+	var pid: int = GameManager.get_human_player_id()
+	var cost: int = BalanceConfig.CRISIS_PLAGUE_QUARANTINE_COST
+	var gold: int = ResourceManager.get_resource(pid, "gold")
+	if gold < cost:
+		EventBus.message_log.emit("[color=red]金币不足! 隔离需要%d金。[/color]" % cost)
+		return false
+
+	ResourceManager.apply_delta(pid, {"gold": -cost})
+	quarantined.append(tile_index)
+	_active_crisis["quarantined_tiles"] = quarantined
+	EventBus.crisis_quarantine_applied.emit(tile_index, cost)
+	EventBus.message_log.emit("[color=green]第%d号地块已隔离 (花费%d金)，瘟疫不再从此蔓延。[/color]" % [tile_index, cost])
+	return true
+
+
+func _end_crisis(crisis_type: String) -> void:
+	EventBus.crisis_ended.emit(crisis_type)
+	match crisis_type:
+		"crisis_plague":
+			EventBus.message_log.emit("[color=green]瘟疫已消退。[/color]")
+		"crisis_famine":
+			EventBus.message_log.emit("[color=green]饥荒已结束，粮食产出恢复正常。[/color]")
+		"crisis_invasion":
+			pass  # Handled in _tick_invasion
+	_active_crisis.clear()
+	_invasion_tile = -1
+
+
+## Get the active crisis data (for UI/save)
+func get_active_crisis() -> Dictionary:
+	return _active_crisis.duplicate(true)
+
+
+
 
 func to_save_data() -> Dictionary:
 	return {
@@ -1983,6 +2287,8 @@ func to_save_data() -> Dictionary:
 		"event_chain_history": _event_chain_history.duplicate(true),
 		"pending_chain_events": _pending_chain_events.duplicate(true),
 		"active_story_windows": _active_story_windows.duplicate(true),
+		"active_crisis": _active_crisis.duplicate(true),
+		"invasion_tile": _invasion_tile,
 	}
 
 
@@ -1998,6 +2304,8 @@ func from_save_data(data: Dictionary) -> void:
 	_event_chain_history = data.get("event_chain_history", {}).duplicate(true)
 	_pending_chain_events = data.get("pending_chain_events", []).duplicate(true)
 	_active_story_windows = data.get("active_story_windows", {}).duplicate(true)
+	_active_crisis = data.get("active_crisis", {}).duplicate(true)
+	_invasion_tile = data.get("invasion_tile", -1)
 	_story_window_notifications.clear()
 	# Re-register world events from data file so check_world_events() works
 	register_world_events()

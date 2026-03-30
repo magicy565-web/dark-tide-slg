@@ -215,9 +215,29 @@ const WAAAGH_WIN_BONUS: int = 10
 const WAAAGH_INFIGHTING_THRESHOLD: int = 20
 const WAAAGH_INFIGHTING_CHANCE: float = 0.10
 
+## Orc WAAAGH! Power (spendable burst)
+const ORC_WAAAGH_POWER_PER_WIN: int = 1          # +1 waaagh_power per battle won
+const ORC_WAAAGH_POWER_BURST_COST: int = 10       # Spend 10 waaagh_power to trigger burst
+const ORC_WAAAGH_BURST_ATK_MULT: float = 1.30     # +30% ATK during burst
+const ORC_WAAAGH_BURST_ATK_TURNS: int = 3         # Burst ATK lasts 3 turns
+const ORC_WAAAGH_BURST_EXHAUST_MULT: float = 0.85 # -15% ATK during exhaustion
+const ORC_WAAAGH_BURST_EXHAUST_TURNS: int = 2     # Exhaustion lasts 2 turns
+
+## Orc Blood Tribute (hero sacrifice)
+const ORC_BLOOD_TRIBUTE_ATK_PER_SACRIFICE: int = 2  # +2 permanent army ATK per sacrificed hero
+const ORC_BLOOD_TRIBUTE_REP_COST: int = -15          # Reputation penalty per sacrifice
+
 ## Pirate plunder
 const PIRATE_PLUNDER_PER_LEVEL: int = 10
 const PIRATE_SPOILS_MULT: float = 1.5
+
+## Pirate Black Market (rare item shop)
+const PIRATE_BLACK_MARKET_MARKUP: float = 1.50     # 50% price markup on rare items
+const PIRATE_BLACK_MARKET_RESTOCK_TURNS: int = 5   # Restock every 5 turns
+
+## Pirate Intimidation (threat-based ATK bonus)
+const PIRATE_INTIMIDATION_THREAT_FLOOR: int = 50   # Bonus starts above 50 threat
+const PIRATE_INTIMIDATION_ATK_PER_POINT: float = 0.01  # +1% ATK per threat above floor
 
 ## Dark Elf slaves
 ## v4.6: Slave labor income raised from 0.5→0.7 to make the slave economy
@@ -229,6 +249,19 @@ const SLAVE_CONVERSION_RATIO: int = 3   # slaves per soldier
 const SLAVE_ALTAR_ESSENCE: int = 2      # shadow essence per sacrifice
 const SLAVE_REVOLT_THRESHOLD_MULT: int = 3  # revolt if slaves > garrison × this
 const SLAVE_REVOLT_CHANCE: float = 0.10
+
+## Dark Elf Shadow Network (fog of war removal)
+const DARK_ELF_SHADOW_NETWORK_UPKEEP: int = 10    # Gold cost per turn to maintain
+const DARK_ELF_SHADOW_NETWORK_REVEAL: bool = true  # Reveals all enemy army positions
+
+## Dark Elf Assassination
+const DARK_ELF_ASSASSINATION_AP_COST: int = 2      # AP cost to attempt assassination
+const DARK_ELF_ASSASSINATION_SUCCESS: float = 0.40 # 40% base success chance
+const DARK_ELF_ASSASSINATION_REP_COST: int = -20   # Reputation penalty on attempt
+
+## Dark Elf Corruption (convert neutral tiles)
+const DARK_ELF_CORRUPTION_PRESTIGE_COST: int = 15  # Prestige cost to start corruption
+const DARK_ELF_CORRUPTION_TURNS: int = 3            # Turns to corrupt a neutral tile
 
 # ═══════════════ TILE PUBLIC ORDER (治安度) ═══════════════
 
@@ -1033,3 +1066,44 @@ const RANSOM_REP_BONUS: int = 5
 ## Exile prisoner: no reward, -threat, hero returns to enemy pool after N turns
 const EXILE_THREAT_REDUCTION: int = 5
 const EXILE_RETURN_TURNS: int = 5
+
+# ═══════════════ ENDGAME CRISIS (v7.0 — SR07 aligned) ═══════════════
+
+## Turn threshold for crisis eligibility
+const CRISIS_START_TURN: int = 40
+## Base chance per turn (%) after CRISIS_START_TURN
+const CRISIS_BASE_CHANCE_PCT: int = 5
+## Chance increase per turn past CRISIS_START_TURN (%)
+const CRISIS_CHANCE_INCREASE_PCT: int = 1
+## Max 1 active crisis at a time
+const CRISIS_MAX_ACTIVE: int = 1
+
+## crisis_plague
+const CRISIS_PLAGUE_TROOP_LOSS_PCT: float = 0.30     # -30% troops in affected tile
+const CRISIS_PLAGUE_QUARANTINE_COST: int = 50         # Gold per tile to quarantine
+const CRISIS_PLAGUE_DURATION: int = 3                 # Turns
+
+## crisis_rebellion
+const CRISIS_REBELLION_ORDER_THRESHOLD: float = 0.30  # Tiles with order < 30%
+const CRISIS_REBELLION_ARMY_STRENGTH: int = 12        # Medium rebel army strength
+
+## crisis_invasion
+const CRISIS_INVASION_ARMY_STRENGTH: int = 30         # Much stronger than normal
+const CRISIS_INVASION_REWARD_GOLD: int = 500          # Legendary gold reward
+const CRISIS_INVASION_REWARD_PRESTIGE: int = 100      # Legendary prestige reward
+
+## crisis_famine
+const CRISIS_FAMINE_DURATION: int = 5                 # Turns
+const CRISIS_FAMINE_PRODUCTION_MULT: float = 0.50     # Food production halved
+
+## Late-Game Prestige Actions
+const GRAND_FESTIVAL_COST_GOLD: int = 200
+const GRAND_FESTIVAL_ORDER_BONUS: int = 15
+const GRAND_FESTIVAL_AFFECTION_BONUS: int = 3
+const GRAND_FESTIVAL_COOLDOWN: int = 10               # 1 per 10 turns
+
+const IMPERIAL_DECREE_COST_AP: int = 3
+const IMPERIAL_DECREE_COST_GOLD: int = 100
+const IMPERIAL_DECREE_THREAT_REDUCTION: int = 20
+
+const FORGE_ALLIANCE_COST_GOLD: int = 150

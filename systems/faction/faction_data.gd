@@ -294,6 +294,16 @@ const FACTION_PARAMS: Dictionary = {
 		"ceasefire_duration": 5,               # 停战持续回合
 		"war_slave_penalty_base": 0.5,         # 与兽人开战时敌方奴隶产出-50%
 		"threat_increase_per_war": 5,          # 每场战争额外增加威胁值
+		# WAAAGH! Power (spendable burst mechanic)
+		"waaagh_power_per_win": 1,             # +1 per battle won
+		"waaagh_power_burst_cost": 10,         # Spend 10 to trigger burst
+		"waaagh_burst_atk_mult": 1.30,         # +30% ATK during burst
+		"waaagh_burst_atk_turns": 3,           # Burst lasts 3 turns
+		"waaagh_burst_exhaust_mult": 0.85,     # -15% ATK during exhaustion
+		"waaagh_burst_exhaust_turns": 2,       # Exhaustion lasts 2 turns
+		# Blood Tribute (hero sacrifice for permanent ATK)
+		"blood_tribute_atk_per_sacrifice": 2,  # +2 ATK per hero sacrificed
+		"blood_tribute_rep_cost": -15,         # Reputation cost per sacrifice
 	},
 	FactionID.PIRATE: {
 		"food_per_soldier": 0.8,           # v4.6: 0.7→0.8 — mercenaries eat well
@@ -346,6 +356,12 @@ const FACTION_PARAMS: Dictionary = {
 		"ai_raid_duration": 3,
 		"ai_raid_loot_on_defeat": 40,
 		"ai_max_raid_parties": 4,
+		# Black Market (rare items with markup, restock every 5 turns)
+		"black_market_markup": 1.50,           # 50% price markup on rare items
+		"black_market_restock_turns": 5,       # Restock rare inventory every 5 turns
+		# Intimidation (threat-based ATK bonus)
+		"intimidation_threat_floor": 50,       # Bonus starts above 50 threat
+		"intimidation_atk_per_point": 0.01,    # +1% ATK per threat above floor
 	},
 	FactionID.DARK_ELF: {
 		"food_per_soldier": 0.9,           # v4.6: 1.0→0.9 — slight relief, slaves supplement
@@ -362,6 +378,15 @@ const FACTION_PARAMS: Dictionary = {
 		"slave_farm_food_per_turn": 2,
 		"slave_altar_atk_per_slave": 1,
 		"slave_altar_sacrifice_interval": 3,
+		# Shadow Network (fog of war removal)
+		"shadow_network_upkeep": 10,           # Gold per turn to maintain
+		# Assassination (kill enemy heroes)
+		"assassination_ap_cost": 2,            # AP cost
+		"assassination_success_chance": 0.40,  # 40% base success
+		"assassination_rep_cost": -20,         # Reputation penalty
+		# Corruption (convert neutral tiles without combat)
+		"corruption_prestige_cost": 15,        # Prestige cost to start
+		"corruption_turns": 3,                 # Turns to complete corruption
 	},
 }
 

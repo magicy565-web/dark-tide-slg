@@ -53,6 +53,10 @@ var _raid_parties: Dictionary = {}       # player_id -> Array of { tile_index, s
 # ── 掠夺连击本回合是否更新标记 ──
 var _plunder_streak_updated_this_turn: Dictionary = {}  # player_id -> bool
 
+# ── 黑市稀有物品补货计时器 ──
+var _black_market_restock_timer: Dictionary = {}  # player_id -> int (turns until next restock)
+var _black_market_rare_stock: Dictionary = {}     # player_id -> Array of rare items
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CONSTANTS — 性奴隶调教
@@ -128,6 +132,33 @@ const AI_RAID_MAX_STRENGTH: int = 10
 const AI_RAID_DURATION: int = 3             # 突袭队存活回合数
 const AI_RAID_LOOT_ON_DEFEAT: int = 40      # 击败突袭队获得金币
 const AI_MAX_RAID_PARTIES: int = 4          # 最大同时突袭队数量
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CONSTANTS — 稀有黑市 (每5回合补货, 50%加价, 无声望消耗)
+# ══════════════════════════════════════════════════════════════════════════════
+
+const BLACK_MARKET_RESTOCK_TURNS: int = 5
+const BLACK_MARKET_MARKUP: float = 1.50   # 50% price markup
+
+## Rare item pool for the pirate black market
+const BLACK_MARKET_RARE_ITEMS: Array = [
+	{"name": "幽灵船舵", "desc": "全军SPD+2, 3回合", "effect": "atk_boost", "value": 8, "base_price": 120, "category": "rare"},
+	{"name": "海神祝福", "desc": "全军DEF+5, 3回合", "effect": "atk_boost", "value": 5, "base_price": 100, "category": "rare"},
+	{"name": "深渊之心", "desc": "暗影精华+5", "effect": "shadow_essence", "value": 5, "base_price": 150, "category": "rare"},
+	{"name": "走私者地图", "desc": "藏宝图×2", "effect": "treasure_map", "value": 2, "base_price": 80, "category": "rare"},
+	{"name": "龙血朗姆", "desc": "朗姆酒+40", "effect": "rum", "value": 40, "base_price": 90, "category": "rare"},
+	{"name": "黑暗契约", "desc": "威望+10", "effect": "prestige", "value": 10, "base_price": 130, "category": "rare"},
+	{"name": "禁忌之刃", "desc": "全军ATK+4, 永久", "effect": "atk_boost", "value": 4, "base_price": 200, "category": "rare"},
+	{"name": "海盗旗帜", "desc": "恶名+20", "effect": "infamy", "value": 20, "base_price": 60, "category": "rare"},
+]
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CONSTANTS — 海盗威慑 (Intimidation: threat-based ATK bonus)
+# ══════════════════════════════════════════════════════════════════════════════
+
+const INTIMIDATION_THREAT_FLOOR: int = 50   # Bonus starts above 50 threat
+const INTIMIDATION_ATK_PER_POINT: float = 0.01  # +1% ATK per threat point above floor
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -222,6 +253,9 @@ func reset() -> void:
 	_raid_parties.clear()
 	# 掠夺连击标记
 	_plunder_streak_updated_this_turn.clear()
+	# 黑市稀有物品
+	_black_market_restock_timer.clear()
+	_black_market_rare_stock.clear()
 
 
 func init_player(player_id: int) -> void:
@@ -236,6 +270,9 @@ func init_player(player_id: int) -> void:
 	_market_stock[player_id] = []
 	_raid_parties[player_id] = []
 	_plunder_streak_updated_this_turn[player_id] = false
+	# Black market rare restock
+	_black_market_restock_timer[player_id] = BLACK_MARKET_RESTOCK_TURNS
+	_black_market_rare_stock[player_id] = []
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -264,6 +301,9 @@ func tick(player_id: int) -> void:
 
 	# ── 掠夺连续回合检查 ──
 	_tick_plunder_streak(player_id)
+
+	# ── 稀有黑市补货检查 ──
+	_tick_black_market_restock(player_id)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -730,6 +770,8 @@ func _apply_market_effect(player_id: int, item: Dictionary) -> void:
 				EventBus.message_log.emit("[color=gold]海图加成! 走私额外收入 +%d金[/color]" % bonus_income)
 		"infamy":
 			add_infamy(player_id, value)
+		"shadow_essence":
+			ResourceManager.apply_delta(player_id, {"shadow_essence": value})
 		"escape_bonus":
 			var player: Dictionary = GameManager.get_player_by_id(player_id)
 			player["escape_bonus"] = player.get("escape_bonus", 0) + value
@@ -1260,6 +1302,94 @@ func buy_slave(player_id: int) -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# PIRATE BLACK MARKET — RARE ITEMS (restock every 5 turns, 50% markup, no rep cost)
+# ══════════════════════════════════════════════════════════════════════════════
+
+## Internal: tick the rare black market restock timer.
+func _tick_black_market_restock(player_id: int) -> void:
+	var timer: int = _black_market_restock_timer.get(player_id, BLACK_MARKET_RESTOCK_TURNS)
+	timer -= 1
+	if timer <= 0:
+		_restock_rare_black_market(player_id)
+		_black_market_restock_timer[player_id] = BLACK_MARKET_RESTOCK_TURNS
+	else:
+		_black_market_restock_timer[player_id] = timer
+
+
+## Internal: restock rare items from the pool with 50% markup.
+func _restock_rare_black_market(player_id: int) -> void:
+	var count: int = randi_range(2, 4)  # 2-4 rare items per restock
+	var pool: Array = BLACK_MARKET_RARE_ITEMS.duplicate()
+	pool.shuffle()
+	var stock: Array = []
+	for i in range(mini(count, pool.size())):
+		var item: Dictionary = pool[i].duplicate()
+		item["price"] = int(float(item["base_price"]) * BLACK_MARKET_MARKUP)
+		stock.append(item)
+	_black_market_rare_stock[player_id] = stock
+	var names: String = ""
+	for i in range(stock.size()):
+		if i > 0:
+			names += ", "
+		names += "%s(%d金)" % [stock[i]["name"], stock[i]["price"]]
+	EventBus.message_log.emit("[color=gold]海盗黑市补货! 稀有物品: %s[/color]" % names)
+
+
+## Get the rare black market stock for the player.
+func get_rare_market_stock(player_id: int) -> Array:
+	return _black_market_rare_stock.get(player_id, []).duplicate(true)
+
+
+## Get turns until next rare restock.
+func get_rare_restock_timer(player_id: int) -> int:
+	return _black_market_restock_timer.get(player_id, BLACK_MARKET_RESTOCK_TURNS)
+
+
+## Buy a rare item from the black market. No reputation cost.
+func buy_rare_market_item(player_id: int, item_index: int) -> bool:
+	var stock: Array = _black_market_rare_stock.get(player_id, [])
+	if item_index < 0 or item_index >= stock.size():
+		EventBus.message_log.emit("该稀有商品不存在!")
+		return false
+	var item: Dictionary = stock[item_index]
+	var price: int = item.get("price", 0)
+	if not ResourceManager.spend(player_id, {"gold": price}):
+		EventBus.message_log.emit("金币不足! 需要%d金" % price)
+		return false
+	_apply_market_effect(player_id, item)
+	EventBus.message_log.emit("[color=gold]购买稀有物品 %s! (花费%d金, 无声望消耗)[/color]" % [item["name"], price])
+	stock.remove_at(item_index)
+	_black_market_rare_stock[player_id] = stock
+	EventBus.resources_changed.emit(player_id)
+	return true
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PIRATE INTIMIDATION — threat-based ATK bonus
+# ══════════════════════════════════════════════════════════════════════════════
+
+## Returns the Intimidation ATK bonus based on current threat.
+## +1% ATK per threat point above 50. Returns as a flat int bonus.
+func get_intimidation_atk_bonus(player_id: int) -> int:
+	var threat: int = ThreatManager.get_threat()
+	if threat <= INTIMIDATION_THREAT_FLOOR:
+		return 0
+	var excess: int = threat - INTIMIDATION_THREAT_FLOOR
+	# Convert percentage to flat bonus: excess points * 1% applied to a base ATK of ~10
+	# Use ceil so even 1 excess point gives +1
+	return maxi(ceili(float(excess) * INTIMIDATION_ATK_PER_POINT * 10.0), 0)
+
+
+## Returns the Intimidation ATK multiplier (>1.0 when threat > 50).
+func get_intimidation_mult(player_id: int) -> float:
+	var threat: int = ThreatManager.get_threat()
+	if threat <= INTIMIDATION_THREAT_FLOOR:
+		return 1.0
+	var excess: int = threat - INTIMIDATION_THREAT_FLOOR
+	return 1.0 + float(excess) * INTIMIDATION_ATK_PER_POINT
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # SAVE / LOAD
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -1286,6 +1416,9 @@ func to_save_data() -> Dictionary:
 		"raid_parties": _raid_parties.duplicate(true),
 		# 掠夺连击本回合更新标记
 		"plunder_streak_updated_this_turn": _plunder_streak_updated_this_turn.duplicate(true),
+		# 稀有黑市
+		"black_market_restock_timer": _black_market_restock_timer.duplicate(true),
+		"black_market_rare_stock": _black_market_rare_stock.duplicate(true),
 	}
 
 
@@ -1383,3 +1516,18 @@ func from_save_data(data: Dictionary) -> void:
 				if route is Array:
 					for j in range(route.size()):
 						route[j] = int(route[j])
+	# 稀有黑市
+	_black_market_restock_timer = data.get("black_market_restock_timer", {}).duplicate(true)
+	_fix_int_keys(_black_market_restock_timer)
+	_black_market_rare_stock = data.get("black_market_rare_stock", {}).duplicate(true)
+	_fix_int_keys(_black_market_rare_stock)
+	for pid2 in _black_market_rare_stock:
+		if _black_market_rare_stock[pid2] is Array:
+			for item in _black_market_rare_stock[pid2]:
+				if item is Dictionary:
+					if item.has("price"):
+						item["price"] = int(item["price"])
+					if item.has("base_price"):
+						item["base_price"] = int(item["base_price"])
+					if item.has("value"):
+						item["value"] = int(item["value"])

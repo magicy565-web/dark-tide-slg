@@ -96,6 +96,14 @@ var btn_interrogate: Button
 var btn_reinforce: Button
 var btn_sat_event: Button
 
+# ── UI refs: faction-specific buttons ──
+var btn_waaagh_burst: Button       # Orc: WAAAGH! Burst
+var btn_blood_tribute: Button      # Orc: Blood Tribute
+var btn_rare_market: Button        # Pirate: Rare Black Market
+var btn_shadow_network: Button     # Dark Elf: Shadow Network
+var btn_assassination: Button      # Dark Elf: Assassination
+var btn_corruption: Button         # Dark Elf: Corruption
+
 # ── UI refs: center target selector ──
 var target_panel: PanelContainer
 var target_title_label: Label
@@ -496,6 +504,49 @@ func _build_action_panel(parent: Control) -> void:
 	var btn_event_mgr := _make_button("Event Mgr (E)")
 	btn_event_mgr.pressed.connect(_on_event_manager_pressed)
 	vbox.add_child(btn_event_mgr)
+
+	# ── Faction-specific ability buttons ──
+	var section_faction := _make_label("-- Faction Abilities --", 10, Color(0.8, 0.5, 0.3))
+	vbox.add_child(section_faction)
+
+	# Orc buttons
+	btn_waaagh_burst = _make_button("WAAAGH! Burst (0AP)", null, "danger")
+	btn_waaagh_burst.tooltip_text = "Spend 10 WAAAGH! Power: +30% ATK for 3 turns, then -15% for 2 turns."
+	btn_waaagh_burst.pressed.connect(_on_waaagh_burst_pressed)
+	btn_waaagh_burst.visible = false
+	vbox.add_child(btn_waaagh_burst)
+
+	btn_blood_tribute = _make_button("Blood Tribute (0AP)")
+	btn_blood_tribute.tooltip_text = "Sacrifice a captured hero: permanent +2 ATK to all armies. Reputation cost."
+	btn_blood_tribute.pressed.connect(_on_blood_tribute_pressed)
+	btn_blood_tribute.visible = false
+	vbox.add_child(btn_blood_tribute)
+
+	# Pirate buttons
+	btn_rare_market = _make_button("Rare Market (0AP)")
+	btn_rare_market.tooltip_text = "Browse rare items at 50% markup. No reputation cost. Restocks every 5 turns."
+	btn_rare_market.pressed.connect(_on_rare_market_pressed)
+	btn_rare_market.visible = false
+	vbox.add_child(btn_rare_market)
+
+	# Dark Elf buttons
+	btn_shadow_network = _make_button("Shadow Network (0AP)")
+	btn_shadow_network.tooltip_text = "Toggle: reveal all enemy army positions. Costs 10g/turn upkeep."
+	btn_shadow_network.pressed.connect(_on_shadow_network_pressed)
+	btn_shadow_network.visible = false
+	vbox.add_child(btn_shadow_network)
+
+	btn_assassination = _make_button("Assassinate (2AP)")
+	btn_assassination.tooltip_text = "Attempt to kill an enemy hero. 40% success, -20 reputation."
+	btn_assassination.pressed.connect(_on_assassination_pressed)
+	btn_assassination.visible = false
+	vbox.add_child(btn_assassination)
+
+	btn_corruption = _make_button("Corrupt Tile (0AP)")
+	btn_corruption.tooltip_text = "Corrupt a neutral tile to join you without combat. Costs prestige, 3-turn process."
+	btn_corruption.pressed.connect(_on_corruption_pressed)
+	btn_corruption.visible = false
+	vbox.add_child(btn_corruption)
 
 	# Save/Load buttons (free actions)
 	var btn_save := _make_button("Save (F5)")
@@ -2082,6 +2133,121 @@ func _on_buy_slave() -> void:
 	_after_action()
 
 
+# ── Faction-specific ability handlers ──
+
+func _on_waaagh_burst_pressed() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	FactionManager.orc_waaagh_burst(pid)
+	_update_buttons()
+	_update_player_info()
+
+
+func _on_blood_tribute_pressed() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	# Show prisoner selection in target panel
+	_show_target_panel("Blood Tribute - Select Hero to Sacrifice")
+	var prisoners: Array = HeroSystem.captured_heroes
+	if prisoners.is_empty():
+		_add_target_label("(No captured heroes)")
+	else:
+		for hero_id in prisoners:
+			var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+			var hero_name: String = hero_data.get("name", hero_id)
+			_add_target_button("Sacrifice %s (+2 ATK)" % hero_name, _on_blood_tribute_confirm.bind(hero_id))
+
+
+func _on_blood_tribute_confirm(hero_id: String) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	FactionManager.orc_blood_tribute(pid, hero_id)
+	_close_target_panel()
+	_update_buttons()
+	_update_player_info()
+
+
+func _on_rare_market_pressed() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	var stock: Array = PirateMechanic.get_rare_market_stock(pid)
+	_show_target_panel("Rare Black Market (50%% markup, no rep cost)")
+	if stock.is_empty():
+		_add_target_label("(No rare items available)")
+	else:
+		for i in range(stock.size()):
+			var item: Dictionary = stock[i]
+			var label: String = "%s - %s (%dg)" % [item.get("name", "???"), item.get("desc", ""), item.get("price", 0)]
+			_add_target_button(label, _on_rare_market_buy.bind(i))
+
+
+func _on_rare_market_buy(item_index: int) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	FactionManager.pirate_buy_rare_item(pid, item_index)
+	_close_target_panel()
+	_update_buttons()
+	_update_player_info()
+
+
+func _on_shadow_network_pressed() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	FactionManager.dark_elf_toggle_shadow_network(pid)
+	_update_buttons()
+	_update_player_info()
+
+
+func _on_assassination_pressed() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	# Show target faction selection
+	_show_target_panel("Assassination - Select Target Faction")
+	var player_faction: int = GameManager.get_player_faction(pid)
+	var evil_factions: Array = [FactionData.FactionID.ORC, FactionData.FactionID.PIRATE, FactionData.FactionID.DARK_ELF]
+	for fid in evil_factions:
+		if fid == player_faction:
+			continue
+		if FactionManager.is_faction_alive(fid):
+			var fname: String = FactionData.FACTION_NAMES.get(fid, "Unknown")
+			_add_target_button("Assassinate %s Hero" % fname, _on_assassination_confirm.bind(fid))
+	# Add light faction targets
+	_add_target_button("Assassinate Light Alliance Hero", _on_assassination_confirm.bind(-1))
+
+
+func _on_assassination_confirm(target_faction_id: int) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	FactionManager.dark_elf_assassination(pid, target_faction_id)
+	_close_target_panel()
+	_update_buttons()
+	_update_player_info()
+
+
+func _on_corruption_pressed() -> void:
+	var pid: int = GameManager.get_human_player_id()
+	# Show neutral tile selection
+	_show_target_panel("Corruption - Select Neutral Tile")
+	var found: bool = false
+	for i in range(GameManager.tiles.size()):
+		var tile: Dictionary = GameManager.tiles[i]
+		if tile.get("owner_id", -1) == -1:
+			var tile_name: String = tile.get("name", "Tile #%d" % i)
+			# Check if already being corrupted
+			var targets: Array = DarkElfMechanic.get_corruption_targets(pid)
+			var already: bool = false
+			for t in targets:
+				if t.get("tile_index", -1) == i:
+					already = true
+					break
+			if already:
+				continue
+			_add_target_button("Corrupt %s (#%d)" % [tile_name, i], _on_corruption_confirm.bind(i))
+			found = true
+	if not found:
+		_add_target_label("(No neutral tiles available)")
+
+
+func _on_corruption_confirm(tile_index: int) -> void:
+	var pid: int = GameManager.get_human_player_id()
+	FactionManager.dark_elf_corrupt_tile(pid, tile_index)
+	_close_target_panel()
+	_update_buttons()
+	_update_player_info()
+
+
 func _on_hero_pressed() -> void:
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("open_panel")
@@ -2672,6 +2838,45 @@ func _update_buttons() -> void:
 		btn_sell_slave.disabled = ResourceManager.get_slaves(pid) <= 0
 		btn_buy_slave.disabled = not ResourceManager.can_afford(pid, {"gold": 40})
 
+	# ── Faction-specific ability button visibility & state ──
+	var is_orc: bool = faction_id == FactionData.FactionID.ORC
+	var is_dark_elf: bool = faction_id == FactionData.FactionID.DARK_ELF
+
+	# Orc buttons
+	btn_waaagh_burst.visible = is_orc
+	btn_blood_tribute.visible = is_orc
+	if is_orc:
+		var waaagh_power: int = OrcMechanic.get_waaagh_power(pid)
+		btn_waaagh_burst.text = "WAAAGH! Burst (%d/10)" % waaagh_power
+		btn_waaagh_burst.disabled = not OrcMechanic.can_trigger_waaagh_burst(pid)
+		var has_prisoners: bool = not HeroSystem.captured_heroes.is_empty()
+		btn_blood_tribute.disabled = not has_prisoners
+
+	# Pirate buttons
+	btn_rare_market.visible = is_pirate
+	if is_pirate:
+		var timer: int = PirateMechanic.get_rare_restock_timer(pid)
+		var stock: Array = PirateMechanic.get_rare_market_stock(pid)
+		btn_rare_market.text = "Rare Market (%d items, %dT)" % [stock.size(), timer]
+		btn_rare_market.disabled = stock.is_empty()
+
+	# Dark Elf buttons
+	btn_shadow_network.visible = is_dark_elf
+	btn_assassination.visible = is_dark_elf
+	btn_corruption.visible = is_dark_elf
+	if is_dark_elf:
+		var net_active: bool = DarkElfMechanic.is_shadow_network_active(pid)
+		btn_shadow_network.text = "Shadow Network [%s]" % ("ON" if net_active else "OFF")
+		btn_shadow_network.disabled = false
+		var can_assassinate: bool = DarkElfMechanic.can_assassinate(pid)
+		var cooldown: int = DarkElfMechanic.get_assassination_cooldown(pid)
+		if cooldown > 0:
+			btn_assassination.text = "Assassinate (CD:%d)" % cooldown
+		else:
+			btn_assassination.text = "Assassinate (2AP)"
+		btn_assassination.disabled = not can_assassinate
+		btn_corruption.disabled = not ResourceManager.can_afford(pid, {"prestige": 15})
+
 	# Highlight active mode button
 	_set_mode_highlight(btn_attack, _current_mode == ActionMode.ATTACK or _current_mode == ActionMode.SELECT_ATTACK_TARGET)
 	_set_mode_highlight(btn_deploy, _current_mode == ActionMode.DEPLOY or _current_mode == ActionMode.SELECT_DEPLOY_TARGET)
@@ -2768,12 +2973,41 @@ func _update_player_info() -> void:
 	var faction_id: int = GameManager.get_player_faction(pid)
 	if faction_id == FactionData.FactionID.ORC:
 		var w: int = OrcMechanic.get_waaagh(pid)
-		waaagh_label.text = "WAAAGH!:%d" % w
+		var wp: int = OrcMechanic.get_waaagh_power(pid)
+		var burst: int = OrcMechanic.get_burst_turns(pid)
+		var exhaust: int = OrcMechanic.get_exhaust_turns(pid)
+		var extra: String = ""
+		if burst > 0:
+			extra = " [BURST:%dT]" % burst
+		elif exhaust > 0:
+			extra = " [EXH:%dT]" % exhaust
+		waaagh_label.text = "W!:%d P:%d%s" % [w, wp, extra]
 		waaagh_label.visible = true
-		if OrcMechanic.is_in_frenzy(pid):
+		if burst > 0:
+			waaagh_label.add_theme_color_override("font_color", Color(1.0, 0.8, 0.0))
+		elif exhaust > 0:
+			waaagh_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		elif OrcMechanic.is_in_frenzy(pid):
 			waaagh_label.add_theme_color_override("font_color", Color(1.0, 0.0, 0.0))
 		else:
 			waaagh_label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.1))
+	elif faction_id == FactionData.FactionID.PIRATE:
+		# Pirate: show intimidation bonus if active
+		var intim_bonus: int = PirateMechanic.get_intimidation_atk_bonus(pid)
+		if intim_bonus > 0:
+			waaagh_label.text = "Intim:+%d ATK" % intim_bonus
+			waaagh_label.visible = true
+			waaagh_label.add_theme_color_override("font_color", Color(0.8, 0.4, 0.1))
+		else:
+			waaagh_label.visible = false
+	elif faction_id == FactionData.FactionID.DARK_ELF:
+		# Dark Elf: show shadow network status
+		if DarkElfMechanic.is_shadow_network_active(pid):
+			waaagh_label.text = "Shadow:ON"
+			waaagh_label.visible = true
+			waaagh_label.add_theme_color_override("font_color", Color(0.6, 0.2, 0.8))
+		else:
+			waaagh_label.visible = false
 	else:
 		waaagh_label.visible = false
 

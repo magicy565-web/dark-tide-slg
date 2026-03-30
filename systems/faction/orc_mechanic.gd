@@ -60,6 +60,18 @@ const ROAR_ATK_MULT: float = 1.5
 # ══════════════════════════════════════════════════════════════════════════════
 var _combat_streak: Dictionary = {}    # player_id -> int (consecutive combat turns)
 
+# ══════════════════════════════════════════════════════════════════════════════
+# WAAAGH! POWER (spendable burst mechanic — accumulates +1 per battle won)
+# ══════════════════════════════════════════════════════════════════════════════
+var _waaagh_power: Dictionary = {}         # player_id -> int (accumulated power)
+var _burst_atk_turns: Dictionary = {}      # player_id -> int (remaining burst turns, +30% ATK)
+var _exhaust_turns: Dictionary = {}        # player_id -> int (remaining exhaustion turns, -15% ATK)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOOD TRIBUTE (permanent army ATK from hero sacrifices)
+# ══════════════════════════════════════════════════════════════════════════════
+var _blood_tribute_atk: Dictionary = {}    # player_id -> int (permanent ATK bonus)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # LIFECYCLE
@@ -85,6 +97,12 @@ func reset() -> void:
 	_roar_active.clear()
 	# Momentum state
 	_combat_streak.clear()
+	# WAAAGH! Power burst state
+	_waaagh_power.clear()
+	_burst_atk_turns.clear()
+	_exhaust_turns.clear()
+	# Blood Tribute state
+	_blood_tribute_atk.clear()
 
 
 func init_player(player_id: int) -> void:
@@ -102,6 +120,12 @@ func init_player(player_id: int) -> void:
 	_roar_active[player_id] = false
 	# Momentum defaults
 	_combat_streak[player_id] = 0
+	# WAAAGH! Power defaults
+	_waaagh_power[player_id] = 0
+	_burst_atk_turns[player_id] = 0
+	_exhaust_turns[player_id] = 0
+	# Blood Tribute defaults
+	_blood_tribute_atk[player_id] = 0
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -185,6 +209,9 @@ func tick(player_id: int, had_combat: bool) -> void:
 
 	# ── Clear roar active flag from previous turn ──
 	_roar_active[player_id] = false
+
+	# ── Tick WAAAGH! Power burst/exhaustion ──
+	_tick_waaagh_burst(player_id)
 
 	# ── Tick roar cooldown ──
 	if _roar_cooldown.get(player_id, 0) > 0:
@@ -290,6 +317,7 @@ func on_combat_result(player_id: int, orc_unit_count: int, enemy_squads_destroye
 ## Legacy: simple flat gain (for backward compat with non-detailed combat calls).
 func on_combat_win(player_id: int) -> void:
 	on_combat_result(player_id, 3, 1)  # Approximate: 3 units, 1 squad kill
+	add_waaagh_power(player_id)  # +1 WAAAGH! Power per battle won
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -670,6 +698,116 @@ func _trigger_infighting(player_id: int) -> void:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# WAAAGH! POWER BURST (accumulate per win, spend 10 for massive ATK buff)
+# ══════════════════════════════════════════════════════════════════════════════
+
+## Returns accumulated WAAAGH! Power for the player.
+func get_waaagh_power(player_id: int) -> int:
+	return _waaagh_power.get(player_id, 0)
+
+
+## Called after a battle win to accumulate WAAAGH! Power (+1).
+func add_waaagh_power(player_id: int) -> void:
+	_waaagh_power[player_id] = _waaagh_power.get(player_id, 0) + 1
+	EventBus.message_log.emit("[color=red]WAAAGH! Power +1 (当前: %d)[/color]" % _waaagh_power[player_id])
+
+
+## Check if WAAAGH! Power burst can be activated (requires 10 power, not in burst/exhaust).
+func can_trigger_waaagh_burst(player_id: int) -> bool:
+	return (_waaagh_power.get(player_id, 0) >= 10
+		and _burst_atk_turns.get(player_id, 0) <= 0
+		and _exhaust_turns.get(player_id, 0) <= 0)
+
+
+## Trigger WAAAGH! burst: spend 10 power, +30% ATK for 3 turns, then -15% for 2 turns.
+func trigger_waaagh_burst(player_id: int) -> bool:
+	if not can_trigger_waaagh_burst(player_id):
+		return false
+	var params: Dictionary = FactionData.FACTION_PARAMS[FactionData.FactionID.ORC]
+	_waaagh_power[player_id] -= params.get("waaagh_power_burst_cost", 10)
+	_burst_atk_turns[player_id] = params.get("waaagh_burst_atk_turns", 3)
+	_exhaust_turns[player_id] = 0
+	EventBus.message_log.emit("[color=red]>>> WAAAGH! BURST! 全军ATK+30%% 持续%d回合! <<<[/color]" % _burst_atk_turns[player_id])
+	return true
+
+
+## Returns the WAAAGH! burst/exhaust ATK multiplier (1.0 if neither active).
+func get_waaagh_burst_mult(player_id: int) -> float:
+	if _burst_atk_turns.get(player_id, 0) > 0:
+		var params: Dictionary = FactionData.FACTION_PARAMS[FactionData.FactionID.ORC]
+		return params.get("waaagh_burst_atk_mult", 1.30)
+	if _exhaust_turns.get(player_id, 0) > 0:
+		var params: Dictionary = FactionData.FACTION_PARAMS[FactionData.FactionID.ORC]
+		return params.get("waaagh_burst_exhaust_mult", 0.85)
+	return 1.0
+
+
+## Returns remaining burst turns for UI display.
+func get_burst_turns(player_id: int) -> int:
+	return _burst_atk_turns.get(player_id, 0)
+
+
+## Returns remaining exhaustion turns for UI display.
+func get_exhaust_turns(player_id: int) -> int:
+	return _exhaust_turns.get(player_id, 0)
+
+
+## Internal: tick burst/exhaustion at start of turn.
+func _tick_waaagh_burst(player_id: int) -> void:
+	if _burst_atk_turns.get(player_id, 0) > 0:
+		_burst_atk_turns[player_id] -= 1
+		if _burst_atk_turns[player_id] <= 0:
+			# Burst ended, enter exhaustion
+			var params: Dictionary = FactionData.FACTION_PARAMS[FactionData.FactionID.ORC]
+			_exhaust_turns[player_id] = params.get("waaagh_burst_exhaust_turns", 2)
+			EventBus.message_log.emit("[color=gray]WAAAGH! Burst 结束! 进入疲惫期 %d回合 (ATK-15%%)[/color]" % _exhaust_turns[player_id])
+		else:
+			EventBus.message_log.emit("[color=red]WAAAGH! Burst 剩余%d回合 (ATK+30%%)[/color]" % _burst_atk_turns[player_id])
+	elif _exhaust_turns.get(player_id, 0) > 0:
+		_exhaust_turns[player_id] -= 1
+		if _exhaust_turns[player_id] <= 0:
+			EventBus.message_log.emit("[color=green]WAAAGH! 疲惫期结束, 恢复正常战斗力![/color]")
+		else:
+			EventBus.message_log.emit("[color=gray]WAAAGH! 疲惫期剩余%d回合 (ATK-15%%)[/color]" % _exhaust_turns[player_id])
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BLOOD TRIBUTE (sacrifice captured heroes for permanent army ATK boost)
+# ══════════════════════════════════════════════════════════════════════════════
+
+## Returns the permanent ATK bonus from Blood Tribute sacrifices.
+func get_blood_tribute_atk(player_id: int) -> int:
+	return _blood_tribute_atk.get(player_id, 0)
+
+
+## Sacrifice a captured hero for permanent +2 ATK to all armies. Costs reputation.
+## hero_id: the ID of the captured hero to sacrifice.
+## Returns true on success.
+func blood_tribute(player_id: int, hero_id: String) -> bool:
+	# Check if the hero is captured by this player
+	if hero_id not in HeroSystem.captured_heroes:
+		EventBus.message_log.emit("[color=red]该英雄未被俘获, 无法献祭![/color]")
+		return false
+	var params: Dictionary = FactionData.FACTION_PARAMS[FactionData.FactionID.ORC]
+	var atk_gain: int = params.get("blood_tribute_atk_per_sacrifice", 2)
+	var rep_cost: int = params.get("blood_tribute_rep_cost", -15)
+
+	# Remove hero from prisoners
+	HeroSystem.captured_heroes.erase(hero_id)
+
+	# Apply permanent ATK bonus
+	_blood_tribute_atk[player_id] = _blood_tribute_atk.get(player_id, 0) + atk_gain
+
+	# Apply reputation penalty (positive threat gain from the negative rep cost)
+	ThreatManager.change_threat(-rep_cost)
+
+	EventBus.message_log.emit("[color=red]>>> 血祭! 献祭英雄 %s, 全军永久ATK+%d (累计: +%d) <<<[/color]" % [
+		hero_id, atk_gain, _blood_tribute_atk[player_id]])
+	EventBus.message_log.emit("[color=gray]声望损失: %d[/color]" % rep_cost)
+	return true
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # BACKWARD COMPATIBILITY (deprecated wrappers)
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -715,6 +853,12 @@ func to_save_data() -> Dictionary:
 		"roar_active": _roar_active.duplicate(),
 		# Momentum state
 		"combat_streak": _combat_streak.duplicate(),
+		# WAAAGH! Power burst state
+		"waaagh_power": _waaagh_power.duplicate(),
+		"burst_atk_turns": _burst_atk_turns.duplicate(),
+		"exhaust_turns": _exhaust_turns.duplicate(),
+		# Blood Tribute state
+		"blood_tribute_atk": _blood_tribute_atk.duplicate(),
 	}
 
 
@@ -777,3 +921,13 @@ func from_save_data(data: Dictionary) -> void:
 	# Momentum state
 	_combat_streak = data.get("combat_streak", {}).duplicate()
 	_fix_int_keys(_combat_streak)
+	# WAAAGH! Power burst state
+	_waaagh_power = data.get("waaagh_power", {}).duplicate()
+	_fix_int_keys(_waaagh_power)
+	_burst_atk_turns = data.get("burst_atk_turns", {}).duplicate()
+	_fix_int_keys(_burst_atk_turns)
+	_exhaust_turns = data.get("exhaust_turns", {}).duplicate()
+	_fix_int_keys(_exhaust_turns)
+	# Blood Tribute state
+	_blood_tribute_atk = data.get("blood_tribute_atk", {}).duplicate()
+	_fix_int_keys(_blood_tribute_atk)
