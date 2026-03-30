@@ -226,6 +226,7 @@ func _collect_save_data() -> Dictionary:
 		"enchantment": EnchantmentSystem.to_save_data() if EnchantmentSystem != null else {},
 		"hero_skills_advanced": HeroSkillsAdvanced.to_save_data() if HeroSkillsAdvanced != null else {},
 		"environment": EnvironmentSystem.to_save_data() if EnvironmentSystem != null else {},
+		"troop_training": _collect_troop_training(),
 	}
 
 
@@ -383,6 +384,12 @@ func _apply_save_data(data: Dictionary) -> void:
 	if data.has("environment") and EnvironmentSystem != null:
 		EnvironmentSystem.from_save_data(data.get("environment", {}))
 
+	# 4i. Restore troop training panel state
+	if data.has("troop_training"):
+		var ttp = _find_troop_training_panel()
+		if ttp and ttp.has_method("from_save_data"):
+			ttp.from_save_data(data.get("troop_training", {}))
+
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
 	EventBus.resources_changed.emit(pid)
@@ -538,6 +545,21 @@ func _is_version_compatible(saved_ver: String) -> bool:
 
 
 # ═══════════════ HELPERS ═══════════════
+
+func _find_troop_training_panel():
+	## Locate the TroopTrainingPanel node in the scene tree.
+	var scene = get_tree().current_scene
+	if scene and "troop_training_panel" in scene and scene.troop_training_panel:
+		return scene.troop_training_panel
+	return null
+
+
+func _collect_troop_training() -> Dictionary:
+	var ttp = _find_troop_training_panel()
+	if ttp and ttp.has_method("to_save_data"):
+		return ttp.to_save_data()
+	return {}
+
 
 func _safe_load(loader: Callable, system_name: String) -> void:
 	## Wraps a subsystem load call with error handling to prevent one failure from breaking all loading.

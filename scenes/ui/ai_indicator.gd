@@ -331,7 +331,7 @@ func _on_phase_banner_requested(text: String, is_ai_turn: bool) -> void:
 
 func _on_skip_pressed() -> void:
 	if EventBus and EventBus.has_signal("ai_skip_animations_requested"):
-		EventBus.emit_signal("ai_skip_animations_requested")
+		EventBus.ai_skip_animations_requested.emit()
 
 # ═══════════════════════════════════════════════════════════════
 #                      SHOW / HIDE ANIMATIONS

@@ -233,7 +233,7 @@ func start_training(player_id: int, troop_id: String, slot: int) -> bool:
 	if rm and rm.has_method("can_afford"):
 		if not rm.can_afford(player_id, slot_def["cost"]):
 			return false
-		rm.deduct(player_id, slot_def["cost"])
+		rm.spend(player_id, slot_def["cost"])
 	state["status"] = TrainStatus.TRAINING
 	state["progress"] = 0
 	return true
@@ -264,11 +264,11 @@ func cancel_training(player_id: int, troop_id: String, slot: int) -> bool:
 	# Refund 50%
 	var slot_def: Dictionary = TROOP_TRAINING_DEFS[troop_id][slot]
 	var rm = _get_node_safe("/root/ResourceManager")
-	if rm and rm.has_method("add_resources"):
+	if rm and rm.has_method("apply_delta"):
 		var refund: Dictionary = {}
 		for res_key in slot_def["cost"].keys():
 			refund[res_key] = int(slot_def["cost"][res_key] * 0.5)
-		rm.add_resources(player_id, refund)
+		rm.apply_delta(player_id, refund)
 	state["status"] = TrainStatus.AVAILABLE
 	state["progress"] = 0
 	return true

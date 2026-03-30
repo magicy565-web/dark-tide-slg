@@ -332,6 +332,7 @@ signal ai_action_started(faction_key: String, action_type: String, detail: Strin
 signal ai_action_completed(faction_key: String, action_type: String, success: bool)
 signal ai_turn_progress(faction_key: String, phase: int, total_phases: int)
 signal ai_thinking(faction_key: String, is_thinking: bool)
+signal ai_skip_animations_requested()
 
 # ── Debug Console ──
 signal debug_command_executed(command: String, result: String)

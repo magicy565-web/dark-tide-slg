@@ -61,9 +61,11 @@ func _process(delta: float) -> void:
 		graph_canvas.queue_redraw()
 
 func _connect_signals() -> void:
-	ResearchManager.research_started.connect(_on_research_changed)
-	ResearchManager.research_completed.connect(_on_research_changed)
-	ResearchManager.research_cancelled.connect(_on_research_changed)
+	var _rm = get_node_or_null("/root/ResearchManager")
+	if _rm:
+		_rm.research_started.connect(_on_research_changed)
+		_rm.research_completed.connect(_on_research_changed)
+		_rm.research_cancelled.connect(_on_research_changed)
 	EventBus.tech_effects_applied.connect(_on_tech_effects)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -215,7 +217,8 @@ func show_panel() -> void:
 	_refresh()
 
 func hide_panel() -> void:
-	AudioManager.play_ui_cancel()
+	var _am = get_node_or_null("/root/AudioManager")
+	if _am: _am.play_ui_cancel()
 	_visible = false; root.visible = false
 
 func is_panel_visible() -> bool:
@@ -259,11 +262,13 @@ func _refresh() -> void:
 
 func _refresh_queue_bar() -> void:
 	for c in queue_bar.get_children(): c.queue_free()
+	var _rm = get_node_or_null("/root/ResearchManager")
+	if not _rm: return
 	var pid: int = GameManager.get_human_player_id()
-	var current: String = ResearchManager.get_current_research(pid)
-	var progress: int = ResearchManager.get_research_progress(pid)
-	var speed: float = ResearchManager.get_research_speed(pid)
-	var queue: Array = ResearchManager.get_research_queue(pid)
+	var current: String = _rm.get_current_research(pid)
+	var progress: int = _rm.get_research_progress(pid)
+	var speed: float = _rm.get_research_speed(pid)
+	var queue: Array = _rm.get_research_queue(pid)
 
 	# "Research:" label
 	var prefix := Label.new()
@@ -281,13 +286,13 @@ func _refresh_queue_bar() -> void:
 		return
 
 	# Current research chip
-	var cur_data: Dictionary = ResearchManager.get_tech_data(current)
+	var cur_data: Dictionary = _rm.get_tech_data(current)
 	var turns_needed: int = cur_data.get("turns", 1)
 	_add_queue_chip(cur_data.get("name", current), progress, turns_needed, true)
 
 	# Queued items
 	for tid in queue:
-		var qd: Dictionary = ResearchManager.get_tech_data(tid)
+		var qd: Dictionary = _rm.get_tech_data(tid)
 		_add_queue_chip(qd.get("name", tid), 0, qd.get("turns", 1), false)
 
 	# Speed indicator
@@ -343,8 +348,10 @@ func _refresh_graph() -> void:
 	for c in card_container.get_children(): c.queue_free()
 	_card_positions.clear(); _card_controls.clear()
 
+	var _rm = get_node_or_null("/root/ResearchManager")
+	if not _rm: return
 	var pid: int = GameManager.get_human_player_id()
-	if ResearchManager._active_tree.is_empty():
+	if _rm._active_tree.is_empty():
 		var lbl := Label.new()
 		lbl.text = "No research available (build an academy first)"
 		lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
@@ -368,17 +375,19 @@ func _calc_graph_size() -> Vector2:
 	return Vector2(max_x, max_y)
 
 func _layout_cards() -> void:
+	var _rm = get_node_or_null("/root/ResearchManager")
+	if not _rm: return
 	var pid: int = GameManager.get_human_player_id()
-	var completed: Array = ResearchManager.get_completed_techs(pid)
-	var current: String = ResearchManager.get_current_research(pid)
-	var queue: Array = ResearchManager.get_research_queue(pid)
+	var completed: Array = _rm.get_completed_techs(pid)
+	var current: String = _rm.get_current_research(pid)
+	var queue: Array = _rm.get_research_queue(pid)
 	var available_ids: Array = []
-	for a in ResearchManager.get_available_techs(pid): available_ids.append(a["id"])
+	for a in _rm.get_available_techs(pid): available_ids.append(a["id"])
 
 	# Group by tier
 	var tier_groups: Dictionary = {0: [], 1: [], 2: []}
-	for tech_id in ResearchManager._active_tree:
-		var data: Dictionary = ResearchManager._active_tree[tech_id]
+	for tech_id in _rm._active_tree:
+		var data: Dictionary = _rm._active_tree[tech_id]
 		var tier: int = data.get("tier", 0)
 		if not tier_groups.has(tier): tier_groups[tier] = []
 		tier_groups[tier].append(tech_id)
@@ -386,8 +395,8 @@ func _layout_cards() -> void:
 	# Sort within each tier by branch for consistent ordering
 	for tier in tier_groups:
 		tier_groups[tier].sort_custom(func(a, b):
-			var da: Dictionary = ResearchManager._active_tree[a]
-			var db: Dictionary = ResearchManager._active_tree[b]
+			var da: Dictionary = _rm._active_tree[a]
+			var db: Dictionary = _rm._active_tree[b]
 			if da.get("branch", 0) != db.get("branch", 0):
 				return da.get("branch", 0) < db.get("branch", 0)
 			return a < b
@@ -416,7 +425,8 @@ func _get_branch_color(branch_val) -> Color:
 	return Color(0.5, 0.5, 0.5)
 
 func _create_card(tech_id: String, pos: Vector2, state: String) -> void:
-	var data: Dictionary = ResearchManager._active_tree.get(tech_id, {})
+	var _rm = get_node_or_null("/root/ResearchManager")
+	var data: Dictionary = _rm._active_tree.get(tech_id, {}) if _rm else {}
 	var branch_color: Color = _get_branch_color(data.get("branch", -1))
 	var card := PanelContainer.new()
 	card.position = pos
@@ -568,12 +578,14 @@ func _update_card_entrance() -> void:
 
 func _draw_connections() -> void:
 	if not is_instance_valid(graph_canvas): return
+	var _rm = get_node_or_null("/root/ResearchManager")
+	if not _rm: return
 	var pid: int = GameManager.get_human_player_id()
-	var completed: Array = ResearchManager.get_completed_techs(pid)
-	var current: String = ResearchManager.get_current_research(pid)
+	var completed: Array = _rm.get_completed_techs(pid)
+	var current: String = _rm.get_current_research(pid)
 
-	for tech_id in ResearchManager._active_tree:
-		var data: Dictionary = ResearchManager._active_tree[tech_id]
+	for tech_id in _rm._active_tree:
+		var data: Dictionary = _rm._active_tree[tech_id]
 		var prereqs: Array = data.get("prereqs", [])
 		if not _card_positions.has(tech_id): continue
 		var to_pos: Vector2 = _card_positions[tech_id] + Vector2(0, CARD_H * 0.5)
@@ -669,14 +681,16 @@ func _cubic_bezier(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: float)
 func _refresh_detail() -> void:
 	for c in detail_container.get_children(): c.queue_free()
 	if _selected_tech_id == "": return
+	var _rm = get_node_or_null("/root/ResearchManager")
+	if not _rm: return
 	var pid: int = GameManager.get_human_player_id()
-	var data: Dictionary = ResearchManager.get_tech_data(_selected_tech_id)
+	var data: Dictionary = _rm.get_tech_data(_selected_tech_id)
 	if data.is_empty(): return
-	var completed: Array = ResearchManager.get_completed_techs(pid)
-	var current: String = ResearchManager.get_current_research(pid)
-	var queue: Array = ResearchManager.get_research_queue(pid)
+	var completed: Array = _rm.get_completed_techs(pid)
+	var current: String = _rm.get_current_research(pid)
+	var queue: Array = _rm.get_research_queue(pid)
 	var available_ids: Array = []
-	for a in ResearchManager.get_available_techs(pid): available_ids.append(a["id"])
+	for a in _rm.get_available_techs(pid): available_ids.append(a["id"])
 	var state: String = _get_tech_state(_selected_tech_id, completed, current, queue, available_ids)
 
 	# Name
@@ -751,7 +765,7 @@ func _refresh_detail() -> void:
 		pt.add_theme_color_override("font_color", Color(0.7, 0.55, 0.4))
 		detail_container.add_child(pt)
 		for p in prereqs:
-			var pd: Dictionary = ResearchManager.get_tech_data(p)
+			var pd: Dictionary = _rm.get_tech_data(p)
 			var done: bool = p in completed
 			var pl := Label.new()
 			pl.text = "  %s %s" % ["✓" if done else "✗", pd.get("name", p)]
@@ -797,7 +811,7 @@ func _refresh_detail() -> void:
 		done_lbl.add_theme_color_override("font_color", Color(0.35, 0.95, 0.45))
 		detail_container.add_child(done_lbl)
 	elif state == "researching":
-		var prog := ResearchManager.get_research_progress(pid)
+		var prog := _rm.get_research_progress(pid)
 		var total: int = data.get("turns", 1)
 		var pl := Label.new()
 		pl.text = "⟳ Researching... %d/%d turns" % [prog, total]
@@ -873,7 +887,8 @@ func _on_tech_card_input(event: InputEvent, tech_id: String) -> void:
 		_on_select_tech(tech_id)
 
 func _on_select_tech(tech_id: String) -> void:
-	AudioManager.play_ui_click()
+	var _am = get_node_or_null("/root/AudioManager")
+	if _am: _am.play_ui_click()
 	_selected_tech_id = tech_id; detail_panel.visible = true; _refresh_detail()
 
 func _on_card_hover_in(tech_id: String, card: Control) -> void:
@@ -883,7 +898,8 @@ func _on_card_hover_in(tech_id: String, card: Control) -> void:
 		tw.tween_property(card, "scale", Vector2(1.06, 1.06), 0.1).set_ease(Tween.EASE_OUT)
 		card.z_index = 10
 		# Tooltip via hint
-		var data: Dictionary = ResearchManager.get_tech_data(tech_id)
+		var _rm = get_node_or_null("/root/ResearchManager")
+		var data: Dictionary = _rm.get_tech_data(tech_id) if _rm else {}
 		card.tooltip_text = data.get("desc", "")
 
 func _on_card_hover_out(tech_id: String, card: Control) -> void:
@@ -894,12 +910,18 @@ func _on_card_hover_out(tech_id: String, card: Control) -> void:
 		card.z_index = 0
 
 func _on_start_research(tech_id: String) -> void:
-	AudioManager.play_ui_confirm()
-	ResearchManager.start_research(GameManager.get_human_player_id(), tech_id); _refresh()
+	var _am = get_node_or_null("/root/AudioManager")
+	if _am: _am.play_ui_confirm()
+	var _rm = get_node_or_null("/root/ResearchManager")
+	if _rm: _rm.start_research(GameManager.get_human_player_id(), tech_id)
+	_refresh()
 
 func _on_cancel_research() -> void:
-	AudioManager.play_ui_click()
-	ResearchManager.cancel_research(GameManager.get_human_player_id()); _refresh()
+	var _am = get_node_or_null("/root/AudioManager")
+	if _am: _am.play_ui_click()
+	var _rm = get_node_or_null("/root/ResearchManager")
+	if _rm: _rm.cancel_research(GameManager.get_human_player_id())
+	_refresh()
 
 func _on_research_changed(_pid: int, _tech_id: String) -> void:
 	if _visible: _refresh()
