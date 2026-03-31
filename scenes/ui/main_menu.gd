@@ -1,7 +1,10 @@
 ## main_menu.gd - Title screen + Faction selection for Dark Tide SLG (v4.0-pixel)
 extends CanvasLayer
 
-signal game_started(faction_id: int)
+signal game_started(faction_id: int, fixed_map: bool)
+
+# ── Map mode ──
+var _use_fixed_map: bool = false
 
 # ── Font ──
 var _cjk_font: Font = null
@@ -318,6 +321,20 @@ func _build_faction_panel_content() -> void:
 	btn_confirm.pressed.connect(_on_confirm_faction)
 	btn_row.add_child(btn_confirm)
 
+	# Map mode toggle
+	var map_row := HBoxContainer.new()
+	map_row.add_theme_constant_override("separation", 8)
+	map_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	left_vbox.add_child(map_row)
+	var map_toggle := CheckBox.new()
+	map_toggle.text = "Fixed Map (55 territories, 7 nations)"
+	map_toggle.button_pressed = false
+	if _cjk_font:
+		map_toggle.add_theme_font_override("font", _cjk_font)
+	map_toggle.add_theme_font_size_override("font_size", 12)
+	map_toggle.toggled.connect(func(pressed): _use_fixed_map = pressed)
+	map_row.add_child(map_toggle)
+
 	# Right side: faction preview with crest + description
 	var right_vbox := VBoxContainer.new()
 	right_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -579,7 +596,7 @@ func _on_confirm_faction() -> void:
 		return
 	_show_loading()
 	await get_tree().process_frame
-	game_started.emit(_selected_faction)
+	game_started.emit(_selected_faction, _use_fixed_map)
 	# The main scene will handle starting the game, then hide this menu
 	_hide_menu()
 

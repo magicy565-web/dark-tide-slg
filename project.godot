@@ -82,6 +82,7 @@ DynamicSituationEvents="*res://systems/event/dynamic_situation_events.gd"
 SceneAudioDirector="*res://systems/audio/scene_audio_director.gd"
 CrisisCountdown="*res://systems/event/crisis_countdown.gd"
 ExpandedRandomEvents="*res://systems/event/expanded_random_events.gd"
+ExtraEventsV5="*res://systems/event/extra_events_v5.gd"
 
 [display]
 

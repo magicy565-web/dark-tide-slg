@@ -62,6 +62,10 @@ var intel_overlay = null
 # ── v3.6 Equipment Forge panel ──
 var equipment_forge_panel = null
 
+# ── v4.8: Nation & Multi-route panels ──
+var nation_panel = null
+var multi_route_panel = null
+
 
 func _ready() -> void:
 	# Start with HUD hidden, menu visible (board stays visible - camera needs it)
@@ -215,6 +219,18 @@ func _ready() -> void:
 	equipment_forge_panel.set_script(EquipmentForgePanelScript)
 	add_child(equipment_forge_panel)
 
+	# ── v4.8: Nation Power Panel (fixed map, Key: N) ──
+	var NationPanelScript = preload("res://scenes/ui/nation_panel.gd")
+	nation_panel = CanvasLayer.new()
+	nation_panel.set_script(NationPanelScript)
+	add_child(nation_panel)
+
+	# ── v4.8: Multi-route Battle Panel (合战, Key: G) ──
+	var MultiRoutePanelScript = preload("res://scenes/ui/multi_route_panel.gd")
+	multi_route_panel = CanvasLayer.new()
+	multi_route_panel.set_script(MultiRoutePanelScript)
+	add_child(multi_route_panel)
+
 	# Wire combat view close to resume gameplay
 	combat_view.combat_view_closed.connect(_on_combat_view_closed)
 
@@ -222,12 +238,12 @@ func _ready() -> void:
 	EventBus.combat_view_requested.connect(_on_combat_view_requested)
 
 
-func _on_game_started(faction_id: int) -> void:
+func _on_game_started(faction_id: int, fixed_map: bool = false) -> void:
 	# Show the HUD
 	hud.visible = true
 
 	# Start the game with the chosen faction
-	GameManager.start_game(faction_id)
+	GameManager.start_game(faction_id, fixed_map)
 
 	# Rebuild board with new game data
 	if board.has_method("rebuild"):
