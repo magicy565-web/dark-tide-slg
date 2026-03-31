@@ -13,6 +13,7 @@ extends RefCounted
 
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const LocationPresets = preload("res://systems/map/location_presets.gd")
+const FixedMapData = preload("res://systems/map/fixed_map_data.gd")
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -211,6 +212,66 @@ func generate(player_faction: int) -> Dictionary:
 	var nodes: Dictionary = _assign_nodes(positions, edges, player_faction, tile_regions)
 
 	return {"nodes": nodes, "edges": edges}
+
+# ---------------------------------------------------------------------------
+# Fixed map generation (hand-designed 55-territory map)
+# ---------------------------------------------------------------------------
+
+## Generate a fixed, hand-designed map from FixedMapData and return the same
+## format as generate(): {"nodes": {id: node_data}, "edges": {id: [connected_ids]}}.
+func generate_fixed(player_faction: int) -> Dictionary:
+	var nodes: Dictionary = {}
+	var edges: Dictionary = {}
+
+	for t in FixedMapData.TERRITORIES:
+		var tid: int = t["id"]
+		var type_enum: int = _type_string_to_enum(_fixed_type_to_gen_type(t["type"]))
+		var terrain_enum: int = _terrain_string_to_enum(t["terrain"])
+		var faction_enum: int = _faction_string_to_enum(t["faction"])
+		var level: int = t["level"]
+		var garrison_size: int = t["garrison_base"]
+		var city_def: int = t["city_def"]
+
+		var nd: Dictionary = {
+			"id": tid,
+			"position": t["position"],
+			"type": type_enum,
+			"terrain": terrain_enum,
+			"owner": faction_enum,
+			"name": t["name"],
+			"garrison": _make_garrison(garrison_size),
+			"city_def": city_def,
+			"city_def_max": city_def,
+			"level": level,
+			"building": -1,
+			"building_level": 0,
+			"resource_type": t["resource_type"],
+			"region_id": t["nation_id"],
+			"region_name": t["nation_name"],
+			"is_chokepoint": t["is_chokepoint"],
+			"is_capital": t["is_capital"],
+			"nation_id": t["nation_id"],
+			"nation_name": t["nation_name"],
+			"description": t["description"],
+		}
+		nodes[tid] = nd
+		edges[tid] = t["connections"].duplicate()
+
+	# Assign player start
+	_assign_player_start(nodes, edges, player_faction)
+
+	return {"nodes": nodes, "edges": edges}
+
+## Map fixed territory type strings to the type strings used by _type_string_to_enum.
+func _fixed_type_to_gen_type(fixed_type: String) -> String:
+	match fixed_type:
+		"FORTRESS": return "FORTRESS"
+		"VILLAGE": return "VILLAGE"
+		"OUTPOST": return "STRONGHOLD"
+		"BANDIT": return "BANDIT_CAMP"
+		"EVENT": return "EVENT_POINT"
+		"RESOURCE": return "RESOURCE"
+		_: return "VILLAGE"
 
 # ---------------------------------------------------------------------------
 # Fortress placement

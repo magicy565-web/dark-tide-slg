@@ -48,6 +48,26 @@ const FORMATION_NAMES_CN: Dictionary = {
 const COMBO_PINCER_ATTACK := "PINCER_ATTACK"
 const COMBO_DESPERATE_STAND := "DESPERATE_STAND"
 const COMBO_COMMANDER_DUEL := "COMMANDER_DUEL"
+const COMBO_CROSS_FIRE := "CROSS_FIRE"
+const COMBO_SHIELD_BROTHERS := "SHIELD_BROTHERS"
+const COMBO_DARK_RITUAL := "DARK_RITUAL"
+const COMBO_CAVALRY_SWEEP := "CAVALRY_SWEEP"
+const COMBO_ARTILLERY_BARRAGE := "ARTILLERY_BARRAGE"
+const COMBO_ASSASSIN_MARK := "ASSASSIN_MARK"
+const COMBO_HEROIC_CHARGE := "HEROIC_CHARGE"
+
+const COMBO_NAMES_CN: Dictionary = {
+	COMBO_PINCER_ATTACK: "夹击",
+	COMBO_DESPERATE_STAND: "背水一战",
+	COMBO_COMMANDER_DUEL: "大将单挑",
+	COMBO_CROSS_FIRE: "交叉火力",
+	COMBO_SHIELD_BROTHERS: "盾墙兄弟",
+	COMBO_DARK_RITUAL: "暗黑仪式",
+	COMBO_CAVALRY_SWEEP: "骑兵横扫",
+	COMBO_ARTILLERY_BARRAGE: "炮火洗礼",
+	COMBO_ASSASSIN_MARK: "暗杀印记",
+	COMBO_HEROIC_CHARGE: "英雄突击",
+}
 
 # ─── Unit classification helpers ─────────────────────────────────────────────
 # TroopClass mirrors from TroopRegistry (avoid circular preload)
@@ -119,6 +139,12 @@ static func _is_priest(unit: Dictionary) -> bool:
 	var uid := _get_unit_id_string(unit)
 	return uid.find("priest") != -1 or uid.find("cleric") != -1 or uid.find("monk") != -1 or uid.find("healer") != -1
 
+static func _is_dark_elf(unit: Dictionary) -> bool:
+	if unit.get("faction", "") == "dark_elf":
+		return true
+	var uid := _get_unit_id_string(unit)
+	return uid.find("dark_elf") != -1 or uid.find("darkelf") != -1 or uid.find("drow") != -1
+
 static func _is_orc(unit: Dictionary) -> bool:
 	return unit.get("faction", "") == "orc"
 
@@ -135,6 +161,16 @@ static func _is_support(unit: Dictionary) -> bool:
 	if unit.get("troop_class", -1) in [TC_PRIEST, TC_MAGE_UNIT]:
 		return true
 	return _is_mage(unit) or _is_priest(unit)
+
+static func _is_hero_unit(unit: Dictionary) -> bool:
+	return unit.get("is_hero", false) or unit.get("hero_id", "") != ""
+
+static func _unit_hp_ratio(unit: Dictionary) -> float:
+	var cur: int = unit.get("soldiers", unit.get("current_soldiers", 0))
+	var mx: int = unit.get("max_soldiers", 1)
+	if mx <= 0:
+		return 1.0
+	return float(cur) / float(mx)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PUBLIC API — detect_formations
@@ -424,6 +460,115 @@ static func check_tactical_combo(state: Dictionary, round_num: int) -> Array:
 				"effects": {"winner_morale": 15, "loser_morale": -15},
 			})
 
+	# ── CROSS_FIRE ──
+	# 2+ ranged units in back row + at least 1 front row holding = ranged ATK +35% for 1 round
+	var back_ranged_count: int = 0
+	var has_front_holder: bool = false
+	for u in own:
+		if u.get("row", ROW_FRONT) == ROW_BACK and _is_ranged(u):
+			back_ranged_count += 1
+		if _is_front(u) and not _is_ranged(u):
+			has_front_holder = true
+	if back_ranged_count >= 2 and has_front_holder:
+		combos.append({
+			"id": COMBO_CROSS_FIRE,
+			"description": "Cross Fire: back row ranged units lay down suppressive fire — ranged ATK +35% for 1 round",
+			"effects": {"ranged_atk_mult": 1.35, "duration": 1},
+		})
+
+	# ── SHIELD_BROTHERS ──
+	# 3 front row units all samurai/heavy = team DEF +3, morale loss -50%
+	var front_heavy_count: int = 0
+	for u in own:
+		if _is_front(u) and _is_heavy_front(u):
+			front_heavy_count += 1
+	if front_heavy_count >= 3:
+		combos.append({
+			"id": COMBO_SHIELD_BROTHERS,
+			"description": "Shield Brothers: heavy front line locks shields — team DEF +3, morale loss -50%",
+			"effects": {"def_add": 3, "morale_loss_mult": 0.5},
+		})
+
+	# ── DARK_RITUAL ──
+	# 2+ dark elf units + priest = sacrifice 1 soldier per dark elf, all ATK +4
+	var dark_elf_count: int = 0
+	var has_priest: bool = false
+	for u in own:
+		if _is_dark_elf(u):
+			dark_elf_count += 1
+		if _is_priest(u):
+			has_priest = true
+	if dark_elf_count >= 2 and has_priest:
+		combos.append({
+			"id": COMBO_DARK_RITUAL,
+			"description": "Dark Ritual: dark elves sacrifice blood for power — lose 1 soldier each, all ATK +4",
+			"effects": {"atk_add": 4, "sacrifice_per_dark_elf": 1, "dark_elf_count": dark_elf_count},
+		})
+
+	# ── CAVALRY_SWEEP ──
+	# 2+ cavalry + enemy has no front row = instant morale -30 on all enemies
+	var own_cavalry_count: int = 0
+	for u in own:
+		if _is_cavalry(u):
+			own_cavalry_count += 1
+	var enemy_has_front: bool = false
+	for u in enemy:
+		if _is_front(u):
+			var soldiers: int = u.get("soldiers", u.get("current_soldiers", 0))
+			if soldiers > 0:
+				enemy_has_front = true
+				break
+	if own_cavalry_count >= 2 and not enemy_has_front:
+		combos.append({
+			"id": COMBO_CAVALRY_SWEEP,
+			"description": "Cavalry Sweep: no enemy front line — cavalry charges through, all enemies morale -30",
+			"effects": {"enemy_morale_add": -30},
+		})
+
+	# ── ARTILLERY_BARRAGE ──
+	# 2+ cannon + mage = AoE damage hits ALL enemy units (reduced to 50%)
+	var cannon_count: int = 0
+	var mage_count: int = 0
+	for u in own:
+		if _is_cannon_or_gunner(u):
+			cannon_count += 1
+		if _is_mage(u):
+			mage_count += 1
+	if cannon_count >= 2 and mage_count >= 1:
+		combos.append({
+			"id": COMBO_ARTILLERY_BARRAGE,
+			"description": "Artillery Barrage: mage-guided bombardment — AoE hits ALL enemies at 50% damage",
+			"effects": {"aoe_all_enemies": true, "aoe_damage_pct": 0.5},
+		})
+
+	# ── ASSASSIN_MARK ──
+	# ninja/assassin kills a unit this round = next ninja attack gets +50% damage
+	# Requires state key "unit_killed_this_round" set by combat_resolver
+	var has_ninja: bool = false
+	for u in own:
+		if _is_ninja_or_assassin(u):
+			has_ninja = true
+			break
+	var ninja_killed: bool = state.get("ninja_killed_unit_this_round", false)
+	if has_ninja and ninja_killed:
+		combos.append({
+			"id": COMBO_ASSASSIN_MARK,
+			"description": "Assassin Mark: kill confirmed — next ninja/assassin attack deals +50% damage",
+			"effects": {"ninja_atk_mult": 1.5, "duration": 1},
+		})
+
+	# ── HEROIC_CHARGE ──
+	# hero unit below 30% HP = ATK x2 for that hero's unit for 1 round
+	for u in own:
+		if _is_hero_unit(u) and _unit_hp_ratio(u) < 0.3 and _unit_hp_ratio(u) > 0.0:
+			var hid: String = u.get("hero_id", u.get("id", "unknown"))
+			combos.append({
+				"id": COMBO_HEROIC_CHARGE,
+				"description": "Heroic Charge: %s fights at death's door — ATK x2 for 1 round" % hid,
+				"effects": {"hero_atk_mult": 2.0, "duration": 1, "hero_id": hid},
+			})
+			break  # Only one heroic charge per check
+
 	return combos
 
 
@@ -552,3 +697,33 @@ static func get_formation_description_cn(formation_id: int) -> String:
 		FormationID.LONE_WOLF:
 			return "【独狼】仅部署1个单位时自动触发。效果：攻击x1.5，防御x1.3，速度+3，免疫士气崩溃。"
 	return "未知阵型"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PUBLIC API — get_combo_description_cn
+# ═══════════════════════════════════════════════════════════════════════════════
+
+## Returns a Chinese description of a combo's trigger conditions and effects for UI display.
+static func get_combo_description_cn(combo_id: String) -> String:
+	match combo_id:
+		COMBO_PINCER_ATTACK:
+			return "【夹击】前排近战+后排远程，敌前排低于50%：全体攻击+20%持续1回合。"
+		COMBO_DESPERATE_STAND:
+			return "【背水一战】己方总兵力≤30%：全体防御+5，反击伤害x1.5。"
+		COMBO_COMMANDER_DUEL:
+			return "【大将单挑】双方均有武将，每回合20%触发：胜者全军士气+15，败者-15。"
+		COMBO_CROSS_FIRE:
+			return "【交叉火力】后排2+远程+前排持守：远程攻击+35%持续1回合。"
+		COMBO_SHIELD_BROTHERS:
+			return "【盾墙兄弟】前排3+重装：全体防御+3，士气损失减半。"
+		COMBO_DARK_RITUAL:
+			return "【暗黑仪式】2+暗精灵+牧师：每暗精灵牺牲1士兵，全体攻击+4。"
+		COMBO_CAVALRY_SWEEP:
+			return "【骑兵横扫】2+骑兵且敌方无前排：全体敌军士气-30。"
+		COMBO_ARTILLERY_BARRAGE:
+			return "【炮火洗礼】2+炮兵+法师：范围伤害命中全体敌军（50%威力）。"
+		COMBO_ASSASSIN_MARK:
+			return "【暗杀印记】忍者/刺客本回合击杀：下次忍者攻击伤害+50%。"
+		COMBO_HEROIC_CHARGE:
+			return "【英雄突击】武将单位血量低于30%：该武将部队攻击x2持续1回合。"
+	return "未知组合技"

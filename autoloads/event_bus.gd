@@ -259,6 +259,29 @@ signal formation_detected(side: String, formation_id: int, formation_name: Strin
 signal formation_clash(atk_formation: int, def_formation: int, effect: String)
 signal tactical_combo_triggered(combo_id: String, description: String)
 
+# ── Multi-route Battle / 合战 (v4.8) ──
+signal multi_route_battle_started(target_tile: int, route_count: int, attacker_ids: Array)
+signal multi_route_phase_started(target_tile: int, route_index: int, attacker_id: int)
+signal multi_route_phase_result(target_tile: int, route_index: int, attacker_won: bool, summary: Dictionary)
+signal multi_route_battle_resolved(target_tile: int, defender_survived: bool, results: Array)
+signal flanking_bonus_applied(target_tile: int, route_count: int, atk_bonus_pct: float)
+signal pincer_bonus_applied(target_tile: int, def_reduction_pct: float)
+
+# ── Extended Combo System / 组合技 (v4.8) ──
+signal combo_cross_fire_triggered(side: String, atk_bonus_pct: float)
+signal combo_shield_brothers_triggered(side: String, def_bonus: int)
+signal combo_dark_ritual_triggered(side: String, sacrificed: int, atk_bonus: int)
+signal combo_cavalry_sweep_triggered(side: String, morale_penalty: int)
+signal combo_artillery_barrage_triggered(side: String, damage_pct: float)
+signal combo_assassin_mark_triggered(side: String, target_unit: String)
+signal combo_heroic_charge_triggered(side: String, hero_id: String)
+
+# ── Skill Animation Events (v4.8) ──
+signal skill_vfx_requested(skill_id: String, vfx_type: String, source_pos: Vector2, target_pos: Vector2)
+signal screen_shake_requested(intensity: float, duration: float)
+signal camera_zoom_requested(zoom_level: float, duration: float, target_pos: Vector2)
+signal combo_chain_anim_requested(combo_id: String, hit_sequence: Array)
+
 # ── Reputation & Diplomacy Depth (v4.3) ──
 signal reputation_threshold_crossed(faction_key: String, old_level: String, new_level: String)
 signal treaty_break_cascade(total_breaks: int)
@@ -404,3 +427,11 @@ signal grand_event_started(event_id: String)
 signal grand_event_ended(event_id: String)
 signal character_interaction_triggered(hero_a: String, hero_b: String, event_data: Dictionary)
 signal dynamic_event_triggered(event_id: String, trigger_condition: String)
+
+# ── Nation System (fixed map) ──
+signal nation_conquered(player_id: int, nation_id: String)
+signal nation_lost(player_id: int, nation_id: String)
+signal nation_capital_captured(player_id: int, nation_id: String, tile_index: int)
+signal nation_bonus_activated(player_id: int, nation_id: String)
+signal nation_bonus_deactivated(player_id: int, nation_id: String)
+signal border_conflict(nation_a: String, nation_b: String, tile_index: int)
