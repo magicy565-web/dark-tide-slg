@@ -79,6 +79,9 @@ SeasonalEvents="*res://systems/event/seasonal_events.gd"
 CharacterInteractionEvents="*res://systems/event/character_interaction_events.gd"
 GrandEventDirector="*res://systems/event/grand_event_director.gd"
 DynamicSituationEvents="*res://systems/event/dynamic_situation_events.gd"
+SceneAudioDirector="*res://systems/audio/scene_audio_director.gd"
+CrisisCountdown="*res://systems/event/crisis_countdown.gd"
+ExpandedRandomEvents="*res://systems/event/expanded_random_events.gd"
 
 [display]
 

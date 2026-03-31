@@ -1227,12 +1227,28 @@ func _apply_death_overlay(side: String, slot_idx: int) -> void:
 	else:
 		overlay.text = "ANNIHILATED"
 		overlay.add_theme_color_override("font_color", Color(1.0, 0.25, 0.15))
+	# Dramatic overlay fade-in (v5: enhanced death animation)
+	overlay.modulate.a = 0
 	overlay.visible = true
+	var tw_overlay := create_tween()
+	tw_overlay.tween_property(overlay, "modulate:a", 1.0, 0.2 / _speed_mult)
 
-	# Desaturate + dim with tween (v4.6: enhanced fade-out for dramatic death)
+	# Screen shake on death
+	_screen_shake(SHAKE_MEDIUM, 8.0)
+	# Flash effect
+	_trigger_screen_flash(Color(1, 0.3, 0.2, 0.4) if not is_captured else Color(0.3, 0.5, 1.0, 0.3), 0.12)
+
+	# Desaturate + dim with tween (v5: enhanced grayscale fade for dramatic death)
 	var tw := create_tween()
 	tw.tween_property(card, "modulate", Color(0.5, 0.15, 0.15, 0.9), 0.1 / _speed_mult).set_ease(Tween.EASE_OUT)
-	tw.tween_property(card, "modulate", Color(0.3, 0.3, 0.3, 0.5), 0.3 / _speed_mult).set_ease(Tween.EASE_IN)
+	tw.tween_property(card, "modulate", Color(0.4, 0.4, 0.5, 0.7), 0.5 / _speed_mult).set_ease(Tween.EASE_IN)
+
+	# Combo increment on kill
+	_combo_count += 1
+	_combo_timer = COMBO_DECAY_TIME
+	if is_instance_valid(combo_label) and _combo_count >= 2:
+		combo_label.visible = true
+		combo_label.text = "COMBO x%d" % _combo_count
 
 	# Count kills
 	if side == "attacker":
@@ -1774,6 +1790,17 @@ func _screen_flash_effect(color: Color, duration: float) -> void:
 	var tw := create_tween()
 	tw.tween_property(screen_flash, "color:a", 0.0, duration / _speed_mult).set_ease(Tween.EASE_OUT)
 
+## Quick screen flash effect for impacts (v5: separate from _screen_flash_effect for precise control)
+func _trigger_screen_flash(color: Color, duration: float = 0.15) -> void:
+	if screen_flash == null:
+		return
+	screen_flash.color = color
+	screen_flash.visible = true
+	var tw := create_tween()
+	tw.tween_property(screen_flash, "color:a", color.a, 0.02)
+	tw.tween_property(screen_flash, "color:a", 0.0, duration / _speed_mult)
+	tw.tween_callback(func(): screen_flash.visible = false)
+
 func _flash_card(side: String, slot_idx: int, color: Color) -> void:
 	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
 	if not cards.has(slot_idx):
@@ -2000,30 +2027,35 @@ func _show_passive_banner(text: String, side: String) -> void:
 		passive_banner.visible = false
 	)
 
+## Enhanced round transition with scale + glow effect
 func _show_round_splash(round_num: int) -> void:
 	EventBus.sfx_round_start.emit(round_num)
 	if not is_instance_valid(round_splash):
 		return
-	round_splash.text = "Round %d" % round_num
+	round_splash.text = "ROUND %d" % round_num if round_num <= MAX_ROUNDS else "FINAL ROUND"
 	round_splash.visible = true
-	round_splash.modulate = Color(1, 1, 1, 0)
+	round_splash.modulate = Color(1, 0.85, 0.4, 0)
 	round_splash.scale = Vector2(2.0, 2.0)
-	round_splash.pivot_offset = Vector2(SCREEN_W * 0.5, 40)
+	round_splash.pivot_offset = round_splash.size / 2.0
 
-	var spd := 0.2 / _speed_mult
+	var spd := 0.15 / _speed_mult
 	var tw := create_tween()
-	tw.set_parallel(true)
+	# Slam in
 	tw.tween_property(round_splash, "modulate:a", 1.0, spd).set_ease(Tween.EASE_OUT)
-	tw.tween_property(round_splash, "scale", Vector2(1.0, 1.0), spd * 1.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tw.chain().tween_interval(0.6 / _speed_mult)
-	tw.chain().set_parallel(true)
-	tw.chain().tween_property(round_splash, "modulate:a", 0.0, 0.3 / _speed_mult)
-	tw.chain().tween_property(round_splash, "position:y", round_splash.position.y - 25, 0.3 / _speed_mult)
-	tw.chain().tween_property(round_splash, "scale", Vector2(0.85, 0.85), 0.3 / _speed_mult)
-	tw.chain().tween_callback(func():
+	tw.parallel().tween_property(round_splash, "scale", Vector2(1.0, 1.0), 0.2 / _speed_mult).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	# Flash screen
+	tw.parallel().tween_callback(func(): _trigger_screen_flash(Color(1, 0.9, 0.6, 0.3), 0.15))
+	# Hold
+	tw.tween_interval(0.8 / _speed_mult)
+	# Fade out
+	tw.tween_property(round_splash, "modulate:a", 0.0, 0.3 / _speed_mult)
+	tw.tween_callback(func():
 		round_splash.visible = false
 		round_splash.position.y = SCREEN_H * 0.35
 	)
+	# Play round SFX
+	if AudioManager:
+		AudioManager.play_sfx(AudioManager.SFX.TURN_START if round_num == 1 else AudioManager.SFX.UI_CONFIRM)
 
 	# Vignette pulse (brief screen dim for atmosphere)
 	if is_instance_valid(vignette):
@@ -2382,6 +2414,9 @@ func _on_close() -> void:
 	# Audio: close panel sound
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("close_panel")
+	# Restore overworld BGM
+	if AudioManager and AudioManager.has_method("play_bgm"):
+		AudioManager.play_bgm(AudioManager.BGMTrack.OVERWORLD_CALM)
 	Engine.time_scale = 1.0
 	_playing = false
 	_playback_generation += 1
@@ -2548,6 +2583,10 @@ func _apply_log_entry(entry: Dictionary) -> void:
 				_camera_zoom_ultimate(side, slot_idx)
 			if not _is_finishing and hero_id != "":
 				play_ultimate_vfx(hero_id)
+				# Hook BattleCutin for hero skill display
+				var from_left: bool = side == "attacker"
+				if EventBus.has_signal("battle_cutin_requested"):
+					EventBus.battle_cutin_requested.emit(hero_id, skill_name, from_left)
 
 		"awakening":
 			var hero_id: String = entry.get("hero_id", "")
@@ -2729,8 +2768,8 @@ func _finish_playback() -> void:
 	# Dramatic result reveal
 	result_panel.visible = true
 	result_panel.modulate = Color(1, 1, 1, 0)
-	result_panel.scale = Vector2(0.7, 0.7)
-	result_panel.pivot_offset = result_panel.size * 0.5
+	result_panel.scale = Vector2(0.8, 0.8)
+	result_panel.pivot_offset = result_panel.size / 2.0
 
 	if winner == "attacker":
 		result_label.text = "ATTACKER WINS!"

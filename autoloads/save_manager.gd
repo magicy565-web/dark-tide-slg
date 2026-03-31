@@ -239,6 +239,7 @@ func _collect_save_data() -> Dictionary:
 		"character_interaction_events": CharacterInteractionEvents.get_save_data() if CharacterInteractionEvents != null else {},
 		"grand_event_director": GrandEventDirector.get_save_data() if GrandEventDirector != null else {},
 		"dynamic_situation_events": DynamicSituationEvents.get_save_data() if DynamicSituationEvents != null else {},
+		"crisis_countdown": CrisisCountdown.get_save_data() if CrisisCountdown != null else {},
 	}
 
 
@@ -437,6 +438,8 @@ func _apply_save_data(data: Dictionary) -> void:
 		GrandEventDirector.load_save_data(data.get("grand_event_director", {}))
 	if data.has("dynamic_situation_events") and DynamicSituationEvents != null:
 		DynamicSituationEvents.load_save_data(data.get("dynamic_situation_events", {}))
+	if data.has("crisis_countdown") and CrisisCountdown != null:
+		CrisisCountdown.load_save_data(data.get("crisis_countdown", {}))
 
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()

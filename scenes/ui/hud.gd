@@ -164,6 +164,11 @@ var _prev_gold: int = -1
 var _prev_food: int = -1
 var _prev_iron: int = -1
 
+# ── Crisis countdown display (v4.0) ──
+var crisis_panel: PanelContainer = null
+var crisis_vbox: VBoxContainer = null
+var _crisis_labels: Array = []
+
 # ── SR07 Diplomatic Event Queue ──
 var _diplo_event_queue: Array = []  # Array of event_data Dictionaries
 var _diplo_event_active: bool = false  # True while a diplomatic popup is showing
@@ -280,6 +285,7 @@ func _build_ui() -> void:
 	_build_game_over(root)
 	_build_minimap(root)
 	_build_phase_banner(root)
+	_build_crisis_timer(root)
 
 
 # ── Top bar (resources, turn info, strategic resources) ──
@@ -942,6 +948,79 @@ func _on_turn_started_phase_cleanup(_player_id: int) -> void:
 	if _player_id == human_id and _ai_turn_active:
 		_ai_turn_active = false
 		_phase_banner.visible = false
+
+
+# ── Crisis countdown timer (v4.0) ──
+
+func _build_crisis_timer(parent: Control) -> void:
+	crisis_panel = PanelContainer.new()
+	crisis_panel.name = "CrisisPanel"
+	# Position: top-right corner, below resource bar
+	crisis_panel.anchor_left = 0.78
+	crisis_panel.anchor_right = 0.99
+	crisis_panel.anchor_top = 0.14
+	crisis_panel.anchor_bottom = 0.14
+	crisis_panel.offset_bottom = 120
+	crisis_panel.z_index = 10
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.05, 0.15, 0.85)
+	style.border_color = Color(0.8, 0.2, 0.2, 0.6)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(8)
+	crisis_panel.add_theme_stylebox_override("panel", style)
+	crisis_panel.visible = false
+	parent.add_child(crisis_panel)
+
+	crisis_vbox = VBoxContainer.new()
+	crisis_vbox.add_theme_constant_override("separation", 4)
+	crisis_panel.add_child(crisis_vbox)
+
+	# Header
+	var header := Label.new()
+	header.text = "⚠ 危机倒计时"
+	header.add_theme_font_size_override("font_size", 12)
+	header.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
+	crisis_vbox.add_child(header)
+
+
+func _update_crisis_display() -> void:
+	if not CrisisCountdown:
+		return
+	var crises: Array = CrisisCountdown.get_active_countdowns()
+
+	# Clear old labels
+	for lbl in _crisis_labels:
+		if is_instance_valid(lbl):
+			lbl.queue_free()
+	_crisis_labels.clear()
+
+	if crises.is_empty():
+		crisis_panel.visible = false
+		return
+
+	crisis_panel.visible = true
+	for crisis in crises:
+		var lbl := Label.new()
+		var remaining: int = crisis["remaining"]
+		var color: Color
+		if remaining <= 3:
+			color = Color(1.0, 0.2, 0.2)  # Red - imminent
+		elif remaining <= 8:
+			color = Color(1.0, 0.7, 0.2)  # Orange - warning
+		else:
+			color = Color(0.8, 0.8, 0.6)  # Pale - distant
+		lbl.text = "%s: %d回合" % [crisis["name"], remaining]
+		lbl.add_theme_font_size_override("font_size", 13)
+		lbl.add_theme_color_override("font_color", color)
+		crisis_vbox.add_child(lbl)
+		_crisis_labels.append(lbl)
+
+	# Pulse animation for imminent crises
+	if crises[0]["remaining"] <= 3:
+		var tw := create_tween().set_loops(3)
+		tw.tween_property(crisis_panel, "modulate:a", 0.6, 0.3)
+		tw.tween_property(crisis_panel, "modulate:a", 1.0, 0.3)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -3305,6 +3384,8 @@ func _on_turn_started(_player_id: int) -> void:
 	_prev_gold = ResourceManager.get_resource(pid, "gold")
 	_prev_food = ResourceManager.get_resource(pid, "food")
 	_prev_iron = ResourceManager.get_resource(pid, "iron")
+	# Update crisis countdown display
+	_update_crisis_display()
 
 
 func _on_turn_ended(_player_id: int) -> void:

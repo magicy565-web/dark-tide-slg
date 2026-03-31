@@ -152,6 +152,10 @@ func _on_game_over_fallback(winner_id: int) -> void:
 
 
 func _show(is_victory: bool, victory_type: String, reason: String) -> void:
+	# Play victory/defeat BGM
+	if AudioManager:
+		AudioManager.play_bgm(AudioManager.BGMTrack.VICTORY if is_victory else AudioManager.BGMTrack.DEFEAT, 0.5)
+
 	# Configure colors
 	if is_victory:
 		_title_label.text = "VICTORY"
@@ -179,8 +183,14 @@ func _show(is_victory: bool, victory_type: String, reason: String) -> void:
 	# Populate stats
 	_populate_stats()
 
+	# Entrance animation
 	visible = true
-	ColorTheme.animate_panel_open(_panel)
+	modulate.a = 0.0
+	_panel.scale = Vector2(0.85, 0.85)
+	_panel.pivot_offset = _panel.size / 2.0
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(self, "modulate:a", 1.0, 0.5).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_panel, "scale", Vector2(1.0, 1.0), 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 
 func _populate_stats() -> void:
@@ -188,14 +198,19 @@ func _populate_stats() -> void:
 		child.queue_free()
 
 	var human_id: int = GameManager.get_human_player_id()
+	var delay: float = 0.0
 
 	# Turns played
-	_add_stat("Turns Played: %d" % GameManager.turn_number)
+	var lbl_turns := _add_stat_label()
+	_animate_stat_label(lbl_turns, "Turns Played", GameManager.turn_number, delay)
+	delay += 0.15
 
 	# Territory
 	var owned: int = GameManager.count_tiles_owned(human_id)
 	var total: int = GameManager.tiles.size()
-	_add_stat("Tiles Controlled: %d / %d" % [owned, total])
+	var lbl_tiles := _add_stat_label()
+	_animate_stat_label(lbl_tiles, "Tiles Controlled", owned, delay, " / %d" % total)
+	delay += 0.15
 
 	# Army strength
 	var total_soldiers: int = 0
@@ -203,27 +218,47 @@ func _populate_stats() -> void:
 		var army: Dictionary = GameManager.armies[army_id]
 		if army["player_id"] == human_id:
 			total_soldiers += GameManager.get_army_soldier_count(army_id)
-	_add_stat("Army Strength: %d" % total_soldiers)
+	var lbl_army := _add_stat_label()
+	_animate_stat_label(lbl_army, "Army Strength", total_soldiers, delay)
+	delay += 0.15
 
 	# Heroes recruited
 	if HeroSystem:
 		var recruited: int = HeroSystem.recruited_heroes.size()
 		var total_h: int = FactionData.HEROES.size()
-		_add_stat("Heroes: %d / %d" % [recruited, total_h])
+		var lbl_heroes := _add_stat_label()
+		_animate_stat_label(lbl_heroes, "Heroes", recruited, delay, " / %d" % total_h)
+		delay += 0.15
 
 	# Gold
 	var gold: int = ResourceManager.get_resource(human_id, "gold")
-	_add_stat("Gold: %d" % gold)
+	var lbl_gold := _add_stat_label()
+	_animate_stat_label(lbl_gold, "Gold", gold, delay)
+	delay += 0.15
 
 	# Threat level
 	if ThreatManager:
-		_add_stat("Threat Level: %d" % ThreatManager.get_threat())
+		var lbl_threat := _add_stat_label()
+		_animate_stat_label(lbl_threat, "Threat Level", ThreatManager.get_threat(), delay)
 
 
-func _add_stat(text: String) -> void:
-	var lbl := _make_label(text, 13, ColorTheme.TEXT_DIM)
+func _add_stat_label() -> Label:
+	var lbl := _make_label("", 13, ColorTheme.TEXT_DIM)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_stats_vbox.add_child(lbl)
+	return lbl
+
+
+func _animate_stat_label(label: Label, prefix: String, target_value: int, delay: float = 0.0, suffix: String = "") -> void:
+	label.text = "%s: 0%s" % [prefix, suffix]
+	var counter := {"val": 0}
+	var tw := create_tween()
+	if delay > 0:
+		tw.tween_interval(delay)
+	tw.tween_method(func(v: float):
+		counter["val"] = int(v)
+		label.text = "%s: %d%s" % [prefix, counter["val"], suffix]
+	, 0.0, float(target_value), 0.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 
 
 # ═══════════════════════════════════════════
