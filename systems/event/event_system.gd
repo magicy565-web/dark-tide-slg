@@ -1407,8 +1407,13 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 		var enemy_count: int = effects.get("enemy_soldiers", 8)
 		result["combat"] = true
 		result["enemy_soldiers"] = enemy_count
+		# Pass event_id with optional enemy_type suffix for themed armies
+		var combat_id: String = event_id
+		var enemy_type: String = effects.get("enemy_type", "")
+		if enemy_type != "":
+			combat_id = event_id + "::" + enemy_type
 		# Combat resolution delegated to GameManager via signal
-		EventBus.event_combat_requested.emit(pid, enemy_count, event_id)
+		EventBus.event_combat_requested.emit(pid, enemy_count, combat_id)
 		result["applied"].append("combat: vs %d enemy soldiers" % enemy_count)
 		EventBus.event_choice_made.emit(event_id, choice_index)
 		return result

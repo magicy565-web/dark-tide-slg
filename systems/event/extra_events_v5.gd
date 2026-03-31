@@ -58,8 +58,8 @@ func get_events() -> Array:
 		"condition": "chain:v5_court_conspiracy_s2a:1", "repeatable": false,
 		"chain_parent": "v5_court_conspiracy_s2a", "chain_choice": 1,
 		"choices": [
-			{"text": "亲率精锐迎击叛军 (战斗: 10叛军, 胜利+30威望+20金)", "effects": {"type": "combat", "enemy_soldiers": 10}},
-			{"text": "据城死守，等待援军 (战斗: 7叛军, DEF+20%, 胜利+15秩序)", "effects": {"type": "combat", "enemy_soldiers": 7, "buff": {"type": "def_pct", "value": 20, "duration": 1}}},
+			{"text": "亲率精锐迎击叛军 (战斗: 10叛军, 胜利+30威望+20金)", "effects": {"type": "combat", "enemy_soldiers": 10, "enemy_type": "rebels"}},
+			{"text": "据城死守，等待援军 (战斗: 7叛军, DEF+20%, 胜利+15秩序)", "effects": {"type": "combat", "enemy_soldiers": 7, "enemy_type": "rebels", "buff": {"type": "def_pct", "value": 20, "duration": 1}}},
 		]
 	})
 	events.append({
@@ -103,7 +103,7 @@ func get_events() -> Array:
 		"condition": "chain:v5_princess_demand:0", "repeatable": false,
 		"chain_parent": "v5_princess_demand", "chain_choice": 0,
 		"choices": [
-			{"text": "出兵援助 (战斗:12敌兵, 胜利+80金+1遗物+30威望)", "effects": {"type": "combat", "enemy_soldiers": 12}},
+			{"text": "出兵援助 (战斗:12敌兵, 胜利+80金+1遗物+30威望)", "effects": {"type": "combat", "enemy_soldiers": 12, "enemy_type": "elite_guard"}},
 			{"text": "提供资金支持 (-50金, +20威望, 3回合后+40金朝贡)", "effects": {"gold": -50, "prestige": 20, "gold_delayed": 40}},
 		]
 	})
@@ -162,7 +162,7 @@ func get_events() -> Array:
 		"condition": "chain:v5_ancient_tomb:0", "repeatable": false,
 		"chain_parent": "v5_ancient_tomb", "chain_choice": 0,
 		"choices": [
-			{"text": "优先消灭亡灵 (战斗: 8亡灵兵, 胜利+3暗影精华)", "effects": {"type": "combat", "enemy_soldiers": 8}},
+			{"text": "优先消灭亡灵 (战斗: 8亡灵兵, 胜利+3暗影精华)", "effects": {"type": "combat", "enemy_soldiers": 8, "enemy_type": "undead"}},
 			{"text": "趁乱抢夺宝库 (+50金, +1遗物, -8秩序, -3兵)", "effects": {"gold": 50, "relic": true, "order": -8, "soldiers": -3}},
 		]
 	})
@@ -231,7 +231,7 @@ func get_events() -> Array:
 		"condition": "chain:v5_gold_vein:0", "repeatable": false,
 		"chain_parent": "v5_gold_vein", "chain_choice": 0,
 		"choices": [
-			{"text": "派兵剿匪 (战斗: 7山贼, 胜利夺回矿石+25金)", "effects": {"type": "combat", "enemy_soldiers": 7}},
+			{"text": "派兵剿匪 (战斗: 7山贼, 胜利夺回矿石+25金)", "effects": {"type": "combat", "enemy_soldiers": 7, "enemy_type": "bandits"}},
 			{"text": "花钱雇佣佣兵保护 (-35金, +5秩序)", "effects": {"gold": -35, "order": 5}},
 		]
 	})
@@ -241,7 +241,7 @@ func get_events() -> Array:
 		"condition": "chain:v5_mine_crisis:0", "repeatable": false,
 		"chain_parent": "v5_mine_crisis", "chain_choice": 0,
 		"choices": [
-			{"text": "清剿蛛巢夺取金库 (战斗: 9地穴兽, 胜利+100金+1遗物)", "effects": {"type": "combat", "enemy_soldiers": 9}},
+			{"text": "清剿蛛巢夺取金库 (战斗: 9地穴兽, 胜利+100金+1遗物)", "effects": {"type": "combat", "enemy_soldiers": 9, "enemy_type": "beasts"}},
 			{"text": "用烟熏驱赶后谨慎开采 (+50金, 60%安全/40%: -3兵)", "effects": {"type": "gamble", "success_rate": 0.6, "success": {"gold": 50}, "fail": {"gold": 30, "soldiers": -3}}},
 		]
 	})
@@ -266,7 +266,7 @@ func get_events() -> Array:
 		"condition": "chain:v5_hero_betrayal:0", "repeatable": false,
 		"chain_parent": "v5_hero_betrayal", "chain_choice": 0,
 		"choices": [
-			{"text": "堵截城门，武力镇压 (战斗: 6亲卫精兵, 胜利+10秩序+10威望)", "effects": {"type": "combat", "enemy_soldiers": 6}},
+			{"text": "堵截城门，武力镇压 (战斗: 6亲卫精兵, 胜利+10秩序+10威望)", "effects": {"type": "combat", "enemy_soldiers": 6, "enemy_type": "elite_guard"}},
 			{"text": "放她们走，避免流血 (-4兵, -8秩序, 但全武将好感+1)", "effects": {"soldiers": -4, "order": -8, "hero_affection_all": 1}},
 		]
 	})
@@ -276,7 +276,7 @@ func get_events() -> Array:
 		"condition": "chain:v5_hero_betrayal:1", "repeatable": false,
 		"chain_parent": "v5_hero_betrayal", "chain_choice": 1,
 		"choices": [
-			{"text": "派精锐骑兵追击 (战斗: 5死士, 胜利+20威望+15秩序+1遗物)", "effects": {"type": "combat", "enemy_soldiers": 5}},
+			{"text": "派精锐骑兵追击 (战斗: 5死士, 胜利+20威望+15秩序+1遗物)", "effects": {"type": "combat", "enemy_soldiers": 5, "enemy_type": "assassins"}},
 			{"text": "放他走，专注内政 (+5秩序, -5威望, 威胁+5)", "effects": {"order": 5, "prestige": -5, "threat": 5}},
 		]
 	})
@@ -299,7 +299,7 @@ func get_events() -> Array:
 		"condition": "chain:v5_religious_schism:0", "repeatable": false,
 		"chain_parent": "v5_religious_schism", "chain_choice": 0,
 		"choices": [
-			{"text": "铁腕清剿 (战斗: 6叛军, +10秩序)", "effects": {"type": "combat", "enemy_soldiers": 6}},
+			{"text": "铁腕清剿 (战斗: 6叛军, +10秩序)", "effects": {"type": "combat", "enemy_soldiers": 6, "enemy_type": "rebels"}},
 			{"text": "恢复月神教派合法地位 (+8秩序, -10威望, +3暗影精华)", "effects": {"order": 8, "prestige": -10}},
 		]
 	})
@@ -332,7 +332,7 @@ func get_events() -> Array:
 		"condition": "chain:v5_legendary_weapon:0", "repeatable": false,
 		"chain_parent": "v5_legendary_weapon", "chain_choice": 0,
 		"choices": [
-			{"text": "派最强武将挑战守护者 (战斗: 10远古傀儡, 胜利获得陨铁核心)", "effects": {"type": "combat", "enemy_soldiers": 10}},
+			{"text": "派最强武将挑战守护者 (战斗: 10远古傀儡, 胜利获得陨铁核心)", "effects": {"type": "combat", "enemy_soldiers": 10, "enemy_type": "constructs"}},
 			{"text": "用替代材料凑合 (80%成功: 品质稍低但可用, 20%失败: -15金)", "effects": {"type": "gamble", "success_rate": 0.8, "success": {"prestige": 5}, "fail": {"gold": -15}}},
 		]
 	})
@@ -375,7 +375,7 @@ func get_events() -> Array:
 		"condition": "chain:v5_pirate_mutiny:1", "repeatable": false,
 		"chain_parent": "v5_pirate_mutiny", "chain_choice": 1,
 		"choices": [
-			{"text": "追击歼灭 (战斗: 8叛军, 胜利+30金)", "effects": {"type": "combat", "enemy_soldiers": 8}},
+			{"text": "追击歼灭 (战斗: 8叛军, 胜利+30金)", "effects": {"type": "combat", "enemy_soldiers": 8, "enemy_type": "pirates"}},
 			{"text": "谈判招安 (-20金, +4兵, +5秩序)", "effects": {"gold": -20, "soldiers": 4, "order": 5}},
 		]
 	})
@@ -395,22 +395,22 @@ func get_events() -> Array:
 	# ══════════════════════════════════════════════════════════
 
 	# Political (4)
-	events.append({"id": "v5_rival_heir", "name": "继承危机", "desc": "一个自称王室血脉的人带着一支私兵出现了，部分贵族投靠了他。他公开向你宣战！", "condition": "always", "repeatable": true, "choices": [{"text": "武力镇压 (战斗: 8叛军, 胜利+15威望)", "effects": {"type": "combat", "enemy_soldiers": 8}}, {"text": "收买拉拢 (-30金, +5秩序)", "effects": {"gold": -30, "order": 5}}]})
+	events.append({"id": "v5_rival_heir", "name": "继承危机", "desc": "一个自称王室血脉的人带着一支私兵出现了，部分贵族投靠了他。他公开向你宣战！", "condition": "always", "repeatable": true, "choices": [{"text": "武力镇压 (战斗: 8叛军, 胜利+15威望)", "effects": {"type": "combat", "enemy_soldiers": 8, "enemy_type": "rebels"}}, {"text": "收买拉拢 (-30金, +5秩序)", "effects": {"gold": -30, "order": 5}}]})
 	events.append({"id": "v5_merchant_guild", "name": "商会请愿", "desc": "本地商会要求减税以换取更多贸易收入。", "condition": "always", "repeatable": true, "choices": [{"text": "同意减税 (-15金, +20下回合金)", "effects": {"gold": -15, "gold_delayed": 20}}, {"text": "拒绝 (+5威望)", "effects": {"prestige": 5}}]})
-	events.append({"id": "v5_noble_feud", "name": "贵族械斗", "desc": "两个贵族家族的私兵在街头大打出手，已经有平民伤亡！你必须立刻干预。", "condition": "always", "repeatable": true, "choices": [{"text": "派兵弹压 (战斗: 5混战兵, 胜利+8秩序+5威望)", "effects": {"type": "combat", "enemy_soldiers": 5}}, {"text": "居中调停 (+5秩序, +3威望, -10金)", "effects": {"order": 5, "prestige": 3, "gold": -10}}]})
+	events.append({"id": "v5_noble_feud", "name": "贵族械斗", "desc": "两个贵族家族的私兵在街头大打出手，已经有平民伤亡！你必须立刻干预。", "condition": "always", "repeatable": true, "choices": [{"text": "派兵弹压 (战斗: 5混战兵, 胜利+8秩序+5威望)", "effects": {"type": "combat", "enemy_soldiers": 5, "enemy_type": "rebels"}}, {"text": "居中调停 (+5秩序, +3威望, -10金)", "effects": {"order": 5, "prestige": 3, "gold": -10}}]})
 	events.append({"id": "v5_peace_envoy", "name": "和平使者", "desc": "一位来自远方的使者提议建立贸易通道。", "condition": "always", "repeatable": true, "choices": [{"text": "接受 (+25金, -3威望)", "effects": {"gold": 25, "prestige": -3}}, {"text": "拒绝 (+5威望)", "effects": {"prestige": 5}}]})
 
 	# Military (4)
 	events.append({"id": "v5_veteran_company", "name": "老兵佣兵团", "desc": "一支经验丰富的佣兵团路过你的领地，愿意为你效力。", "condition": "always", "repeatable": true, "choices": [{"text": "雇佣 (-40金, +6精锐兵)", "effects": {"gold": -40, "soldiers": 6}}, {"text": "礼貌拒绝", "effects": {}}]})
 	events.append({"id": "v5_weapons_cache", "name": "武器密藏", "desc": "巡逻队发现了一处隐藏的武器储藏室。", "condition": "always", "repeatable": true, "choices": [{"text": "装备军队 (全军ATK+10%, 3回合)", "effects": {"buff": {"type": "atk_pct", "value": 10, "duration": 3}}}, {"text": "卖掉武器 (+35金)", "effects": {"gold": 35}}]})
 	events.append({"id": "v5_deserter_wave", "name": "逃兵潮", "desc": "大量敌方逃兵涌入你的领地。", "condition": "always", "repeatable": true, "choices": [{"text": "收编 (+4兵, -3秩序)", "effects": {"soldiers": 4, "order": -3}}, {"text": "驱逐 (+5秩序)", "effects": {"order": 5}}]})
-	events.append({"id": "v5_night_raid", "name": "夜袭", "desc": "敌方发动了一次小规模夜袭!", "condition": "always", "repeatable": true, "choices": [{"text": "迎战 (战斗: 4敌兵)", "effects": {"type": "combat", "enemy_soldiers": 4}}, {"text": "据守营地 (-2兵, +3城防)", "effects": {"soldiers": -2, "wall_boost": 3}}]})
+	events.append({"id": "v5_night_raid", "name": "夜袭", "desc": "敌方发动了一次小规模夜袭!", "condition": "always", "repeatable": true, "choices": [{"text": "迎战 (战斗: 4敌兵)", "effects": {"type": "combat", "enemy_soldiers": 4, "enemy_type": "bandits"}}, {"text": "据守营地 (-2兵, +3城防)", "effects": {"soldiers": -2, "wall_boost": 3}}]})
 
 	# Supernatural (4)
-	events.append({"id": "v5_blood_moon_omen", "name": "血月·亡灵潮", "desc": "血红色月亮升起的同时，领地边境出现了大量亡灵！它们被血月之力驱动，向你的据点涌来。", "condition": "always", "repeatable": true, "choices": [{"text": "全军迎战 (战斗: 8亡灵, 胜利+3暗影精华+10威望)", "effects": {"type": "combat", "enemy_soldiers": 8}}, {"text": "据守城墙等天亮 (-3兵, +5城防, 50%: +2暗影精华)", "effects": {"soldiers": -3, "wall_boost": 5, "type": "gamble", "success_rate": 0.5, "success": {}, "fail": {"order": -5}}}]})
+	events.append({"id": "v5_blood_moon_omen", "name": "血月·亡灵潮", "desc": "血红色月亮升起的同时，领地边境出现了大量亡灵！它们被血月之力驱动，向你的据点涌来。", "condition": "always", "repeatable": true, "choices": [{"text": "全军迎战 (战斗: 8亡灵, 胜利+3暗影精华+10威望)", "effects": {"type": "combat", "enemy_soldiers": 8, "enemy_type": "undead"}}, {"text": "据守城墙等天亮 (-3兵, +5城防, 50%: +2暗影精华)", "effects": {"soldiers": -3, "wall_boost": 5, "type": "gamble", "success_rate": 0.5, "success": {}, "fail": {"order": -5}}}]})
 	events.append({"id": "v5_spirit_guardian", "name": "精灵守护者", "desc": "一位古老的精灵现身，愿意守护你的领地。", "condition": "always", "repeatable": true, "choices": [{"text": "接受守护 (DEF+15%, 5回合)", "effects": {"buff": {"type": "def_pct", "value": 15, "duration": 5}}}, {"text": "请求情报 (揭示2格迷雾)", "effects": {"reveal": 2}}]})
-	events.append({"id": "v5_mana_surge", "name": "魔力潮汐·元素暴走", "desc": "大地中涌出的魔力波动失控了——火元素和冰元素在领地中央具现化，正在互相厮杀并波及周围建筑！", "condition": "always", "repeatable": true, "choices": [{"text": "派法师和士兵消灭元素体 (战斗: 6元素兵, 胜利+3魔晶)", "effects": {"type": "combat", "enemy_soldiers": 6}}, {"text": "引导魔力分散 (-15金, +2魔晶, +5秩序)", "effects": {"gold": -15, "magic_crystal": 2, "order": 5}}]})
-	events.append({"id": "v5_dark_ritual_found", "name": "暗黑仪式·邪教巢穴", "desc": "巡逻队不仅发现了暗黑仪式——他们还找到了一个完整的邪教地下巢穴，里面有召唤出的恶魔守卫。", "condition": "always", "repeatable": true, "choices": [{"text": "突袭邪教巢穴 (战斗: 7恶魔+邪教徒, 胜利+2暗影精华+10秩序)", "effects": {"type": "combat", "enemy_soldiers": 7}}, {"text": "封锁入口上报 (+5秩序, +5威望)", "effects": {"order": 5, "prestige": 5}}]})
+	events.append({"id": "v5_mana_surge", "name": "魔力潮汐·元素暴走", "desc": "大地中涌出的魔力波动失控了——火元素和冰元素在领地中央具现化，正在互相厮杀并波及周围建筑！", "condition": "always", "repeatable": true, "choices": [{"text": "派法师和士兵消灭元素体 (战斗: 6元素兵, 胜利+3魔晶)", "effects": {"type": "combat", "enemy_soldiers": 6, "enemy_type": "elementals"}}, {"text": "引导魔力分散 (-15金, +2魔晶, +5秩序)", "effects": {"gold": -15, "magic_crystal": 2, "order": 5}}]})
+	events.append({"id": "v5_dark_ritual_found", "name": "暗黑仪式·邪教巢穴", "desc": "巡逻队不仅发现了暗黑仪式——他们还找到了一个完整的邪教地下巢穴，里面有召唤出的恶魔守卫。", "condition": "always", "repeatable": true, "choices": [{"text": "突袭邪教巢穴 (战斗: 7恶魔+邪教徒, 胜利+2暗影精华+10秩序)", "effects": {"type": "combat", "enemy_soldiers": 7, "enemy_type": "cultists"}}, {"text": "封锁入口上报 (+5秩序, +5威望)", "effects": {"order": 5, "prestige": 5}}]})
 
 	# Economic (4)
 	events.append({"id": "v5_trade_caravan", "name": "贸易商队", "desc": "一支来自远方的贸易商队经过你的领地。", "condition": "always", "repeatable": true, "choices": [{"text": "征税 (+20金, -3外交)", "effects": {"gold": 20, "prestige": -3}}, {"text": "合作贸易 (+10金, +5威望)", "effects": {"gold": 10, "prestige": 5}}]})

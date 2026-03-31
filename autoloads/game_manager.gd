@@ -432,6 +432,7 @@ func _apply_slot_preferences_to_units(units: Array, prefs: Dictionary) -> void:
 func _ready() -> void:
 	if not _event_choice_connected:
 		EventBus.event_choice_selected.connect(_on_random_event_choice)
+		EventBus.event_combat_requested.connect(_on_event_combat_requested)
 		_event_choice_connected = true
 
 
@@ -4609,6 +4610,149 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 		EventBus.combat_result.emit(pid, npc_desc, false)
 		_record_battle_stat(pid, false)
 		return false
+
+
+# ═══════════════ EVENT COMBAT HANDLER (v5.1) ═══════════════
+
+## Themed enemy templates for event combat.
+## Maps enemy_type tag (from event effects) → unit composition generator.
+## Each template returns an Array of unit dicts compatible with CombatResolver.
+const EVENT_ENEMY_TEMPLATES: Dictionary = {
+	# --- Humanoid enemies ---
+	"rebels":    {"name": "叛军",     "comp": [{"type": "human_ashigaru", "atk": 5, "def": 4, "spd": 4, "pct": 0.6, "row": "front", "passive": "none"},
+	                                            {"type": "human_archer",   "atk": 6, "def": 2, "spd": 5, "pct": 0.4, "row": "back",  "passive": "ranged_2"}]},
+	"bandits":   {"name": "山贼",     "comp": [{"type": "bandit_fighter",  "atk": 6, "def": 3, "spd": 6, "pct": 0.5, "row": "front", "passive": "ambush"},
+	                                            {"type": "bandit_archer",   "atk": 5, "def": 2, "spd": 7, "pct": 0.3, "row": "back",  "passive": "ranged_2"},
+	                                            {"type": "bandit_boss",     "atk": 8, "def": 5, "spd": 5, "pct": 0.2, "row": "front", "passive": "taunt"}]},
+	"elite_guard": {"name": "精锐亲卫", "comp": [{"type": "elite_samurai",  "atk": 8, "def": 7, "spd": 5, "pct": 0.5, "row": "front", "passive": "counter_25"},
+	                                              {"type": "elite_cavalry",  "atk": 9, "def": 5, "spd": 8, "pct": 0.3, "row": "front", "passive": "charge_bonus"},
+	                                              {"type": "elite_archer",   "atk": 7, "def": 4, "spd": 6, "pct": 0.2, "row": "back",  "passive": "ranged_2"}]},
+	"assassins": {"name": "死士",     "comp": [{"type": "shadow_assassin", "atk": 9, "def": 2, "spd": 9, "pct": 0.6, "row": "front", "passive": "critical_25"},
+	                                            {"type": "poison_blade",    "atk": 7, "def": 3, "spd": 8, "pct": 0.4, "row": "front", "passive": "poison_2"}]},
+	"pirates":   {"name": "海盗叛军", "comp": [{"type": "pirate_ashigaru", "atk": 6, "def": 4, "spd": 6, "pct": 0.5, "row": "front", "passive": "none"},
+	                                            {"type": "pirate_gunner",   "atk": 8, "def": 2, "spd": 4, "pct": 0.3, "row": "back",  "passive": "ranged_2"},
+	                                            {"type": "pirate_captain",  "atk": 9, "def": 6, "spd": 5, "pct": 0.2, "row": "front", "passive": "command_bonus"}]},
+	# --- Monster enemies ---
+	"undead":    {"name": "亡灵",     "comp": [{"type": "skeleton_warrior", "atk": 5, "def": 6, "spd": 3, "pct": 0.5, "row": "front", "passive": "undead_resist"},
+	                                            {"type": "zombie_horde",    "atk": 4, "def": 8, "spd": 2, "pct": 0.3, "row": "front", "passive": "taunt"},
+	                                            {"type": "wraith",          "atk": 7, "def": 2, "spd": 7, "pct": 0.2, "row": "back",  "passive": "magic_attack"}]},
+	"beasts":    {"name": "地穴兽",   "comp": [{"type": "cave_spider",     "atk": 6, "def": 3, "spd": 7, "pct": 0.5, "row": "front", "passive": "poison_2"},
+	                                            {"type": "cave_broodmother","atk": 8, "def": 6, "spd": 4, "pct": 0.2, "row": "front", "passive": "taunt"},
+	                                            {"type": "cave_lurker",     "atk": 5, "def": 2, "spd": 8, "pct": 0.3, "row": "back",  "passive": "ambush"}]},
+	"demons":    {"name": "恶魔",     "comp": [{"type": "lesser_demon",    "atk": 7, "def": 5, "spd": 5, "pct": 0.4, "row": "front", "passive": "fire_attack"},
+	                                            {"type": "demon_guard",     "atk": 6, "def": 8, "spd": 3, "pct": 0.3, "row": "front", "passive": "taunt"},
+	                                            {"type": "warlock",         "atk": 9, "def": 2, "spd": 6, "pct": 0.3, "row": "back",  "passive": "magic_attack"}]},
+	"elementals": {"name": "元素体", "comp": [{"type": "fire_elemental",   "atk": 8, "def": 4, "spd": 6, "pct": 0.5, "row": "front", "passive": "fire_attack"},
+	                                           {"type": "ice_elemental",    "atk": 6, "def": 7, "spd": 4, "pct": 0.5, "row": "front", "passive": "frost_slow"}]},
+	"constructs": {"name": "远古傀儡", "comp": [{"type": "stone_golem",    "atk": 7, "def": 10, "spd": 2, "pct": 0.4, "row": "front", "passive": "taunt"},
+	                                             {"type": "iron_automaton", "atk": 9, "def": 7, "spd": 3, "pct": 0.3, "row": "front", "passive": "counter_25"},
+	                                             {"type": "arcane_turret",  "atk": 10, "def": 3, "spd": 5, "pct": 0.3, "row": "back",  "passive": "ranged_2"}]},
+	# --- Cultist enemies ---
+	"cultists":  {"name": "邪教徒",   "comp": [{"type": "cultist_zealot",  "atk": 5, "def": 3, "spd": 5, "pct": 0.4, "row": "front", "passive": "frenzy"},
+	                                            {"type": "cultist_priest",  "atk": 3, "def": 4, "spd": 4, "pct": 0.3, "row": "back",  "passive": "heal_2"},
+	                                            {"type": "summoned_fiend",  "atk": 8, "def": 5, "spd": 6, "pct": 0.3, "row": "front", "passive": "fire_attack"}]},
+}
+
+## Build themed enemy units from a template and total soldier count.
+func _build_event_enemy_units(enemy_type: String, total_soldiers: int) -> Array:
+	var template: Dictionary = EVENT_ENEMY_TEMPLATES.get(enemy_type, {})
+	if template.is_empty():
+		# Fallback: generic infantry
+		return [{"type": "human_ashigaru", "atk": 5, "def": 4, "spd": 4, "count": total_soldiers, "special": "none", "row": "front"}]
+
+	var comp: Array = template["comp"]
+	var units: Array = []
+	var remaining: int = total_soldiers
+
+	for i in range(comp.size()):
+		var c: Dictionary = comp[i]
+		var count: int
+		if i == comp.size() - 1:
+			count = remaining  # Last unit gets the rest
+		else:
+			count = maxi(1, int(total_soldiers * c["pct"]))
+			remaining -= count
+
+		if count <= 0:
+			continue
+		units.append({
+			"type": c["type"],
+			"atk": c["atk"],
+			"def": c["def"],
+			"spd": c["spd"],
+			"count": count,
+			"special": c.get("passive", "none"),
+			"row": c.get("row", "front"),
+			"int_stat": c.get("int_stat", 0),
+		})
+	return units
+
+## Handle event combat signal — builds themed enemy army and runs combat.
+func _on_event_combat_requested(player_id: int, enemy_soldiers: int, event_id: String) -> void:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty():
+		return
+
+	# Parse explicit enemy_type from "event_id::enemy_type" format, or infer from event_id
+	var actual_event_id: String = event_id
+	var enemy_type: String = ""
+	if "::" in event_id:
+		var parts: PackedStringArray = event_id.split("::")
+		actual_event_id = parts[0]
+		enemy_type = parts[1]
+	else:
+		enemy_type = _infer_enemy_type_from_event(event_id)
+	var enemy_desc: String = EVENT_ENEMY_TEMPLATES.get(enemy_type, {}).get("name", "敌军")
+	var npc_units: Array = _build_event_enemy_units(enemy_type, enemy_soldiers)
+
+	# Find a suitable tile for combat context (use player's current tile or a dummy)
+	var pid: int = player_id
+	var tile: Dictionary = {"index": -1, "terrain": FactionData.TerrainType.PLAINS, "garrison": 0, "owner_id": -1, "city_def": 0}
+	# Try to use the player's current position tile for terrain effects
+	for t in tiles:
+		if t.get("owner_id", -1) == pid:
+			tile = t
+			break
+
+	var won: bool = _resolve_combat_vs_npc(player, tile, npc_units, "事件: " + enemy_desc)
+
+	# Apply event combat rewards/penalties based on outcome
+	if won:
+		EventBus.message_log.emit("[color=green]事件战斗胜利! 击败了%s (%d兵)[/color]" % [enemy_desc, enemy_soldiers])
+	else:
+		EventBus.message_log.emit("[color=red]事件战斗失败... %s击退了我们[/color]" % enemy_desc)
+
+## Infer enemy type from event_id naming convention.
+func _infer_enemy_type_from_event(event_id: String) -> String:
+	# Chain events and standalone events use descriptive IDs
+	if "tomb" in event_id or "undead" in event_id or "blood_moon" in event_id:
+		return "undead"
+	elif "mine" in event_id and "boom" in event_id:
+		return "beasts"
+	elif "mine" in event_id or "bandit" in event_id:
+		return "bandits"
+	elif "betrayal" in event_id or "guard" in event_id or "conspiracy" in event_id or "purge" in event_id:
+		return "elite_guard"
+	elif "assassin" in event_id:
+		return "assassins"
+	elif "ritual" in event_id or "dark" in event_id or "demon" in event_id:
+		return "cultists"
+	elif "pirate" in event_id or "mutiny" in event_id:
+		return "pirates"
+	elif "weapon" in event_id or "forging" in event_id or "guardian" in event_id:
+		return "constructs"
+	elif "mana" in event_id or "element" in event_id:
+		return "elementals"
+	elif "schism" in event_id or "underground" in event_id:
+		return "rebels"
+	elif "heir" in event_id or "noble" in event_id or "feud" in event_id:
+		return "rebels"
+	elif "princess" in event_id:
+		return "elite_guard"
+	elif "night_raid" in event_id or "border" in event_id:
+		return "bandits"
+	# Default fallback
+	return "rebels"
 
 
 func _capture_tile(player: Dictionary, tile: Dictionary) -> void:
