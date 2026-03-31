@@ -1,6 +1,7 @@
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
+const SkillAnimationData = preload("res://systems/combat/skill_animation_data.gd")
 
 ## combat_resolver.gd - Turn-based Sengoku Rance-style combat (v1.0 rewrite)
 ## Front row (3 slots) + Back row (3 slots), SPD-based action queue, 12-round max.
@@ -2305,6 +2306,8 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 	# Emit skill activation signal for battle cutin visual system
 	var is_attacker_side: bool = unit["side"] == "attacker"
 	EventBus.hero_skill_activated.emit(unit["hero_id"], skill_name, is_attacker_side)
+	# Emit skill VFX animation data (Direction C integration)
+	SkillAnimationData.emit_skill_vfx(skill_name, Vector2.ZERO, Vector2.ZERO)
 
 	return true
 

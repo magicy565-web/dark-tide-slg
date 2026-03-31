@@ -3,6 +3,11 @@
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const CombatSystem = preload("res://systems/combat/combat_system.gd")
+const FixedMapData = preload("res://systems/map/fixed_map_data.gd")
+const NationSystemClass = preload("res://systems/map/nation_system.gd")
+const MultiRouteBattle = preload("res://systems/combat/multi_route_battle.gd")
+const SkillAnimationData = preload("res://systems/combat/skill_animation_data.gd")
+const TerritoryEffectsData = preload("res://systems/map/territory_effects.gd")
 
 # ── Enums ──
 enum TileType {
@@ -290,6 +295,10 @@ var _ap_purchases_this_turn: int = 0
 var _turn_cache: Dictionary = {}
 var _active_territory_effects: Dictionary = {}  # Cached per-turn territory effects
 var _sat_points: Dictionary = {}  # SAT (満足度) points: player_id -> int
+
+# ── Fixed Map & Nation System (Direction D) ──
+var use_fixed_map: bool = false
+var nation_system: NationSystemClass = null  # Instantiated when use_fixed_map = true
 var _guard_timers: Dictionary = {}  # tile_index -> { "player_id": int, "turns_remaining": int }
 
 # ── Endgame Prestige Actions (v7.0) ──
@@ -597,6 +606,58 @@ func generate_map() -> void:
 			adjacency[b].append(a)
 
 	_assign_tile_types(positions)
+
+
+func generate_fixed_map() -> void:
+	## Generate map from FixedMapData (55 hand-designed territories in 7 nations).
+	tiles.clear()
+	adjacency.clear()
+
+	var type_map: Dictionary = {
+		"FORTRESS": TileType.CORE_FORTRESS,
+		"VILLAGE": TileType.LIGHT_VILLAGE,
+		"OUTPOST": TileType.WATCHTOWER,
+		"BANDIT": TileType.WILDERNESS,
+		"RESOURCE": TileType.RESOURCE_STATION,
+	}
+	var faction_owner_map: Dictionary = {
+		"HUMAN": 100, "HIGH_ELF": 101, "MAGE": 102,
+		"ORC": FactionData.FactionID.ORC,
+		"PIRATE": FactionData.FactionID.PIRATE,
+		"DARK_ELF": FactionData.FactionID.DARK_ELF,
+		"NEUTRAL": -1, "BANDIT": -1,
+	}
+
+	for t in FixedMapData.TERRITORIES:
+		var tile: Dictionary = {
+			"type": type_map.get(t["type"], TileType.WILDERNESS),
+			"owner": faction_owner_map.get(t["faction"], -1),
+			"position": t["position"],
+			"position_3d": Vector3(t["position"].x * 0.02, 0.0, -t["position"].y * 0.02),
+			"level": t["level"],
+			"garrison": t["garrison_base"],
+			"city_def": t.get("city_def", 0),
+			"name": t["name"],
+			"terrain": t.get("terrain", "PLAINS"),
+			"buildings": [],
+			"order": 80,
+			"revealed": {},
+			"nation_id": t["nation_id"],
+			"is_capital": t.get("is_capital", false),
+			"is_chokepoint": t.get("is_chokepoint", false),
+			"resource_type": t.get("resource_type", ""),
+			"description": t.get("description", ""),
+		}
+		tiles.append(tile)
+
+	# Build adjacency from FixedMapData connections
+	adjacency = FixedMapData.build_adjacency()
+
+	# Initialize Nation System
+	nation_system = NationSystemClass.new()
+	nation_system.initialize(EventBus)
+
+	use_fixed_map = true
 
 
 func _place_nodes() -> Array:
@@ -1186,9 +1247,12 @@ func _tile_type_to_named_key(tt: int) -> String:
 
 # ═══════════════ GAME FLOW ═══════════════
 
-func start_game(chosen_faction: int = FactionData.FactionID.ORC) -> void:
-	## Call with faction ID to start a new game.
-	generate_map()
+func start_game(chosen_faction: int = FactionData.FactionID.ORC, fixed_map: bool = false) -> void:
+	## Call with faction ID to start a new game. fixed_map=true uses 55-territory hand-designed map.
+	if fixed_map:
+		generate_fixed_map()
+	else:
+		generate_map()
 	players.clear()
 	_player_factions.clear()
 	armies.clear()
@@ -3091,6 +3155,108 @@ func action_storm_walls(army_id: int, tile_index: int) -> bool:
 	return await action_attack_with_army(army_id, tile_index)
 
 
+## Direction C: Multi-route coordinated attack (合战). 2-4 armies attack one tile simultaneously.
+## Each army fights in sequence; defender carries damage between phases.
+## Costs 1 AP per participating army (from each army's owner).
+func action_multi_route_attack(army_ids: Array, target_tile_index: int) -> bool:
+	var validation: Dictionary = MultiRouteBattle.validate_multi_route(
+		army_ids, target_tile_index,
+		func(aid): return armies.get(aid, {})
+	)
+	if not validation["valid"]:
+		EventBus.message_log.emit("[color=red]合战失败: %s[/color]" % validation["reason"])
+		return false
+
+	var tile: Dictionary = tiles[target_tile_index]
+	if tile.get("owner_id", -1) == armies[army_ids[0]]["player_id"]:
+		EventBus.message_log.emit("不能对自己的领地发动合战!")
+		return false
+
+	# Build routes
+	var directions: Array = [
+		MultiRouteBattle.Direction.NORTH, MultiRouteBattle.Direction.SOUTH,
+		MultiRouteBattle.Direction.EAST, MultiRouteBattle.Direction.WEST,
+	]
+	var routes: Array = []
+	for i in range(army_ids.size()):
+		var army: Dictionary = armies[army_ids[i]]
+		var terrain_str: String = tile.get("terrain", "plains").to_lower()
+		routes.append(MultiRouteBattle.create_route(army, directions[i], terrain_str))
+
+	# Build defender data
+	var defender_data: Dictionary = {
+		"units": [{"soldiers": tile["garrison"], "base_def": tile.get("city_def", 5)}],
+		"garrison": tile["garrison"],
+	}
+
+	var battle_ctx: Dictionary = MultiRouteBattle.create_battle(routes, defender_data, target_tile_index)
+	if battle_ctx.is_empty():
+		return false
+
+	MultiRouteBattle.prepare_routes(battle_ctx)
+
+	# Consume 1 AP from each army's owner
+	var owners_charged: Dictionary = {}
+	for aid in army_ids:
+		var army: Dictionary = armies[aid]
+		var pid: int = army["player_id"]
+		if not owners_charged.has(pid):
+			var p: Dictionary = get_player_by_id(pid)
+			if p.get("ap", 0) < 1:
+				EventBus.message_log.emit("[color=red]%s 行动力不足, 无法参加合战[/color]" % p.get("name", ""))
+				return false
+			p["ap"] -= 1
+			owners_charged[pid] = true
+			EventBus.ap_changed.emit(pid, p["ap"])
+
+	_had_combat_this_turn = true
+	EventBus.message_log.emit("[color=gold]═══ 合战开始! %d路军团协同进攻 %s ═══[/color]" % [army_ids.size(), tile.get("name", "目标")])
+
+	# Resolve each route's combat phase sequentially
+	var any_won: bool = false
+	for i in range(battle_ctx["route_count"]):
+		var route: Dictionary = battle_ctx["routes"][i]
+		var army: Dictionary = armies[route["army_id"]]
+		var dir_name: String = MultiRouteBattle.DIRECTION_NAMES_CN.get(route["direction"], "")
+		EventBus.message_log.emit("[color=cyan]第%d路(%s路) %s 发起进攻![/color]" % [i + 1, dir_name, army.get("name", "军团")])
+
+		# Use existing combat resolution
+		var phase_won: bool = await _resolve_army_combat(army, tile, tile.get("name", "守军"))
+		var phase_result: Dictionary = {
+			"attacker_won": phase_won,
+			"defender_remaining_soldiers": tile["garrison"],
+			"attacker_losses": 0,
+			"defender_losses": 0,
+			"rounds_fought": 8,
+		}
+
+		var more_phases: bool = MultiRouteBattle.record_phase_result(battle_ctx, i, phase_result)
+		if phase_won:
+			any_won = true
+		if not more_phases:
+			break
+
+	# Get summary
+	var summary: Dictionary = MultiRouteBattle.get_battle_summary(battle_ctx)
+	var defender_survived: bool = summary.get("defender_survived", true)
+
+	if not defender_survived or any_won:
+		# First winning army captures the tile
+		for aid in army_ids:
+			var army: Dictionary = armies[aid]
+			var player: Dictionary = get_player_by_id(army["player_id"])
+			_capture_tile(player, tile)
+			army["tile_index"] = target_tile_index
+			_reveal_around(target_tile_index, army["player_id"])
+			break
+		check_win_condition()
+		EventBus.message_log.emit("[color=gold]合战胜利! %s 已攻陷![/color]" % tile.get("name", "目标"))
+	else:
+		EventBus.message_log.emit("[color=red]合战失败! %s 守住了阵地。[/color]" % tile.get("name", "守军"))
+
+	return any_won
+
+
 ## v5.0: Aggregate strategic resource buffs for a player.
 func get_strategic_buffs(player_id: int) -> Dictionary:
 	return SiegeSystem.get_strategic_buffs(player_id)
@@ -4458,6 +4624,9 @@ func _capture_tile(player: Dictionary, tile: Dictionary) -> void:
 	_reveal_around(tile["index"], player["id"])
 	OrderManager.on_tile_captured()
 	ThreatManager.on_tile_captured()
+	# Update nation system ownership (fixed map mode)
+	if use_fixed_map and nation_system != null:
+		nation_system.set_territory_owner(tile["index"], player["id"])
 	# Notify neutral faction AI of territory loss
 	NeutralFactionAI.on_tile_captured(tile["index"], player["id"])
 	# Territory conquest events (領地征服事件)
@@ -6121,6 +6290,34 @@ func _evaluate_territory_effects(pid: int) -> Dictionary:
 					result[key] = result.get(key, 0) + int(effects[key]) * multiplier
 
 	result["_active_ids"] = active_effects
+
+	# ── Fixed map mode: merge per-territory special effects from TerritoryEffectsData ──
+	if use_fixed_map:
+		var owned_tiles: Array = get_cached_owned_tiles(pid) if owned.is_empty() else owned
+		for tidx in owned_tiles:
+			var te: Dictionary = TerritoryEffectsData.TERRITORY_SPECIAL_EFFECTS.get(tidx, {})
+			if te.is_empty() or (te.get("requires_control", false) and tiles[tidx].get("owner_id", -1) != pid):
+				continue
+			var mods: Dictionary = te.get("modifiers", {})
+			for key in mods:
+				if mods[key] is float:
+					result[key] = result.get(key, 0.0) + mods[key]
+				elif mods[key] is int:
+					result[key] = result.get(key, 0) + mods[key]
+				elif mods[key] is bool:
+					result[key] = true
+			active_effects.append(te.get("effect_id", "territory_%d" % tidx))
+		# Merge nation bonuses
+		if nation_system != null:
+			var nation_effects: Dictionary = nation_system.get_combined_effects(pid)
+			for key in nation_effects:
+				if nation_effects[key] is float:
+					result[key] = result.get(key, 0.0) + nation_effects[key]
+				elif nation_effects[key] is int:
+					result[key] = result.get(key, 0) + nation_effects[key]
+				elif nation_effects[key] is bool:
+					result[key] = true
+
 	return result
 
 

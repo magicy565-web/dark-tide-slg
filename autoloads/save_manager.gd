@@ -240,6 +240,7 @@ func _collect_save_data() -> Dictionary:
 		"grand_event_director": GrandEventDirector.get_save_data() if GrandEventDirector != null else {},
 		"dynamic_situation_events": DynamicSituationEvents.get_save_data() if DynamicSituationEvents != null else {},
 		"crisis_countdown": CrisisCountdown.get_save_data() if CrisisCountdown != null else {},
+		"nation_system": _save_nation_system(),
 	}
 
 
@@ -441,6 +442,10 @@ func _apply_save_data(data: Dictionary) -> void:
 	if data.has("crisis_countdown") and CrisisCountdown != null:
 		CrisisCountdown.load_save_data(data.get("crisis_countdown", {}))
 
+	# 4q. Restore nation system state (Direction D, fixed map)
+	if data.has("nation_system"):
+		_load_nation_system(data.get("nation_system", {}))
+
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
 	EventBus.resources_changed.emit(pid)
@@ -627,3 +632,38 @@ func _slot_path(slot: int) -> String:
 	if slot == AUTO_SLOT:
 		return SAVE_DIR + "autosave.json"
 	return SAVE_DIR + "save_slot_%d.json" % slot
+
+
+# ═══════════════ NATION SYSTEM SAVE/LOAD ═══════════════
+
+func _save_nation_system() -> Dictionary:
+	if not GameManager.use_fixed_map or GameManager.nation_system == null:
+		return {}
+	var ns = GameManager.nation_system
+	# Convert int keys to string for JSON
+	var owners: Dictionary = {}
+	for k in ns.territory_owners:
+		owners[str(k)] = ns.territory_owners[k]
+	return {
+		"use_fixed_map": true,
+		"territory_owners": owners,
+		"nation_controllers": ns.nation_controllers.duplicate(),
+		"active_bonuses": ns.active_bonuses.duplicate(true),
+	}
+
+
+func _load_nation_system(data: Dictionary) -> void:
+	if not data.get("use_fixed_map", false):
+		return
+	# Rebuild fixed map state
+	GameManager.use_fixed_map = true
+	var NationSystemClass = preload("res://systems/map/nation_system.gd")
+	var ns = NationSystemClass.new()
+	ns.event_bus = EventBus
+	# Restore territory owners (convert string keys back to int)
+	var owners: Dictionary = data.get("territory_owners", {})
+	for k in owners:
+		ns.territory_owners[int(k)] = owners[k]
+	ns.nation_controllers = data.get("nation_controllers", {}).duplicate()
+	ns.active_bonuses = data.get("active_bonuses", {}).duplicate(true)
+	GameManager.nation_system = ns
