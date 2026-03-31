@@ -1414,6 +1414,7 @@ static func get_level_for_exp(exp: int) -> int:
 ## 计算某属性在指定等级时的数值
 ## stat_at_level = base + floor(growth_rate * (level - 1) / 10)
 static func calc_stat(base: int, growth_rate: int, level: int) -> int:
+	@warning_ignore("integer_division")
 	return base + (growth_rate * (level - 1)) / 10
 
 

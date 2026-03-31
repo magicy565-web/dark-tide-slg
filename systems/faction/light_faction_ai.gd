@@ -523,6 +523,7 @@ func _try_light_faction_coordination() -> void:
 				continue
 
 			# Transfer 20% of excess from strongest tile to weakest tile of weaker faction
+			@warning_ignore("integer_division")
 			var transfer: int = maxi(1, excess / 5)  # 20% of excess
 			var stronger_tiles: Array = faction_garrisons.get(stronger, {}).get("tiles", [])
 			var weaker_tiles: Array = faction_garrisons.get(weaker, {}).get("tiles", [])

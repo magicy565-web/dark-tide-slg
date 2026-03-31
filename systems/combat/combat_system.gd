@@ -738,6 +738,7 @@ func _resolve_siege_phase(state: BattleState) -> void:
 	# If walls still stand, defender gets a scaled DEF bonus for remaining wall HP.
 	# Cap the bonus to avoid absurd values (e.g. 50HP wall giving +50 DEF).
 	if state.city_def > 0:
+		@warning_ignore("integer_division")
 		var wall_bonus: int = mini(state.city_def / 5, 10)
 		for u in state.defender_units:
 			u.def_stat += wall_bonus

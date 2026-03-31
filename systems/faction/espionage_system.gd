@@ -210,6 +210,7 @@ func execute_operation(player_id: int, operation_type: int, target) -> Dictionar
 				target_pid = GameManager.tiles[target].get("owner_id", -1)
 		if target_pid >= 0:
 			var target_counter: int = get_counter_intel(target_pid)
+			@warning_ignore("integer_division")
 			success_chance -= target_counter / 2
 
 	# Scout synergy: if SABOTAGE or INCITE_REVOLT on a tile scouted within last 3 turns

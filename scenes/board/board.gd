@@ -1805,6 +1805,7 @@ func _trim_material_cache() -> void:
 	if _material_cache.size() > _MATERIAL_CACHE_MAX:
 		# Evict oldest half of entries
 		var keys: Array = _material_cache.keys()
+		@warning_ignore("integer_division")
 		var to_remove: int = _material_cache.size() / 2
 		for i in range(to_remove):
 			_material_cache.erase(keys[i])

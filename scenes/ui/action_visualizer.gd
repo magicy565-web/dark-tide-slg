@@ -268,7 +268,6 @@ func _create_pulse_ring(center: Vector2, color: Color, duration: float = 0.6) ->
 	ring.set_meta("vfx", true)
 	ring.set_meta("ring_radius", 10.0)
 	ring.set_meta("ring_color", color)
-	ring.set_script(preload("res://scenes/ui/action_visualizer.gd").get_script() if false else null)
 	add_child(ring)
 
 	# We use a simple expanding ColorRect circle approximation via a Panel.

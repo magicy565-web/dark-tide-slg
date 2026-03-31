@@ -357,6 +357,7 @@ func on_tile_captured(tile_index: int, new_owner_id: int) -> void:
 				if t_idx < GameManager.tiles.size():
 					if GameManager.tiles[t_idx].get("owner_id", -1) < 0:
 						GameManager.tiles[t_idx]["neutral_faction_id"] = -1
+						@warning_ignore("integer_division")
 						GameManager.tiles[t_idx]["garrison"] = maxi(1, GameManager.tiles[t_idx]["garrison"] / 2)
 			state["territory"].clear()
 			break

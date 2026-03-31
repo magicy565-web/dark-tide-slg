@@ -487,6 +487,7 @@ func _pick_raid_composition(faction_id: int, base_strength: int) -> Array:
 
 	# Prefer IRON_WALL if we have heavy infantry types (need 3+ for formation)
 	if heavy_infantry.size() > 0 and base_strength >= 3:
+		@warning_ignore("integer_division")
 		var heavy_count: int = mini(base_strength, maxi(3, base_strength / 2))
 		for i in range(heavy_count):
 			composition.append(heavy_infantry[i % heavy_infantry.size()])
@@ -498,6 +499,7 @@ func _pick_raid_composition(faction_id: int, base_strength: int) -> Array:
 
 	# Prefer CAVALRY_CHARGE if we have 2+ cavalry types
 	if cavalry.size() > 0 and base_strength >= 2:
+		@warning_ignore("integer_division")
 		var cav_count: int = mini(base_strength, maxi(2, base_strength / 2))
 		for i in range(cav_count):
 			composition.append(cavalry[i % cavalry.size()])

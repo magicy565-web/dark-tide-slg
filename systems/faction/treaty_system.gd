@@ -206,6 +206,7 @@ func break_treaty(treaty_id: String, breaker_id: int) -> void:
 	modify_reputation(breaker_key, penalty)
 
 	# Global treachery signal — other factions also lose trust
+	@warning_ignore("integer_division")
 	var cascade_penalty: int = penalty / 3
 	for fkey in _reputation.keys():
 		if fkey != breaker_key and fkey != _player_to_faction_key(other_id):

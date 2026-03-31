@@ -1170,6 +1170,7 @@ func event_border_incident(player_id: int, faction_id: int) -> void:
 	# Immediate effect: -10 rep, small troop loss
 	change_reputation(fkey, -10)
 	var army: int = ResourceManager.get_resource(player_id, "soldiers")
+	@warning_ignore("integer_division")
 	var loss: int = mini(clampi(army / 20, 5, 30), army)
 	ResourceManager.apply_delta(player_id, {"soldiers": -loss})
 	EventBus.message_log.emit("[color=red]边境冲突: 损失%d名士兵, %s声望-10[/color]" % [loss, fname])

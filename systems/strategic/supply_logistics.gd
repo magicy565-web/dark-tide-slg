@@ -75,6 +75,7 @@ func rebuild_depot_network(player_id: int) -> void:
 			_depots[tidx] = _make_depot(tidx, player_id, CAPITAL_CAPACITY, CAPITAL_PRODUCTION)
 		elif has_depot_building:
 			var food_prod: int = tile.get("food", tile.get("prod", {}).get("food", 0))
+			@warning_ignore("integer_division")
 			var prod: int = maxi(STANDARD_PRODUCTION, STANDARD_PRODUCTION + food_prod / 2)
 			_depots[tidx] = _make_depot(tidx, player_id, STANDARD_CAPACITY, prod)
 

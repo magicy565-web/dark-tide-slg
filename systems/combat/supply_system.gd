@@ -1,10 +1,10 @@
-class_name SupplySystem
+class_name ArmySupplySystem
 ## Army Supply Lines & Attrition system for 暗潮 SLG.
 ## Armies need supply and suffer attrition when overextended from owned territory.
 ##
 ## Usage:
-##   var supply = SupplySystem.new()
-##   supply.set_march_mode(army_id, SupplySystem.MarchMode.FORCED_MARCH)
+##   var supply = ArmySupplySystem.new()
+##   supply.set_march_mode(army_id, ArmySupplySystem.MarchMode.FORCED_MARCH)
 ##   var events = supply.process_turn(player_id)
 ##   var mods   = supply.get_combat_modifiers_for_army(army_id)
 

@@ -561,6 +561,7 @@ func _get_pop_cap(player_id: int) -> int:
 	for tile in GameManager.tiles:
 		if tile.get("owner_id", -1) == player_id:
 			owned_tiles += 1
+	@warning_ignore("integer_division")
 	var base: int = 3 + (owned_tiles / 5)
 	# v4.4: garrison_bonus — equipment passive increases troop cap
 	if player_id == GameManager.get_human_player_id():

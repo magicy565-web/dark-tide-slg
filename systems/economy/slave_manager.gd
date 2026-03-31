@@ -222,6 +222,7 @@ func check_revolt(player_id: int) -> bool:
 			total_garrison += tile.get("garrison", 0)
 	if total_slaves > total_garrison * 3:
 		if randf() < 0.10:
+			@warning_ignore("integer_division")
 			var lost: int = maxi(1, total_slaves / 5)
 			if not _allocations.has(player_id):
 				return false

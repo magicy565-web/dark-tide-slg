@@ -1415,6 +1415,7 @@ func _give_starting_army(player_id: int, faction_id: int) -> void:
 		RecruitManager._get_army_ref(player_id).append(inst2)
 	elif not t2_ids.is_empty():
 		var td2: Dictionary = GameData.get_troop_def(t2_ids[0])
+		@warning_ignore("integer_division")
 		var half: int = maxi(2, td2["max_soldiers"] / 2)
 		var inst2: Dictionary = GameData.create_troop_instance(t2_ids[0], half)
 		RecruitManager._get_army_ref(player_id).append(inst2)
@@ -1490,6 +1491,7 @@ func _spawn_initial_wanderers() -> void:
 				unclaimed.append(i)
 	# Spawn wanderers on ~20% of unclaimed bandit/event tiles
 	unclaimed.shuffle()
+	@warning_ignore("integer_division")
 	var count: int = maxi(1, unclaimed.size() / 5)
 	for j in range(mini(count, unclaimed.size())):
 		RecruitManager.spawn_wanderer(unclaimed[j])
@@ -1589,6 +1591,7 @@ func _calculate_adjacency_synergy(pid: int) -> Dictionary:
 			if owned_set.has(nb):
 				total_adj_pairs += 1
 	# Each pair counted twice (A->B and B->A), so divide by 2
+	@warning_ignore("integer_division")
 	total_adj_pairs = total_adj_pairs / 2
 
 	# Each adjacency pair gives +2 gold, +1 food
@@ -2602,6 +2605,7 @@ func action_split_army(army_id: int) -> bool:
 		return false
 
 	# Move half the troops to new army
+	@warning_ignore("integer_division")
 	var split_count: int = troops.size() / 2
 	var new_army: Dictionary = armies[new_id]
 	new_army["troops"] = []
@@ -2898,6 +2902,7 @@ func action_sat_event(pid: int, hero_id: String) -> bool:
 	ResourceManager.apply_delta(pid, {"gold": gold_reward})
 
 	# Morale buff via BuffManager
+	@warning_ignore("integer_division")
 	var morale_val: int = BalanceConfig.SAT_REWARD_MORALE_BUFF + (new_aff / 3)
 	var morale_dur: int = BalanceConfig.SAT_REWARD_MORALE_DURATION
 	BuffManager.apply_buff(pid, "sat_morale", {"morale_boost": morale_val}, morale_dur)
@@ -4433,6 +4438,7 @@ func _capture_tile(player: Dictionary, tile: Dictionary) -> void:
 		EventBus.tile_lost.emit(old_owner, tile["index"])
 		OrderManager.on_tile_lost()
 	tile["owner_id"] = player["id"]
+	@warning_ignore("integer_division")
 	tile["garrison"] = maxi(BalanceConfig.CAPTURE_MIN_GARRISON, tile["garrison"] / 2)
 	tile["public_order"] = BalanceConfig.TILE_ORDER_DEFAULT
 	EventBus.tile_captured.emit(player["id"], tile["index"])

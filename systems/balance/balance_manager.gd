@@ -437,6 +437,7 @@ func _audit_cost_efficiency() -> void:
 
 	# Sort and find median
 	efficiencies.sort_custom(func(a, b): return a["ce"] < b["ce"])
+	@warning_ignore("integer_division")
 	var median_idx: int = efficiencies.size() / 2
 	var median_ce: float = efficiencies[median_idx]["ce"]
 

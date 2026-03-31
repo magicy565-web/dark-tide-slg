@@ -1871,6 +1871,7 @@ func _check_story_window_conditions(player_id: int, conditions: Dictionary) -> b
 					esp_level = GameManager.get_espionage_level(player_id)
 				else:
 					# Approximate: prestige / 50 as espionage tier
+					@warning_ignore("integer_division")
 					esp_level = int(ResourceManager.get_resource(player_id, "prestige") / 50)
 				if esp_level < conditions[key]:
 					return false
@@ -1941,6 +1942,7 @@ func _apply_story_window_rewards(player_id: int, window: Dictionary) -> void:
 					ResearchManager.add_bonus_points(rewards[key])
 				else:
 					# Fallback: grant prestige equivalent
+					@warning_ignore("integer_division")
 					res_delta["prestige"] = res_delta.get("prestige", 0) + int(rewards[key] / 2)
 				EventBus.message_log.emit("[color=green]  奖励: 研究进度+%d[/color]" % rewards[key])
 			"hero_xp":
