@@ -53,13 +53,13 @@ func get_events() -> Array:
 		]
 	})
 	events.append({
-		"id": "v5_court_conspiracy_s3_purge", "name": "宫廷阴谋·铁腕代价",
-		"desc": "持续的镇压让宫廷笼罩在恐惧中。大臣们噤若寒蝉，效率低下，但再无人敢质疑你的权威。",
+		"id": "v5_court_conspiracy_s3_purge", "name": "宫廷阴谋·叛军起义",
+		"desc": "变本加厉的镇压终于引爆了危机——被清洗的贵族家族联合起来，在城外集结了一支叛军！他们打着\"诛杀暴君\"的旗号向你的据点进发。必须迎战！",
 		"condition": "chain:v5_court_conspiracy_s2a:1", "repeatable": false,
 		"chain_parent": "v5_court_conspiracy_s2a", "chain_choice": 1,
 		"choices": [
-			{"text": "建立密探机构永久监控 (-20金, +15威望, 秩序-5)", "effects": {"gold": -20, "prestige": 15, "order": -5}},
-			{"text": "大赦天下，重新开始 (+15秩序, -10威望, +20金)", "effects": {"order": 15, "prestige": -10, "gold": 20}},
+			{"text": "亲率精锐迎击叛军 (战斗: 10叛军, 胜利+30威望+20金)", "effects": {"type": "combat", "enemy_soldiers": 10}},
+			{"text": "据城死守，等待援军 (战斗: 7叛军, DEF+20%, 胜利+15秩序)", "effects": {"type": "combat", "enemy_soldiers": 7, "buff": {"type": "def_pct", "value": 20, "duration": 1}}},
 		]
 	})
 	events.append({
@@ -226,23 +226,23 @@ func get_events() -> Array:
 		]
 	})
 	events.append({
-		"id": "v5_mine_crisis", "name": "金矿脉·矿难",
-		"desc": "大规模开采进行到第三周，灾难降临——矿道坍塌，数十名矿工被困地下。救援需要资源，但如果不救，剩余矿工将拒绝继续工作。",
+		"id": "v5_mine_crisis", "name": "金矿脉·强盗袭矿",
+		"desc": "金矿的消息走漏了！一支山贼团伙在夜间突袭了矿场，杀死守卫并劫走了第一批矿石。矿工们恐惧地拒绝继续工作，除非你能消灭这些强盗。",
 		"condition": "chain:v5_gold_vein:0", "repeatable": false,
 		"chain_parent": "v5_gold_vein", "chain_choice": 0,
 		"choices": [
-			{"text": "全力救援 (-20金, -1铁, +10秩序)", "effects": {"gold": -20, "iron": -1, "order": 10}},
-			{"text": "封闭坍塌矿道，继续其他区域开采 (+30金, -12秩序, -5威望)", "effects": {"gold": 30, "order": -12, "prestige": -5}},
+			{"text": "派兵剿匪 (战斗: 7山贼, 胜利夺回矿石+25金)", "effects": {"type": "combat", "enemy_soldiers": 7}},
+			{"text": "花钱雇佣佣兵保护 (-35金, +5秩序)", "effects": {"gold": -35, "order": 5}},
 		]
 	})
 	events.append({
-		"id": "v5_mine_boom", "name": "金矿脉·黄金时代",
-		"desc": "救援成功后，矿工们士气高涨。他们在更深处发现了一个巨大的天然金库——几百年来积累的纯金矿石堆满了整个洞穴！",
+		"id": "v5_mine_boom", "name": "金矿脉·深层探索",
+		"desc": "强盗被消灭后，矿工们的信心恢复了。他们在更深处挖掘时发现了一个巨大的地下空间——但里面盘踞着一群地穴蜘蛛！不过，蛛巢背后隐约可见几百年积累的天然金库。",
 		"condition": "chain:v5_mine_crisis:0", "repeatable": false,
 		"chain_parent": "v5_mine_crisis", "chain_choice": 0,
 		"choices": [
-			{"text": "全部开采充实国库 (+100金, +5威望)", "effects": {"gold": 100, "prestige": 5}},
-			{"text": "分一半给矿工作为奖励 (+50金, +15秩序, +10威望)", "effects": {"gold": 50, "order": 15, "prestige": 10}},
+			{"text": "清剿蛛巢夺取金库 (战斗: 9地穴兽, 胜利+100金+1遗物)", "effects": {"type": "combat", "enemy_soldiers": 9}},
+			{"text": "用烟熏驱赶后谨慎开采 (+50金, 60%安全/40%: -3兵)", "effects": {"type": "gamble", "success_rate": 0.6, "success": {"gold": 50}, "fail": {"gold": 30, "soldiers": -3}}},
 		]
 	})
 
@@ -261,23 +261,23 @@ func get_events() -> Array:
 		]
 	})
 	events.append({
-		"id": "v5_betrayal_unrest", "name": "背叛之影·军心动摇",
-		"desc": "武将被软禁的消息传开后，她的亲卫队和追随者们群情激愤。其他武将也开始不安——如果任何人都可能突然被软禁，谁还敢卖命？",
+		"id": "v5_betrayal_unrest", "name": "背叛之影·亲卫叛乱",
+		"desc": "武将被软禁的消息传开后，她的亲卫队300人趁夜劫狱！他们杀死了看守，释放了被软禁的武将，现在正向城门突围——你必须拦截他们！",
 		"condition": "chain:v5_hero_betrayal:0", "repeatable": false,
 		"chain_parent": "v5_hero_betrayal", "chain_choice": 0,
 		"choices": [
-			{"text": "公开证据平息众怒 (+10威望, -5秩序)", "effects": {"prestige": 10, "order": -5}},
-			{"text": "释放武将并道歉 (全武将好感+1, -10威望)", "effects": {"hero_affection_all": 1, "prestige": -10}},
+			{"text": "堵截城门，武力镇压 (战斗: 6亲卫精兵, 胜利+10秩序+10威望)", "effects": {"type": "combat", "enemy_soldiers": 6}},
+			{"text": "放她们走，避免流血 (-4兵, -8秩序, 但全武将好感+1)", "effects": {"soldiers": -4, "order": -8, "hero_affection_all": 1}},
 		]
 	})
 	events.append({
-		"id": "v5_betrayal_truth", "name": "背叛之影·真相",
-		"desc": "调查结果令人震惊——所谓的\"通敌\"竟是一场陷害！匿名信的寄信人是另一位嫉妒她战功的武将。真正的叛徒就隐藏在你身边。",
+		"id": "v5_betrayal_truth", "name": "背叛之影·真相与追杀",
+		"desc": "调查结果令人震惊——所谓的\"通敌\"竟是一场陷害！真正的叛徒得知阴谋败露，带着一批死士仓皇出逃。如果让他逃到敌国，后患无穷！",
 		"condition": "chain:v5_hero_betrayal:1", "repeatable": false,
 		"chain_parent": "v5_hero_betrayal", "chain_choice": 1,
 		"choices": [
-			{"text": "揪出陷害者并严惩 (+15威望, +8秩序, 被诬陷武将好感+2)", "effects": {"prestige": 15, "order": 8}},
-			{"text": "私下警告，维持表面和平 (+5秩序, -5威望)", "effects": {"order": 5, "prestige": -5}},
+			{"text": "派精锐骑兵追击 (战斗: 5死士, 胜利+20威望+15秩序+1遗物)", "effects": {"type": "combat", "enemy_soldiers": 5}},
+			{"text": "放他走，专注内政 (+5秩序, -5威望, 威胁+5)", "effects": {"order": 5, "prestige": -5, "threat": 5}},
 		]
 	})
 
@@ -327,18 +327,18 @@ func get_events() -> Array:
 		]
 	})
 	events.append({
-		"id": "v5_weapon_forging", "name": "传说武器·锻造",
-		"desc": "锻造已经持续了数日，炉火昼夜不息。老铁匠说还缺少一种关键催化剂——要么使用昂贵的魔晶，要么用更危险但免费的方法：以鲜血淬火。",
+		"id": "v5_weapon_forging", "name": "传说武器·守护者试炼",
+		"desc": "锻造进行到最关键的一步时，老铁匠突然停下了锤子：设计图上写着，\"黄昏之牙\"的最终材料——陨铁核心——被封存在一座远古试炼场中。要获得它，必须击败试炼场的守护者。",
 		"condition": "chain:v5_legendary_weapon:0", "repeatable": false,
 		"chain_parent": "v5_legendary_weapon", "chain_choice": 0,
 		"choices": [
-			{"text": "使用魔晶 (-2魔晶, 安全锻造)", "effects": {"magic_crystal": -2}},
-			{"text": "鲜血淬火 (-2兵献祭, 武器更强但带有诅咒)", "effects": {"soldiers": -2}},
+			{"text": "派最强武将挑战守护者 (战斗: 10远古傀儡, 胜利获得陨铁核心)", "effects": {"type": "combat", "enemy_soldiers": 10}},
+			{"text": "用替代材料凑合 (80%成功: 品质稍低但可用, 20%失败: -15金)", "effects": {"type": "gamble", "success_rate": 0.8, "success": {"prestige": 5}, "fail": {"gold": -15}}},
 		]
 	})
 	events.append({
-		"id": "v5_weapon_holy", "name": "传说武器·黄昏之牙·圣",
-		"desc": "魔晶的纯净能量注入剑身，金色的光芒从刃口涌出。\"黄昏之牙\"重现人间——一把能斩断黑暗的圣剑。你的武将们争相请求佩戴它。",
+		"id": "v5_weapon_holy", "name": "传说武器·黄昏之牙·真",
+		"desc": "陨铁核心在炉火中绽放出金色光芒。老铁匠倾注毕生心血，完成了最后一锤。\"黄昏之牙\"重现人间——一把能斩断一切黑暗的神器。你的武将们争相请求佩戴它。",
 		"condition": "chain:v5_weapon_forging:0", "repeatable": false,
 		"chain_parent": "v5_weapon_forging", "chain_choice": 0,
 		"choices": [
@@ -347,8 +347,8 @@ func get_events() -> Array:
 		]
 	})
 	events.append({
-		"id": "v5_weapon_cursed", "name": "传说武器·黄昏之牙·诅咒",
-		"desc": "鲜血浸透了剑身，暗红色的脉络在刀刃上蔓延。这把剑的力量远超预期——但它似乎有了自己的意志，每次拔剑都让持有者陷入狂暴。",
+		"id": "v5_weapon_cursed", "name": "传说武器·黄昏之牙·残",
+		"desc": "替代材料终究不如陨铁核心——锻造出的剑身出现了不稳定的裂纹，暗红色的能量从裂缝中渗出。这把剑比预想的更危险，但力量也更加狂暴不可控。",
 		"condition": "chain:v5_weapon_forging:1", "repeatable": false,
 		"chain_parent": "v5_weapon_forging", "chain_choice": 1,
 		"choices": [
@@ -395,9 +395,9 @@ func get_events() -> Array:
 	# ══════════════════════════════════════════════════════════
 
 	# Political (4)
-	events.append({"id": "v5_rival_heir", "name": "继承危机", "desc": "一个自称王室血脉的人出现了，部分贵族开始向他效忠。", "condition": "always", "repeatable": true, "choices": [{"text": "公开处决 (-5秩序, +10威望)", "effects": {"order": -5, "prestige": 10}}, {"text": "收买拉拢 (-30金, +5秩序)", "effects": {"gold": -30, "order": 5}}]})
+	events.append({"id": "v5_rival_heir", "name": "继承危机", "desc": "一个自称王室血脉的人带着一支私兵出现了，部分贵族投靠了他。他公开向你宣战！", "condition": "always", "repeatable": true, "choices": [{"text": "武力镇压 (战斗: 8叛军, 胜利+15威望)", "effects": {"type": "combat", "enemy_soldiers": 8}}, {"text": "收买拉拢 (-30金, +5秩序)", "effects": {"gold": -30, "order": 5}}]})
 	events.append({"id": "v5_merchant_guild", "name": "商会请愿", "desc": "本地商会要求减税以换取更多贸易收入。", "condition": "always", "repeatable": true, "choices": [{"text": "同意减税 (-15金, +20下回合金)", "effects": {"gold": -15, "gold_delayed": 20}}, {"text": "拒绝 (+5威望)", "effects": {"prestige": 5}}]})
-	events.append({"id": "v5_noble_feud", "name": "贵族内斗", "desc": "两个贵族家族爆发冲突，一方请求你的裁决。", "condition": "always", "repeatable": true, "choices": [{"text": "支持强者 (+10金, -3秩序)", "effects": {"gold": 10, "order": -3}}, {"text": "居中调停 (+5秩序, +3威望)", "effects": {"order": 5, "prestige": 3}}]})
+	events.append({"id": "v5_noble_feud", "name": "贵族械斗", "desc": "两个贵族家族的私兵在街头大打出手，已经有平民伤亡！你必须立刻干预。", "condition": "always", "repeatable": true, "choices": [{"text": "派兵弹压 (战斗: 5混战兵, 胜利+8秩序+5威望)", "effects": {"type": "combat", "enemy_soldiers": 5}}, {"text": "居中调停 (+5秩序, +3威望, -10金)", "effects": {"order": 5, "prestige": 3, "gold": -10}}]})
 	events.append({"id": "v5_peace_envoy", "name": "和平使者", "desc": "一位来自远方的使者提议建立贸易通道。", "condition": "always", "repeatable": true, "choices": [{"text": "接受 (+25金, -3威望)", "effects": {"gold": 25, "prestige": -3}}, {"text": "拒绝 (+5威望)", "effects": {"prestige": 5}}]})
 
 	# Military (4)
@@ -407,10 +407,10 @@ func get_events() -> Array:
 	events.append({"id": "v5_night_raid", "name": "夜袭", "desc": "敌方发动了一次小规模夜袭!", "condition": "always", "repeatable": true, "choices": [{"text": "迎战 (战斗: 4敌兵)", "effects": {"type": "combat", "enemy_soldiers": 4}}, {"text": "据守营地 (-2兵, +3城防)", "effects": {"soldiers": -2, "wall_boost": 3}}]})
 
 	# Supernatural (4)
-	events.append({"id": "v5_blood_moon_omen", "name": "血月异象", "desc": "天空出现了诡异的血红色月亮，士兵们惶恐不安。", "condition": "always", "repeatable": true, "choices": [{"text": "举行祈福仪式 (-15金, +5秩序)", "effects": {"gold": -15, "order": 5}}, {"text": "宣称是吉兆 (+8威望, -3秩序)", "effects": {"prestige": 8, "order": -3}}]})
+	events.append({"id": "v5_blood_moon_omen", "name": "血月·亡灵潮", "desc": "血红色月亮升起的同时，领地边境出现了大量亡灵！它们被血月之力驱动，向你的据点涌来。", "condition": "always", "repeatable": true, "choices": [{"text": "全军迎战 (战斗: 8亡灵, 胜利+3暗影精华+10威望)", "effects": {"type": "combat", "enemy_soldiers": 8}}, {"text": "据守城墙等天亮 (-3兵, +5城防, 50%: +2暗影精华)", "effects": {"soldiers": -3, "wall_boost": 5, "type": "gamble", "success_rate": 0.5, "success": {}, "fail": {"order": -5}}}]})
 	events.append({"id": "v5_spirit_guardian", "name": "精灵守护者", "desc": "一位古老的精灵现身，愿意守护你的领地。", "condition": "always", "repeatable": true, "choices": [{"text": "接受守护 (DEF+15%, 5回合)", "effects": {"buff": {"type": "def_pct", "value": 15, "duration": 5}}}, {"text": "请求情报 (揭示2格迷雾)", "effects": {"reveal": 2}}]})
-	events.append({"id": "v5_mana_surge", "name": "魔力潮汐", "desc": "大地中涌出了强烈的魔力波动。", "condition": "always", "repeatable": true, "choices": [{"text": "引导魔力 (+2魔晶)", "effects": {"magic_crystal": 2}}, {"text": "分配给军队 (全军ATK+15%, 2回合)", "effects": {"buff": {"type": "atk_pct", "value": 15, "duration": 2}}}]})
-	events.append({"id": "v5_dark_ritual_found", "name": "暗黑仪式", "desc": "巡逻队发现有人在秘密进行暗黑仪式。", "condition": "always", "repeatable": true, "choices": [{"text": "阻止并逮捕 (+5秩序, +5威望)", "effects": {"order": 5, "prestige": 5}}, {"text": "秘密观察学习 (+2暗影精华, -5秩序)", "effects": {"order": -5}}]})
+	events.append({"id": "v5_mana_surge", "name": "魔力潮汐·元素暴走", "desc": "大地中涌出的魔力波动失控了——火元素和冰元素在领地中央具现化，正在互相厮杀并波及周围建筑！", "condition": "always", "repeatable": true, "choices": [{"text": "派法师和士兵消灭元素体 (战斗: 6元素兵, 胜利+3魔晶)", "effects": {"type": "combat", "enemy_soldiers": 6}}, {"text": "引导魔力分散 (-15金, +2魔晶, +5秩序)", "effects": {"gold": -15, "magic_crystal": 2, "order": 5}}]})
+	events.append({"id": "v5_dark_ritual_found", "name": "暗黑仪式·邪教巢穴", "desc": "巡逻队不仅发现了暗黑仪式——他们还找到了一个完整的邪教地下巢穴，里面有召唤出的恶魔守卫。", "condition": "always", "repeatable": true, "choices": [{"text": "突袭邪教巢穴 (战斗: 7恶魔+邪教徒, 胜利+2暗影精华+10秩序)", "effects": {"type": "combat", "enemy_soldiers": 7}}, {"text": "封锁入口上报 (+5秩序, +5威望)", "effects": {"order": 5, "prestige": 5}}]})
 
 	# Economic (4)
 	events.append({"id": "v5_trade_caravan", "name": "贸易商队", "desc": "一支来自远方的贸易商队经过你的领地。", "condition": "always", "repeatable": true, "choices": [{"text": "征税 (+20金, -3外交)", "effects": {"gold": 20, "prestige": -3}}, {"text": "合作贸易 (+10金, +5威望)", "effects": {"gold": 10, "prestige": 5}}]})
