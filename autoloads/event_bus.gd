@@ -213,6 +213,10 @@ signal story_route_completed(hero_id: String, route: String)
 signal story_choice_made(hero_id: String, event_id: String, choice_index: int)
 signal story_choice_requested(hero_id: String, event_id: String, choices: Array)
 
+# ── Mission Panel (Sengoku Rance-style manual event trigger) ──
+signal mission_execute_requested(hero_id: String)
+signal mission_panel_refreshed()
+
 # ── CG & Gallery System (v3.8) ──
 signal cg_unlocked(cg_id: String, hero_id: String)
 signal cg_displayed(cg_id: String, hero_id: String)

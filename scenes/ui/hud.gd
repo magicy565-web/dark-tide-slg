@@ -456,6 +456,14 @@ func _build_action_panel(parent: Control) -> void:
 	btn_sat_event.pressed.connect(_on_sat_event_pressed)
 	vbox.add_child(btn_sat_event)
 
+	var btn_mission = _make_button("Mission [M] (1AP)")
+	btn_mission.pressed.connect(_on_mission_pressed)
+	vbox.add_child(btn_mission)
+
+	var btn_territory_info = _make_button("Territory [T]")
+	btn_territory_info.pressed.connect(_on_territory_info_pressed)
+	vbox.add_child(btn_territory_info)
+
 	# Prestige actions
 	var section_prestige := _make_label("-- Prestige --", 10, Color(0.7, 0.7, 0.5))
 	vbox.add_child(section_prestige)
@@ -3978,3 +3986,39 @@ func _on_recruitment_event_triggered(event_data: Dictionary) -> void:
 	_diplo_event_queue.append(event_data)
 	if not _diplo_event_active:
 		_show_next_diplomatic_event()
+
+
+# ═══════════════════════════════════════════════════════════════
+#                MISSION PANEL (Sengoku Rance-style)
+# ═══════════════════════════════════════════════════════════════
+
+func _on_mission_pressed() -> void:
+	## Open the Sengoku Rance-style mission panel for manual story event execution.
+	var main = get_tree().current_scene
+	if main and "mission_panel" in main and main.mission_panel:
+		if main.mission_panel.is_panel_visible():
+			main.mission_panel.hide_panel()
+		else:
+			main.mission_panel.show_panel()
+		return
+	# Fallback: walk root children for MissionPanel node
+	for child in get_tree().root.get_children():
+		if child.has_method("show_panel") and "Mission" in child.name:
+			child.show_panel()
+			return
+
+
+func _on_territory_info_pressed() -> void:
+	## Open the comprehensive territory info panel.
+	var main = get_tree().current_scene
+	if main and "territory_info_panel" in main and main.territory_info_panel:
+		if main.territory_info_panel.is_panel_visible():
+			main.territory_info_panel.hide_panel()
+		else:
+			main.territory_info_panel.show_panel()
+		return
+	# Fallback: walk root children for TerritoryInfo node
+	for child in get_tree().root.get_children():
+		if child.has_method("show_for_tile") and "TerritoryInfo" in child.name:
+			child.show_panel()
+			return

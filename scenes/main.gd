@@ -43,6 +43,12 @@ var game_over_panel_node = null
 # ── Army Management Panel (SR07-style) ──
 var army_panel = null
 
+# ── Mission Panel (Sengoku Rance-style manual story event trigger) ──
+var mission_panel = null
+
+# ── Territory Info Panel (comprehensive territory details) ──
+var territory_info_panel = null
+
 # ── v3.4 New panels ──
 var ai_indicator = null
 var debug_console = null
@@ -99,6 +105,18 @@ func _ready() -> void:
 	pirate_panel = CanvasLayer.new()
 	pirate_panel.set_script(PiratePanelScript)
 	add_child(pirate_panel)
+
+	# Mission panel (Sengoku Rance-style manual story event trigger)
+	var MissionPanelScript = preload("res://scenes/ui/mission_panel.gd")
+	mission_panel = CanvasLayer.new()
+	mission_panel.set_script(MissionPanelScript)
+	add_child(mission_panel)
+
+	# Territory Info Panel (comprehensive territory details)
+	var TerritoryInfoPanelScript = preload("res://scenes/ui/territory_info_panel.gd")
+	territory_info_panel = CanvasLayer.new()
+	territory_info_panel.set_script(TerritoryInfoPanelScript)
+	add_child(territory_info_panel)
 
 	# Quest tracker (always-visible on-screen widget)
 	var QuestTrackerScript = preload("res://scenes/ui/quest_tracker.gd")
@@ -268,6 +286,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if troop_training_panel and troop_training_panel.has_method("is_panel_visible") and troop_training_panel.is_panel_visible():
 				return
 			if equipment_forge_panel and equipment_forge_panel.has_method("is_panel_visible") and equipment_forge_panel.is_panel_visible():
+				return
+			if territory_info_panel and territory_info_panel.has_method("is_panel_visible") and territory_info_panel.is_panel_visible():
 				return
 			if espionage_panel and espionage_panel.visible:
 				espionage_panel.hide_panel()  # BUG FIX: call hide_panel() for proper cleanup

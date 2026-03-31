@@ -36,6 +36,11 @@ const ROUTE_FRIENDLY := "friendly"       # 友好路线 (early pure love, neutra
 const ROUTE_NEUTRAL := "neutral"         # 中立路线 (quest chain, neutral chars)
 const ROUTE_HOSTILE := "hostile"         # 敌对路线 (neutral char conquest)
 
+# Routes that auto-trigger (conquest chain - battle/capture events)
+const AUTO_TRIGGER_ROUTES: Array = ["hostile"]
+# Routes that require manual trigger from mission panel
+const MANUAL_TRIGGER_ROUTES: Array = ["training", "pure_love", "neutral", "friendly"]
+
 # ── Data file mapping ──
 const STORY_DATA_FILES: Dictionary = {
 	"rin":      "res://systems/story/data/rin_story.gd",
@@ -476,6 +481,10 @@ func _on_hero_captured(hero_id: String) -> void:
 	else:
 		_init_progress(hero_id, ROUTE_TRAINING)
 	# Try to trigger the first event
+	var route: String = story_progress.get(hero_id, {}).get("route", "")
+	if route in MANUAL_TRIGGER_ROUTES:
+		EventBus.message_log.emit("[color=orchid]新任务可用: %s[/color]" % _get_hero_display_name(hero_id))
+		return
 	try_trigger_next(hero_id)
 
 
@@ -503,11 +512,19 @@ func _on_hero_recruited(hero_id: String) -> void:
 			_init_progress(hero_id, ROUTE_NEUTRAL)
 		else:
 			_init_progress(hero_id, ROUTE_PURE_LOVE)
+	var route: String = story_progress.get(hero_id, {}).get("route", "")
+	if route in MANUAL_TRIGGER_ROUTES:
+		EventBus.message_log.emit("[color=orchid]新任务可用: %s[/color]" % _get_hero_display_name(hero_id))
+		return
 	try_trigger_next(hero_id)
 
 
 func _on_affection_changed(hero_id: String, new_value: int) -> void:
 	# Check if affection threshold triggers next event
+	var route: String = story_progress.get(hero_id, {}).get("route", "")
+	if route in MANUAL_TRIGGER_ROUTES:
+		EventBus.message_log.emit("[color=orchid]新任务可用: %s[/color]" % _get_hero_display_name(hero_id))
+		return
 	try_trigger_next(hero_id)
 
 
@@ -548,6 +565,97 @@ func resolve_story_choice(hero_id: String, event_id: String, choice_index: int) 
 	complete_current_event(hero_id)
 
 
+# ═══════════════ MISSION PANEL SUPPORT ═══════════════
+
+## Get hero display name for UI.
+func _get_hero_display_name(hero_id: String) -> String:
+	# Map hero_id to display names
+	var names: Dictionary = {
+		"rin": "凛", "yukino": "雪乃", "momiji": "红叶",
+		"hyouka": "冰華", "suirei": "翠玲", "gekka": "月華",
+		"hakagure": "叶隐", "sou": "蒼", "shion": "紫苑",
+		"homura": "焔", "hibiki": "響", "sara": "沙罗",
+		"mei": "冥", "kaede": "枫", "akane": "朱音", "hanabi": "花火",
+	}
+	return names.get(hero_id, hero_id)
+
+
+## Returns ALL missions across all heroes with their status, for the mission panel UI.
+func get_available_missions() -> Array:
+	var missions: Array = []
+	for hero_id in story_progress:
+		var prog: Dictionary = story_progress[hero_id]
+		var route: String = prog.get("route", "")
+		# Only include manual-trigger routes
+		if route not in MANUAL_TRIGGER_ROUTES:
+			continue
+		var events: Array = get_route_events(hero_id, route)
+		var current_idx: int = prog.get("current_event", 0)
+		var completed: Array = prog.get("completed_events", [])
+
+		# Get hero display name
+		var hero_name: String = _get_hero_display_name(hero_id)
+
+		for i in range(events.size()):
+			var event: Dictionary = events[i]
+			var event_id: String = event.get("id", "")
+			var status: String = "locked"
+
+			if event_id in completed:
+				status = "completed"
+			elif i == current_idx:
+				# Check if trigger conditions are met
+				if _evaluate_trigger(hero_id, event.get("trigger", {})):
+					status = "available"
+				else:
+					status = "locked"
+			# Future events beyond current are locked
+
+			missions.append({
+				"hero_id": hero_id,
+				"hero_name": hero_name,
+				"event_id": event_id,
+				"event_name": event.get("name", "???"),
+				"route": route,
+				"status": status,
+				"event_data": event,
+			})
+	return missions
+
+
+## Trigger the next available event for a hero manually (from mission panel).
+## Returns the event data if successful, empty dict otherwise.
+func manually_trigger_event(hero_id: String) -> Dictionary:
+	if _processing_effects:
+		return {}
+	if _pending_choices.has(hero_id):
+		return {}
+	var prog: Dictionary = story_progress.get(hero_id, {})
+	if prog.is_empty():
+		return {}
+	var route: String = prog.get("route", "")
+	if route not in MANUAL_TRIGGER_ROUTES:
+		push_warning("StoryEventSystem: Cannot manually trigger auto-trigger route '%s'" % route)
+		return {}
+	# Check trigger conditions
+	if not check_trigger(hero_id):
+		return {}
+	var event: Dictionary = get_next_event(hero_id)
+	if event.is_empty():
+		return {}
+	# Same logic as try_trigger_next but explicitly for manual trigger
+	var choices: Array = event.get("choices", [])
+	if not choices.is_empty():
+		var event_id: String = event.get("id", "")
+		_pending_choices[hero_id] = {"event_id": event_id, "event": event}
+		story_choice_requested.emit(hero_id, event_id, choices)
+		EventBus.story_choice_requested.emit(hero_id, event_id, choices)
+	else:
+		complete_current_event(hero_id)
+	EventBus.story_event_triggered.emit(hero_id, event)
+	return event
+
+
 # ═══════════════ TURN PROCESSING ═══════════════
 
 ## Called each turn to check for auto-triggering story events.
@@ -560,10 +668,14 @@ func process_story_turn() -> void:
 			orphaned.append(hero_id)
 	for hero_id in orphaned:
 		push_warning("StoryEventSystem: hero_id '%s' 无有效剧情数据，跳过处理" % hero_id)
-	# Check all heroes with active story progress
+	# Only auto-trigger events on AUTO_TRIGGER_ROUTES (hostile/conquest)
+	# Manual routes (training/pure_love/neutral/friendly) require mission panel
 	for hero_id in story_progress:
 		if hero_id in orphaned:
 			continue
+		var route: String = story_progress[hero_id].get("route", "")
+		if route in MANUAL_TRIGGER_ROUTES:
+			continue  # Skip — player must trigger via mission panel
 		try_trigger_next(hero_id)
 
 
