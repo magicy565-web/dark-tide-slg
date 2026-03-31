@@ -2302,6 +2302,10 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 			# Unknown skill, do normal attack
 			return false
 
+	# Emit skill activation signal for battle cutin visual system
+	var is_attacker_side: bool = unit["side"] == "attacker"
+	EventBus.hero_skill_activated.emit(unit["hero_id"], skill_name, is_attacker_side)
+
 	return true
 
 

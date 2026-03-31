@@ -388,3 +388,19 @@ signal intel_overlay_toggle(visible: bool)
 signal intel_report_requested()
 signal tile_tooltip_requested(tile_index: int)
 signal tile_tooltip_dismissed()
+
+# ── Direction A: Visual Presentation (v4.0) ──
+signal hero_skill_activated(hero_id: String, skill_name: String, is_attacker: bool)
+signal vn_scene_started(left_hero: String, right_hero: String, mood: String)
+signal vn_scene_ended()
+signal screen_effect_requested(effect_type: String, duration: float)
+signal battle_cutin_requested(hero_id: String, skill_name: String, from_left: bool)
+signal battle_cutin_finished()
+
+# ── Direction B: Event Expansion (v4.0) ──
+signal faction_destroyed(faction_id: String, destroyer_id: int)
+signal seasonal_event_triggered(season: String, event_data: Dictionary)
+signal grand_event_started(event_id: String)
+signal grand_event_ended(event_id: String)
+signal character_interaction_triggered(hero_a: String, hero_b: String, event_data: Dictionary)
+signal dynamic_event_triggered(event_id: String, trigger_condition: String)

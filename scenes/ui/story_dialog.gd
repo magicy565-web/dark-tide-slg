@@ -32,9 +32,12 @@ var _reveal_current: int = 0
 var root: Control
 var dim_bg: ColorRect
 var cg_layer: TextureRect              # Fullscreen CG background layer
-var portrait_container: Control        # Container for character portrait display
-var portrait_sprite: TextureRect       # Character portrait/head image
-var portrait_name_label: Label         # Small name label under portrait
+var portrait_container: Control        # Container for character portrait display (LEFT)
+var portrait_sprite: TextureRect       # Character portrait/head image (LEFT)
+var portrait_name_label: Label         # Small name label under portrait (LEFT)
+var right_portrait_container: Control  # Container for RIGHT character portrait
+var right_portrait_sprite: TextureRect # Character portrait/head image (RIGHT)
+var right_portrait_name_label: Label   # Small name label under portrait (RIGHT)
 var dialog_panel: PanelContainer
 var speaker_label: Label
 var text_label: RichTextLabel
@@ -148,6 +151,41 @@ func _build_ui() -> void:
 	portrait_name_label.add_theme_font_size_override("font_size", 12)
 	portrait_name_label.add_theme_color_override("font_color", Color(0.85, 0.8, 0.65))
 	portrait_container.add_child(portrait_name_label)
+
+	# ── RIGHT character portrait container (right side, mirrored) ──
+	right_portrait_container = Control.new()
+	right_portrait_container.name = "RightPortraitContainer"
+	right_portrait_container.anchor_left = 0.78
+	right_portrait_container.anchor_right = 0.98
+	right_portrait_container.anchor_top = 0.20
+	right_portrait_container.anchor_bottom = 0.65
+	right_portrait_container.offset_left = 0; right_portrait_container.offset_right = 0
+	right_portrait_container.offset_top = 0; right_portrait_container.offset_bottom = 0
+	right_portrait_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	right_portrait_container.visible = false
+	root.add_child(right_portrait_container)
+
+	right_portrait_sprite = TextureRect.new()
+	right_portrait_sprite.name = "RightPortraitSprite"
+	right_portrait_sprite.set_anchors_preset(Control.PRESET_FULL_RECT)
+	right_portrait_sprite.offset_left = 0; right_portrait_sprite.offset_right = 0
+	right_portrait_sprite.offset_top = 0; right_portrait_sprite.offset_bottom = -24
+	right_portrait_sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	right_portrait_sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	right_portrait_sprite.flip_h = true  # Mirror horizontally for right side
+	right_portrait_sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	right_portrait_container.add_child(right_portrait_sprite)
+
+	right_portrait_name_label = Label.new()
+	right_portrait_name_label.name = "RightPortraitName"
+	right_portrait_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	right_portrait_name_label.anchor_left = 0.0; right_portrait_name_label.anchor_right = 1.0
+	right_portrait_name_label.anchor_top = 1.0; right_portrait_name_label.anchor_bottom = 1.0
+	right_portrait_name_label.offset_top = -22; right_portrait_name_label.offset_bottom = 0
+	right_portrait_name_label.offset_left = 0; right_portrait_name_label.offset_right = 0
+	right_portrait_name_label.add_theme_font_size_override("font_size", 12)
+	right_portrait_name_label.add_theme_color_override("font_color", Color(0.85, 0.8, 0.65))
+	right_portrait_container.add_child(right_portrait_name_label)
 
 	# ── Scene description area (top) ──
 	scene_panel = PanelContainer.new()
@@ -302,6 +340,17 @@ func show_story_event(hero_id: String, event: Dictionary) -> void:
 	# ── Portrait: show the event's hero portrait with default expression ──
 	_show_portrait(hero_id, "")
 
+	# ── VN Director: mood-based BGM switching ──
+	var event_mood: String = event.get("mood", "")
+	if event_mood != "" and is_instance_valid(VnDirector):
+		VnDirector.switch_mood(event_mood)
+
+	# ── VN Director: dual portrait scene setup ──
+	var right_hero: String = event.get("right_hero", "")
+	if right_hero != "" and is_instance_valid(VnDirector):
+		VnDirector.setup_scene(hero_id, right_hero, event_mood)
+		_show_right_portrait(right_hero, "")
+
 	# Show progress
 	var route: String = StoryEventSystem.get_route(hero_id)
 	var events: Array = StoryEventSystem.get_route_events(hero_id, route)
@@ -328,9 +377,13 @@ func hide_dialog() -> void:
 	# Reset CG/portrait state
 	_hide_cg()
 	_hide_portrait()
+	_hide_right_portrait()
 	_current_cg_id = ""
 	_current_portrait_hero = ""
 	_current_expression = ""
+	# Cleanup VnDirector state
+	if is_instance_valid(VnDirector):
+		VnDirector.cleanup()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -406,13 +459,35 @@ func _advance_dialogue() -> void:
 		"dialogue":
 			var speaker_id: String = entry.get("speaker_id", "")
 			speaker_label.text = entry.get("speaker", "")
-			# Update portrait to the speaking character (if speaker_id provided)
-			if speaker_id != "":
-				_show_portrait(speaker_id, d_expr)
-			elif d_expr != "":
-				# Expression change on current hero portrait
-				_update_expression(d_expr)
-			_dim_portrait(false)
+			# ── Speaker position support (left/right portrait) ──
+			var speaker_pos: String = entry.get("speaker_position", "")
+			if speaker_pos == "right":
+				if speaker_id != "":
+					_show_right_portrait(speaker_id, d_expr)
+				_dim_portrait(true)
+				_dim_right_portrait(false)
+				if is_instance_valid(VnDirector):
+					VnDirector.set_speaker(VnDirector.PortraitSlot.RIGHT)
+			elif speaker_pos == "left" or speaker_id != "":
+				# Default: left side
+				if speaker_id != "":
+					_show_portrait(speaker_id, d_expr)
+				elif d_expr != "":
+					_update_expression(d_expr)
+				_dim_portrait(false)
+				_dim_right_portrait(true)
+				if is_instance_valid(VnDirector):
+					VnDirector.set_speaker(VnDirector.PortraitSlot.LEFT)
+			else:
+				# No position specified, no speaker_id — use expression on current
+				if d_expr != "":
+					_update_expression(d_expr)
+				_dim_portrait(false)
+			# ── Per-dialogue screen effect ──
+			var d_effect: String = entry.get("effect", "")
+			if d_effect != "" and is_instance_valid(VnDirector):
+				var effect_duration: float = entry.get("effect_duration", 0.3)
+				VnDirector.play_effect_by_name(d_effect, effect_duration)
 			var action: String = entry.get("action", "")
 			var text: String = entry.get("text", "")
 			if action != "":
@@ -607,6 +682,7 @@ func _show_animated() -> void:
 	dialog_panel.modulate.a = 0.0
 	cg_layer.modulate.a = 0.0
 	portrait_container.modulate.a = 0.0
+	right_portrait_container.modulate.a = 0.0
 	if _tween:
 		_tween.kill()
 	_tween = create_tween().set_parallel(true)
@@ -618,6 +694,8 @@ func _show_animated() -> void:
 	# Portrait fades in if visible
 	if portrait_container.visible:
 		_tween.tween_property(portrait_container, "modulate:a", 1.0, 0.35)
+	if right_portrait_container.visible:
+		_tween.tween_property(right_portrait_container, "modulate:a", 1.0, 0.35)
 
 
 func _hide_animated() -> void:
@@ -630,6 +708,8 @@ func _hide_animated() -> void:
 		_tween.tween_property(cg_layer, "modulate:a", 0.0, 0.25)
 	if portrait_container.visible:
 		_tween.tween_property(portrait_container, "modulate:a", 0.0, 0.2)
+	if right_portrait_container.visible:
+		_tween.tween_property(right_portrait_container, "modulate:a", 0.0, 0.2)
 	_tween.chain().tween_callback(hide_dialog)
 
 
@@ -788,3 +868,39 @@ func _unlock_event_cgs(hero_id: String, event: Dictionary) -> void:
 		var d_cg: String = d.get("cg", "")
 		if d_cg != "":
 			CGManager.unlock_cg(d_cg, hero_id)
+
+
+# ═══════════════════════════════════════════════════════════════
+#                RIGHT PORTRAIT MANAGEMENT (v2.1)
+# ═══════════════════════════════════════════════════════════════
+
+## Show a character portrait on the RIGHT side with optional expression.
+func _show_right_portrait(hero_id: String, expression: String = "") -> void:
+	var tex: Texture2D = CGManager.load_head_texture(hero_id, expression)
+	if tex == null:
+		_hide_right_portrait()
+		return
+	right_portrait_sprite.texture = tex
+	right_portrait_name_label.text = _get_hero_name(hero_id)
+	if not right_portrait_container.visible:
+		right_portrait_container.visible = true
+		right_portrait_container.modulate.a = 0.0
+		var tw := create_tween()
+		tw.tween_property(right_portrait_container, "modulate:a", 1.0, 0.25)
+	right_portrait_sprite.modulate = Color(1, 1, 1, 1)
+
+
+## Hide the right portrait display.
+func _hide_right_portrait() -> void:
+	right_portrait_container.visible = false
+	right_portrait_sprite.texture = null
+	right_portrait_name_label.text = ""
+
+
+## Dim/undim the right portrait (for narration vs dialogue).
+func _dim_right_portrait(dimmed: bool) -> void:
+	if not right_portrait_container.visible:
+		return
+	var target_color: Color = Color(0.5, 0.5, 0.5, 0.7) if dimmed else Color(1, 1, 1, 1)
+	var tw := create_tween()
+	tw.tween_property(right_portrait_sprite, "modulate", target_color, 0.15)

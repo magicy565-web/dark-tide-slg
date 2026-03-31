@@ -72,6 +72,13 @@ EspionageSystem="*res://systems/faction/espionage_system.gd"
 WeatherSystem="*res://systems/world/weather_system.gd"
 CGManager="*res://autoloads/cg_manager.gd"
 CGGalleryPanel="*res://scenes/ui/cg_gallery_panel.gd"
+VnDirector="*res://systems/story/vn_director.gd"
+BattleCutin="*res://systems/combat/battle_cutin.gd"
+FactionDestructionEvents="*res://systems/event/faction_destruction_events.gd"
+SeasonalEvents="*res://systems/event/seasonal_events.gd"
+CharacterInteractionEvents="*res://systems/event/character_interaction_events.gd"
+GrandEventDirector="*res://systems/event/grand_event_director.gd"
+DynamicSituationEvents="*res://systems/event/dynamic_situation_events.gd"
 
 [display]
 

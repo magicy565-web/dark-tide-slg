@@ -233,6 +233,12 @@ func _collect_save_data() -> Dictionary:
 		"weather": WeatherSystem.to_save_data() if WeatherSystem != null else {},
 		"espionage": EspionageSystem.to_save_data() if EspionageSystem != null else {},
 		"cg_gallery": CGManager.to_save_data() if CGManager != null else {},
+		# v4.0 new systems
+		"faction_destruction_events": FactionDestructionEvents.get_save_data() if FactionDestructionEvents != null else {},
+		"seasonal_events": SeasonalEvents.get_save_data() if SeasonalEvents != null else {},
+		"character_interaction_events": CharacterInteractionEvents.get_save_data() if CharacterInteractionEvents != null else {},
+		"grand_event_director": GrandEventDirector.get_save_data() if GrandEventDirector != null else {},
+		"dynamic_situation_events": DynamicSituationEvents.get_save_data() if DynamicSituationEvents != null else {},
 	}
 
 
@@ -419,6 +425,18 @@ func _apply_save_data(data: Dictionary) -> void:
 	# 4o. Restore CG gallery unlock state (v3.8+)
 	if data.has("cg_gallery") and CGManager != null:
 		CGManager.from_save_data(data.get("cg_gallery", {}))
+
+	# 4p. Restore v4.0 new systems
+	if data.has("faction_destruction_events") and FactionDestructionEvents != null:
+		FactionDestructionEvents.load_save_data(data.get("faction_destruction_events", {}))
+	if data.has("seasonal_events") and SeasonalEvents != null:
+		SeasonalEvents.load_save_data(data.get("seasonal_events", {}))
+	if data.has("character_interaction_events") and CharacterInteractionEvents != null:
+		CharacterInteractionEvents.load_save_data(data.get("character_interaction_events", {}))
+	if data.has("grand_event_director") and GrandEventDirector != null:
+		GrandEventDirector.load_save_data(data.get("grand_event_director", {}))
+	if data.has("dynamic_situation_events") and DynamicSituationEvents != null:
+		DynamicSituationEvents.load_save_data(data.get("dynamic_situation_events", {}))
 
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()

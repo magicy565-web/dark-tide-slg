@@ -1879,6 +1879,18 @@ func begin_turn() -> void:
 	if pid == get_human_player_id():
 		EventSystem.check_endgame_crisis()
 
+	# ── Phase 6b: New Event Systems (v4.0) ──
+	if not player["is_ai"]:
+		# Character interaction events (between recruited heroes)
+		if CharacterInteractionEvents:
+			CharacterInteractionEvents.process_turn(pid)
+		# Dynamic situation events (game-state responsive)
+		if DynamicSituationEvents:
+			DynamicSituationEvents.process_turn(pid)
+		# Grand event milestone checks
+		if GrandEventDirector:
+			GrandEventDirector.check_milestones(pid)
+
 	# ── Phase 5c3: Harem cooldown tick ──
 	if pid == get_human_player_id():
 		HeroSystem.tick_harem_cooldowns()
@@ -4064,6 +4076,7 @@ func _handle_rival_base(player: Dictionary, tile: Dictionary) -> void:
 			if not rival_has_tiles:
 				var rival_fid: int = get_player_faction(rival_id)
 				FactionManager.mark_faction_dead(rival_fid, player["id"])
+				EventBus.faction_destroyed.emit(rival_id, player["id"])
 
 
 # ═══════════════ COMMANDER TACTICAL ORDERS ═══════════════
