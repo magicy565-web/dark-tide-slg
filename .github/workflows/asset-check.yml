@@ -1,0 +1,38 @@
+name: Asset Size Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-large-files:
+    name: Check for Large Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for accidentally committed large files
+        run: |
+          FOUND=0
+          while IFS= read -r f; do
+            SIZE=$(du -h "$f" | cut -f1)
+            echo "::warning file=$f::Large file detected: $f ($SIZE) - consider using Git LFS"
+            FOUND=1
+          done < <(find . -type f -size +10M -not -path './.git/*' -not -path './.git/**')
+
+          if [ "$FOUND" -eq 1 ]; then
+            echo ""
+            echo "::warning::One or more files exceed 10MB. Please use Git LFS for large binary assets."
+            echo "Run: git lfs track '<pattern>' && git add .gitattributes"
+          else
+            echo "No large files found. All clear."
+          fi
+
+      - name: Check LFS tracking
+        run: |
+          if [ -f .gitattributes ]; then
+            echo "Current LFS tracking rules:"
+            grep "filter=lfs" .gitattributes || echo "  (none)"
+          else
+            echo "::notice::No .gitattributes file found. Consider setting up Git LFS for binary assets."
+          fi

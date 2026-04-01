@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  GODOT_VERSION: "4.2"
+
+jobs:
+  lint:
+    name: GDScript Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Restore LFS cache
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          key: lfs-${{ hashFiles('.lfs-assets-id') }}
+          restore-keys: lfs-
+
+      - name: Pull LFS files
+        run: git lfs pull
+
+      - name: GDScript format check
+        uses: Scony/godot-gdscript-toolkit@master
+        with:
+          args: --check .
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    container:
+      image: barichello/godot-ci:4.2
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Restore LFS cache
+        uses: actions/cache@v4
+        with:
+          path: .git/lfs
+          key: lfs-${{ hashFiles('.lfs-assets-id') }}
+          restore-keys: lfs-
+
+      - name: Pull LFS files
+        run: git lfs pull || true
+
+      - name: Restore Godot import cache
+        uses: actions/cache@v4
+        with:
+          path: .godot/imported/
+          key: godot-import-${{ hashFiles('**/*.import') }}
+          restore-keys: godot-import-
+
+      - name: Setup Godot data directory
+        run: mkdir -p /root/.local/share/godot/
+
+      - name: Import project assets
+        run: godot --headless --editor --quit 2>&1 || true
+
+      - name: Run GDScript tests
+        run: |
+          timeout 120 godot --headless --script tests/test_runner.gd --quit 2>&1
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -eq 124 ]; then
+            echo "::error::Tests timed out after 120 seconds"
+            exit 1
+          fi
+          exit $EXIT_CODE

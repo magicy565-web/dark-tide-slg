@@ -201,7 +201,7 @@ func _sync_hero_affection_quests() -> void:
 		}
 
 
-func _journal_status_to_string(status_int) -> String:
+func _journal_status_to_string(status_int: int) -> String:
 	## Convert QuestDefs.QuestStatus int to a readable string.
 	if not QuestDefs:
 		return "unknown"
