@@ -1671,6 +1671,11 @@ func begin_turn() -> void:
 		return
 	if players.is_empty() or current_player_index < 0 or current_player_index >= players.size():
 		return
+
+	# ── EventScheduler: reset candidate pool for new turn ──
+	if EventScheduler:
+		EventScheduler.begin_turn()
+
 	var player: Dictionary = players[current_player_index]
 	var pid: int = player["id"]
 	var faction_id: int = get_player_faction(pid)
@@ -1955,6 +1960,18 @@ func begin_turn() -> void:
 		# Grand event milestone checks
 		if GrandEventDirector:
 			GrandEventDirector.check_milestones(pid)
+
+	# ── Phase 6c: EventScheduler — resolve weighted event selection (v5.1) ──
+	if EventScheduler and not player["is_ai"]:
+		var selected_events: Array = EventScheduler.resolve_turn()
+		for evt in selected_events:
+			var evt_data: Dictionary = evt.get("data", {})
+			if EventBus.has_signal("show_event_popup"):
+				EventBus.show_event_popup.emit(
+					evt_data.get("title", ""),
+					evt_data.get("desc", ""),
+					evt_data.get("choices", []))
+			EventBus.message_log.emit("[color=yellow]事件: %s[/color]" % evt_data.get("title", evt.get("id", "")))
 
 	# ── Phase 5c3: Harem cooldown tick ──
 	if pid == get_human_player_id():
