@@ -860,7 +860,7 @@ const PRESTIGE_SOURCES: Dictionary = {
 }
 
 # ── Item Definitions (consumables) ──
-# Icon convention: "res://assets/icons/items/<icon_file>.png"
+# Icon convention: "res://assets/icons/items/<icon_file>.webp"
 const ITEM_DEFS: Dictionary = {
 	"attack_totem": {"name": "攻击图腾", "desc": "下次战斗攻击+30%", "type": "consumable", "effect": {"atk_mult": 1.3}, "weight": 5, "icon": "attack_totem"},
 	"iron_shield": {"name": "铁壁盾牌", "desc": "下次战斗防御+30%", "type": "consumable", "effect": {"def_mult": 1.3}, "weight": 5, "icon": "iron_shield"},

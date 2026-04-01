@@ -380,7 +380,7 @@ func _refresh_hero_equip_tab() -> void:
 			# Item icon
 			var icon_name: String = eq_def.get("icon", "")
 			if icon_name != "":
-				var icon_path: String = "res://assets/icons/items/%s.png" % icon_name
+				var icon_path: String = "res://assets/icons/items/%s.webp" % icon_name
 				if ResourceLoader.exists(icon_path):
 					var tex: Texture2D = load(icon_path)
 					if tex:
@@ -472,7 +472,7 @@ func _on_hero_equip_picker(hero_id: String) -> void:
 		# Icon
 		var icon_name: String = eq_def.get("icon", item.get("icon", ""))
 		if icon_name != "":
-			var icon_path: String = "res://assets/icons/items/%s.png" % icon_name
+			var icon_path: String = "res://assets/icons/items/%s.webp" % icon_name
 			if ResourceLoader.exists(icon_path):
 				var tex: Texture2D = load(icon_path)
 				if tex:

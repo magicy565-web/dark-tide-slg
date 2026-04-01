@@ -3,7 +3,7 @@ class_name ChibiSpriteLoader
 ## Maps hero_id (e.g. "rin") → animation files for 6 states.
 ##
 ## Video path pattern: res://assets/characters/animations_ogv/{folder}_chibi_{state}.ogv
-## PNG fallback:       res://assets/characters/chibi/{folder}/{state}.png
+## PNG/WebP fallback:  res://assets/characters/chibi/{folder}/{state}.webp
 ##
 ## Usage:
 ##   var stream = ChibiSpriteLoader.load_video("rin", "idle")
@@ -66,7 +66,7 @@ static func load_video(hero_id: String, state: String = "idle") -> VideoStream:
 	# Note: defeat/defeated naming has been standardized to "defeated" across all assets.
 	return null
 
-## Load a PNG sprite as fallback (for heroes without video).
+## Load a chibi sprite image as fallback (for heroes without video).
 static func load_png(hero_id: String, state: String = "idle") -> Texture2D:
 	var cache_key := "p:" + hero_id + "/" + state
 	if _cache.has(cache_key):
@@ -76,7 +76,7 @@ static func load_png(hero_id: String, state: String = "idle") -> Texture2D:
 	if folder.is_empty():
 		return null
 
-	var path := CHIBI_BASE + folder + "/" + state + ".png"
+	var path := CHIBI_BASE + folder + "/" + state + ".webp"
 	if ResourceLoader.exists(path):
 		var tex := load(path) as Texture2D
 		_cache[cache_key] = tex
@@ -93,12 +93,12 @@ static func has_video(hero_id: String) -> bool:
 	var path := VIDEO_BASE + folder + "_chibi_idle.ogv"
 	return ResourceLoader.exists(path)
 
-## Check if a hero has PNG chibi sprites (fallback).
+## Check if a hero has chibi sprite images (fallback).
 static func has_png(hero_id: String) -> bool:
 	var folder: String = HERO_FOLDERS.get(hero_id, "")
 	if folder.is_empty():
 		return false
-	var path := CHIBI_BASE + folder + "/idle.png"
+	var path := CHIBI_BASE + folder + "/idle.webp"
 	return ResourceLoader.exists(path)
 
 ## Check if a hero has any chibi assets (video or PNG).

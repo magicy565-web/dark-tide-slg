@@ -55,7 +55,7 @@ var MAX_TROOPS_PER_ARMY: int:
 ## v4.4: Effective max troops per army, considering garrison_bonus equipment passive.
 func get_effective_max_troops(player_id: int) -> int:
 	var base: int = BalanceConfig.MAX_TROOPS_PER_ARMY
-	if player_id == get_human_player_id():
+	if player_id == get_human_player_id() and HeroSystem != null:
 		for hid in HeroSystem.recruited_heroes:
 			if HeroSystem.has_equipment_passive(hid, "garrison_bonus"):
 				base += int(HeroSystem.get_equipment_passive_value(hid, "garrison_bonus"))
@@ -556,7 +556,7 @@ func get_tile_production(tile: Dictionary) -> Dictionary:
 	var level_idx: int = clampi(level - 1, 0, UPGRADE_PROD_MULT.size() - 1) if UPGRADE_PROD_MULT.size() > 0 else 0
 	var mult: float = UPGRADE_PROD_MULT[level_idx] if UPGRADE_PROD_MULT.size() > 0 else 1.0
 	# SR07: Apply garrison commander production bonus
-	var cmd_bonus: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1))
+	var cmd_bonus: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1)) if HeroSystem != null else {}
 	var cmd_mult: float = cmd_bonus.get("prod_mult", 1.0)
 	return {
 		"gold": int(float(base.get("gold", 0)) * mult * cmd_mult),
@@ -1309,7 +1309,7 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC, fixed_map: bool
 	ResourceManager.init_player(0, human_start_res)
 	SlaveManager.init_player(0, human_start_res.get("slaves", 0))
 	FactionManager.init_faction(0, chosen_faction)
-	if chosen_faction == FactionData.FactionID.PIRATE:
+	if chosen_faction == FactionData.FactionID.PIRATE and HeroSystem != null:
 		HeroSystem.init_pirate_mode()
 	ItemManager.init_player(0)
 	RelicManager.init_player(0)
@@ -1970,7 +1970,7 @@ func begin_turn() -> void:
 	# (see below, after EventBus.turn_started.emit)
 
 	# ── Phase 5c3: Harem cooldown tick ──
-	if pid == get_human_player_id():
+	if pid == get_human_player_id() and HeroSystem != null:
 		HeroSystem.tick_harem_cooldowns()
 		HeroSystem.tick_cooldowns()
 		HeroSystem.tick_gift_cooldowns()
@@ -2006,7 +2006,7 @@ func begin_turn() -> void:
 		DiplomacyManager.process_diplomatic_events(pid)
 
 	# ── Phase 5e7: SR07-style hero recruitment events ──
-	if pid == get_human_player_id():
+	if pid == get_human_player_id() and HeroSystem != null:
 		HeroSystem.process_recruitment_events(pid)
 
 	# ── Phase 5f: Alliance AI actions ──
@@ -2149,7 +2149,7 @@ func begin_turn() -> void:
 			EventBus.message_log.emit("剩余回合: %d/%d" % [remaining, BalanceConfig.TURN_LIMIT])
 
 	# ── Hidden Heroes check (秘密英雄 — turn start) ──
-	if pid == get_human_player_id():
+	if pid == get_human_player_id() and HeroSystem != null:
 		HeroSystem.check_hidden_hero_conditions(pid)
 
 	if player["is_ai"]:
@@ -2224,8 +2224,9 @@ func action_grand_festival() -> bool:
 
 	# +3 affection to all recruited heroes
 	var aff_bonus: int = BalanceConfig.GRAND_FESTIVAL_AFFECTION_BONUS
-	for hero_id in HeroSystem.recruited_heroes:
-		HeroSystem.add_affection(hero_id, aff_bonus)
+	if HeroSystem != null:
+		for hero_id in HeroSystem.recruited_heroes:
+			HeroSystem.add_affection(hero_id, aff_bonus)
 
 	EventBus.grand_festival_executed.emit(pid)
 	EventBus.message_log.emit("[color=green][b]═══ 盛大祭典! ═══[/b][/color]")
@@ -2987,7 +2988,7 @@ func action_sat_event(pid: int, hero_id: String) -> bool:
 	if _sat_points.get(pid, 0) < BalanceConfig.SAT_EVENT_COST:
 		EventBus.message_log.emit("[color=red]満足度不足! (需要%d)[/color]" % BalanceConfig.SAT_EVENT_COST)
 		return false
-	if hero_id not in HeroSystem.recruited_heroes:
+	if HeroSystem == null or hero_id not in HeroSystem.recruited_heroes:
 		EventBus.message_log.emit("[color=red]该英雄未在麾下![/color]")
 		return false
 
@@ -3011,7 +3012,7 @@ func action_sat_event(pid: int, hero_id: String) -> bool:
 	BuffManager.apply_buff(pid, "sat_morale", {"morale_boost": morale_val}, morale_dur)
 
 	# Faction-aware flavor text
-	var hero_name: String = HeroSystem.get_hero_display_name(hero_id) if HeroSystem.has_method("get_hero_display_name") else hero_id
+	var hero_name: String = HeroSystem.get_hero_display_name(hero_id) if HeroSystem != null and HeroSystem.has_method("get_hero_display_name") else hero_id
 	var faction_tag: String = _get_faction_tag_for_player(pid)
 	var flavor: String
 	match faction_tag:
@@ -3032,7 +3033,7 @@ func action_gift_hero(hero_id: String) -> Dictionary:
 	## Universal gift-giving action. Costs 30g, +1 affection, 1/turn cooldown per hero.
 	## Works for ALL factions — delegates to HeroSystem gift system.
 	var pid: int = get_human_player_id()
-	if hero_id not in HeroSystem.recruited_heroes:
+	if HeroSystem == null or hero_id not in HeroSystem.recruited_heroes:
 		return {"ok": false, "desc": "英雄未在麾下"}
 	if not HeroSystem.can_give_gift(hero_id):
 		if HeroSystem.hero_affection.get(hero_id, 0) >= FactionData.AFFECTION_MAX:
@@ -3048,7 +3049,7 @@ func action_gift_hero(hero_id: String) -> Dictionary:
 	HeroSystem._gift_cooldowns[hero_id] = FactionData.GIFT_COOLDOWN_TURNS
 	EventBus.hero_affection_changed.emit(hero_id, new_aff)
 
-	var hero_name: String = HeroSystem.get_hero_display_name(hero_id) if HeroSystem.has_method("get_hero_display_name") else hero_id
+	var hero_name: String = HeroSystem.get_hero_display_name(hero_id) if HeroSystem != null and HeroSystem.has_method("get_hero_display_name") else hero_id
 	EventBus.message_log.emit("[color=pink]赠礼 %s! -30金, 好感度+1 (当前: %d)[/color]" % [hero_name, new_aff])
 	return {"ok": true, "desc": "赠礼成功", "affection": new_aff}
 
@@ -3352,7 +3353,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			"passive": troop.get("passive", ""),
 		}
 		# v4.4: Inject hero combat stats & equipment passives for CombatSystem v2
-		if _cmd_id != "generic" and _cmd_id != "":
+		if _cmd_id != "generic" and _cmd_id != "" and HeroSystem != null:
 			var _hero_stats: Dictionary = HeroSystem.get_hero_combat_stats(_cmd_id)
 			if not _hero_stats.is_empty():
 				_unit_dict["hero_data"] = {
@@ -3373,7 +3374,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	# Build defender army dict from garrison
 	var defender_units: Array = []
 	var garrison_troops: Array = []
-	if RecruitManager.has_method("get_garrison"):
+	if RecruitManager != null and RecruitManager.has_method("get_garrison"):
 		garrison_troops = RecruitManager.get_garrison(tile.get("index", 0))
 
 	if not garrison_troops.is_empty():
@@ -3470,7 +3471,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		EventBus.message_log.emit("[color=cyan]防御部署生效! 守军DEF+50%%[/color]")
 
 	# SR07: Garrison commander DEF bonus
-	var _cmd_bonus: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1))
+	var _cmd_bonus: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1)) if HeroSystem != null else {}
 	if _cmd_bonus.get("def_mult", 1.0) > 1.0:
 		for du in defender_units:
 			du["def"] = int(ceil(float(du.get("def", 5)) * _cmd_bonus["def_mult"]))
@@ -3563,7 +3564,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	if won:
 		tile["garrison"] = 0
 		tile["wall_hp"] = 0
-		if RecruitManager.has_method("clear_garrison_troops"):
+		if RecruitManager != null and RecruitManager.has_method("clear_garrison_troops"):
 			RecruitManager.clear_garrison_troops(tile.get("index", 0))
 		EventBus.message_log.emit("[color=green]%s 攻克 %s![/color]" % [army["name"], defender_desc])
 
@@ -3583,7 +3584,8 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 
 		# Handle captured heroes
 		for hero_id in captured_heroes:
-			HeroSystem.attempt_capture(str(hero_id))
+			if HeroSystem != null:
+				HeroSystem.attempt_capture(str(hero_id))
 	else:
 		# Garrison takes losses but survives
 		# BUG FIX: match by slot index to handle duplicate troop types correctly
@@ -3614,7 +3616,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	_grant_hero_combat_exp(pid, result, won)
 
 	# ── Hidden Heroes: record battle victory and check conditions ──
-	if won and pid == get_human_player_id():
+	if won and pid == get_human_player_id() and HeroSystem != null:
 		HeroSystem.record_battle_victory()
 		HeroSystem.check_hidden_hero_conditions(pid)
 
@@ -3705,7 +3707,7 @@ func _grant_hero_combat_exp(pid: int, result: Dictionary, attacker_wins: bool) -
 					p.get("name", p.get("passive_id", ""))])
 
 	# Shared battle affection: heroes in winning battles gain +1 affection
-	if attacker_wins:
+	if attacker_wins and HeroSystem != null:
 		for hero_id in hero_ids:
 			var current_aff: int = HeroSystem.hero_affection.get(hero_id, 0)
 			if current_aff < FactionData.AFFECTION_MAX:
@@ -4388,7 +4390,7 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	}
 
 	# SR07: Garrison commander DEF bonus (legacy combat path)
-	var _cmd_bonus2: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1))
+	var _cmd_bonus2: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1)) if HeroSystem != null else {}
 	if _cmd_bonus2.get("def_mult", 1.0) > 1.0:
 		for du in def_units:
 			if du.has("def"):
@@ -4414,11 +4416,11 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	_grant_hero_combat_exp(pid, result, attacker_wins)
 
 	# ── Hidden Heroes: record battle victory and check conditions ──
-	if attacker_wins and pid == get_human_player_id():
+	if attacker_wins and pid == get_human_player_id() and HeroSystem != null:
 		HeroSystem.record_battle_victory()
 		HeroSystem.check_hidden_hero_conditions(pid)
 
-	# 防守方英雄也获得经验：胜利获得全额，失败获得50%（从战斗中学习）
+	# 防守方英雄也获得経験：胜利获得全额，失败获得50%（从战斗中学习）
 	if def_player_id >= 0 and def_player_id != pid:
 		var defender_wins: bool = not attacker_wins
 		_grant_hero_combat_exp(def_player_id, result, defender_wins)
@@ -4569,7 +4571,7 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 	_grant_hero_combat_exp(pid, result, attacker_wins)
 
 	# ── Hidden Heroes: record battle victory and check conditions ──
-	if attacker_wins and pid == get_human_player_id():
+	if attacker_wins and pid == get_human_player_id() and HeroSystem != null:
 		HeroSystem.record_battle_victory()
 		HeroSystem.check_hidden_hero_conditions(pid)
 
@@ -4802,7 +4804,7 @@ func _capture_tile(player: Dictionary, tile: Dictionary) -> void:
 	# Territory conquest events (領地征服事件)
 	_check_conquest_events(player["id"], tile["index"])
 	# Hidden Heroes check after tile capture (秘密英雄)
-	if player["id"] == get_human_player_id():
+	if player["id"] == get_human_player_id() and HeroSystem != null:
 		HeroSystem.check_hidden_hero_conditions(player["id"])
 	# SAT (満足度) points on tile capture
 	var _sat_gain: int = BalanceConfig.SAT_GAIN_NORMAL
@@ -4982,7 +4984,7 @@ func _check_conquest_events(pid: int, tile_index: int) -> void:
 				EventBus.message_log.emit("征服奖励: 威望+25, 金+100!")
 				# Capture chance for faction leader
 				var leader_id: String = _get_light_faction_leader(light_faction)
-				if leader_id != "" and leader_id not in HeroSystem.captured_heroes and leader_id not in HeroSystem.recruited_heroes:
+				if leader_id != "" and HeroSystem != null and leader_id not in HeroSystem.captured_heroes and leader_id not in HeroSystem.recruited_heroes:
 					HeroSystem.attempt_capture(leader_id, 0.75)
 
 	# Milestone events based on total tiles owned
@@ -5056,7 +5058,7 @@ func tick_tile_public_order() -> void:
 		var bld_level: int = tile.get("building_level", 0)
 		drift += bld_level * BalanceConfig.TILE_ORDER_BUILDING_DRIFT
 		# SR07: Garrison commander order bonus
-		var _cmd_order: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1))
+		var _cmd_order: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1)) if HeroSystem != null else {}
 		drift += _cmd_order.get("order_bonus", 0)
 		order = minf(order + drift, BalanceConfig.TILE_ORDER_NATURAL_CAP)
 		tile["public_order"] = clampf(order, 0.0, 1.0)
@@ -6061,6 +6063,10 @@ func action_interrogate_hero(hero_id: String) -> bool:
 		EventBus.message_log.emit("行動力不足!")
 		return false
 
+	if HeroSystem == null:
+		EventBus.message_log.emit("[color=red]英雄系统未初始化![/color]")
+		return false
+
 	var result: Dictionary = HeroSystem.interrogate_hero(hero_id)
 	if not result["ok"]:
 		EventBus.message_log.emit(result["result"])
@@ -6162,7 +6168,7 @@ func _record_battle_stat(player_id: int, won: bool) -> void:
 func _compute_end_game_score(player_id: int, victory_type: String) -> Dictionary:
 	## Compute detailed score breakdown for the end-game screen.
 	var owned: int = count_tiles_owned(player_id)
-	var heroes: int = HeroSystem.recruited_heroes.size()
+	var heroes: int = HeroSystem.recruited_heroes.size() if HeroSystem != null else 0
 	var b_won: int = game_stats.get("battles_won", 0)
 	var b_lost: int = game_stats.get("battles_lost", 0)
 	var turns: int = turn_number
@@ -6337,7 +6343,7 @@ func check_win_condition() -> void:
 		return
 
 	# ── Victory Path 4: Pirate Harem Collection (海盗后宫收集胜利) ──
-	if human_faction == FactionData.FactionID.PIRATE and HeroSystem.check_harem_victory():
+	if human_faction == FactionData.FactionID.PIRATE and HeroSystem != null and HeroSystem.check_harem_victory():
 		game_active = false
 		EventBus.message_log.emit("[color=pink]═══ 后宫胜利! ═══[/color]")
 		EventBus.message_log.emit("[color=pink]所有角色都已臣服于你的魅力! 海盗王的后宫建立完成![/color]")

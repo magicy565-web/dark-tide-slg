@@ -371,7 +371,7 @@ func get_icon_path(icon_name: String) -> String:
 	## Resolve icon name to full path. Returns "" if no icon asset exists.
 	if icon_name == "":
 		return ""
-	var path: String = ITEM_ICON_DIR + icon_name + ".png"
+	var path: String = ITEM_ICON_DIR + icon_name + ".webp"
 	if ResourceLoader.exists(path):
 		return path
 	return ""

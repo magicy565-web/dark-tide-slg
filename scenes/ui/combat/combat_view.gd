@@ -2890,7 +2890,7 @@ func _build_loot_item(item: Dictionary) -> HBoxContainer:
 			var con_def: Dictionary = FactionData.ITEM_DEFS.get(item_id, {})
 			icon_name = con_def.get("icon", "")
 	if icon_name != "":
-		var icon_path: String = "res://assets/icons/items/%s.png" % icon_name
+		var icon_path: String = "res://assets/icons/items/%s.webp" % icon_name
 		if ResourceLoader.exists(icon_path):
 			var tex: Texture2D = load(icon_path)
 			if tex:

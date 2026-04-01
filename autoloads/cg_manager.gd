@@ -13,9 +13,9 @@ var unlocked_cgs: Dictionary = {}
 
 # ── Asset path conventions ──
 # Event CG:       res://assets/cg/{hero_id}/{cg_id}.png        (1920×1080)
-# Character head:  res://assets/characters/heads/{nn}_{hero_id}_head.png  (256×256)
-# Expression:      res://assets/characters/heads/{nn}_{hero_id}_head_{expr}.png
-# Full portrait:   res://assets/characters/designs/{nn}_{hero_id}_{variant}.png
+# Character head:  res://assets/characters/heads/{nn}_{hero_id}_head.webp  (256×256)
+# Expression:      res://assets/characters/heads/{nn}_{hero_id}_head_{expr}.webp
+# Full portrait:   res://assets/characters/designs/{nn}_{hero_id}_{variant}.webp
 
 # ── Hero ID → file number prefix mapping ──
 const HERO_PREFIX: Dictionary = {
@@ -28,7 +28,7 @@ const HERO_PREFIX: Dictionary = {
 
 # ── Expression name constants ──
 # Used in dialogue data: "expression": "angry"
-# Maps to file suffix: {nn}_{hero_id}_head_angry.png
+# Maps to file suffix: {nn}_{hero_id}_head_angry.webp
 const EXPRESSIONS := ["normal", "happy", "angry", "sad", "surprised", "shy", "serious"]
 
 # ── CG catalog ──
@@ -62,12 +62,12 @@ func get_cg_path(hero_id: String, cg_id: String) -> String:
 
 ## Get the filesystem path for a character head portrait (base or expression).
 ## expression == "" or "normal" → base head
-## expression == "angry" → {nn}_{hero_id}_head_angry.png
+## expression == "angry" → {nn}_{hero_id}_head_angry.webp
 func get_head_path(hero_id: String, expression: String = "") -> String:
 	var prefix: String = HERO_PREFIX.get(hero_id, "00")
 	if expression == "" or expression == "normal":
-		return "res://assets/characters/heads/%s_%s_head.png" % [prefix, hero_id]
-	return "res://assets/characters/heads/%s_%s_head_%s.png" % [prefix, hero_id, expression]
+		return "res://assets/characters/heads/%s_%s_head.webp" % [prefix, hero_id]
+	return "res://assets/characters/heads/%s_%s_head_%s.webp" % [prefix, hero_id, expression]
 
 
 ## Try to load a head texture, falling back to base head if expression variant doesn't exist.

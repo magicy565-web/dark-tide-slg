@@ -31,6 +31,20 @@ const DEFERRED_CATEGORIES: Dictionary = {
 	"video": "res://assets/video",
 }
 
+# Hardcoded fallback paths for essential assets in case DirAccess fails
+const ESSENTIAL_FALLBACK_PATHS: Array = [
+	"res://assets/icons/gold.png",
+	"res://assets/icons/food.png",
+	"res://assets/icons/prestige.png",
+	"res://assets/icons/army.png",
+	"res://assets/icons/slaves.png",
+	"res://assets/icons/order.png",
+	"res://assets/ui/button_bg.png",
+	"res://assets/ui/panel_bg.png",
+	"res://assets/ui/frame.png",
+	"res://assets/characters/heads/default.png",
+]
+
 # File extensions to scan
 const TEXTURE_EXTENSIONS: Array = [".png", ".webp", ".jpg"]
 const ALL_ASSET_EXTENSIONS: Array = [".png", ".webp", ".jpg", ".ogv", ".ogg", ".tres"]
@@ -58,6 +72,11 @@ func _preload_essentials() -> void:
 	var dir := DirAccess.open(ESSENTIAL_CATEGORIES["ui"])
 	if dir:
 		_scan_dir(dir, ESSENTIAL_CATEGORIES["ui"], ui_paths, TEXTURE_EXTENSIONS)
+	else:
+		push_warning("WebLoader: Could not open UI directory '%s', using fallback paths" % ESSENTIAL_CATEGORIES["ui"])
+		for p in ESSENTIAL_FALLBACK_PATHS:
+			if p.begins_with(ESSENTIAL_CATEGORIES["ui"]) and ResourceLoader.exists(p):
+				ui_paths.append(p)
 	if not ui_paths.is_empty():
 		AssetLoader.preload_batch(ui_paths)
 
@@ -87,6 +106,8 @@ func ensure_category(category: String) -> void:
 	var dir := DirAccess.open(base_path)
 	if dir:
 		_scan_dir(dir, base_path, paths, ALL_ASSET_EXTENSIONS)
+	else:
+		push_warning("WebLoader: Could not open deferred directory '%s'" % base_path)
 
 	if not paths.is_empty():
 		AssetLoader.preload_batch(paths)

@@ -53,6 +53,9 @@ func submit_candidate(id: String, source: String, priority: int, weight: float, 
 	## priority: use PRIORITY_* constants
 	## weight: relative weight for weighted random selection (higher = more likely)
 	## data: event payload (title, desc, choices, effects, etc.)
+	if data == null:
+		push_warning("EventScheduler: null data for event '%s' from '%s'" % [id, source])
+		data = {}
 	_candidates.append({
 		"id": id,
 		"source": source,
@@ -168,8 +171,7 @@ func serialize() -> Dictionary:
 func deserialize(data: Dictionary) -> void:
 	_event_history = data.get("event_history", {}).duplicate(true)
 	_current_turn = int(data.get("current_turn", 0))
-	# Fix int keys after JSON round-trip
-	var fix_keys: Array = []
+	# Fix float values after JSON round-trip
 	for k in _event_history:
 		if _event_history[k] is float:
 			_event_history[k] = int(_event_history[k])
