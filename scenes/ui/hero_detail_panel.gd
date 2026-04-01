@@ -32,7 +32,7 @@ var _gift_give_btn: Button = null
 # ═══════════════ LIFECYCLE ═══════════════
 
 func _ready() -> void:
-	layer = 6  # Above hero_panel (layer 4)
+	layer = UILayerRegistry.LAYER_DETAIL_PANELS
 	_build_ui(); _connect_signals(); hide_panel()
 
 func _connect_signals() -> void:

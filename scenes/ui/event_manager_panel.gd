@@ -42,7 +42,7 @@ var card_vbox: VBoxContainer
 var summary_label: Label
 
 func _ready() -> void:
-	layer = 12
+	layer = UILayerRegistry.LAYER_EVENT_MANAGER
 	visible = false
 	_build_ui()
 	if EventBus:

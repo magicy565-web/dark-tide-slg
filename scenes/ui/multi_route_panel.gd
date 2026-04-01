@@ -22,7 +22,7 @@ var _selecting_target: bool = false
 var _army_checks: Dictionary = {}  # army_id -> CheckBox
 
 func _ready() -> void:
-	layer = 5
+	layer = UILayerRegistry.LAYER_INFO_PANELS
 	_build_ui()
 	_connect_signals()
 	hide_panel()

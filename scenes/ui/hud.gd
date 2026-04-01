@@ -179,7 +179,7 @@ var _diplo_event_active: bool = false  # True while a diplomatic popup is showin
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 1
+	layer = UILayerRegistry.LAYER_HUD
 	_build_ui()
 	_connect_signals()
 

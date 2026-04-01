@@ -142,7 +142,7 @@ func _cmd(cmd_name: String, args: String, desc: String) -> void:
 func _build_ui() -> void:
 	# Root canvas layer to sit above everything
 	canvas_layer = CanvasLayer.new()
-	canvas_layer.layer = 10
+	canvas_layer.layer = UILayerRegistry.LAYER_DEBUG_CONSOLE
 	add_child(canvas_layer)
 
 	var screen_size := get_viewport().get_visible_rect().size

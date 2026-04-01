@@ -54,7 +54,7 @@ const COL_TREASURE_ITEM := Color(0.7, 0.4, 1.0)
 # ═══════════════ LIFECYCLE ═══════════════
 
 func _ready() -> void:
-	layer = 5; _build_ui(); _connect_signals(); hide_panel()
+	layer = UILayerRegistry.LAYER_INFO_PANELS; _build_ui(); _connect_signals(); hide_panel()
 
 func _connect_signals() -> void:
 	EventBus.infamy_changed.connect(func(_p, _v): _refresh_stats())

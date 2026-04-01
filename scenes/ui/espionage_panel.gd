@@ -68,7 +68,7 @@ var close_btn: Button
 var title_label: Label
 
 func _ready() -> void:
-	layer = 25
+	layer = UILayerRegistry.LAYER_INFO_PANELS
 	visible = false
 	_build_ui()
 	if EventBus:

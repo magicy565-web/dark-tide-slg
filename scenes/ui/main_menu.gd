@@ -83,7 +83,7 @@ const FACTION_DISPLAY := {
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 10
+	layer = UILayerRegistry.LAYER_MAIN_MENU
 	# Load CJK font
 	_cjk_font = load("res://assets/fonts/NotoSansCJKsc-Regular.otf")
 	# Load pixel art assets

@@ -52,7 +52,7 @@ var btn_dismiss: Button
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 4
+	layer = UILayerRegistry.LAYER_INFO_PANELS
 	_build_ui()
 	_connect_signals()
 	hide_panel()

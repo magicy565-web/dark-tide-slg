@@ -32,7 +32,7 @@ var march_dropdown: OptionButton
 var march_label: Label
 
 func _ready() -> void:
-	layer = 15
+	layer = UILayerRegistry.LAYER_SUPPLY_OVERLAY
 	visible = false
 	_build_ui()
 	if EventBus:

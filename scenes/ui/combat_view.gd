@@ -220,7 +220,7 @@ var _cmd_continue_btn: Button = null
 var _cmd_auto_btn: Button = null
 var _cmd_retreat_btn: Button = null
 func _ready() -> void:
-	layer = 20
+	layer = UILayerRegistry.LAYER_COMBAT_VIEW
 	visible = false
 	_build_ui()
 	EventBus.combat_started.connect(_on_combat_started)

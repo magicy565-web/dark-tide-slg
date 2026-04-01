@@ -38,7 +38,7 @@ var _hero_nodes: Array = []
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 4
+	layer = UILayerRegistry.LAYER_HERO_PANEL
 	_build_ui()
 	_connect_signals()
 	hide_panel()

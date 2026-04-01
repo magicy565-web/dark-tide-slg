@@ -18,7 +18,7 @@ var _active_notifications: Array = []
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 8
+	layer = UILayerRegistry.LAYER_NOTIFICATION
 	_build_ui()
 	_connect_signals()
 

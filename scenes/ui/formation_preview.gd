@@ -53,7 +53,7 @@ var confirm_btn: Button
 var cancel_btn: Button
 
 func _ready() -> void:
-	layer = 30
+	layer = UILayerRegistry.LAYER_FORMATION_PREVIEW
 	visible = false
 	_build_ui()
 

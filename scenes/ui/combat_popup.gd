@@ -68,7 +68,7 @@ const _TIMING_LABELS: Array = [
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 6
+	layer = UILayerRegistry.LAYER_COMBAT_POPUP
 	_build_ui()
 	_build_orders_ui()
 	_connect_signals()

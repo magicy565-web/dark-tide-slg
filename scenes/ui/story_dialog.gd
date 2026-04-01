@@ -60,7 +60,7 @@ var _portrait_tween: Tween = null
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 6  # Above event_popup (layer 5)
+	layer = UILayerRegistry.LAYER_STORY_DIALOG
 	_build_ui()
 	_connect_signals()
 	hide_dialog()

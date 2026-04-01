@@ -90,7 +90,7 @@ func _process(delta: float) -> void:
 func _build_ui() -> void:
 	# CanvasLayer so we render above most panels
 	_canvas_layer = CanvasLayer.new()
-	_canvas_layer.layer = 8
+	_canvas_layer.layer = UILayerRegistry.LAYER_AI_INDICATOR
 	add_child(_canvas_layer)
 
 	# Main panel container — anchored top-right

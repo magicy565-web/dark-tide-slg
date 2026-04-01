@@ -36,7 +36,7 @@ var tooltip_panel: PanelContainer
 var tooltip_label: RichTextLabel
 
 func _ready() -> void:
-	layer = 20
+	layer = UILayerRegistry.LAYER_WEATHER_HUD
 	_build_ui()
 	# Connect EventBus signals
 	if EventBus:

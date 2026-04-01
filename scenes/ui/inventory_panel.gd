@@ -31,7 +31,7 @@ var _item_nodes: Array = []
 # ═══════════════ LIFECYCLE ═══════════════
 
 func _ready() -> void:
-	layer = 5; _build_ui(); _connect_signals(); hide_panel()
+	layer = UILayerRegistry.LAYER_INFO_PANELS; _build_ui(); _connect_signals(); hide_panel()
 
 func _connect_signals() -> void:
 	EventBus.item_acquired.connect(_on_item_changed)

@@ -30,7 +30,7 @@ var cancel_btn: Button
 var formation_label: Label
 
 func _ready() -> void:
-	layer = 6
+	layer = UILayerRegistry.LAYER_BATTLE_PREP
 	visible = false
 	_build_ui()
 

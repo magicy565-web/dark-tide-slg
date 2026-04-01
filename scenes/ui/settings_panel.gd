@@ -59,7 +59,7 @@ const DEFAULTS: Dictionary = {
 
 
 func _ready() -> void:
-	layer = 25
+	layer = UILayerRegistry.LAYER_SETTINGS
 	_build_ui()
 	visible = false
 	_load_settings()

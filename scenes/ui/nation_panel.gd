@@ -26,7 +26,7 @@ const NATION_COLORS: Dictionary = {
 }
 
 func _ready() -> void:
-	layer = 5
+	layer = UILayerRegistry.LAYER_INFO_PANELS
 	_build_ui()
 	_connect_signals()
 	hide_panel()

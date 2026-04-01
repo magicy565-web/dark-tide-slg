@@ -35,7 +35,7 @@ var _quest_buttons: Array = []
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 2
+	layer = UILayerRegistry.LAYER_QUEST_TRACKER
 	_build_ui()
 	_connect_signals()
 	_refresh()

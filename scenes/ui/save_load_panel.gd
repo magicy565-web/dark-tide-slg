@@ -23,7 +23,7 @@ const SLOT_COUNT: int = 5
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 7
+	layer = UILayerRegistry.LAYER_SAVE_LOAD
 	_build_ui()
 	hide_panel()
 

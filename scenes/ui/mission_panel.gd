@@ -36,7 +36,7 @@ var content_container: VBoxContainer
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 5
+	layer = UILayerRegistry.LAYER_INFO_PANELS
 	_build_ui()
 	_connect_signals()
 	hide_panel()

@@ -64,7 +64,7 @@ var _treaty_system: Node = null
 # ═══════════════ LIFECYCLE ═══════════════
 
 func _ready() -> void:
-	layer = 5
+	layer = UILayerRegistry.LAYER_INFO_PANELS
 	_treaty_system = _get_treaty_system()
 	_build_ui()
 	_build_proposal_popup()

@@ -49,7 +49,7 @@ var zoom_label: Label
 # ═══════════════ LIFECYCLE ═══════════════
 
 func _ready() -> void:
-	layer = 5; _build_ui(); _connect_signals(); hide_panel()
+	layer = UILayerRegistry.LAYER_INFO_PANELS; _build_ui(); _connect_signals(); hide_panel()
 
 func _process(delta: float) -> void:
 	if not _visible: return

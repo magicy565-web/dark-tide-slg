@@ -26,7 +26,7 @@ var _tween: Tween = null
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 5
+	layer = UILayerRegistry.LAYER_EVENT_POPUP
 	_build_ui()
 	_connect_signals()
 	hide_popup()

@@ -30,7 +30,7 @@ var _pending_path: int = -1
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 8
+	layer = UILayerRegistry.LAYER_TILE_DEVELOPMENT
 	_build_ui()
 	_connect_signals()
 	hide_panel()

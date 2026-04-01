@@ -41,7 +41,7 @@ var title_label: Label
 var round_label: Label
 
 func _ready() -> void:
-	layer = 25
+	layer = UILayerRegistry.LAYER_COMBAT_INTERVENTION
 	visible = false
 	_build_ui()
 

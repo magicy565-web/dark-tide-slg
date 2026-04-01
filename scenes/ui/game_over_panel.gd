@@ -25,7 +25,7 @@ var _received_detailed: bool = false
 
 
 func _ready() -> void:
-	layer = 100
+	layer = UILayerRegistry.LAYER_GAME_OVER
 	visible = false
 	_build_ui()
 	EventBus.game_over_detailed.connect(_on_game_over_detailed)

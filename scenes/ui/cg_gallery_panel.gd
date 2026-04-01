@@ -51,7 +51,7 @@ var _tween: Tween = null
 # ═══════════════════════════════════════════════════════════════
 
 func _ready() -> void:
-	layer = 8  # Above most UI
+	layer = UILayerRegistry.LAYER_CG_GALLERY
 	_build_ui()
 	_build_preview_ui()
 	hide_gallery()

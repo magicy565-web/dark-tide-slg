@@ -175,14 +175,14 @@ func _ready() -> void:
 	# ── v3.4: AI Indicator overlay ──
 	var AIIndicatorScript = preload("res://scenes/ui/ai_indicator.gd")
 	ai_indicator = CanvasLayer.new()
-	ai_indicator.layer = 8
+	ai_indicator.layer = UILayerRegistry.LAYER_AI_INDICATOR
 	ai_indicator.set_script(AIIndicatorScript)
 	add_child(ai_indicator)
 
 	# ── v3.4: Action Visualizer overlay ──
 	var ActionVisualizerScript = preload("res://scenes/ui/action_visualizer.gd")
 	action_visualizer = CanvasLayer.new()
-	action_visualizer.layer = 7
+	action_visualizer.layer = UILayerRegistry.LAYER_ACTION_VISUALIZER
 	action_visualizer.set_script(ActionVisualizerScript)
 	add_child(action_visualizer)
 
@@ -195,21 +195,21 @@ func _ready() -> void:
 	# ── v3.4: Debug Console (highest layer) ──
 	var DebugConsoleScript = preload("res://scenes/ui/debug_console.gd")
 	debug_console = CanvasLayer.new()
-	debug_console.layer = 10
+	debug_console.layer = UILayerRegistry.LAYER_DEBUG_CONSOLE
 	debug_console.set_script(DebugConsoleScript)
 	add_child(debug_console)
 
 	# ── v3.5: Tile Indicator System (low layer, above board) ──
 	var TileIndicatorScript = preload("res://scenes/ui/tile_indicator_system.gd")
 	tile_indicator_system = CanvasLayer.new()
-	tile_indicator_system.layer = 3
+	tile_indicator_system.layer = UILayerRegistry.LAYER_TILE_INDICATORS
 	tile_indicator_system.set_script(TileIndicatorScript)
 	add_child(tile_indicator_system)
 
 	# ── v3.5: Intel Overlay (above tile indicators) ──
 	var IntelOverlayScript = preload("res://scenes/ui/intel_overlay.gd")
 	intel_overlay = CanvasLayer.new()
-	intel_overlay.layer = 4
+	intel_overlay.layer = UILayerRegistry.LAYER_INTEL_OVERLAY
 	intel_overlay.set_script(IntelOverlayScript)
 	add_child(intel_overlay)
 
@@ -236,6 +236,9 @@ func _ready() -> void:
 
 	# Listen for combat view requests from GameManager
 	EventBus.combat_view_requested.connect(_on_combat_view_requested)
+
+	# ── Register panels with PanelManager ──
+	_register_panels()
 
 
 func _on_game_started(faction_id: int, fixed_map: bool = false) -> void:
@@ -278,6 +281,33 @@ func _on_combat_view_requested(battle_result: Dictionary) -> void:
 	combat_view.show_battle(battle_result)
 
 
+func _register_panels() -> void:
+	# Modal panels — only one visible at a time (layers 5-11)
+	PanelManager.register_panel("hero_panel", hero_panel, true)
+	PanelManager.register_panel("quest_journal", quest_journal_panel, true)
+	PanelManager.register_panel("diplomacy", diplomacy_panel, true)
+	PanelManager.register_panel("tech_tree", tech_tree_panel, true)
+	PanelManager.register_panel("inventory", inventory_panel, true)
+	PanelManager.register_panel("hero_detail", hero_detail_panel_node, true)
+	PanelManager.register_panel("pirate", pirate_panel, true)
+	PanelManager.register_panel("mission", mission_panel, true)
+	PanelManager.register_panel("territory_info", territory_info_panel, true)
+	PanelManager.register_panel("troop_training", troop_training_panel, true)
+	PanelManager.register_panel("equipment_forge", equipment_forge_panel, true)
+	PanelManager.register_panel("nation", nation_panel, true)
+	PanelManager.register_panel("multi_route", multi_route_panel, true)
+	PanelManager.register_panel("army", army_panel, true)
+	PanelManager.register_panel("event_popup", event_popup, true)
+	PanelManager.register_panel("battle_prep", battle_prep_panel, true)
+	PanelManager.register_panel("espionage", espionage_panel, true)
+	# Non-modal panels (system overlays, persistent)
+	PanelManager.register_panel("combat_popup", combat_popup, false)
+	PanelManager.register_panel("combat_view", combat_view, false)
+	PanelManager.register_panel("settings", settings_panel, false)
+	PanelManager.register_panel("save_load", save_load_panel, false)
+	PanelManager.register_panel("debug_console", debug_console, false)
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		# ESC to show settings (if no other panel is open)
@@ -285,28 +315,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Debug console has highest priority
 			if debug_console and debug_console.has_method("is_panel_visible") and debug_console.is_panel_visible():
 				return  # Let debug console handle ESC
-			if hero_panel and hero_panel.is_panel_visible():
-				return  # Let hero panel handle ESC first
-			if quest_journal_panel and quest_journal_panel.is_panel_visible():
-				return  # Let quest journal handle ESC first
-			if diplomacy_panel and diplomacy_panel.is_panel_visible():
-				return
-			if tech_tree_panel and tech_tree_panel.is_panel_visible():
-				return
-			if inventory_panel and inventory_panel.is_panel_visible():
-				return
-			if hero_detail_panel_node and hero_detail_panel_node.is_panel_visible():
-				return
-			if pirate_panel and pirate_panel.is_panel_visible():
-				return
-			if troop_training_panel and troop_training_panel.has_method("is_panel_visible") and troop_training_panel.is_panel_visible():
-				return
-			if equipment_forge_panel and equipment_forge_panel.has_method("is_panel_visible") and equipment_forge_panel.is_panel_visible():
-				return
-			if territory_info_panel and territory_info_panel.has_method("is_panel_visible") and territory_info_panel.is_panel_visible():
-				return
-			if espionage_panel and espionage_panel.visible:
-				espionage_panel.hide_panel()  # BUG FIX: call hide_panel() for proper cleanup
+			# Check if any modal panel is open — let it handle ESC itself
+			if PanelManager.is_any_modal_open():
 				return
 			if combat_view.visible:
 				return  # Let combat view handle ESC
