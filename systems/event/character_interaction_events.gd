@@ -21,6 +21,8 @@ func _ready() -> void:
 	_register_interactions()
 	EventBus.turn_started.connect(_on_turn_started)
 	EventBus.event_choice_selected.connect(_on_event_choice_selected)
+	if EventRegistry:
+		EventRegistry._register_source("character_interaction_events", _interactions, "character_interaction")
 
 
 # ═══════════════ INTERACTION REGISTRATION ═══════════════

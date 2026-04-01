@@ -66,6 +66,13 @@ var _current_turn: int = 0
 
 func _ready() -> void:
 	EventBus.turn_started.connect(_on_turn_started)
+	if EventRegistry:
+		var _crisis_events: Array = []
+		for _cid in CRISIS_TYPES:
+			var _ct: Dictionary = CRISIS_TYPES[_cid].duplicate()
+			_ct["id"] = _cid
+			_crisis_events.append(_ct)
+		EventRegistry._register_source("crisis_countdown", _crisis_events, "crisis")
 
 
 func initialize_crises() -> void:

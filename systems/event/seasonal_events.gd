@@ -24,6 +24,11 @@ func _ready() -> void:
 	EventBus.season_changed.connect(_on_season_changed)
 	EventBus.turn_started.connect(_on_turn_started)
 	EventBus.event_choice_selected.connect(_on_event_choice_selected)
+	if EventRegistry:
+		var _all: Array = []
+		for _sk in _season_events:
+			_all.append_array(_season_events[_sk])
+		EventRegistry._register_source("seasonal_events", _all, "seasonal")
 
 
 # ═══════════════ EVENT REGISTRATION ═══════════════

@@ -6,6 +6,8 @@ extends Node
 func _ready() -> void:
 	# Auto-register with EventSystem on load
 	call_deferred("register_with_event_system")
+	if EventRegistry:
+		EventRegistry._register_source("expanded_random_events", get_expanded_events(), "expanded")
 
 
 func register_with_event_system() -> void:

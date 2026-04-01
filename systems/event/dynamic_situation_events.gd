@@ -34,6 +34,8 @@ func _ready() -> void:
 	# Combat tracking signals
 	if EventBus.has_signal("combat_result"):
 		EventBus.combat_result.connect(_on_combat_result)
+	if EventRegistry:
+		EventRegistry._register_source("dynamic_situation_events", _dynamic_events, "dynamic")
 
 
 # ═══════════════ PLACEHOLDER for combat result ═══════════════

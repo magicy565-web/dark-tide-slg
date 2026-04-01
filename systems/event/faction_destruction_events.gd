@@ -23,6 +23,11 @@ func _ready() -> void:
 	_register_chain_defs()
 	EventBus.turn_started.connect(_on_turn_started)
 	EventBus.event_choice_selected.connect(_on_event_choice_selected)
+	if EventRegistry:
+		var _all: Array = []
+		for _fk in _chain_defs:
+			_all.append_array(_chain_defs[_fk])
+		EventRegistry._register_source("faction_destruction_events", _all, "destruction_chain")
 
 
 # ═══════════════ CHAIN DEFINITIONS ═══════════════

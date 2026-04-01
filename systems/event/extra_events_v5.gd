@@ -6,6 +6,8 @@ extends Node
 
 func _ready() -> void:
 	call_deferred("register_with_event_system")
+	if EventRegistry:
+		EventRegistry._register_source("extra_events_v5", get_events(), "chain_v5")
 
 func register_with_event_system() -> void:
 	if not EventSystem:

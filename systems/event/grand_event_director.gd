@@ -17,6 +17,8 @@ func _ready() -> void:
 	_register_grand_events()
 	EventBus.turn_started.connect(_on_turn_started)
 	EventBus.event_choice_selected.connect(_on_event_choice_selected)
+	if EventRegistry:
+		EventRegistry._register_source("grand_event_director", _grand_events, "grand")
 
 
 # ═══════════════ GRAND EVENT REGISTRATION ═══════════════
