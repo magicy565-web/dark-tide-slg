@@ -1,0 +1,2469 @@
+{
+  "timestamp": "2026-04-01 07:50:44",
+  "total_files": 410,
+  "total_src_bytes": 810757318,
+  "total_dst_bytes": 32928816,
+  "savings_bytes": 777828502,
+  "files": [
+    {
+      "src": "assets/effects/sou/frames/meteor_f1_channel.png",
+      "dst": "assets/effects/sou/frames/meteor_f1_channel.webp",
+      "src_size": 7204213,
+      "dst_size": 310700
+    },
+    {
+      "src": "assets/effects/momiji/casting/charge_command_circle.png",
+      "dst": "assets/effects/momiji/casting/charge_command_circle.webp",
+      "src_size": 6796269,
+      "dst_size": 307636
+    },
+    {
+      "src": "assets/effects/youya/frames/fatal_f1_crouch.png",
+      "dst": "assets/effects/youya/frames/fatal_f1_crouch.webp",
+      "src_size": 7078909,
+      "dst_size": 327398
+    },
+    {
+      "src": "assets/effects/sou/casting/meteor_rain_circle.png",
+      "dst": "assets/effects/sou/casting/meteor_rain_circle.webp",
+      "src_size": 7457136,
+      "dst_size": 368876
+    },
+    {
+      "src": "assets/effects/sou/buff/arcane_overload_buff.png",
+      "dst": "assets/effects/sou/buff/arcane_overload_buff.webp",
+      "src_size": 6773317,
+      "dst_size": 267872
+    },
+    {
+      "src": "assets/effects/hyouka/casting/immovable_mountain_circle.png",
+      "dst": "assets/effects/hyouka/casting/immovable_mountain_circle.webp",
+      "src_size": 6770468,
+      "dst_size": 331700
+    },
+    {
+      "src": "assets/effects/mei/buff/undead_aura_buff.png",
+      "dst": "assets/effects/mei/buff/undead_aura_buff.webp",
+      "src_size": 6557474,
+      "dst_size": 219448
+    },
+    {
+      "src": "assets/effects/hyouka/frames/ice_wall_f2_crystal.png",
+      "dst": "assets/effects/hyouka/frames/ice_wall_f2_crystal.webp",
+      "src_size": 6629007,
+      "dst_size": 274682
+    },
+    {
+      "src": "assets/effects/homura/impact/flame_dance_impact.png",
+      "dst": "assets/effects/homura/impact/flame_dance_impact.webp",
+      "src_size": 6483355,
+      "dst_size": 211204
+    },
+    {
+      "src": "assets/effects/mei/impact/undead_summon_impact.png",
+      "dst": "assets/effects/mei/impact/undead_summon_impact.webp",
+      "src_size": 6480141,
+      "dst_size": 213716
+    },
+    {
+      "src": "assets/effects/suirei/buff/elven_eye_buff.png",
+      "dst": "assets/effects/suirei/buff/elven_eye_buff.webp",
+      "src_size": 6457056,
+      "dst_size": 197394
+    },
+    {
+      "src": "assets/effects/suirei/impact/arrow_rain_impact.png",
+      "dst": "assets/effects/suirei/impact/arrow_rain_impact.webp",
+      "src_size": 6434237,
+      "dst_size": 207216
+    },
+    {
+      "src": "assets/effects/akane/frames/purify_f1_pray.png",
+      "dst": "assets/effects/akane/frames/purify_f1_pray.webp",
+      "src_size": 6376761,
+      "dst_size": 208262
+    },
+    {
+      "src": "assets/effects/rin/buff/oath_sword_buff.png",
+      "dst": "assets/effects/rin/buff/oath_sword_buff.webp",
+      "src_size": 6370306,
+      "dst_size": 167604
+    },
+    {
+      "src": "assets/effects/hyouka/impact/ice_barrier_impact.png",
+      "dst": "assets/effects/hyouka/impact/ice_barrier_impact.webp",
+      "src_size": 6363590,
+      "dst_size": 243872
+    },
+    {
+      "src": "assets/effects/suirei/frames/arrow_rain_f2_volley.png",
+      "dst": "assets/effects/suirei/frames/arrow_rain_f2_volley.webp",
+      "src_size": 6296418,
+      "dst_size": 192254
+    },
+    {
+      "src": "assets/effects/shion/casting/time_decel_circle.png",
+      "dst": "assets/effects/shion/casting/time_decel_circle.webp",
+      "src_size": 6280558,
+      "dst_size": 176440
+    },
+    {
+      "src": "assets/effects/hanabi/casting/bombardment_circle.png",
+      "dst": "assets/effects/hanabi/casting/bombardment_circle.webp",
+      "src_size": 6251186,
+      "dst_size": 231678
+    },
+    {
+      "src": "assets/effects/mei/casting/undead_summon_circle.png",
+      "dst": "assets/effects/mei/casting/undead_summon_circle.webp",
+      "src_size": 6215300,
+      "dst_size": 214578
+    },
+    {
+      "src": "assets/characters/designs/11_shion_pirate_D.png",
+      "dst": "assets/characters/designs/11_shion_pirate_D.webp",
+      "src_size": 6234560,
+      "dst_size": 397942
+    },
+    {
+      "src": "assets/effects/shion/frames/time_f3_lock.png",
+      "dst": "assets/effects/shion/frames/time_f3_lock.webp",
+      "src_size": 6210746,
+      "dst_size": 202544
+    },
+    {
+      "src": "assets/effects/momiji/frames/charge_f1_horn.png",
+      "dst": "assets/effects/momiji/frames/charge_f1_horn.webp",
+      "src_size": 6210663,
+      "dst_size": 228788
+    },
+    {
+      "src": "assets/effects/shion_pirate/casting/rapid_fire_circle.png",
+      "dst": "assets/effects/shion_pirate/casting/rapid_fire_circle.webp",
+      "src_size": 6189585,
+      "dst_size": 192134
+    },
+    {
+      "src": "assets/effects/homura/casting/fireball_circle.png",
+      "dst": "assets/effects/homura/casting/fireball_circle.webp",
+      "src_size": 6183133,
+      "dst_size": 204254
+    },
+    {
+      "src": "assets/effects/suirei/casting/arrow_rain_circle.png",
+      "dst": "assets/effects/suirei/casting/arrow_rain_circle.webp",
+      "src_size": 6181004,
+      "dst_size": 183380
+    },
+    {
+      "src": "assets/effects/gekka/casting/moonlight_shield_circle.png",
+      "dst": "assets/effects/gekka/casting/moonlight_shield_circle.webp",
+      "src_size": 6179925,
+      "dst_size": 221772
+    },
+    {
+      "src": "assets/effects/gekka/buff/mana_spring_buff.png",
+      "dst": "assets/effects/gekka/buff/mana_spring_buff.webp",
+      "src_size": 6144819,
+      "dst_size": 134490
+    },
+    {
+      "src": "assets/effects/hakagure/frames/shadow_f3_strike.png",
+      "dst": "assets/effects/hakagure/frames/shadow_f3_strike.webp",
+      "src_size": 6130633,
+      "dst_size": 156244
+    },
+    {
+      "src": "assets/effects/sou/impact/meteor_rain_impact.png",
+      "dst": "assets/effects/sou/impact/meteor_rain_impact.webp",
+      "src_size": 6129482,
+      "dst_size": 209694
+    },
+    {
+      "src": "assets/effects/suirei/frames/arrow_rain_f3_rain.png",
+      "dst": "assets/effects/suirei/frames/arrow_rain_f3_rain.webp",
+      "src_size": 6091608,
+      "dst_size": 158216
+    },
+    {
+      "src": "assets/effects/momiji/buff/charge_buff.png",
+      "dst": "assets/effects/momiji/buff/charge_buff.webp",
+      "src_size": 6092455,
+      "dst_size": 213572
+    },
+    {
+      "src": "assets/effects/momiji/frames/charge_f3_empower.png",
+      "dst": "assets/effects/momiji/frames/charge_f3_empower.webp",
+      "src_size": 6054725,
+      "dst_size": 157894
+    },
+    {
+      "src": "assets/effects/shion/buff/chronoception_buff.png",
+      "dst": "assets/effects/shion/buff/chronoception_buff.webp",
+      "src_size": 6043820,
+      "dst_size": 173888
+    },
+    {
+      "src": "assets/effects/sou/frames/meteor_f2_summon.png",
+      "dst": "assets/effects/sou/frames/meteor_f2_summon.webp",
+      "src_size": 6011465,
+      "dst_size": 196026
+    },
+    {
+      "src": "assets/effects/hibiki/frames/iron_f1_brace.png",
+      "dst": "assets/effects/hibiki/frames/iron_f1_brace.webp",
+      "src_size": 6032505,
+      "dst_size": 201278
+    },
+    {
+      "src": "assets/effects/momiji/frames/charge_f2_surge.png",
+      "dst": "assets/effects/momiji/frames/charge_f2_surge.webp",
+      "src_size": 5979380,
+      "dst_size": 256960
+    },
+    {
+      "src": "assets/effects/shion/frames/time_f1_distort.png",
+      "dst": "assets/effects/shion/frames/time_f1_distort.webp",
+      "src_size": 5979335,
+      "dst_size": 178700
+    },
+    {
+      "src": "assets/effects/mei/frames/undead_f3_rise.png",
+      "dst": "assets/effects/mei/frames/undead_f3_rise.webp",
+      "src_size": 5940894,
+      "dst_size": 187468
+    },
+    {
+      "src": "assets/effects/kaede/frames/clone_f1_seal.png",
+      "dst": "assets/effects/kaede/frames/clone_f1_seal.webp",
+      "src_size": 5925955,
+      "dst_size": 141784
+    },
+    {
+      "src": "assets/characters/designs/05_suirei_B.png",
+      "dst": "assets/characters/designs/05_suirei_B.webp",
+      "src_size": 5933324,
+      "dst_size": 404332
+    },
+    {
+      "src": "assets/effects/hibiki/casting/iron_wall_circle.png",
+      "dst": "assets/effects/hibiki/casting/iron_wall_circle.webp",
+      "src_size": 5895068,
+      "dst_size": 194778
+    },
+    {
+      "src": "assets/effects/sou/frames/meteor_f3_rain.png",
+      "dst": "assets/effects/sou/frames/meteor_f3_rain.webp",
+      "src_size": 5877158,
+      "dst_size": 236854
+    },
+    {
+      "src": "assets/effects/kaede/frames/clone_f3_double.png",
+      "dst": "assets/effects/kaede/frames/clone_f3_double.webp",
+      "src_size": 5865922,
+      "dst_size": 150036
+    },
+    {
+      "src": "assets/effects/rin/impact/holy_slash_impact.png",
+      "dst": "assets/effects/rin/impact/holy_slash_impact.webp",
+      "src_size": 5841544,
+      "dst_size": 128922
+    },
+    {
+      "src": "assets/effects/yukino/buff/holy_sanctuary_buff.png",
+      "dst": "assets/effects/yukino/buff/holy_sanctuary_buff.webp",
+      "src_size": 5826862,
+      "dst_size": 139146
+    },
+    {
+      "src": "assets/effects/shion/impact/time_decel_impact.png",
+      "dst": "assets/effects/shion/impact/time_decel_impact.webp",
+      "src_size": 5809745,
+      "dst_size": 136018
+    },
+    {
+      "src": "assets/effects/homura/impact/fireball_impact.png",
+      "dst": "assets/effects/homura/impact/fireball_impact.webp",
+      "src_size": 5798452,
+      "dst_size": 137590
+    },
+    {
+      "src": "assets/effects/hakagure/casting/shadow_step_circle.png",
+      "dst": "assets/effects/hakagure/casting/shadow_step_circle.webp",
+      "src_size": 5800966,
+      "dst_size": 148074
+    },
+    {
+      "src": "assets/effects/hanabi/impact/bombardment_impact.png",
+      "dst": "assets/effects/hanabi/impact/bombardment_impact.webp",
+      "src_size": 5791746,
+      "dst_size": 141112
+    },
+    {
+      "src": "assets/effects/hibiki/impact/iron_wall_impact.png",
+      "dst": "assets/effects/hibiki/impact/iron_wall_impact.webp",
+      "src_size": 5782083,
+      "dst_size": 179250
+    },
+    {
+      "src": "assets/effects/sara/impact/sandstorm_impact.png",
+      "dst": "assets/effects/sara/impact/sandstorm_impact.webp",
+      "src_size": 5776576,
+      "dst_size": 124688
+    },
+    {
+      "src": "assets/effects/youya/buff/night_walker_buff.png",
+      "dst": "assets/effects/youya/buff/night_walker_buff.webp",
+      "src_size": 5772713,
+      "dst_size": 115434
+    },
+    {
+      "src": "assets/effects/rin/frames/holy_slash_f1_charge.png",
+      "dst": "assets/effects/rin/frames/holy_slash_f1_charge.webp",
+      "src_size": 5765506,
+      "dst_size": 151010
+    },
+    {
+      "src": "assets/effects/mei/frames/undead_f2_emerge.png",
+      "dst": "assets/effects/mei/frames/undead_f2_emerge.webp",
+      "src_size": 5760851,
+      "dst_size": 180236
+    },
+    {
+      "src": "assets/effects/suirei/frames/arrow_rain_f1_draw.png",
+      "dst": "assets/effects/suirei/frames/arrow_rain_f1_draw.webp",
+      "src_size": 5744924,
+      "dst_size": 139064
+    },
+    {
+      "src": "assets/effects/shion_pirate/impact/rapid_fire_impact.png",
+      "dst": "assets/effects/shion_pirate/impact/rapid_fire_impact.webp",
+      "src_size": 5725361,
+      "dst_size": 135210
+    },
+    {
+      "src": "assets/effects/hyouka/frames/ice_wall_f1_frost.png",
+      "dst": "assets/effects/hyouka/frames/ice_wall_f1_frost.webp",
+      "src_size": 5709379,
+      "dst_size": 156306
+    },
+    {
+      "src": "assets/effects/akane/casting/purify_circle.png",
+      "dst": "assets/effects/akane/casting/purify_circle.webp",
+      "src_size": 5705603,
+      "dst_size": 102784
+    },
+    {
+      "src": "assets/effects/sou/buff/grand_sage_passive.png",
+      "dst": "assets/effects/sou/buff/grand_sage_passive.webp",
+      "src_size": 5648295,
+      "dst_size": 94744
+    },
+    {
+      "src": "assets/effects/hyouka/buff/iron_counter_buff.png",
+      "dst": "assets/effects/hyouka/buff/iron_counter_buff.webp",
+      "src_size": 5653797,
+      "dst_size": 156464
+    },
+    {
+      "src": "assets/effects/hanabi/buff/siege_buff.png",
+      "dst": "assets/effects/hanabi/buff/siege_buff.webp",
+      "src_size": 5546904,
+      "dst_size": 131780
+    },
+    {
+      "src": "assets/effects/sara/frames/sand_f3_blind.png",
+      "dst": "assets/effects/sara/frames/sand_f3_blind.webp",
+      "src_size": 5544697,
+      "dst_size": 151040
+    },
+    {
+      "src": "assets/effects/hanabi/frames/bomb_f3_boom.png",
+      "dst": "assets/effects/hanabi/frames/bomb_f3_boom.webp",
+      "src_size": 5534667,
+      "dst_size": 151774
+    },
+    {
+      "src": "assets/effects/sara/buff/sandstorm_debuff.png",
+      "dst": "assets/effects/sara/buff/sandstorm_debuff.webp",
+      "src_size": 5515562,
+      "dst_size": 143114
+    },
+    {
+      "src": "assets/effects/yukino/frames/healing_f1_gather.png",
+      "dst": "assets/effects/yukino/frames/healing_f1_gather.webp",
+      "src_size": 5489110,
+      "dst_size": 61650
+    },
+    {
+      "src": "assets/effects/rin/casting/holy_slash_circle.png",
+      "dst": "assets/effects/rin/casting/holy_slash_circle.webp",
+      "src_size": 5503842,
+      "dst_size": 151608
+    },
+    {
+      "src": "assets/effects/youya/casting/fatal_strike_circle.png",
+      "dst": "assets/effects/youya/casting/fatal_strike_circle.webp",
+      "src_size": 5487683,
+      "dst_size": 130436
+    },
+    {
+      "src": "assets/effects/kaede/buff/clone_dodge_buff.png",
+      "dst": "assets/effects/kaede/buff/clone_dodge_buff.webp",
+      "src_size": 5476597,
+      "dst_size": 94996
+    },
+    {
+      "src": "assets/effects/youya/impact/fatal_strike_impact.png",
+      "dst": "assets/effects/youya/impact/fatal_strike_impact.webp",
+      "src_size": 5473333,
+      "dst_size": 84784
+    },
+    {
+      "src": "assets/effects/kaede/impact/clone_impact.png",
+      "dst": "assets/effects/kaede/impact/clone_impact.webp",
+      "src_size": 5453791,
+      "dst_size": 75972
+    },
+    {
+      "src": "assets/effects/hibiki/frames/iron_f3_complete.png",
+      "dst": "assets/effects/hibiki/frames/iron_f3_complete.webp",
+      "src_size": 5455067,
+      "dst_size": 101424
+    },
+    {
+      "src": "assets/effects/shion_pirate/frames/rapid_f1_aim.png",
+      "dst": "assets/effects/shion_pirate/frames/rapid_f1_aim.webp",
+      "src_size": 5427891,
+      "dst_size": 142186
+    },
+    {
+      "src": "assets/effects/shion_pirate/frames/rapid_f2_fire.png",
+      "dst": "assets/effects/shion_pirate/frames/rapid_f2_fire.webp",
+      "src_size": 5427891,
+      "dst_size": 142186
+    },
+    {
+      "src": "assets/effects/shion_pirate/frames/rapid_f3_hit.png",
+      "dst": "assets/effects/shion_pirate/frames/rapid_f3_hit.webp",
+      "src_size": 5427891,
+      "dst_size": 142186
+    },
+    {
+      "src": "assets/effects/hyouka/frames/ice_wall_f3_fortress.png",
+      "dst": "assets/effects/hyouka/frames/ice_wall_f3_fortress.webp",
+      "src_size": 5424157,
+      "dst_size": 83272
+    },
+    {
+      "src": "assets/effects/kaede/casting/clone_circle.png",
+      "dst": "assets/effects/kaede/casting/clone_circle.webp",
+      "src_size": 5423409,
+      "dst_size": 102858
+    },
+    {
+      "src": "assets/effects/homura/frames/fireball_f1_form.png",
+      "dst": "assets/effects/homura/frames/fireball_f1_form.webp",
+      "src_size": 5411362,
+      "dst_size": 117398
+    },
+    {
+      "src": "assets/effects/kaede/frames/clone_f2_split.png",
+      "dst": "assets/effects/kaede/frames/clone_f2_split.webp",
+      "src_size": 5407132,
+      "dst_size": 45236
+    },
+    {
+      "src": "assets/effects/akane/buff/purify_buff.png",
+      "dst": "assets/effects/akane/buff/purify_buff.webp",
+      "src_size": 5419509,
+      "dst_size": 139908
+    },
+    {
+      "src": "assets/effects/yukino/frames/healing_f2_converge.png",
+      "dst": "assets/effects/yukino/frames/healing_f2_converge.webp",
+      "src_size": 5379725,
+      "dst_size": 139756
+    },
+    {
+      "src": "assets/effects/hakagure/buff/concealment_buff.png",
+      "dst": "assets/effects/hakagure/buff/concealment_buff.webp",
+      "src_size": 5377632,
+      "dst_size": 57138
+    },
+    {
+      "src": "assets/effects/rin/frames/holy_slash_f3_burst.png",
+      "dst": "assets/effects/rin/frames/holy_slash_f3_burst.webp",
+      "src_size": 5369866,
+      "dst_size": 112914
+    },
+    {
+      "src": "assets/effects/hibiki/buff/iron_wall_buff.png",
+      "dst": "assets/effects/hibiki/buff/iron_wall_buff.webp",
+      "src_size": 5353282,
+      "dst_size": 133132
+    },
+    {
+      "src": "assets/effects/yukino/casting/healing_light_circle.png",
+      "dst": "assets/effects/yukino/casting/healing_light_circle.webp",
+      "src_size": 5360716,
+      "dst_size": 139650
+    },
+    {
+      "src": "assets/effects/hanabi/frames/bomb_f2_fire.png",
+      "dst": "assets/effects/hanabi/frames/bomb_f2_fire.webp",
+      "src_size": 5352942,
+      "dst_size": 124710
+    },
+    {
+      "src": "assets/effects/shion_pirate/buff/sea_wind_buff.png",
+      "dst": "assets/effects/shion_pirate/buff/sea_wind_buff.webp",
+      "src_size": 5328520,
+      "dst_size": 115578
+    },
+    {
+      "src": "assets/effects/hanabi/frames/bomb_f1_load.png",
+      "dst": "assets/effects/hanabi/frames/bomb_f1_load.webp",
+      "src_size": 5324720,
+      "dst_size": 112240
+    },
+    {
+      "src": "assets/effects/sara/frames/sand_f2_storm.png",
+      "dst": "assets/effects/sara/frames/sand_f2_storm.webp",
+      "src_size": 5320776,
+      "dst_size": 128292
+    },
+    {
+      "src": "assets/effects/yukino/impact/healing_light_impact.png",
+      "dst": "assets/effects/yukino/impact/healing_light_impact.webp",
+      "src_size": 5312023,
+      "dst_size": 96586
+    },
+    {
+      "src": "assets/effects/rin/frames/holy_slash_f2_swing.png",
+      "dst": "assets/effects/rin/frames/holy_slash_f2_swing.webp",
+      "src_size": 5308072,
+      "dst_size": 104562
+    },
+    {
+      "src": "assets/effects/homura/frames/fireball_f3_explode.png",
+      "dst": "assets/effects/homura/frames/fireball_f3_explode.webp",
+      "src_size": 5303816,
+      "dst_size": 111848
+    },
+    {
+      "src": "assets/effects/sara/casting/sandstorm_circle.png",
+      "dst": "assets/effects/sara/casting/sandstorm_circle.webp",
+      "src_size": 5301850,
+      "dst_size": 102106
+    },
+    {
+      "src": "assets/effects/gekka/impact/moonlight_shield_impact.png",
+      "dst": "assets/effects/gekka/impact/moonlight_shield_impact.webp",
+      "src_size": 5300461,
+      "dst_size": 79240
+    },
+    {
+      "src": "assets/effects/akane/frames/purify_f2_wave.png",
+      "dst": "assets/effects/akane/frames/purify_f2_wave.webp",
+      "src_size": 5296667,
+      "dst_size": 78284
+    },
+    {
+      "src": "assets/effects/momiji/impact/charge_command_impact.png",
+      "dst": "assets/effects/momiji/impact/charge_command_impact.webp",
+      "src_size": 5295700,
+      "dst_size": 87716
+    },
+    {
+      "src": "assets/effects/homura/buff/flame_affinity_buff.png",
+      "dst": "assets/effects/homura/buff/flame_affinity_buff.webp",
+      "src_size": 5236200,
+      "dst_size": 70342
+    },
+    {
+      "src": "assets/effects/youya/frames/fatal_f2_dash.png",
+      "dst": "assets/effects/youya/frames/fatal_f2_dash.webp",
+      "src_size": 5218046,
+      "dst_size": 72136
+    },
+    {
+      "src": "assets/effects/hakagure/impact/shadow_step_impact.png",
+      "dst": "assets/effects/hakagure/impact/shadow_step_impact.webp",
+      "src_size": 5196577,
+      "dst_size": 86374
+    },
+    {
+      "src": "assets/effects/youya/frames/fatal_f3_kill.png",
+      "dst": "assets/effects/youya/frames/fatal_f3_kill.webp",
+      "src_size": 5154089,
+      "dst_size": 86986
+    },
+    {
+      "src": "assets/effects/hibiki/frames/iron_f2_plate.png",
+      "dst": "assets/effects/hibiki/frames/iron_f2_plate.webp",
+      "src_size": 5145186,
+      "dst_size": 185902
+    },
+    {
+      "src": "assets/effects/akane/impact/purify_impact.png",
+      "dst": "assets/effects/akane/impact/purify_impact.webp",
+      "src_size": 5058348,
+      "dst_size": 88972
+    },
+    {
+      "src": "assets/effects/gekka/frames/moonshield_f2_expand.png",
+      "dst": "assets/effects/gekka/frames/moonshield_f2_expand.webp",
+      "src_size": 5037508,
+      "dst_size": 139908
+    },
+    {
+      "src": "assets/characters/designs/14_sara_C.png",
+      "dst": "assets/characters/designs/14_sara_C.webp",
+      "src_size": 5115697,
+      "dst_size": 385748
+    },
+    {
+      "src": "assets/effects/gekka/frames/moonshield_f1_lunar.png",
+      "dst": "assets/effects/gekka/frames/moonshield_f1_lunar.webp",
+      "src_size": 5031423,
+      "dst_size": 46836
+    },
+    {
+      "src": "assets/effects/gekka/frames/moonshield_f3_complete.png",
+      "dst": "assets/effects/gekka/frames/moonshield_f3_complete.webp",
+      "src_size": 5037508,
+      "dst_size": 139908
+    },
+    {
+      "src": "assets/effects/hakagure/frames/shadow_f2_transit.png",
+      "dst": "assets/effects/hakagure/frames/shadow_f2_transit.webp",
+      "src_size": 5030551,
+      "dst_size": 39288
+    },
+    {
+      "src": "assets/effects/yukino/frames/healing_f3_bloom.png",
+      "dst": "assets/effects/yukino/frames/healing_f3_bloom.webp",
+      "src_size": 4941867,
+      "dst_size": 51532
+    },
+    {
+      "src": "assets/effects/sara/frames/sand_f1_wind.png",
+      "dst": "assets/effects/sara/frames/sand_f1_wind.webp",
+      "src_size": 4940462,
+      "dst_size": 84176
+    },
+    {
+      "src": "assets/effects/mei/frames/undead_f1_portal.png",
+      "dst": "assets/effects/mei/frames/undead_f1_portal.webp",
+      "src_size": 4923348,
+      "dst_size": 97202
+    },
+    {
+      "src": "assets/effects/akane/frames/purify_f3_clean.png",
+      "dst": "assets/effects/akane/frames/purify_f3_clean.webp",
+      "src_size": 4670330,
+      "dst_size": 66088
+    },
+    {
+      "src": "assets/effects/hakagure/frames/shadow_f1_vanish.png",
+      "dst": "assets/effects/hakagure/frames/shadow_f1_vanish.webp",
+      "src_size": 4611570,
+      "dst_size": 65822
+    },
+    {
+      "src": "assets/characters/designs/06_gekka_A.png",
+      "dst": "assets/characters/designs/06_gekka_A.webp",
+      "src_size": 4898077,
+      "dst_size": 359634
+    },
+    {
+      "src": "assets/effects/homura/frames/fireball_f2_launch.png",
+      "dst": "assets/effects/homura/frames/fireball_f2_launch.webp",
+      "src_size": 4388880,
+      "dst_size": 79030
+    },
+    {
+      "src": "assets/characters/designs/04_hyouka_B.png",
+      "dst": "assets/characters/designs/04_hyouka_B.webp",
+      "src_size": 4609349,
+      "dst_size": 321318
+    },
+    {
+      "src": "assets/characters/designs/12_youya_C.png",
+      "dst": "assets/characters/designs/12_youya_C.webp",
+      "src_size": 4451226,
+      "dst_size": 282526
+    },
+    {
+      "src": "assets/characters/designs/13_hibiki_A.png",
+      "dst": "assets/characters/designs/13_hibiki_A.webp",
+      "src_size": 4110015,
+      "dst_size": 310698
+    },
+    {
+      "src": "assets/characters/designs/03_momiji_C.png",
+      "dst": "assets/characters/designs/03_momiji_C.webp",
+      "src_size": 3881105,
+      "dst_size": 286236
+    },
+    {
+      "src": "assets/characters/designs/15_mei_C.png",
+      "dst": "assets/characters/designs/15_mei_C.webp",
+      "src_size": 4029907,
+      "dst_size": 246998
+    },
+    {
+      "src": "assets/characters/designs/01_rin_A.png",
+      "dst": "assets/characters/designs/01_rin_A.webp",
+      "src_size": 3827115,
+      "dst_size": 250302
+    },
+    {
+      "src": "assets/characters/designs/18_hanabi_D.png",
+      "dst": "assets/characters/designs/18_hanabi_D.webp",
+      "src_size": 3804754,
+      "dst_size": 310248
+    },
+    {
+      "src": "assets/characters/designs/09_shion_A.png",
+      "dst": "assets/characters/designs/09_shion_A.webp",
+      "src_size": 3699786,
+      "dst_size": 258360
+    },
+    {
+      "src": "assets/characters/designs/17_akane_B.png",
+      "dst": "assets/characters/designs/17_akane_B.webp",
+      "src_size": 3583567,
+      "dst_size": 252424
+    },
+    {
+      "src": "assets/characters/designs/07_hakagure_B.png",
+      "dst": "assets/characters/designs/07_hakagure_B.webp",
+      "src_size": 3502026,
+      "dst_size": 215836
+    },
+    {
+      "src": "assets/characters/designs/02_yukino_A.png",
+      "dst": "assets/characters/designs/02_yukino_A.webp",
+      "src_size": 3392562,
+      "dst_size": 214502
+    },
+    {
+      "src": "assets/effects/shion/frames/time_f2_slow.png",
+      "dst": "assets/effects/shion/frames/time_f2_slow.webp",
+      "src_size": 2477742,
+      "dst_size": 40946
+    },
+    {
+      "src": "assets/characters/designs/10_homura_A.png",
+      "dst": "assets/characters/designs/10_homura_A.webp",
+      "src_size": 2759112,
+      "dst_size": 180674
+    },
+    {
+      "src": "assets/characters/designs/08_sou_C.png",
+      "dst": "assets/characters/designs/08_sou_C.webp",
+      "src_size": 2983880,
+      "dst_size": 211852
+    },
+    {
+      "src": "assets/characters/battles/08_sou_battle_2.png",
+      "dst": "assets/characters/battles/08_sou_battle_2.webp",
+      "src_size": 1105617,
+      "dst_size": 93314
+    },
+    {
+      "src": "assets/characters/battles/08_sou_battle_0.png",
+      "dst": "assets/characters/battles/08_sou_battle_0.webp",
+      "src_size": 1155784,
+      "dst_size": 96212
+    },
+    {
+      "src": "assets/characters/designs/16_kaede_B.png",
+      "dst": "assets/characters/designs/16_kaede_B.webp",
+      "src_size": 1990123,
+      "dst_size": 136238
+    },
+    {
+      "src": "assets/characters/battles/08_sou_battle_1.png",
+      "dst": "assets/characters/battles/08_sou_battle_1.webp",
+      "src_size": 1080300,
+      "dst_size": 80858
+    },
+    {
+      "src": "assets/characters/chibi/13_hibiki/cast.png",
+      "dst": "assets/characters/chibi/13_hibiki/cast.webp",
+      "src_size": 1086362,
+      "dst_size": 90284
+    },
+    {
+      "src": "assets/characters/battles/08_sou_battle_3.png",
+      "dst": "assets/characters/battles/08_sou_battle_3.webp",
+      "src_size": 1062931,
+      "dst_size": 84772
+    },
+    {
+      "src": "assets/characters/heads/08_sou_head_0.png",
+      "dst": "assets/characters/heads/08_sou_head_0.webp",
+      "src_size": 1014149,
+      "dst_size": 68948
+    },
+    {
+      "src": "assets/characters/heads/08_sou_head_3.png",
+      "dst": "assets/characters/heads/08_sou_head_3.webp",
+      "src_size": 1026279,
+      "dst_size": 71358
+    },
+    {
+      "src": "assets/characters/chibi/06_gekka/victory.png",
+      "dst": "assets/characters/chibi/06_gekka/victory.webp",
+      "src_size": 1042526,
+      "dst_size": 82850
+    },
+    {
+      "src": "assets/characters/chibi/13_hibiki/hurt.png",
+      "dst": "assets/characters/chibi/13_hibiki/hurt.webp",
+      "src_size": 992746,
+      "dst_size": 78378
+    },
+    {
+      "src": "assets/characters/heads/08_sou_head_2.png",
+      "dst": "assets/characters/heads/08_sou_head_2.webp",
+      "src_size": 991142,
+      "dst_size": 70086
+    },
+    {
+      "src": "assets/characters/heads/08_sou_head_1.png",
+      "dst": "assets/characters/heads/08_sou_head_1.webp",
+      "src_size": 989536,
+      "dst_size": 66888
+    },
+    {
+      "src": "assets/characters/chibi/06_gekka/idle.png",
+      "dst": "assets/characters/chibi/06_gekka/idle.webp",
+      "src_size": 986730,
+      "dst_size": 82220
+    },
+    {
+      "src": "assets/characters/chibi/05_suirei/cast.png",
+      "dst": "assets/characters/chibi/05_suirei/cast.webp",
+      "src_size": 977077,
+      "dst_size": 76924
+    },
+    {
+      "src": "assets/characters/chibi/06_gekka/cast.png",
+      "dst": "assets/characters/chibi/06_gekka/cast.webp",
+      "src_size": 974489,
+      "dst_size": 74784
+    },
+    {
+      "src": "assets/characters/chibi/13_hibiki/attack.png",
+      "dst": "assets/characters/chibi/13_hibiki/attack.webp",
+      "src_size": 974824,
+      "dst_size": 71888
+    },
+    {
+      "src": "assets/characters/chibi/06_gekka/hurt.png",
+      "dst": "assets/characters/chibi/06_gekka/hurt.webp",
+      "src_size": 974061,
+      "dst_size": 79340
+    },
+    {
+      "src": "assets/characters/chibi/14_sara/hurt.png",
+      "dst": "assets/characters/chibi/14_sara/hurt.webp",
+      "src_size": 950341,
+      "dst_size": 71418
+    },
+    {
+      "src": "assets/characters/chibi/14_sara/cast.png",
+      "dst": "assets/characters/chibi/14_sara/cast.webp",
+      "src_size": 944812,
+      "dst_size": 74404
+    },
+    {
+      "src": "assets/characters/chibi/02_yukino/hurt.png",
+      "dst": "assets/characters/chibi/02_yukino/hurt.webp",
+      "src_size": 939429,
+      "dst_size": 66456
+    },
+    {
+      "src": "assets/characters/chibi/02_yukino/victory.png",
+      "dst": "assets/characters/chibi/02_yukino/victory.webp",
+      "src_size": 934554,
+      "dst_size": 64932
+    },
+    {
+      "src": "assets/characters/chibi/09_shion/attack.png",
+      "dst": "assets/characters/chibi/09_shion/attack.webp",
+      "src_size": 925190,
+      "dst_size": 58640
+    },
+    {
+      "src": "assets/characters/chibi/05_suirei/hurt.png",
+      "dst": "assets/characters/chibi/05_suirei/hurt.webp",
+      "src_size": 917662,
+      "dst_size": 61592
+    },
+    {
+      "src": "assets/characters/chibi/09_shion/hurt.png",
+      "dst": "assets/characters/chibi/09_shion/hurt.webp",
+      "src_size": 916879,
+      "dst_size": 56652
+    },
+    {
+      "src": "assets/characters/chibi/17_akane/attack.png",
+      "dst": "assets/characters/chibi/17_akane/attack.webp",
+      "src_size": 915627,
+      "dst_size": 61880
+    },
+    {
+      "src": "assets/characters/chibi/09_shion/cast.png",
+      "dst": "assets/characters/chibi/09_shion/cast.webp",
+      "src_size": 915389,
+      "dst_size": 59616
+    },
+    {
+      "src": "assets/characters/chibi/02_yukino/cast.png",
+      "dst": "assets/characters/chibi/02_yukino/cast.webp",
+      "src_size": 906383,
+      "dst_size": 63398
+    },
+    {
+      "src": "assets/characters/chibi/06_gekka/attack.png",
+      "dst": "assets/characters/chibi/06_gekka/attack.webp",
+      "src_size": 901305,
+      "dst_size": 79150
+    },
+    {
+      "src": "assets/characters/chibi/13_hibiki/idle.png",
+      "dst": "assets/characters/chibi/13_hibiki/idle.webp",
+      "src_size": 900881,
+      "dst_size": 61648
+    },
+    {
+      "src": "assets/characters/chibi/17_akane/victory.png",
+      "dst": "assets/characters/chibi/17_akane/victory.webp",
+      "src_size": 897953,
+      "dst_size": 57636
+    },
+    {
+      "src": "assets/characters/chibi/09_shion/victory.png",
+      "dst": "assets/characters/chibi/09_shion/victory.webp",
+      "src_size": 884896,
+      "dst_size": 52886
+    },
+    {
+      "src": "assets/characters/chibi/03_momiji/hurt.png",
+      "dst": "assets/characters/chibi/03_momiji/hurt.webp",
+      "src_size": 882973,
+      "dst_size": 58932
+    },
+    {
+      "src": "assets/characters/chibi/14_sara/attack.png",
+      "dst": "assets/characters/chibi/14_sara/attack.webp",
+      "src_size": 879289,
+      "dst_size": 73318
+    },
+    {
+      "src": "assets/characters/chibi/14_sara/victory.png",
+      "dst": "assets/characters/chibi/14_sara/victory.webp",
+      "src_size": 875548,
+      "dst_size": 60602
+    },
+    {
+      "src": "assets/characters/chibi/05_suirei/attack.png",
+      "dst": "assets/characters/chibi/05_suirei/attack.webp",
+      "src_size": 867674,
+      "dst_size": 58804
+    },
+    {
+      "src": "assets/characters/chibi/18_hanabi/idle.png",
+      "dst": "assets/characters/chibi/18_hanabi/idle.webp",
+      "src_size": 852150,
+      "dst_size": 73866
+    },
+    {
+      "src": "assets/characters/chibi/01_rin/cast.png",
+      "dst": "assets/characters/chibi/01_rin/cast.webp",
+      "src_size": 863615,
+      "dst_size": 58436
+    },
+    {
+      "src": "assets/characters/chibi/03_momiji/cast.png",
+      "dst": "assets/characters/chibi/03_momiji/cast.webp",
+      "src_size": 855644,
+      "dst_size": 61552
+    },
+    {
+      "src": "assets/characters/chibi/03_momiji/victory.png",
+      "dst": "assets/characters/chibi/03_momiji/victory.webp",
+      "src_size": 849741,
+      "dst_size": 54326
+    },
+    {
+      "src": "assets/characters/chibi/03_momiji/attack.png",
+      "dst": "assets/characters/chibi/03_momiji/attack.webp",
+      "src_size": 847364,
+      "dst_size": 56172
+    },
+    {
+      "src": "assets/characters/chibi/07_hakagure/cast.png",
+      "dst": "assets/characters/chibi/07_hakagure/cast.webp",
+      "src_size": 846983,
+      "dst_size": 52558
+    },
+    {
+      "src": "assets/characters/chibi/10_homura/cast.png",
+      "dst": "assets/characters/chibi/10_homura/cast.webp",
+      "src_size": 839378,
+      "dst_size": 55604
+    },
+    {
+      "src": "assets/characters/chibi/08_sou/cast.png",
+      "dst": "assets/characters/chibi/08_sou/cast.webp",
+      "src_size": 835769,
+      "dst_size": 50236
+    },
+    {
+      "src": "assets/characters/chibi/08_sou/hurt.png",
+      "dst": "assets/characters/chibi/08_sou/hurt.webp",
+      "src_size": 835656,
+      "dst_size": 40958
+    },
+    {
+      "src": "assets/characters/chibi/01_rin/hurt.png",
+      "dst": "assets/characters/chibi/01_rin/hurt.webp",
+      "src_size": 832410,
+      "dst_size": 54570
+    },
+    {
+      "src": "assets/characters/chibi/10_homura/attack.png",
+      "dst": "assets/characters/chibi/10_homura/attack.webp",
+      "src_size": 830198,
+      "dst_size": 54002
+    },
+    {
+      "src": "assets/characters/chibi/18_hanabi/hurt.png",
+      "dst": "assets/characters/chibi/18_hanabi/hurt.webp",
+      "src_size": 825046,
+      "dst_size": 71794
+    },
+    {
+      "src": "assets/characters/chibi/05_suirei/victory.png",
+      "dst": "assets/characters/chibi/05_suirei/victory.webp",
+      "src_size": 826273,
+      "dst_size": 54246
+    },
+    {
+      "src": "assets/characters/chibi/13_hibiki/victory.png",
+      "dst": "assets/characters/chibi/13_hibiki/victory.webp",
+      "src_size": 819795,
+      "dst_size": 53906
+    },
+    {
+      "src": "assets/characters/chibi/18_hanabi/cast.png",
+      "dst": "assets/characters/chibi/18_hanabi/cast.webp",
+      "src_size": 818526,
+      "dst_size": 74042
+    },
+    {
+      "src": "assets/characters/chibi/07_hakagure/idle.png",
+      "dst": "assets/characters/chibi/07_hakagure/idle.webp",
+      "src_size": 817933,
+      "dst_size": 42594
+    },
+    {
+      "src": "assets/characters/chibi/17_akane/cast.png",
+      "dst": "assets/characters/chibi/17_akane/cast.webp",
+      "src_size": 817287,
+      "dst_size": 57626
+    },
+    {
+      "src": "assets/characters/chibi/03_momiji/idle.png",
+      "dst": "assets/characters/chibi/03_momiji/idle.webp",
+      "src_size": 813101,
+      "dst_size": 46494
+    },
+    {
+      "src": "assets/characters/chibi/07_hakagure/victory.png",
+      "dst": "assets/characters/chibi/07_hakagure/victory.webp",
+      "src_size": 813338,
+      "dst_size": 47156
+    },
+    {
+      "src": "assets/characters/chibi/14_sara/defeated.png",
+      "dst": "assets/characters/chibi/14_sara/defeated.webp",
+      "src_size": 811928,
+      "dst_size": 57386
+    },
+    {
+      "src": "assets/characters/chibi/18_hanabi/victory.png",
+      "dst": "assets/characters/chibi/18_hanabi/victory.webp",
+      "src_size": 811357,
+      "dst_size": 75056
+    },
+    {
+      "src": "assets/characters/chibi/01_rin/attack.png",
+      "dst": "assets/characters/chibi/01_rin/attack.webp",
+      "src_size": 809764,
+      "dst_size": 50968
+    },
+    {
+      "src": "assets/characters/chibi/17_akane/hurt.png",
+      "dst": "assets/characters/chibi/17_akane/hurt.webp",
+      "src_size": 809434,
+      "dst_size": 47578
+    },
+    {
+      "src": "assets/characters/chibi/18_hanabi/defeated.png",
+      "dst": "assets/characters/chibi/18_hanabi/defeated.webp",
+      "src_size": 808729,
+      "dst_size": 75534
+    },
+    {
+      "src": "assets/characters/chibi/02_yukino/idle.png",
+      "dst": "assets/characters/chibi/02_yukino/idle.webp",
+      "src_size": 808070,
+      "dst_size": 61474
+    },
+    {
+      "src": "assets/characters/chibi/18_hanabi/attack.png",
+      "dst": "assets/characters/chibi/18_hanabi/attack.webp",
+      "src_size": 802234,
+      "dst_size": 74272
+    },
+    {
+      "src": "assets/characters/chibi/02_yukino/attack.png",
+      "dst": "assets/characters/chibi/02_yukino/attack.webp",
+      "src_size": 806812,
+      "dst_size": 59752
+    },
+    {
+      "src": "assets/characters/chibi/14_sara/idle.png",
+      "dst": "assets/characters/chibi/14_sara/idle.webp",
+      "src_size": 802051,
+      "dst_size": 60986
+    },
+    {
+      "src": "assets/characters/chibi/09_shion/idle.png",
+      "dst": "assets/characters/chibi/09_shion/idle.webp",
+      "src_size": 799124,
+      "dst_size": 47906
+    },
+    {
+      "src": "assets/characters/chibi/07_hakagure/attack.png",
+      "dst": "assets/characters/chibi/07_hakagure/attack.webp",
+      "src_size": 783659,
+      "dst_size": 45964
+    },
+    {
+      "src": "assets/characters/chibi/01_rin/idle.png",
+      "dst": "assets/characters/chibi/01_rin/idle.webp",
+      "src_size": 791331,
+      "dst_size": 55702
+    },
+    {
+      "src": "assets/characters/chibi/06_gekka/defeated.png",
+      "dst": "assets/characters/chibi/06_gekka/defeated.webp",
+      "src_size": 767279,
+      "dst_size": 59392
+    },
+    {
+      "src": "assets/characters/chibi/08_sou/walk.png",
+      "dst": "assets/characters/chibi/08_sou/walk.webp",
+      "src_size": 764566,
+      "dst_size": 40362
+    },
+    {
+      "src": "assets/characters/chibi/10_homura/hurt.png",
+      "dst": "assets/characters/chibi/10_homura/hurt.webp",
+      "src_size": 761968,
+      "dst_size": 38146
+    },
+    {
+      "src": "assets/characters/chibi/10_homura/idle.png",
+      "dst": "assets/characters/chibi/10_homura/idle.webp",
+      "src_size": 755862,
+      "dst_size": 37054
+    },
+    {
+      "src": "assets/characters/chibi/07_hakagure/hurt.png",
+      "dst": "assets/characters/chibi/07_hakagure/hurt.webp",
+      "src_size": 755073,
+      "dst_size": 43702
+    },
+    {
+      "src": "assets/characters/chibi/10_homura/victory.png",
+      "dst": "assets/characters/chibi/10_homura/victory.webp",
+      "src_size": 747071,
+      "dst_size": 36974
+    },
+    {
+      "src": "assets/characters/chibi/08_sou/attack.png",
+      "dst": "assets/characters/chibi/08_sou/attack.webp",
+      "src_size": 748643,
+      "dst_size": 43470
+    },
+    {
+      "src": "assets/characters/chibi/09_shion/defeated.png",
+      "dst": "assets/characters/chibi/09_shion/defeated.webp",
+      "src_size": 738339,
+      "dst_size": 44438
+    },
+    {
+      "src": "assets/characters/chibi/08_sou/defeated.png",
+      "dst": "assets/characters/chibi/08_sou/defeated.webp",
+      "src_size": 730997,
+      "dst_size": 39266
+    },
+    {
+      "src": "assets/characters/chibi/04_hyouka/victory.png",
+      "dst": "assets/characters/chibi/04_hyouka/victory.webp",
+      "src_size": 729506,
+      "dst_size": 55190
+    },
+    {
+      "src": "assets/characters/chibi/05_suirei/idle.png",
+      "dst": "assets/characters/chibi/05_suirei/idle.webp",
+      "src_size": 729615,
+      "dst_size": 55512
+    },
+    {
+      "src": "assets/characters/chibi/17_akane/idle.png",
+      "dst": "assets/characters/chibi/17_akane/idle.webp",
+      "src_size": 726493,
+      "dst_size": 45190
+    },
+    {
+      "src": "assets/characters/chibi/04_hyouka/idle.png",
+      "dst": "assets/characters/chibi/04_hyouka/idle.webp",
+      "src_size": 725259,
+      "dst_size": 53506
+    },
+    {
+      "src": "assets/characters/chibi/04_hyouka/attack.png",
+      "dst": "assets/characters/chibi/04_hyouka/attack.webp",
+      "src_size": 724771,
+      "dst_size": 53706
+    },
+    {
+      "src": "assets/characters/chibi/15_mei/idle.png",
+      "dst": "assets/characters/chibi/15_mei/idle.webp",
+      "src_size": 716752,
+      "dst_size": 51522
+    },
+    {
+      "src": "assets/characters/chibi/12_youya/cast.png",
+      "dst": "assets/characters/chibi/12_youya/cast.webp",
+      "src_size": 715913,
+      "dst_size": 52436
+    },
+    {
+      "src": "assets/characters/chibi/04_hyouka/cast.png",
+      "dst": "assets/characters/chibi/04_hyouka/cast.webp",
+      "src_size": 714952,
+      "dst_size": 54242
+    },
+    {
+      "src": "assets/characters/chibi/17_akane/defeated.png",
+      "dst": "assets/characters/chibi/17_akane/defeated.webp",
+      "src_size": 713523,
+      "dst_size": 37404
+    },
+    {
+      "src": "assets/characters/chibi/12_youya/victory.png",
+      "dst": "assets/characters/chibi/12_youya/victory.webp",
+      "src_size": 711668,
+      "dst_size": 51144
+    },
+    {
+      "src": "assets/characters/chibi/13_hibiki/defeated.png",
+      "dst": "assets/characters/chibi/13_hibiki/defeated.webp",
+      "src_size": 710966,
+      "dst_size": 50542
+    },
+    {
+      "src": "assets/characters/chibi/15_mei/cast.png",
+      "dst": "assets/characters/chibi/15_mei/cast.webp",
+      "src_size": 710871,
+      "dst_size": 53822
+    },
+    {
+      "src": "assets/characters/chibi/12_youya/defeated.png",
+      "dst": "assets/characters/chibi/12_youya/defeated.webp",
+      "src_size": 704787,
+      "dst_size": 53820
+    },
+    {
+      "src": "assets/characters/chibi/15_mei/victory.png",
+      "dst": "assets/characters/chibi/15_mei/victory.webp",
+      "src_size": 708987,
+      "dst_size": 53542
+    },
+    {
+      "src": "assets/characters/chibi/11_shion_pirate/cast.png",
+      "dst": "assets/characters/chibi/11_shion_pirate/cast.webp",
+      "src_size": 695080,
+      "dst_size": 53622
+    },
+    {
+      "src": "assets/characters/chibi/04_hyouka/defeated.png",
+      "dst": "assets/characters/chibi/04_hyouka/defeated.webp",
+      "src_size": 694550,
+      "dst_size": 53218
+    },
+    {
+      "src": "assets/characters/chibi/15_mei/hurt.png",
+      "dst": "assets/characters/chibi/15_mei/hurt.webp",
+      "src_size": 693350,
+      "dst_size": 51306
+    },
+    {
+      "src": "assets/characters/chibi/12_youya/idle.png",
+      "dst": "assets/characters/chibi/12_youya/idle.webp",
+      "src_size": 693294,
+      "dst_size": 54044
+    },
+    {
+      "src": "assets/characters/chibi/08_sou/victory.png",
+      "dst": "assets/characters/chibi/08_sou/victory.webp",
+      "src_size": 692999,
+      "dst_size": 42808
+    },
+    {
+      "src": "assets/characters/chibi/11_shion_pirate/defeated.png",
+      "dst": "assets/characters/chibi/11_shion_pirate/defeated.webp",
+      "src_size": 691142,
+      "dst_size": 53278
+    },
+    {
+      "src": "assets/characters/chibi/11_shion_pirate/hurt.png",
+      "dst": "assets/characters/chibi/11_shion_pirate/hurt.webp",
+      "src_size": 690497,
+      "dst_size": 53474
+    },
+    {
+      "src": "assets/characters/chibi/11_shion_pirate/attack.png",
+      "dst": "assets/characters/chibi/11_shion_pirate/attack.webp",
+      "src_size": 688576,
+      "dst_size": 52886
+    },
+    {
+      "src": "assets/characters/chibi/04_hyouka/hurt.png",
+      "dst": "assets/characters/chibi/04_hyouka/hurt.webp",
+      "src_size": 687058,
+      "dst_size": 54246
+    },
+    {
+      "src": "assets/characters/chibi/15_mei/attack.png",
+      "dst": "assets/characters/chibi/15_mei/attack.webp",
+      "src_size": 684763,
+      "dst_size": 52572
+    },
+    {
+      "src": "assets/characters/chibi/10_homura/defeated.png",
+      "dst": "assets/characters/chibi/10_homura/defeated.webp",
+      "src_size": 680355,
+      "dst_size": 43296
+    },
+    {
+      "src": "assets/characters/chibi/11_shion_pirate/victory.png",
+      "dst": "assets/characters/chibi/11_shion_pirate/victory.webp",
+      "src_size": 676820,
+      "dst_size": 54990
+    },
+    {
+      "src": "assets/characters/chibi/05_suirei/defeated.png",
+      "dst": "assets/characters/chibi/05_suirei/defeated.webp",
+      "src_size": 674428,
+      "dst_size": 49028
+    },
+    {
+      "src": "assets/characters/chibi/12_youya/attack.png",
+      "dst": "assets/characters/chibi/12_youya/attack.webp",
+      "src_size": 673436,
+      "dst_size": 52710
+    },
+    {
+      "src": "assets/characters/chibi/11_shion_pirate/idle.png",
+      "dst": "assets/characters/chibi/11_shion_pirate/idle.webp",
+      "src_size": 671622,
+      "dst_size": 53556
+    },
+    {
+      "src": "assets/characters/chibi/15_mei/defeated.png",
+      "dst": "assets/characters/chibi/15_mei/defeated.webp",
+      "src_size": 666871,
+      "dst_size": 51278
+    },
+    {
+      "src": "assets/characters/chibi/12_youya/hurt.png",
+      "dst": "assets/characters/chibi/12_youya/hurt.webp",
+      "src_size": 665903,
+      "dst_size": 53470
+    },
+    {
+      "src": "assets/characters/chibi/08_sou/idle.png",
+      "dst": "assets/characters/chibi/08_sou/idle.webp",
+      "src_size": 657698,
+      "dst_size": 38804
+    },
+    {
+      "src": "assets/characters/chibi/01_rin/victory.png",
+      "dst": "assets/characters/chibi/01_rin/victory.webp",
+      "src_size": 640350,
+      "dst_size": 44246
+    },
+    {
+      "src": "assets/characters/chibi/03_momiji/defeated.png",
+      "dst": "assets/characters/chibi/03_momiji/defeated.webp",
+      "src_size": 633538,
+      "dst_size": 41376
+    },
+    {
+      "src": "assets/characters/chibi/02_yukino/defeated.png",
+      "dst": "assets/characters/chibi/02_yukino/defeated.webp",
+      "src_size": 609541,
+      "dst_size": 49346
+    },
+    {
+      "src": "assets/characters/chibi/16_kaede/cast.png",
+      "dst": "assets/characters/chibi/16_kaede/cast.webp",
+      "src_size": 567211,
+      "dst_size": 48188
+    },
+    {
+      "src": "assets/characters/chibi/16_kaede/idle.png",
+      "dst": "assets/characters/chibi/16_kaede/idle.webp",
+      "src_size": 556100,
+      "dst_size": 47774
+    },
+    {
+      "src": "assets/characters/chibi/16_kaede/attack.png",
+      "dst": "assets/characters/chibi/16_kaede/attack.webp",
+      "src_size": 555768,
+      "dst_size": 47954
+    },
+    {
+      "src": "assets/characters/chibi/16_kaede/defeated.png",
+      "dst": "assets/characters/chibi/16_kaede/defeated.webp",
+      "src_size": 554780,
+      "dst_size": 47694
+    },
+    {
+      "src": "assets/characters/chibi/16_kaede/victory.png",
+      "dst": "assets/characters/chibi/16_kaede/victory.webp",
+      "src_size": 552792,
+      "dst_size": 48142
+    },
+    {
+      "src": "assets/characters/chibi/16_kaede/hurt.png",
+      "dst": "assets/characters/chibi/16_kaede/hurt.webp",
+      "src_size": 537986,
+      "dst_size": 47874
+    },
+    {
+      "src": "assets/characters/chibi/01_rin/defeated.png",
+      "dst": "assets/characters/chibi/01_rin/defeated.webp",
+      "src_size": 536357,
+      "dst_size": 31818
+    },
+    {
+      "src": "assets/characters/heads/14_sara_head_happy.png",
+      "dst": "assets/characters/heads/14_sara_head_happy.webp",
+      "src_size": 143155,
+      "dst_size": 22470
+    },
+    {
+      "src": "assets/characters/heads/14_sara_head_angry.png",
+      "dst": "assets/characters/heads/14_sara_head_angry.webp",
+      "src_size": 141884,
+      "dst_size": 22642
+    },
+    {
+      "src": "assets/characters/heads/14_sara_head_surprised.png",
+      "dst": "assets/characters/heads/14_sara_head_surprised.webp",
+      "src_size": 141639,
+      "dst_size": 22498
+    },
+    {
+      "src": "assets/characters/chibi/07_hakagure/defeated.png",
+      "dst": "assets/characters/chibi/07_hakagure/defeated.webp",
+      "src_size": 526851,
+      "dst_size": 30488
+    },
+    {
+      "src": "assets/characters/heads/14_sara_head_sad.png",
+      "dst": "assets/characters/heads/14_sara_head_sad.webp",
+      "src_size": 141445,
+      "dst_size": 21968
+    },
+    {
+      "src": "assets/characters/heads/14_sara_head_shy.png",
+      "dst": "assets/characters/heads/14_sara_head_shy.webp",
+      "src_size": 140186,
+      "dst_size": 21756
+    },
+    {
+      "src": "assets/characters/heads/18_hanabi_head_sad.png",
+      "dst": "assets/characters/heads/18_hanabi_head_sad.webp",
+      "src_size": 137127,
+      "dst_size": 20628
+    },
+    {
+      "src": "assets/characters/heads/07_hakagure_head_surprised.png",
+      "dst": "assets/characters/heads/07_hakagure_head_surprised.webp",
+      "src_size": 135633,
+      "dst_size": 16798
+    },
+    {
+      "src": "assets/characters/heads/03_momiji_head_angry.png",
+      "dst": "assets/characters/heads/03_momiji_head_angry.webp",
+      "src_size": 135550,
+      "dst_size": 20216
+    },
+    {
+      "src": "assets/characters/heads/07_hakagure_head_shy.png",
+      "dst": "assets/characters/heads/07_hakagure_head_shy.webp",
+      "src_size": 135392,
+      "dst_size": 16646
+    },
+    {
+      "src": "assets/characters/heads/18_hanabi_head_angry.png",
+      "dst": "assets/characters/heads/18_hanabi_head_angry.webp",
+      "src_size": 135300,
+      "dst_size": 20416
+    },
+    {
+      "src": "assets/characters/heads/07_hakagure_head_angry.png",
+      "dst": "assets/characters/heads/07_hakagure_head_angry.webp",
+      "src_size": 135263,
+      "dst_size": 16558
+    },
+    {
+      "src": "assets/characters/heads/03_momiji_head_surprised.png",
+      "dst": "assets/characters/heads/03_momiji_head_surprised.webp",
+      "src_size": 135260,
+      "dst_size": 19826
+    },
+    {
+      "src": "assets/characters/heads/07_hakagure_head_sad.png",
+      "dst": "assets/characters/heads/07_hakagure_head_sad.webp",
+      "src_size": 134584,
+      "dst_size": 16318
+    },
+    {
+      "src": "assets/characters/heads/07_hakagure_head_happy.png",
+      "dst": "assets/characters/heads/07_hakagure_head_happy.webp",
+      "src_size": 134576,
+      "dst_size": 16324
+    },
+    {
+      "src": "assets/characters/heads/03_momiji_head_sad.png",
+      "dst": "assets/characters/heads/03_momiji_head_sad.webp",
+      "src_size": 133733,
+      "dst_size": 20164
+    },
+    {
+      "src": "assets/characters/heads/12_youya_head_surprised.png",
+      "dst": "assets/characters/heads/12_youya_head_surprised.webp",
+      "src_size": 133646,
+      "dst_size": 18314
+    },
+    {
+      "src": "assets/characters/heads/12_youya_head_shy.png",
+      "dst": "assets/characters/heads/12_youya_head_shy.webp",
+      "src_size": 132671,
+      "dst_size": 18072
+    },
+    {
+      "src": "assets/characters/heads/13_hibiki_head_angry.png",
+      "dst": "assets/characters/heads/13_hibiki_head_angry.webp",
+      "src_size": 132526,
+      "dst_size": 18920
+    },
+    {
+      "src": "assets/characters/heads/03_momiji_head_shy.png",
+      "dst": "assets/characters/heads/03_momiji_head_shy.webp",
+      "src_size": 132477,
+      "dst_size": 19612
+    },
+    {
+      "src": "assets/characters/heads/13_hibiki_head_surprised.png",
+      "dst": "assets/characters/heads/13_hibiki_head_surprised.webp",
+      "src_size": 132344,
+      "dst_size": 19560
+    },
+    {
+      "src": "assets/characters/heads/03_momiji_head_happy.png",
+      "dst": "assets/characters/heads/03_momiji_head_happy.webp",
+      "src_size": 132137,
+      "dst_size": 20000
+    },
+    {
+      "src": "assets/characters/heads/12_youya_head_happy.png",
+      "dst": "assets/characters/heads/12_youya_head_happy.webp",
+      "src_size": 130880,
+      "dst_size": 17806
+    },
+    {
+      "src": "assets/characters/heads/13_hibiki_head_shy.png",
+      "dst": "assets/characters/heads/13_hibiki_head_shy.webp",
+      "src_size": 130685,
+      "dst_size": 19012
+    },
+    {
+      "src": "assets/characters/heads/12_youya_head_sad.png",
+      "dst": "assets/characters/heads/12_youya_head_sad.webp",
+      "src_size": 129992,
+      "dst_size": 17174
+    },
+    {
+      "src": "assets/characters/heads/13_hibiki_head_happy.png",
+      "dst": "assets/characters/heads/13_hibiki_head_happy.webp",
+      "src_size": 129674,
+      "dst_size": 19350
+    },
+    {
+      "src": "assets/characters/heads/10_homura_head_angry.png",
+      "dst": "assets/characters/heads/10_homura_head_angry.webp",
+      "src_size": 129388,
+      "dst_size": 21346
+    },
+    {
+      "src": "assets/characters/heads/09_shion_head_angry.png",
+      "dst": "assets/characters/heads/09_shion_head_angry.webp",
+      "src_size": 129191,
+      "dst_size": 18000
+    },
+    {
+      "src": "assets/characters/heads/09_shion_head_surprised.png",
+      "dst": "assets/characters/heads/09_shion_head_surprised.webp",
+      "src_size": 129160,
+      "dst_size": 18400
+    },
+    {
+      "src": "assets/characters/heads/13_hibiki_head_sad.png",
+      "dst": "assets/characters/heads/13_hibiki_head_sad.webp",
+      "src_size": 129083,
+      "dst_size": 17344
+    },
+    {
+      "src": "assets/characters/heads/11_shion_pirate_head_angry.png",
+      "dst": "assets/characters/heads/11_shion_pirate_head_angry.webp",
+      "src_size": 128781,
+      "dst_size": 17756
+    },
+    {
+      "src": "assets/characters/heads/09_shion_head_happy.png",
+      "dst": "assets/characters/heads/09_shion_head_happy.webp",
+      "src_size": 128779,
+      "dst_size": 18462
+    },
+    {
+      "src": "assets/characters/heads/09_shion_head_shy.png",
+      "dst": "assets/characters/heads/09_shion_head_shy.webp",
+      "src_size": 128581,
+      "dst_size": 18150
+    },
+    {
+      "src": "assets/characters/heads/18_hanabi_head_shy.png",
+      "dst": "assets/characters/heads/18_hanabi_head_shy.webp",
+      "src_size": 128453,
+      "dst_size": 18568
+    },
+    {
+      "src": "assets/characters/heads/15_mei_head_shy.png",
+      "dst": "assets/characters/heads/15_mei_head_shy.webp",
+      "src_size": 128080,
+      "dst_size": 18024
+    },
+    {
+      "src": "assets/characters/heads/09_shion_head_sad.png",
+      "dst": "assets/characters/heads/09_shion_head_sad.webp",
+      "src_size": 127781,
+      "dst_size": 17838
+    },
+    {
+      "src": "assets/characters/heads/18_hanabi_head_happy.png",
+      "dst": "assets/characters/heads/18_hanabi_head_happy.webp",
+      "src_size": 127766,
+      "dst_size": 19022
+    },
+    {
+      "src": "assets/characters/heads/15_mei_head_happy.png",
+      "dst": "assets/characters/heads/15_mei_head_happy.webp",
+      "src_size": 127546,
+      "dst_size": 17768
+    },
+    {
+      "src": "assets/characters/heads/11_shion_pirate_head_sad.png",
+      "dst": "assets/characters/heads/11_shion_pirate_head_sad.webp",
+      "src_size": 127544,
+      "dst_size": 15056
+    },
+    {
+      "src": "assets/characters/heads/08_sou_head_surprised.png",
+      "dst": "assets/characters/heads/08_sou_head_surprised.webp",
+      "src_size": 127272,
+      "dst_size": 18470
+    },
+    {
+      "src": "assets/characters/heads/12_youya_head_angry.png",
+      "dst": "assets/characters/heads/12_youya_head_angry.webp",
+      "src_size": 127201,
+      "dst_size": 16276
+    },
+    {
+      "src": "assets/characters/heads/08_sou_head_happy.png",
+      "dst": "assets/characters/heads/08_sou_head_happy.webp",
+      "src_size": 126956,
+      "dst_size": 19040
+    },
+    {
+      "src": "assets/characters/heads/15_mei_head_surprised.png",
+      "dst": "assets/characters/heads/15_mei_head_surprised.webp",
+      "src_size": 126902,
+      "dst_size": 18304
+    },
+    {
+      "src": "assets/icons/buildings/slave_market_lv3.png",
+      "dst": "assets/icons/buildings/slave_market_lv3.webp",
+      "src_size": 126850,
+      "dst_size": 96314
+    },
+    {
+      "src": "assets/icons/buildings/merchant_guild_lv3.png",
+      "dst": "assets/icons/buildings/merchant_guild_lv3.webp",
+      "src_size": 136641,
+      "dst_size": 102618
+    },
+    {
+      "src": "assets/characters/heads/08_sou_head_sad.png",
+      "dst": "assets/characters/heads/08_sou_head_sad.webp",
+      "src_size": 126797,
+      "dst_size": 18602
+    },
+    {
+      "src": "assets/characters/heads/08_sou_head_shy.png",
+      "dst": "assets/characters/heads/08_sou_head_shy.webp",
+      "src_size": 126587,
+      "dst_size": 18140
+    },
+    {
+      "src": "assets/characters/heads/18_hanabi_head_surprised.png",
+      "dst": "assets/characters/heads/18_hanabi_head_surprised.webp",
+      "src_size": 126749,
+      "dst_size": 19498
+    },
+    {
+      "src": "assets/icons/skills/arrow_rain.png",
+      "dst": "assets/icons/skills/arrow_rain.webp",
+      "src_size": 137403,
+      "dst_size": 99842
+    },
+    {
+      "src": "assets/characters/heads/10_homura_head_shy.png",
+      "dst": "assets/characters/heads/10_homura_head_shy.webp",
+      "src_size": 126361,
+      "dst_size": 19694
+    },
+    {
+      "src": "assets/characters/heads/10_homura_head_happy.png",
+      "dst": "assets/characters/heads/10_homura_head_happy.webp",
+      "src_size": 126464,
+      "dst_size": 20572
+    },
+    {
+      "src": "assets/characters/heads/14_sara_head.png",
+      "dst": "assets/characters/heads/14_sara_head.webp",
+      "src_size": 125250,
+      "dst_size": 18900
+    },
+    {
+      "src": "assets/characters/heads/04_hyouka_head_surprised.png",
+      "dst": "assets/characters/heads/04_hyouka_head_surprised.webp",
+      "src_size": 125135,
+      "dst_size": 16956
+    },
+    {
+      "src": "assets/characters/heads/11_shion_pirate_head_happy.png",
+      "dst": "assets/characters/heads/11_shion_pirate_head_happy.webp",
+      "src_size": 124951,
+      "dst_size": 16786
+    },
+    {
+      "src": "assets/characters/heads/08_sou_head_angry.png",
+      "dst": "assets/characters/heads/08_sou_head_angry.webp",
+      "src_size": 124606,
+      "dst_size": 19586
+    },
+    {
+      "src": "assets/icons/skills/armor_piercing.png",
+      "dst": "assets/icons/skills/armor_piercing.webp",
+      "src_size": 146676,
+      "dst_size": 108608
+    },
+    {
+      "src": "assets/characters/heads/13_hibiki_head.png",
+      "dst": "assets/characters/heads/13_hibiki_head.webp",
+      "src_size": 124476,
+      "dst_size": 20002
+    },
+    {
+      "src": "assets/characters/heads/10_homura_head_surprised.png",
+      "dst": "assets/characters/heads/10_homura_head_surprised.webp",
+      "src_size": 124308,
+      "dst_size": 19692
+    },
+    {
+      "src": "assets/characters/heads/04_hyouka_head_happy.png",
+      "dst": "assets/characters/heads/04_hyouka_head_happy.webp",
+      "src_size": 124143,
+      "dst_size": 16408
+    },
+    {
+      "src": "assets/characters/heads/11_shion_pirate_head_surprised.png",
+      "dst": "assets/characters/heads/11_shion_pirate_head_surprised.webp",
+      "src_size": 124112,
+      "dst_size": 16300
+    },
+    {
+      "src": "assets/characters/heads/05_suirei_head_surprised.png",
+      "dst": "assets/characters/heads/05_suirei_head_surprised.webp",
+      "src_size": 122019,
+      "dst_size": 16340
+    },
+    {
+      "src": "assets/characters/heads/11_shion_pirate_head_shy.png",
+      "dst": "assets/characters/heads/11_shion_pirate_head_shy.webp",
+      "src_size": 122624,
+      "dst_size": 15648
+    },
+    {
+      "src": "assets/characters/heads/05_suirei_head_sad.png",
+      "dst": "assets/characters/heads/05_suirei_head_sad.webp",
+      "src_size": 120941,
+      "dst_size": 16116
+    },
+    {
+      "src": "assets/characters/heads/05_suirei_head_shy.png",
+      "dst": "assets/characters/heads/05_suirei_head_shy.webp",
+      "src_size": 120897,
+      "dst_size": 16056
+    },
+    {
+      "src": "assets/characters/heads/05_suirei_head_angry.png",
+      "dst": "assets/characters/heads/05_suirei_head_angry.webp",
+      "src_size": 120764,
+      "dst_size": 15964
+    },
+    {
+      "src": "assets/characters/heads/17_akane_head_surprised.png",
+      "dst": "assets/characters/heads/17_akane_head_surprised.webp",
+      "src_size": 120724,
+      "dst_size": 15334
+    },
+    {
+      "src": "assets/characters/heads/02_yukino_head_sad.png",
+      "dst": "assets/characters/heads/02_yukino_head_sad.webp",
+      "src_size": 120250,
+      "dst_size": 16138
+    },
+    {
+      "src": "assets/characters/heads/04_hyouka_head_sad.png",
+      "dst": "assets/characters/heads/04_hyouka_head_sad.webp",
+      "src_size": 119415,
+      "dst_size": 15994
+    },
+    {
+      "src": "assets/characters/heads/06_gekka_head_happy.png",
+      "dst": "assets/characters/heads/06_gekka_head_happy.webp",
+      "src_size": 118876,
+      "dst_size": 13570
+    },
+    {
+      "src": "assets/icons/buildings/arena_lv3.png",
+      "dst": "assets/icons/buildings/arena_lv3.webp",
+      "src_size": 121159,
+      "dst_size": 94744
+    },
+    {
+      "src": "assets/icons/buildings/labor_camp_lv3.png",
+      "dst": "assets/icons/buildings/labor_camp_lv3.webp",
+      "src_size": 125119,
+      "dst_size": 96046
+    },
+    {
+      "src": "assets/characters/heads/10_homura_head_sad.png",
+      "dst": "assets/characters/heads/10_homura_head_sad.webp",
+      "src_size": 118015,
+      "dst_size": 13980
+    },
+    {
+      "src": "assets/characters/heads/11_shion_pirate_head.png",
+      "dst": "assets/characters/heads/11_shion_pirate_head.webp",
+      "src_size": 117342,
+      "dst_size": 14932
+    },
+    {
+      "src": "assets/characters/heads/17_akane_head_sad.png",
+      "dst": "assets/characters/heads/17_akane_head_sad.webp",
+      "src_size": 116663,
+      "dst_size": 15220
+    },
+    {
+      "src": "assets/characters/heads/04_hyouka_head_shy.png",
+      "dst": "assets/characters/heads/04_hyouka_head_shy.webp",
+      "src_size": 116566,
+      "dst_size": 15792
+    },
+    {
+      "src": "assets/characters/heads/17_akane_head_shy.png",
+      "dst": "assets/characters/heads/17_akane_head_shy.webp",
+      "src_size": 116550,
+      "dst_size": 14850
+    },
+    {
+      "src": "assets/characters/heads/02_yukino_head_serious.png",
+      "dst": "assets/characters/heads/02_yukino_head_serious.webp",
+      "src_size": 116530,
+      "dst_size": 15990
+    },
+    {
+      "src": "assets/characters/heads/17_akane_head_happy.png",
+      "dst": "assets/characters/heads/17_akane_head_happy.webp",
+      "src_size": 116151,
+      "dst_size": 14944
+    },
+    {
+      "src": "assets/characters/heads/04_hyouka_head_angry.png",
+      "dst": "assets/characters/heads/04_hyouka_head_angry.webp",
+      "src_size": 116039,
+      "dst_size": 14168
+    },
+    {
+      "src": "assets/characters/heads/01_rin_head_angry.png",
+      "dst": "assets/characters/heads/01_rin_head_angry.webp",
+      "src_size": 115562,
+      "dst_size": 14828
+    },
+    {
+      "src": "assets/characters/heads/18_hanabi_head.png",
+      "dst": "assets/characters/heads/18_hanabi_head.webp",
+      "src_size": 115506,
+      "dst_size": 19500
+    },
+    {
+      "src": "assets/characters/heads/01_rin_head_sad.png",
+      "dst": "assets/characters/heads/01_rin_head_sad.webp",
+      "src_size": 115498,
+      "dst_size": 14756
+    },
+    {
+      "src": "assets/characters/heads/01_rin_head_surprised.png",
+      "dst": "assets/characters/heads/01_rin_head_surprised.webp",
+      "src_size": 115340,
+      "dst_size": 14630
+    },
+    {
+      "src": "assets/icons/buildings/training_ground_lv2.png",
+      "dst": "assets/icons/buildings/training_ground_lv2.webp",
+      "src_size": 118791,
+      "dst_size": 89950
+    },
+    {
+      "src": "assets/characters/heads/01_rin_head_happy.png",
+      "dst": "assets/characters/heads/01_rin_head_happy.webp",
+      "src_size": 114660,
+      "dst_size": 14408
+    },
+    {
+      "src": "assets/characters/heads/02_yukino_head_angry.png",
+      "dst": "assets/characters/heads/02_yukino_head_angry.webp",
+      "src_size": 114524,
+      "dst_size": 14740
+    },
+    {
+      "src": "assets/characters/heads/01_rin_head_shy.png",
+      "dst": "assets/characters/heads/01_rin_head_shy.webp",
+      "src_size": 114190,
+      "dst_size": 14188
+    },
+    {
+      "src": "assets/characters/heads/05_suirei_head_happy.png",
+      "dst": "assets/characters/heads/05_suirei_head_happy.webp",
+      "src_size": 114045,
+      "dst_size": 15324
+    },
+    {
+      "src": "assets/characters/heads/17_akane_head_angry.png",
+      "dst": "assets/characters/heads/17_akane_head_angry.webp",
+      "src_size": 113306,
+      "dst_size": 14712
+    },
+    {
+      "src": "assets/characters/heads/05_suirei_head.png",
+      "dst": "assets/characters/heads/05_suirei_head.webp",
+      "src_size": 112968,
+      "dst_size": 15648
+    },
+    {
+      "src": "assets/icons/buildings/academy.png",
+      "dst": "assets/icons/buildings/academy.webp",
+      "src_size": 121170,
+      "dst_size": 94250
+    },
+    {
+      "src": "assets/icons/buildings/totem_pole.png",
+      "dst": "assets/icons/buildings/totem_pole.webp",
+      "src_size": 115144,
+      "dst_size": 85830
+    },
+    {
+      "src": "assets/icons/items/orc_cleaver_of_gork.png",
+      "dst": "assets/icons/items/orc_cleaver_of_gork.webp",
+      "src_size": 112581,
+      "dst_size": 85024
+    },
+    {
+      "src": "assets/icons/buildings/arena_lv1.png",
+      "dst": "assets/icons/buildings/arena_lv1.webp",
+      "src_size": 115234,
+      "dst_size": 89174
+    },
+    {
+      "src": "assets/characters/heads/07_hakagure_head.png",
+      "dst": "assets/characters/heads/07_hakagure_head.webp",
+      "src_size": 110240,
+      "dst_size": 14966
+    },
+    {
+      "src": "assets/icons/buildings/labor_camp_lv2.png",
+      "dst": "assets/icons/buildings/labor_camp_lv2.webp",
+      "src_size": 112293,
+      "dst_size": 85632
+    },
+    {
+      "src": "assets/icons/buildings/fortification_lv1.png",
+      "dst": "assets/icons/buildings/fortification_lv1.webp",
+      "src_size": 111161,
+      "dst_size": 83648
+    },
+    {
+      "src": "assets/icons/buildings/arena_lv2.png",
+      "dst": "assets/icons/buildings/arena_lv2.webp",
+      "src_size": 110234,
+      "dst_size": 81568
+    },
+    {
+      "src": "assets/characters/heads/02_yukino_head_happy.png",
+      "dst": "assets/characters/heads/02_yukino_head_happy.webp",
+      "src_size": 109963,
+      "dst_size": 14698
+    },
+    {
+      "src": "assets/icons/buildings/merchant_guild_lv2.png",
+      "dst": "assets/icons/buildings/merchant_guild_lv2.webp",
+      "src_size": 110691,
+      "dst_size": 84296
+    },
+    {
+      "src": "assets/icons/buildings/black_market.png",
+      "dst": "assets/icons/buildings/black_market.webp",
+      "src_size": 110113,
+      "dst_size": 86088
+    },
+    {
+      "src": "assets/characters/heads/06_gekka_head_shy.png",
+      "dst": "assets/characters/heads/06_gekka_head_shy.webp",
+      "src_size": 107735,
+      "dst_size": 10922
+    },
+    {
+      "src": "assets/characters/heads/06_gekka_head_surprised.png",
+      "dst": "assets/characters/heads/06_gekka_head_surprised.webp",
+      "src_size": 107521,
+      "dst_size": 11364
+    },
+    {
+      "src": "assets/icons/buildings/training_ground_lv3.png",
+      "dst": "assets/icons/buildings/training_ground_lv3.webp",
+      "src_size": 109603,
+      "dst_size": 85858
+    },
+    {
+      "src": "assets/characters/heads/16_kaede_head_surprised.png",
+      "dst": "assets/characters/heads/16_kaede_head_surprised.webp",
+      "src_size": 106961,
+      "dst_size": 13054
+    },
+    {
+      "src": "assets/characters/heads/16_kaede_head_angry.png",
+      "dst": "assets/characters/heads/16_kaede_head_angry.webp",
+      "src_size": 106800,
+      "dst_size": 12832
+    },
+    {
+      "src": "assets/characters/heads/16_kaede_head_happy.png",
+      "dst": "assets/characters/heads/16_kaede_head_happy.webp",
+      "src_size": 106679,
+      "dst_size": 13354
+    },
+    {
+      "src": "assets/characters/heads/16_kaede_head_shy.png",
+      "dst": "assets/characters/heads/16_kaede_head_shy.webp",
+      "src_size": 106079,
+      "dst_size": 12468
+    },
+    {
+      "src": "assets/characters/heads/06_gekka_head_sad.png",
+      "dst": "assets/characters/heads/06_gekka_head_sad.webp",
+      "src_size": 105771,
+      "dst_size": 10982
+    },
+    {
+      "src": "assets/characters/heads/06_gekka_head_angry.png",
+      "dst": "assets/characters/heads/06_gekka_head_angry.webp",
+      "src_size": 104458,
+      "dst_size": 10892
+    },
+    {
+      "src": "assets/characters/heads/16_kaede_head_sad.png",
+      "dst": "assets/characters/heads/16_kaede_head_sad.webp",
+      "src_size": 104393,
+      "dst_size": 12308
+    },
+    {
+      "src": "assets/icons/buildings/warehouse_lv2.png",
+      "dst": "assets/icons/buildings/warehouse_lv2.webp",
+      "src_size": 109097,
+      "dst_size": 82202
+    },
+    {
+      "src": "assets/characters/heads/02_yukino_head_shy.png",
+      "dst": "assets/characters/heads/02_yukino_head_shy.webp",
+      "src_size": 103129,
+      "dst_size": 14206
+    },
+    {
+      "src": "assets/characters/heads/12_youya_head.png",
+      "dst": "assets/characters/heads/12_youya_head.webp",
+      "src_size": 102522,
+      "dst_size": 13880
+    },
+    {
+      "src": "assets/icons/buildings/slave_market_lv2.png",
+      "dst": "assets/icons/buildings/slave_market_lv2.webp",
+      "src_size": 108924,
+      "dst_size": 84058
+    },
+    {
+      "src": "assets/icons/buildings/labor_camp_lv1.png",
+      "dst": "assets/icons/buildings/labor_camp_lv1.webp",
+      "src_size": 107031,
+      "dst_size": 78516
+    },
+    {
+      "src": "assets/characters/heads/03_momiji_head.png",
+      "dst": "assets/characters/heads/03_momiji_head.webp",
+      "src_size": 97544,
+      "dst_size": 15228
+    },
+    {
+      "src": "assets/icons/buildings/training_ground_lv1.png",
+      "dst": "assets/icons/buildings/training_ground_lv1.webp",
+      "src_size": 104254,
+      "dst_size": 82708
+    },
+    {
+      "src": "assets/icons/buildings/slave_market_lv1.png",
+      "dst": "assets/icons/buildings/slave_market_lv1.webp",
+      "src_size": 101833,
+      "dst_size": 77954
+    },
+    {
+      "src": "assets/icons/buildings/warehouse_lv1.png",
+      "dst": "assets/icons/buildings/warehouse_lv1.webp",
+      "src_size": 101294,
+      "dst_size": 74200
+    },
+    {
+      "src": "assets/characters/heads/02_yukino_head_surprised.png",
+      "dst": "assets/characters/heads/02_yukino_head_surprised.webp",
+      "src_size": 93808,
+      "dst_size": 11544
+    },
+    {
+      "src": "assets/characters/heads/01_rin_head.png",
+      "dst": "assets/characters/heads/01_rin_head.webp",
+      "src_size": 93704,
+      "dst_size": 12474
+    },
+    {
+      "src": "assets/characters/heads/15_mei_head.png",
+      "dst": "assets/characters/heads/15_mei_head.webp",
+      "src_size": 91681,
+      "dst_size": 13536
+    },
+    {
+      "src": "assets/icons/skills/assassinate.png",
+      "dst": "assets/icons/skills/assassinate.webp",
+      "src_size": 97251,
+      "dst_size": 72754
+    },
+    {
+      "src": "assets/characters/heads/17_akane_head.png",
+      "dst": "assets/characters/heads/17_akane_head.webp",
+      "src_size": 87483,
+      "dst_size": 13206
+    },
+    {
+      "src": "assets/characters/heads/02_yukino_head.png",
+      "dst": "assets/characters/heads/02_yukino_head.webp",
+      "src_size": 86565,
+      "dst_size": 11510
+    },
+    {
+      "src": "assets/characters/heads/09_shion_head.png",
+      "dst": "assets/characters/heads/09_shion_head.webp",
+      "src_size": 85404,
+      "dst_size": 12622
+    },
+    {
+      "src": "assets/characters/heads/08_sou_head.png",
+      "dst": "assets/characters/heads/08_sou_head.webp",
+      "src_size": 83973,
+      "dst_size": 10944
+    },
+    {
+      "src": "assets/characters/heads/10_homura_head.png",
+      "dst": "assets/characters/heads/10_homura_head.webp",
+      "src_size": 82966,
+      "dst_size": 12244
+    },
+    {
+      "src": "assets/icons/buildings/fortification_lv2.png",
+      "dst": "assets/icons/buildings/fortification_lv2.webp",
+      "src_size": 96291,
+      "dst_size": 69172
+    },
+    {
+      "src": "assets/icons/buildings/warehouse_lv3.png",
+      "dst": "assets/icons/buildings/warehouse_lv3.webp",
+      "src_size": 96233,
+      "dst_size": 72134
+    },
+    {
+      "src": "assets/characters/heads/16_kaede_head.png",
+      "dst": "assets/characters/heads/16_kaede_head.webp",
+      "src_size": 75753,
+      "dst_size": 10904
+    },
+    {
+      "src": "assets/characters/heads/04_hyouka_head.png",
+      "dst": "assets/characters/heads/04_hyouka_head.webp",
+      "src_size": 75173,
+      "dst_size": 10924
+    },
+    {
+      "src": "assets/characters/heads/06_gekka_head.png",
+      "dst": "assets/characters/heads/06_gekka_head.webp",
+      "src_size": 63090,
+      "dst_size": 9222
+    },
+    {
+      "src": "assets/icons/buildings/merchant_guild_lv1.png",
+      "dst": "assets/icons/buildings/merchant_guild_lv1.webp",
+      "src_size": 90534,
+      "dst_size": 68388
+    },
+    {
+      "src": "assets/icons/buildings/fortification_lv3.png",
+      "dst": "assets/icons/buildings/fortification_lv3.webp",
+      "src_size": 76436,
+      "dst_size": 57610
+    },
+    {
+      "src": "assets/icons/buildings/temple_of_agony.png",
+      "dst": "assets/icons/buildings/temple_of_agony.webp",
+      "src_size": 79009,
+      "dst_size": 59040
+    },
+    {
+      "src": "assets/icons/items/iron_shield.png",
+      "dst": "assets/icons/items/iron_shield.webp",
+      "src_size": 26982,
+      "dst_size": 21012
+    },
+    {
+      "src": "assets/icons/items/ration_pack.png",
+      "dst": "assets/icons/items/ration_pack.webp",
+      "src_size": 25742,
+      "dst_size": 20740
+    },
+    {
+      "src": "assets/icons/items/counter_tactics.png",
+      "dst": "assets/icons/items/counter_tactics.webp",
+      "src_size": 26745,
+      "dst_size": 21122
+    },
+    {
+      "src": "assets/icons/items/mana_jammer.png",
+      "dst": "assets/icons/items/mana_jammer.webp",
+      "src_size": 24857,
+      "dst_size": 21132
+    },
+    {
+      "src": "assets/icons/items/dragon_egg.png",
+      "dst": "assets/icons/items/dragon_egg.webp",
+      "src_size": 24825,
+      "dst_size": 20118
+    },
+    {
+      "src": "assets/icons/items/iron_ore_item.png",
+      "dst": "assets/icons/items/iron_ore_item.webp",
+      "src_size": 23746,
+      "dst_size": 16972
+    },
+    {
+      "src": "assets/icons/items/legendary_random.png",
+      "dst": "assets/icons/items/legendary_random.webp",
+      "src_size": 24802,
+      "dst_size": 20862
+    },
+    {
+      "src": "assets/icons/items/ancient_weapon_reforged.png",
+      "dst": "assets/icons/items/ancient_weapon_reforged.webp",
+      "src_size": 23795,
+      "dst_size": 18856
+    },
+    {
+      "src": "assets/icons/items/cursed_pickaxe.png",
+      "dst": "assets/icons/items/cursed_pickaxe.webp",
+      "src_size": 23264,
+      "dst_size": 17732
+    },
+    {
+      "src": "assets/icons/items/attack_totem.png",
+      "dst": "assets/icons/items/attack_totem.webp",
+      "src_size": 21104,
+      "dst_size": 18454
+    },
+    {
+      "src": "assets/icons/items/gale_boots.png",
+      "dst": "assets/icons/items/gale_boots.webp",
+      "src_size": 23395,
+      "dst_size": 19774
+    },
+    {
+      "src": "assets/icons/items/iron_wall_shield.png",
+      "dst": "assets/icons/items/iron_wall_shield.webp",
+      "src_size": 22129,
+      "dst_size": 17950
+    },
+    {
+      "src": "assets/icons/items/blast_barrel.png",
+      "dst": "assets/icons/items/blast_barrel.webp",
+      "src_size": 20353,
+      "dst_size": 15822
+    },
+    {
+      "src": "assets/icons/items/mana_orb.png",
+      "dst": "assets/icons/items/mana_orb.webp",
+      "src_size": 21094,
+      "dst_size": 16000
+    },
+    {
+      "src": "assets/icons/items/dragon_slayer_sword.png",
+      "dst": "assets/icons/items/dragon_slayer_sword.webp",
+      "src_size": 19603,
+      "dst_size": 13192
+    },
+    {
+      "src": "assets/icons/items/heal_potion.png",
+      "dst": "assets/icons/items/heal_potion.webp",
+      "src_size": 19867,
+      "dst_size": 15760
+    },
+    {
+      "src": "assets/icons/items/slave_shackle.png",
+      "dst": "assets/icons/items/slave_shackle.webp",
+      "src_size": 17762,
+      "dst_size": 13842
+    },
+    {
+      "src": "assets/icons/items/march_order.png",
+      "dst": "assets/icons/items/march_order.webp",
+      "src_size": 18452,
+      "dst_size": 14190
+    },
+    {
+      "src": "assets/icons/items/blood_oath_ring.png",
+      "dst": "assets/icons/items/blood_oath_ring.webp",
+      "src_size": 18924,
+      "dst_size": 14776
+    },
+    {
+      "src": "assets/icons/items/garrison_banner.png",
+      "dst": "assets/icons/items/garrison_banner.webp",
+      "src_size": 17222,
+      "dst_size": 11452
+    },
+    {
+      "src": "assets/icons/items/slave_shackle_equip.png",
+      "dst": "assets/icons/items/slave_shackle_equip.webp",
+      "src_size": 16787,
+      "dst_size": 12346
+    },
+    {
+      "src": "assets/icons/items/gold_pouch.png",
+      "dst": "assets/icons/items/gold_pouch.webp",
+      "src_size": 16766,
+      "dst_size": 14568
+    },
+    {
+      "src": "assets/icons/items/slave_chain.png",
+      "dst": "assets/icons/items/slave_chain.webp",
+      "src_size": 16656,
+      "dst_size": 11924
+    },
+    {
+      "src": "assets/icons/items/goblin_blast_barrel.png",
+      "dst": "assets/icons/items/goblin_blast_barrel.webp",
+      "src_size": 16220,
+      "dst_size": 13374
+    },
+    {
+      "src": "assets/icons/items/war_totem.png",
+      "dst": "assets/icons/items/war_totem.webp",
+      "src_size": 15364,
+      "dst_size": 11492
+    },
+    {
+      "src": "assets/icons/items/rare_weapon.png",
+      "dst": "assets/icons/items/rare_weapon.webp",
+      "src_size": 14565,
+      "dst_size": 11030
+    },
+    {
+      "src": "assets/icons/items/blood_moon_blade.png",
+      "dst": "assets/icons/items/blood_moon_blade.webp",
+      "src_size": 5922,
+      "dst_size": 3992
+    },
+    {
+      "src": "assets/icons/items/refined_iron_weapon.png",
+      "dst": "assets/icons/items/refined_iron_weapon.webp",
+      "src_size": 13387,
+      "dst_size": 9788
+    },
+    {
+      "src": "assets/icons/items/ghost_lantern.png",
+      "dst": "assets/icons/items/ghost_lantern.webp",
+      "src_size": 13334,
+      "dst_size": 10392
+    }
+  ]
+}

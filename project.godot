@@ -88,6 +88,7 @@ ExpandedRandomEvents="*res://systems/event/expanded_random_events.gd"
 ExtraEventsV5="*res://systems/event/extra_events_v5.gd"
 QuestProgressTracker="*res://systems/quest/quest_progress_tracker.gd"
 EventScheduler="*res://systems/event/event_scheduler.gd"
+AssetLoader="*res://autoloads/asset_loader.gd"
 
 [display]
 
