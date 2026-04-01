@@ -1204,7 +1204,16 @@ func check_world_events() -> Array:
 			"title": we.get("name", ""),
 			"desc": we.get("desc", ""),
 		}
-		if EventBus.has_signal("show_event_popup"):
+		# Route through EventScheduler instead of direct popup
+		if EventScheduler:
+			EventScheduler.submit_candidate(
+				eid,
+				"world_event",
+				EventScheduler.PRIORITY_HIGH,
+				1.5,
+				{"name": popup_data.get("title", ""), "description": popup_data.get("desc", ""), "choices": [], "source_type": "world_event"}
+			)
+		elif EventBus.has_signal("show_event_popup"):
 			EventBus.show_event_popup.emit(popup_data.get("title", ""), popup_data.get("desc", ""), [])
 		# Apply player effects
 		var effects: Dictionary = we.get("effects", {})
@@ -1663,7 +1672,16 @@ func check_timed_story_windows(player_id: int, current_turn: int) -> void:
 		})
 		EventBus.story_window_triggered.emit(wid, w["title"], w.get("narrative_text", ""))
 		EventBus.message_log.emit("[color=green][限时事件触发] %s[/color]" % w["title"])
-		if EventBus.has_signal("show_event_popup"):
+		# Route timed story windows through EventScheduler with CRITICAL priority
+		if EventScheduler:
+			EventScheduler.submit_candidate(
+				wid,
+				"timed_story_window",
+				EventScheduler.PRIORITY_CRITICAL,
+				2.0,
+				{"name": w["title"], "description": w.get("narrative_text", ""), "choices": [], "source_type": "timed_story_window"}
+			)
+		elif EventBus.has_signal("show_event_popup"):
 			EventBus.show_event_popup.emit(w["title"], w.get("narrative_text", ""), [])
 
 

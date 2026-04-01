@@ -320,6 +320,10 @@ var _pending_choice_player: Dictionary = {}  # The player dict for that event
 var _pending_event_queue: Array = []         # Queue of {event, player} if popup is busy
 var _event_choice_connected: bool = false    # Guard against duplicate signal connections
 
+# ── Unified event queue for EventScheduler (SR07-style sequential display) ──
+var _scheduler_event_queue: Array = []       # Events selected by EventScheduler
+var _scheduler_queue_connected: bool = false  # Guard for popup-closed signal
+
 var _current_directive: int = 0  # CombatResolver.TacticalDirective.NONE
 var _current_skill_timing: Dictionary = {}  # hero_id -> round number (0 = auto)
 var _current_protected_slot: int = -1
@@ -1935,43 +1939,35 @@ func begin_turn() -> void:
 		EventSystem.tick_event_cooldowns()
 		EventSystem.process_turn_start()
 
-	# ── Phase 5c2c: Roll random events for human player ──
+	# ── Phase 5c2c: Roll random events → submit to EventScheduler (SR07 flow) ──
 	if pid == get_human_player_id():
 		var rolled_events: Array = EventSystem.roll_events()
 		for rev in rolled_events:
-			# BUG FIX R10: Use _show_random_event_popup so _pending_choice_event is set,
-			# otherwise player choices are silently dropped by _on_random_event_choice.
-			var player_for_event: Dictionary = get_player_by_id(pid)
-			_show_random_event_popup(player_for_event, rev)
-			EventBus.message_log.emit("[color=yellow]随机事件: %s[/color]" % rev.get("name", "事件"))
+			if EventScheduler:
+				EventScheduler.submit_candidate(
+					rev.get("id", "random_%d" % randi()),
+					"event_system",
+					EventScheduler.PRIORITY_LOW,
+					rev.get("weight", 1.0),
+					rev
+				)
+			else:
+				# Fallback: direct fire if EventScheduler missing
+				var player_for_event: Dictionary = get_player_by_id(pid)
+				_show_random_event_popup(player_for_event, rev)
+				EventBus.message_log.emit("[color=yellow]随机事件: %s[/color]" % rev.get("name", "事件"))
 
 	# ── Phase 5c2d: Endgame Crisis check (v7.0) ──
 	if pid == get_human_player_id():
 		EventSystem.check_endgame_crisis()
 
 	# ── Phase 6b: New Event Systems (v4.0) ──
-	if not player["is_ai"]:
-		# Character interaction events (between recruited heroes)
-		if CharacterInteractionEvents:
-			CharacterInteractionEvents.process_turn(pid)
-		# Dynamic situation events (game-state responsive)
-		if DynamicSituationEvents:
-			DynamicSituationEvents.process_turn(pid)
-		# Grand event milestone checks
-		if GrandEventDirector:
-			GrandEventDirector.check_milestones(pid)
+	# NOTE: These systems submit candidates to EventScheduler via their
+	# _on_turn_started signal connections (triggered by EventBus.turn_started).
+	# No explicit calls needed here; resolve_turn() happens after turn_started.emit.
 
-	# ── Phase 6c: EventScheduler — resolve weighted event selection (v5.1) ──
-	if EventScheduler and not player["is_ai"]:
-		var selected_events: Array = EventScheduler.resolve_turn()
-		for evt in selected_events:
-			var evt_data: Dictionary = evt.get("data", {})
-			if EventBus.has_signal("show_event_popup"):
-				EventBus.show_event_popup.emit(
-					evt_data.get("title", ""),
-					evt_data.get("desc", ""),
-					evt_data.get("choices", []))
-			EventBus.message_log.emit("[color=yellow]事件: %s[/color]" % evt_data.get("title", evt.get("id", "")))
+	# ── Phase 6c: EventScheduler resolution moved to after turn_started.emit ──
+	# (see below, after EventBus.turn_started.emit)
 
 	# ── Phase 5c3: Harem cooldown tick ──
 	if pid == get_human_player_id():
@@ -2097,6 +2093,19 @@ func begin_turn() -> void:
 	# Force-close any lingering event popup before starting the new turn
 	EventBus.hide_event_popup.emit()
 	EventBus.turn_started.emit(pid)
+
+	# ── Phase 6c: EventScheduler — resolve weighted event selection (SR07 flow) ──
+	# All event systems have now submitted candidates via _on_turn_started.
+	# EventScheduler selects max 2 per turn (critical bypasses limit).
+	# This is the ONE place events actually fire as popups.
+	if EventScheduler and not player["is_ai"]:
+		var selected_events: Array = EventScheduler.resolve_turn()
+		for evt in selected_events:
+			var evt_data: Dictionary = evt.get("data", {})
+			_queue_scheduler_event(evt_data)
+			EventBus.message_log.emit("[color=yellow]事件: %s[/color]" % evt_data.get("name", evt_data.get("title", evt.get("id", ""))))
+		_process_scheduler_event_queue()
+
 	EventBus.message_log.emit("══ %s 的回合 (第%d回合, AP:%d) ══" % [player["name"], turn_number, player["ap"]])
 
 	# ── Phase banner for UI feedback (v4.5) ──
@@ -7258,3 +7267,60 @@ func _on_random_event_choice(choice_index: int) -> void:
 	if not _pending_event_queue.is_empty():
 		var next: Dictionary = _pending_event_queue.pop_front()
 		call_deferred("_show_random_event_popup", next["player"], next["event"])
+
+
+# ═══════════════ EVENTSCHEDULER UNIFIED QUEUE (SR07 sequential display) ═══════════════
+
+func _queue_scheduler_event(event_data: Dictionary) -> void:
+	## Add an event selected by EventScheduler to the unified display queue.
+	_scheduler_event_queue.append(event_data)
+
+
+func _process_scheduler_event_queue() -> void:
+	## Show events from the scheduler queue one-by-one sequentially.
+	## Each event popup is shown after the previous one is closed.
+	if _scheduler_event_queue.is_empty():
+		return
+	var evt: Dictionary = _scheduler_event_queue.pop_front()
+	var title: String = evt.get("name", evt.get("title", "事件"))
+	var desc: String = evt.get("description", evt.get("desc", ""))
+	var choices: Array = evt.get("choices", [])
+
+	# Format choices for popup compatibility
+	var formatted_choices: Array = []
+	for c in choices:
+		if c is Dictionary:
+			formatted_choices.append(c)
+		elif c is String:
+			formatted_choices.append({"text": c})
+		else:
+			formatted_choices.append({"text": str(c)})
+
+	if formatted_choices.is_empty():
+		formatted_choices.append({"text": "确认"})
+
+	# Route through the existing _show_random_event_popup for choice handling
+	# if the event has original data (id, choices with effects) from event_system
+	if evt.has("id") and evt.has("choices") and evt["choices"] is Array:
+		var first_choice = evt["choices"][0] if evt["choices"].size() > 0 else null
+		if first_choice is Dictionary and first_choice.has("effects"):
+			# This is a full event dict from event_system — use existing choice handler
+			var player_for_event: Dictionary = get_player_by_id(get_human_player_id())
+			_show_random_event_popup(player_for_event, evt)
+			return
+
+	# For events that don't need choice effect handling (pure display events),
+	# emit the popup directly
+	EventBus.show_event_popup.emit(title, desc, formatted_choices)
+
+	# Connect to event_choice_selected to show the next queued event
+	if not _scheduler_queue_connected and not _scheduler_event_queue.is_empty():
+		_scheduler_queue_connected = true
+		EventBus.event_choice_selected.connect(_on_scheduler_event_choice, CONNECT_ONE_SHOT)
+
+
+func _on_scheduler_event_choice(_choice_index: int) -> void:
+	## Callback to process the next event in the scheduler queue after a popup closes.
+	_scheduler_queue_connected = false
+	if not _scheduler_event_queue.is_empty():
+		call_deferred("_process_scheduler_event_queue")

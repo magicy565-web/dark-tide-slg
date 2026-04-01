@@ -304,7 +304,16 @@ func _fire_chain_event(faction_key: String, event: Dictionary) -> void:
 	for c in event.get("choices", []):
 		choices.append(c["text"])
 
-	EventBus.show_event_popup.emit(event["name"], event["desc"], choices)
+	if EventScheduler:
+		EventScheduler.submit_candidate(
+			event["id"],
+			"faction_destruction",
+			EventScheduler.PRIORITY_HIGH,
+			1.5,
+			{"name": event["name"], "description": event["desc"], "choices": choices, "source_type": "faction_destruction"}
+		)
+	else:
+		EventBus.show_event_popup.emit(event["name"], event["desc"], choices)
 	EventBus.message_log.emit("[color=orange][势力覆灭] %s[/color]" % event["name"])
 
 

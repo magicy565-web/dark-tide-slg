@@ -274,12 +274,21 @@ func _fire_interaction(interaction: Dictionary, recruited: Array, affections: Di
 		elif interaction.get("repeatable", false):
 			_repeatable_cooldowns[iid] = INTERACTION_COOLDOWN
 	else:
-		# Choice-based
+		# Choice-based — route through EventScheduler
 		_current_event = interaction
 		var choice_texts: Array = []
 		for c in interaction.get("choices", []):
 			choice_texts.append(c["text"])
-		EventBus.show_event_popup.emit(interaction["name"], interaction["desc"], choice_texts)
+		if EventScheduler:
+			EventScheduler.submit_candidate(
+				iid,
+				"character_interaction",
+				EventScheduler.PRIORITY_NORMAL,
+				1.0,
+				{"name": interaction["name"], "description": interaction["desc"], "choices": choice_texts, "source_type": "character_interaction"}
+			)
+		else:
+			EventBus.show_event_popup.emit(interaction["name"], interaction["desc"], choice_texts)
 		EventBus.message_log.emit("[color=pink][英雄互动] %s[/color]" % interaction["name"])
 
 

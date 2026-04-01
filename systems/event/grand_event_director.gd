@@ -325,7 +325,16 @@ func _show_grand_event_popup(ge: Dictionary) -> void:
 	if choice_texts.is_empty():
 		choice_texts.append("继续")
 
-	EventBus.show_event_popup.emit(ge["name"], full_desc, choice_texts)
+	if EventScheduler:
+		EventScheduler.submit_candidate(
+			ge["id"],
+			"grand_event",
+			EventScheduler.PRIORITY_HIGH,
+			2.0,
+			{"name": ge["name"], "description": full_desc, "choices": choice_texts, "source_type": "grand_event"}
+		)
+	else:
+		EventBus.show_event_popup.emit(ge["name"], full_desc, choice_texts)
 
 
 # ═══════════════ CHOICE HANDLING ═══════════════

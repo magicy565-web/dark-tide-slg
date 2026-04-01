@@ -140,10 +140,22 @@ func _on_turn_started(player_id: int) -> void:
 			crisis_warning.emit(crisis_id, remaining)
 			var warn_text: String = crisis_data.get("warning_desc", "危机倒计时: %d") % remaining
 			EventBus.message_log.emit("[color=yellow]⚠ %s[/color]" % warn_text)
-			# Show dramatic warning popup for imminent crises
+			# Show dramatic warning popup for imminent crises via EventScheduler
 			if remaining <= 3:
 				var choices: Array = [{"text": "了解 (准备防御)", "effects": {}}, {"text": "忽视 (继续进攻)", "effects": {}}]
-				EventBus.show_event_popup.emit("⚠ " + crisis_data.get("name", ""), warn_text, choices)
+				var choice_texts: Array = []
+				for c in choices:
+					choice_texts.append(c["text"])
+				if EventScheduler:
+					EventScheduler.submit_candidate(
+						"crisis_warn_%s_%d" % [crisis_id, remaining],
+						"crisis_countdown",
+						EventScheduler.PRIORITY_CRITICAL,
+						3.0,
+						{"name": "⚠ " + crisis_data.get("name", ""), "description": warn_text, "choices": choice_texts, "source_type": "crisis_warning"}
+					)
+				else:
+					EventBus.show_event_popup.emit("⚠ " + crisis_data.get("name", ""), warn_text, choices)
 
 		# Trigger
 		if remaining <= 0:
@@ -195,10 +207,23 @@ func _execute_crisis(crisis_id: String) -> void:
 			# Spawn powerful neutral enemy army at random border tile
 			var soldiers: int = 20 + severity * 10
 			var desc: String = "魔族大军从暗影裂隙中涌出! %d名魔族战士入侵你的领地!" % soldiers
-			EventBus.show_event_popup.emit("魔族入侵!", desc, [
+			var _choices: Array = [
 				{"text": "迎战! (+ATK 20% 防御buff)", "effects": {"buff": {"type": "atk", "value": 20, "duration": 3}}},
 				{"text": "紧急撤退 (放弃边境领地)", "effects": {"lose_node": true, "soldiers": -5}}
-			])
+			]
+			var _choice_texts: Array = []
+			for _c in _choices:
+				_choice_texts.append(_c["text"])
+			if EventScheduler:
+				EventScheduler.submit_candidate(
+					"crisis_demon_invasion",
+					"crisis_countdown",
+					EventScheduler.PRIORITY_CRITICAL,
+					3.0,
+					{"name": "魔族入侵!", "description": desc, "choices": _choice_texts, "source_type": "crisis_execution"}
+				)
+			else:
+				EventBus.show_event_popup.emit("魔族入侵!", desc, _choices)
 		"earthquake_crisis":
 			# All tiles lose 2 order, 3 random tiles lose garrison
 			if OrderManager:
@@ -206,22 +231,61 @@ func _execute_crisis(crisis_id: String) -> void:
 				for tile in GameManager.map_tiles:
 					if tile.get("owner", -1) == human_id:
 						OrderManager.change_order(tile.get("index", 0), -2)
-			EventBus.show_event_popup.emit("远古觉醒!", "大地震动,所有领地秩序-2! 部分城墙受损!", [
+			var _eq_choices: Array = [
 				{"text": "紧急修复 (-50金, +3秩序)", "effects": {"gold": -50, "order": 3}},
 				{"text": "趁乱进攻 (+ATK 25% 3回合)", "effects": {"buff": {"type": "atk", "value": 25, "duration": 3}}}
-			])
+			]
+			var _eq_choice_texts: Array = []
+			for _c in _eq_choices:
+				_eq_choice_texts.append(_c["text"])
+			if EventScheduler:
+				EventScheduler.submit_candidate(
+					"crisis_ancient_awakening",
+					"crisis_countdown",
+					EventScheduler.PRIORITY_CRITICAL,
+					3.0,
+					{"name": "远古觉醒!", "description": "大地震动,所有领地秩序-2! 部分城墙受损!", "choices": _eq_choice_texts, "source_type": "crisis_execution"}
+				)
+			else:
+				EventBus.show_event_popup.emit("远古觉醒!", "大地震动,所有领地秩序-2! 部分城墙受损!", _eq_choices)
 		"blood_moon_buff_enemies":
 			# All enemy factions get ATK buff for 5 turns
-			EventBus.show_event_popup.emit("血月升起!", "血红的月亮悬挂天际,所有敌方势力ATK+20%持续5回合!", [
+			var _bm_choices: Array = [
 				{"text": "以毒攻毒 (-3奴隶, 我方也获得ATK+15%)", "effects": {"slaves": -3, "buff": {"type": "atk", "value": 15, "duration": 5}}},
 				{"text": "固守待旦 (DEF+25% 5回合)", "effects": {"buff": {"type": "def", "value": 25, "duration": 5}}}
-			])
+			]
+			var _bm_choice_texts: Array = []
+			for _c in _bm_choices:
+				_bm_choice_texts.append(_c["text"])
+			if EventScheduler:
+				EventScheduler.submit_candidate(
+					"crisis_blood_moon",
+					"crisis_countdown",
+					EventScheduler.PRIORITY_CRITICAL,
+					3.0,
+					{"name": "血月升起!", "description": "血红的月亮悬挂天际,所有敌方势力ATK+20%持续5回合!", "choices": _bm_choice_texts, "source_type": "crisis_execution"}
+				)
+			else:
+				EventBus.show_event_popup.emit("血月升起!", "血红的月亮悬挂天际,所有敌方势力ATK+20%持续5回合!", _bm_choices)
 		"coalition_attack":
 			# Multiple enemy factions declare war simultaneously
-			EventBus.show_event_popup.emit("联盟总攻!", "所有存活敌方势力组成联盟向你发动总攻! 所有边境受到压力!", [
+			var _ca_choices: Array = [
 				{"text": "集中兵力 (选择一个方向突破)", "effects": {"buff": {"type": "atk", "value": 30, "duration": 3}}},
 				{"text": "外交斡旋 (-100金, -20威望, 延缓5回合)", "effects": {"gold": -100, "prestige": -20}}
-			])
+			]
+			var _ca_choice_texts: Array = []
+			for _c in _ca_choices:
+				_ca_choice_texts.append(_c["text"])
+			if EventScheduler:
+				EventScheduler.submit_candidate(
+					"crisis_coalition_war",
+					"crisis_countdown",
+					EventScheduler.PRIORITY_CRITICAL,
+					3.0,
+					{"name": "联盟总攻!", "description": "所有存活敌方势力组成联盟向你发动总攻! 所有边境受到压力!", "choices": _ca_choice_texts, "source_type": "crisis_execution"}
+				)
+			else:
+				EventBus.show_event_popup.emit("联盟总攻!", "所有存活敌方势力组成联盟向你发动总攻! 所有边境受到压力!", _ca_choices)
 
 	EventBus.grand_event_ended.emit("crisis_" + crisis_id)
 

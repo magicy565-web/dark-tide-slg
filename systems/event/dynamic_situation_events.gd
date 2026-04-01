@@ -468,13 +468,22 @@ func _fire_dynamic_event(event: Dictionary) -> void:
 		EventBus.message_log.emit("[color=yellow][动态事件] %s: %s[/color]" % [event["name"], event["desc"]])
 		return
 
-	# Choice-based event
+	# Choice-based event — route through EventScheduler
 	_current_event = event
 	var choice_texts: Array = []
 	for c in event.get("choices", []):
 		choice_texts.append(c["text"])
 
-	EventBus.show_event_popup.emit(event["name"], event["desc"], choice_texts)
+	if EventScheduler:
+		EventScheduler.submit_candidate(
+			eid,
+			"dynamic_situation",
+			EventScheduler.PRIORITY_LOW,
+			1.0,
+			{"name": event["name"], "description": event["desc"], "choices": choice_texts, "source_type": "dynamic_situation"}
+		)
+	else:
+		EventBus.show_event_popup.emit(event["name"], event["desc"], choice_texts)
 	EventBus.message_log.emit("[color=yellow][动态事件] %s[/color]" % event["name"])
 
 
