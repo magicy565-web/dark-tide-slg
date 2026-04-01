@@ -220,7 +220,8 @@ func _evaluate_condition(condition: String) -> bool:
 
 		"heroes_10_plus":
 			if HeroSystem != null and HeroSystem.has_method("get_recruited_heroes"):
-				return HeroSystem.get_recruited_heroes().size() >= 10
+				var _pid: int = GameManager.get_human_player_id() if GameManager else 0
+				return HeroSystem.get_recruited_heroes(_pid).size() >= 10
 			return false
 
 	return false
@@ -396,8 +397,9 @@ func _apply_grand_effects(effects: Dictionary) -> void:
 	# Hero affection all
 	if effects.has("hero_affection_all"):
 		var aff_val: int = effects["hero_affection_all"]
+		var _ge_pid: int = GameManager.get_human_player_id() if GameManager else 0
 		if HeroSystem != null and HeroSystem.has_method("get_recruited_heroes"):
-			var heroes: Array = HeroSystem.get_recruited_heroes()
+			var heroes: Array = HeroSystem.get_recruited_heroes(_ge_pid)
 			for hero_id in heroes:
 				if HeroSystem.has_method("change_affection"):
 					HeroSystem.change_affection(hero_id, aff_val)

@@ -1,6 +1,5 @@
 ## espionage_system.gd - Espionage & Intelligence Network system
 ## Information is a resource, deception is a weapon.
-class_name EspionageSystem
 extends Node
 
 # ── Operation type enum ──

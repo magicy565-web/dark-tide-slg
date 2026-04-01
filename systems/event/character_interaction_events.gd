@@ -422,11 +422,13 @@ func _apply_interaction_effects(effects: Dictionary, recruited: Array, affection
 # ═══════════════ HELPER FUNCTIONS ═══════════════
 
 func _get_recruited_heroes() -> Array:
+	var pid: int = GameManager.get_human_player_id() if GameManager else 0
 	if HeroSystem != null and HeroSystem.has_method("get_recruited_heroes"):
-		return HeroSystem.get_recruited_heroes()
+		return HeroSystem.get_recruited_heroes(pid)
 	# Fallback: try accessing internal data
 	if HeroSystem != null and "recruited_heroes" in HeroSystem:
-		return HeroSystem.recruited_heroes.keys() if HeroSystem.recruited_heroes is Dictionary else HeroSystem.recruited_heroes
+		var rh = HeroSystem.recruited_heroes
+		return rh.keys() if rh is Dictionary else rh
 	return []
 
 

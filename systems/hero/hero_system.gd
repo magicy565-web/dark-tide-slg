@@ -717,8 +717,7 @@ func get_garrison_commander_bonus(tile_index: int) -> Dictionary:
 		"def_mult": 1.25,           # +25% garrison DEF
 		"prod_mult": 1.15,          # +15% territory production
 		"order_bonus": 10,           # +10 public order per turn
-		@warning_ignore("integer_division")
-		"garrison_add": maxi(stats.get("atk", 0) / 3, 1),  # ATK/3 extra garrison
+		"garrison_add": maxi(int(stats.get("atk", 0)) / 3, 1),  # ATK/3 extra garrison
 		"hero_name": _get_hero_name(hero_id),
 	}
 

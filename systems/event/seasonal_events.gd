@@ -346,8 +346,9 @@ func _apply_resource_effects(pid: int, effects: Dictionary) -> void:
 	# Hero affection all
 	if effects.has("hero_affection_all"):
 		var aff_val: int = effects["hero_affection_all"]
+		var _se_pid: int = GameManager.get_human_player_id() if GameManager else 0
 		if HeroSystem != null and HeroSystem.has_method("get_recruited_heroes"):
-			var heroes: Array = HeroSystem.get_recruited_heroes()
+			var heroes: Array = HeroSystem.get_recruited_heroes(_se_pid)
 			for hero_id in heroes:
 				if HeroSystem.has_method("change_affection"):
 					HeroSystem.change_affection(hero_id, aff_val)

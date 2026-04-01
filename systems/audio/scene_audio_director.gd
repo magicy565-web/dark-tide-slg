@@ -3,13 +3,13 @@
 extends Node
 
 # Scene states that determine BGM
-enum SceneState {
+enum AudioSceneState {
 	TITLE, FACTION_SELECT, MAP_CALM, MAP_TENSE,
 	COMBAT_NORMAL, COMBAT_BOSS, COMBAT_CRISIS, COMBAT_ADVANTAGE,
 	EVENT, STORY, VICTORY, DEFEAT
 }
 
-var _current_state: int = SceneState.TITLE
+var _current_state: int = AudioSceneState.TITLE
 var _combat_active: bool = false
 var _suppress_auto: bool = false  # True when VnDirector is managing BGM
 
@@ -28,7 +28,7 @@ func _ready() -> void:
 	EventBus.grand_event_started.connect(_on_grand_event_started)
 	EventBus.grand_event_ended.connect(_on_grand_event_ended)
 	# Initial state
-	_switch_state(SceneState.TITLE)
+	_switch_state(AudioSceneState.TITLE)
 
 
 func _on_turn_started(player_id: int) -> void:
@@ -39,17 +39,17 @@ func _on_turn_started(player_id: int) -> void:
 	if ThreatManager:
 		threat = ThreatManager.get_threat()
 	if threat >= THREAT_CRISIS_THRESHOLD:
-		_switch_state(SceneState.MAP_TENSE)
+		_switch_state(AudioSceneState.MAP_TENSE)
 	elif threat >= THREAT_TENSE_THRESHOLD:
-		_switch_state(SceneState.MAP_TENSE)
+		_switch_state(AudioSceneState.MAP_TENSE)
 	else:
-		_switch_state(SceneState.MAP_CALM)
+		_switch_state(AudioSceneState.MAP_CALM)
 
 
 func _on_combat_started(_attacker_id: int, _tile_index: int) -> void:
 	_combat_active = true
 	# Boss detection: check if defending tile has boss flag
-	_switch_state(SceneState.COMBAT_NORMAL)
+	_switch_state(AudioSceneState.COMBAT_NORMAL)
 
 
 func _on_combat_ended() -> void:
@@ -60,9 +60,9 @@ func _on_combat_ended() -> void:
 func _on_game_over(winner_id: int) -> void:
 	var human_id: int = GameManager.get_human_player_id() if GameManager else 0
 	if winner_id == human_id:
-		_switch_state(SceneState.VICTORY)
+		_switch_state(AudioSceneState.VICTORY)
 	else:
-		_switch_state(SceneState.DEFEAT)
+		_switch_state(AudioSceneState.DEFEAT)
 
 
 func _on_vn_started(_l: String, _r: String, _mood: String) -> void:
@@ -76,7 +76,7 @@ func _on_vn_ended() -> void:
 
 func _on_grand_event_started(_event_id: String) -> void:
 	_suppress_auto = true
-	_switch_state(SceneState.EVENT)
+	_switch_state(AudioSceneState.EVENT)
 
 
 func _on_grand_event_ended(_event_id: String) -> void:
@@ -89,13 +89,13 @@ func update_combat_intensity(our_hp_ratio: float, enemy_hp_ratio: float, is_boss
 	if not _combat_active:
 		return
 	if our_hp_ratio < 0.3:
-		_switch_state(SceneState.COMBAT_CRISIS)
+		_switch_state(AudioSceneState.COMBAT_CRISIS)
 	elif enemy_hp_ratio < 0.3:
-		_switch_state(SceneState.COMBAT_ADVANTAGE)
+		_switch_state(AudioSceneState.COMBAT_ADVANTAGE)
 	elif is_boss:
-		_switch_state(SceneState.COMBAT_BOSS)
+		_switch_state(AudioSceneState.COMBAT_BOSS)
 	else:
-		_switch_state(SceneState.COMBAT_NORMAL)
+		_switch_state(AudioSceneState.COMBAT_NORMAL)
 
 
 func _switch_state(new_state: int) -> void:
@@ -105,27 +105,27 @@ func _switch_state(new_state: int) -> void:
 	if not AudioManager:
 		return
 	match new_state:
-		SceneState.TITLE:
+		AudioSceneState.TITLE:
 			AudioManager.play_bgm(AudioManager.BGMTrack.TITLE)
-		SceneState.FACTION_SELECT:
+		AudioSceneState.FACTION_SELECT:
 			AudioManager.play_bgm(AudioManager.BGMTrack.FACTION_SELECT)
-		SceneState.MAP_CALM:
+		AudioSceneState.MAP_CALM:
 			AudioManager.play_bgm(AudioManager.BGMTrack.OVERWORLD_CALM)
-		SceneState.MAP_TENSE:
+		AudioSceneState.MAP_TENSE:
 			AudioManager.play_bgm(AudioManager.BGMTrack.OVERWORLD_TENSE)
-		SceneState.COMBAT_NORMAL:
+		AudioSceneState.COMBAT_NORMAL:
 			AudioManager.play_bgm(AudioManager.BGMTrack.COMBAT_NORMAL)
-		SceneState.COMBAT_BOSS:
+		AudioSceneState.COMBAT_BOSS:
 			AudioManager.play_bgm(AudioManager.BGMTrack.COMBAT_BOSS)
-		SceneState.COMBAT_CRISIS:
+		AudioSceneState.COMBAT_CRISIS:
 			AudioManager.play_bgm(AudioManager.BGMTrack.COMBAT_CRISIS)
-		SceneState.COMBAT_ADVANTAGE:
+		AudioSceneState.COMBAT_ADVANTAGE:
 			AudioManager.play_bgm(AudioManager.BGMTrack.COMBAT_ADVANTAGE)
-		SceneState.EVENT:
+		AudioSceneState.EVENT:
 			AudioManager.play_bgm(AudioManager.BGMTrack.EVENT)
-		SceneState.STORY:
+		AudioSceneState.STORY:
 			AudioManager.play_bgm(AudioManager.BGMTrack.EVENT)
-		SceneState.VICTORY:
+		AudioSceneState.VICTORY:
 			AudioManager.play_bgm(AudioManager.BGMTrack.VICTORY)
-		SceneState.DEFEAT:
+		AudioSceneState.DEFEAT:
 			AudioManager.play_bgm(AudioManager.BGMTrack.DEFEAT)

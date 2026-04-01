@@ -1,4 +1,4 @@
-class_name SupplyLogistics
+## SupplyLogistics (autoload — no class_name to avoid conflict)
 ## supply_logistics.gd - Deep Supply Chain & Logistics system for 暗潮 SLG.
 ## Manages depot networks, supply routes, convoys, army consumption, supply events,
 ## and faction-specific supply bonuses.

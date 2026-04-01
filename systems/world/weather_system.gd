@@ -1,7 +1,6 @@
 ## weather_system.gd - Weather & Season system for 暗潮 SLG
 ## Rotates seasons every 5 turns; rolls weighted random weather each turn.
 ## Emits signals via EventBus; other systems query modifiers via public methods.
-class_name WeatherSystem
 extends Node
 
 # ── Season IDs ──

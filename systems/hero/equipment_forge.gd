@@ -1,6 +1,5 @@
 ## equipment_forge.gd — Equipment Crafting & Legendary Item Creation for 暗潮 SLG
 ## Manages forge queue, recipe prerequisites, legendary uniqueness, and item completion.
-class_name EquipmentForge
 extends Node
 
 const FactionData = preload("res://systems/faction/faction_data.gd")

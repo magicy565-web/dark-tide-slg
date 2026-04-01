@@ -507,7 +507,7 @@ func _apply_hero_stat(value, context) -> String:
 	var stat_key: String = value.get("stat", "atk")
 	var stat_val: int = value.get("value", 1)
 	if HeroSystem != null and HeroSystem.has_method("get_recruited_heroes"):
-		var recruited: Array = HeroSystem.get_recruited_heroes(pid) if HeroSystem.get_recruited_heroes.get_argument_count() > 0 else HeroSystem.get_recruited_heroes()
+		var recruited: Array = HeroSystem.get_recruited_heroes(pid)
 		if not recruited.is_empty():
 			var target: String = recruited[randi() % recruited.size()]
 			if HeroSystem.has_method("modify_hero_stat"):
@@ -542,8 +542,9 @@ func _apply_hero_stat_boost(value, context) -> String:
 
 func _apply_hero_affection_all(value, context) -> String:
 	var aff_val: int = int(value)
+	var _pid_aff: int = context.get("player_id", 0)
 	if HeroSystem != null and HeroSystem.has_method("get_recruited_heroes"):
-		var heroes: Array = HeroSystem.get_recruited_heroes()
+		var heroes: Array = HeroSystem.get_recruited_heroes(_pid_aff)
 		for hero_id in heroes:
 			if HeroSystem.has_method("change_affection"):
 				HeroSystem.change_affection(hero_id, aff_val)

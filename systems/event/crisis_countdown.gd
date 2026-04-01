@@ -230,7 +230,7 @@ func _execute_crisis(crisis_id: String) -> void:
 				var human_id: int = GameManager.get_human_player_id() if GameManager else 0
 				for tile in GameManager.map_tiles:
 					if tile.get("owner", -1) == human_id:
-						OrderManager.change_order(tile.get("index", 0), -2)
+						OrderManager.change_order(-2)
 			var _eq_choices: Array = [
 				{"text": "紧急修复 (-50金, +3秩序)", "effects": {"gold": -50, "order": 3}},
 				{"text": "趁乱进攻 (+ATK 25% 3回合)", "effects": {"buff": {"type": "atk", "value": 25, "duration": 3}}}

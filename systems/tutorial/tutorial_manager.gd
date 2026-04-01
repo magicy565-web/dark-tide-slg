@@ -126,7 +126,7 @@ func _build_ui() -> void:
 	_overlay.anchor_bottom = 1.0
 	_overlay.color = Color(0, 0, 0, 0.3)
 	_overlay.visible = false
-	_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	# Popup panel
 	_popup = PanelContainer.new()

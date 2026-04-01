@@ -310,15 +310,18 @@ func apply_loot(loot: Array) -> void:
 				loot_summary.append("%s x%d" % [item, qty])
 			"enchant_scroll":
 				if ItemManager.has_method("add_item"):
-					ItemManager.add_item(pid, "enchant_scroll", qty)
+					for _i in range(qty):
+						ItemManager.add_item(pid, "enchant_scroll")
 				loot_summary.append("附魔卷轴 x%d" % qty)
 			"skill_book":
 				if ItemManager.has_method("add_item"):
-					ItemManager.add_item(pid, "skill_book", qty)
+					for _i in range(qty):
+						ItemManager.add_item(pid, "skill_book")
 				loot_summary.append("技能书 x%d" % qty)
 			"legendary_fragment":
 				if ItemManager.has_method("add_item"):
-					ItemManager.add_item(pid, "legendary_fragment", qty)
+					for _i in range(qty):
+						ItemManager.add_item(pid, "legendary_fragment")
 				loot_summary.append("传说碎片 x%d" % qty)
 			"strategic_resource":
 				if StrategicResourceManager.has_method("add_random_resource"):

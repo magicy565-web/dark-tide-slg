@@ -1,7 +1,6 @@
 ## treaty_system.gd - Formal alliance, trade, and tribute mechanics (v4.3)
 ## Extends the diplomacy framework with structured treaties, reputation tracking, and AI logic.
 extends Node
-class_name TreatySystem
 
 const FactionData = preload("res://systems/faction/faction_data.gd")
 
@@ -738,9 +737,11 @@ func _count_broken_treaties(breaker_id: int) -> int:
 func _get_current_turn() -> int:
 	## Safely read the current turn number from GameManager.
 	if Engine.has_singleton("GameManager"):
-		return Engine.get_singleton("GameManager").get("current_turn", 0)
+		var _gm_s = Engine.get_singleton("GameManager")
+		return _gm_s.current_turn if "current_turn" in _gm_s else 0
 	if is_instance_valid(get_node_or_null("/root/GameManager")):
-		return get_node("/root/GameManager").get("current_turn", 0)
+		var _gm_n: Node = get_node("/root/GameManager")
+		return _gm_n.current_turn if "current_turn" in _gm_n else 0
 	return 0
 
 func _player_to_faction_key(player_id: int) -> String:
@@ -778,7 +779,7 @@ func _get_player_tile_count(player_id: int) -> int:
 	## Count how many tiles a player owns (rough power estimate for AI).
 	if is_instance_valid(get_node_or_null("/root/GameManager")):
 		var gm: Node = get_node("/root/GameManager")
-		var tiles: Array = gm.get("tiles", [])
+		var tiles: Array = gm.tiles if "tiles" in gm else []
 		var count: int = 0
 		for tile in tiles:
 			if tile.get("owner_id", -1) == player_id:
@@ -790,7 +791,7 @@ func _get_other_player_ids(exclude_id: int) -> Array:
 	## Return all player IDs except the excluded one.
 	if is_instance_valid(get_node_or_null("/root/GameManager")):
 		var gm: Node = get_node("/root/GameManager")
-		var all_ids: Array = gm.get("player_ids", [])
+		var all_ids: Array = gm.player_ids if "player_ids" in gm else []
 		var result: Array = []
 		for pid in all_ids:
 			if pid != exclude_id:

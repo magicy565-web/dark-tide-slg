@@ -92,6 +92,7 @@ func init_light_defenses() -> void:
 		if tile == null:
 			continue
 		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile.get("owner_id", -1) < 0:
+			mage_tile_count += 1
 	_mana_max = mage_tile_count * BalanceConfig.MANA_PER_MAGE_TILE  # mana capacity per tile
 	_mana_pool[MAGE_FACTION_ID] = _mana_max
 
