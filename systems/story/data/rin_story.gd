@@ -857,6 +857,63 @@ const EVENTS: Dictionary = {
 			},
 		},
 	],
-	"pure_love": [],
+	"pure_love": [
+		{
+			"id": "rin_pure_love_01",
+			"name": "纯爱·黎明巡逻",
+			"trigger": {"hero_recruited": true, "affection_min": 3},
+			"scene": "清晨的城墙上。朝阳的光芒刚刚越过远山，凛已经全副武装站在瞭望台上。她的新铠甲上镌刻着你赐予的纹章，圣剑的剑柄在晨光中泛着银白色的光泽。",
+			"dialogues": [
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "——你来了。我每天黎明都会巡视城防。作为骑士，这是最基本的职责。"},
+				{"type": "narration", "text": "她的表情一如既往地严肃，但目光中多了一丝温暖。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "normal", "text": "东侧城墙的第三块砖有裂纹，我已经通知工匠修补。南门的绞盘需要上油，大概明天能完成。北面的——"},
+				{"type": "narration", "text": "她突然停下，似乎意识到自己在像汇报军务一样说话。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "shy", "text": "……抱歉。我不太会——就是——你想一起走走吗？不是巡逻的意思。是——"},
+				{"type": "narration", "text": "她别过脸，耳尖泛红。晨风吹起她金色的发丝。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "shy", "text": "算了。就当是巡逻吧。两个人巡逻效率更高。这是事实。"},
+			],
+			"system_prompt": "凛开始笨拙地尝试在军事职责之外与你建立个人关系。",
+			"effects": {
+				"affection": 1,
+			},
+		},
+		{
+			"id": "rin_pure_love_02",
+			"name": "纯爱·剑术切磋",
+			"trigger": {"prev_event": "rin_pure_love_01", "affection_min": 5},
+			"scene": "黄昏时分的训练场。所有士兵都已收操离去，只剩下凛一个人对着木桩反复挥剑。汗水浸透了她的训练服，金色的长发束成高马尾，在夕阳中飞舞。",
+			"dialogues": [
+				{"type": "narration", "text": "你走进训练场。凛察觉到你的脚步声，收剑转身。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "来得正好。我一直在想——我们还没有真正交过手。"},
+				{"type": "narration", "text": "她将一把训练用木剑抛给你，自己也换上木剑。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "serious", "text": "不是在战场上以军队对决——而是单纯的、一对一的剑术较量。作为骑士，我需要了解我所守护之人的实力。"},
+				{"type": "action", "text": "两人在夕阳下交锋。凛的剑法凌厉而优雅，每一击都带着圣殿骑士的传承"},
+				{"type": "narration", "text": "十几个回合后，凛突然停下。她的双眼闪烁着从未见过的光芒。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "happy", "text": "你的剑法里有一种东西——不是力量，不是技巧——是'意志'。和我过去见过的任何人都不一样。"},
+				{"type": "narration", "text": "她将木剑收回身侧，露出一个罕见的、发自内心的微笑。"},
+				{"speaker": "凛", "speaker_id": "rin", "expression": "happy", "text": "再来一次。不——以后每天黄昏，我们都在这里切磋。这是……我的请求。"},
+			],
+			"choices": [
+				{
+					"label": "欣然接受",
+					"description": "答应凛，每天黄昏在训练场切磋剑术。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"rin_daily_sparring": true},
+					},
+				},
+				{
+					"label": "提议更多的相处",
+					"description": "不只是切磋——也可以一起用晚餐。",
+					"effects": {
+						"affection": 3,
+						"set_flag": {"rin_dinner_together": true},
+					},
+				},
+			],
+			"system_prompt": "凛通过剑术找到了与你交流感情的方式。骑士的含蓄告白。",
+			"effects": {},
+		},
+	],
 	"exclusive_ending": [],
 }

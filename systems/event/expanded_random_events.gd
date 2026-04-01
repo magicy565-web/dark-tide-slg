@@ -294,4 +294,77 @@ func get_expanded_events() -> Array:
 			{"text": "婉拒 (威望+10)", "effects": {"prestige": 10}},
 		]
 	})
+	# -- NEW CONTENT v5.1: Additional random events (8) --
+	events.append({
+		"id": "exp_wandering_swordsman", "name": "流浪剑客",
+		"desc": "一位身背巨剑的流浪武士来到你的领地，他目光锐利，浑身散发着战场的气息。他提出要么加入你的军队，要么在此一战以证明自己的实力。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "招募他 (-30金, +4兵力, ATK+10% 3回合)", "effects": {"gold": -30, "soldiers": 4, "buff": {"type": "atk", "value": 10, "duration": 3}}},
+			{"text": "接受挑战 (战斗: 3精锐兵, 胜利+15威望+1遗物)", "effects": {"type": "combat", "enemy_soldiers": 3, "enemy_type": "elite_guard"}},
+		]
+	})
+	events.append({
+		"id": "exp_plague_spreads", "name": "瘟疫蔓延",
+		"desc": "一场不明瘟疫在领地内蔓延，百姓纷纷倒下。堆积的尸体需要焚烧处理，但火葬堆中发现了铁矿石——死者的随身物品。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "全力抗疫 (-30金, -15粮, 秩序+5)", "effects": {"gold": -30, "food": -15, "order": 5}},
+			{"text": "收集火葬物资 (-20粮, +25铁, 秩序-4)", "effects": {"food": -20, "iron": 25, "order": -4}},
+		]
+	})
+	events.append({
+		"id": "exp_dwarven_caravan", "name": "矮人商队",
+		"desc": "一支矮人商队敲响了城门。他们携带着精良的矮人工艺品和稀有矿石，愿意与你进行公平交易。矮人的锻造术举世闻名。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "用金币交易 (-50金, +1遗物, +20铁)", "effects": {"gold": -50, "relic": true, "iron": 20}},
+			{"text": "用粮食交易 (-25粮, +35铁, DEF+10% 3回合)", "effects": {"food": -25, "iron": 35, "buff": {"type": "def", "value": 10, "duration": 3}}},
+		]
+	})
+	events.append({
+		"id": "exp_eclipse_omen", "name": "月蚀凶兆",
+		"desc": "天空突然暗沉，一轮血色月蚀笼罩大地。士兵们惶恐不安，但领地内的神秘学者声称这是强化预言力量的绝佳时机。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "安抚军心 (-15金, 秩序+3, DEF-5% 2回合)", "effects": {"gold": -15, "order": 3, "buff": {"type": "def", "value": -5, "duration": 2}}},
+			{"text": "利用月蚀进行占卜 (-2魔晶, 揭示3格迷雾, 事件品质提升)", "effects": {"magic_crystal": -2, "reveal": 3}},
+		]
+	})
+	events.append({
+		"id": "exp_rebels_surrender", "name": "叛军归顺",
+		"desc": "盘踞山区的叛军派出使者，声称若你能保证他们的安全，愿意放下武器归顺。你的秩序声望让他们心生畏惧。",
+		"condition": "order_above_60", "repeatable": true,
+		"choices": [
+			{"text": "接纳归顺 (+6兵力, 秩序+2)", "effects": {"soldiers": 6, "order": 2}},
+			{"text": "要求缴械并交出财物 (+3兵力, +30金, 秩序-2)", "effects": {"soldiers": 3, "gold": 30, "order": -2}},
+		]
+	})
+	events.append({
+		"id": "exp_ancient_treasury", "name": "古代宝库",
+		"desc": "探险队在地下发现了一座古代宝库，大门上刻满了警告铭文。宝库中似乎蕴藏着惊人的财富，但也可能暗藏诅咒。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "强行开启 (60%: +100金+1遗物, 40%: -5兵-10秩序)", "effects": {"type": "gamble", "success_rate": 0.6, "success": {"gold": 100, "relic": true}, "fail": {"soldiers": -5, "order": -10}}},
+			{"text": "谨慎探索 (+40金, +15铁)", "effects": {"gold": 40, "iron": 15}},
+		]
+	})
+	events.append({
+		"id": "exp_elven_emissary", "name": "精灵密使",
+		"desc": "一位高等精灵密使悄然来访，她代表远方的精灵议会，希望与你建立秘密外交关系。精灵的知识和魔法都是极为宝贵的资源。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "接受外交提案 (+15威望, +2魔晶, 揭示2格)", "effects": {"prestige": 15, "magic_crystal": 2, "reveal": 2}},
+			{"text": "请求贸易协定 (+40金, +10粮, 威望+5)", "effects": {"gold": 40, "food": 10, "prestige": 5}},
+		]
+	})
+	events.append({
+		"id": "exp_volcanic_eruption", "name": "火山爆发",
+		"desc": "领地边缘的休眠火山突然喷发！熔岩流向农田和矿区，但火山灰下也暴露出了深层矿脉和稀有晶体。",
+		"condition": "always", "repeatable": true,
+		"choices": [
+			{"text": "全力救灾 (-40金, -10粮, 秩序+5, +20铁)", "effects": {"gold": -40, "food": -10, "order": 5, "iron": 20}},
+			{"text": "趁机开采暴露矿脉 (+50铁, +3魔晶, 秩序-6, -5粮)", "effects": {"iron": 50, "magic_crystal": 3, "order": -6, "food": -5}},
+		]
+	})
 	return events

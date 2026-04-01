@@ -82,7 +82,7 @@ const UPGRADE_COSTS := [
 	[200, 15],      # Lv2 — affordable after 3-4 turns of saving
 	[600, 40],      # Lv3 — mid-game investment, requires ~10 tiles income
 	[1400, 90],     # Lv4 — late-mid commitment
-	[3000, 200],    # Lv5 — endgame prestige upgrade
+	[3000, 150],    # Lv5 — endgame prestige upgrade (v4.1 audit: iron 200→150, was prohibitive)
 ]
 
 ## Production multipliers per settlement level (TW:W scaling)
@@ -120,16 +120,17 @@ const FORMATION_BACK_RANGED_ATK_MULT: float = 1.10  # Back row ranged: ATK +10% 
 
 ## Named formation pattern bonuses (based on front/back unit counts)
 const FORMATION_WALL_DEF_MULT: float = 1.10       # Wall (3 front, 0 back): front DEF +10%
-const FORMATION_TURTLE_DEF_MULT: float = 1.20     # Turtle (0 front, 3 back): back DEF +20%
-const FORMATION_TURTLE_ATK_MULT: float = 0.85     # Turtle: back ATK -15%
+const FORMATION_TURTLE_DEF_MULT: float = 1.25     # Turtle (0 front, 3 back): back DEF +25% (v4.1 audit: 1.20→1.25 to make viable)
+const FORMATION_TURTLE_ATK_MULT: float = 0.90     # Turtle: back ATK -10% (v4.1 audit: 0.85→0.90 to reduce penalty)
 const FORMATION_RANGED_FOCUS_ATK_MULT: float = 1.05  # Ranged Focus (1F+2B): back ATK +5%
 const FORMATION_FLANKING_ATK_MULT: float = 1.15   # Flanking: enemy bonus ATK +15% for gap
 
 ## Damage formula: SR07 percentage-based (soldiers × (ATK-DEF)% × skill × terrain)
 const DAMAGE_DIVISOR: float = 100.0
 
-## SR07 guarantees minimum 12% damage rate (v4.6: raised from 10% for faster battles)
-const DAMAGE_MIN_RATE: float = 0.12
+## SR07 guarantees minimum 15% damage rate (v4.1 audit: raised from 12% to prevent
+## stalemate battles with high-DEF armies under the 8-round limit)
+const DAMAGE_MIN_RATE: float = 0.15
 
 ## SR07 war banners: each unit gets 2-4 actions per battle
 const UNIT_MOVES_BASE: int = 3
@@ -656,7 +657,8 @@ const HERO_KNOCKOUT_PASSIVE_LOSS: bool = true
 # ═══════════════ TILE DEVELOPMENT ENRICHMENT (v3.6) ═══════════════
 
 ## Supply depot upkeep: gold cost per depot per turn
-const SUPPLY_DEPOT_UPKEEP_GOLD: int = 2
+## v4.1 audit: raised from 2→5 so depots are a meaningful logistical decision
+const SUPPLY_DEPOT_UPKEEP_GOLD: int = 5
 
 ## Path conversion costs (switching a tile's development path)
 const PATH_CONVERSION_GOLD_COST: int = 30

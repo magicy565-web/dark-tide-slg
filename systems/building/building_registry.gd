@@ -114,6 +114,43 @@ const COMMON_BUILDINGS: Dictionary = {
 			2: {"cost": {"gold": 180, "iron": 50}, "desc": "视野+4格, 拦截率+25%, 预警", "effects": {"vision_range": 4, "interception_bonus": 25, "early_warning": true}, "upgrade_req": {"tile_level": 2}},
 		},
 	},
+	# v5.1: New content — special buildings
+	"shadow_consortium": {
+		"name": "暗影商会",
+		"max_level": 3,
+		"levels": {
+			1: {"cost": {"gold": 150, "iron": 10}, "desc": "+8金/回合(谍报收益), 揭示1格迷雾", "effects": {"gold_per_turn": 8, "espionage_income": true, "visibility_bonus": 1}},
+			2: {"cost": {"gold": 250, "iron": 18}, "desc": "+15金/回合, 揭示2格, 拦截敌方事件10%", "effects": {"gold_per_turn": 15, "visibility_bonus": 2, "event_intercept_chance": 0.10}, "upgrade_req": {"tile_level": 2, "order_min": 40}},
+			3: {"cost": {"gold": 380, "iron": 28}, "desc": "+25金/回合, 揭示3格, 拦截20%, 暗杀任务解锁", "effects": {"gold_per_turn": 25, "visibility_bonus": 3, "event_intercept_chance": 0.20, "assassination_unlock": true}, "upgrade_req": {"tile_level": 3, "order_min": 50}},
+		},
+	},
+	"undead_foundry": {
+		"name": "亡灵兵工厂",
+		"max_level": 3,
+		"levels": {
+			1: {"cost": {"gold": 180, "iron": 25}, "desc": "+3亡灵兵/回合(无需粮食), 秩序-2/回合", "effects": {"undead_soldiers_per_turn": 3, "food_cost_override": true, "order_per_turn": -2}},
+			2: {"cost": {"gold": 280, "iron": 40}, "desc": "+5亡灵兵/回合, 秩序-3/回合, 亡灵ATK+2", "effects": {"undead_soldiers_per_turn": 5, "food_cost_override": true, "order_per_turn": -3, "undead_atk_bonus": 2}, "upgrade_req": {"tile_level": 2}},
+			3: {"cost": {"gold": 400, "iron": 55}, "desc": "+8亡灵兵/回合, 秩序-4/回合, ATK+4, 死灵骑士解锁", "effects": {"undead_soldiers_per_turn": 8, "food_cost_override": true, "order_per_turn": -4, "undead_atk_bonus": 4, "death_knight_unlock": true}, "upgrade_req": {"tile_level": 3}},
+		},
+	},
+	"oracle_tower": {
+		"name": "先知塔",
+		"max_level": 3,
+		"levels": {
+			1: {"cost": {"gold": 200, "iron": 15, "magic_crystal": 1}, "desc": "揭示敌军位置2格, 事件品质+10%", "effects": {"enemy_reveal_range": 2, "event_quality_bonus": 0.10}},
+			2: {"cost": {"gold": 320, "iron": 25, "magic_crystal": 2}, "desc": "揭示3格, 事件品质+20%, 预知敌方行动1回合", "effects": {"enemy_reveal_range": 3, "event_quality_bonus": 0.20, "foresight_turns": 1}, "upgrade_req": {"tile_level": 2}},
+			3: {"cost": {"gold": 450, "iron": 35, "magic_crystal": 3}, "desc": "揭示5格, 事件品质+35%, 预知2回合, 神谕技能解锁", "effects": {"enemy_reveal_range": 5, "event_quality_bonus": 0.35, "foresight_turns": 2, "oracle_skill_unlock": true}, "upgrade_req": {"tile_level": 3, "order_min": 40}},
+		},
+	},
+	"dragonbone_altar": {
+		"name": "龙骨祭坛",
+		"max_level": 3,
+		"levels": {
+			1: {"cost": {"gold": 400, "iron": 60, "magic_crystal": 3}, "desc": "全军ATK+3, DEF+3, 威望+5/回合", "effects": {"atk_bonus": 3, "def_bonus": 3, "prestige_per_turn": 5}},
+			2: {"cost": {"gold": 600, "iron": 80, "magic_crystal": 5}, "desc": "ATK+6, DEF+6, 威望+8/回合, 龙息攻击解锁", "effects": {"atk_bonus": 6, "def_bonus": 6, "prestige_per_turn": 8, "dragon_breath_unlock": true}, "upgrade_req": {"tile_level": 3}},
+			3: {"cost": {"gold": 900, "iron": 100, "magic_crystal": 8}, "desc": "ATK+10, DEF+10, 威望+12/回合, 龙骑士解锁, 全军HP+20%", "effects": {"atk_bonus": 10, "def_bonus": 10, "prestige_per_turn": 12, "dragon_knight_unlock": true, "hp_bonus_pct": 0.20}, "upgrade_req": {"tile_level": 3, "order_min": 60}},
+		},
+	},
 }
 
 # ── Faction-specific buildings (3 levels each, 2 per faction) ──

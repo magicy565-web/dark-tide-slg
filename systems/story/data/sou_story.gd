@@ -918,6 +918,65 @@ const EVENTS: Dictionary = {
 			},
 		},
 	],
-	"pure_love": [],
+	"pure_love": [
+		{
+			"id": "sou_pure_love_01",
+			"name": "纯爱·图书馆之夜",
+			"trigger": {"hero_recruited": true, "affection_min": 3},
+			"scene": "深夜的领地图书馆。蒼独自坐在最高层的阅读区，面前堆满了各种古籍和卷轴。魔法烛火在她周围浮动，将银白色的长发映照得如同月光。她的紫水晶色双瞳在文字间快速扫过，嘴里不时低声念诵着古代语言。",
+			"dialogues": [
+				{"speaker": "蒼", "speaker_id": "sou", "expression": "serious", "text": "……你的脚步声在十二步之外就被我感知到了。作为领主，你的隐蔽行动能力堪忧。"},
+				{"type": "narration", "text": "她没有抬头，手指翻过一页泛黄的书页。"},
+				{"speaker": "蒼", "speaker_id": "sou", "expression": "normal", "text": "不过——既然你来了，坐吧。我刚在这本《深渊编年史》中发现了一个有趣的理论。关于暗能量在六角网格结构中的传导效率——"},
+				{"type": "narration", "text": "她终于抬起头，发现你带来了热茶和点心。她的眼神出现了一瞬间的波动。"},
+				{"speaker": "蒼", "speaker_id": "sou", "expression": "shy", "text": "……你特意在这个时间来。不是为了学术讨论。"},
+				{"type": "narration", "text": "她放下书卷，双手交叠在膝上。四百年的大魔导师，此刻像一个被抓到深夜不睡的学生。"},
+				{"speaker": "蒼", "speaker_id": "sou", "expression": "normal", "text": "作为一个学者，我必须承认——你的行为模式让我的预测模型频繁出错。这在统计学上非常……令人困扰。"},
+				{"type": "narration", "text": "她接过茶杯，指尖不经意间触碰到你的手。她没有像往常那样立刻缩回。"},
+				{"speaker": "蒼", "speaker_id": "sou", "expression": "shy", "text": "……谢谢。这种无法量化的善意，是我四百年中最难以用公式描述的变量。"},
+			],
+			"system_prompt": "蒼开始用她独特的方式——学术化的语言——表达她对你的在意。",
+			"effects": {
+				"affection": 1,
+			},
+		},
+		{
+			"id": "sou_pure_love_02",
+			"name": "纯爱·星象观测",
+			"trigger": {"prev_event": "sou_pure_love_01", "affection_min": 5},
+			"scene": "领地最高的瞭望塔顶部，被蒼改造成了一个简易的星象观测台。复杂的魔法阵悬浮在空中，将星空的图像放大数十倍。蒼站在星光之下，银白色的长发被夜风轻轻吹起，紫水晶色的瞳孔中倒映着璀璨的星辰。",
+			"dialogues": [
+				{"speaker": "蒼", "speaker_id": "sou", "expression": "normal", "text": "我邀请你来这里，是因为今晚有一个四百二十七年才出现一次的星象——双子星逆行与暗月交汇。上一次出现时，我还是白塔的见习法师。"},
+				{"type": "narration", "text": "她用指尖在空中划出一道光弧，魔法阵随之调整，将一片特定的星域放大。"},
+				{"speaker": "蒼", "speaker_id": "sou", "expression": "serious", "text": "你看——那两颗最亮的星。古代文献称它们为'誓约之星'。传说中，当它们的光芒交汇时，在此刻许下的诺言将永不可破。"},
+				{"type": "narration", "text": "她突然意识到自己说了什么，转过身，表情出现了罕见的动摇。"},
+				{"speaker": "蒼", "speaker_id": "sou", "expression": "shy", "text": "……当然，这只是毫无科学依据的传说。恒星的光谱辐射不可能影响人类的社会契约行为。我只是在陈述天文现象，没有其他含义。"},
+				{"type": "narration", "text": "但她没有转回去看星空。她在看着你。"},
+				{"speaker": "蒼", "speaker_id": "sou", "expression": "normal", "text": "虽然……如果——纯粹假设——如果这个传说是真的。那么在誓约之星光芒交汇的这七分十三秒内说出的话……"},
+				{"type": "narration", "text": "她的声音越来越轻，几乎被夜风吞没。"},
+				{"speaker": "蒼", "speaker_id": "sou", "expression": "shy", "text": "……算了。观测结束了。数据已经记录完毕。我们回去吧。"},
+			],
+			"choices": [
+				{
+					"label": "在星光下握住她的手",
+					"description": "不说话，只是在誓约之星的光芒中握住她的手。",
+					"effects": {
+						"affection": 3,
+						"set_flag": {"sou_starlight_bond": true},
+					},
+				},
+				{
+					"label": "说出你的心意",
+					"description": "在誓约之星光芒交汇的最后几秒内，坦白你的感情。",
+					"effects": {
+						"affection": 2,
+						"set_flag": {"sou_confession_accepted": true},
+					},
+				},
+			],
+			"system_prompt": "蒼用天文学的方式创造了一个浪漫的场景。四百年来第一次，她希望传说是真的。",
+			"effects": {},
+		},
+	],
 	"exclusive_ending": [],
 }

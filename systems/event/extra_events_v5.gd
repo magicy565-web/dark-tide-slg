@@ -426,4 +426,102 @@ func get_events() -> Array:
 	events.append({"id": "v5_wandering_sage", "name": "云游贤者", "desc": "一位云游四方的贤者愿意传授知识。", "condition": "always", "repeatable": true, "choices": [{"text": "拜师学习 (-10金, +1科技点)", "effects": {"gold": -10, "tech_point": 1}}, {"text": "请教战术 (士气+10%, 3回合)", "effects": {"buff": {"type": "morale_pct", "value": 10, "duration": 3}}}]})
 	events.append({"id": "v5_faction_summit", "name": "势力会谈", "desc": "周边势力提议举行一次多方会谈。", "condition": "always", "repeatable": true, "choices": [{"text": "参加 (-15金, +10威望)", "effects": {"gold": -15, "prestige": 10}}, {"text": "拒绝 (+5威望)", "effects": {"prestige": 5}}]})
 
+	# ══════════════════════════════════════════════════════════
+	# CHAIN 11: 深渊觉醒 (Abyss Awakening) — 4 steps
+	# Turn-gated progression: earthquakes → ruins → portal → final choice
+	# ══════════════════════════════════════════════════════════
+	events.append({
+		"id": "v5_abyss_awakening", "name": "深渊觉醒·异震",
+		"desc": "大地突然剧烈震颤！城墙出现裂纹，地下传来低沉的轰鸣声。学者们惊恐地报告：震源不在地表——而是来自地底深处某个不该存在的空间。更诡异的是，每次地震后，领地周围的暗影精华浓度都会明显上升。",
+		"condition": "turn_min_20", "repeatable": false,
+		"choices": [
+			{"text": "组织勘探队深入地下调查 (-20金, -2兵)", "effects": {"gold": -20, "soldiers": -2}},
+			{"text": "加固城防，静观其变 (-30铁, +5城防, +3秩序)", "effects": {"iron": -30, "wall_boost": 5, "order": 3}},
+		]
+	})
+	events.append({
+		"id": "v5_abyss_ruins", "name": "深渊觉醒·远古遗迹",
+		"desc": "勘探队带回了惊人的发现——地震撕裂了地层，暴露出一座远古文明的遗迹！遗迹入口散发着诡异的紫光，空气中充斥着令人不安的低语声。遗迹内部似乎藏有强大的魔法器物，但守护者的力量也不容小觑。",
+		"condition": "chain:v5_abyss_awakening:0", "repeatable": false,
+		"chain_parent": "v5_abyss_awakening", "chain_choice": 0,
+		"choices": [
+			{"text": "派精锐探索遗迹 (战斗: 8远古守卫, 胜利+1遗物+3魔晶+50金)", "effects": {"type": "combat", "enemy_soldiers": 8, "enemy_type": "constructs"}},
+			{"text": "封锁入口，开采外围资源 (+30铁, +2魔晶, +10威望)", "effects": {"iron": 30, "magic_crystal": 2, "prestige": 10}},
+		]
+	})
+	events.append({
+		"id": "v5_abyss_portal", "name": "深渊觉醒·深渊之门",
+		"desc": "遗迹深处的封印被打破了——一道巨大的裂隙撕开了现实的帷幕！深渊之门已经开启，源源不断的深渊魔物从裂隙中涌出。它们的力量远超普通敌人，而且门的另一侧似乎有更强大的存在正在蠢蠢欲动。整个领地都能感受到来自深渊的压迫感。",
+		"condition": "chain:v5_abyss_ruins:0", "repeatable": false,
+		"chain_parent": "v5_abyss_ruins", "chain_choice": 0,
+		"choices": [
+			{"text": "全军迎战深渊先锋 (战斗: 12深渊魔物, 胜利+5暗影精华+20威望)", "effects": {"type": "combat", "enemy_soldiers": 12, "enemy_type": "abyss_demon"}},
+			{"text": "紧急撤退，放弃遗迹区域 (-1控制地块, +8秩序, 全军存活)", "effects": {"order": 8, "lose_node": true}},
+		]
+	})
+	events.append({
+		"id": "v5_abyss_seal", "name": "深渊觉醒·封印还是掌控",
+		"desc": "深渊先锋被击退后，门户仍在运转。法师们发现了两种可能：用大量魔晶进行永久封印，彻底关闭深渊之门；或者利用遗迹中发现的控制装置，将深渊之门转化为己用的力量源泉——但代价是领地将永远笼罩在深渊的阴影之下。",
+		"condition": "chain:v5_abyss_portal:0", "repeatable": false,
+		"chain_parent": "v5_abyss_portal", "chain_choice": 0,
+		"choices": [
+			{"text": "永久封印深渊之门 (-5魔晶, -50金, +20秩序, +30威望, 全军DEF+10%永久)", "effects": {"magic_crystal": -5, "gold": -50, "order": 20, "prestige": 30, "buff": {"type": "def_pct", "value": 10, "duration": 99}}},
+			{"text": "掌控深渊之力 (+10暗影精华, +3魔晶/回合, 全军ATK+15%永久, 秩序-15, 威胁+10)", "effects": {"magic_crystal": 3, "order": -15, "threat": 10, "buff": {"type": "atk_pct", "value": 15, "duration": 99}}},
+		]
+	})
+
+	# ══════════════════════════════════════════════════════════
+	# CHAIN 12: 商路争夺 (Trade Route War) — 5 steps
+	# Triggered by tile control; economic-focused chain
+	# ══════════════════════════════════════════════════════════
+	events.append({
+		"id": "v5_trade_route_war", "name": "商路争夺·商队求援",
+		"desc": "一支庞大的商队抵达你的领地，队长满脸焦虑。他说自从你控制了这片区域，一条重要的贸易路线变得安全了许多，但最近有不明势力开始劫掠商队。他请求你派兵保护商路，作为回报，商队愿意缴纳丰厚的保护费。",
+		"condition": "tiles_min_10", "repeatable": false,
+		"choices": [
+			{"text": "派兵护送商队 (-3兵, +40金, +10威望)", "effects": {"soldiers": -3, "gold": 40, "prestige": 10}},
+			{"text": "收取保护费但不出兵 (+25金, -5威望)", "effects": {"gold": 25, "prestige": -5}},
+		]
+	})
+	events.append({
+		"id": "v5_trade_raiders", "name": "商路争夺·劫匪伏击",
+		"desc": "你的护送部队在商路要道遭遇了伏击！这些不是普通的土匪——他们装备精良、训练有素，显然是某个敌对势力雇佣的精锐佣兵。战斗结束后，你在敌方指挥官身上发现了一封密信，揭露了幕后主使是一个试图垄断商路的敌对领主。",
+		"condition": "chain:v5_trade_route_war:0", "repeatable": false,
+		"chain_parent": "v5_trade_route_war", "chain_choice": 0,
+		"choices": [
+			{"text": "追击残敌并夺取据点 (战斗: 9佣兵, 胜利+50金+15威望)", "effects": {"type": "combat", "enemy_soldiers": 9, "enemy_type": "mercenaries"}},
+			{"text": "加固商路防线，不主动出击 (-20铁, +8秩序, +5城防)", "effects": {"iron": -20, "order": 8, "wall_boost": 5}},
+		]
+	})
+	events.append({
+		"id": "v5_trade_negotiation", "name": "商路争夺·谈判桌上",
+		"desc": "你的胜利引起了广泛关注。多方势力派出代表，希望就商路控制权进行谈判。敌对领主也派来了使者，提出和解方案——共享商路利润。但商队队长劝你独占商路，因为这样利润更高。",
+		"condition": "chain:v5_trade_raiders:0", "repeatable": false,
+		"chain_parent": "v5_trade_raiders", "chain_choice": 0,
+		"choices": [
+			{"text": "接受共享方案 (+15金/回合永久, +15威望, +5秩序)", "effects": {"prestige": 15, "order": 5, "type": "dot", "gold": 15, "duration": 99}},
+			{"text": "拒绝谈判，独占商路 (+25金/回合永久, -10威望, 威胁+5)", "effects": {"prestige": -10, "threat": 5, "type": "dot", "gold": 25, "duration": 99}},
+		]
+	})
+	events.append({
+		"id": "v5_trade_monopoly_war", "name": "商路争夺·最终决战",
+		"desc": "你拒绝共享商路的决定激怒了敌对领主。他联合了数个小势力组建了联军，向你的商路要塞发动了大规模进攻！这是一场决定商路归属的关键战役——胜者将获得永久的贸易垄断权。",
+		"condition": "chain:v5_trade_negotiation:1", "repeatable": false,
+		"chain_parent": "v5_trade_negotiation", "chain_choice": 1,
+		"choices": [
+			{"text": "主动出击，歼灭联军 (战斗: 14联军精锐, 胜利+100金+1遗物+30威望)", "effects": {"type": "combat", "enemy_soldiers": 14, "enemy_type": "elite_guard"}},
+			{"text": "据守要塞，消耗敌军 (战斗: 10联军, DEF+25%, 胜利+60金+20威望)", "effects": {"type": "combat", "enemy_soldiers": 10, "enemy_type": "rebels", "buff": {"type": "def_pct", "value": 25, "duration": 1}}},
+		]
+	})
+	events.append({
+		"id": "v5_trade_alliance", "name": "商路争夺·贸易联盟",
+		"desc": "和平共享方案执行数周后，商路比以往任何时候都繁荣。各方势力对你的公正裁决心悦诚服，提议成立一个由你主导的贸易联盟。这将大幅提升你的经济实力和政治影响力。",
+		"condition": "chain:v5_trade_negotiation:0", "repeatable": false,
+		"chain_parent": "v5_trade_negotiation", "chain_choice": 0,
+		"choices": [
+			{"text": "主导贸易联盟 (-30金投资, +20金/回合永久, +20威望, +10秩序)", "effects": {"gold": -30, "prestige": 20, "order": 10, "type": "dot", "gold_bonus": 20, "duration": 99}},
+			{"text": "保持独立，仅收取分成 (+10金/回合永久, +10威望)", "effects": {"prestige": 10, "type": "dot", "gold": 10, "duration": 99}},
+		]
+	})
+
 	return events
