@@ -7,6 +7,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_01",
 			"name": "事件 Stage 01: 暗影森林的入口",
+			"cg": "kaede_cg_01",
 			"trigger": {},
 			"scene": "指挥官率领部队踏入隐秘森林边缘。浓密的树冠遮蔽了天光，空气中弥漫着潮湿的苔藓气息。斥候报告前方发现伪装过的陷阱痕迹——地面上散落的落叶排列不自然，树干间绑着极细的丝线。这片森林，有人在守护。",
 			"dialogues": [
@@ -122,6 +123,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_08",
 			"name": "事件 Stage 08: 第一次训练",
+			"cg": "kaede_cg_02",
 			"trigger": {"prev_event": "kaede_hostile_07", "turn_min": 16, "threat_min": 45},
 			"scene": "指挥官提出条件：枫参与据点的军事训练，换取派遣搜索队寻找她姐姐的承诺。训练场上，枫被安排与几名精锐士兵对练。她站在场中央，双手空空——短刀还没有归还给她。",
 			"dialogues": [
@@ -136,6 +138,7 @@ const EVENTS: Dictionary = {
 			],
 			"h_event": {
 				"title": "",
+				"cg": "kaede_h_cg_01",
 				"dialogues": [
 					{"type": "narration", "text": "训练场的灯火已经熄灭。据点沉入夜色之中，唯有枫的房间透出一线微弱的烛光——像是暗影深处勉强存留的一点暖意。"},
 					{"type": "narration", "text": "指挥官推开半掩的门时，看到枫坐在床沿，正用牙咬着绷带的一端，试图单手缠住腰侧的伤口。她的黑色内衬被掀起一角，露出小麦色肌肤上渗出的殷红血迹。旧伤在今天的对练中重新裂开了——一道从腰侧斜向后背的刀痕，边缘不规则，显然不是一次干净的切割，而是某次近身搏斗中被锯拉开的。"},
@@ -362,6 +365,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "kaede_hostile_13",
 			"name": "事件 Stage 13: 影步入光",
+			"cg": "kaede_cg_03",
 			"trigger": {"prev_event": "kaede_hostile_12", "turn_min": 26, "threat_min": 60},
 			"scene": "三天后，枫醒来。阳光从窗口洒入病房，她姐姐坐在床边削着苹果。枫呆呆地看了许久，伸手触碰姐姐的脸颊，确认不是在做梦。指挥官站在门口，刚好看到这一幕。",
 			"dialogues": [

@@ -7,6 +7,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_01",
 			"name": "事件 Stage 01: 矿山入口——地雷的欢迎",
+			"cg": "hanabi_cg_01",
 			"trigger": {},
 			"scene": "废弃矿山外围，枯黄杂草间隐藏着密密麻麻的绊线与压力板。空气中弥漫着硝烟味，远处矿道口冒出阵阵黑烟。一块歪歪斜斜的木牌上用红漆写着：\"进来就炸！不准进来！——花火\"。先遣斥候踩中第一颗地雷，爆炸声在山谷间回荡。",
 			"dialogues": [
@@ -133,6 +134,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_08",
 			"name": "事件 Stage 08: 第一场烟花——绽放的约定",
+			"cg": "hanabi_cg_02",
 			"trigger": {"prev_event": "hanabi_hostile_07", "turn_min": 16, "threat_min": 45},
 			"scene": "夜晚，城堡后方的空地上。花火花了三天制作的第一批烟花准备就绪。她蹲在发射筒旁，拿着引信，破天荒地紧张起来。领主站在一旁，安静地等待。",
 			"dialogues": [
@@ -170,6 +172,7 @@ const EVENTS: Dictionary = {
 			],
 			"h_event": {
 				"title": "",
+				"cg": "hanabi_h_cg_01",
 				"dialogues": [
 					{"type": "narration", "text": "夜晚的军帐内，油灯摇曳着昏黄的光。帐外偶尔传来巡逻士兵的脚步声，帐内弥漫着药草与火药残留的混合气味——那是属于花火的味道。"},
 					{"type": "narration", "text": "她坐在行军床上，左臂缠着简陋的绷带，渗出的血迹已经干涸成暗褐色。领主端着一罐烧伤药膏走进来时，花火像被踩了尾巴的猫一样弹起来。"},
@@ -365,6 +368,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hanabi_hostile_13",
 			"name": "事件 Stage 13: 永远的引信——爆裂之誓",
+			"cg": "hanabi_cg_03",
 			"trigger": {"prev_event": "hanabi_hostile_12", "turn_min": 26, "threat_min": 60},
 			"scene": "清晨，领主在寝室中醒来。花火缩在他怀里，睡颜安详得不像平时那个到处乱炸的暴走少女。她的手紧紧攥着领主的衣角，像是怕松手就会失去什么。阳光照进来，映出她睫毛上残留的火药微粒，像细碎的金粉。",
 			"dialogues": [

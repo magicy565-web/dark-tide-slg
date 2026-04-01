@@ -7,6 +7,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hyouka_training_01",
 			"name": "调教 Stage 01: 抵抗（不动的城壁）",
+			"cg": "hyouka_cg_01",
 			"trigger": {"hero_captured": true},
 			"scene": "地下拘留室。厚重的石墙围成一个狭小的空间，空气沉闷而干冷。唯一的光源是墙壁上一盏昏黄的油灯，火焰纹丝不动，仿佛连空气都被冻结了。 冰華被锁在墙壁上。双手被铁链高举过头，脚尖勉强点地。她的重装铠甲早已被卸除，身上只剩下一件灰色的贴身短衣和黑色的束腿裤。没有了厚重的甲胄，她的身形出人意料地纤细——但肌肉线条坚韧有力，肩背宽阔挺直，即使被铁链悬吊，脊柱依然如铁柱般笔直。 她的银白色短发凌乱地贴在额头上，汗水和灰尘在面颊上留下淡淡的痕迹。灰蓝色的双眸空洞地注视着前方，面无表情——不是强撑，而是真的没有表情。仿佛悬挂在铁链上的不是一个人，而是城墙上的一面盾。 她没有发出任何声音。从被押入牢房开始，她一个字也没有说过。",
 			"dialogues": [
@@ -30,6 +31,7 @@ const EVENTS: Dictionary = {
 			],
 			"h_event": {
 				"title": "城壁上的伤痕",
+				"cg": "hyouka_h_cg_01",
 				"dialogues": [
 					{"type": "action", "text": "数日后。指挥官带着一名侍从进入牢房，侍从手中捧着一个木箱"},
 					{"type": "narration", "text": "冰華被从墙壁上放下来，双手被重新铐在身前。她的手腕因长时间悬吊留下了深紫色的淤痕，但她看都没看一眼。"},
@@ -338,6 +340,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hyouka_training_04",
 			"name": "调教 Stage 04: 调教完毕（融化的坚冰）",
+			"cg": "hyouka_cg_02",
 			"trigger": {
 				"prev_event": "hyouka_training_03a",
 				"corruption_min": 7, "turn_min": 10,
@@ -808,6 +811,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "hyouka_exclusive_ending",
 			"name": "Lv10 专属结局: 融冰之春・永远的盾",
+			"cg": "hyouka_cg_03",
 			"trigger": {"affection_min": 10},
 			"scene": "春日的城堡阳台。冰華靠在栏杆上，灰蓝色的眼睛注视着远方融雪的山峦。她的表情依然平静如冰面，但嘴角有一抹极浅的弧度——那是只有最亲近的人才能察觉到的微笑。",
 			"dialogues": [

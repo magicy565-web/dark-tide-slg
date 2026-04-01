@@ -8,6 +8,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "suirei_training_01",
 			"name": "Stage 1: 俘虏（高傲的精灵）",
+			"cg": "suirei_cg_01",
 			"trigger": {"hero_captured": true},
 			"scene": "地下拘留室。翠玲被魔法锁链缚住双手。银白色的长发散乱，精灵耳朵高高竖起呈愤怒姿态。她的断弓被丢在墙角——弓弦在战斗中崩断。",
 			"dialogues": [
@@ -167,6 +168,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "suirei_training_04a",
 			"name": "Stage 4: 转折——守护者之路",
+			"cg": "suirei_cg_02",
 			"trigger": {
 				"prev_event": "suirei_training_03a",
 				"affection_min": 6,
@@ -325,6 +327,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "suirei_training_06a",
 			"name": "Stage 6: 结局——守护者",
+			"cg": "suirei_cg_03",
 			"trigger": {
 				"affection_min": 10,
 				"requires_flag": ["suirei_guardian", "suirei_forest_saved"],

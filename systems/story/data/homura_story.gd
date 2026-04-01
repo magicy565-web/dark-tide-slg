@@ -7,6 +7,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "homura_training_01",
 			"name": "调教 Stage 01: 不灭的火焰（野兽的咆哮）",
+			"cg": "homura_cg_01",
 			"trigger": {"hero_captured": true},
 			"scene": "能量抑制牢房的墙壁上密密麻麻刻满了灭火符文，蓝白色的符文光芒在黑暗中幽幽闪烁，空气中弥漫着臭氧和灼烧过的焦味。每当囚犯试图引燃哪怕一丝魔力，符文就会发出刺耳的嗡鸣，将火种扼杀于无形。 焔被能量枷锁铐住双手，锁链连接到牢房两侧的墙壁。枷锁内置的魔力抑制回路让她的火焰能力完全封锁——对这个以爆裂火球为生的战斗法师来说，这比斩断双手更加痛苦。 她浑身都是战斗留下的痕迹。火红的双马尾散乱地耷拉着，左脸颊的煤灰印还没擦掉，缠着绷带的右手上又添了几道新伤。红黑色的战斗法师外套破了好几个口子，露出里面黑色运动束胸裹着的结实腹肌。热裤上烧了个洞，单肩甲歪到了一边。 但她的眼睛——那双亮红橘色的眼睛，烧得比任何火焰都猛。",
 			"dialogues": [
@@ -35,6 +36,7 @@ const EVENTS: Dictionary = {
 			],
 			"h_event": {
 				"title": "火焰的束缚",
+				"cg": "homura_h_cg_01",
 				"dialogues": [
 					{"type": "action", "text": "数日后。指挥官带着新的指令再次来到牢房"},
 					{"type": "narration", "text": "焔依然精力充沛得不像个囚犯。她一直在牢房里做各种体能训练——仰卧起坐、俯卧撑、用锁链做引体向上——把能量抑制牢房活生生变成了健身房。"},
@@ -375,6 +377,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "homura_training_04",
 			"name": "调教 Stage 04: 忠犬之焔（永恒的战友）",
+			"cg": "homura_cg_02",
 			"trigger": {
 				"prev_event": "homura_training_03a",
 				"corruption_min": 7, "turn_min": 10,
@@ -1025,6 +1028,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "homura_exclusive_ending",
 			"name": "Lv10 专属结局: 永不熄灭的火焰",
+			"cg": "homura_cg_03",
 			"trigger": {"affection_min": 10},
 			"scene": "黎明时分的训练场。焔像往常一样在晨跑，红色的短发在朝阳下燃烧般耀眼。她看到主角后猛地加速冲过来，一个熊抱差点把人撞倒。",
 			"dialogues": [

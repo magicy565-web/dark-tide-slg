@@ -8,6 +8,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "sou_training_01",
 			"name": "Stage 1: 俘虏（大魔导师的矜持）",
+			"cg": "sou_cg_01",
 			"trigger": {"hero_captured": true},
 			"scene": "封印室。蒼被固定在反魔力封印椅上，三重封魔核心抑制着她的力量。银白色长发在符文蓝光中泛着冷辉，紫水晶色双瞳微微发光。",
 			"dialogues": [
@@ -168,6 +169,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "sou_training_04a",
 			"name": "Stage 4: 转折——学者之路",
+			"cg": "sou_cg_02",
 			"trigger": {
 				"prev_event": "sou_training_03a",
 				"affection_min": 6,
@@ -367,6 +369,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "sou_training_06a",
 			"name": "Stage 6: 结局——学者",
+			"cg": "sou_cg_03",
 			"trigger": {
 				"affection_min": 10,
 				"requires_flag": ["sou_scholar", "sou_protected"],

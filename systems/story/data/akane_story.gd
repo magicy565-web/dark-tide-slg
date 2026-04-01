@@ -7,6 +7,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_01",
 			"name": "事件 Stage 01: 月下圣域",
+			"cg": "akane_cg_01",
 			"trigger": {},
 			"scene": "古代圣地外围，残破的石柱在月光下投射出诡异的长影。空气中弥漫着焚香与铁锈的气味。血月教团的信徒身着暗红长袍，静默地列阵于圣地入口。远处传来低沉的祈祷吟唱——那是朱音的声音，平静得如同晚风。",
 			"dialogues": [
@@ -107,6 +108,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_07",
 			"name": "事件 Stage 07: 温度",
+			"cg": "akane_cg_02",
 			"trigger": {"prev_event": "akane_hostile_06", "turn_min": 14, "threat_min": 40},
 			"scene": "深夜，朱音的房间。主角以\"检查\"为由进入。朱音坐在窗边，手指无意识地抚摸着手腕上的束缚痕迹。月光将她的轮廓勾勒得如同一幅宗教画。",
 			"dialogues": [
@@ -122,6 +124,7 @@ const EVENTS: Dictionary = {
 			],
 			"h_event": {
 				"title": "",
+				"cg": "akane_h_cg_01",
 				"dialogues": [
 					{"type": "narration", "text": "主角向前一步，靠近窗边的朱音。月光从窗格倾泻而入，将她苍白近乎透明的肌肤映得如同冰雪雕成的祭器。她没有躲，只是微微偏过头，用那双深红色的酒瞳注视着他——那目光像是隔着一层薄纱，永远带着某种超脱尘世的距离。"},
 					{"type": "narration", "text": "他伸手，握住了她垂在身侧的手。"},
@@ -370,6 +373,7 @@ const EVENTS: Dictionary = {
 		{
 			"id": "akane_hostile_13",
 			"name": "事件 Stage 13: 祭司的黄昏",
+			"cg": "akane_cg_03",
 			"trigger": {"prev_event": "akane_hostile_12", "turn_min": 26, "threat_min": 60},
 			"scene": "满月之夜，古代圣地废墟。朱音独自回到曾经的祭坛，主角跟随在后。月光依旧如血，但祭坛上只有风和灰烬。朱音站在她曾经主持过无数次献祭的地方，闭上了眼睛。",
 			"dialogues": [
