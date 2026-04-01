@@ -2,7 +2,7 @@
 ## Autoload singleton. Serializes full game state to JSON files.
 extends Node
 
-const SAVE_VERSION: String = "3.7.0"
+const SAVE_VERSION: String = "4.1.0"
 const SAVE_DIR: String = "user://saves/"
 const MAX_MANUAL_SLOTS: int = 5
 const AUTO_SLOT: int = 99
@@ -107,6 +107,9 @@ func load_game(slot: int) -> bool:
 	if not _is_version_compatible(saved_version):
 		EventBus.message_log.emit("[color=red]存档版本不兼容 (存档:%s 当前:%s)[/color]" % [saved_version, SAVE_VERSION])
 		return false
+
+	# Migrate save data if needed
+	save_data = _migrate_save_data(save_data, saved_version)
 
 	# Apply save data
 	_apply_save_data(save_data)
@@ -241,6 +244,10 @@ func _collect_save_data() -> Dictionary:
 		"dynamic_situation_events": DynamicSituationEvents.get_save_data() if DynamicSituationEvents != null else {},
 		"crisis_countdown": CrisisCountdown.get_save_data() if CrisisCountdown != null else {},
 		"nation_system": _save_nation_system(),
+		# v4.1 centralized event/quest systems
+		"event_registry": EventRegistry.serialize() if EventRegistry != null else {},
+		"quest_progress_tracker": QuestProgressTracker.to_save_data() if QuestProgressTracker != null else {},
+		"event_scheduler": EventScheduler.to_save_data() if EventScheduler != null else {},
 	}
 
 
@@ -446,6 +453,18 @@ func _apply_save_data(data: Dictionary) -> void:
 	if data.has("nation_system"):
 		_load_nation_system(data.get("nation_system", {}))
 
+	# 4r. Restore event registry state (v4.1+)
+	if data.has("event_registry") and EventRegistry != null:
+		EventRegistry.deserialize(data.get("event_registry", {}))
+
+	# 4s. Restore quest progress tracker state (v4.1+)
+	if data.has("quest_progress_tracker") and QuestProgressTracker != null:
+		QuestProgressTracker.from_save_data(data.get("quest_progress_tracker", {}))
+
+	# 4t. Restore event scheduler state (v4.1+)
+	if data.has("event_scheduler") and EventScheduler != null:
+		EventScheduler.from_save_data(data.get("event_scheduler", {}))
+
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
 	EventBus.resources_changed.emit(pid)
@@ -591,13 +610,64 @@ func _load_game_state(gs: Dictionary) -> void:
 # ═══════════════ VERSION COMPAT ═══════════════
 
 func _is_version_compatible(saved_ver: String) -> bool:
-	## Major version must match. Minor differences are OK.
+	## Accepts saves from v3.x+ (migratable) and v4.x (current major).
 	var saved_parts: Array = saved_ver.split(".")
 	var current_parts: Array = SAVE_VERSION.split(".")
 	if saved_parts.size() < 2 or current_parts.size() < 2:
 		return false
-	# Major version (first number) must match
-	return saved_parts[0] == current_parts[0]
+	var saved_major: int = int(saved_parts[0])
+	var current_major: int = int(current_parts[0])
+	# Accept current major and one major version back (for migration)
+	return saved_major >= current_major - 1 and saved_major <= current_major
+
+
+func _migrate_save_data(data: Dictionary, from_version: String) -> Dictionary:
+	## Apply sequential migrations to bring old saves up to current format.
+	var parts: Array = from_version.split(".")
+	var major: int = int(parts[0]) if parts.size() > 0 else 0
+	var minor: int = int(parts[1]) if parts.size() > 1 else 0
+	var _patch: int = int(parts[2]) if parts.size() > 2 else 0
+
+	# v3.7 -> v3.8: No structural changes needed
+	# v3.8 -> v4.0: event subsystems added save data
+	if major == 3:
+		data = _migrate_3_to_4(data)
+
+	# v4.0 -> v4.1: event_registry, quest_progress_tracker, event_scheduler added
+	if major <= 4 and minor < 1:
+		data = _migrate_4_0_to_4_1(data)
+
+	return data
+
+
+func _migrate_3_to_4(data: Dictionary) -> Dictionary:
+	## Migrate v3.x saves to v4.0 format.
+	# Add empty entries for v4.0 new systems if missing
+	if not data.has("faction_destruction_events"):
+		data["faction_destruction_events"] = {}
+	if not data.has("seasonal_events"):
+		data["seasonal_events"] = {}
+	if not data.has("character_interaction_events"):
+		data["character_interaction_events"] = {}
+	if not data.has("grand_event_director"):
+		data["grand_event_director"] = {}
+	if not data.has("dynamic_situation_events"):
+		data["dynamic_situation_events"] = {}
+	if not data.has("crisis_countdown"):
+		data["crisis_countdown"] = {}
+	return data
+
+
+func _migrate_4_0_to_4_1(data: Dictionary) -> Dictionary:
+	## Migrate v4.0 saves to v4.1 format.
+	# Add empty entries for v4.1 centralized systems
+	if not data.has("event_registry"):
+		data["event_registry"] = {}
+	if not data.has("quest_progress_tracker"):
+		data["quest_progress_tracker"] = {}
+	if not data.has("event_scheduler"):
+		data["event_scheduler"] = {}
+	return data
 
 
 # ═══════════════ HELPERS ═══════════════

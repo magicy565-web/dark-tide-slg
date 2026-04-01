@@ -4719,4 +4719,6 @@ func to_save_data() -> Dictionary:
 	return {}
 
 func from_save_data(_data: Dictionary) -> void:
+	# Intentionally empty — combat view is transient UI, fully reconstructed
+	# from game state when a battle starts. No persistent state to restore.
 	pass

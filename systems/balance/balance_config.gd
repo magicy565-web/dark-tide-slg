@@ -204,6 +204,10 @@ const THREAT_PER_DIPLOMACY: int = -10
 const THREAT_DECAY_PER_TURN: int = -2
 const THREAT_DOMINANCE_BONUS: int = 10  # per turn if >50% nodes
 
+## Audio: threat thresholds for BGM switching (used by SceneAudioDirector)
+const THREAT_BGM_TENSE_THRESHOLD: int = 50   # map BGM switches to tense at this level
+const THREAT_BGM_CRISIS_THRESHOLD: int = 80  # map BGM switches to crisis at this level
+
 # ═══════════════ FACTION MECHANICS ═══════════════
 
 ## Orc WAAAGH!

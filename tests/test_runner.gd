@@ -18,6 +18,11 @@ func _ready() -> void:
 	_run_test_file("res://tests/test_hero_leveling.gd")
 	_run_test_file("res://tests/test_combat_resolver.gd")
 	_run_test_file("res://tests/test_save_manager.gd")
+	_run_test_file("res://tests/test_event_registry.gd")
+	_run_test_file("res://tests/test_event_scheduler.gd")
+	_run_test_file("res://tests/test_effect_resolver.gd")
+	_run_test_file("res://tests/test_quest_progress_tracker.gd")
+	_run_test_file("res://tests/test_save_migration.gd")
 
 	print("")
 	print("=" .repeat(60))

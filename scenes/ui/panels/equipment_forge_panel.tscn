@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://i8eqfp1v4h9"]
+
+[ext_resource type="Script" path="res://scenes/ui/panels/equipment_forge_panel.gd" id="1"]
+
+[node name="EquipmentForgePanel" type="CanvasLayer"]
+script = ExtResource("1")

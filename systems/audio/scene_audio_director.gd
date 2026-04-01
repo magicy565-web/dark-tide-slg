@@ -13,9 +13,9 @@ var _current_state: int = SceneState.TITLE
 var _combat_active: bool = false
 var _suppress_auto: bool = false  # True when VnDirector is managing BGM
 
-# Threat thresholds for map BGM
-const THREAT_TENSE_THRESHOLD: int = 50
-const THREAT_CRISIS_THRESHOLD: int = 80
+# Threat thresholds for map BGM — sourced from BalanceConfig
+var THREAT_TENSE_THRESHOLD: int = BalanceConfig.THREAT_BGM_TENSE_THRESHOLD if BalanceConfig else 50
+var THREAT_CRISIS_THRESHOLD: int = BalanceConfig.THREAT_BGM_CRISIS_THRESHOLD if BalanceConfig else 80
 
 func _ready() -> void:
 	# Connect to game state signals

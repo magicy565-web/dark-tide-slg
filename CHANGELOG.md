@@ -2,6 +2,41 @@
 
 ---
 
+## v4.1.0 — 2026-04-01 (代码质量: Autoload精简 + 数值外部化 + 文档)
+
+### Autoload精简 (79 → 78)
+
+- **移除 StoryDialog autoload**: `story_dialog.gd` 不被任何代码作为全局单例访问, 仅被 VnDirector 在注释中提及. 从 project.godot 移除, 无功能影响.
+- **CGGalleryPanel 保留**: `main_menu.gd` 通过 `CGGalleryPanel.show_gallery()` 直接引用, 移除不安全.
+- **EventRegistry + EventScheduler 合并跳过**: 引用面过广, 风险大于收益.
+
+### 硬编码值外部化 (scene_audio_director.gd)
+
+- **BUG**: `SceneAudioDirector` 的威胁阈值 (`THREAT_TENSE_THRESHOLD=50`, `THREAT_CRISIS_THRESHOLD=80`) 硬编码, 与 BalanceConfig 中心化原则冲突.
+- `balance_config.gd` 新增 `THREAT_BGM_TENSE_THRESHOLD` (50) 和 `THREAT_BGM_CRISIS_THRESHOLD` (80).
+- `scene_audio_director.gd` 改为引用 BalanceConfig, 带 fallback 默认值.
+
+### 空函数注释 (combat_view.gd)
+
+- `from_save_data()` 空 pass 已补充注释: 战斗视图为临时UI, 从游戏状态重建, 无需持久化.
+
+### 新增文档
+
+- `README.md`: 项目简介 + 架构目录 + 启动说明
+
+### 文件变更清单
+
+| 文件 | 变更类型 |
+|------|----------|
+| project.godot | 精简 (-StoryDialog autoload, 79→78) |
+| systems/balance/balance_config.gd | 增强 (+2 BGM威胁阈值常量) |
+| systems/audio/scene_audio_director.gd | 增强 (阈值引用BalanceConfig) |
+| scenes/ui/combat/combat_view.gd | 注释 (from_save_data 意图说明) |
+| README.md | **新增** (项目文档) |
+| CHANGELOG.md | 新增条目 |
+
+---
+
 ## v3.7.0 — 2026-03-30 (存档修复 + Credits画面)
 
 ### 修复: WeatherSystem 未注册为 Autoload (P1)
