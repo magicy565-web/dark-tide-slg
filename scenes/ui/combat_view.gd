@@ -7,6 +7,7 @@ const FactionData = preload("res://systems/faction/faction_data.gd")
 const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
 const ChibiLoader = preload("res://systems/combat/chibi_sprite_loader.gd")
 const VfxLoaderRef = preload("res://systems/combat/vfx_loader.gd")
+const BattleVfxControllerScript = preload("res://systems/combat/battle_vfx_controller.gd")
 
 ## Archetype display names for counter indicator labels
 const ARCHETYPE_LABELS := {
@@ -215,6 +216,7 @@ var _shake_offset: Vector2 = Vector2.ZERO
 var _zoom_tween: Tween = null
 var _is_zooming: bool = false
 var _intervention_panel = null  # CombatInterventionPanel instance
+var _vfx_controller: BattleVfxController = null  # Battle VFX feedback controller
 var _cmd_bar: HBoxContainer = null  # Interactive command bar
 var _cmd_continue_btn: Button = null
 var _cmd_auto_btn: Button = null
@@ -223,6 +225,7 @@ func _ready() -> void:
 	layer = UILayerRegistry.LAYER_COMBAT_VIEW
 	visible = false
 	_build_ui()
+	_setup_vfx_controller()
 	EventBus.combat_started.connect(_on_combat_started)
 	_setup_intervention_panel()
 	set_process(true)
@@ -874,6 +877,17 @@ func _build_overlay_effects() -> void:
 	round_counter_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	round_counter_panel.add_child(round_counter_label)
 
+## Instantiate and wire up the BattleVfxController for EventBus-driven VFX.
+func _setup_vfx_controller() -> void:
+	_vfx_controller = BattleVfxController.new()
+	_vfx_controller.name = "BattleVfxController"
+	_vfx_controller.shake_target = shake_container
+	_vfx_controller.overlay_parent = anim_layer
+	_vfx_controller.root_control = root
+	_vfx_controller.speed_mult = _speed_mult
+	_vfx_controller._get_card_center_fn = Callable(self, "_get_card_center")
+	add_child(_vfx_controller)
+
 # ═══════════════════════════════════════════════════════════
 #                       BATTLE DISPLAY
 # ═══════════════════════════════════════════════════════════
@@ -1416,6 +1430,9 @@ func _animate_attack(source_side: String, source_slot: int, target_side: String,
 			_screen_shake(SHAKE_MEDIUM, 10.0)
 		else:
 			_screen_shake(SHAKE_LIGHT, 12.0)
+		# VFX Controller: crit sparkle burst + hit-freeze
+		if is_crit and _vfx_controller:
+			_vfx_controller.show_crit_indicator(to_pos)
 	)
 
 	# 5. Damage number (slightly after impact)
@@ -2434,6 +2451,9 @@ func _on_close() -> void:
 		_vs_tween = null
 	# Clean up chibi video players and refs
 	_chibi_cleanup()
+	# Clean up VFX controller state
+	if _vfx_controller:
+		_vfx_controller.cleanup()
 	combat_view_closed.emit()
 
 func _on_speed_toggle() -> void:
@@ -2446,6 +2466,8 @@ func _on_speed_toggle() -> void:
 	else:
 		_speed_mult = 1.0
 		btn_speed.text = "1x"
+	if _vfx_controller:
+		_vfx_controller.speed_mult = _speed_mult
 
 func _on_auto_toggle() -> void:
 	_auto_play = not _auto_play
