@@ -313,7 +313,18 @@ func _on_event_choice_selected(choice_index: int) -> void:
 func _apply_interaction_effects(effects: Dictionary, recruited: Array, affections: Dictionary) -> void:
 	var pid: int = GameManager.current_player_index if "current_player_index" in GameManager else 0
 
-	# Hero stat bonuses
+	# Route through centralized EffectResolver if available
+	if EffectResolver:
+		EffectResolver.resolve(effects, {
+			"player_id": pid,
+			"source": "hero_interaction",
+			"event_id": _current_event.get("id", "interaction"),
+			"recruited": recruited,
+			"affections": affections,
+		})
+		return
+
+	# Legacy fallback — Hero stat bonuses
 	if effects.has("hero_stat_bonus"):
 		for bonus in effects["hero_stat_bonus"]:
 			var hero_id: String = bonus.get("hero", "")

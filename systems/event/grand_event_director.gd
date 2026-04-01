@@ -351,7 +351,12 @@ func _on_event_choice_selected(choice_index: int) -> void:
 func _apply_grand_effects(effects: Dictionary) -> void:
 	var pid: int = GameManager.current_player_index if "current_player_index" in GameManager else 0
 
-	# Resources
+	# Route through centralized EffectResolver if available
+	if EffectResolver:
+		EffectResolver.resolve(effects, {"player_id": pid, "source": "grand_event", "event_id": _current_grand_event.get("id", "grand")})
+		return
+
+	# Legacy fallback — Resources
 	var res_delta := {}
 	for key in ["gold", "food", "iron", "slaves", "prestige", "magic_crystal"]:
 		if effects.has(key):

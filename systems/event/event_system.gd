@@ -1264,6 +1264,12 @@ func _check_world_event_trigger(trigger: Dictionary, player_id: int) -> bool:
 
 
 func _apply_world_event_effects(effects: Dictionary, player_id: int) -> void:
+	# Route through centralized EffectResolver if available
+	if EffectResolver:
+		EffectResolver.resolve(effects, {"player_id": player_id, "source": "world_event", "event_id": "world"})
+		return
+
+	# Legacy fallback
 	for key in effects:
 		match key:
 			"gold":
@@ -1365,7 +1371,8 @@ func process_turn_start() -> void:
 
 # ═══════════════ CHOICE APPLICATION ═══════════════
 
-## Apply the chosen effect from an event
+## Apply the chosen effect from an event.
+## Routes all effects through EffectResolver for centralized handling.
 func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 	var event: Dictionary = {}
 	for e in _events:
@@ -1380,247 +1387,146 @@ func apply_choice(event_id: String, choice_index: int) -> Dictionary:
 	var result := {"ok": true, "applied": []}
 	var pid: int = GameManager.get_human_player_id()
 
-	# Handle gamble type
-	if effects.get("type") == "gamble":
-		if randf() <= effects["success_rate"]:
-			effects = effects["success"]
-			result["gamble_result"] = "success"
-		else:
-			effects = effects["fail"]
-			result["gamble_result"] = "fail"
+	# Delegate to EffectResolver if available; otherwise fall back to legacy inline code
+	if EffectResolver:
+		var ctx: Dictionary = {
+			"player_id": pid,
+			"source": "event",
+			"event_id": event_id,
+		}
+		var resolved: Array = EffectResolver.resolve(effects, ctx)
 
-	# Handle DOT type
-	if effects.get("type") == "dot":
-		var dot_duration: int = effects.get("duration", 3)
-		# Find which resource is affected
-		for key in ["soldiers", "gold", "food", "iron"]:
-			if effects.has(key):
-				_active_dots.append({
-					"resource_key": key,
-					"delta": effects[key],
-					"remaining": dot_duration,
-				})
-				result["applied"].append("DOT %s: %+d/回合 x%d" % [key, effects[key], dot_duration])
-		EventBus.event_choice_made.emit(event_id, choice_index)
-		return result
-
-	# Handle combat type
-	if effects.get("type") == "combat":
-		var enemy_count: int = effects.get("enemy_soldiers", 8)
-		result["combat"] = true
-		result["enemy_soldiers"] = enemy_count
-		# Pass event_id with optional enemy_type suffix for themed armies
-		var combat_id: String = event_id
-		var enemy_type: String = effects.get("enemy_type", "")
-		if enemy_type != "":
-			combat_id = event_id + "::" + enemy_type
-		# Combat resolution delegated to GameManager via signal
-		EventBus.event_combat_requested.emit(pid, enemy_count, combat_id)
-		result["applied"].append("combat: vs %d enemy soldiers" % enemy_count)
-		EventBus.event_choice_made.emit(event_id, choice_index)
-		return result
-
-	# Apply resource changes via ResourceManager
-	var res_delta := {}
-	for key in ["gold", "food", "iron", "slaves", "prestige", "magic_crystal"]:
-		if effects.has(key):
-			res_delta[key] = effects[key]
-			result["applied"].append("%s: %+d" % [key, effects[key]])
-	if not res_delta.is_empty():
-		ResourceManager.apply_delta(pid, res_delta)
-
-	# Order changes via OrderManager
-	if effects.has("order"):
-		OrderManager.change_order(effects["order"])
-		result["applied"].append("order: %+d" % effects["order"])
-
-	# Threat changes via ThreatManager
-	if effects.has("threat"):
-		ThreatManager.change_threat(effects["threat"])
-		result["applied"].append("threat: %+d" % effects["threat"])
-
-	# Soldier changes via ResourceManager army
-	if effects.has("soldiers"):
-		if effects["soldiers"] > 0:
-			ResourceManager.add_army(pid, effects["soldiers"])
-		else:
-			ResourceManager.remove_army(pid, -effects["soldiers"])
-		result["soldier_change"] = effects["soldiers"]
-		result["applied"].append("soldiers: %+d" % effects["soldiers"])
-
-	# WAAAGH! changes — delegate to OrcMechanic so the value is actually applied
-	if effects.has("waaagh"):
-		if OrcMechanic != null and OrcMechanic.has_method("add_waaagh"):
-			OrcMechanic.add_waaagh(pid, effects["waaagh"])
-		else:
-			EventBus.waaagh_changed.emit(pid, effects["waaagh"])
-		result["applied"].append("waaagh: %+d" % effects["waaagh"])
-
-	# Plunder changes — delegate to PirateMechanic so the value is actually applied
-	if effects.has("plunder"):
-		if PirateMechanic != null and PirateMechanic.has_method("add_plunder_bonus"):
-			PirateMechanic.add_plunder_bonus(pid, effects["plunder"])
-		else:
-			EventBus.plunder_changed.emit(pid, effects["plunder"])
-		result["applied"].append("plunder: %+d" % effects["plunder"])
-
-	# Item reward
-	if effects.has("item") and effects["item"] == "random":
-		var granted_id: String = ItemManager.grant_random_loot(pid)
-		if granted_id != null and granted_id != "":
-			EventBus.item_acquired.emit(pid, ItemManager._get_item_name(granted_id))
-			result["applied"].append("item: random")
-
-	# Relic reward - emit signal; if player has no relic, trigger relic selection
-	if effects.has("relic") and effects["relic"]:
-		EventBus.message_log.emit("[color=green]发现远古遗物![/color]")
-		if not RelicManager.has_relic(pid):
-			# Trigger relic selection for player
-			var choices: Array = RelicManager.generate_relic_choices()
-			EventBus.message_log.emit("可选遗物: %s" % str(choices))
-		else:
-			# Already has relic - grant upgrade materials instead
-			ResourceManager.apply_delta(pid, {"prestige": 10})
-			EventBus.message_log.emit("已有遗物, 转化为 +10威望")
-		result["applied"].append("relic: +1")
-
-	# Buff application
-	if effects.has("buff"):
-		var buff: Dictionary = effects["buff"]
-		var buff_type: String = buff.get("type", "atk_pct")
-		var buff_val: float = buff.get("value", 0)
-		var buff_dur: int = buff.get("duration", 1)
-		BuffManager.add_buff(pid, "event_%s" % event_id, buff_type, buff_val, buff_dur, "event")
-		result["applied"].append("buff: %s (%d turns)" % [buff_type, buff_dur])
-
-	# Debuff application (negative buff)
-	if effects.has("debuff"):
-		var debuff: Dictionary = effects["debuff"]
-		var debuff_type: String = debuff.get("type", "income_pct")
-		var debuff_val: float = debuff.get("value", 0)
-		var debuff_dur: int = debuff.get("duration", 1)
-		BuffManager.add_buff(pid, "event_debuff_%s" % event_id, debuff_type, debuff_val, debuff_dur, "event")
-		result["applied"].append("debuff: %s %+d%% (%d turns)" % [debuff_type, debuff_val, debuff_dur])
-
-	# Immobile flag
-	if effects.get("immobile", false):
-		_immobile_this_turn = true
-		result["applied"].append("immobile: 本回合无法移动")
-
-	# Temp soldiers (expire after 3 turns)
-	if effects.has("temp_soldiers"):
-		var count: int = effects["temp_soldiers"]
-		ResourceManager.add_army(pid, count)
-		_temp_soldier_batches.append({"count": count, "remaining": 3})
-		result["applied"].append("temp_soldiers: +%d (3回合)" % count)
-
-	# Delayed gold (granted next turn)
-	if effects.has("gold_delayed"):
-		_pending_gold += effects["gold_delayed"]
-		result["applied"].append("gold_delayed: +%d (下回合到账)" % effects["gold_delayed"])
-
-	# Lose node(s): player loses border tile(s) to neutral
-	if effects.has("lose_node") and effects["lose_node"]:
-		_apply_lose_nodes(pid, 1)
-		result["applied"].append("lose_node: -1据点")
-
-	if effects.has("lose_nodes"):
-		var count: int = effects["lose_nodes"]
-		_apply_lose_nodes(pid, count)
-		result["applied"].append("lose_nodes: -%d据点" % count)
-
-	# Reveal fog of war
-	if effects.has("reveal"):
-		var count: int = effects["reveal"]
-		_apply_reveal(pid, count)
-		result["applied"].append("reveal: %d格迷雾" % count)
-
-	# Special NPC (dark elf event) - capture a random available NPC
-	if effects.get("special_npc", false):
-		var faction_id: int = GameManager.get_player_faction(pid)
-		var available_npcs: Array = NpcManager.get_available_npcs_for_faction(faction_id)
-		var captured_ids: Array = []
-		for npc in NpcManager.get_captured_npcs(pid):
-			captured_ids.append(npc.get("npc_id", ""))
-		var uncaptured: Array = []
-		for npc_id_str in available_npcs:
-			if npc_id_str not in captured_ids:
-				uncaptured.append(npc_id_str)
-		if not uncaptured.is_empty():
-			uncaptured.shuffle()
-			var npc_id: String = uncaptured[0]
-			NpcManager.capture_npc(pid, npc_id)
-			var npc_def: Dictionary = NpcManager.NPC_DEFS.get(npc_id, {})
-			EventBus.message_log.emit("[color=green]事件获得特殊NPC: %s[/color]" % npc_def.get("name", npc_id))
-		else:
-			ResourceManager.apply_delta(pid, {"prestige": 5})
-			EventBus.message_log.emit("无可用NPC, 转化为 +5威望")
-		result["applied"].append("special_npc: +1")
-
-	# Reputation changes for all factions via DiplomacyManager
-	if effects.has("reputation_all"):
-		var reps: Dictionary = DiplomacyManager.get_all_reputations()
-		for faction_key in reps:
-			DiplomacyManager.change_reputation(faction_key, effects["reputation_all"])
-		result["applied"].append("reputation_all: %+d" % effects["reputation_all"])
-
-	# Corruption boost for all captured heroes
-	if effects.has("corruption_boost"):
-		var boost_val: int = effects["corruption_boost"]
-		for hid in HeroSystem.captured_heroes:
-			var cur_cor: int = HeroSystem.hero_corruption.get(hid, 0)
-			# BUG FIX: clamp to prevent negative corruption
-			HeroSystem.hero_corruption[hid] = clampi(cur_cor + boost_val, 0, 100)
-		result["applied"].append("corruption_boost: +%d (all prisoners)" % boost_val)
-
-	# BUG FIX R12: affection_boost effect was defined in hero_confession event but never implemented
-	if effects.has("affection_boost"):
-		var aff_val: int = effects["affection_boost"]
-		if HeroSystem.has_method("get_recruited_heroes"):
-			var recruited: Array = HeroSystem.get_recruited_heroes(pid)
-			if not recruited.is_empty():
-				var target_hero: String = recruited[randi() % recruited.size()]
-				if HeroSystem.has_method("add_affection"):
-					HeroSystem.add_affection(target_hero, aff_val)
-				EventBus.message_log.emit("[color=pink]%s 好感度 +%d[/color]" % [target_hero, aff_val])
-				result["applied"].append("affection_boost: +%d (%s)" % [aff_val, target_hero])
+		# Map EffectResolver results back to legacy result format
+		for entry in resolved:
+			result["applied"].append(entry.get("message", ""))
+		if ctx.has("gamble_result"):
+			result["gamble_result"] = ctx["gamble_result"]
+		# Check if combat was emitted (combat type returns empty dict after signal)
+		for entry in resolved:
+			if entry.get("key", "") == "combat":
+				result["combat"] = true
+				result["enemy_soldiers"] = entry.get("value", 0)
+		# Soldier change for legacy consumers
+		for entry in resolved:
+			if entry.get("key", "") == "soldiers":
+				result["soldier_change"] = entry.get("value", 0)
+	else:
+		# ── Legacy fallback (kept for safety if EffectResolver is not loaded) ──
+		# Handle gamble type
+		if effects.get("type") == "gamble":
+			if randf() <= effects["success_rate"]:
+				effects = effects["success"]
+				result["gamble_result"] = "success"
 			else:
-				ResourceManager.apply_delta(pid, {"prestige": aff_val})
-				EventBus.message_log.emit("无可用英雄, 转化为 +%d 威望" % aff_val)
-				result["applied"].append("affection_boost: +%d (无英雄, 转化威望)" % aff_val)
+				effects = effects["fail"]
+				result["gamble_result"] = "fail"
 
-	# Wall boost: repair player-owned walls (not enemy walls)
-	if effects.has("wall_boost"):
-		var boost_amount: int = effects["wall_boost"]
-		for tile in GameManager.tiles:
-			# BUG FIX: only repair walls owned by the player, not light faction enemy walls
-			if tile.get("owner_id", -1) == pid and LightFactionAI.has_wall(tile["index"]):
-				LightFactionAI.repair_wall(tile["index"], boost_amount)
-		result["applied"].append("wall_boost: +%d (player walls)" % boost_amount)
+		if effects.get("type") == "dot":
+			var dot_duration: int = effects.get("duration", 3)
+			for key in ["soldiers", "gold", "food", "iron"]:
+				if effects.has(key):
+					_active_dots.append({"resource_key": key, "delta": effects[key], "remaining": dot_duration})
+					result["applied"].append("DOT %s: %+d/回合 x%d" % [key, effects[key], dot_duration])
+			EventBus.event_choice_made.emit(event_id, choice_index)
+			return result
 
-	# v4.3: Hero permanent stat boost (from chain events)
-	if effects.has("hero_stat_boost"):
-		var boost: Dictionary = effects["hero_stat_boost"]
-		var stat_key: String = boost.get("stat", "atk")
-		var stat_val: int = boost.get("value", 1)
-		var boosted_hero: String = ""
-		# Apply to a random recruited hero (BUG FIX: was always picking first)
-		if HeroSystem.has_method("get_recruited_heroes"):
-			var recruited: Array = HeroSystem.get_recruited_heroes(pid)
-			if not recruited.is_empty():
-				boosted_hero = recruited[randi() % recruited.size()]
-				if HeroSystem.has_method("modify_hero_stat"):
-					HeroSystem.modify_hero_stat(boosted_hero, stat_key, stat_val)
-				EventBus.message_log.emit("[color=green]%s 的%s永久+%d![/color]" % [boosted_hero, stat_key.to_upper(), stat_val])
-		if boosted_hero != "":
-			result["applied"].append("hero_stat_boost: %s+%d (%s)" % [stat_key, stat_val, boosted_hero])
-		else:
-			result["applied"].append("hero_stat_boost: %s+%d (无可用英雄)" % [stat_key, stat_val])
+		if effects.get("type") == "combat":
+			var enemy_count: int = effects.get("enemy_soldiers", 8)
+			result["combat"] = true
+			result["enemy_soldiers"] = enemy_count
+			var combat_id: String = event_id
+			var enemy_type: String = effects.get("enemy_type", "")
+			if enemy_type != "":
+				combat_id = event_id + "::" + enemy_type
+			EventBus.event_combat_requested.emit(pid, enemy_count, combat_id)
+			result["applied"].append("combat: vs %d enemy soldiers" % enemy_count)
+			EventBus.event_choice_made.emit(event_id, choice_index)
+			return result
 
-	# v4.3: Shadow essence resource
-	if effects.has("shadow_essence"):
-		ResourceManager.apply_delta(pid, {"shadow_essence": effects["shadow_essence"]})
-		result["applied"].append("shadow_essence: %+d" % effects["shadow_essence"])
+		var res_delta := {}
+		for key in ["gold", "food", "iron", "slaves", "prestige", "magic_crystal", "shadow_essence", "gunpowder"]:
+			if effects.has(key):
+				res_delta[key] = effects[key]
+				result["applied"].append("%s: %+d" % [key, effects[key]])
+		if not res_delta.is_empty():
+			ResourceManager.apply_delta(pid, res_delta)
+		if effects.has("order"):
+			OrderManager.change_order(effects["order"])
+			result["applied"].append("order: %+d" % effects["order"])
+		if effects.has("threat"):
+			ThreatManager.change_threat(effects["threat"])
+			result["applied"].append("threat: %+d" % effects["threat"])
+		if effects.has("soldiers"):
+			if effects["soldiers"] > 0:
+				ResourceManager.add_army(pid, effects["soldiers"])
+			else:
+				ResourceManager.remove_army(pid, -effects["soldiers"])
+			result["soldier_change"] = effects["soldiers"]
+			result["applied"].append("soldiers: %+d" % effects["soldiers"])
+		if effects.has("waaagh"):
+			if OrcMechanic != null and OrcMechanic.has_method("add_waaagh"):
+				OrcMechanic.add_waaagh(pid, effects["waaagh"])
+			result["applied"].append("waaagh: %+d" % effects["waaagh"])
+		if effects.has("plunder"):
+			if PirateMechanic != null and PirateMechanic.has_method("add_plunder_bonus"):
+				PirateMechanic.add_plunder_bonus(pid, effects["plunder"])
+			result["applied"].append("plunder: %+d" % effects["plunder"])
+		if effects.has("buff"):
+			var buff: Dictionary = effects["buff"]
+			BuffManager.add_buff(pid, "event_%s" % event_id, buff.get("type", "atk_pct"), buff.get("value", 0), buff.get("duration", 1), "event")
+			result["applied"].append("buff: %s" % buff.get("type", ""))
+		if effects.has("debuff"):
+			var debuff: Dictionary = effects["debuff"]
+			BuffManager.add_buff(pid, "event_debuff_%s" % event_id, debuff.get("type", "income_pct"), debuff.get("value", 0), debuff.get("duration", 1), "event")
+			result["applied"].append("debuff: %s" % debuff.get("type", ""))
+		if effects.get("immobile", false):
+			_immobile_this_turn = true
+			result["applied"].append("immobile")
+		if effects.has("temp_soldiers"):
+			ResourceManager.add_army(pid, effects["temp_soldiers"])
+			_temp_soldier_batches.append({"count": effects["temp_soldiers"], "remaining": 3})
+			result["applied"].append("temp_soldiers: +%d" % effects["temp_soldiers"])
+		if effects.has("gold_delayed"):
+			_pending_gold += effects["gold_delayed"]
+			result["applied"].append("gold_delayed: +%d" % effects["gold_delayed"])
+		if effects.has("lose_node") and effects["lose_node"]:
+			_apply_lose_nodes(pid, 1)
+			result["applied"].append("lose_node: -1")
+		if effects.has("lose_nodes"):
+			_apply_lose_nodes(pid, effects["lose_nodes"])
+			result["applied"].append("lose_nodes: -%d" % effects["lose_nodes"])
+		if effects.has("reveal"):
+			_apply_reveal(pid, effects["reveal"])
+			result["applied"].append("reveal: %d" % effects["reveal"])
+		if effects.has("item") and effects["item"] == "random":
+			ItemManager.grant_random_loot(pid)
+			result["applied"].append("item: random")
+		if effects.has("relic") and effects["relic"]:
+			if not RelicManager.has_relic(pid):
+				RelicManager.generate_relic_choices()
+			else:
+				ResourceManager.apply_delta(pid, {"prestige": 10})
+			result["applied"].append("relic: +1")
+		if effects.has("special_npc") and effects["special_npc"]:
+			result["applied"].append("special_npc: +1")
+		if effects.has("reputation_all"):
+			var reps: Dictionary = DiplomacyManager.get_all_reputations()
+			for faction_key in reps:
+				DiplomacyManager.change_reputation(faction_key, effects["reputation_all"])
+			result["applied"].append("reputation_all: %+d" % effects["reputation_all"])
+		if effects.has("corruption_boost"):
+			var boost_val: int = effects["corruption_boost"]
+			for hid in HeroSystem.captured_heroes:
+				HeroSystem.hero_corruption[hid] = clampi(HeroSystem.hero_corruption.get(hid, 0) + boost_val, 0, 100)
+			result["applied"].append("corruption_boost: +%d" % boost_val)
+		if effects.has("wall_boost"):
+			var boost_amount: int = effects["wall_boost"]
+			for tile in GameManager.tiles:
+				if tile.get("owner_id", -1) == pid and LightFactionAI.has_wall(tile["index"]):
+					LightFactionAI.repair_wall(tile["index"], boost_amount)
+			result["applied"].append("wall_boost: +%d" % boost_amount)
+		if effects.has("hero_stat_boost"):
+			result["applied"].append("hero_stat_boost")
 
 	# v4.3: Record event choice for chain system
 	_event_chain_history[event_id] = {

@@ -361,7 +361,12 @@ func _on_event_choice_selected(choice_index: int) -> void:
 func _apply_effects(effects: Dictionary) -> void:
 	var pid: int = GameManager.current_player_index if "current_player_index" in GameManager else 0
 
-	# Handle gamble type
+	# Route through centralized EffectResolver if available
+	if EffectResolver:
+		EffectResolver.resolve(effects, {"player_id": pid, "source": "faction_destruction", "event_id": _current_event.get("id", "faction_dest")})
+		return
+
+	# Legacy fallback — Handle gamble type
 	if effects.get("type") == "gamble":
 		if randf() <= effects.get("success_rate", 0.5):
 			effects = effects.get("success", {})

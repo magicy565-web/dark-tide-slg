@@ -297,7 +297,12 @@ func _on_event_choice_selected(choice_index: int) -> void:
 # ═══════════════ EFFECT APPLICATION ═══════════════
 
 func _apply_resource_effects(pid: int, effects: Dictionary) -> void:
-	# Resource changes
+	# Route through centralized EffectResolver if available
+	if EffectResolver:
+		EffectResolver.resolve(effects, {"player_id": pid, "source": "seasonal_event", "event_id": _current_event.get("id", "seasonal")})
+		return
+
+	# Legacy fallback — Resource changes
 	var res_delta := {}
 	for key in ["gold", "food", "iron", "slaves", "prestige", "magic_crystal"]:
 		if effects.has(key):
