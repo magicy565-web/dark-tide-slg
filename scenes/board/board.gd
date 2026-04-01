@@ -33,35 +33,15 @@ func _load_map_assets() -> void:
 		_deco_textures[dname] = _safe_tex_load("res://assets/map/decorations/%s.png" % dname)
 	# Military icon for army markers
 	_military_icon_tex = _safe_tex_load("res://assets/map/actions/military_army.png")
-	# Terrain textures — prefer v3 hand-painted, fall back to HD, then basic
+	# Terrain textures — load directly from v3
 	for tname in ["plains","forest","mountain","swamp","coastal","fortress_wall","river","ruins","wasteland","volcanic"]:
-		var v3_terrain: Texture2D = _safe_tex_load("res://assets/map/terrain_v3/terrain_%s.png" % tname)
-		if v3_terrain:
-			_terrain_textures[tname] = v3_terrain
-		else:
-			var hd_terrain: Texture2D = _safe_tex_load("res://assets/map/terrain_hd/terrain_%s.png" % tname)
-			if hd_terrain:
-				_terrain_textures[tname] = hd_terrain
-			else:
-				_terrain_textures[tname] = _safe_tex_load("res://assets/map/terrain/terrain_%s.png" % tname)
-	# Settlement/building icons — prefer v3, fall back to HD, then basic
+		_terrain_textures[tname] = _safe_tex_load("res://assets/map/terrain_v3/terrain_%s.png" % tname)
+	# Settlement/building icons — load directly from v3
 	for sname in ["fortress","village","watchtower","trading_post","beacon","ruins","port","gate","bandit","crystal_mine","horse_ranch","gunpowder","shadow_rift","stronghold","event"]:
-		var v3: Texture2D = _safe_tex_load("res://assets/map/settlements_v3/settlement_%s.png" % sname)
-		if v3:
-			_settlement_textures[sname] = v3
-		else:
-			var hd: Texture2D = _safe_tex_load("res://assets/map/settlements_hd/settlement_%s.png" % sname)
-			if hd:
-				_settlement_textures[sname] = hd
-			else:
-				_settlement_textures[sname] = _safe_tex_load("res://assets/map/settlements/settlement_%s.png" % sname)
-	# Faction crests — prefer HD ornate shields, fall back to simple crests
+		_settlement_textures[sname] = _safe_tex_load("res://assets/map/settlements_v3/settlement_%s.png" % sname)
+	# Faction crests — load directly from crests_hd
 	for fname in ["orc","pirate","dark_elf","human","high_elf","mage","bandit","neutral"]:
-		var hd_crest: Texture2D = _safe_tex_load("res://assets/map/crests_hd/crest_%s.png" % fname)
-		if hd_crest:
-			_crest_textures[fname] = hd_crest
-		else:
-			_crest_textures[fname] = _safe_tex_load("res://assets/map/crests/crest_%s.png" % fname)
+		_crest_textures[fname] = _safe_tex_load("res://assets/map/crests_hd/crest_%s.png" % fname)
 	# Bandit/neutral fallbacks if still missing
 	if not _crest_textures.get("bandit"):
 		_crest_textures["bandit"] = _crest_textures.get("orc")

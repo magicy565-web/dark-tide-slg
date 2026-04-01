@@ -5,11 +5,15 @@ export/
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
+ehthumbs.db
 
 # Editor
 *.swp
 *.swo
 *~
+*.bak
+*.tmp
 
 # Crash dumps
 core
@@ -17,3 +21,20 @@ core
 # Dev server
 server.py
 tools/__pycache__/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+
+# Build artifacts
+*.pck
+*.exe
+*.dmg
+*.app
+*.x86_64
+*.wasm

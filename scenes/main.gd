@@ -75,158 +75,158 @@ func _ready() -> void:
 	main_menu.game_started.connect(_on_game_started)
 
 	# Create hero panel dynamically (no .tscn dependency for autoload-like behavior)
-	var hero_panel_scene := preload("res://scenes/ui/hero_panel.tscn")
+	var hero_panel_scene := preload("res://scenes/ui/panels/hero_panel.tscn")
 	hero_panel = hero_panel_scene.instantiate()
 	add_child(hero_panel)
 
 	# Create quest journal panel dynamically
-	var quest_panel_scene := preload("res://scenes/ui/quest_journal_panel.tscn")
+	var quest_panel_scene := preload("res://scenes/ui/panels/quest_journal_panel.tscn")
 	quest_journal_panel = quest_panel_scene.instantiate()
 	add_child(quest_journal_panel)
 
 	# Create code-only UI panels (no .tscn needed — they build UI in _ready)
-	var DiplomacyPanelScript = preload("res://scenes/ui/diplomacy_panel.gd")
+	var DiplomacyPanelScript = preload("res://scenes/ui/panels/diplomacy_panel.gd")
 	diplomacy_panel = CanvasLayer.new()
 	diplomacy_panel.set_script(DiplomacyPanelScript)
 	add_child(diplomacy_panel)
 
-	var TechTreePanelScript = preload("res://scenes/ui/tech_tree_panel.gd")
+	var TechTreePanelScript = preload("res://scenes/ui/panels/tech_tree_panel.gd")
 	tech_tree_panel = CanvasLayer.new()
 	tech_tree_panel.set_script(TechTreePanelScript)
 	add_child(tech_tree_panel)
 
-	var InventoryPanelScript = preload("res://scenes/ui/inventory_panel.gd")
+	var InventoryPanelScript = preload("res://scenes/ui/panels/inventory_panel.gd")
 	inventory_panel = CanvasLayer.new()
 	inventory_panel.set_script(InventoryPanelScript)
 	add_child(inventory_panel)
 
-	var HeroDetailPanelScript = preload("res://scenes/ui/hero_detail_panel.gd")
+	var HeroDetailPanelScript = preload("res://scenes/ui/panels/hero_detail_panel.gd")
 	hero_detail_panel_node = CanvasLayer.new()
 	hero_detail_panel_node.set_script(HeroDetailPanelScript)
 	add_child(hero_detail_panel_node)
 
-	var PiratePanelScript = preload("res://scenes/ui/pirate_panel.gd")
+	var PiratePanelScript = preload("res://scenes/ui/panels/pirate_panel.gd")
 	pirate_panel = CanvasLayer.new()
 	pirate_panel.set_script(PiratePanelScript)
 	add_child(pirate_panel)
 
 	# Mission panel (Sengoku Rance-style manual story event trigger)
-	var MissionPanelScript = preload("res://scenes/ui/mission_panel.gd")
+	var MissionPanelScript = preload("res://scenes/ui/dialog/mission_panel.gd")
 	mission_panel = CanvasLayer.new()
 	mission_panel.set_script(MissionPanelScript)
 	add_child(mission_panel)
 
 	# Territory Info Panel (comprehensive territory details)
-	var TerritoryInfoPanelScript = preload("res://scenes/ui/territory_info_panel.gd")
+	var TerritoryInfoPanelScript = preload("res://scenes/ui/panels/territory_info_panel.gd")
 	territory_info_panel = CanvasLayer.new()
 	territory_info_panel.set_script(TerritoryInfoPanelScript)
 	add_child(territory_info_panel)
 
 	# Quest tracker (always-visible on-screen widget)
-	var QuestTrackerScript = preload("res://scenes/ui/quest_tracker.gd")
+	var QuestTrackerScript = preload("res://scenes/ui/overlays/quest_tracker.gd")
 	quest_tracker = CanvasLayer.new()
 	quest_tracker.set_script(QuestTrackerScript)
 	add_child(quest_tracker)
 
 	# ── New depth system UI panels (v4.2) ──
-	var WeatherHudScript = preload("res://scenes/ui/weather_hud.gd")
+	var WeatherHudScript = preload("res://scenes/ui/overlays/weather_hud.gd")
 	weather_hud = CanvasLayer.new()
 	weather_hud.set_script(WeatherHudScript)
 	add_child(weather_hud)
 
-	var EspionagePanelScript = preload("res://scenes/ui/espionage_panel.gd")
+	var EspionagePanelScript = preload("res://scenes/ui/panels/espionage_panel.gd")
 	espionage_panel = CanvasLayer.new()
 	espionage_panel.set_script(EspionagePanelScript)
 	add_child(espionage_panel)
 
-	var SupplyOverlayScript = preload("res://scenes/ui/supply_overlay.gd")
+	var SupplyOverlayScript = preload("res://scenes/ui/overlays/supply_overlay.gd")
 	supply_overlay = CanvasLayer.new()
 	supply_overlay.set_script(SupplyOverlayScript)
 	add_child(supply_overlay)
 
-	var FormationPreviewScript = preload("res://scenes/ui/formation_preview.gd")
+	var FormationPreviewScript = preload("res://scenes/ui/combat/formation_preview.gd")
 	formation_preview = CanvasLayer.new()
 	formation_preview.set_script(FormationPreviewScript)
 	add_child(formation_preview)
 
-	var CombatInterventionScript = preload("res://scenes/ui/combat_intervention_panel.gd")
+	var CombatInterventionScript = preload("res://scenes/ui/combat/combat_intervention_panel.gd")
 	combat_intervention_panel = CanvasLayer.new()
 	combat_intervention_panel.set_script(CombatInterventionScript)
 	add_child(combat_intervention_panel)
 
-	var BattlePrepScript = preload("res://scenes/ui/battle_prep_panel.gd")
+	var BattlePrepScript = preload("res://scenes/ui/combat/battle_prep_panel.gd")
 	battle_prep_panel = CanvasLayer.new()
 	battle_prep_panel.set_script(BattlePrepScript)
 	add_child(battle_prep_panel)
 
 	# Army Management Panel (SR07-style, code-only)
-	var ArmyPanelScript = preload("res://scenes/ui/army_panel.gd")
+	var ArmyPanelScript = preload("res://scenes/ui/panels/army_panel.gd")
 	army_panel = CanvasLayer.new()
 	army_panel.name = "ArmyPanel"
 	army_panel.set_script(ArmyPanelScript)
 	add_child(army_panel)
 
 	# Game over overlay (v4.5) — high-layer CanvasLayer that covers everything
-	var GameOverPanelScript = preload("res://scenes/ui/game_over_panel.gd")
+	var GameOverPanelScript = preload("res://scenes/ui/system/game_over_panel.gd")
 	game_over_panel_node = CanvasLayer.new()
 	game_over_panel_node.set_script(GameOverPanelScript)
 	add_child(game_over_panel_node)
 
 	# ── v3.4: AI Indicator overlay ──
-	var AIIndicatorScript = preload("res://scenes/ui/ai_indicator.gd")
+	var AIIndicatorScript = preload("res://scenes/ui/overlays/ai_indicator.gd")
 	ai_indicator = CanvasLayer.new()
 	ai_indicator.layer = UILayerRegistry.LAYER_AI_INDICATOR
 	ai_indicator.set_script(AIIndicatorScript)
 	add_child(ai_indicator)
 
 	# ── v3.4: Action Visualizer overlay ──
-	var ActionVisualizerScript = preload("res://scenes/ui/action_visualizer.gd")
+	var ActionVisualizerScript = preload("res://scenes/ui/overlays/action_visualizer.gd")
 	action_visualizer = CanvasLayer.new()
 	action_visualizer.layer = UILayerRegistry.LAYER_ACTION_VISUALIZER
 	action_visualizer.set_script(ActionVisualizerScript)
 	add_child(action_visualizer)
 
 	# ── v3.4: Troop Training Panel ──
-	var TroopTrainingScript = preload("res://scenes/ui/troop_training_panel.gd")
+	var TroopTrainingScript = preload("res://scenes/ui/panels/troop_training_panel.gd")
 	troop_training_panel = CanvasLayer.new()
 	troop_training_panel.set_script(TroopTrainingScript)
 	add_child(troop_training_panel)
 
 	# ── v3.4: Debug Console (highest layer) ──
-	var DebugConsoleScript = preload("res://scenes/ui/debug_console.gd")
+	var DebugConsoleScript = preload("res://scenes/ui/system/debug_console.gd")
 	debug_console = CanvasLayer.new()
 	debug_console.layer = UILayerRegistry.LAYER_DEBUG_CONSOLE
 	debug_console.set_script(DebugConsoleScript)
 	add_child(debug_console)
 
 	# ── v3.5: Tile Indicator System (low layer, above board) ──
-	var TileIndicatorScript = preload("res://scenes/ui/tile_indicator_system.gd")
+	var TileIndicatorScript = preload("res://scenes/ui/overlays/tile_indicator_system.gd")
 	tile_indicator_system = CanvasLayer.new()
 	tile_indicator_system.layer = UILayerRegistry.LAYER_TILE_INDICATORS
 	tile_indicator_system.set_script(TileIndicatorScript)
 	add_child(tile_indicator_system)
 
 	# ── v3.5: Intel Overlay (above tile indicators) ──
-	var IntelOverlayScript = preload("res://scenes/ui/intel_overlay.gd")
+	var IntelOverlayScript = preload("res://scenes/ui/overlays/intel_overlay.gd")
 	intel_overlay = CanvasLayer.new()
 	intel_overlay.layer = UILayerRegistry.LAYER_INTEL_OVERLAY
 	intel_overlay.set_script(IntelOverlayScript)
 	add_child(intel_overlay)
 
 	# ── v3.6: Equipment Forge Panel ──
-	var EquipmentForgePanelScript = preload("res://scenes/ui/equipment_forge_panel.gd")
+	var EquipmentForgePanelScript = preload("res://scenes/ui/panels/equipment_forge_panel.gd")
 	equipment_forge_panel = CanvasLayer.new()
 	equipment_forge_panel.set_script(EquipmentForgePanelScript)
 	add_child(equipment_forge_panel)
 
 	# ── v4.8: Nation Power Panel (fixed map, Key: N) ──
-	var NationPanelScript = preload("res://scenes/ui/nation_panel.gd")
+	var NationPanelScript = preload("res://scenes/ui/panels/nation_panel.gd")
 	nation_panel = CanvasLayer.new()
 	nation_panel.set_script(NationPanelScript)
 	add_child(nation_panel)
 
 	# ── v4.8: Multi-route Battle Panel (合战, Key: G) ──
-	var MultiRoutePanelScript = preload("res://scenes/ui/multi_route_panel.gd")
+	var MultiRoutePanelScript = preload("res://scenes/ui/combat/multi_route_panel.gd")
 	multi_route_panel = CanvasLayer.new()
 	multi_route_panel.set_script(MultiRoutePanelScript)
 	add_child(multi_route_panel)
