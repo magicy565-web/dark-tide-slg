@@ -5516,6 +5516,9 @@ func _reveal_around(tile_index: int, player_id: int) -> void:
 		return
 	var tdata: Dictionary = FactionData.TERRAIN_DATA.get(tiles[tile_index].get("terrain", FactionData.TerrainType.PLAINS), {})
 	var vis_range: int = tdata.get("visibility_range", 2)
+	# Apply building visibility_bonus from the source tile (Watch Tower, Scout Tower, etc.)
+	var tile_effects: Dictionary = BuildingRegistry.get_tile_building_effects(tiles[tile_index])
+	vis_range += int(tile_effects.get("visibility_bonus", 0))
 	var visited: Dictionary = {tile_index: 0}
 	var queue: Array = [tile_index]
 	while queue.size() > 0:

@@ -112,10 +112,11 @@ var _upgrade_flash_tiles: Dictionary = {}  # idx -> true, tiles currently playin
 # ── Material cache ──
 var _material_cache: Dictionary = {}
 const _MATERIAL_CACHE_MAX: int = 512
-var _fog_mat: StandardMaterial3D = null
-var _fog_edge_mat: StandardMaterial3D = null
+var _fog_shader: Shader = null
+var _fog_mat: ShaderMaterial = null   # Shared base; per-tile instances created in _build_territory
 # ── Dirty fog tracking ──
 var _fog_dirty_tiles: Array = []
+var _fog_tweens: Dictionary = {}  # idx -> Tween for reveal/conceal transitions
 # ── Selection state ──
 var selected_tile: int = -1
 var hovered_tile: int = -1
@@ -407,15 +408,12 @@ func _build_board() -> void:
 	tile_visuals.clear()
 	_material_cache.clear()
 	_fog_dirty_tiles.clear()
-	# Pre-build fog materials
-	_fog_mat = StandardMaterial3D.new()
-	_fog_mat.albedo_color = COL_FOG
-	_fog_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_fog_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_fog_edge_mat = StandardMaterial3D.new()
-	_fog_edge_mat.albedo_color = COL_FOG_EDGE
-	_fog_edge_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_fog_edge_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	# Pre-build fog shader material
+	_fog_shader = load("res://shaders/fog_of_war.gdshader")
+	_fog_mat = ShaderMaterial.new()
+	_fog_mat.shader = _fog_shader
+	_fog_mat.set_shader_parameter("fog_density", 1.0)
+	_fog_mat.set_shader_parameter("alpha_multiplier", 1.0)
 	for tile in GameManager.tiles:
 		_build_territory(tile["index"], tile, tile["position_3d"])
 	_draw_edges(); _draw_faction_borders()
@@ -518,7 +516,12 @@ func _build_territory(idx: int, tile: Dictionary, pos: Vector3) -> void:
 	var fog := MeshInstance3D.new(); var fm := CylinderMesh.new()
 	fm.top_radius = TILE_RADIUS * 1.15; fm.bottom_radius = TILE_RADIUS * 1.15
 	fm.height = 0.5; fm.radial_segments = 6; fog.mesh = fm
-	fog.material_override = _fog_mat; fog.position.y = 0.35; fog.name = "FogOverlay"
+	# Per-tile ShaderMaterial instance so density can vary per tile
+	var fog_mat_inst := ShaderMaterial.new()
+	fog_mat_inst.shader = _fog_shader
+	fog_mat_inst.set_shader_parameter("fog_density", 1.0)
+	fog_mat_inst.set_shader_parameter("alpha_multiplier", 1.0)
+	fog.material_override = fog_mat_inst; fog.position.y = 0.35; fog.name = "FogOverlay"
 	root.add_child(fog)
 	# Click area
 	var area := Area3D.new(); area.input_ray_pickable = true
@@ -1553,18 +1556,76 @@ func _update_fog() -> void:
 	for idx in tiles_to_update:
 		if not tile_visuals.has(idx): continue
 		var vis: Dictionary = tile_visuals[idx]
+		var fog_mi: MeshInstance3D = vis["fog"]
 		var rev: bool = GameManager.is_revealed_for(idx, pid)
-		vis["fog"].visible = not rev
-		if not rev:
-			var edge: bool = _has_revealed_neighbor(idx, pid)
-			if edge:
-				vis["fog"].material_override = _fog_edge_mat
-				vis["fog"].scale = Vector3(1.0, 0.7, 1.0)  # Shorter fog at edges
+		if rev:
+			# Tile is revealed -> fade fog out smoothly
+			if fog_mi.visible:
+				_tween_fog_out(idx, fog_mi)
+			vis["label"].visible = true; vis["garrison_label"].visible = true
+			vis["flag_root"].visible = GameManager.tiles[idx].get("owner_id", -1) >= 0
+		else:
+			# Tile is fogged -> compute distance-based density
+			var dist: int = _fog_distance_to_revealed(idx, pid)
+			var density: float = 1.0
+			if dist <= 1:
+				density = 0.2   # very light - edge fog
+			elif dist == 2:
+				density = 0.55  # medium fog
 			else:
-				vis["fog"].material_override = _fog_mat
-				vis["fog"].scale = Vector3(1.0, 1.0, 1.0)  # Full fog
-		vis["label"].visible = rev; vis["garrison_label"].visible = rev
-		vis["flag_root"].visible = rev and GameManager.tiles[idx].get("owner_id", -1) >= 0
+				density = 1.0   # full dense fog
+			var height_scale: float = lerp(0.5, 1.0, density)
+			fog_mi.scale = Vector3(1.0, height_scale, 1.0)
+			var mat: ShaderMaterial = fog_mi.material_override as ShaderMaterial
+			if mat:
+				mat.set_shader_parameter("fog_density", density)
+			if not fog_mi.visible:
+				fog_mi.visible = true
+				if mat:
+					mat.set_shader_parameter("alpha_multiplier", 1.0)
+			vis["label"].visible = false; vis["garrison_label"].visible = false
+			vis["flag_root"].visible = false
+
+func _fog_distance_to_revealed(idx: int, pid: int) -> int:
+	## BFS to find shortest distance from idx to the nearest revealed tile.
+	## Returns 0 if the tile itself is revealed, capped at 4 for performance.
+	if GameManager.is_revealed_for(idx, pid):
+		return 0
+	var visited: Dictionary = {idx: 0}
+	var queue: Array = [idx]
+	while queue.size() > 0:
+		var current: int = queue.pop_front()
+		var depth: int = visited[current]
+		if depth >= 4:
+			break
+		var neighbors: Array = GameManager.adjacency.get(current, [])
+		for n in neighbors:
+			if visited.has(n):
+				continue
+			if GameManager.is_revealed_for(n, pid):
+				return depth + 1
+			visited[n] = depth + 1
+			queue.append(n)
+	return 4  # Far from any revealed tile
+
+func _tween_fog_out(idx: int, fog_mi: MeshInstance3D) -> void:
+	## Smoothly fades fog out over 0.3s then hides the mesh.
+	if _fog_tweens.has(idx) and _fog_tweens[idx] != null:
+		_fog_tweens[idx].kill()
+	var mat: ShaderMaterial = fog_mi.material_override as ShaderMaterial
+	if not mat:
+		fog_mi.visible = false
+		return
+	var tw: Tween = create_tween()
+	tw.tween_method(func(v: float) -> void:
+		if is_instance_valid(fog_mi) and is_instance_valid(mat):
+			mat.set_shader_parameter("alpha_multiplier", v)
+	, 1.0, 0.0, 0.3)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(fog_mi):
+			fog_mi.visible = false
+	)
+	_fog_tweens[idx] = tw
 
 func _has_revealed_neighbor(idx: int, pid: int) -> bool:
 	if not GameManager.adjacency.has(idx): return false
