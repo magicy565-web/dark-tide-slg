@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ctytygcjc09x"
-path="res://.godot/imported/light_priest_lv3.png-63c248d6c71e1376.ctex"
+uid="uid://bjmc7ck6gei1c"
+path="res://.godot/imported/light_priest_lv3.png-63c248d6c71e1376f9fc0a08aba34f8d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops_light/light_priest_lv3.png"
-dest_files=["res://.godot/imported/light_priest_lv3.png-63c248d6c71e1376.ctex"]
+dest_files=["res://.godot/imported/light_priest_lv3.png-63c248d6c71e1376f9fc0a08aba34f8d.ctex"]
 
 [params]
 

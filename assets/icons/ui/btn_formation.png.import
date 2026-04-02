@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://uuubag4inltn"
-path="res://.godot/imported/btn_formation.png-1b2849b93dee2d52.ctex"
+uid="uid://cd57o4ihs324t"
+path="res://.godot/imported/btn_formation.png-1b2849b93dee2d5251d12f7dd998860f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/btn_formation.png"
-dest_files=["res://.godot/imported/btn_formation.png-1b2849b93dee2d52.ctex"]
+dest_files=["res://.godot/imported/btn_formation.png-1b2849b93dee2d5251d12f7dd998860f.ctex"]
 
 [params]
 

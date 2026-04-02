@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7iqrwy7pyrqz"
-path="res://.godot/imported/charge_rush.png-8d461768cbfd09cb.ctex"
+uid="uid://p41j3n7f3lle"
+path="res://.godot/imported/charge_rush.png-8d461768cbfd09cbe251515e7fa9e0ad.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/passive/charge_rush.png"
-dest_files=["res://.godot/imported/charge_rush.png-8d461768cbfd09cb.ctex"]
+dest_files=["res://.godot/imported/charge_rush.png-8d461768cbfd09cbe251515e7fa9e0ad.ctex"]
 
 [params]
 

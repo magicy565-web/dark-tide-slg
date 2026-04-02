@@ -511,7 +511,7 @@ func _update_chokepoint_marker(tile_idx: int, tile_data: Dictionary) -> void:
 	lbl.add_theme_color_override("font_color", ColorTheme.ACCENT_GOLD_BRIGHT)
 
 
-func _update_intel_indicators(tile_idx: int, tile_data: Dictionary) -> void:
+func _update_intel_indicators(tile_idx: int, _tile_data: Dictionary) -> void:
 	var scout_lbl: Label = _indicator_nodes[tile_idx].get("intel_scout")
 	var sabo_lbl: Label = _indicator_nodes[tile_idx].get("intel_sabo")
 	var shield_lbl: Label = _indicator_nodes[tile_idx].get("intel_shield")

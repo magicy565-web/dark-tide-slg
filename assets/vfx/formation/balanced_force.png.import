@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://k5vym01189ib"
-path="res://.godot/imported/balanced_force.png-f174b54cc929949c.ctex"
+uid="uid://d8el0vmk5sbe"
+path="res://.godot/imported/balanced_force.png-f174b54cc929949cd2d5e8bc83afd5aa.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/formation/balanced_force.png"
-dest_files=["res://.godot/imported/balanced_force.png-f174b54cc929949c.ctex"]
+dest_files=["res://.godot/imported/balanced_force.png-f174b54cc929949cd2d5e8bc83afd5aa.ctex"]
 
 [params]
 

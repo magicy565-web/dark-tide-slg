@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://u3mkx7lfgrbt"
-path="res://.godot/imported/holy_slash.png-dd30768e9ed9d325.ctex"
+uid="uid://b0x1bgvk2a8wu"
+path="res://.godot/imported/holy_slash.png-dd30768e9ed9d3250ce9a7c133540621.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/holy_slash.png"
-dest_files=["res://.godot/imported/holy_slash.png-dd30768e9ed9d325.ctex"]
+dest_files=["res://.godot/imported/holy_slash.png-dd30768e9ed9d3250ce9a7c133540621.ctex"]
 
 [params]
 

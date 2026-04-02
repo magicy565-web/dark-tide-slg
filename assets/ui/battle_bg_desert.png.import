@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://krrq6hhycstf"
-path="res://.godot/imported/battle_bg_desert.png-62d7d3979f1639e3.ctex"
+uid="uid://dmx5a3imlcplq"
+path="res://.godot/imported/battle_bg_desert.png-62d7d3979f1639e36f821737af328fc4.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/battle_bg_desert.png"
-dest_files=["res://.godot/imported/battle_bg_desert.png-62d7d3979f1639e3.ctex"]
+dest_files=["res://.godot/imported/battle_bg_desert.png-62d7d3979f1639e36f821737af328fc4.ctex"]
 
 [params]
 

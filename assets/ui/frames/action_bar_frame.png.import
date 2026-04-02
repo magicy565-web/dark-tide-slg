@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://8tzn5a4fc3wj"
-path="res://.godot/imported/action_bar_frame.png-28087af9473643df.ctex"
+uid="uid://di51v6xr44n2y"
+path="res://.godot/imported/action_bar_frame.png-28087af9473643dfca99df8674098ba0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/action_bar_frame.png"
-dest_files=["res://.godot/imported/action_bar_frame.png-28087af9473643df.ctex"]
+dest_files=["res://.godot/imported/action_bar_frame.png-28087af9473643dfca99df8674098ba0.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://g03x9lemnshw"
-path="res://.godot/imported/btn_retreat.png-824acae54e61564f.ctex"
+uid="uid://cmpi88n8sesgc"
+path="res://.godot/imported/btn_retreat.png-824acae54e61564f5efa2afd8ac0a457.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/btn_retreat.png"
-dest_files=["res://.godot/imported/btn_retreat.png-824acae54e61564f.ctex"]
+dest_files=["res://.godot/imported/btn_retreat.png-824acae54e61564f5efa2afd8ac0a457.ctex"]
 
 [params]
 

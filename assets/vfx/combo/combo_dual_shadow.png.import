@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://zz4c66bqw1a9"
-path="res://.godot/imported/combo_dual_shadow.png-f4d92c472600a664.ctex"
+uid="uid://dx8a2whqsu62h"
+path="res://.godot/imported/combo_dual_shadow.png-f4d92c472600a6642d17e20a113f5c93.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/combo/combo_dual_shadow.png"
-dest_files=["res://.godot/imported/combo_dual_shadow.png-f4d92c472600a664.ctex"]
+dest_files=["res://.godot/imported/combo_dual_shadow.png-f4d92c472600a6642d17e20a113f5c93.ctex"]
 
 [params]
 

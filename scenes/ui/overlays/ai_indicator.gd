@@ -268,12 +268,12 @@ func _on_turn_started(player_id: int) -> void:
 	_slide_in()
 
 
-func _on_turn_ended(player_id: int) -> void:
+func _on_turn_ended(_player_id: int) -> void:
 	if _is_visible:
 		_slide_out()
 
 
-func _on_ai_action_started(faction_key: String, action_type: String, detail: String) -> void:
+func _on_ai_action_started(_faction_key: String, action_type: String, detail: String) -> void:
 	if not _is_visible:
 		return
 	var action_name: String = ACTION_LABELS.get(action_type, action_type)
@@ -287,7 +287,7 @@ func _on_ai_action_started(faction_key: String, action_type: String, detail: Str
 	_start_pulse()
 
 
-func _on_ai_action_completed(faction_key: String, action_type: String, success: bool) -> void:
+func _on_ai_action_completed(_faction_key: String, action_type: String, success: bool) -> void:
 	if not _is_visible:
 		return
 	_is_thinking = false
@@ -299,7 +299,7 @@ func _on_ai_action_completed(faction_key: String, action_type: String, success: 
 	_add_log_entry(result_marker + " " + action_name, result_color)
 
 
-func _on_ai_turn_progress(faction_key: String, phase: int, total_phases: int) -> void:
+func _on_ai_turn_progress(_faction_key: String, phase: int, total_phases: int) -> void:
 	if not _is_visible:
 		return
 	if total_phases > 0:
@@ -309,7 +309,7 @@ func _on_ai_turn_progress(faction_key: String, phase: int, total_phases: int) ->
 	_progress_label.text = "阶段 %d/%d" % [phase, total_phases]
 
 
-func _on_ai_thinking(faction_key: String, is_thinking: bool) -> void:
+func _on_ai_thinking(_faction_key: String, is_thinking: bool) -> void:
 	_is_thinking = is_thinking
 	if is_thinking:
 		_dot_count = 0
@@ -319,7 +319,7 @@ func _on_ai_thinking(faction_key: String, is_thinking: bool) -> void:
 		_stop_pulse()
 
 
-func _on_phase_banner_requested(text: String, is_ai_turn: bool) -> void:
+func _on_phase_banner_requested(_text: String, is_ai_turn: bool) -> void:
 	# When a phase banner is shown during AI turn, briefly dim our panel
 	# so it doesn't compete visually
 	if _is_visible and is_ai_turn:

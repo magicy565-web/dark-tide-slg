@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://vimtcsmoykfr"
-path="res://.godot/imported/ashigaru_lv2.png-0ec0c7670a59978a.ctex"
+uid="uid://dpklab4rs63sv"
+path="res://.godot/imported/ashigaru_lv2.png-0ec0c7670a59978a6dba946fec88b224.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops/ashigaru_lv2.png"
-dest_files=["res://.godot/imported/ashigaru_lv2.png-0ec0c7670a59978a.ctex"]
+dest_files=["res://.godot/imported/ashigaru_lv2.png-0ec0c7670a59978a6dba946fec88b224.ctex"]
 
 [params]
 

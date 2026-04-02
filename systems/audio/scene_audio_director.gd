@@ -31,7 +31,7 @@ func _ready() -> void:
 	_switch_state(AudioSceneState.TITLE)
 
 
-func _on_turn_started(player_id: int) -> void:
+func _on_turn_started(_player_id: int) -> void:
 	if _combat_active or _suppress_auto:
 		return
 	# Check threat level for map BGM

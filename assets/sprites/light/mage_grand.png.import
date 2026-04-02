@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://kwxi4zmz9lh7"
-path="res://.godot/imported/mage_grand.png-095bcc0d7447b27e.ctex"
+uid="uid://cikwap0iws3uc"
+path="res://.godot/imported/mage_grand.png-095bcc0d7447b27e7c51a17332880f18.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/light/mage_grand.png"
-dest_files=["res://.godot/imported/mage_grand.png-095bcc0d7447b27e.ctex"]
+dest_files=["res://.godot/imported/mage_grand.png-095bcc0d7447b27e7c51a17332880f18.ctex"]
 
 [params]
 

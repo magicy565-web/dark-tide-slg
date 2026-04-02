@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xrzp4p9b181q"
-path="res://.godot/imported/human_ashigaru.png-726094657b6936f4.ctex"
+uid="uid://d3qdorruqk737"
+path="res://.godot/imported/human_ashigaru.png-726094657b6936f4d2ae5b183c744255.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/light/human_ashigaru.png"
-dest_files=["res://.godot/imported/human_ashigaru.png-726094657b6936f4.ctex"]
+dest_files=["res://.godot/imported/human_ashigaru.png-726094657b6936f4d2ae5b183c744255.ctex"]
 
 [params]
 

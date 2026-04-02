@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://mldmraooad0d"
-path="res://.godot/imported/holy_bastion.png-d89ed5664e807fb5.ctex"
+uid="uid://d3rfmerui1ro0"
+path="res://.godot/imported/holy_bastion.png-d89ed5664e807fb59283ed564af91ebf.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/formation/holy_bastion.png"
-dest_files=["res://.godot/imported/holy_bastion.png-d89ed5664e807fb5.ctex"]
+dest_files=["res://.godot/imported/holy_bastion.png-d89ed5664e807fb59283ed564af91ebf.ctex"]
 
 [params]
 

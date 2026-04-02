@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://yr9qovilhc63"
-path="res://.godot/imported/10_homura_hell_flame_dance.png-4a82a46e2d343ecf.ctex"
+uid="uid://dewil4sw6tgkg"
+path="res://.godot/imported/10_homura_hell_flame_dance.png-4a82a46e2d343ecfda87af0ed0fc98a6.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/10_homura_hell_flame_dance.png"
-dest_files=["res://.godot/imported/10_homura_hell_flame_dance.png-4a82a46e2d343ecf.ctex"]
+dest_files=["res://.godot/imported/10_homura_hell_flame_dance.png-4a82a46e2d343ecfda87af0ed0fc98a6.ctex"]
 
 [params]
 

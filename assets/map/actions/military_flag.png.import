@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://u5r0og75weza"
-path="res://.godot/imported/military_flag.png-9b08e02f97948071.ctex"
+uid="uid://qwy3a0r17q81"
+path="res://.godot/imported/military_flag.png-9b08e02f97948071ab770d3755dfc189.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/actions/military_flag.png"
-dest_files=["res://.godot/imported/military_flag.png-9b08e02f97948071.ctex"]
+dest_files=["res://.godot/imported/military_flag.png-9b08e02f97948071ab770d3755dfc189.ctex"]
 
 [params]
 

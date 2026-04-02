@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bjsoqx0brrn8"
-path="res://.godot/imported/light_mage.png-72c9e8a367a524b5.ctex"
+uid="uid://cioiyqgf4l1sj"
+path="res://.godot/imported/light_mage.png-72c9e8a367a524b5ec4cc7e8b3808387.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/light/light_mage.png"
-dest_files=["res://.godot/imported/light_mage.png-72c9e8a367a524b5.ctex"]
+dest_files=["res://.godot/imported/light_mage.png-72c9e8a367a524b5ec4cc7e8b3808387.ctex"]
 
 [params]
 

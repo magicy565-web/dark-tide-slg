@@ -519,7 +519,7 @@ func _on_hero_recruited(hero_id: String) -> void:
 	try_trigger_next(hero_id)
 
 
-func _on_affection_changed(hero_id: String, new_value: int) -> void:
+func _on_affection_changed(hero_id: String, _new_value: int) -> void:
 	# Check if affection threshold triggers next event
 	var route: String = story_progress.get(hero_id, {}).get("route", "")
 	if route in MANUAL_TRIGGER_ROUTES:

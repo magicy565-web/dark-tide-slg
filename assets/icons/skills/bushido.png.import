@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://fqdlbpl10yr2"
-path="res://.godot/imported/bushido.png-7bd6b16c5a90b31d.ctex"
+uid="uid://cpn3krppinfux"
+path="res://.godot/imported/bushido.png-7bd6b16c5a90b31d38001d47475084b9.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/bushido.png"
-dest_files=["res://.godot/imported/bushido.png-7bd6b16c5a90b31d.ctex"]
+dest_files=["res://.godot/imported/bushido.png-7bd6b16c5a90b31d38001d47475084b9.ctex"]
 
 [params]
 

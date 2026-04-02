@@ -573,7 +573,7 @@ func _on_unequip(hero_id: String, slot_key: String) -> void:
 	else:
 		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "Unequip failed"))
 
-func _show_equip_picker(hero_id: String, slot_key: String) -> void:
+func _show_equip_picker(hero_id: String, _slot_key: String) -> void:
 	## Show a popup listing available equipment from inventory that matches the given slot.
 	# Clean up any existing picker overlay first
 	var existing_overlay := root.get_node_or_null("EquipPickerOverlay")

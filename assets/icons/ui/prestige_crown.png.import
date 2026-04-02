@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://mamv6vjd4iwh"
-path="res://.godot/imported/prestige_crown.png-aedbccb727990bd7.ctex"
+uid="uid://c0obnxbqogrb2"
+path="res://.godot/imported/prestige_crown.png-aedbccb727990bd715258a7cae55a006.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/prestige_crown.png"
-dest_files=["res://.godot/imported/prestige_crown.png-aedbccb727990bd7.ctex"]
+dest_files=["res://.godot/imported/prestige_crown.png-aedbccb727990bd715258a7cae55a006.ctex"]
 
 [params]
 

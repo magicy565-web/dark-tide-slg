@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://isvxhmv8zxwh"
-path="res://.godot/imported/cavalry_charge.png-e16ebb383dd2085c.ctex"
+uid="uid://1o1lshqh1raq"
+path="res://.godot/imported/cavalry_charge.png-e16ebb383dd2085ccc9f1fb5a466b1e7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/formation/cavalry_charge.png"
-dest_files=["res://.godot/imported/cavalry_charge.png-e16ebb383dd2085c.ctex"]
+dest_files=["res://.godot/imported/cavalry_charge.png-e16ebb383dd2085ccc9f1fb5a466b1e7.ctex"]
 
 [params]
 

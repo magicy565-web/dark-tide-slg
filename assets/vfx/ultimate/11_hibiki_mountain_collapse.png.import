@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://wma2qf5uw74l"
-path="res://.godot/imported/11_hibiki_mountain_collapse.png-f0d235e6a46a6fca.ctex"
+uid="uid://yphiaogj38xa"
+path="res://.godot/imported/11_hibiki_mountain_collapse.png-f0d235e6a46a6fcaa4226c24d5c0a487.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/11_hibiki_mountain_collapse.png"
-dest_files=["res://.godot/imported/11_hibiki_mountain_collapse.png-f0d235e6a46a6fca.ctex"]
+dest_files=["res://.godot/imported/11_hibiki_mountain_collapse.png-f0d235e6a46a6fcaa4226c24d5c0a487.ctex"]
 
 [params]
 

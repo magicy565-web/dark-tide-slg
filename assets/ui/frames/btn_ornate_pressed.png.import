@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://elm45q9x41qb"
-path="res://.godot/imported/btn_ornate_pressed.png-fdf4b8c1071032df.ctex"
+uid="uid://dc54gfb4sakit"
+path="res://.godot/imported/btn_ornate_pressed.png-fdf4b8c1071032df7b8d4633b5411d42.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/btn_ornate_pressed.png"
-dest_files=["res://.godot/imported/btn_ornate_pressed.png-fdf4b8c1071032df.ctex"]
+dest_files=["res://.godot/imported/btn_ornate_pressed.png-fdf4b8c1071032df7b8d4633b5411d42.ctex"]
 
 [params]
 

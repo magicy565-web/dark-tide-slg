@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://drf5vc449hi4"
-path="res://.godot/imported/crest_bandit.png-289bc15419866f5b.ctex"
+uid="uid://bo75cj68tbt6d"
+path="res://.godot/imported/crest_bandit.png-289bc15419866f5ba78017a91b570ac1.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/crests_hd/crest_bandit.png"
-dest_files=["res://.godot/imported/crest_bandit.png-289bc15419866f5b.ctex"]
+dest_files=["res://.godot/imported/crest_bandit.png-289bc15419866f5ba78017a91b570ac1.ctex"]
 
 [params]
 

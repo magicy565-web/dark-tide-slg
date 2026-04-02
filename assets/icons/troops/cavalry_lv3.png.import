@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://uotm43u9kprb"
-path="res://.godot/imported/cavalry_lv3.png-dd033dfeb004ba07.ctex"
+uid="uid://dcvp7r67pia30"
+path="res://.godot/imported/cavalry_lv3.png-dd033dfeb004ba07796f9b94ae5acced.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops/cavalry_lv3.png"
-dest_files=["res://.godot/imported/cavalry_lv3.png-dd033dfeb004ba07.ctex"]
+dest_files=["res://.godot/imported/cavalry_lv3.png-dd033dfeb004ba07796f9b94ae5acced.ctex"]
 
 [params]
 

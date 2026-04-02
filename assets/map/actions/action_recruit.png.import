@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://oajxyeupzdb2"
-path="res://.godot/imported/action_recruit.png-2175bad7ff4a66d9.ctex"
+uid="uid://d1xph1evy5h3f"
+path="res://.godot/imported/action_recruit.png-2175bad7ff4a66d9988bab4ca9b905b2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/actions/action_recruit.png"
-dest_files=["res://.godot/imported/action_recruit.png-2175bad7ff4a66d9.ctex"]
+dest_files=["res://.godot/imported/action_recruit.png-2175bad7ff4a66d9988bab4ca9b905b2.ctex"]
 
 [params]
 

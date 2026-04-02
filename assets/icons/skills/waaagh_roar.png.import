@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://jh6au2zfkw90"
-path="res://.godot/imported/waaagh_roar.png-735c557b5949f5a8.ctex"
+uid="uid://bbixvchkubs71"
+path="res://.godot/imported/waaagh_roar.png-735c557b5949f5a8e6f4071041e7edbe.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/waaagh_roar.png"
-dest_files=["res://.godot/imported/waaagh_roar.png-735c557b5949f5a8.ctex"]
+dest_files=["res://.godot/imported/waaagh_roar.png-735c557b5949f5a8e6f4071041e7edbe.ctex"]
 
 [params]
 

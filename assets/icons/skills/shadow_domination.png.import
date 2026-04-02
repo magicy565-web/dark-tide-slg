@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://x3xc03d9unq7"
-path="res://.godot/imported/shadow_domination.png-fcf9b534787cd2e4.ctex"
+uid="uid://bggjlf80w2coy"
+path="res://.godot/imported/shadow_domination.png-fcf9b534787cd2e494ef42b18511d3a8.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/shadow_domination.png"
-dest_files=["res://.godot/imported/shadow_domination.png-fcf9b534787cd2e4.ctex"]
+dest_files=["res://.godot/imported/shadow_domination.png-fcf9b534787cd2e494ef42b18511d3a8.ctex"]
 
 [params]
 

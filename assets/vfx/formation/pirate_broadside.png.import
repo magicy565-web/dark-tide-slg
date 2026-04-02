@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://akcce3j2v83x"
-path="res://.godot/imported/pirate_broadside.png-8b904dd48a9d130f.ctex"
+uid="uid://v8tt0b2ken0j"
+path="res://.godot/imported/pirate_broadside.png-8b904dd48a9d130fafe9e460774a737f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/formation/pirate_broadside.png"
-dest_files=["res://.godot/imported/pirate_broadside.png-8b904dd48a9d130f.ctex"]
+dest_files=["res://.godot/imported/pirate_broadside.png-8b904dd48a9d130fafe9e460774a737f.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://iegx3q074cxq"
-path="res://.godot/imported/holy_shield.png-691e5008dc002b92.ctex"
+uid="uid://l3qyqm7ndjck"
+path="res://.godot/imported/holy_shield.png-691e5008dc002b9214836de939f28d6e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/holy_shield.png"
-dest_files=["res://.godot/imported/holy_shield.png-691e5008dc002b92.ctex"]
+dest_files=["res://.godot/imported/holy_shield.png-691e5008dc002b9214836de939f28d6e.ctex"]
 
 [params]
 

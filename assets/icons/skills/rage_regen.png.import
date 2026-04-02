@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://rkl2mjxreyb7"
-path="res://.godot/imported/rage_regen.png-0bd4419a871d738e.ctex"
+uid="uid://clsduyhqa70hh"
+path="res://.godot/imported/rage_regen.png-0bd4419a871d738e30b82eacb112f212.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/rage_regen.png"
-dest_files=["res://.godot/imported/rage_regen.png-0bd4419a871d738e.ctex"]
+dest_files=["res://.godot/imported/rage_regen.png-0bd4419a871d738e30b82eacb112f212.ctex"]
 
 [params]
 

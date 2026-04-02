@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://evgwbvppkqog"
-path="res://.godot/imported/terrain_mountain.png-3c732f4cc2bc8a3f.ctex"
+uid="uid://bunqtoole1hs5"
+path="res://.godot/imported/terrain_mountain.png-3c732f4cc2bc8a3fe8c806b77f07844c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/terrain_v3/terrain_mountain.png"
-dest_files=["res://.godot/imported/terrain_mountain.png-3c732f4cc2bc8a3f.ctex"]
+dest_files=["res://.godot/imported/terrain_mountain.png-3c732f4cc2bc8a3fe8c806b77f07844c.ctex"]
 
 [params]
 

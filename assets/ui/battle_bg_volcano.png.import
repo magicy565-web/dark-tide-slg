@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://k3qfbu5zyxuk"
-path="res://.godot/imported/battle_bg_volcano.png-b836e247a1a8dddd.ctex"
+uid="uid://d1iaj8dwjpva7"
+path="res://.godot/imported/battle_bg_volcano.png-b836e247a1a8dddd717572d509f7cd51.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/battle_bg_volcano.png"
-dest_files=["res://.godot/imported/battle_bg_volcano.png-b836e247a1a8dddd.ctex"]
+dest_files=["res://.godot/imported/battle_bg_volcano.png-b836e247a1a8dddd717572d509f7cd51.ctex"]
 
 [params]
 

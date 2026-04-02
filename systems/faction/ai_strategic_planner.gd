@@ -637,7 +637,7 @@ func clear_coordinated_target() -> void:
 
 # ═══════════════ MAIN TURN PROCESSING ═══════════════
 
-func process_turn(player_id: int) -> void:
+func process_turn(_player_id: int) -> void:
 	## Called each turn. Update memory, evaluate strategies, and run tactical intelligence.
 	var ai_factions: Array = AIScaling.get_all_ai_factions()
 
@@ -867,7 +867,7 @@ func find_supply_chokepoints(target_player_id: int) -> Array:
 	return results
 
 
-func score_supply_cut_attack(faction_key: String, tile_index: int) -> float:
+func score_supply_cut_attack(_faction_key: String, tile_index: int) -> float:
 	## Score a supply-cut attack. Higher = better target.
 	# BUG FIX R15: bounds check before tiles[] access
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():

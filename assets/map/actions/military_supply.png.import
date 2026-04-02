@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cnnaz7deo2ev"
-path="res://.godot/imported/military_supply.png-f7683c6d3aabdcea.ctex"
+uid="uid://dk7ka71t1jyqp"
+path="res://.godot/imported/military_supply.png-f7683c6d3aabdceaf231f75b3977ff54.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/actions/military_supply.png"
-dest_files=["res://.godot/imported/military_supply.png-f7683c6d3aabdcea.ctex"]
+dest_files=["res://.godot/imported/military_supply.png-f7683c6d3aabdceaf231f75b3977ff54.ctex"]
 
 [params]
 

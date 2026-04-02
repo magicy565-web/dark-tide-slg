@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://umx4a093x3nw"
-path="res://.godot/imported/battle_bg_harbor.png-d67f90c6c595f96e.ctex"
+uid="uid://dsgsyrtlcx4es"
+path="res://.godot/imported/battle_bg_harbor.png-d67f90c6c595f96ed859a26155cfc86e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/battle_bg_harbor.png"
-dest_files=["res://.godot/imported/battle_bg_harbor.png-d67f90c6c595f96e.ctex"]
+dest_files=["res://.godot/imported/battle_bg_harbor.png-d67f90c6c595f96ed859a26155cfc86e.ctex"]
 
 [params]
 

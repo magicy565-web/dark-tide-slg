@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://40ve8fi1d1rr"
-path="res://.godot/imported/arrow_storm.png-13424747d399fdb9.ctex"
+uid="uid://co3p3aoojnjal"
+path="res://.godot/imported/arrow_storm.png-13424747d399fdb91a02589657e47459.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/formation/arrow_storm.png"
-dest_files=["res://.godot/imported/arrow_storm.png-13424747d399fdb9.ctex"]
+dest_files=["res://.godot/imported/arrow_storm.png-13424747d399fdb91a02589657e47459.ctex"]
 
 [params]
 

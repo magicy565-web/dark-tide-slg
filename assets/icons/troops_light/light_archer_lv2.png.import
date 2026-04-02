@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dlnckpy6s5gb"
-path="res://.godot/imported/light_archer_lv2.png-d7da709b7f478363.ctex"
+uid="uid://cqqllfthj7i7"
+path="res://.godot/imported/light_archer_lv2.png-d7da709b7f4783631991db3cff564653.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops_light/light_archer_lv2.png"
-dest_files=["res://.godot/imported/light_archer_lv2.png-d7da709b7f478363.ctex"]
+dest_files=["res://.godot/imported/light_archer_lv2.png-d7da709b7f4783631991db3cff564653.ctex"]
 
 [params]
 

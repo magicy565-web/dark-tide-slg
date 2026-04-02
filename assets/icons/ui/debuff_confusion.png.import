@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://h9a6liwelnl8"
-path="res://.godot/imported/debuff_confusion.png-a21f922fb37a8b2a.ctex"
+uid="uid://cyls5i23cdx3i"
+path="res://.godot/imported/debuff_confusion.png-a21f922fb37a8b2a8956a2fa727565c6.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/debuff_confusion.png"
-dest_files=["res://.godot/imported/debuff_confusion.png-a21f922fb37a8b2a.ctex"]
+dest_files=["res://.godot/imported/debuff_confusion.png-a21f922fb37a8b2a8956a2fa727565c6.ctex"]
 
 [params]
 

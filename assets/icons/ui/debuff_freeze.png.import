@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://r5akzey7jhtp"
-path="res://.godot/imported/debuff_freeze.png-70260a719ab4092e.ctex"
+uid="uid://gsop08t1de53"
+path="res://.godot/imported/debuff_freeze.png-70260a719ab4092eed047171e7ba658c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/debuff_freeze.png"
-dest_files=["res://.godot/imported/debuff_freeze.png-70260a719ab4092e.ctex"]
+dest_files=["res://.godot/imported/debuff_freeze.png-70260a719ab4092eed047171e7ba658c.ctex"]
 
 [params]
 

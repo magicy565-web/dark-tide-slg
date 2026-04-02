@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://w3v7qf9sb101"
-path="res://.godot/imported/turn_counter.png-6b1a966e9ba5a665.ctex"
+uid="uid://75silsl6ycm5"
+path="res://.godot/imported/turn_counter.png-6b1a966e9ba5a665333ebc71052404b0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/turn_counter.png"
-dest_files=["res://.godot/imported/turn_counter.png-6b1a966e9ba5a665.ctex"]
+dest_files=["res://.godot/imported/turn_counter.png-6b1a966e9ba5a665333ebc71052404b0.ctex"]
 
 [params]
 

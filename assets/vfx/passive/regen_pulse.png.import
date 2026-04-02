@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://hfxwbgwbdk47"
-path="res://.godot/imported/regen_pulse.png-bcd7dd7ecc8258bb.ctex"
+uid="uid://upul1idwvfbi"
+path="res://.godot/imported/regen_pulse.png-bcd7dd7ecc8258bbbc57ee21411a129f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/passive/regen_pulse.png"
-dest_files=["res://.godot/imported/regen_pulse.png-bcd7dd7ecc8258bb.ctex"]
+dest_files=["res://.godot/imported/regen_pulse.png-bcd7dd7ecc8258bbbc57ee21411a129f.ctex"]
 
 [params]
 

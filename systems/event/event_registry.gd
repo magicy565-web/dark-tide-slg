@@ -194,7 +194,7 @@ func register_event(id: String, source: String, category: String, data: Dictiona
 
 
 ## Extract or generate an event id from an event dict.
-func _extract_id(evt: Dictionary, source: String, category: String) -> String:
+func _extract_id(evt: Dictionary, source: String, _category: String) -> String:
 	if evt.has("id") and evt["id"] is String and evt["id"] != "":
 		return evt["id"]
 	# Generate a deterministic id from source + name or index
@@ -234,7 +234,7 @@ func get_all_ids() -> Array:
 
 ## Return a weighted list of events eligible to fire this turn.
 ## Filters by repeatable status, cooldowns, and fired history.
-func get_available_events(turn: int, _player_state: Dictionary = {}) -> Array:
+func get_available_events(_turn: int, _player_state: Dictionary = {}) -> Array:
 	var available: Array = []
 	for eid in _registry:
 		if not can_fire(eid):
@@ -321,7 +321,7 @@ func begin_turn() -> void:
 ## Cross-system coordination: request permission to fire an event.
 ## Returns true if allowed (and automatically marks it as fired).
 ## Returns false if blocked (max per turn reached, cooldown, etc.)
-func request_fire(id: String, source: String = "") -> bool:
+func request_fire(id: String, _source: String = "") -> bool:
 	# Check max events per turn
 	if _fired_this_turn.size() >= MAX_EVENTS_PER_TURN:
 		return false

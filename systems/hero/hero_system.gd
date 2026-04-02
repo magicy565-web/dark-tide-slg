@@ -1234,7 +1234,7 @@ func _check_single_hidden_hero(player_id: int, entry: Dictionary) -> bool:
 
 
 ## Internal: discover a hidden hero and add them to roster.
-func _discover_hidden_hero(player_id: int, entry: Dictionary) -> void:
+func _discover_hidden_hero(_player_id: int, entry: Dictionary) -> void:
 	var hero_id: String = entry["id"]
 	_discovered_hidden_heroes.append(hero_id)
 	recruited_heroes.append(hero_id)
@@ -1499,7 +1499,7 @@ func process_recruitment_events(player_id: int) -> void:
 
 
 ## Tick down mercenary loyalty each turn. Remove heroes whose loyalty expires.
-func _tick_mercenary_loyalty(player_id: int) -> void:
+func _tick_mercenary_loyalty(_player_id: int) -> void:
 	var expired: Array = []
 	for hid in _mercenary_loyalty.keys():
 		_mercenary_loyalty[hid] -= 1
@@ -1540,7 +1540,7 @@ func _get_unrecruited_hero_ids() -> Array:
 
 
 ## ── Event: Wandering Hero ──
-func _event_wandering_hero(player_id: int) -> void:
+func _event_wandering_hero(_player_id: int) -> void:
 	# Pick a random unrecruited hero (prefer wandering pool if available)
 	var pool: Array = _wandering_hero_pool.duplicate()
 	if pool.is_empty():
@@ -1576,7 +1576,7 @@ func _event_wandering_hero(player_id: int) -> void:
 
 
 ## ── Event: Deserter ──
-func _event_deserter(player_id: int) -> void:
+func _event_deserter(_player_id: int) -> void:
 	# Find an enemy hero from a faction where player reputation > 40
 	var eligible: Array = []
 	var faction_keys: Array = ["orc_ai", "pirate_ai", "dark_elf_ai"]
@@ -1620,7 +1620,7 @@ func _event_deserter(player_id: int) -> void:
 
 
 ## ── Event: Mercenary Band ──
-func _event_mercenary_band(player_id: int) -> void:
+func _event_mercenary_band(_player_id: int) -> void:
 	var pool: Array = _get_unrecruited_hero_ids()
 	if pool.is_empty():
 		return
@@ -1654,7 +1654,7 @@ func _event_mercenary_band(player_id: int) -> void:
 
 
 ## ── Event: Legendary Hero ──
-func _event_legendary_hero(player_id: int) -> void:
+func _event_legendary_hero(_player_id: int) -> void:
 	# Pick a high-stat unrecruited hero (prefer atk+def+int >= 18)
 	var pool: Array = _get_unrecruited_hero_ids()
 	var legendary: Array = []
@@ -1728,7 +1728,7 @@ func _resolve_wandering(player_id: int, hero_id: String, event_data: Dictionary,
 		EventBus.message_log.emit("[color=gray]你拒绝了 %s 的投靠，也许日后还会再见。[/color]" % _get_hero_name(hero_id))
 
 
-func _resolve_deserter(player_id: int, hero_id: String, event_data: Dictionary, callback: String) -> void:
+func _resolve_deserter(_player_id: int, hero_id: String, event_data: Dictionary, callback: String) -> void:
 	if callback == "deserter_accept":
 		var fkey: String = event_data.get("faction_key", "")
 		_directly_recruit_hero(hero_id)

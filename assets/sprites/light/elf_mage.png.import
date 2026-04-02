@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://qvla6hsk14vs"
-path="res://.godot/imported/elf_mage.png-f97074c846521386.ctex"
+uid="uid://bb5u0tus4w7v4"
+path="res://.godot/imported/elf_mage.png-f97074c846521386999062202b4c8753.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/light/elf_mage.png"
-dest_files=["res://.godot/imported/elf_mage.png-f97074c846521386.ctex"]
+dest_files=["res://.godot/imported/elf_mage.png-f97074c846521386999062202b4c8753.ctex"]
 
 [params]
 

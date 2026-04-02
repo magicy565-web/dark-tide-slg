@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://wj3umnfe5iiv"
-path="res://.godot/imported/battle_bg_wasteland.png-9e926259300f4dee.ctex"
+uid="uid://ct1kq82a1crrk"
+path="res://.godot/imported/battle_bg_wasteland.png-9e926259300f4deef3efeb5f23be0c88.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/battle_bg/battle_bg_wasteland.png"
-dest_files=["res://.godot/imported/battle_bg_wasteland.png-9e926259300f4dee.ctex"]
+dest_files=["res://.godot/imported/battle_bg_wasteland.png-9e926259300f4deef3efeb5f23be0c88.ctex"]
 
 [params]
 

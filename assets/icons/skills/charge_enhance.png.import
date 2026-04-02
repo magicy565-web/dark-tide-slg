@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://fqwn1lgv87lv"
-path="res://.godot/imported/charge_enhance.png-7664ba78165b09be.ctex"
+uid="uid://dewgvbyay2wge"
+path="res://.godot/imported/charge_enhance.png-7664ba78165b09be67ba75e409ef40f8.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/charge_enhance.png"
-dest_files=["res://.godot/imported/charge_enhance.png-7664ba78165b09be.ctex"]
+dest_files=["res://.godot/imported/charge_enhance.png-7664ba78165b09be67ba75e409ef40f8.ctex"]
 
 [params]
 

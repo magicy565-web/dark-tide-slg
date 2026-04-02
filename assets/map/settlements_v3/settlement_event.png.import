@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ah1i658g3upv"
-path="res://.godot/imported/settlement_event.png-f4a7271f85519311.ctex"
+uid="uid://cf0aimvvufkmb"
+path="res://.godot/imported/settlement_event.png-f4a7271f85519311d186e3a7c006f3be.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/settlements_v3/settlement_event.png"
-dest_files=["res://.godot/imported/settlement_event.png-f4a7271f85519311.ctex"]
+dest_files=["res://.godot/imported/settlement_event.png-f4a7271f85519311d186e3a7c006f3be.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://fym1psmm13zr"
-path="res://.godot/imported/awakening_burst.png-9b4dbd17a1c64c9a.ctex"
+uid="uid://x4aqma6ghts4"
+path="res://.godot/imported/awakening_burst.png-9b4dbd17a1c64c9a12ead034725900f7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/awakening/awakening_burst.png"
-dest_files=["res://.godot/imported/awakening_burst.png-9b4dbd17a1c64c9a.ctex"]
+dest_files=["res://.godot/imported/awakening_burst.png-9b4dbd17a1c64c9a12ead034725900f7.ctex"]
 
 [params]
 

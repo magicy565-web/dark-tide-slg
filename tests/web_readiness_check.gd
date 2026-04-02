@@ -75,7 +75,7 @@ func _init() -> void:
 		errors.append("  ✗ export_presets.cfg missing — cannot export")
 
 	# ═══════════════ REPORT ═══════════════
-	print("\n" + "═" * 52)
+	print("\n" + "═".repeat(52))
 	print("RESULTS\n")
 
 	if not info.is_empty():
@@ -97,13 +97,13 @@ func _init() -> void:
 		print("")
 
 	if errors.is_empty():
-		print("═" * 52)
+		print("═".repeat(52))
 		print("✓ WEB EXPORT READY — No blocking issues found")
-		print("═" * 52)
+		print("═".repeat(52))
 	else:
-		print("═" * 52)
+		print("═".repeat(52))
 		print("✗ WEB EXPORT BLOCKED — %d error(s) must be fixed" % errors.size())
-		print("═" * 52)
+		print("═".repeat(52))
 
 	quit()
 
@@ -169,20 +169,20 @@ func _check_asset_sizes() -> Dictionary:
 
 func _scan_assets(dir: DirAccess, base: String, result: Dictionary) -> void:
 	dir.list_dir_begin()
-	var name: String = dir.get_next()
-	while name != "":
-		var full: String = base + "/" + name
+	var file_name: String = dir.get_next()
+	while file_name != "":
+		var full: String = base + "/" + file_name
 		if dir.current_is_dir():
 			var sub := DirAccess.open(full)
 			if sub:
 				_scan_assets(sub, full, result)
 		else:
 			result["count"] += 1
-			if name.ends_with(".webp"):
+			if file_name.ends_with(".webp"):
 				result["webp_count"] += 1
-			elif name.ends_with(".png"):
+			elif file_name.ends_with(".png"):
 				result["png_count"] += 1
-		name = dir.get_next()
+		file_name = dir.get_next()
 	dir.list_dir_end()
 
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://70p7pttjzjuw"
-path="res://.godot/imported/elf_ashigaru.png-056d692e36d91ba1.ctex"
+uid="uid://b8r8eae2x1d8l"
+path="res://.godot/imported/elf_ashigaru.png-056d692e36d91ba1f19148788322fc55.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/light/elf_ashigaru.png"
-dest_files=["res://.godot/imported/elf_ashigaru.png-056d692e36d91ba1.ctex"]
+dest_files=["res://.godot/imported/elf_ashigaru.png-056d692e36d91ba1f19148788322fc55.ctex"]
 
 [params]
 

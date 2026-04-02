@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7kds6h9s3xjm"
-path="res://.godot/imported/light_ashigaru.png-0870de000268d503.ctex"
+uid="uid://r5ky8po0yuox"
+path="res://.godot/imported/light_ashigaru.png-0870de000268d503ae67b375024e11e1.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/light/light_ashigaru.png"
-dest_files=["res://.godot/imported/light_ashigaru.png-0870de000268d503.ctex"]
+dest_files=["res://.godot/imported/light_ashigaru.png-0870de000268d503ae67b375024e11e1.ctex"]
 
 [params]
 

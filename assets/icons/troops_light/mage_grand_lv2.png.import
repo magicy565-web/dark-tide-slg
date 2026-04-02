@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://v7dxdtxhgoa7"
-path="res://.godot/imported/mage_grand_lv2.png-36b9e03498322cf4.ctex"
+uid="uid://bhjsniami5uf0"
+path="res://.godot/imported/mage_grand_lv2.png-36b9e03498322cf4b5dfbf571e38d269.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops_light/mage_grand_lv2.png"
-dest_files=["res://.godot/imported/mage_grand_lv2.png-36b9e03498322cf4.ctex"]
+dest_files=["res://.godot/imported/mage_grand_lv2.png-36b9e03498322cf4b5dfbf571e38d269.ctex"]
 
 [params]
 

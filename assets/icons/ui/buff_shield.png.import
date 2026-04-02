@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://e7ye5t4g9eb4"
-path="res://.godot/imported/buff_shield.png-d4fedb48f8762740.ctex"
+uid="uid://cf2vkhrcfl1xq"
+path="res://.godot/imported/buff_shield.png-d4fedb48f8762740b5ea739f55518199.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/buff_shield.png"
-dest_files=["res://.godot/imported/buff_shield.png-d4fedb48f8762740.ctex"]
+dest_files=["res://.godot/imported/buff_shield.png-d4fedb48f8762740b5ea739f55518199.ctex"]
 
 [params]
 

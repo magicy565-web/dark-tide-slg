@@ -811,7 +811,7 @@ func _refresh_detail() -> void:
 		done_lbl.add_theme_color_override("font_color", Color(0.35, 0.95, 0.45))
 		detail_container.add_child(done_lbl)
 	elif state == "researching":
-		var prog := _rm.get_research_progress(pid)
+		var prog: Variant = _rm.get_research_progress(pid)
 		var total: int = data.get("turns", 1)
 		var pl := Label.new()
 		pl.text = "⟳ Researching... %d/%d turns" % [prog, total]

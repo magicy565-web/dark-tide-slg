@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://j12rcf1npgcn"
-path="res://.godot/imported/terrain_plains.png-5240950007d55fd8.ctex"
+uid="uid://d0ex1ntnhl3xq"
+path="res://.godot/imported/terrain_plains.png-5240950007d55fd837e9c30bc19837f4.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/terrain_v3/terrain_plains.png"
-dest_files=["res://.godot/imported/terrain_plains.png-5240950007d55fd8.ctex"]
+dest_files=["res://.godot/imported/terrain_plains.png-5240950007d55fd837e9c30bc19837f4.ctex"]
 
 [params]
 

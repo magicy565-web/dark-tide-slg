@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://tidp7kvbeepw"
-path="res://.godot/imported/settlement_port.png-c729b2e95360f823.ctex"
+uid="uid://t5sftpql01fg"
+path="res://.godot/imported/settlement_port.png-c729b2e95360f82343dd47a2059de453.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/settlements_v3/settlement_port.png"
-dest_files=["res://.godot/imported/settlement_port.png-c729b2e95360f823.ctex"]
+dest_files=["res://.godot/imported/settlement_port.png-c729b2e95360f82343dd47a2059de453.ctex"]
 
 [params]
 

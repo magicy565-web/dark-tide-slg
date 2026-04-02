@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://9xckk3tvp0h8"
-path="res://.godot/imported/icon_food_grain.png-d1cce4887c3a8a5f.ctex"
+uid="uid://baw1b6iu8aqok"
+path="res://.godot/imported/icon_food_grain.png-d1cce4887c3a8a5f57838d8947e54873.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/icon_food_grain.png"
-dest_files=["res://.godot/imported/icon_food_grain.png-d1cce4887c3a8a5f.ctex"]
+dest_files=["res://.godot/imported/icon_food_grain.png-d1cce4887c3a8a5f57838d8947e54873.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://63oagc47m3vj"
-path="res://.godot/imported/buff_regen.png-152837c4bd44e41e.ctex"
+uid="uid://dngtx0jdxttfo"
+path="res://.godot/imported/buff_regen.png-152837c4bd44e41ee3f391f85df93f08.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/buff_regen.png"
-dest_files=["res://.godot/imported/buff_regen.png-152837c4bd44e41e.ctex"]
+dest_files=["res://.godot/imported/buff_regen.png-152837c4bd44e41ee3f391f85df93f08.ctex"]
 
 [params]
 

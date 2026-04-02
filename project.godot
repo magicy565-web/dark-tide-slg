@@ -104,3 +104,8 @@ renderer/rendering_method="gl_compatibility"
 theme/custom="res://assets/theme/default_theme.tres"
 theme/custom_font="res://assets/fonts/NotoSansCJKsc-Regular.otf"
 theme/default_font_size=16
+
+[debug]
+
+gdscript/warnings/integer_division=0
+gdscript/warnings/narrowing_conversion=0

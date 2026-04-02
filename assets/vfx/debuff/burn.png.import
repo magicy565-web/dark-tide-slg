@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xg169rzacajz"
-path="res://.godot/imported/burn.png-c300a9efab8b2743.ctex"
+uid="uid://q2ajqpqlxjok"
+path="res://.godot/imported/burn.png-c300a9efab8b2743ccdc20824c8a5377.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/debuff/burn.png"
-dest_files=["res://.godot/imported/burn.png-c300a9efab8b2743.ctex"]
+dest_files=["res://.godot/imported/burn.png-c300a9efab8b2743ccdc20824c8a5377.ctex"]
 
 [params]
 

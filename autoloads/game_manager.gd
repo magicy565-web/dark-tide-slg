@@ -2301,9 +2301,9 @@ func action_forge_alliance() -> bool:
 	# Find weakest surviving faction (fewest tiles, excluding human player)
 	var faction_tile_counts: Dictionary = {}  # faction_id -> tile_count
 	for t in tiles:
-		var owner: int = t.get("owner_id", -1)
-		if owner > 0:  # Exclude unowned (-1) and human player (0)
-			faction_tile_counts[owner] = faction_tile_counts.get(owner, 0) + 1
+		var owner_id: int = t.get("owner_id", -1)
+		if owner_id > 0:  # Exclude unowned (-1) and human player (0)
+			faction_tile_counts[owner_id] = faction_tile_counts.get(owner_id, 0) + 1
 
 	if faction_tile_counts.is_empty():
 		EventBus.message_log.emit("[color=red]没有存活的势力可以结盟![/color]")

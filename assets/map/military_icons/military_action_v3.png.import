@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://9e5x7z5nwd7h"
-path="res://.godot/imported/military_action_v3.png-2e5e20525cbc55ca.ctex"
+uid="uid://cpholi1f6ll85"
+path="res://.godot/imported/military_action_v3.png-2e5e20525cbc55ca919b2262a86e73ce.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/military_icons/military_action_v3.png"
-dest_files=["res://.godot/imported/military_action_v3.png-2e5e20525cbc55ca.ctex"]
+dest_files=["res://.godot/imported/military_action_v3.png-2e5e20525cbc55ca919b2262a86e73ce.ctex"]
 
 [params]
 

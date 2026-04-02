@@ -344,7 +344,7 @@ func get_neutral_faction_at_tile(tile_index: int) -> int:
 	return GameManager.tiles[tile_index].get("neutral_faction_id", -1)
 
 
-func on_tile_captured(tile_index: int, new_owner_id: int) -> void:
+func on_tile_captured(tile_index: int, _new_owner_id: int) -> void:
 	## Called when a tile is captured. Updates neutral territory tracking.
 	for nf_id in _faction_state:
 		var state: Dictionary = _faction_state[nf_id]

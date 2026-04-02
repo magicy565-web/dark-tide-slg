@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://tra4exb0ujsu"
-path="res://.godot/imported/battle_bg_forest.png-1436f867f711fb2f.ctex"
+uid="uid://b4e4owoomyypg"
+path="res://.godot/imported/battle_bg_forest.png-1436f867f711fb2fb5cb467fd8622f59.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/battle_bg_forest.png"
-dest_files=["res://.godot/imported/battle_bg_forest.png-1436f867f711fb2f.ctex"]
+dest_files=["res://.godot/imported/battle_bg_forest.png-1436f867f711fb2fb5cb467fd8622f59.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://zxjo1jkw27fk"
-path="res://.godot/imported/btn_rune_hover.png-a4ef2862c41cdddd.ctex"
+uid="uid://c7kjilsu8yfcn"
+path="res://.godot/imported/btn_rune_hover.png-a4ef2862c41cdddd8b8146a559cc8b35.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/btn_rune_hover.png"
-dest_files=["res://.godot/imported/btn_rune_hover.png-a4ef2862c41cdddd.ctex"]
+dest_files=["res://.godot/imported/btn_rune_hover.png-a4ef2862c41cdddd8b8146a559cc8b35.ctex"]
 
 [params]
 

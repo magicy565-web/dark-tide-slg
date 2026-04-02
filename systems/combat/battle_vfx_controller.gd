@@ -487,7 +487,7 @@ func _show_buff_indicator(side: String, slot: int, effect_type: String, is_buff:
 	# Position above the card, stacked horizontally
 	if not _buff_overlays[side].has(slot):
 		_buff_overlays[side][slot] = []
-	var stack_offset := _buff_overlays[side][slot].size() * 18.0
+	var stack_offset: float = _buff_overlays[side][slot].size() * 18.0
 	indicator.position = pos + Vector2(-40 + stack_offset, -60)
 	overlay_parent.add_child(indicator)
 	_buff_overlays[side][slot].append(indicator)
@@ -605,7 +605,7 @@ func _do_hit_freeze(duration: float) -> void:
 #                    8. FORMATION BANNER
 # ═══════════════════════════════════════════════════════════
 
-func _on_formation_detected(side: String, formation_id: int, formation_name: String) -> void:
+func _on_formation_detected(side: String, _formation_id: int, formation_name: String) -> void:
 	show_formation_banner(side, formation_name)
 
 
@@ -649,7 +649,7 @@ func show_formation_banner(side: String, formation_name: String) -> void:
 
 
 ## Handler for skill_vfx_requested — spawn particles at target with skill color.
-func _on_skill_vfx_requested(skill_id: String, vfx_type: String, source_pos: Vector2, target_pos: Vector2) -> void:
+func _on_skill_vfx_requested(skill_id: String, _vfx_type: String, _source_pos: Vector2, target_pos: Vector2) -> void:
 	if overlay_parent == null:
 		return
 	var color: Color = SkillAnimationData.get_skill_color(skill_id)

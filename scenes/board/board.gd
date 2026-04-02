@@ -994,8 +994,8 @@ func _add_wasteland_decor(parent: Node3D, y: float) -> void:
 		crack.rotation.y = randf() * PI
 		parent.add_child(crack)
 
-func _register_water_node(node: MeshInstance3D, type: String) -> void:
-	water_anim_nodes.append({"node": node, "type": type, "original_y": node.position.y, "original_z": node.position.z})
+func _register_water_node(node: MeshInstance3D, node_type: String) -> void:
+	water_anim_nodes.append({"node": node, "type": node_type, "original_y": node.position.y, "original_z": node.position.z})
 
 func _build_chokepoint_marker(parent: Node3D, y: float) -> void:
 	# Gate pillars
@@ -2156,7 +2156,7 @@ func _on_minimap_input(event: InputEvent) -> void:
 	## Click/drag on minimap to move main camera.
 	if not event is InputEventMouseButton and not event is InputEventMouseMotion:
 		return
-	var is_click := event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	var is_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	var is_drag := event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	if not is_click and not is_drag:
 		return
@@ -3773,7 +3773,7 @@ func _setup_custom_minimap() -> void:
 	frame.add_child(_minimap_draw)
 
 func _on_custom_minimap_input(event: InputEvent) -> void:
-	var is_click := event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	var is_click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
 	var is_drag := event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	if not is_click and not is_drag:
 		return

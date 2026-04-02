@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://4g3hnky5xuwx"
-path="res://.godot/imported/brute_charge.png-927a706c649dda4e.ctex"
+uid="uid://bmhj0cydnfcl6"
+path="res://.godot/imported/brute_charge.png-927a706c649dda4ec575bdc7791f54c3.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/brute_charge.png"
-dest_files=["res://.godot/imported/brute_charge.png-927a706c649dda4e.ctex"]
+dest_files=["res://.godot/imported/brute_charge.png-927a706c649dda4ec575bdc7791f54c3.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://m5ceiv2zgv7a"
-path="res://.godot/imported/btn_recruit.png-35f10d6366714aa2.ctex"
+uid="uid://js0cof7hof62"
+path="res://.godot/imported/btn_recruit.png-35f10d6366714aa290160aae2f926029.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/btn_recruit.png"
-dest_files=["res://.godot/imported/btn_recruit.png-35f10d6366714aa2.ctex"]
+dest_files=["res://.godot/imported/btn_recruit.png-35f10d6366714aa290160aae2f926029.ctex"]
 
 [params]
 

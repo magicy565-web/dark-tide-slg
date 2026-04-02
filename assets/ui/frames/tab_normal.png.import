@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3r51reugw0re"
-path="res://.godot/imported/tab_normal.png-11361ba2ef4b6acd.ctex"
+uid="uid://csciasaywanap"
+path="res://.godot/imported/tab_normal.png-11361ba2ef4b6acd96f6ff1e844b40ea.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/tab_normal.png"
-dest_files=["res://.godot/imported/tab_normal.png-11361ba2ef4b6acd.ctex"]
+dest_files=["res://.godot/imported/tab_normal.png-11361ba2ef4b6acd96f6ff1e844b40ea.ctex"]
 
 [params]
 

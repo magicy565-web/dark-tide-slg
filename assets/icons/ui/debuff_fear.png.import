@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0v7sex3rb9jy"
-path="res://.godot/imported/debuff_fear.png-9bfe86bacc2c22ca.ctex"
+uid="uid://du5bsr6mutdv0"
+path="res://.godot/imported/debuff_fear.png-9bfe86bacc2c22ca409ff3e0b8878b82.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/debuff_fear.png"
-dest_files=["res://.godot/imported/debuff_fear.png-9bfe86bacc2c22ca.ctex"]
+dest_files=["res://.godot/imported/debuff_fear.png-9bfe86bacc2c22ca409ff3e0b8878b82.ctex"]
 
 [params]
 

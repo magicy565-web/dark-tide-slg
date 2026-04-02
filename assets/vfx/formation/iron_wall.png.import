@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://9nultxfcz8vy"
-path="res://.godot/imported/iron_wall.png-ac9908f4aaddf3dd.ctex"
+uid="uid://dbo800adwpfox"
+path="res://.godot/imported/iron_wall.png-ac9908f4aaddf3dd5fbe203c4a965ff3.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/formation/iron_wall.png"
-dest_files=["res://.godot/imported/iron_wall.png-ac9908f4aaddf3dd.ctex"]
+dest_files=["res://.godot/imported/iron_wall.png-ac9908f4aaddf3dd5fbe203c4a965ff3.ctex"]
 
 [params]
 

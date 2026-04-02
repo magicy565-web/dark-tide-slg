@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1fbgm6ggl9uc"
-path="res://.godot/imported/btn_hero.png-ad54fb2a42d584bf.ctex"
+uid="uid://w6vsna5i5klh"
+path="res://.godot/imported/btn_hero.png-ad54fb2a42d584bf7a3d8736e708a92d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/btn_hero.png"
-dest_files=["res://.godot/imported/btn_hero.png-ad54fb2a42d584bf.ctex"]
+dest_files=["res://.godot/imported/btn_hero.png-ad54fb2a42d584bf7a3d8736e708a92d.ctex"]
 
 [params]
 

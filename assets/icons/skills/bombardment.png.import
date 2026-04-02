@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://lrw8yvgmy7r0"
-path="res://.godot/imported/bombardment.png-584eabaa18af1f29.ctex"
+uid="uid://b6kblxouk5pbr"
+path="res://.godot/imported/bombardment.png-584eabaa18af1f29d00b796ee22cc213.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/bombardment.png"
-dest_files=["res://.godot/imported/bombardment.png-584eabaa18af1f29.ctex"]
+dest_files=["res://.godot/imported/bombardment.png-584eabaa18af1f29d00b796ee22cc213.ctex"]
 
 [params]
 

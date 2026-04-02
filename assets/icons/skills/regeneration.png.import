@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://n4n42fgkga4i"
-path="res://.godot/imported/regeneration.png-3452fd0ff33f6c38.ctex"
+uid="uid://dpey7x42l7lyj"
+path="res://.godot/imported/regeneration.png-3452fd0ff33f6c389a429dab2ca9630e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/regeneration.png"
-dest_files=["res://.godot/imported/regeneration.png-3452fd0ff33f6c38.ctex"]
+dest_files=["res://.godot/imported/regeneration.png-3452fd0ff33f6c389a429dab2ca9630e.ctex"]
 
 [params]
 

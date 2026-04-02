@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://hfevmfgz9axy"
-path="res://.godot/imported/03_momiji_crimson_inferno.png-dfc236f03d5fe0a9.ctex"
+uid="uid://bw6ljjlflgseg"
+path="res://.godot/imported/03_momiji_crimson_inferno.png-dfc236f03d5fe0a996b50591f6683c7c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/03_momiji_crimson_inferno.png"
-dest_files=["res://.godot/imported/03_momiji_crimson_inferno.png-dfc236f03d5fe0a9.ctex"]
+dest_files=["res://.godot/imported/03_momiji_crimson_inferno.png-dfc236f03d5fe0a996b50591f6683c7c.ctex"]
 
 [params]
 

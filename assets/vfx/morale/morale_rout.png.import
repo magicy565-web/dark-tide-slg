@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://l0la7m3jh126"
-path="res://.godot/imported/morale_rout.png-92196b777adbd9d1.ctex"
+uid="uid://dm8orl1nj8lir"
+path="res://.godot/imported/morale_rout.png-92196b777adbd9d1dd2f046b8fcc3a56.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/morale/morale_rout.png"
-dest_files=["res://.godot/imported/morale_rout.png-92196b777adbd9d1.ctex"]
+dest_files=["res://.godot/imported/morale_rout.png-92196b777adbd9d1dd2f046b8fcc3a56.ctex"]
 
 [params]
 

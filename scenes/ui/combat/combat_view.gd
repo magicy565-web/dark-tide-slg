@@ -1361,7 +1361,7 @@ func _update_clock(round_num: int) -> void:
 # ═══════════════════════════════════════════════════════════
 #                    ATTACK ANIMATIONS (v3.0)
 # ═══════════════════════════════════════════════════════════
-func _animate_attack(source_side: String, source_slot: int, target_side: String, target_slot: int, damage: int, max_soldiers: int, is_aoe: bool = false) -> void:
+func _animate_attack(source_side: String, source_slot: int, target_side: String, target_slot: int, damage: int, max_soldiers: int, _is_aoe: bool = false) -> void:
 	var from_pos := _get_card_center(source_side, source_slot)
 	var to_pos := _get_card_center(target_side, target_slot)
 	var unit_data: Dictionary = _live_units[source_side].get(source_slot, {})
@@ -1386,8 +1386,8 @@ func _animate_attack(source_side: String, source_slot: int, target_side: String,
 				"mage", "mage_unit", "priest": weapon_sfx_name = "magic_hit"
 			AudioManager.play_sfx_by_name(weapon_sfx_name)
 
-	var is_crit := damage > max_soldiers * 0.4
-	var is_heavy := damage > max_soldiers * 0.6
+	var is_crit: bool = damage > max_soldiers * 0.4
+	var is_heavy: bool = damage > max_soldiers * 0.6
 
 	# 1. Glow source card (attacker highlight)
 	_glow_card(source_side, source_slot)
@@ -2224,7 +2224,7 @@ func _play_hero_knockout(side: String, slot_idx: int, hero_name: String) -> void
 			passive_banner.visible = false
 		)
 
-func _update_combo(side: String, damage: int) -> void:
+func _update_combo(side: String, _damage: int) -> void:
 	if side == _combo_side:
 		_combo_count += 1
 	else:
@@ -2628,9 +2628,9 @@ func _apply_log_entry(entry: Dictionary) -> void:
 				if not _is_finishing:
 					_play_kill_cutscene(side, slot_idx)
 					# Task 8: Enhanced kill finisher with cinematic bars
-					var last_attacker_side := "attacker" if side == "defender" else "defender"
-					var last_attacker_slot := entry.get("killer_slot", 0)
-					var kill_skill := entry.get("kill_skill", "")
+					var last_attacker_side: String = "attacker" if side == "defender" else "defender"
+					var last_attacker_slot: Variant = entry.get("killer_slot", 0)
+					var kill_skill: Variant = entry.get("kill_skill", "")
 					_play_kill_finisher(last_attacker_side, last_attacker_slot, side, slot_idx, kill_skill)
 				else:
 					_apply_death_overlay(side, slot_idx)
@@ -2894,12 +2894,12 @@ func _build_loot_item(item: Dictionary) -> HBoxContainer:
 		if ResourceLoader.exists(icon_path):
 			var tex: Texture2D = load(icon_path)
 			if tex:
-				var tr := TextureRect.new()
-				tr.texture = tex
-				tr.custom_minimum_size = Vector2(24, 24)
-				tr.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-				tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-				hb.add_child(tr)
+				var tex_rect := TextureRect.new()
+				tex_rect.texture = tex
+				tex_rect.custom_minimum_size = Vector2(24, 24)
+				tex_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+				tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				hb.add_child(tex_rect)
 	# Item name + quantity
 	var name_str: String = item.get("name", item_id)
 	var qty: int = item.get("quantity", 1)
@@ -3481,7 +3481,7 @@ func _check_dynamic_bgm() -> void:
 # ═══════════════════════════════════════════════════════════
 
 ## Get combo color based on hit count (color progression).
-func _get_combo_color(count: int, side: String) -> Color:
+func _get_combo_color(count: int, _side: String) -> Color:
 	var idx := clampi(count - 2, 0, COMBO_COLORS.size() - 1)
 	return COMBO_COLORS[idx]
 
@@ -3701,7 +3701,7 @@ func _detect_ability_type(desc: String) -> String:
 		return "buff"
 	return "damage"
 
-func _play_ability_vfx(ability_type: String, target_side: String, target_slot: int, source_side: String, source_slot: int) -> void:
+func _play_ability_vfx(ability_type: String, target_side: String, target_slot: int, _source_side: String, _source_slot: int) -> void:
 	## Dispatch ability visual effects based on type.
 	match ability_type:
 		"heal":

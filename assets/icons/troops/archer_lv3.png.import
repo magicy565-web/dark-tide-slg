@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://41hbojv65i30"
-path="res://.godot/imported/archer_lv3.png-85e4489a99dc7522.ctex"
+uid="uid://d2noco4nqm2wg"
+path="res://.godot/imported/archer_lv3.png-85e4489a99dc7522c7749ed8fef5445b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops/archer_lv3.png"
-dest_files=["res://.godot/imported/archer_lv3.png-85e4489a99dc7522.ctex"]
+dest_files=["res://.godot/imported/archer_lv3.png-85e4489a99dc7522c7749ed8fef5445b.ctex"]
 
 [params]
 

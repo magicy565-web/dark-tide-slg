@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b2vj30bdovgj"
-path="res://.godot/imported/deco_19.png-9f1702bd2708c9f6.ctex"
+uid="uid://mjj3gj1mpb3c"
+path="res://.godot/imported/deco_19.png-9f1702bd2708c9f65770d6b5aaa22c4e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/decorations/deco_19.png"
-dest_files=["res://.godot/imported/deco_19.png-9f1702bd2708c9f6.ctex"]
+dest_files=["res://.godot/imported/deco_19.png-9f1702bd2708c9f65770d6b5aaa22c4e.ctex"]
 
 [params]
 

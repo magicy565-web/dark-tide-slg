@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://2jhfbpvxqypy"
-path="res://.godot/imported/bar_action_bottom.png-61a3e1aa372bba4d.ctex"
+uid="uid://daxxwbis44rm5"
+path="res://.godot/imported/bar_action_bottom.png-61a3e1aa372bba4dceb42444bc8251d0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/bar_action_bottom.png"
-dest_files=["res://.godot/imported/bar_action_bottom.png-61a3e1aa372bba4d.ctex"]
+dest_files=["res://.godot/imported/bar_action_bottom.png-61a3e1aa372bba4dceb42444bc8251d0.ctex"]
 
 [params]
 

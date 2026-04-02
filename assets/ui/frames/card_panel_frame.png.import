@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://nsppj2g9m6bg"
-path="res://.godot/imported/card_panel_frame.png-5e66f76b7c081810.ctex"
+uid="uid://bynkylrbjorkt"
+path="res://.godot/imported/card_panel_frame.png-5e66f76b7c081810300160aa4ea1a269.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/card_panel_frame.png"
-dest_files=["res://.godot/imported/card_panel_frame.png-5e66f76b7c081810.ctex"]
+dest_files=["res://.godot/imported/card_panel_frame.png-5e66f76b7c081810300160aa4ea1a269.ctex"]
 
 [params]
 

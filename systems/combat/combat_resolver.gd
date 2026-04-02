@@ -135,7 +135,7 @@ func calculate_army_power(units: Array, player_id: int) -> float:
 ## Returns { "winner", "attacker_losses", "defender_losses", "slaves_captured",
 ##           "wall_destroyed", "details" }
 func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary) -> Dictionary:
-	var log: Array = []
+	var combat_log: Array = []
 	var wall_destroyed: bool = false
 	var atk_pid: int = attacker.get("player_id", -1)
 	var def_pid: int = defender.get("player_id", -1)
@@ -150,8 +150,8 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	# -- Formation Bonuses (SR07-style row placement) --
 	var atk_formation: Dictionary = _calculate_formation_bonuses(state["atk_units"])
 	var def_formation: Dictionary = _calculate_formation_bonuses(state["def_units"])
-	_apply_formation_bonuses(state["atk_units"], atk_formation, state["def_units"], log, "攻方")
-	_apply_formation_bonuses(state["def_units"], def_formation, state["atk_units"], log, "守方")
+	_apply_formation_bonuses(state["atk_units"], atk_formation, state["def_units"], combat_log, "攻方")
+	_apply_formation_bonuses(state["def_units"], def_formation, state["atk_units"], combat_log, "守方")
 
 	# -- v6.0: Apply environment modifiers (day/night, fatigue) --
 	var _env_time_mods: Dictionary = EnvironmentSystem.get_time_combat_modifiers()
@@ -212,7 +212,7 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		_env_d["morale"] = _env_d.get("morale", MORALE_START) + _vet_bonuses_d.get("morale", 0) + _env_time_mods.get("morale_bonus", 0)
 
 	if _atk_fatigue_mods.get("atk_pct", 0) != 0 or _env_time_mods.get("assassin_atk_bonus", 0) != 0:
-		log.append("[环境] %s | 攻方疲劳: %s | 守方疲劳: %s" % [
+		combat_log.append("[环境] %s | 攻方疲劳: %s | 守方疲劳: %s" % [
 			EnvironmentSystem.TIME_NAMES.get(EnvironmentSystem.current_time, ""),
 			EnvironmentSystem.get_fatigue_tier(_atk_army_id).get("label", "良好"),
 			EnvironmentSystem.get_fatigue_tier(_def_army_id).get("label", "良好")])
@@ -225,7 +225,7 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	if _ts_atk_on_def:
 		for _ts_d in state["def_units"]:
 			_ts_d["spd"] = maxf(_ts_d["spd"] - 3.0, 1.0)
-		log.append("时间减速! 敌方SPD-3(首回合)")
+		combat_log.append("时间减速! 敌方SPD-3(首回合)")
 	var _ts_def_on_atk: bool = false
 	for _ts_u2 in state["def_units"]:
 		if "time_slow" in _ts_u2["passives"]:
@@ -234,7 +234,7 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	if _ts_def_on_atk:
 		for _ts_a in state["atk_units"]:
 			_ts_a["spd"] = maxf(_ts_a["spd"] - 3.0, 1.0)
-		log.append("时间减速! 进攻方SPD-3(首回合)")
+		combat_log.append("时间减速! 进攻方SPD-3(首回合)")
 
 	# -- Apply Commander Tactical Orders --
 	_apply_directive_modifiers(state)
@@ -247,7 +247,7 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			_get_hero_list(state["atk_units"])
 		)
 		state["interventions_enabled"] = true
-		log.append("[color=cyan]指挥点数: %d/%d — 战斗中可使用指挥干预![/color]" % [
+		combat_log.append("[color=cyan]指挥点数: %d/%d — 战斗中可使用指挥干预![/color]" % [
 			CommanderIntervention.get_current_cp(), CommanderIntervention.get_max_cp()])
 	else:
 		state["interventions_enabled"] = false
@@ -256,18 +256,18 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	var atk_dir: int = state.get("atk_directive", TacticalDirective.NONE)
 	if atk_dir != TacticalDirective.NONE:
 		var dir_data: Dictionary = DIRECTIVE_DATA.get(atk_dir, {})
-		log.append("[color=cyan]战术指令: %s — %s[/color]" % [dir_data.get("name", ""), dir_data.get("desc", "")])
+		combat_log.append("[color=cyan]战术指令: %s — %s[/color]" % [dir_data.get("name", ""), dir_data.get("desc", "")])
 	var def_dir: int = state.get("def_directive", TacticalDirective.NONE)
 	if def_dir != TacticalDirective.NONE:
 		var dir_data_d: Dictionary = DIRECTIVE_DATA.get(def_dir, {})
-		log.append("[color=orange]防守方指令: %s[/color]" % dir_data_d.get("name", ""))
+		combat_log.append("[color=orange]防守方指令: %s[/color]" % dir_data_d.get("name", ""))
 
 	# -- Check for full retreat (全軍撤退, Rance 07 RETREAT) --
 	var atk_retreat: bool = (state.get("atk_directive", TacticalDirective.NONE) == TacticalDirective.RETREAT)
 	var def_retreat: bool = (state.get("def_directive", TacticalDirective.NONE) == TacticalDirective.RETREAT)
 
 	if atk_retreat:
-		log.append("[color=yellow]进攻方下令全军撤退![/color]")
+		combat_log.append("[color=yellow]进攻方下令全军撤退![/color]")
 		# Rearguard takes heavy damage, main force escapes
 		var total_atk_soldiers: int = 0
 		for u in state["atk_units"]:
@@ -285,13 +285,13 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			remaining_loss -= unit_loss
 			if u["soldiers"] <= 0:
 				u["is_alive"] = false
-			log.append("  %s 殿后: 损失 %d 兵" % [u["unit_type"], unit_loss])
+			combat_log.append("  %s 殿后: 损失 %d 兵" % [u["unit_type"], unit_loss])
 		# Defender takes no losses in a retreat
-		log.append("主力成功撤退! 总损失 %d 兵" % retreat_loss)
-		return _finalize_result(state, "defender", false, log, tile)
+		combat_log.append("主力成功撤退! 总损失 %d 兵" % retreat_loss)
+		return _finalize_result(state, "defender", false, combat_log, tile)
 
 	if def_retreat:
-		log.append("[color=yellow]防守方下令全军撤退![/color]")
+		combat_log.append("[color=yellow]防守方下令全军撤退![/color]")
 		var total_def_soldiers: int = 0
 		for u in state["def_units"]:
 			total_def_soldiers += u["soldiers"]
@@ -307,9 +307,9 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			def_remaining_loss -= unit_loss
 			if u["soldiers"] <= 0:
 				u["is_alive"] = false
-			log.append("  %s 殿后: 损失 %d 兵" % [u["unit_type"], unit_loss])
-		log.append("防守方撤退! 总损失 %d 兵" % def_retreat_loss)
-		return _finalize_result(state, "attacker", false, log, tile)
+			combat_log.append("  %s 殿后: 损失 %d 兵" % [u["unit_type"], unit_loss])
+		combat_log.append("防守方撤退! 总损失 %d 兵" % def_retreat_loss)
+		return _finalize_result(state, "attacker", false, combat_log, tile)
 
 	# Morale: Order debuff on enemies — high order intimidates the opposing side
 	# BUG FIX R11: only debuff the side OPPOSING the human player when order is high
@@ -324,7 +324,7 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			if "morale_immune" not in u["passives"] and not u.get("immovable", false):
 				u["morale"] = maxi(u["morale"] - MORALE_ORDER_DEBUFF, 0)
 
-	log.append("=== 战斗开始 === 进攻方 %d 单位 vs 防守方 %d 单位" % [
+	combat_log.append("=== 战斗开始 === 进攻方 %d 单位 vs 防守方 %d 单位" % [
 		state["atk_units"].size(), state["def_units"].size()])
 
 	# Log counter matchup analysis
@@ -338,14 +338,14 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			var c: Dictionary = CounterMatrix.get_counter(atk_u["unit_type"], def_u["unit_type"])
 			if c["advantage"] == "hard_counter":
 				if not _has_counter_info:
-					log.append("=== 兵种克制分析 ===")
+					combat_log.append("=== 兵种克制分析 ===")
 					_has_counter_info = true
-				log.append("[color=green]★ %s 硬克 %s: %s[/color]" % [atk_u["unit_type"], def_u["unit_type"], c["label"]])
+				combat_log.append("[color=green]★ %s 硬克 %s: %s[/color]" % [atk_u["unit_type"], def_u["unit_type"], c["label"]])
 			elif c["advantage"] == "weak":
 				if not _has_counter_info:
-					log.append("=== 兵种克制分析 ===")
+					combat_log.append("=== 兵种克制分析 ===")
 					_has_counter_info = true
-				log.append("[color=red]✗ %s 被克 %s: %s[/color]" % [atk_u["unit_type"], def_u["unit_type"], c["label"]])
+				combat_log.append("[color=red]✗ %s 被克 %s: %s[/color]" % [atk_u["unit_type"], def_u["unit_type"], c["label"]])
 	# Also check defender-side counters
 	for def_u in state["def_units"]:
 		if not def_u["is_alive"]:
@@ -356,14 +356,14 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			var c2: Dictionary = CounterMatrix.get_counter(def_u["unit_type"], atk_u["unit_type"])
 			if c2["advantage"] == "hard_counter":
 				if not _has_counter_info:
-					log.append("=== 兵种克制分析 ===")
+					combat_log.append("=== 兵种克制分析 ===")
 					_has_counter_info = true
-				log.append("[color=green]★ %s 硬克 %s: %s[/color]" % [def_u["unit_type"], atk_u["unit_type"], c2["label"]])
+				combat_log.append("[color=green]★ %s 硬克 %s: %s[/color]" % [def_u["unit_type"], atk_u["unit_type"], c2["label"]])
 			elif c2["advantage"] == "weak":
 				if not _has_counter_info:
-					log.append("=== 兵种克制分析 ===")
+					combat_log.append("=== 兵种克制分析 ===")
 					_has_counter_info = true
-				log.append("[color=red]✗ %s 被克 %s: %s[/color]" % [def_u["unit_type"], atk_u["unit_type"], c2["label"]])
+				combat_log.append("[color=red]✗ %s 被克 %s: %s[/color]" % [def_u["unit_type"], atk_u["unit_type"], c2["label"]])
 
 	# -- Phase 1: Wall / Siege --
 	var tile_idx: int = tile.get("index", -1)
@@ -380,19 +380,19 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			if HeroSystem.has_equipment_passive(hero["id"], "node_wall_bonus"):
 				var bonus: float = HeroSystem.get_equipment_passive_value(hero["id"], "node_wall_bonus")
 				wall_hp += bonus
-				log.append("装备: 城防+%.0f" % bonus)
+				combat_log.append("装备: 城防+%.0f" % bonus)
 	# Blast barrel
 	var blast_barrel_dmg: Variant = BuffManager.get_buff_value(atk_pid, "wall_damage")
 	if blast_barrel_dmg != null and blast_barrel_dmg > 0:
 		wall_hp = maxf(wall_hp - float(blast_barrel_dmg), 0.0)
-		log.append("爆破桶: 城防-%.0f" % float(blast_barrel_dmg))
+		combat_log.append("爆破桶: 城防-%.0f" % float(blast_barrel_dmg))
 
 	# v4.6: siege_bonus — equipment passive reduces wall HP by 10
 	if atk_pid >= 0:
 		for _sb_hero in HeroSystem.get_heroes_for_player(atk_pid):
 			if HeroSystem.has_equipment_passive(_sb_hero["id"], "siege_bonus"):
 				wall_hp = maxf(wall_hp - 10.0, 0.0)
-				log.append("装备: 攻城加成 城防-10")
+				combat_log.append("装备: 攻城加成 城防-10")
 				break
 
 	# Passive: siege_ignore — if ANY attacker unit has siege_ignore, skip wall phase entirely
@@ -403,28 +403,28 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			break
 
 	if wall_hp > 0.0 and _has_siege_ignore:
-		log.append("无视城防! 攻城部队直接突入!")
+		combat_log.append("无视城防! 攻城部队直接突入!")
 	elif wall_hp > 0.0 and StrategicResourceManager.ignores_walls(atk_pid):
-		log.append("火药攻势! 无视城防!")
+		combat_log.append("火药攻势! 无视城防!")
 	elif wall_hp > 0.0:
 		var siege_result: Dictionary = _resolve_siege_phase(state, wall_hp, tile)
-		log.append_array(siege_result["log"])
+		combat_log.append_array(siege_result["log"])
 		if not siege_result["breached"]:
-			log.append("城墙未被攻破! 战斗未进行。")
+			combat_log.append("城墙未被攻破! 战斗未进行。")
 			return {
 				"winner": "defender", "attacker_losses": 0, "defender_losses": 0,
-				"slaves_captured": 0, "wall_destroyed": false, "details": log,
+				"slaves_captured": 0, "wall_destroyed": false, "details": combat_log,
 			}
 		else:
 			wall_destroyed = true
-			log.append("城墙被攻破! 战斗开始!")
+			combat_log.append("城墙被攻破! 战斗开始!")
 
 	# -- Phase 2: Elf Barrier check --
 	var barrier_active: bool = LightFactionAI.is_barrier_active(tile.get("index", -1))
 	if barrier_active:
 		state["barrier_active"] = true
 		state["barrier_tile_index"] = tile.get("index", -1)
-		log.append("精灵屏障激活!")
+		combat_log.append("精灵屏障激活!")
 
 	# Reset per-battle state
 	for u in state["atk_units"]:
@@ -436,9 +436,9 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	var winner: String = ""
 	for round_num in range(1, MAX_ROUNDS + 1):
 		state["round"] = round_num
-		log.append("--- 第 %d 回合 ---" % round_num)
+		combat_log.append("--- 第 %d 回合 ---" % round_num)
 
-		_start_of_round(state, log)
+		_start_of_round(state, combat_log)
 
 
 		# v4.6: time_slow — restore SPD after round 1
@@ -458,7 +458,7 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			for intervention in pending:
 				if intervention.get("round", -1) == round_num:
 					CommanderIntervention.execute(
-						intervention["type"], state, intervention.get("target", null), log)
+						intervention["type"], state, intervention.get("target", null), combat_log)
 			# Emit signal for UI to collect player decisions
 			if CommanderIntervention.get_current_cp() > 0:
 				var available: Array = CommanderIntervention.get_available_interventions()
@@ -471,7 +471,7 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		var _duel_atk: bool = (state.get("atk_directive", TacticalDirective.NONE) == TacticalDirective.DUEL)
 		var _duel_def: bool = (state.get("def_directive", TacticalDirective.NONE) == TacticalDirective.DUEL)
 		if _duel_atk or _duel_def:
-			_attempt_duel(state, log, _duel_atk, _duel_def)
+			_attempt_duel(state, combat_log, _duel_atk, _duel_def)
 
 		var queue: Array = _build_action_queue(state)
 
@@ -482,9 +482,9 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 				continue
 			if unit["actions_this_round"] >= unit["max_actions"]:
 				continue
-			_execute_action(state, unit, log)
+			_execute_action(state, unit, combat_log)
 
-		var result: String = _end_of_round(state, log)
+		var result: String = _end_of_round(state, combat_log)
 		if result != "continue":
 			winner = result
 			break
@@ -495,13 +495,13 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		# (defender must eliminate attacker, can't just stall)
 		if state.get("def_directive", TacticalDirective.NONE) == TacticalDirective.HOLD_LINE:
 			winner = "attacker"
-			log.append("坚守指令: 超时判定 — 防守方未能歼灭进攻方, 进攻方突破!")
+			combat_log.append("坚守指令: 超时判定 — 防守方未能歼灭进攻方, 进攻方突破!")
 		else:
 			winner = "defender"
-			log.append("8回合结束，防守方胜利!")
+			combat_log.append("8回合结束，防守方胜利!")
 
 	# -- Phase 4: Finalize --
-	return _finalize_result(state, winner, wall_destroyed, log, tile)
+	return _finalize_result(state, winner, wall_destroyed, combat_log, tile)
 
 
 # ---------------------------------------------------------------------------
@@ -1157,7 +1157,7 @@ func _apply_directive_modifiers(state: Dictionary) -> void:
 # ---------------------------------------------------------------------------
 
 func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -> Dictionary:
-	var log: Array = []
+	var combat_log: Array = []
 	var remaining: float = wall_hp
 
 	# Cache siege buff outside loop — constant for entire siege phase
@@ -1187,7 +1187,7 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 		if _siege_mult > 1.0:
 			siege_dmg *= _siege_mult
 		remaining -= siege_dmg
-		log.append("%s 攻城伤害 %.0f" % [unit["unit_type"], siege_dmg])
+		combat_log.append("%s 攻城伤害 %.0f" % [unit["unit_type"], siege_dmg])
 
 	# Passive: dwarf_siege_t3 — after siege phase, deal ATK×0.5 splash to all defenders
 	for unit in state["atk_units"]:
@@ -1200,21 +1200,21 @@ func _resolve_siege_phase(state: Dictionary, wall_hp: float, tile: Dictionary) -
 					def_unit["soldiers"] = maxi(0, def_unit["soldiers"] - splash_dmg)
 					if def_unit["soldiers"] <= 0:
 						def_unit["is_alive"] = false
-					log.append("%s 矮人炮术溅射! %s -%d兵" % [unit["unit_type"], def_unit["unit_type"], splash_dmg])
+					combat_log.append("%s 矮人炮术溅射! %s -%d兵" % [unit["unit_type"], def_unit["unit_type"], splash_dmg])
 
 	var wall_damage_total: int = int(wall_hp - maxf(remaining, 0.0))
 	LightFactionAI.damage_wall(tile.get("index", -1), wall_damage_total)
 	var new_wall: int = LightFactionAI.get_wall_hp(tile.get("index", -1))
-	log.append("城墙受到 %d 点伤害 (剩余: %d)" % [wall_damage_total, new_wall])
+	combat_log.append("城墙受到 %d 点伤害 (剩余: %d)" % [wall_damage_total, new_wall])
 
-	return {"breached": new_wall <= 0, "log": log}
+	return {"breached": new_wall <= 0, "log": combat_log}
 
 
 # ---------------------------------------------------------------------------
 # Duel Mechanic (一骑打)
 # ---------------------------------------------------------------------------
 
-func _attempt_duel(state: Dictionary, log: Array, atk_duel: bool, def_duel: bool) -> void:
+func _attempt_duel(state: Dictionary, combat_log: Array, atk_duel: bool, def_duel: bool) -> void:
 	## Attempt a commander duel when DUEL directive is active.
 	## 25% base chance per round (+20% if hero has duel_bonus passive).
 	var trigger_chance: float = 0.25
@@ -1232,7 +1232,7 @@ func _attempt_duel(state: Dictionary, log: Array, atk_duel: bool, def_duel: bool
 	# Need at least one hero on each side to duel
 	if atk_hero.is_empty() or def_hero.is_empty():
 		return
-	log.append("[color=red]══ 一骑打! %s vs %s ══[/color]" % [
+	combat_log.append("[color=red]══ 一骑打! %s vs %s ══[/color]" % [
 		atk_hero.get("unit_type", "???"), def_hero.get("unit_type", "???")])
 	# Calculate duel scores: ATK + SPD*0.5 + random(0,5)
 	var atk_score: float = atk_hero["atk"] + atk_hero["spd"] * 0.5 + randf_range(0.0, 5.0)
@@ -1256,7 +1256,7 @@ func _attempt_duel(state: Dictionary, log: Array, atk_duel: bool, def_duel: bool
 	for u in state[winner_units_key]:
 		if u["is_alive"]:
 			u["morale"] = mini(u.get("morale", MORALE_START) + 15, MORALE_START)
-	log.append("[color=yellow]%s [%s] 胜出! 对方损失%d兵, 士气-25. 己方全军士气+15[/color]" % [
+	combat_log.append("[color=yellow]%s [%s] 胜出! 对方损失%d兵, 士气-25. 己方全军士气+15[/color]" % [
 		winner_unit.get("unit_type", ""), winner_unit["side"], duel_damage])
 	# If winner side has DUEL directive, grant ATK+20% (as described in DIRECTIVE_DATA)
 	# Only apply once per battle to prevent compounding from multiple duels
@@ -1266,7 +1266,7 @@ func _attempt_duel(state: Dictionary, log: Array, atk_duel: bool, def_duel: bool
 			for u in state[winner_units_key]:
 				if u["is_alive"]:
 					u["atk"] = u["atk"] * 1.2
-			log.append("[color=cyan]一骑打胜利! %s全军ATK+20%%[/color]" % ("进攻方" if atk_wins else "防守方"))
+			combat_log.append("[color=cyan]一骑打胜利! %s全军ATK+20%%[/color]" % ("进攻方" if atk_wins else "防守方"))
 
 
 func _find_strongest_hero(units: Array) -> Dictionary:
@@ -1288,7 +1288,7 @@ func _find_strongest_hero(units: Array) -> Dictionary:
 # Round Phases
 # ---------------------------------------------------------------------------
 
-func _start_of_round(state: Dictionary, log: Array) -> void:
+func _start_of_round(state: Dictionary, combat_log: Array) -> void:
 	state["barrier_used_this_round"] = false
 
 	# -- v6.1: Tick burn debuffs at start of round --
@@ -1311,7 +1311,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				_bu["soldiers"] = maxi(0, _bu["soldiers"] - _burn_dmg)
 				if _bu["soldiers"] <= 0:
 					_bu["is_alive"] = false
-				log.append("%s [%s] 灼烧伤害 -%d兵" % [_bu.get("unit_type", ""), _bu.get("side", ""), _burn_dmg])
+				combat_log.append("%s [%s] 灼烧伤害 -%d兵" % [_bu.get("unit_type", ""), _bu.get("side", ""), _burn_dmg])
 			# Clean up expired debuffs (iterate in reverse to maintain indices)
 			_debuffs_to_remove.reverse()
 			for _rm_idx in _debuffs_to_remove:
@@ -1322,7 +1322,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 		for _ds_unit in state["atk_units"] + state["def_units"]:
 			if _ds_unit["is_alive"] and "double_shot" in _ds_unit["passives"]:
 				_ds_unit["max_actions"] = 2
-				log.append("%s [%s] 连射准备! 首回合攻击两次" % [_ds_unit["unit_type"], _ds_unit["side"]])
+				combat_log.append("%s [%s] 连射准备! 首回合攻击两次" % [_ds_unit["unit_type"], _ds_unit["side"]])
 	elif state["round"] == 2:
 		# Reset double_shot units back to normal
 		for _ds_unit2 in state["atk_units"] + state["def_units"]:
@@ -1340,14 +1340,14 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 					if unit["is_alive"]:
 						unit["buffs"].append({"id": "ambush_r1", "duration": 1, "value": 0.40})
 				var side_name: String = "进攻方" if side_key == "atk" else "防守方"
-				log.append("%s 奇袭指令: 第1回合ATK+40%%!" % side_name)
+				combat_log.append("%s 奇袭指令: 第1回合ATK+40%%!" % side_name)
 			elif state["round"] == 2:
 				# Remove round 1 buff and apply permanent debuff for rest of battle
 				for unit in units:
 					if unit["is_alive"]:
 						unit["buffs"].append({"id": "ambush_after", "duration": 99, "value": -0.10})
 				var side_name2: String = "进攻方" if side_key == "atk" else "防守方"
-				log.append("%s 奇袭指令: 后续回合ATK-10%%..." % side_name2)
+				combat_log.append("%s 奇袭指令: 后续回合ATK-10%%..." % side_name2)
 
 	# Slave fodder dissolution: after round 1, dissolve all slave_fodder units
 	if state["round"] >= 2:
@@ -1356,7 +1356,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				if unit["is_alive"] and "slave_fodder" in unit["passives"]:
 					unit["soldiers"] = 0
 					unit["is_alive"] = false
-					log.append("%s [%s] 奴隶肉盾溃散! (首轮消耗品)" % [unit["unit_type"], unit["side"]])
+					combat_log.append("%s [%s] 奴隶肉盾溃散! (首轮消耗品)" % [unit["unit_type"], unit["side"]])
 
 	# Mana regen: +1 per side per round
 	state["atk_mana"] = mini(state["atk_mana"] + 1, state["atk_mana_max"])
@@ -1400,7 +1400,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 					_awk_u["atk"] = _awk_u["atk"] / _awk_data.get("atk_mult", 1.0)
 					_awk_u["def"] = _awk_u["def"] / _awk_data.get("def_mult", 1.0)
 					_awk_u["spd"] = _awk_u["spd"] / _awk_data.get("spd_mult", 1.0)
-				log.append("[觉醒] %s 觉醒结束，恢复常态" % _awk_u.get("unit_type", ""))
+				combat_log.append("[觉醒] %s 觉醒结束，恢复常态" % _awk_u.get("unit_type", ""))
 
 	# -- v6.0: Check awakening trigger for damaged heroes --
 	for _chk_u in state["atk_units"] + state["def_units"]:
@@ -1421,7 +1421,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				_chk_u["atk"] = _chk_u["atk"] * _awk_stats.get("atk_mult", 1.0)
 				_chk_u["def"] = _chk_u["def"] * _awk_stats.get("def_mult", 1.0)
 				_chk_u["spd"] = _chk_u["spd"] * _awk_stats.get("spd_mult", 1.0)
-				log.append("[color=red][觉醒] %s — %s! ATK×%.1f DEF×%.1f SPD×%.1f[/color]" % [
+				combat_log.append("[color=red][觉醒] %s — %s! ATK×%.1f DEF×%.1f SPD×%.1f[/color]" % [
 					_chk_u.get("unit_type", ""), _awk_stats.get("name", ""),
 					_awk_stats.get("atk_mult", 1.0), _awk_stats.get("def_mult", 1.0),
 					_awk_stats.get("spd_mult", 1.0)])
@@ -1435,10 +1435,10 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			continue
 		var _ult_result: Dictionary = HeroSkillsAdvanced.execute_ultimate(_ult_hid, state)
 		if _ult_result.get("ok", false):
-			log.append("[color=yellow][必杀技] %s 发动 %s![/color]" % [
+			combat_log.append("[color=yellow][必杀技] %s 发动 %s![/color]" % [
 				_ult_exec_u.get("unit_type", ""), _ult_result.get("name", "")])
 			for _hit in _ult_result.get("targets_hit", []):
-				log.append("  → %s 受到 %d 伤害" % [
+				combat_log.append("  → %s 受到 %d 伤害" % [
 					_hit.get("unit", ""), _hit.get("damage", _hit.get("healed", 0))])
 
 	for unit in state["atk_units"] + state["def_units"]:
@@ -1459,14 +1459,14 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 		if "regen_1" in unit["passives"]:
 			if unit["soldiers"] < unit["max_soldiers"]:
 				unit["soldiers"] += 1
-				log.append("%s [%s] 再生+1兵" % [unit["unit_type"], unit["side"]])
+				combat_log.append("%s [%s] 再生+1兵" % [unit["unit_type"], unit["side"]])
 
 		# Passive: regen_2 — restore 2 soldiers per round
 		if "regen_2" in unit["passives"]:
 			if unit["soldiers"] < unit["max_soldiers"]:
 				var heal_amt: int = mini(2, unit["max_soldiers"] - unit["soldiers"])
 				unit["soldiers"] += heal_amt
-				log.append("%s [%s] 深根再生+%d兵" % [unit["unit_type"], unit["side"], heal_amt])
+				combat_log.append("%s [%s] 深根再生+%d兵" % [unit["unit_type"], unit["side"], heal_amt])
 
 		# Passive: necro_summon — spawn a skeleton squad each round
 		if "necro_summon" in unit["passives"]:
@@ -1492,7 +1492,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			else:
 				skeleton["slot"] = state["def_units"].size()
 				state["def_units"].append(skeleton)
-			log.append("%s [%s] 亡灵召唤! 召唤骷髅小队(2兵)" % [unit["unit_type"], unit["side"]])
+			combat_log.append("%s [%s] 亡灵召唤! 召唤骷髅小队(2兵)" % [unit["unit_type"], unit["side"]])
 
 		# Passive: forest_stealth — round 1 only: unit is invisible (can't be targeted)
 		if "forest_stealth" in unit["passives"] and state["round"] == 1:
@@ -1500,7 +1500,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			var syn_specials: Dictionary = state.get("atk_synergy_specials", {}) if unit["side"] == "attacker" else state.get("def_synergy_specials", {})
 			stealth_dur += syn_specials.get("stealth_extra_round", 0)
 			unit["buffs"].append({"id": "stealth", "duration": stealth_dur, "value": 1})
-			log.append("%s [%s] 林间潜行! 隐身%d回合" % [unit["unit_type"], unit["side"], stealth_dur])
+			combat_log.append("%s [%s] 林间潜行! 隐身%d回合" % [unit["unit_type"], unit["side"], stealth_dur])
 
 		# Passive: leadership — all adjacent friendly units get ATK+2 (aura)
 		if "leadership" in unit["passives"]:
@@ -1511,7 +1511,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				# Adjacent = same row or neighboring slot
 				if abs(ally["slot"] - unit["slot"]) <= 1:
 					ally["buffs"].append({"id": "leadership_aura", "duration": 1, "value": 2})
-					log.append("%s [%s] 统帅光环: %s ATK+2" % [unit["unit_type"], unit["side"], ally["unit_type"]])
+					combat_log.append("%s [%s] 统帅光环: %s ATK+2" % [unit["unit_type"], unit["side"], ally["unit_type"]])
 
 		# Passive: war_cry — all friendly units ATK+2 for 3 rounds (activate once, round 1)
 		if "war_cry" in unit["passives"] and state["round"] == 1 and not unit.get("war_cry_used", false):
@@ -1520,7 +1520,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			for ally in allies:
 				if ally["is_alive"]:
 					ally["buffs"].append({"id": "war_cry", "duration": 3, "value": 2})
-			log.append("%s [%s] 战吼! 全友军ATK+2(3回合)" % [unit["unit_type"], unit["side"]])
+			combat_log.append("%s [%s] 战吼! 全友军ATK+2(3回合)" % [unit["unit_type"], unit["side"]])
 
 		# Passive: root_bind — stun 1 enemy for 2 rounds (activate round 1 or 2)
 		if "root_bind" in unit["passives"] and state["round"] <= 2 and not unit.get("root_bind_used", false):
@@ -1530,7 +1530,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			if not alive_enemies.is_empty():
 				var stun_target: Dictionary = alive_enemies[randi() % alive_enemies.size()]
 				stun_target["debuffs"].append({"id": "stun", "duration": 2, "value": 1})
-				log.append("%s [%s] 根缚! %s 被定身2回合" % [unit["unit_type"], unit["side"], stun_target["unit_type"]])
+				combat_log.append("%s [%s] 根缚! %s 被定身2回合" % [unit["unit_type"], unit["side"], stun_target["unit_type"]])
 
 		# Passive: blood_ritual — sacrifice 2 soldiers from self, heal all friendly units +2 soldiers each
 		if "blood_ritual" in unit["passives"] and not unit.get("blood_ritual_used", false):
@@ -1542,7 +1542,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 					if ally["is_alive"] and ally != unit:
 						var heal_amt: int = mini(2, ally["max_soldiers"] - ally["soldiers"])
 						ally["soldiers"] += heal_amt
-				log.append("%s [%s] 血祭! 牺牲2兵，治愈全军+2兵" % [unit["unit_type"], unit["side"]])
+				combat_log.append("%s [%s] 血祭! 牺牲2兵，治愈全军+2兵" % [unit["unit_type"], unit["side"]])
 
 		# Passive: trade_hire — summon 1 random T2 mercenary unit mid-battle (once per battle)
 		if "trade_hire" in unit["passives"] and not unit.get("trade_hire_used", false):
@@ -1571,7 +1571,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			else:
 				merc["slot"] = state["def_units"].size()
 				state["def_units"].append(merc)
-			log.append("%s [%s] 佣兵雇佣! 召唤 %s(4兵)" % [unit["unit_type"], unit["side"], merc_type])
+			combat_log.append("%s [%s] 佣兵雇佣! 召唤 %s(4兵)" % [unit["unit_type"], unit["side"], merc_type])
 
 		# Passive: charge_mana_1 — +1 mana
 		if "charge_mana_1" in unit["passives"]:
@@ -1599,7 +1599,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			if not ra_lowest.is_empty():
 				var ra_heal: int = mini(1, ra_lowest["max_soldiers"] - ra_lowest["soldiers"])
 				ra_lowest["soldiers"] += ra_heal
-				log.append("%s [%s] 再生光环: %s +%d兵" % [unit["unit_type"], unit["side"], ra_lowest["unit_type"], ra_heal])
+				combat_log.append("%s [%s] 再生光环: %s +%d兵" % [unit["unit_type"], unit["side"], ra_lowest["unit_type"], ra_heal])
 
 		# Passive: scatter — if soldiers < 30% of max, unit retreats (survives but leaves battle)
 		if "scatter" in unit["passives"]:
@@ -1607,14 +1607,14 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				unit["is_alive"] = false
 				unit["scattered"] = true  # Mark as retreated, not killed
 				# Keep soldiers intact — they escaped the battle alive
-				log.append("%s [%s] 溃散撤退!" % [unit["unit_type"], unit["side"]])
+				combat_log.append("%s [%s] 溃散撤退!" % [unit["unit_type"], unit["side"]])
 				continue
 
 		# Passive: reload_shot — on even rounds (2,4,6...), unit skips action (reloading)
 		if "reload_shot" in unit["passives"]:
 			if state["round"] % 2 == 0:
 				unit["actions_this_round"] = unit["max_actions"]  # Skip action this round
-				log.append("%s [%s] 装填中..." % [unit["unit_type"], unit["side"]])
+				combat_log.append("%s [%s] 装填中..." % [unit["unit_type"], unit["side"]])
 
 		# BUG FIX: zero_food — undead units lose 1 soldier per combat round
 		if "zero_food" in unit["passives"]:
@@ -1622,10 +1622,10 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			if unit["soldiers"] <= 0:
 				unit["soldiers"] = 0
 				unit["is_alive"] = false
-				log.append("%s [%s] 不死之军 兵力归零!" % [unit["unit_type"], unit["side"]])
+				combat_log.append("%s [%s] 不死之军 兵力归零!" % [unit["unit_type"], unit["side"]])
 				continue
 			else:
-				log.append("%s [%s] 不死之军 -1兵 (剩余%d)" % [unit["unit_type"], unit["side"], unit["soldiers"]])
+				combat_log.append("%s [%s] 不死之军 -1兵 (剩余%d)" % [unit["unit_type"], unit["side"], unit["soldiers"]])
 
 		# BUG FIX: DoT debuff processing — apply poison_dot damage
 		var dot_damage: int = 0
@@ -1634,11 +1634,11 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 				dot_damage += 1
 		if dot_damage > 0:
 			unit["soldiers"] -= dot_damage
-			log.append("%s [%s] 中毒! -%d兵" % [unit["unit_type"], unit["side"], dot_damage])
+			combat_log.append("%s [%s] 中毒! -%d兵" % [unit["unit_type"], unit["side"], dot_damage])
 			if unit["soldiers"] <= 0:
 				unit["soldiers"] = 0
 				unit["is_alive"] = false
-				log.append("%s [%s] 中毒身亡!" % [unit["unit_type"], unit["side"]])
+				combat_log.append("%s [%s] 中毒身亡!" % [unit["unit_type"], unit["side"]])
 				continue
 
 		# Passive: yukino_heal_2 — heal +2 soldiers to lowest allied unit each round
@@ -1655,7 +1655,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			if not lowest.is_empty():
 				var heal_amt: int = mini(2, lowest["max_soldiers"] - lowest["soldiers"])
 				lowest["soldiers"] += heal_amt
-				log.append("%s [%s] 雪乃治愈: %s +%d兵" % [unit["unit_type"], unit["side"], lowest["unit_type"], heal_amt])
+				combat_log.append("%s [%s] 雪乃治愈: %s +%d兵" % [unit["unit_type"], unit["side"], lowest["unit_type"], heal_amt])
 
 		# Passive: yukino_curse — curse all enemies -1 DEF per round
 		if "yukino_curse" in unit["passives"]:
@@ -1663,7 +1663,7 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			for enemy in enemies:
 				if enemy["is_alive"]:
 					enemy["def"] = maxf(enemy["def"] - 1.0, 0.0)
-			log.append("%s [%s] 雪乃诅咒: 全敌军DEF-1" % [unit["unit_type"], unit["side"]])
+			combat_log.append("%s [%s] 雪乃诅咒: 全敌军DEF-1" % [unit["unit_type"], unit["side"]])
 
 		# Passive: gekka_drain — drain 1 soldier from random enemy unit per round
 		if "gekka_drain" in unit["passives"]:
@@ -1672,24 +1672,24 @@ func _start_of_round(state: Dictionary, log: Array) -> void:
 			if not alive_enemies.is_empty():
 				var drain_target: Dictionary = alive_enemies[randi() % alive_enemies.size()]
 				drain_target["soldiers"] -= 1
-				log.append("%s [%s] 月華吸血: %s -1兵" % [unit["unit_type"], unit["side"], drain_target["unit_type"]])
+				combat_log.append("%s [%s] 月華吸血: %s -1兵" % [unit["unit_type"], unit["side"], drain_target["unit_type"]])
 				if drain_target["soldiers"] <= 0:
 					drain_target["soldiers"] = 0
 					drain_target["is_alive"] = false
-					log.append("%s [%s] 被吸尽消灭!" % [drain_target["unit_type"], drain_target["side"]])
+					combat_log.append("%s [%s] 被吸尽消灭!" % [drain_target["unit_type"], drain_target["side"]])
 
 		# Passive: gekka_aoe_10 — 10% chance to deal 1 damage to all enemy units
 		if "gekka_aoe_10" in unit["passives"]:
 			if randf() < 0.10:
 				var enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
-				log.append("%s [%s] 月華共鸣! 全敌军受到1点伤害" % [unit["unit_type"], unit["side"]])
+				combat_log.append("%s [%s] 月華共鸣! 全敌军受到1点伤害" % [unit["unit_type"], unit["side"]])
 				for enemy in enemies:
 					if enemy["is_alive"]:
 						enemy["soldiers"] -= 1
 						if enemy["soldiers"] <= 0:
 							enemy["soldiers"] = 0
 							enemy["is_alive"] = false
-							log.append("  → %s [%s] 被共鸣消灭!" % [enemy["unit_type"], enemy["side"]])
+							combat_log.append("  → %s [%s] 被共鸣消灭!" % [enemy["unit_type"], enemy["side"]])
 
 		# Tick down skill cooldown
 		if unit["skill_cooldown"] > 0:
@@ -1792,7 +1792,7 @@ func _sort_by_spd(a: Dictionary, b: Dictionary) -> bool:
 # Action Execution
 # ---------------------------------------------------------------------------
 
-func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
+func _execute_action(state: Dictionary, unit: Dictionary, combat_log: Array) -> void:
 	if not unit["is_alive"] or unit["soldiers"] <= 0:
 		return
 	if unit["actions_this_round"] >= unit["max_actions"]:
@@ -1806,7 +1806,7 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 	# Check stun debuff: stunned units cannot act
 	for d in unit["debuffs"]:
 		if d["id"] == "stun" and d["duration"] > 0:
-			log.append("%s [%s] 被定身，无法行动" % [unit["unit_type"], unit["side"]])
+			combat_log.append("%s [%s] 被定身，无法行动" % [unit["unit_type"], unit["side"]])
 			unit["actions_this_round"] += 1
 			return
 
@@ -1816,7 +1816,7 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 
 	# Priest heals instead of attacking
 	if troop_base == "priest":
-		_execute_heal(state, unit, log)
+		_execute_heal(state, unit, combat_log)
 		return
 
 	# Check AoE mana skills
@@ -1824,12 +1824,12 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		var mana_key: String = "atk_mana" if unit["side"] == "attacker" else "def_mana"
 		if state[mana_key] >= 5:
 			state[mana_key] -= 5
-			_execute_aoe_attack(state, unit, log)
+			_execute_aoe_attack(state, unit, combat_log)
 			return
 
 	# Passive: aoe_immobile — free AoE attack at 0.5x damage (no mana cost)
 	if "aoe_immobile" in unit["passives"]:
-		_execute_aoe_attack_half(state, unit, log)
+		_execute_aoe_attack_half(state, unit, combat_log)
 		return
 
 	# Check hero active skill (if ready and has mana) — with skill timing orders
@@ -1845,7 +1845,7 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 			elif state["round"] == scheduled_round:
 				should_fire = true  # Scheduled round
 			if should_fire:
-				var used: bool = _execute_active_skill(state, unit, skill, log)
+				var used: bool = _execute_active_skill(state, unit, skill, combat_log)
 				if used:
 					return
 
@@ -1859,22 +1859,22 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 	# Log unit counter advantage/disadvantage
 	var _action_counter: Dictionary = CounterMatrix.get_counter(unit["unit_type"], target["unit_type"])
 	if _action_counter["advantage"] != "neutral":
-		log.append("  克制: %s (%s, 伤害x%.0f%%)" % [_action_counter["label"], _action_counter["advantage"], _action_counter["atk_mult"] * 100])
+		combat_log.append("  克制: %s (%s, 伤害x%.0f%%)" % [_action_counter["label"], _action_counter["advantage"], _action_counter["atk_mult"] * 100])
 
 	# Charge bonus: first attack ×1.5
 	if "charge_1_5" in unit["passives"] and not unit["has_charged"]:
 		damage = int(float(damage) * 1.5)
 		unit["has_charged"] = true
-		log.append("%s [%s] 冲锋! 伤害×1.5" % [unit["unit_type"], unit["side"]])
+		combat_log.append("%s [%s] 冲锋! 伤害×1.5" % [unit["unit_type"], unit["side"]])
 
 	# Passive: charge_stun — first attack ×1.5 + 30% chance to stun for 1 round
 	elif "charge_stun" in unit["passives"] and not unit["has_charged"]:
 		damage = int(float(damage) * 1.5)
 		unit["has_charged"] = true
-		log.append("%s [%s] 冲锋! 伤害×1.5" % [unit["unit_type"], unit["side"]])
+		combat_log.append("%s [%s] 冲锋! 伤害×1.5" % [unit["unit_type"], unit["side"]])
 		if randf() < 0.3:
 			target["debuffs"].append({"id": "stun", "duration": 1, "value": 1})
-			log.append("%s [%s] 被冲锋眩晕1回合!" % [target["unit_type"], target["side"]])
+			combat_log.append("%s [%s] 被冲锋眩晕1回合!" % [target["unit_type"], target["side"]])
 
 	# Preemptive ×1.3 multiplier (round 1 only for preemptive_1_3)
 	if "preemptive_1_3" in unit["passives"] and state["round"] == 1:
@@ -1887,10 +1887,10 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		if "hakagure_nullify_crit" in target["passives"]:
 			if randf() < 0.20:
 				crit_nullified = true
-				log.append("%s [%s] 葉隠鍛直: 暴击被无效化!" % [target["unit_type"], target["side"]])
+				combat_log.append("%s [%s] 葉隠鍛直: 暴击被无效化!" % [target["unit_type"], target["side"]])
 		if not crit_nullified and randf() < 0.3:
 			damage = int(float(damage) * 2.0)
-			log.append("%s [%s] 暴击! 伤害×2" % [unit["unit_type"], unit["side"]])
+			combat_log.append("%s [%s] 暴击! 伤害×2" % [unit["unit_type"], unit["side"]])
 
 	# Barrier absorption (defender side, first use per round)
 	if state.get("barrier_active", false) and not state.get("barrier_used_this_round", false):
@@ -1899,13 +1899,13 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 				state.get("barrier_tile_index", -1), float(damage))
 			damage = int(absorbed)
 			state["barrier_used_this_round"] = true
-			log.append("精灵屏障吸收! 伤害降至 %d" % damage)
+			combat_log.append("精灵屏障吸收! 伤害降至 %d" % damage)
 
 	# Store target soldiers before damage for kill detection
 	var target_soldiers_before: int = target["soldiers"]
 
 	# Apply damage
-	_apply_damage_to_unit(state, target, damage, unit, log)
+	_apply_damage_to_unit(state, target, damage, unit, combat_log)
 
 	# -- v6.1: Process enchantment passive effects (burn, lifesteal, chain lightning, etc.) --
 	var _ench_hero: String = unit.get("hero_id", "")
@@ -1918,62 +1918,62 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 				"burn":
 					if target["is_alive"]:
 						target["debuffs"].append({"id": "burn", "duration": _eff.get("duration", 2), "value": _eff.get("dot", 1)})
-						log.append("[附魔] %s 灼烧! %s 持续%d回合" % [unit["unit_type"], target["unit_type"], _eff.get("duration", 2)])
+						combat_log.append("[附魔] %s 灼烧! %s 持续%d回合" % [unit["unit_type"], target["unit_type"], _eff.get("duration", 2)])
 				"slow":
 					if target["is_alive"]:
 						target["debuffs"].append({"id": "slow", "duration": _eff.get("duration", 2), "value": float(_eff.get("spd_reduction", 2))})
-						log.append("[附魔] %s 减速! %s SPD-%d" % [unit["unit_type"], target["unit_type"], _eff.get("spd_reduction", 2)])
+						combat_log.append("[附魔] %s 减速! %s SPD-%d" % [unit["unit_type"], target["unit_type"], _eff.get("spd_reduction", 2)])
 				"lifesteal":
 					var _heal_amt: int = _eff.get("heal", 0)
 					if _heal_amt > 0 and unit["is_alive"]:
 						unit["soldiers"] = mini(unit["soldiers"] + _heal_amt, unit.get("max_soldiers", unit["soldiers"] + _heal_amt))
-						log.append("[附魔] %s 吸血回复%d兵" % [unit["unit_type"], _heal_amt])
+						combat_log.append("[附魔] %s 吸血回复%d兵" % [unit["unit_type"], _heal_amt])
 				"chain_lightning":
 					var _chain_dmg: int = _eff.get("damage", 0)
 					if _chain_dmg > 0:
 						var _enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
 						for _ce in _enemies:
 							if _ce["is_alive"] and _ce != target:
-								_apply_damage_to_unit(state, _ce, _chain_dmg, unit, log)
-								log.append("[附魔] 连锁闪电击中 %s -%d兵" % [_ce["unit_type"], _chain_dmg])
+								_apply_damage_to_unit(state, _ce, _chain_dmg, unit, combat_log)
+								combat_log.append("[附魔] 连锁闪电击中 %s -%d兵" % [_ce["unit_type"], _chain_dmg])
 								break  # Chain hits one adjacent enemy
 				"critical":
 					var _crit_bonus: int = _eff.get("bonus_damage", 0)
 					if _crit_bonus > 0 and target["is_alive"]:
-						_apply_damage_to_unit(state, target, _crit_bonus, unit, log)
-						log.append("[附魔] 暴击额外%d伤害!" % _crit_bonus)
+						_apply_damage_to_unit(state, target, _crit_bonus, unit, combat_log)
+						combat_log.append("[附魔] 暴击额外%d伤害!" % _crit_bonus)
 				"double_attack":
 					var _extra_dmg: int = _eff.get("extra_damage", 0)
 					if _extra_dmg > 0 and target["is_alive"]:
-						_apply_damage_to_unit(state, target, _extra_dmg, unit, log)
-						log.append("[附魔] 二连击额外%d伤害!" % _extra_dmg)
+						_apply_damage_to_unit(state, target, _extra_dmg, unit, combat_log)
+						combat_log.append("[附魔] 二连击额外%d伤害!" % _extra_dmg)
 				"spell_amp":
 					var _amp_bonus: int = _eff.get("bonus_damage", 0)
 					if _amp_bonus > 0 and target["is_alive"]:
-						_apply_damage_to_unit(state, target, _amp_bonus, unit, log)
-						log.append("[附魔] 奥术增幅额外%d伤害!" % _amp_bonus)
+						_apply_damage_to_unit(state, target, _amp_bonus, unit, combat_log)
+						combat_log.append("[附魔] 奥术增幅额外%d伤害!" % _amp_bonus)
 				"anti_undead":
 					var _holy_bonus: int = _eff.get("bonus_damage", 0)
 					if _holy_bonus > 0 and target["is_alive"]:
-						_apply_damage_to_unit(state, target, _holy_bonus, unit, log)
-						log.append("[附魔] 神圣克制额外%d伤害!" % _holy_bonus)
+						_apply_damage_to_unit(state, target, _holy_bonus, unit, combat_log)
+						combat_log.append("[附魔] 神圣克制额外%d伤害!" % _holy_bonus)
 
 	# Hakagure unleash: 25% instant kill on units with ≤2 soldiers
 	if "hakagure_instant_kill" in unit["passives"] and target["is_alive"] and target["soldiers"] <= 2:
 		if randf() < 0.25:
 			target["soldiers"] = 0
 			target["is_alive"] = false
-			log.append("%s [%s] 葉隠解放! %s 即死!" % [unit["unit_type"], unit["side"], target["unit_type"]])
+			combat_log.append("%s [%s] 葉隠解放! %s 即死!" % [unit["unit_type"], unit["side"], target["unit_type"]])
 
 	# Passive: bloodlust — on kill, gain ATK+1 permanently for this battle
 	if "bloodlust" in unit["passives"] and target_soldiers_before > 0 and not target["is_alive"]:
 		unit["bloodlust_bonus"] = unit.get("bloodlust_bonus", 0) + 1
-		log.append("%s [%s] 嗜血! 击杀后ATK+1(累积:%d)" % [unit["unit_type"], unit["side"], unit["bloodlust_bonus"]])
+		combat_log.append("%s [%s] 嗜血! 击杀后ATK+1(累积:%d)" % [unit["unit_type"], unit["side"], unit["bloodlust_bonus"]])
 
 	# v4.5: dragon_slayer — on kill, gain ATK+1 permanently for this battle (like bloodlust)
 	if "dragon_slayer" in unit["passives"] and target_soldiers_before > 0 and not target["is_alive"]:
 		unit["bloodlust_bonus"] = unit.get("bloodlust_bonus", 0) + 1
-		log.append("%s [%s] 龙杀! 击杀后ATK+1(累积:%d)" % [unit["unit_type"], unit["side"], unit["bloodlust_bonus"]])
+		combat_log.append("%s [%s] 龙杀! 击杀后ATK+1(累积:%d)" % [unit["unit_type"], unit["side"], unit["bloodlust_bonus"]])
 
 	# Passive: mana_drain — on hit, drain 2 mana from enemy side
 	if "mana_drain" in unit["passives"] and damage > 0:
@@ -1981,19 +1981,19 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		var drained: int = mini(2, state[enemy_mana_key])
 		state[enemy_mana_key] -= drained
 		if drained > 0:
-			log.append("%s [%s] 法力吸取! 吸取%d法力" % [unit["unit_type"], unit["side"], drained])
+			combat_log.append("%s [%s] 法力吸取! 吸取%d法力" % [unit["unit_type"], unit["side"], drained])
 
 	# Passive: poison_slow — on hit, apply DoT (1 dmg/round for 2 rounds) + SPD-2 for 2 rounds
 	if "poison_slow" in unit["passives"] and damage > 0 and target["is_alive"]:
 		target["debuffs"].append({"id": "poison_dot", "duration": 2, "value": 1})
 		target["debuffs"].append({"id": "slow", "duration": 2, "value": 2.0})
 		# SPD penalty applied dynamically via debuff in action queue, not direct mod
-		log.append("%s [%s] 寒霜毒液! %s 中毒+减速2回合" % [unit["unit_type"], unit["side"], target["unit_type"]])
+		combat_log.append("%s [%s] 寒霜毒液! %s 中毒+减速2回合" % [unit["unit_type"], unit["side"], target["unit_type"]])
 
 	# v4.6: poison_attack — on hit, apply poison DOT (2 rounds, 1 damage/round)
 	if "poison_attack" in unit["passives"] and damage > 0 and target["is_alive"]:
 		target["debuffs"].append({"id": "poison_dot", "duration": 2, "value": 1})
-		log.append("%s [%s] 毒击! %s 中毒2回合" % [unit["unit_type"], unit["side"], target["unit_type"]])
+		combat_log.append("%s [%s] 毒击! %s 中毒2回合" % [unit["unit_type"], unit["side"], target["unit_type"]])
 
 	# Passive: gold_on_hit — on hit, player gains 2 gold
 	if "gold_on_hit" in unit["passives"] and damage > 0:
@@ -2005,7 +2005,7 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 			if gold_bonus > 0.0:
 				gold_hit_amount = int(float(gold_hit_amount) * (1.0 + gold_bonus))
 			ResourceManager.apply_delta(unit["player_id"], {"gold": gold_hit_amount})
-			log.append("%s [%s] 生财有道! +%d金" % [unit["unit_type"], unit["side"], gold_hit_amount])
+			combat_log.append("%s [%s] 生财有道! +%d金" % [unit["unit_type"], unit["side"], gold_hit_amount])
 
 	# Passive: overload — track usage count; after 3 attacks, self-destruct dealing ATK×2 AoE
 	if "overload" in unit["passives"]:
@@ -2013,18 +2013,18 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		if unit["overload_count"] >= 3:
 			var burst_dmg: int = int(unit["atk"] * 2.0)
 			var burst_enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
-			log.append("%s [%s] 过载自爆! 对敌全体造成%d伤害!" % [unit["unit_type"], unit["side"], burst_dmg])
+			combat_log.append("%s [%s] 过载自爆! 对敌全体造成%d伤害!" % [unit["unit_type"], unit["side"], burst_dmg])
 			for enemy in burst_enemies:
 				if enemy["is_alive"]:
 					enemy["soldiers"] -= burst_dmg
 					if enemy["soldiers"] <= 0:
 						enemy["soldiers"] = 0
 						enemy["is_alive"] = false
-						log.append("  → %s [%s] 被过载爆发消灭!" % [enemy["unit_type"], enemy["side"]])
+						combat_log.append("  → %s [%s] 被过载爆发消灭!" % [enemy["unit_type"], enemy["side"]])
 			# Self-destruct
 			unit["soldiers"] = 0
 			unit["is_alive"] = false
-			log.append("%s [%s] 过载自毁!" % [unit["unit_type"], unit["side"]])
+			combat_log.append("%s [%s] 过载自毁!" % [unit["unit_type"], unit["side"]])
 
 	# Counter-attack: counter_1_2 or counter_defend passive
 	if target["is_alive"] and ("counter_1_2" in target["passives"] or "counter_defend" in target["passives"]):
@@ -2036,8 +2036,8 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 		var _ca_counter: Dictionary = CounterMatrix.get_counter(unit["unit_type"], target["unit_type"])
 		if _ca_counter["def_mult"] != 1.0:
 			counter_dmg = int(float(counter_dmg) * _ca_counter["def_mult"])
-		log.append("%s [%s] 反击! 伤害 %d" % [target["unit_type"], target["side"], counter_dmg])
-		_apply_damage_to_unit(state, unit, counter_dmg, target, log)
+		combat_log.append("%s [%s] 反击! 伤害 %d" % [target["unit_type"], target["side"], counter_dmg])
+		_apply_damage_to_unit(state, unit, counter_dmg, target, combat_log)
 
 	# Passive: double_forest — in forest terrain, attack a second random target
 	if "double_forest" in unit["passives"] and unit["is_alive"]:
@@ -2046,11 +2046,11 @@ func _execute_action(state: Dictionary, unit: Dictionary, log: Array) -> void:
 			var second_target: Dictionary = _select_target(state, unit)
 			if not second_target.is_empty():
 				var second_dmg: int = _calculate_damage(unit, second_target, state)
-				log.append("%s [%s] 森林双击! 追加攻击 %s" % [unit["unit_type"], unit["side"], second_target["unit_type"]])
-				_apply_damage_to_unit(state, second_target, second_dmg, unit, log)
+				combat_log.append("%s [%s] 森林双击! 追加攻击 %s" % [unit["unit_type"], unit["side"], second_target["unit_type"]])
+				_apply_damage_to_unit(state, second_target, second_dmg, unit, combat_log)
 
 
-func _execute_heal(state: Dictionary, healer: Dictionary, log: Array) -> void:
+func _execute_heal(state: Dictionary, healer: Dictionary, combat_log: Array) -> void:
 	# Find friendliest unit with lowest soldiers ratio
 	var allies: Array = state["atk_units"] if healer["side"] == "attacker" else state["def_units"]
 	var best_target: Dictionary = {}
@@ -2068,7 +2068,7 @@ func _execute_heal(state: Dictionary, healer: Dictionary, log: Array) -> void:
 		var target: Dictionary = _select_target(state, healer)
 		if not target.is_empty():
 			var damage: int = _calculate_damage(healer, target, state)
-			_apply_damage_to_unit(state, target, damage, healer, log)
+			_apply_damage_to_unit(state, target, damage, healer, combat_log)
 		return
 
 	# Heal: restore 2 soldiers (from design doc 02 — 治愈之光 restores 2)
@@ -2079,11 +2079,11 @@ func _execute_heal(state: Dictionary, healer: Dictionary, log: Array) -> void:
 	if "heal_bonus" in healer["passives"]:
 		heal_amount = int(float(heal_amount) * 1.3)
 	best_target["soldiers"] = mini(best_target["soldiers"] + heal_amount, best_target["max_soldiers"])
-	log.append("%s [%s] 治疗 %s +%d兵" % [
+	combat_log.append("%s [%s] 治疗 %s +%d兵" % [
 		healer["unit_type"], healer["side"], best_target["unit_type"], heal_amount])
 
 
-func _execute_aoe_attack(state: Dictionary, unit: Dictionary, log: Array) -> void:
+func _execute_aoe_attack(state: Dictionary, unit: Dictionary, combat_log: Array) -> void:
 	var enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
 	var mult: float = 1.0
 	if "aoe_1_5_cost5" in unit["passives"]:
@@ -2100,15 +2100,15 @@ func _execute_aoe_attack(state: Dictionary, unit: Dictionary, log: Array) -> voi
 		damage = int(float(damage) * mult)
 		# AoE reduces per-target damage slightly
 		damage = maxi(1, int(float(damage) * 0.6))
-		_apply_damage_to_unit(state, enemy, damage, unit, log)
+		_apply_damage_to_unit(state, enemy, damage, unit, combat_log)
 		hit_count += 1
 
-	log.append("%s [%s] AoE攻击! 命中 %d 个目标 (×%.1f)" % [
+	combat_log.append("%s [%s] AoE攻击! 命中 %d 个目标 (×%.1f)" % [
 		unit["unit_type"], unit["side"], hit_count, mult])
 
 
 ## AoE attack at half damage (aoe_immobile passive, no mana cost)
-func _execute_aoe_attack_half(state: Dictionary, unit: Dictionary, log: Array) -> void:
+func _execute_aoe_attack_half(state: Dictionary, unit: Dictionary, combat_log: Array) -> void:
 	var enemies: Array = state["def_units"] if unit["side"] == "attacker" else state["atk_units"]
 	var hit_count: int = 0
 	for enemy in enemies:
@@ -2119,9 +2119,9 @@ func _execute_aoe_attack_half(state: Dictionary, unit: Dictionary, log: Array) -
 			continue
 		# BUG FIX: only apply 0.5x reduction (was double-applying 0.5 * 0.6 = 0.3x)
 		damage = maxi(1, int(float(damage) * 0.5))
-		_apply_damage_to_unit(state, enemy, damage, unit, log)
+		_apply_damage_to_unit(state, enemy, damage, unit, combat_log)
 		hit_count += 1
-	log.append("%s [%s] AoE攻击(固定)! 命中 %d 个目标 (×0.5)" % [
+	combat_log.append("%s [%s] AoE攻击(固定)! 命中 %d 个目标 (×0.5)" % [
 		unit["unit_type"], unit["side"], hit_count])
 
 
@@ -2129,7 +2129,7 @@ func _execute_aoe_attack_half(state: Dictionary, unit: Dictionary, log: Array) -
 # Hero Active Skills
 # ---------------------------------------------------------------------------
 
-func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionary, log: Array) -> bool:
+func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionary, combat_log: Array) -> bool:
 	var skill_name: String = skill.get("name", "")
 	var skill_type: String = skill.get("type", "damage")
 	var mana_cost: int = skill.get("mana_cost", 0)
@@ -2156,8 +2156,8 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 			var target: Dictionary = _select_target(state, unit)
 			if not target.is_empty():
 				var dmg: int = maxi(1, int(unit["atk"] * 1.8 * int_mult))
-				_apply_damage_to_unit(state, target, dmg, unit, log)
-				log.append("【%s】圣光斩! 对 %s 造成 %d 伤害" % [unit["hero_id"], target["unit_type"], dmg])
+				_apply_damage_to_unit(state, target, dmg, unit, combat_log)
+				combat_log.append("【%s】圣光斩! 对 %s 造成 %d 伤害" % [unit["hero_id"], target["unit_type"], dmg])
 
 		"箭雨":  # 后排AoE, ATK × 1.2
 			for enemy in enemies:
@@ -2165,23 +2165,23 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 					continue
 				if enemy["row"] == "back" or _count_alive_in_row(enemies, "front") == 0:
 					var dmg: int = maxi(1, int(unit["atk"] * 1.2 * int_mult * 0.6))
-					_apply_damage_to_unit(state, enemy, dmg, unit, log)
-			log.append("【%s】箭雨!" % unit["hero_id"])
+					_apply_damage_to_unit(state, enemy, dmg, unit, combat_log)
+			combat_log.append("【%s】箭雨!" % unit["hero_id"])
 
 		"流星火雨":  # 全体AoE, ATK × 2, 8 mana
 			for enemy in enemies:
 				if not enemy["is_alive"]:
 					continue
 				var dmg: int = maxi(1, int(unit["atk"] * 2.0 * int_mult * 0.5))
-				_apply_damage_to_unit(state, enemy, dmg, unit, log)
-			log.append("【%s】流星火雨!" % unit["hero_id"])
+				_apply_damage_to_unit(state, enemy, dmg, unit, combat_log)
+			combat_log.append("【%s】流星火雨!" % unit["hero_id"])
 
 		"爆裂火球":  # 单体 ATK × 2.5, 3 mana
 			var target: Dictionary = _select_target(state, unit)
 			if not target.is_empty():
 				var dmg: int = maxi(1, int(unit["atk"] * 2.5 * int_mult))
-				_apply_damage_to_unit(state, target, dmg, unit, log)
-				log.append("【%s】爆裂火球! %d 伤害" % [unit["hero_id"], dmg])
+				_apply_damage_to_unit(state, target, dmg, unit, combat_log)
+				combat_log.append("【%s】爆裂火球! %d 伤害" % [unit["hero_id"], dmg])
 
 		"治愈之光":  # 恢复2兵力
 			var best: Dictionary = _find_most_wounded_ally(allies, unit)
@@ -2191,17 +2191,17 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 				if "heal_bonus" in unit["passives"]:
 					heal = int(float(heal) * 1.3)
 				best["soldiers"] = mini(best["soldiers"] + heal, best["max_soldiers"])
-				log.append("【%s】治愈之光! %s +%d兵" % [unit["hero_id"], best["unit_type"], heal])
+				combat_log.append("【%s】治愈之光! %s +%d兵" % [unit["hero_id"], best["unit_type"], heal])
 
 		"不动如山":  # 本回合免疫所有伤害
 			unit["buffs"].append({"id": "invulnerable", "duration": 1, "value": 1.0})
-			log.append("【%s】不动如山! 本回合免伤" % unit["hero_id"])
+			combat_log.append("【%s】不动如山! 本回合免伤" % unit["hero_id"])
 
 		"月光护盾":  # 全队减伤30%, 1回合
 			for ally in allies:
 				if ally["is_alive"]:
 					ally["buffs"].append({"id": "shield", "duration": 1, "value": 0.3})
-			log.append("【%s】月光护盾! 全队减伤30%%" % unit["hero_id"])
+			combat_log.append("【%s】月光护盾! 全队减伤30%%" % unit["hero_id"])
 
 		"影步":  # 无视前排攻击后排
 			var back_enemies: Array = _get_alive_in_row(enemies, "back")
@@ -2210,14 +2210,14 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 			if not back_enemies.is_empty():
 				var target: Dictionary = back_enemies[randi() % back_enemies.size()]
 				var dmg: int = maxi(1, int(unit["atk"] * 2.0 * int_mult))
-				_apply_damage_to_unit(state, target, dmg, unit, log)
-				log.append("【%s】影步! 直取后排 %s, %d 伤害" % [unit["hero_id"], target["unit_type"], dmg])
+				_apply_damage_to_unit(state, target, dmg, unit, combat_log)
+				combat_log.append("【%s】影步! 直取后排 %s, %d 伤害" % [unit["hero_id"], target["unit_type"], dmg])
 
 		"时间减速":  # 敌全体SPD-3, 2回合 (debuff-based, no direct stat mod)
 			for enemy in enemies:
 				if enemy["is_alive"]:
 					enemy["debuffs"].append({"id": "slow", "duration": 2, "value": 3.0})
-			log.append("【%s】时间减速! 敌方SPD-3" % unit["hero_id"])
+			combat_log.append("【%s】时间减速! 敌方SPD-3" % unit["hero_id"])
 
 		"突击号令":  # 己方全体骑兵ATK+2, 1回合
 			for ally in allies:
@@ -2225,35 +2225,35 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 					# FIX(MAJOR): 移除直接修改atk的代码，ATK加成由buff系统通过charge_cmd处理
 					# 原代码 ally["atk"] += 2 会永久叠加，buff过期后ATK不会恢复
 					ally["buffs"].append({"id": "charge_cmd", "duration": 1, "value": 2.0})
-			log.append("【%s】突击号令!" % unit["hero_id"])
+			combat_log.append("【%s】突击号令!" % unit["hero_id"])
 
 		"致命一击":  # ATK × 3, miss率40%
 			if randf() < 0.4:
-				log.append("【%s】致命一击 — MISS!" % unit["hero_id"])
+				combat_log.append("【%s】致命一击 — MISS!" % unit["hero_id"])
 			else:
 				var target: Dictionary = _select_target(state, unit)
 				if not target.is_empty():
 					var dmg: int = maxi(1, int(unit["atk"] * 3.0 * int_mult))
-					_apply_damage_to_unit(state, target, dmg, unit, log)
-					log.append("【%s】致命一击! %d 伤害" % [unit["hero_id"], dmg])
+					_apply_damage_to_unit(state, target, dmg, unit, combat_log)
+					combat_log.append("【%s】致命一击! %d 伤害" % [unit["hero_id"], dmg])
 
 		"连射":  # 攻击2次, 每次 ATK × 0.7
 			for i in range(2):
 				var target: Dictionary = _select_target(state, unit)
 				if not target.is_empty():
 					var dmg: int = maxi(1, int(unit["atk"] * 0.7 * int_mult))
-					_apply_damage_to_unit(state, target, dmg, unit, log)
-			log.append("【%s】连射! 2次攻击" % unit["hero_id"])
+					_apply_damage_to_unit(state, target, dmg, unit, combat_log)
+			combat_log.append("【%s】连射! 2次攻击" % unit["hero_id"])
 
 		"铁壁":  # DEF+3, 1回合 (buff-based, no direct stat mod)
 			unit["buffs"].append({"id": "iron_wall", "duration": 1, "value": 3.0})
-			log.append("【%s】铁壁! DEF+3" % unit["hero_id"])
+			combat_log.append("【%s】铁壁! DEF+3" % unit["hero_id"])
 
 		"沙暴":  # 敌全体命中率-30%, 2回合
 			for enemy in enemies:
 				if enemy["is_alive"]:
 					enemy["debuffs"].append({"id": "sandstorm", "duration": 2, "value": 0.3})
-			log.append("【%s】沙暴! 敌方命中-30%%" % unit["hero_id"])
+			combat_log.append("【%s】沙暴! 敌方命中-30%%" % unit["hero_id"])
 
 		"亡灵召唤":  # 召唤2兵力亡灵, 3回合
 			# Add a temporary skeleton unit to allies
@@ -2279,25 +2279,25 @@ func _execute_active_skill(state: Dictionary, unit: Dictionary, skill: Dictionar
 			else:
 				summon["slot"] = state["def_units"].size()
 				state["def_units"].append(summon)
-			log.append("【%s】亡灵召唤! +2骷髅兵" % unit["hero_id"])
+			combat_log.append("【%s】亡灵召唤! +2骷髅兵" % unit["hero_id"])
 
 		"分身":  # 回避下一次攻击
 			unit["buffs"].append({"id": "dodge_next", "duration": 99, "value": 1.0})
-			log.append("【%s】分身! 回避下一次攻击" % unit["hero_id"])
+			combat_log.append("【%s】分身! 回避下一次攻击" % unit["hero_id"])
 
 		"净化":  # 移除全部debuff + 恢复1兵
 			var best: Dictionary = _find_most_wounded_ally(allies, unit)
 			if not best.is_empty():
 				best["debuffs"].clear()
 				best["soldiers"] = mini(best["soldiers"] + 1, best["max_soldiers"])
-				log.append("【%s】净化! %s 净化+回复" % [unit["hero_id"], best["unit_type"]])
+				combat_log.append("【%s】净化! %s 净化+回复" % [unit["hero_id"], best["unit_type"]])
 
 		"集中轰炸":  # ATK × 2.2, 对城防×3
 			var target: Dictionary = _select_target(state, unit)
 			if not target.is_empty():
 				var dmg: int = maxi(1, int(unit["atk"] * 2.2 * int_mult))
-				_apply_damage_to_unit(state, target, dmg, unit, log)
-				log.append("【%s】集中轰炸! %d 伤害" % [unit["hero_id"], dmg])
+				_apply_damage_to_unit(state, target, dmg, unit, combat_log)
+				combat_log.append("【%s】集中轰炸! %d 伤害" % [unit["hero_id"], dmg])
 
 		_:
 			# Unknown skill, do normal attack
@@ -2693,7 +2693,7 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 # Damage Application
 # ---------------------------------------------------------------------------
 
-func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, source: Dictionary, log: Array, _death_burst_recursion: bool = false) -> void:
+func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, source: Dictionary, combat_log: Array, _death_burst_recursion: bool = false) -> void:
 	if damage <= 0:
 		return
 
@@ -2709,19 +2709,19 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 			break
 	if dodge_idx >= 0:
 		target["buffs"].remove_at(dodge_idx)
-		log.append("%s [%s] 分身闪避了攻击!" % [target["unit_type"], target["side"]])
+		combat_log.append("%s [%s] 分身闪避了攻击!" % [target["unit_type"], target["side"]])
 		return
 
 	# Earth shield (gekka_harmony): first hit this battle deals 0 damage to target
 	if "earth_shield" in target["passives"]:
 		target["passives"].erase("earth_shield")  # one-time use
-		log.append("%s [%s] 大地之盾! 伤害被完全吸收!" % [target["unit_type"], target["side"]])
+		combat_log.append("%s [%s] 大地之盾! 伤害被完全吸收!" % [target["unit_type"], target["side"]])
 		return
 
 	# v4.5: ghost_shield — first hit immunity (absorb full damage once)
 	if "ghost_shield" in target["passives"]:
 		target["passives"].erase("ghost_shield")  # one-time use
-		log.append("%s [%s] 幽灵护盾吸收了首次攻击!" % [target["unit_type"], target["side"]])
+		combat_log.append("%s [%s] 幽灵护盾吸收了首次攻击!" % [target["unit_type"], target["side"]])
 		return
 
 	# v4.5: ranged_dodge (pirate_ghost_ship_coat) — 30% dodge vs ranged attacks
@@ -2729,25 +2729,25 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 		var src_type: String = source["unit_type"].to_lower()
 		var _is_src_ranged: bool = src_type.find("archer") != -1 or src_type.find("ranger") != -1 or src_type.find("mage") != -1 or src_type.find("cannon") != -1 or src_type.find("bombardier") != -1 or src_type.find("gunner") != -1
 		if _is_src_ranged and randf() < 0.30:
-			log.append("%s [%s] 闪避了远程攻击!" % [target["unit_type"], target["side"]])
+			combat_log.append("%s [%s] 闪避了远程攻击!" % [target["unit_type"], target["side"]])
 			return
 
 	# Escape_30: 30% chance to survive lethal damage (soldiers would drop to 0)
 	if target["soldiers"] - damage <= 0 and "escape_30" in target["passives"]:
 		if randf() < 0.3:
 			target["soldiers"] = 1
-			log.append("%s [%s] 逃脱致命一击! 残存1兵" % [target["unit_type"], target["side"]])
+			combat_log.append("%s [%s] 逃脱致命一击! 残存1兵" % [target["unit_type"], target["side"]])
 			return
 
 	# v4.5: death_resist (orc_iron_jaw_plate) — 100% survive lethal with 1 soldier, once per battle
 	if target["soldiers"] - damage <= 0 and "death_resist" in target["passives"] and not target.get("_death_resist_used", false):
 		target["_death_resist_used"] = true
 		target["soldiers"] = 1
-		log.append("%s [%s] 铁颚板甲: 抵抗致命伤害，保留1兵!" % [target["unit_type"], target["side"]])
+		combat_log.append("%s [%s] 铁颚板甲: 抵抗致命伤害，保留1兵!" % [target["unit_type"], target["side"]])
 		return
 
 	target["soldiers"] -= damage
-	log.append("%s [%s] 受到 %d 伤害 (剩余 %d 兵)" % [
+	combat_log.append("%s [%s] 受到 %d 伤害 (剩余 %d 兵)" % [
 		target["unit_type"], target["side"], damage, maxi(target["soldiers"], 0)])
 
 	# Morale: reduce for damage taken
@@ -2784,12 +2784,12 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 				if gold_bonus_pct > 0.0:
 					gold_gain = int(float(gold_gain) * (1.0 + gold_bonus_pct))
 				ResourceManager.apply_delta(source_pid, {"gold": gold_gain})
-				log.append("%s [%s] 掠夺经济! 击杀%d兵 +%d金" % [source["unit_type"], source["side"], soldiers_killed, gold_gain])
+				combat_log.append("%s [%s] 掠夺经济! 击杀%d兵 +%d金" % [source["unit_type"], source["side"], soldiers_killed, gold_gain])
 
 	if target["soldiers"] <= 0:
 		target["soldiers"] = 0
 		target["is_alive"] = false
-		log.append("%s [%s] 被消灭!" % [target["unit_type"], target["side"]])
+		combat_log.append("%s [%s] 被消灭!" % [target["unit_type"], target["side"]])
 
 		# Morale cascade: allies lose morale when a unit is eliminated
 		var allied_units: Array = state["atk_units"] if target["side"] == "attacker" else state["def_units"]
@@ -2806,17 +2806,17 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 			else:
 				burst_enemies = state["atk_units"]
 			var burst_dmg: int = int(target["atk"] * 2.0)
-			log.append("%s 死亡爆发! 对敌全体造成 %d 伤害!" % [target["unit_type"], burst_dmg])
+			combat_log.append("%s 死亡爆发! 对敌全体造成 %d 伤害!" % [target["unit_type"], burst_dmg])
 			for enemy in burst_enemies:
 				if enemy["is_alive"]:
-					_apply_damage_to_unit(state, enemy, burst_dmg, target, log, true)
+					_apply_damage_to_unit(state, enemy, burst_dmg, target, combat_log, true)
 
 
 # ---------------------------------------------------------------------------
 # End of Round
 # ---------------------------------------------------------------------------
 
-func _end_of_round(state: Dictionary, log: Array) -> String:
+func _end_of_round(state: Dictionary, combat_log: Array) -> String:
 	# Decrement intervention effect durations
 	if state.get("forced_target_duration", 0) > 0:
 		state["forced_target_duration"] -= 1
@@ -2838,7 +2838,7 @@ func _end_of_round(state: Dictionary, log: Array) -> String:
 			if b["id"] == "summon_decay" and b["duration"] <= 1:
 				unit["is_alive"] = false
 				unit["soldiers"] = 0
-				log.append("%s [%s] 召唤物消散" % [unit["unit_type"], unit["side"]])
+				combat_log.append("%s [%s] 召唤物消散" % [unit["unit_type"], unit["side"]])
 				break
 
 		var remaining_buffs: Array = []
@@ -2864,11 +2864,11 @@ func _end_of_round(state: Dictionary, log: Array) -> String:
 				var rout_loss: int = int(float(unit["soldiers"]) * MORALE_ROUT_LOSS_PCT)
 				unit["soldiers"] = maxi(unit["soldiers"] - rout_loss, 0)
 				unit["is_routed"] = true
-				log.append("[color=yellow]%s [%s] 士气崩溃! 溃逃损失 %d 兵[/color]" % [unit["unit_type"], unit["side"], rout_loss])
+				combat_log.append("[color=yellow]%s [%s] 士气崩溃! 溃逃损失 %d 兵[/color]" % [unit["unit_type"], unit["side"], rout_loss])
 				EventBus.unit_routed.emit(unit["unit_type"], unit["side"])
 				if unit["soldiers"] <= 0:
 					unit["is_alive"] = false
-					log.append("%s [%s] 溃逃后全灭!" % [unit["unit_type"], unit["side"]])
+					combat_log.append("%s [%s] 溃逃后全灭!" % [unit["unit_type"], unit["side"]])
 
 	var atk_alive: int = _count_total_soldiers(state["atk_units"])
 	var def_alive: int = _count_total_soldiers(state["def_units"])
@@ -2886,7 +2886,7 @@ func _end_of_round(state: Dictionary, log: Array) -> String:
 # Finalize Result
 # ---------------------------------------------------------------------------
 
-func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, log: Array, tile: Dictionary) -> Dictionary:
+func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, combat_log: Array, _tile: Dictionary) -> Dictionary:
 	var atk_pid: int = state["atk_pid"]
 	var def_pid: int = state["def_pid"]
 
@@ -2902,7 +2902,7 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 	if RelicManager.has_first_hit_immune(atk_pid):
 		var reduced: int = int(float(attacker_losses) * 0.3)
 		attacker_losses = maxi(attacker_losses - reduced, 0)
-		log.append("暗影斗篷: 进攻方损失减少 %d" % reduced)
+		combat_log.append("暗影斗篷: 进攻方损失减少 %d" % reduced)
 
 	# Equipment: kill_heal (blood_moon_blade) — only check winner's heroes
 	# v4.5: kill_heal_2 — heals 2 soldiers instead of 1
@@ -2919,7 +2919,7 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 					attacker_losses = maxi(attacker_losses - heal_amount, 0)
 				else:
 					defender_losses = maxi(defender_losses - heal_amount, 0)
-				log.append("装备: 胜利回复%d兵" % heal_amount)
+				combat_log.append("装备: 胜利回复%d兵" % heal_amount)
 				break
 
 	# Slave capture
@@ -2929,11 +2929,11 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		var relic_slave_bonus: int = RelicManager.get_victory_slave_bonus(atk_pid)
 		if relic_slave_bonus > 0:
 			slaves_captured += relic_slave_bonus
-			log.append("血旗遗物: 额外俘获 %d 奴隶" % relic_slave_bonus)
+			combat_log.append("血旗遗物: 额外俘获 %d 奴隶" % relic_slave_bonus)
 	else:
 		slaves_captured = _check_slave_capture(def_pid, state["atk_units"])
 
-	log.append("=== 战斗结束 === %s胜 | 攻方损失 %d | 守方损失 %d | 俘获奴隶 %d" % [
+	combat_log.append("=== 战斗结束 === %s胜 | 攻方损失 %d | 守方损失 %d | 俘获奴隶 %d" % [
 		"进攻方" if winner == "attacker" else "防守方",
 		attacker_losses, defender_losses, slaves_captured])
 
@@ -2945,7 +2945,7 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 			pillage_gold += 10
 	if pillage_gold > 0 and winner_pid >= 0:
 		ResourceManager.apply_delta(winner_pid, {"gold": pillage_gold})
-		log.append("劫掠! 胜利方获得 +%d 金" % pillage_gold)
+		combat_log.append("劫掠! 胜利方获得 +%d 金" % pillage_gold)
 
 	# v4.5: plunder_gold_bonus — +50% plunder gold on victory (equipment passive)
 	if winner_pid >= 0 and pillage_gold > 0:
@@ -2953,7 +2953,7 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 			if HeroSystem.has_equipment_passive(hero["id"], "plunder_gold_bonus"):
 				var bonus_gold: int = int(float(pillage_gold) * 0.5)
 				ResourceManager.apply_delta(winner_pid, {"gold": bonus_gold})
-				log.append("装备: 掠夺金币加成 +%d 金 (50%%)" % bonus_gold)
+				combat_log.append("装备: 掠夺金币加成 +%d 金 (50%%)" % bonus_gold)
 				break
 
 	# v4.5: victory_waaagh_bonus — +5 WAAAGH on victory (equipment passive)
@@ -2961,7 +2961,7 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		for hero in HeroSystem.get_heroes_for_player(winner_pid):
 			if HeroSystem.has_equipment_passive(hero["id"], "victory_waaagh_bonus"):
 				OrcMechanic.add_waaagh(winner_pid, 5)
-				log.append("装备: 胜利WAAAGH +5!")
+				combat_log.append("装备: 胜利WAAAGH +5!")
 				break
 
 	# v4.5: waaagh_gain_bonus — +25% WAAAGH gain post-battle (equipment passive)
@@ -2971,7 +2971,7 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 				var base_waaagh: int = 10  # standard post-battle WAAAGH gain
 				var bonus_waaagh: int = int(float(base_waaagh) * 0.25)
 				OrcMechanic.add_waaagh(winner_pid, bonus_waaagh)
-				log.append("装备: WAAAGH增益加成 +%d (25%%)" % bonus_waaagh)
+				combat_log.append("装备: WAAAGH增益加成 +%d (25%%)" % bonus_waaagh)
 				break
 
 	# v4.5: iron_income_bonus — post-battle iron grant (equipment passive)
@@ -2980,7 +2980,7 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 			if HeroSystem.has_equipment_passive(hero["id"], "iron_income_bonus"):
 				var iron_amount: int = 5
 				ResourceManager.apply_delta(winner_pid, {"iron": iron_amount})
-				log.append("装备: 战后获得 +%d 铁" % iron_amount)
+				combat_log.append("装备: 战后获得 +%d 铁" % iron_amount)
 				break
 
 	# Story flag gold bonuses: momiji paths
@@ -2990,12 +2990,12 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 			# momiji_partner: +20% gold bonus on victory
 			if "momiji_gold_bonus_20" in unit["passives"]:
 				gold_bonus_flags["momiji_gold_bonus_20"] = true
-				log.append("%s [%s] 紅葉伙伴: 胜利金币+20%%!" % [unit["unit_type"], unit["side"]])
+				combat_log.append("%s [%s] 紅葉伙伴: 胜利金币+20%%!" % [unit["unit_type"], unit["side"]])
 			# momiji_rival: 15% chance bonus gold
 			if "momiji_gold_bonus_15" in unit["passives"]:
 				if randf() < 0.15:
 					gold_bonus_flags["momiji_gold_bonus_15"] = true
-					log.append("%s [%s] 紅葉竞争: 触发额外金币奖励!" % [unit["unit_type"], unit["side"]])
+					combat_log.append("%s [%s] 紅葉竞争: 触发额外金币奖励!" % [unit["unit_type"], unit["side"]])
 
 	var combat_result := {
 		"winner": winner,
@@ -3003,7 +3003,7 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		"defender_losses": defender_losses,
 		"slaves_captured": slaves_captured,
 		"wall_destroyed": wall_destroyed,
-		"details": log,
+		"details": combat_log,
 		"gold_bonus_flags": gold_bonus_flags,
 	}
 
@@ -3036,7 +3036,7 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, l
 		if not _loot.is_empty():
 			EnvironmentSystem.apply_loot(_loot)
 			combat_result["loot"] = _loot
-			log.append("[战利品] 获得 %d 种战利品" % _loot.size())
+			combat_log.append("[战利品] 获得 %d 种战利品" % _loot.size())
 
 	# Restore retreated units (they survive with their soldiers intact)
 	if state.get("interventions_enabled", false):
@@ -3305,8 +3305,8 @@ func _calculate_formation_bonuses(units: Array) -> Dictionary:
 
 ## Apply formation bonuses to all units on a side. Also checks for flanking
 ## punishment from the opposing side's empty front slots.
-func _apply_formation_bonuses(units: Array, formation: Dictionary, enemy_units: Array, log: Array, side_label: String) -> void:
-	log.append("[阵型] %s: %s (前排%d/后排%d)" % [
+func _apply_formation_bonuses(units: Array, formation: Dictionary, enemy_units: Array, combat_log: Array, side_label: String) -> void:
+	combat_log.append("[阵型] %s: %s (前排%d/后排%d)" % [
 		side_label, formation["name"], formation["front_count"], formation["back_count"]])
 
 	for u in units:
@@ -3332,7 +3332,7 @@ func _apply_formation_bonuses(units: Array, formation: Dictionary, enemy_units: 
 		for eu in enemy_units:
 			if eu["is_alive"] and eu["soldiers"] > 0 and eu["row"] == "front":
 				eu["atk"] *= flanking_mult
-		log.append("[阵型] %s前排有空位! 敌方前排获得侧袭ATK+%d%%" % [
+		combat_log.append("[阵型] %s前排有空位! 敌方前排获得侧袭ATK+%d%%" % [
 			side_label, int((BalanceConfig.FORMATION_FLANKING_ATK_MULT - 1.0) * 100)])
 
 

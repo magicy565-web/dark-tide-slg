@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3xj3okpi12sm"
-path="res://.godot/imported/09_shion_spacetime_rupture.png-1c28ec8009a586cc.ctex"
+uid="uid://d3d1xj1a4esv3"
+path="res://.godot/imported/09_shion_spacetime_rupture.png-1c28ec8009a586cc5352134a33c993ff.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/09_shion_spacetime_rupture.png"
-dest_files=["res://.godot/imported/09_shion_spacetime_rupture.png-1c28ec8009a586cc.ctex"]
+dest_files=["res://.godot/imported/09_shion_spacetime_rupture.png-1c28ec8009a586cc5352134a33c993ff.ctex"]
 
 [params]
 

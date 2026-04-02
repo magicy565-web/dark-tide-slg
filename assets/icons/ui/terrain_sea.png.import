@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://pyceq2ytws3k"
-path="res://.godot/imported/terrain_sea.png-5b166f21ab537b31.ctex"
+uid="uid://dbv6535pqrscd"
+path="res://.godot/imported/terrain_sea.png-5b166f21ab537b31dd3cbedafd294462.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/terrain_sea.png"
-dest_files=["res://.godot/imported/terrain_sea.png-5b166f21ab537b31.ctex"]
+dest_files=["res://.godot/imported/terrain_sea.png-5b166f21ab537b31dd3cbedafd294462.ctex"]
 
 [params]
 

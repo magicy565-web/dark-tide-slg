@@ -430,7 +430,7 @@ func _build_section_characters(tile: Dictionary) -> void:
 	if nf_id != "" and nf_id != "0":
 		has_content = true
 		var nf_name: String = FactionData.NEUTRAL_FACTION_NAMES.get(nf_id, "Unknown")
-		var is_vassal: bool = NeutralFactionAI.is_vassal(nf_id)
+		var is_vassal: bool = NeutralFactionAI.is_vassal(int(nf_id)) if nf_id.is_valid_int() else false
 		var vassal_tag: String = " (附庸)" if is_vassal else ""
 		vbox.add_child(_make_info_label("中立势力: %s%s" % [nf_name, vassal_tag], CLR_GOLD))
 
@@ -451,7 +451,7 @@ func _build_section_characters(tile: Dictionary) -> void:
 		vbox.add_child(_make_info_label("无相关角色", CLR_DIM))
 
 # -- Section: Story Missions --
-func _build_section_story_missions(tile: Dictionary) -> void:
+func _build_section_story_missions(_tile: Dictionary) -> void:
 	content_container.add_child(_make_section_header("可用任務"))
 	var panel := _make_section_panel()
 	content_container.add_child(panel)
@@ -523,7 +523,7 @@ func _build_section_story_missions(tile: Dictionary) -> void:
 			card_hbox.add_child(lock_lbl)
 
 # -- Section: Side Quests --
-func _build_section_side_quests(tile: Dictionary) -> void:
+func _build_section_side_quests(_tile: Dictionary) -> void:
 	# Only show if QuestJournal is available
 	if not Engine.has_singleton("QuestJournal"):
 		# Try access as global — safe check via has_method pattern

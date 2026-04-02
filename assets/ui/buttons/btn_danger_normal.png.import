@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://a2d28reil229"
-path="res://.godot/imported/btn_danger_normal.png-e86d37c8de894dc4.ctex"
+uid="uid://7tj8aaodsb8r"
+path="res://.godot/imported/btn_danger_normal.png-e86d37c8de894dc48b473df9647e37e2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/buttons/btn_danger_normal.png"
-dest_files=["res://.godot/imported/btn_danger_normal.png-e86d37c8de894dc4.ctex"]
+dest_files=["res://.godot/imported/btn_danger_normal.png-e86d37c8de894dc48b473df9647e37e2.ctex"]
 
 [params]
 

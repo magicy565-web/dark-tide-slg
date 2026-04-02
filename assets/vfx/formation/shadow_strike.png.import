@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b92sme4spcd0"
-path="res://.godot/imported/shadow_strike.png-80d89b7f2eebb116.ctex"
+uid="uid://byhxnwdivyaud"
+path="res://.godot/imported/shadow_strike.png-80d89b7f2eebb1167296e6490bbc2ff2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/formation/shadow_strike.png"
-dest_files=["res://.godot/imported/shadow_strike.png-80d89b7f2eebb116.ctex"]
+dest_files=["res://.godot/imported/shadow_strike.png-80d89b7f2eebb1167296e6490bbc2ff2.ctex"]
 
 [params]
 

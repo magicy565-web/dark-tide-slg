@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0vyf7ry9pdvp"
-path="res://.godot/imported/heal_pulse.png-94711f453137ae55.ctex"
+uid="uid://ol35jvqeixdw"
+path="res://.godot/imported/heal_pulse.png-94711f453137ae550851cbc6642b0f9e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/heal/heal_pulse.png"
-dest_files=["res://.godot/imported/heal_pulse.png-94711f453137ae55.ctex"]
+dest_files=["res://.godot/imported/heal_pulse.png-94711f453137ae550851cbc6642b0f9e.ctex"]
 
 [params]
 

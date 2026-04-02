@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://w26l6oivh4rl"
-path="res://.godot/imported/magic_crystal.png-20d63af19bcf8cf5.ctex"
+uid="uid://3geyubt0bqbk"
+path="res://.godot/imported/magic_crystal.png-20d63af19bcf8cf5ed3049b98b00c06c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/magic_crystal.png"
-dest_files=["res://.godot/imported/magic_crystal.png-20d63af19bcf8cf5.ctex"]
+dest_files=["res://.godot/imported/magic_crystal.png-20d63af19bcf8cf5ed3049b98b00c06c.ctex"]
 
 [params]
 

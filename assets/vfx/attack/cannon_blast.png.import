@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ca8jgz05hd0e"
-path="res://.godot/imported/cannon_blast.png-4d7c3dacf6664ac1.ctex"
+uid="uid://bcvycu4rd6akr"
+path="res://.godot/imported/cannon_blast.png-4d7c3dacf6664ac19e2e3f1b35768357.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/attack/cannon_blast.png"
-dest_files=["res://.godot/imported/cannon_blast.png-4d7c3dacf6664ac1.ctex"]
+dest_files=["res://.godot/imported/cannon_blast.png-4d7c3dacf6664ac19e2e3f1b35768357.ctex"]
 
 [params]
 

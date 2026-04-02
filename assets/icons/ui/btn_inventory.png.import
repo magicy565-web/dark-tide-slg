@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://9ab9r45awjof"
-path="res://.godot/imported/btn_inventory.png-38ecc2201f9d41d3.ctex"
+uid="uid://cdcbl2venx01b"
+path="res://.godot/imported/btn_inventory.png-38ecc2201f9d41d38f53cda54ed5bf5e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/btn_inventory.png"
-dest_files=["res://.godot/imported/btn_inventory.png-38ecc2201f9d41d3.ctex"]
+dest_files=["res://.godot/imported/btn_inventory.png-38ecc2201f9d41d38f53cda54ed5bf5e.ctex"]
 
 [params]
 

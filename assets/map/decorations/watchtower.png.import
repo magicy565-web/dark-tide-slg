@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://vm9694pb6eit"
-path="res://.godot/imported/watchtower.png-3fe6226ccc91fd62.ctex"
+uid="uid://blitmg8v105rv"
+path="res://.godot/imported/watchtower.png-3fe6226ccc91fd62acd1f73738bb42b0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/decorations/watchtower.png"
-dest_files=["res://.godot/imported/watchtower.png-3fe6226ccc91fd62.ctex"]
+dest_files=["res://.godot/imported/watchtower.png-3fe6226ccc91fd62acd1f73738bb42b0.ctex"]
 
 [params]
 

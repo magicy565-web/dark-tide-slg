@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ja61mo84bgsp"
-path="res://.godot/imported/light_ninja_lv2.png-7650857c4adf1bec.ctex"
+uid="uid://csmj2ta2176j2"
+path="res://.godot/imported/light_ninja_lv2.png-7650857c4adf1becfc673cfbe27b4796.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops_light/light_ninja_lv2.png"
-dest_files=["res://.godot/imported/light_ninja_lv2.png-7650857c4adf1bec.ctex"]
+dest_files=["res://.godot/imported/light_ninja_lv2.png-7650857c4adf1becfc673cfbe27b4796.ctex"]
 
 [params]
 

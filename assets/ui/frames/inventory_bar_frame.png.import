@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://rbq7wqs7dsro"
-path="res://.godot/imported/inventory_bar_frame.png-c267ecf3f2ff0ac6.ctex"
+uid="uid://76jkosjvic3d"
+path="res://.godot/imported/inventory_bar_frame.png-c267ecf3f2ff0ac6c6a406ae84ebdd63.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/inventory_bar_frame.png"
-dest_files=["res://.godot/imported/inventory_bar_frame.png-c267ecf3f2ff0ac6.ctex"]
+dest_files=["res://.godot/imported/inventory_bar_frame.png-c267ecf3f2ff0ac6c6a406ae84ebdd63.ctex"]
 
 [params]
 

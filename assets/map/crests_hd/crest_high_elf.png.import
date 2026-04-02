@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://boouk2m7qesg"
-path="res://.godot/imported/crest_high_elf.png-31424724d938c853.ctex"
+uid="uid://c87qscaefk1gf"
+path="res://.godot/imported/crest_high_elf.png-31424724d938c853efa1be326646e1da.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/crests_hd/crest_high_elf.png"
-dest_files=["res://.godot/imported/crest_high_elf.png-31424724d938c853.ctex"]
+dest_files=["res://.godot/imported/crest_high_elf.png-31424724d938c853efa1be326646e1da.ctex"]
 
 [params]
 

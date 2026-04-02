@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://tniol4op9opo"
-path="res://.godot/imported/debuff_stun.png-824e619eca1407a2.ctex"
+uid="uid://dddncr8vt0bmr"
+path="res://.godot/imported/debuff_stun.png-824e619eca1407a2a485a6eca1953a56.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/debuff_stun.png"
-dest_files=["res://.godot/imported/debuff_stun.png-824e619eca1407a2.ctex"]
+dest_files=["res://.godot/imported/debuff_stun.png-824e619eca1407a2a485a6eca1953a56.ctex"]
 
 [params]
 

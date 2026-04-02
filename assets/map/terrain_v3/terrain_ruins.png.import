@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://rrdzh77t9pji"
-path="res://.godot/imported/terrain_ruins.png-4723f932d90f822e.ctex"
+uid="uid://ckhknlwjidc22"
+path="res://.godot/imported/terrain_ruins.png-4723f932d90f822e021f84ca18941353.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/terrain_v3/terrain_ruins.png"
-dest_files=["res://.godot/imported/terrain_ruins.png-4723f932d90f822e.ctex"]
+dest_files=["res://.godot/imported/terrain_ruins.png-4723f932d90f822e021f84ca18941353.ctex"]
 
 [params]
 

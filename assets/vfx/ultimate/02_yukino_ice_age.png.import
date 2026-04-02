@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cq14qhpfdqx9"
-path="res://.godot/imported/02_yukino_ice_age.png-69797f77c690f103.ctex"
+uid="uid://24xo88co4gpt"
+path="res://.godot/imported/02_yukino_ice_age.png-69797f77c690f10363f441444cfb72e7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/02_yukino_ice_age.png"
-dest_files=["res://.godot/imported/02_yukino_ice_age.png-69797f77c690f103.ctex"]
+dest_files=["res://.godot/imported/02_yukino_ice_age.png-69797f77c690f10363f441444cfb72e7.ctex"]
 
 [params]
 

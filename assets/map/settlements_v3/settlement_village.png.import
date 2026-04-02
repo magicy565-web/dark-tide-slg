@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://13ft955fnjw4"
-path="res://.godot/imported/settlement_village.png-35a140309ab6a646.ctex"
+uid="uid://djrsk8knjhxxd"
+path="res://.godot/imported/settlement_village.png-35a140309ab6a646a7648fd39aaf3c18.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/settlements_v3/settlement_village.png"
-dest_files=["res://.godot/imported/settlement_village.png-35a140309ab6a646.ctex"]
+dest_files=["res://.godot/imported/settlement_village.png-35a140309ab6a646a7648fd39aaf3c18.ctex"]
 
 [params]
 

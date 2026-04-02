@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://htt3m43b09te"
-path="res://.godot/imported/terrain_forest.png-827c7ae2838d19bb.ctex"
+uid="uid://daxmcpjhsqvv2"
+path="res://.godot/imported/terrain_forest.png-827c7ae2838d19bb3dd0445c9afd642e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/terrain_v3/terrain_forest.png"
-dest_files=["res://.godot/imported/terrain_forest.png-827c7ae2838d19bb.ctex"]
+dest_files=["res://.godot/imported/terrain_forest.png-827c7ae2838d19bb3dd0445c9afd642e.ctex"]
 
 [params]
 

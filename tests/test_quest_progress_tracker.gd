@@ -20,9 +20,9 @@ class FakeTracker extends RefCounted:
 			"cq_neutral_hero": [{"require_quest": "neutral_recruited_any", "require_status": "completed"}],
 		}
 
-	func add_quest(id: String, source: String, type: String, status: String) -> void:
+	func add_quest(id: String, source: String, quest_type: String, status: String) -> void:
 		_quest_status[id] = {
-			"source": source, "type": type, "status": status,
+			"source": source, "type": quest_type, "status": status,
 			"name": id, "objectives": [], "rewards": {},
 		}
 

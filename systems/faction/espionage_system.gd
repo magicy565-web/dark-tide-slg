@@ -301,14 +301,14 @@ func _handle_assassinate(player_id: int, target_faction: int, succeeded: bool, r
 		return {"success": false, "message": "暗杀失败! 刺客险些得手但被击退", "details": {"outcome": "near_miss"}}
 
 
-func _handle_steal_tech(player_id: int, target_faction: int, succeeded: bool) -> Dictionary:
+func _handle_steal_tech(_player_id: int, target_faction: int, succeeded: bool) -> Dictionary:
 	if succeeded:
 		return {"success": true, "message": "窃取科技成功! 从目标阵营获得一项随机科技",
 			"details": {"target_faction": target_faction, "tech_stolen": true}}
 	return {"success": false, "message": "窃取科技失败! 对方反间谍阻止了渗透", "details": {}}
 
 
-func _handle_incite_revolt(player_id: int, tile_idx: int, succeeded: bool) -> Dictionary:
+func _handle_incite_revolt(_player_id: int, tile_idx: int, succeeded: bool) -> Dictionary:
 	if succeeded:
 		var garrison_revolted: bool = (randi() % 100) < 30
 		var details: Dictionary = {"tile": tile_idx, "order_loss": 40, "garrison_revolted": garrison_revolted}
@@ -320,7 +320,7 @@ func _handle_incite_revolt(player_id: int, tile_idx: int, succeeded: bool) -> Di
 	return {"success": false, "message": "煽动叛乱失败! 当地民众未被煽动", "details": {}}
 
 
-func _handle_spread_rumors(player_id: int, target_faction: int, succeeded: bool) -> Dictionary:
+func _handle_spread_rumors(_player_id: int, target_faction: int, succeeded: bool) -> Dictionary:
 	if succeeded:
 		return {"success": true, "message": "散布谣言成功! 目标阵营英雄好感-2, 外交声望-10",
 			"details": {"target_faction": target_faction, "affection_loss": 2, "reputation_loss": 10}}
@@ -338,7 +338,7 @@ func _handle_intercept_orders(player_id: int, target_faction: int, succeeded: bo
 	return {"success": false, "message": "截获命令失败! 信使未被拦截", "details": {}}
 
 
-func _handle_plant_evidence(player_id: int, target_faction: int, succeeded: bool) -> Dictionary:
+func _handle_plant_evidence(_player_id: int, target_faction: int, succeeded: bool) -> Dictionary:
 	if succeeded:
 		# target_faction is the faction being framed; third party is determined by caller or random
 		return {"success": true, "message": "栽赃嫁祸成功! 目标阵营与第三方外交-15",

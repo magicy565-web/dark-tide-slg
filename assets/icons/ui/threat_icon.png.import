@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqtix0tqprlk"
-path="res://.godot/imported/threat_icon.png-a53cc4039dc97fbb.ctex"
+uid="uid://vko0do8lvaxr"
+path="res://.godot/imported/threat_icon.png-a53cc4039dc97fbb4869f5891673781f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/threat_icon.png"
-dest_files=["res://.godot/imported/threat_icon.png-a53cc4039dc97fbb.ctex"]
+dest_files=["res://.godot/imported/threat_icon.png-a53cc4039dc97fbb4869f5891673781f.ctex"]
 
 [params]
 

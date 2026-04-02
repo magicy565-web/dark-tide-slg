@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://q1apo8bskkoo"
-path="res://.godot/imported/debuff_bleed.png-9188c5836ce79f65.ctex"
+uid="uid://c8w3at5w8ghdh"
+path="res://.godot/imported/debuff_bleed.png-9188c5836ce79f6554a8ac98b7aeb541.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/debuff_bleed.png"
-dest_files=["res://.godot/imported/debuff_bleed.png-9188c5836ce79f65.ctex"]
+dest_files=["res://.godot/imported/debuff_bleed.png-9188c5836ce79f6554a8ac98b7aeb541.ctex"]
 
 [params]
 

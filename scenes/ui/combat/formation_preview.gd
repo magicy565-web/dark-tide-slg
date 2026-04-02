@@ -273,7 +273,7 @@ func _build_clash_card(clash_data: Dictionary) -> void:
 
 	clash_section.add_child(card)
 
-func _is_formation_in_clash(fid: int, side: String) -> bool:
+func _is_formation_in_clash(fid: int, _side: String) -> bool:
 	# Check if this formation is involved in any clash
 	for key in _clashes:
 		var clash_str: String = key as String

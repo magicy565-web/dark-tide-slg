@@ -635,7 +635,7 @@ func _populate_tooltip(tile_idx: int) -> void:
 	_tt_special_section.visible = has_special
 
 
-func _populate_player_owned(tile_data: Dictionary, tile_idx: int) -> void:
+func _populate_player_owned(tile_data: Dictionary, _tile_idx: int) -> void:
 	## Full detail for player-owned tiles.
 	var garrison: int = tile_data.get("garrison", 0)
 	_tt_garrison_label.text = "⚔ 驻军: %d" % garrison
@@ -1108,7 +1108,11 @@ func _get_current_player_id() -> int:
 	if GameManager and GameManager.get("current_player_id") != null:
 		return GameManager.current_player_id
 	if GameManager and GameManager.has_method("get_current_player"):
-		return GameManager.get_current_player()
+		var result: Variant = GameManager.get_current_player()
+		if result is int:
+			return result
+		elif result is Dictionary:
+			return result.get("id", 0)
 	return 0
 
 

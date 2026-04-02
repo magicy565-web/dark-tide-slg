@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://i6vypordb7ow"
-path="res://.godot/imported/debuff_weaken.png-a98ee609c4865cdd.ctex"
+uid="uid://jrcrvvk8nsm8"
+path="res://.godot/imported/debuff_weaken.png-a98ee609c4865cdd2fdb6bc58ed7c160.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/debuff_weaken.png"
-dest_files=["res://.godot/imported/debuff_weaken.png-a98ee609c4865cdd.ctex"]
+dest_files=["res://.godot/imported/debuff_weaken.png-a98ee609c4865cdd2fdb6bc58ed7c160.ctex"]
 
 [params]
 

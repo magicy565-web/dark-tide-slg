@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://r5t2rf6l7a5o"
-path="res://.godot/imported/debuff_slow.png-758df5e9d6741135.ctex"
+uid="uid://7cm5x4q437ig"
+path="res://.godot/imported/debuff_slow.png-758df5e9d6741135a66fe2b33db94b4b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/debuff_slow.png"
-dest_files=["res://.godot/imported/debuff_slow.png-758df5e9d6741135.ctex"]
+dest_files=["res://.godot/imported/debuff_slow.png-758df5e9d6741135a66fe2b33db94b4b.ctex"]
 
 [params]
 

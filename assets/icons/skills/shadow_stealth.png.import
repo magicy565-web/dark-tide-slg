@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://jmf81bujylqn"
-path="res://.godot/imported/shadow_stealth.png-f5cae49429f97a60.ctex"
+uid="uid://dcwlnf41bv2qh"
+path="res://.godot/imported/shadow_stealth.png-f5cae49429f97a60c4e77c8661d1c290.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/shadow_stealth.png"
-dest_files=["res://.godot/imported/shadow_stealth.png-f5cae49429f97a60.ctex"]
+dest_files=["res://.godot/imported/shadow_stealth.png-f5cae49429f97a60c4e77c8661d1c290.ctex"]
 
 [params]
 

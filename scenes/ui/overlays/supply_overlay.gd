@@ -225,7 +225,7 @@ func _on_attrition(army_id: int, losses: Dictionary) -> void:
 		if total_lost > 0:
 			show_attrition_warning(pos, "减员 -%d" % total_lost)
 
-func _on_depot_built(tile_index: int, _player_id: int) -> void:
+func _on_depot_built(_tile_index: int, _player_id: int) -> void:
 	# Depot position would be resolved by caller; placeholder for signal-only update
 	pass
 

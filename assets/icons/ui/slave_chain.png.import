@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c2tscj4z6ltr"
-path="res://.godot/imported/slave_chain.png-cd4f8b2f711b3f75.ctex"
+uid="uid://cjhjccvvea3u7"
+path="res://.godot/imported/slave_chain.png-cd4f8b2f711b3f75af8abea722720e8e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/slave_chain.png"
-dest_files=["res://.godot/imported/slave_chain.png-cd4f8b2f711b3f75.ctex"]
+dest_files=["res://.godot/imported/slave_chain.png-cd4f8b2f711b3f75af8abea722720e8e.ctex"]
 
 [params]
 

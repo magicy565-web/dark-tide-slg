@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://8ci1v3mtl28d"
-path="res://.godot/imported/destruction_storm.png-229b6ad51bd03c56.ctex"
+uid="uid://b8yumchhipexm"
+path="res://.godot/imported/destruction_storm.png-229b6ad51bd03c56391bdaa77b5e8655.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/destruction_storm.png"
-dest_files=["res://.godot/imported/destruction_storm.png-229b6ad51bd03c56.ctex"]
+dest_files=["res://.godot/imported/destruction_storm.png-229b6ad51bd03c56391bdaa77b5e8655.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://e0h9guukbob8"
-path="res://.godot/imported/elf_mage_lv3.png-108177af8e7243e8.ctex"
+uid="uid://yvdjfe6rpd2h"
+path="res://.godot/imported/elf_mage_lv3.png-108177af8e7243e809c86b83f0e9e35c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops_light/elf_mage_lv3.png"
-dest_files=["res://.godot/imported/elf_mage_lv3.png-108177af8e7243e8.ctex"]
+dest_files=["res://.godot/imported/elf_mage_lv3.png-108177af8e7243e809c86b83f0e9e35c.ctex"]
 
 [params]
 

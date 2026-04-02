@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://g3ooa3hwfkh0"
-path="res://.godot/imported/frost_armor.png-04ad368fd81f62ae.ctex"
+uid="uid://bdwkuighgd57l"
+path="res://.godot/imported/frost_armor.png-04ad368fd81f62ae7856b60375d65382.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/frost_armor.png"
-dest_files=["res://.godot/imported/frost_armor.png-04ad368fd81f62ae.ctex"]
+dest_files=["res://.godot/imported/frost_armor.png-04ad368fd81f62ae7856b60375d65382.ctex"]
 
 [params]
 

@@ -384,7 +384,7 @@ func _refresh_log() -> void:
 #              INPUT / CARD HANDLERS
 # ═════════════════════════════════════════════════
 
-func _on_card_click(event: InputEvent, op_type: int, card: PanelContainer) -> void:
+func _on_card_click(event: InputEvent, op_type: int, _card: PanelContainer) -> void:
 	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
 		return
 	_show_target_popup(op_type)
@@ -487,7 +487,7 @@ func _add_result_to_log(result: Dictionary) -> void:
 	if _results_log.size() > 5:
 		_results_log.resize(5)
 
-func _on_spy_result(player_id: int, op_type: int, success: bool, details: Dictionary) -> void:
+func _on_spy_result(player_id: int, op_type: int, success: bool, _details: Dictionary) -> void:
 	if player_id != _player_id:
 		return
 	var op_name: String = ""

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://g82rsyegj725"
-path="res://.godot/imported/combo_holy_strike.png-309c5731e1b53bdb.ctex"
+uid="uid://cmhiov6jgchuy"
+path="res://.godot/imported/combo_holy_strike.png-309c5731e1b53bdb992f62f170e1e431.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/combo/combo_holy_strike.png"
-dest_files=["res://.godot/imported/combo_holy_strike.png-309c5731e1b53bdb.ctex"]
+dest_files=["res://.godot/imported/combo_holy_strike.png-309c5731e1b53bdb992f62f170e1e431.ctex"]
 
 [params]
 

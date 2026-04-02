@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7dxissxswzg2"
-path="res://.godot/imported/mass_heal.png-51a9c4d187a4d566.ctex"
+uid="uid://bgrcgwxi6f27v"
+path="res://.godot/imported/mass_heal.png-51a9c4d187a4d566ced448da6df29bba.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/heal/mass_heal.png"
-dest_files=["res://.godot/imported/mass_heal.png-51a9c4d187a4d566.ctex"]
+dest_files=["res://.godot/imported/mass_heal.png-51a9c4d187a4d566ced448da6df29bba.ctex"]
 
 [params]
 

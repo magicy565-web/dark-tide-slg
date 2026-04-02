@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://eyx04owa9qtm"
-path="res://.godot/imported/divine_grace.png-b8197760c158a9cc.ctex"
+uid="uid://m2tsprydn5q8"
+path="res://.godot/imported/divine_grace.png-b8197760c158a9ccf67a9a1181d54074.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/divine_grace.png"
-dest_files=["res://.godot/imported/divine_grace.png-b8197760c158a9cc.ctex"]
+dest_files=["res://.godot/imported/divine_grace.png-b8197760c158a9ccf67a9a1181d54074.ctex"]
 
 [params]
 

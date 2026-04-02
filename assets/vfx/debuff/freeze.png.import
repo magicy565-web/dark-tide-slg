@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://y91mdx89e9c6"
-path="res://.godot/imported/freeze.png-a4f4f14f72e1001c.ctex"
+uid="uid://bq2d5y3x50r0q"
+path="res://.godot/imported/freeze.png-a4f4f14f72e1001c79dfae373f347601.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/debuff/freeze.png"
-dest_files=["res://.godot/imported/freeze.png-a4f4f14f72e1001c.ctex"]
+dest_files=["res://.godot/imported/freeze.png-a4f4f14f72e1001c79dfae373f347601.ctex"]
 
 [params]
 

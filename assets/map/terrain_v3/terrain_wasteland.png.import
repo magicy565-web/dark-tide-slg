@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://88lgb8ggrecw"
-path="res://.godot/imported/terrain_wasteland.png-03dbfdfc5e987124.ctex"
+uid="uid://blijgjij0y0co"
+path="res://.godot/imported/terrain_wasteland.png-03dbfdfc5e98712408bbf1d2d6fda60f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/terrain_v3/terrain_wasteland.png"
-dest_files=["res://.godot/imported/terrain_wasteland.png-03dbfdfc5e987124.ctex"]
+dest_files=["res://.godot/imported/terrain_wasteland.png-03dbfdfc5e98712408bbf1d2d6fda60f.ctex"]
 
 [params]
 

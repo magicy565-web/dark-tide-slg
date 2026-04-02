@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0msyqxo2l41r"
-path="res://.godot/imported/shadow_essence.png-2f982a28fa6b1a15.ctex"
+uid="uid://c0qcdfhw84588"
+path="res://.godot/imported/shadow_essence.png-2f982a28fa6b1a15829202c7bfda171e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/shadow_essence.png"
-dest_files=["res://.godot/imported/shadow_essence.png-2f982a28fa6b1a15.ctex"]
+dest_files=["res://.godot/imported/shadow_essence.png-2f982a28fa6b1a15829202c7bfda171e.ctex"]
 
 [params]
 

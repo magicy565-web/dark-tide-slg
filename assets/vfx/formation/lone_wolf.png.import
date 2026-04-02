@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bqyru9cjl125"
-path="res://.godot/imported/lone_wolf.png-12e4e7f9da56970d.ctex"
+uid="uid://dbje5hidd15ub"
+path="res://.godot/imported/lone_wolf.png-12e4e7f9da56970d73aeb17323e68da5.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/formation/lone_wolf.png"
-dest_files=["res://.godot/imported/lone_wolf.png-12e4e7f9da56970d.ctex"]
+dest_files=["res://.godot/imported/lone_wolf.png-12e4e7f9da56970d73aeb17323e68da5.ctex"]
 
 [params]
 

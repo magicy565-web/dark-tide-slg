@@ -640,7 +640,7 @@ func _create_capture_flash(tile: int, player_id: int) -> float:
 #              SIGNAL HANDLERS
 # ═══════════════════════════════════════════════════════════════
 
-func _on_combat_result(attacker_id: int, _defender_desc: String, won: bool) -> void:
+func _on_combat_result(_attacker_id: int, _defender_desc: String, won: bool) -> void:
 	# We don't have exact tile info from this signal, so use a generic centered effect.
 	var vp_size: Vector2 = get_viewport_rect().size
 	var flash_color: Color = COL_ATTACK_FLASH if not won else Color(0.1, 0.3, 0.05, 0.2)
@@ -673,27 +673,27 @@ func _on_turn_started(player_id: int) -> void:
 	})
 
 
-func _on_building_constructed(player_id: int, tile_index: int, building_id: String) -> void:
+func _on_building_constructed(_player_id: int, tile_index: int, building_id: String) -> void:
 	play_effect("build", {"tile": tile_index, "building_name": building_id})
 
 
-func _on_building_upgraded(player_id: int, tile_index: int, building_id: String, _new_level: int) -> void:
+func _on_building_upgraded(_player_id: int, tile_index: int, building_id: String, _new_level: int) -> void:
 	play_effect("build", {"tile": tile_index, "building_name": building_id})
 
 
-func _on_tech_effects_applied(player_id: int) -> void:
+func _on_tech_effects_applied(_player_id: int) -> void:
 	play_effect("research", {"tech_name": "", "completed": true})
 
 
-func _on_army_deployed(player_id: int, army_id: int, from_tile: int, to_tile: int) -> void:
+func _on_army_deployed(_player_id: int, _army_id: int, from_tile: int, to_tile: int) -> void:
 	play_effect("deploy", {"from_tile": from_tile, "to_tile": to_tile})
 
 
-func _on_army_created(player_id: int, army_id: int, tile_index: int) -> void:
+func _on_army_created(_player_id: int, _army_id: int, tile_index: int) -> void:
 	play_effect("recruit", {"tile": tile_index, "troop_name": "军队", "count": 1})
 
 
-func _on_siege_started(attacker_army_id: int, tile_index: int, _turns: int) -> void:
+func _on_siege_started(_attacker_army_id: int, tile_index: int, _turns: int) -> void:
 	var pos: Vector2 = _estimate_screen_pos(tile_index)
 	_create_floating_text(pos, "围攻开始!", Color(0.95, 0.5, 0.2), 1.5, 22)
 	_create_pulse_ring(pos, Color(0.9, 0.3, 0.1, 0.5), 0.8)

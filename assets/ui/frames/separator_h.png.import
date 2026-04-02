@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://as1vgsc7sbyl"
-path="res://.godot/imported/separator_h.png-21775bf61fb356e3.ctex"
+uid="uid://gfmgcynp0lpp"
+path="res://.godot/imported/separator_h.png-21775bf61fb356e3c1e2c3661ab34683.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/separator_h.png"
-dest_files=["res://.godot/imported/separator_h.png-21775bf61fb356e3.ctex"]
+dest_files=["res://.godot/imported/separator_h.png-21775bf61fb356e3c1e2c3661ab34683.ctex"]
 
 [params]
 

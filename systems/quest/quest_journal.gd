@@ -851,7 +851,7 @@ func _format_quest(q: Dictionary, state: Dictionary, category: String, player_id
 		"reward_preview": _preview_reward(q.get("reward", {})),
 	}
 
-func _format_challenge(c: Dictionary, state: Dictionary, player_id: int) -> Dictionary:
+func _format_challenge(c: Dictionary, state: Dictionary, _player_id: int) -> Dictionary:
 	var has_battle: bool = c.get("battle") != null
 	return {
 		"id": c["id"], "name": c["name"], "desc": c.get("desc", ""),
@@ -909,7 +909,7 @@ func _on_combat_result(attacker_id: int, _defender_desc: String, won: bool) -> v
 				_stats["waaagh_battle_wins"] += 1
 
 
-func _on_tile_captured(player_id: int, _tile_index: int) -> void:
+func _on_tile_captured(_player_id: int, _tile_index: int) -> void:
 	if not _initialized:
 		return
 	_stats["tiles_captured_log"].append({"turn": GameManager.turn_number, "count": 1})
@@ -1039,11 +1039,11 @@ func _count_tiles_with_terrain(player_id: int, terrain_type: String) -> int:
 	return c
 
 
-func _count_captured_heroines(player_id: int) -> int:
+func _count_captured_heroines(_player_id: int) -> int:
 	return HeroSystem.captured_heroes.size()
 
 
-func _count_heroes_with_submission(player_id: int, threshold: int) -> int:
+func _count_heroes_with_submission(_player_id: int, threshold: int) -> int:
 	var c: int = 0
 	for hero_id in HeroSystem.recruited_heroes:
 		var submission: int = HeroSystem.hero_submission.get(hero_id, 0)

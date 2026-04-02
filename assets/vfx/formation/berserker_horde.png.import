@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ewctverjg78f"
-path="res://.godot/imported/berserker_horde.png-ebc3ee149ccc6ac0.ctex"
+uid="uid://dxbm7t82lqew2"
+path="res://.godot/imported/berserker_horde.png-ebc3ee149ccc6ac07c16ab71d4372706.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/formation/berserker_horde.png"
-dest_files=["res://.godot/imported/berserker_horde.png-ebc3ee149ccc6ac0.ctex"]
+dest_files=["res://.godot/imported/berserker_horde.png-ebc3ee149ccc6ac07c16ab71d4372706.ctex"]
 
 [params]
 

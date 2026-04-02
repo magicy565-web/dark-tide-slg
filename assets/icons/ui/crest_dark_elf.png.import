@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://i7u80k9hrhn1"
-path="res://.godot/imported/crest_dark_elf.png-bef8bfcc24f36b5e.ctex"
+uid="uid://bvkv0yi683ucm"
+path="res://.godot/imported/crest_dark_elf.png-bef8bfcc24f36b5e71135a70b35fe76e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/crest_dark_elf.png"
-dest_files=["res://.godot/imported/crest_dark_elf.png-bef8bfcc24f36b5e.ctex"]
+dest_files=["res://.godot/imported/crest_dark_elf.png-bef8bfcc24f36b5e71135a70b35fe76e.ctex"]
 
 [params]
 

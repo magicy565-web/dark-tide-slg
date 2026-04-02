@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://rk3fkgisp3rn"
-path="res://.godot/imported/battle_bg_coastal.png-a171325cfb2087a3.ctex"
+uid="uid://ce1aiwm2a0fc0"
+path="res://.godot/imported/battle_bg_coastal.png-a171325cfb2087a30aaf9e64a54d583c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/battle_bg/battle_bg_coastal.png"
-dest_files=["res://.godot/imported/battle_bg_coastal.png-a171325cfb2087a3.ctex"]
+dest_files=["res://.godot/imported/battle_bg_coastal.png-a171325cfb2087a30aaf9e64a54d583c.ctex"]
 
 [params]
 

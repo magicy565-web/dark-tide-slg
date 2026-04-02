@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://9cbkbljfpdsh"
-path="res://.godot/imported/def_boost.png-9db2541f5e029907.ctex"
+uid="uid://b4ap6nvo0c2x8"
+path="res://.godot/imported/def_boost.png-9db2541f5e029907eed5c4f40ff9cc61.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/buff/def_boost.png"
-dest_files=["res://.godot/imported/def_boost.png-9db2541f5e029907.ctex"]
+dest_files=["res://.godot/imported/def_boost.png-9db2541f5e029907eed5c4f40ff9cc61.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://uak4e8rud31u"
-path="res://.godot/imported/mage_apprentice_lv3.png-11bd459786af1a2b.ctex"
+uid="uid://bc1nmdfignqjn"
+path="res://.godot/imported/mage_apprentice_lv3.png-11bd459786af1a2ba95fe590593e5487.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops_light/mage_apprentice_lv3.png"
-dest_files=["res://.godot/imported/mage_apprentice_lv3.png-11bd459786af1a2b.ctex"]
+dest_files=["res://.godot/imported/mage_apprentice_lv3.png-11bd459786af1a2ba95fe590593e5487.ctex"]
 
 [params]
 

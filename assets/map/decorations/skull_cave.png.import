@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://z6u81e2q4u6i"
-path="res://.godot/imported/skull_cave.png-8c1902efd53a4122.ctex"
+uid="uid://be62g0wtiqp6u"
+path="res://.godot/imported/skull_cave.png-8c1902efd53a41225242dc9958958260.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/decorations/skull_cave.png"
-dest_files=["res://.godot/imported/skull_cave.png-8c1902efd53a4122.ctex"]
+dest_files=["res://.godot/imported/skull_cave.png-8c1902efd53a41225242dc9958958260.ctex"]
 
 [params]
 

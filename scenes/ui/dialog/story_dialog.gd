@@ -605,7 +605,7 @@ func _on_skip() -> void:
 
 ## Handle story_choice_requested signal — show branch-point choices with consequence hints.
 ## This is called when StoryEventSystem detects an event with a "choices" array.
-func _on_story_choice_requested(hero_id: String, event_id: String, choices: Array) -> void:
+func _on_story_choice_requested(hero_id: String, _event_id: String, choices: Array) -> void:
 	if not _visible:
 		# If dialog isn't open yet, the story_event_triggered signal will open it.
 		# We just need to inject the branch choices into the dialogue queue.

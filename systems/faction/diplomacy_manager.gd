@@ -203,7 +203,7 @@ func _grant_faction_outposts(player_id: int, faction_id: int) -> void:
 			tile["original_faction"] = faction_id
 			EventBus.territory_changed.emit(tile.get("index", -1), player_id)
 
-func _grant_weakened_abilities(player_id: int, faction_id: int) -> void:
+func _grant_weakened_abilities(_player_id: int, faction_id: int) -> void:
 	## Unlock weakened abilities based on conquered/recruited faction.
 	match faction_id:
 		FactionData.FactionID.ORC:
@@ -339,7 +339,7 @@ func get_treaty_breaks_total() -> int:
 	return _treaty_breaks_total
 
 
-func _apply_treaty_break_cascade(target_faction: int) -> void:
+func _apply_treaty_break_cascade(_target_faction: int) -> void:
 	## Breaking a treaty hurts reputation with ALL factions, not just the target.
 	_treaty_breaks_total += 1
 	for key in _reputation:
@@ -1033,7 +1033,7 @@ func get_available_actions(player_id: int, faction_id: int) -> Array:
 	return actions
 
 
-func get_light_actions(player_id: int) -> Array:
+func get_light_actions(_player_id: int) -> Array:
 	## Returns available actions for light faction diplomacy.
 	var actions: Array = []
 	var threat: int = ThreatManager.get_threat()
@@ -1189,7 +1189,7 @@ func resolve_border_incident(player_id: int, faction_id: int, choice: String) ->
 
 ## ── Event: Trade Opportunity ──
 
-func event_trade_opportunity(player_id: int, faction_id: int) -> void:
+func event_trade_opportunity(_player_id: int, faction_id: int) -> void:
 	_set_event_cooldown(DIPLO_EVT_TRADE_OPPORTUNITY)
 	var fname: String = _get_faction_name(faction_id)
 	var eid: String = _next_diplo_event_id()
@@ -1219,7 +1219,7 @@ func resolve_trade_opportunity(player_id: int, faction_id: int, choice: String) 
 
 ## ── Event: Alliance Proposal ──
 
-func event_alliance_proposal(player_id: int, faction_id: int) -> void:
+func event_alliance_proposal(_player_id: int, faction_id: int) -> void:
 	_set_event_cooldown(DIPLO_EVT_ALLIANCE_PROPOSAL)
 	var fname: String = _get_faction_name(faction_id)
 	var eid: String = _next_diplo_event_id()
@@ -1309,7 +1309,7 @@ func resolve_betrayal(player_id: int, faction_id: int, choice: String) -> void:
 
 ## ── Event: Refugee Crisis ──
 
-func event_refugee_crisis(player_id: int) -> void:
+func event_refugee_crisis(_player_id: int) -> void:
 	_set_event_cooldown(DIPLO_EVT_REFUGEE_CRISIS)
 	var eid: String = _next_diplo_event_id()
 	var event_data: Dictionary = {

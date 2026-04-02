@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://vepa8zrseo21"
-path="res://.godot/imported/arrow_ranged.png-64dba0b6ee5bb13b.ctex"
+uid="uid://cc3m24cxoe6vq"
+path="res://.godot/imported/arrow_ranged.png-64dba0b6ee5bb13b3103e60ea1cb3088.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/attack/arrow_ranged.png"
-dest_files=["res://.godot/imported/arrow_ranged.png-64dba0b6ee5bb13b.ctex"]
+dest_files=["res://.godot/imported/arrow_ranged.png-64dba0b6ee5bb13b3103e60ea1cb3088.ctex"]
 
 [params]
 

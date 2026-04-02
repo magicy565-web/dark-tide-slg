@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://teg1zqraatg2"
-path="res://.godot/imported/light_ninja.png-738117aec7eb8b9c.ctex"
+uid="uid://ccy1nhrcrixig"
+path="res://.godot/imported/light_ninja.png-738117aec7eb8b9cd7ad23be0f41bfb2.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/light/light_ninja.png"
-dest_files=["res://.godot/imported/light_ninja.png-738117aec7eb8b9c.ctex"]
+dest_files=["res://.godot/imported/light_ninja.png-738117aec7eb8b9cd7ad23be0f41bfb2.ctex"]
 
 [params]
 

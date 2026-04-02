@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1ciqlf89ocgl"
-path="res://.godot/imported/mage_battle_lv1.png-9c31fabd56bf9452.ctex"
+uid="uid://d3tr2lvy8jtu3"
+path="res://.godot/imported/mage_battle_lv1.png-9c31fabd56bf94526a48a0c1b9d1fa78.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops_light/mage_battle_lv1.png"
-dest_files=["res://.godot/imported/mage_battle_lv1.png-9c31fabd56bf9452.ctex"]
+dest_files=["res://.godot/imported/mage_battle_lv1.png-9c31fabd56bf94526a48a0c1b9d1fa78.ctex"]
 
 [params]
 

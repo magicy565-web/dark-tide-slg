@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://iy4j8iae2ol9"
-path="res://.godot/imported/13_mei_underworld_summon.png-73b0a1ec6bdfb8df.ctex"
+uid="uid://ibgm1fn78odd"
+path="res://.godot/imported/13_mei_underworld_summon.png-73b0a1ec6bdfb8dfd8b753d6e1f88e71.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/13_mei_underworld_summon.png"
-dest_files=["res://.godot/imported/13_mei_underworld_summon.png-73b0a1ec6bdfb8df.ctex"]
+dest_files=["res://.godot/imported/13_mei_underworld_summon.png-73b0a1ec6bdfb8dfd8b753d6e1f88e71.ctex"]
 
 [params]
 

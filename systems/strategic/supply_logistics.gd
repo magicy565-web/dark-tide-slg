@@ -373,7 +373,7 @@ func _deliver_convoy(convoy: Dictionary) -> void:
 		EventBus.message_log.emit("[color=green]补给车队抵达! 交付 %d 补给[/color]" % amount)
 
 
-func _intercept_convoy(convoy: Dictionary, enemy_army_id: int) -> void:
+func _intercept_convoy(convoy: Dictionary, _enemy_army_id: int) -> void:
 	## Enemy army intercepts convoy — lose supplies, take damage.
 	var lost_supplies: int = int(float(convoy["supplies"]) * CONVOY_INTERCEPT_LOSS_PCT)
 	convoy["supplies"] -= lost_supplies

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://w2hbrn097x8y"
-path="res://.godot/imported/btn_quest_journal.png-3875efcfe73fe932.ctex"
+uid="uid://dibmg5v0y3f76"
+path="res://.godot/imported/btn_quest_journal.png-3875efcfe73fe9327978eb9d5d30c292.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/btn_quest_journal.png"
-dest_files=["res://.godot/imported/btn_quest_journal.png-3875efcfe73fe932.ctex"]
+dest_files=["res://.godot/imported/btn_quest_journal.png-3875efcfe73fe9327978eb9d5d30c292.ctex"]
 
 [params]
 

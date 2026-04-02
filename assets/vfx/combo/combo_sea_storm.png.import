@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dcao9ha1gp7d"
-path="res://.godot/imported/combo_sea_storm.png-997b5ec69dc6d00b.ctex"
+uid="uid://c6yimgctf55e6"
+path="res://.godot/imported/combo_sea_storm.png-997b5ec69dc6d00bdd27b66d9d079790.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/combo/combo_sea_storm.png"
-dest_files=["res://.godot/imported/combo_sea_storm.png-997b5ec69dc6d00b.ctex"]
+dest_files=["res://.godot/imported/combo_sea_storm.png-997b5ec69dc6d00bdd27b66d9d079790.ctex"]
 
 [params]
 

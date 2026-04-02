@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://gh0ood57219r"
-path="res://.godot/imported/btn_espionage.png-8b1d49e3ee60ad4a.ctex"
+uid="uid://3sr36fy8pc6c"
+path="res://.godot/imported/btn_espionage.png-8b1d49e3ee60ad4a601afdaf1df75147.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/btn_espionage.png"
-dest_files=["res://.godot/imported/btn_espionage.png-8b1d49e3ee60ad4a.ctex"]
+dest_files=["res://.godot/imported/btn_espionage.png-8b1d49e3ee60ad4a601afdaf1df75147.ctex"]
 
 [params]
 

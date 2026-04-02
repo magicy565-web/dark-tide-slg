@@ -673,7 +673,7 @@ func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int, til
 		var node_name: String
 		var garrison_count: int
 		var city_def: int
-		var owner: int
+		var owner_id: int
 
 		if roll < 0.40:
 			node_type = "VILLAGE"
@@ -681,28 +681,28 @@ func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int, til
 			vi += 1
 			garrison_count = randi_range(3, 5)
 			city_def = 5
-			owner = _region_faction(positions[nid])
+			owner_id = _region_faction(positions[nid])
 		elif roll < 0.65:
 			node_type = "STRONGHOLD"
 			node_name = _pick_unique_name(stronghold_pool, si, "前线据点", suffix_counter, used_names)
 			si += 1
 			garrison_count = randi_range(6, 8)
 			city_def = 15
-			owner = _region_faction(positions[nid])
+			owner_id = _region_faction(positions[nid])
 		elif roll < 0.85:
 			node_type = "BANDIT_CAMP"
 			node_name = _pick_unique_name(bandit_pool, bi, "荒野匪巢", suffix_counter, used_names)
 			bi += 1
 			garrison_count = randi_range(4, 6)
 			city_def = 10
-			owner = _faction_string_to_enum("BANDIT")
+			owner_id = _faction_string_to_enum("BANDIT")
 		else:
 			node_type = "EVENT_POINT"
 			node_name = _pick_unique_name(event_pool, ei, "未知遗迹", suffix_counter, used_names)
 			ei += 1
 			garrison_count = 0
 			city_def = 0
-			owner = -1
+			owner_id = -1
 
 		if used_names.has(node_name):
 			suffix_counter += 1
@@ -711,7 +711,7 @@ func _assign_nodes(positions: Array, edges: Dictionary, player_faction: int, til
 		used_names[node_name] = true
 		var nid_rid: String = tile_regions[nid] if nid < tile_regions.size() else ""
 		var nid_rname: String = _region_name_for_id(nid_rid)
-		var nd: Dictionary = _make_node(nid, positions[nid], node_type, node_name, owner, city_def, garrison_count, nid_rid, nid_rname)
+		var nd: Dictionary = _make_node(nid, positions[nid], node_type, node_name, owner_id, city_def, garrison_count, nid_rid, nid_rname)
 		if _chokepoint_flags.has(nid):
 			nd["is_chokepoint"] = true
 		nodes[nid] = nd
@@ -738,17 +738,17 @@ func _preset_category_to_type(category: String) -> String:
 ## Filter a name array, removing names already in used_names.
 func _filter_unused_names(pool: Array, used: Dictionary) -> Array:
 	var result: Array = []
-	for name in pool:
-		if not used.has(name):
-			result.append(name)
+	for entry in pool:
+		if not used.has(entry):
+			result.append(entry)
 	return result
 
 ## Pick a unique name from a pool. If pool is exhausted, generate a suffixed name.
 func _pick_unique_name(pool: Array, index: int, fallback_prefix: String, _suffix: int, used: Dictionary) -> String:
 	if index < pool.size():
-		var name: String = pool[index]
-		if not used.has(name):
-			return name
+		var entry_name: String = pool[index]
+		if not used.has(entry_name):
+			return entry_name
 	# Pool exhausted or name collision — generate unique name.
 	var gen_name: String = fallback_prefix + "·" + _num_to_cn(index + 1)
 	var safety: int = 0
@@ -813,7 +813,7 @@ func _assign_player_start(nodes: Dictionary, edges: Dictionary, player_faction: 
 # ---------------------------------------------------------------------------
 
 ## Build a single node_data dictionary.
-func _make_node(id: int, pos: Vector2, type_str: String, node_name: String, owner: int, city_def: int, garrison_size: int, region_id: String = "", region_name: String = "") -> Dictionary:
+func _make_node(id: int, pos: Vector2, type_str: String, node_name: String, owner_id: int, city_def: int, garrison_size: int, region_id: String = "", region_name: String = "") -> Dictionary:
 	var terrain_str: String
 	if region_id != "":
 		terrain_str = _random_terrain_for_region(region_id)
@@ -836,7 +836,7 @@ func _make_node(id: int, pos: Vector2, type_str: String, node_name: String, owne
 		"position": pos,
 		"type": node_type_enum,
 		"terrain": terrain_enum,
-		"owner": owner,
+		"owner": owner_id,
 		"name": node_name,
 		"garrison": _make_garrison(garrison_size),
 		"city_def": city_def,

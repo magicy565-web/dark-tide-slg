@@ -2094,7 +2094,7 @@ func _start_crisis_invasion(pid: int, turn: int) -> void:
 		BalanceConfig.CRISIS_INVASION_ARMY_STRENGTH, best_tile])
 
 
-func _start_crisis_famine(pid: int, turn: int) -> void:
+func _start_crisis_famine(_pid: int, turn: int) -> void:
 	_active_crisis = {
 		"type": "crisis_famine",
 		"turn_started": turn,

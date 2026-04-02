@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://gf54uh8gesnm"
-path="res://.godot/imported/terrain_volcanic.png-9d1cae60ff56975f.ctex"
+uid="uid://bghmprx0o0gl3"
+path="res://.godot/imported/terrain_volcanic.png-9d1cae60ff56975f08bb23f979f4f267.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/terrain_volcanic.png"
-dest_files=["res://.godot/imported/terrain_volcanic.png-9d1cae60ff56975f.ctex"]
+dest_files=["res://.godot/imported/terrain_volcanic.png-9d1cae60ff56975f08bb23f979f4f267.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://u71wdqszakke"
-path="res://.godot/imported/arcane_barrage.png-fec6caf475ac5532.ctex"
+uid="uid://bup6u88t3jyiu"
+path="res://.godot/imported/arcane_barrage.png-fec6caf475ac5532984551f3e8d1a09f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/formation/arcane_barrage.png"
-dest_files=["res://.godot/imported/arcane_barrage.png-fec6caf475ac5532.ctex"]
+dest_files=["res://.godot/imported/arcane_barrage.png-fec6caf475ac5532984551f3e8d1a09f.ctex"]
 
 [params]
 

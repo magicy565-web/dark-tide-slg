@@ -1173,7 +1173,7 @@ func get_available_mercenaries(player_id: int) -> Array:
 
 ## 雇佣佣兵到指定格子的军队中 (或创建新军队).
 ## 返回 true 表示成功, false 表示无法负担或无效类型.
-func hire_mercenary(player_id: int, merc_type: String, tile_index: int) -> bool:
+func hire_mercenary(player_id: int, merc_type: String, _tile_index: int) -> bool:
 	# 1. 验证佣兵类型存在
 	var available: Array = get_available_mercenaries(player_id)
 	var merc_entry: Dictionary = {}
@@ -1370,7 +1370,7 @@ func buy_rare_market_item(player_id: int, item_index: int) -> bool:
 
 ## Returns the Intimidation ATK bonus based on current threat.
 ## +1% ATK per threat point above 50. Returns as a flat int bonus.
-func get_intimidation_atk_bonus(player_id: int) -> int:
+func get_intimidation_atk_bonus(_player_id: int) -> int:
 	var threat: int = ThreatManager.get_threat()
 	if threat <= INTIMIDATION_THREAT_FLOOR:
 		return 0
@@ -1381,7 +1381,7 @@ func get_intimidation_atk_bonus(player_id: int) -> int:
 
 
 ## Returns the Intimidation ATK multiplier (>1.0 when threat > 50).
-func get_intimidation_mult(player_id: int) -> float:
+func get_intimidation_mult(_player_id: int) -> float:
 	var threat: int = ThreatManager.get_threat()
 	if threat <= INTIMIDATION_THREAT_FLOOR:
 		return 1.0

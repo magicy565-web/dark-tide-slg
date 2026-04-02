@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://l6x5z33urvoc"
-path="res://.godot/imported/assault_order.png-44d4dc82127bb6c2.ctex"
+uid="uid://ccp7s374urwad"
+path="res://.godot/imported/assault_order.png-44d4dc82127bb6c209998467ba7695f5.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/assault_order.png"
-dest_files=["res://.godot/imported/assault_order.png-44d4dc82127bb6c2.ctex"]
+dest_files=["res://.godot/imported/assault_order.png-44d4dc82127bb6c209998467ba7695f5.ctex"]
 
 [params]
 

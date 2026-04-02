@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://sgmo3jmph9ed"
-path="res://.godot/imported/priest_lv3.png-7dd87aed668779a2.ctex"
+uid="uid://c1fkw2msy3pgr"
+path="res://.godot/imported/priest_lv3.png-7dd87aed668779a24ece28ff1f58821b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops/priest_lv3.png"
-dest_files=["res://.godot/imported/priest_lv3.png-7dd87aed668779a2.ctex"]
+dest_files=["res://.godot/imported/priest_lv3.png-7dd87aed668779a24ece28ff1f58821b.ctex"]
 
 [params]
 

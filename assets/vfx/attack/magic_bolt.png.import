@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1fexoppl3ub5"
-path="res://.godot/imported/magic_bolt.png-594ff2e6c640de16.ctex"
+uid="uid://cd3rl0iuaob6c"
+path="res://.godot/imported/magic_bolt.png-594ff2e6c640de168c945daccdeeb73f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/attack/magic_bolt.png"
-dest_files=["res://.godot/imported/magic_bolt.png-594ff2e6c640de16.ctex"]
+dest_files=["res://.godot/imported/magic_bolt.png-594ff2e6c640de168c945daccdeeb73f.ctex"]
 
 [params]
 

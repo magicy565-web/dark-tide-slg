@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://a1u1778gz8ze"
-path="res://.godot/imported/crest_orc.png-a7e5cb1feae381bb.ctex"
+uid="uid://b7p4carnhtnoa"
+path="res://.godot/imported/crest_orc.png-a7e5cb1feae381bb6d1c0654e1821b80.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/crest_orc.png"
-dest_files=["res://.godot/imported/crest_orc.png-a7e5cb1feae381bb.ctex"]
+dest_files=["res://.godot/imported/crest_orc.png-a7e5cb1feae381bb6d1c0654e1821b80.ctex"]
 
 [params]
 

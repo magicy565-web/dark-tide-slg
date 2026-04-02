@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://mqhii2gafj47"
-path="res://.godot/imported/bloodlust.png-055ee704f49ec77d.ctex"
+uid="uid://bymgokyjx5v23"
+path="res://.godot/imported/bloodlust.png-055ee704f49ec77d1179c2485b98a9f7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/passive/bloodlust.png"
-dest_files=["res://.godot/imported/bloodlust.png-055ee704f49ec77d.ctex"]
+dest_files=["res://.godot/imported/bloodlust.png-055ee704f49ec77d1179c2485b98a9f7.ctex"]
 
 [params]
 

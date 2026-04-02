@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://44ixe2z6hlhj"
-path="res://.godot/imported/btn_move.png-dd5791684628bad3.ctex"
+uid="uid://byrrw8xsf0dd1"
+path="res://.godot/imported/btn_move.png-dd5791684628bad3d41e34c1b0050241.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/btn_move.png"
-dest_files=["res://.godot/imported/btn_move.png-dd5791684628bad3.ctex"]
+dest_files=["res://.godot/imported/btn_move.png-dd5791684628bad3d41e34c1b0050241.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://zhegkl59obd9"
-path="res://.godot/imported/buff_def_up.png-04d5152b71a3ea3c.ctex"
+uid="uid://ch3pnilj6rm2y"
+path="res://.godot/imported/buff_def_up.png-04d5152b71a3ea3c2c7741a4ac4f9778.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/buff_def_up.png"
-dest_files=["res://.godot/imported/buff_def_up.png-04d5152b71a3ea3c.ctex"]
+dest_files=["res://.godot/imported/buff_def_up.png-04d5152b71a3ea3c2c7741a4ac4f9778.ctex"]
 
 [params]
 

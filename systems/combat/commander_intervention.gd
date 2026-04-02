@@ -72,7 +72,7 @@ var _cooldowns: Dictionary = {}  # InterventionType -> rounds remaining
 var _interventions_used: Array = []  # log of interventions for battle report
 var _retreated_units: Array = []  # units pulled from combat
 
-func initialize_for_battle(attacker_units: Array, attacker_heroes: Array) -> void:
+func initialize_for_battle(_attacker_units: Array, attacker_heroes: Array) -> void:
 	# Calculate starting CP
 	_current_cp = CP_BASE
 	for hero in attacker_heroes:
@@ -104,7 +104,7 @@ func can_use(intervention_type: int) -> bool:
 		return false
 	return _current_cp >= data["cp_cost"] and _cooldowns.get(intervention_type, 0) <= 0
 
-func execute(intervention_type: int, state: Dictionary, target: Variant, log: Array) -> bool:
+func execute(intervention_type: int, state: Dictionary, target: Variant, combat_log: Array) -> bool:
 	if not can_use(intervention_type):
 		return false
 	var data: Dictionary = INTERVENTION_DATA[intervention_type]
@@ -115,25 +115,25 @@ func execute(intervention_type: int, state: Dictionary, target: Variant, log: Ar
 
 	match intervention_type:
 		InterventionType.REDIRECT_FIRE:
-			_execute_redirect_fire(state, target, log)
+			_execute_redirect_fire(state, target, combat_log)
 		InterventionType.RALLY:
-			_execute_rally(state, log)
+			_execute_rally(state, combat_log)
 		InterventionType.HERO_SKILL_NOW:
-			_execute_hero_skill_now(state, target, log)
+			_execute_hero_skill_now(state, target, combat_log)
 		InterventionType.FORMATION_SHIFT:
-			_execute_formation_shift(state, target, log)
+			_execute_formation_shift(state, target, combat_log)
 		InterventionType.TACTICAL_RETREAT:
-			_execute_tactical_retreat(state, target, log)
+			_execute_tactical_retreat(state, target, combat_log)
 		InterventionType.INSPIRE:
-			_execute_inspire(state, log)
+			_execute_inspire(state, combat_log)
 		InterventionType.SHIELD_WALL:
-			_execute_shield_wall(state, log)
+			_execute_shield_wall(state, combat_log)
 		InterventionType.FOCUS_VOLLEY:
-			_execute_focus_volley(state, target, log)
+			_execute_focus_volley(state, target, combat_log)
 		InterventionType.SACRIFICE_PAWN:
-			_execute_sacrifice_pawn(state, log)
+			_execute_sacrifice_pawn(state, combat_log)
 		InterventionType.BAIT_AND_SWITCH:
-			_execute_bait_and_switch(state, log)
+			_execute_bait_and_switch(state, combat_log)
 	return true
 
 func tick_cooldowns() -> void:
@@ -154,16 +154,16 @@ func get_battle_report() -> Array:
 
 # --- Intervention implementations ---
 
-func _execute_redirect_fire(state: Dictionary, target_slot: Variant, log: Array) -> void:
+func _execute_redirect_fire(state: Dictionary, target_slot: Variant, combat_log: Array) -> void:
 	# Force all attacker units to target a specific enemy slot this round
 	var target_idx: int = int(target_slot) if target_slot != null else 0
 	var enemies: Array = state["def_units"]
 	if target_idx >= 0 and target_idx < enemies.size() and enemies[target_idx]["is_alive"]:
 		state["forced_target"] = target_idx
 		state["forced_target_duration"] = 1
-		log.append("[color=gold]【指挥】集火指令! 全军锁定 %s![/color]" % enemies[target_idx]["unit_type"])
+		combat_log.append("[color=gold]【指挥】集火指令! 全军锁定 %s![/color]" % enemies[target_idx]["unit_type"])
 
-func _execute_rally(state: Dictionary, log: Array) -> void:
+func _execute_rally(state: Dictionary, combat_log: Array) -> void:
 	var rallied_rout: bool = false
 	for unit in state["atk_units"]:
 		if not unit["is_alive"]:
@@ -173,10 +173,10 @@ func _execute_rally(state: Dictionary, log: Array) -> void:
 			unit["is_routed"] = false
 			unit["morale"] = 30  # recovered but fragile
 			rallied_rout = true
-			log.append("[color=gold]【指挥】鼓舞! %s 从溃逃中恢复![/color]" % unit["unit_type"])
-	log.append("[color=gold]【指挥】鼓舞士气! 全军士气+20[/color]")
+			combat_log.append("[color=gold]【指挥】鼓舞! %s 从溃逃中恢复![/color]" % unit["unit_type"])
+	combat_log.append("[color=gold]【指挥】鼓舞士气! 全军士气+20[/color]")
 
-func _execute_hero_skill_now(state: Dictionary, hero_id: Variant, log: Array) -> void:
+func _execute_hero_skill_now(state: Dictionary, hero_id: Variant, combat_log: Array) -> void:
 	# Force-trigger a hero skill immediately
 	var target_hero: String = str(hero_id) if hero_id != null else ""
 	for unit in state["atk_units"]:
@@ -185,10 +185,10 @@ func _execute_hero_skill_now(state: Dictionary, hero_id: Variant, log: Array) ->
 			if not skill.is_empty():
 				unit["skill_cooldown"] = 0  # reset cooldown to allow immediate use
 				state["force_skill_hero"] = target_hero
-				log.append("[color=gold]【指挥】强令发动! %s 立即使用 %s![/color]" % [target_hero, skill.get("name", "技能")])
+				combat_log.append("[color=gold]【指挥】强令发动! %s 立即使用 %s![/color]" % [target_hero, skill.get("name", "技能")])
 			break
 
-func _execute_formation_shift(state: Dictionary, slots: Variant, log: Array) -> void:
+func _execute_formation_shift(state: Dictionary, slots: Variant, combat_log: Array) -> void:
 	# Swap two units between front and back row
 	if slots == null or not (slots is Array) or slots.size() < 2:
 		return
@@ -205,7 +205,7 @@ func _execute_formation_shift(state: Dictionary, slots: Variant, log: Array) -> 
 	if unit_a.is_empty() or unit_b.is_empty():
 		return
 	if unit_a.get("immovable", false) or unit_b.get("immovable", false):
-		log.append("[color=red]不可移动单位无法交换位置![/color]")
+		combat_log.append("[color=red]不可移动单位无法交换位置![/color]")
 		return
 	# Swap slots and rows
 	var temp_slot: int = unit_a["slot"]
@@ -214,35 +214,35 @@ func _execute_formation_shift(state: Dictionary, slots: Variant, log: Array) -> 
 	unit_a["row"] = unit_b["row"]
 	unit_b["slot"] = temp_slot
 	unit_b["row"] = temp_row
-	log.append("[color=gold]【指挥】阵型变换! %s ⇄ %s[/color]" % [unit_a["unit_type"], unit_b["unit_type"]])
+	combat_log.append("[color=gold]【指挥】阵型变换! %s ⇄ %s[/color]" % [unit_a["unit_type"], unit_b["unit_type"]])
 
-func _execute_tactical_retreat(state: Dictionary, target_slot: Variant, log: Array) -> void:
+func _execute_tactical_retreat(state: Dictionary, target_slot: Variant, combat_log: Array) -> void:
 	var slot: int = int(target_slot) if target_slot != null else -1
 	for unit in state["atk_units"]:
 		if unit["slot"] == slot and unit["is_alive"]:
 			unit["is_alive"] = false
 			_retreated_units.append(unit.duplicate())  # save for post-battle recovery
-			log.append("[color=gold]【指挥】战术撤退! %s 撤出战场(保留%d兵)[/color]" % [unit["unit_type"], unit["soldiers"]])
+			combat_log.append("[color=gold]【指挥】战术撤退! %s 撤出战场(保留%d兵)[/color]" % [unit["unit_type"], unit["soldiers"]])
 			break
 
-func _execute_inspire(state: Dictionary, log: Array) -> void:
+func _execute_inspire(state: Dictionary, combat_log: Array) -> void:
 	for unit in state["atk_units"]:
 		if unit["is_alive"]:
 			if not unit.has("buffs"): unit["buffs"] = []
 			unit["buffs"].append({"id": "inspire", "duration": 2, "value": 0.20, "mult_atk": true})
 			# v4.3: Inspire also restores morale (synergy with deeper morale system)
 			unit["morale"] = mini(unit.get("morale", 100) + 15, 100)
-	log.append("[color=gold]【指挥】激励号令! 全军ATK+20%% 士气+15(2回合)[/color]")
+	combat_log.append("[color=gold]【指挥】激励号令! 全军ATK+20%% 士气+15(2回合)[/color]")
 
-func _execute_shield_wall(state: Dictionary, log: Array) -> void:
+func _execute_shield_wall(state: Dictionary, combat_log: Array) -> void:
 	for unit in state["atk_units"]:
 		if unit["is_alive"] and unit["row"] == "front":
 			if not unit.has("buffs"): unit["buffs"] = []
 			unit["buffs"].append({"id": "shield_wall_def", "duration": 1, "value": 0.30, "mult_def": true})
 			unit["buffs"].append({"id": "shield_wall_atk", "duration": 1, "value": -0.20, "mult_atk": true})
-	log.append("[color=gold]【指挥】盾墙! 前排DEF+30%%, ATK-20%%(1回合)[/color]")
+	combat_log.append("[color=gold]【指挥】盾墙! 前排DEF+30%%, ATK-20%%(1回合)[/color]")
 
-func _execute_focus_volley(state: Dictionary, target_slot: Variant, log: Array) -> void:
+func _execute_focus_volley(state: Dictionary, target_slot: Variant, combat_log: Array) -> void:
 	var slot: int = int(target_slot) if target_slot != null else 0
 	for unit in state["atk_units"]:
 		if unit["is_alive"] and unit["row"] == "back":
@@ -254,9 +254,9 @@ func _execute_focus_volley(state: Dictionary, target_slot: Variant, log: Array) 
 	var target_name: String = "目标"
 	if slot >= 0 and slot < enemies.size():
 		target_name = enemies[slot]["unit_type"]
-	log.append("[color=gold]【指挥】齐射! 后排远程集中攻击 %s, 伤害+25%%![/color]" % target_name)
+	combat_log.append("[color=gold]【指挥】齐射! 后排远程集中攻击 %s, 伤害+25%%![/color]" % target_name)
 
-func _execute_sacrifice_pawn(state: Dictionary, log: Array) -> void:
+func _execute_sacrifice_pawn(state: Dictionary, combat_log: Array) -> void:
 	var alive: Array = []
 	for unit in state["atk_units"]:
 		if unit["is_alive"]:
@@ -267,13 +267,13 @@ func _execute_sacrifice_pawn(state: Dictionary, log: Array) -> void:
 	alive.sort_custom(func(a, b): return (a["soldiers"] * a["atk"]) < (b["soldiers"] * b["atk"]))
 	var weakest: Dictionary = alive[0]
 	var strongest: Dictionary = alive[alive.size() - 1]
-	log.append("[color=gold]【指挥】弃子! 牺牲 %s, 完全治愈 %s![/color]" % [weakest["unit_type"], strongest["unit_type"]])
+	combat_log.append("[color=gold]【指挥】弃子! 牺牲 %s, 完全治愈 %s![/color]" % [weakest["unit_type"], strongest["unit_type"]])
 	weakest["soldiers"] = 0
 	weakest["is_alive"] = false
 	strongest["soldiers"] = strongest["max_soldiers"]
 	strongest["morale"] = 100
 
-func _execute_bait_and_switch(state: Dictionary, log: Array) -> void:
+func _execute_bait_and_switch(state: Dictionary, combat_log: Array) -> void:
 	# Find highest-DEF attacker unit
 	var best_def: float = -1.0
 	var tank_slot: int = -1
@@ -284,4 +284,4 @@ func _execute_bait_and_switch(state: Dictionary, log: Array) -> void:
 	if tank_slot >= 0:
 		state["bait_target"] = tank_slot
 		state["bait_duration"] = 1
-		log.append("[color=gold]【指挥】诱敌! 敌方本回合只能攻击最高DEF单位![/color]")
+		combat_log.append("[color=gold]【指挥】诱敌! 敌方本回合只能攻击最高DEF单位![/color]")

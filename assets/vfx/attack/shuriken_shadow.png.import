@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://8r3ho3hhjj53"
-path="res://.godot/imported/shuriken_shadow.png-56cedee899fc16ed.ctex"
+uid="uid://cnrmtogqws6pi"
+path="res://.godot/imported/shuriken_shadow.png-56cedee899fc16ed209c56e7b564a888.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/attack/shuriken_shadow.png"
-dest_files=["res://.godot/imported/shuriken_shadow.png-56cedee899fc16ed.ctex"]
+dest_files=["res://.godot/imported/shuriken_shadow.png-56cedee899fc16ed209c56e7b564a888.ctex"]
 
 [params]
 

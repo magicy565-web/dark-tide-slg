@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://8j7f0sfb2753"
-path="res://.godot/imported/morale_waver.png-0bda00975a39b312.ctex"
+uid="uid://oskpie1aojyj"
+path="res://.godot/imported/morale_waver.png-0bda00975a39b31290e88b203694682b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/morale/morale_waver.png"
-dest_files=["res://.godot/imported/morale_waver.png-0bda00975a39b312.ctex"]
+dest_files=["res://.godot/imported/morale_waver.png-0bda00975a39b31290e88b203694682b.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://s7yzf5p3ijp5"
-path="res://.godot/imported/military_horn.png-68b9e7eac44bc6dc.ctex"
+uid="uid://cd36dxymray6p"
+path="res://.godot/imported/military_horn.png-68b9e7eac44bc6dcbd5177a660827130.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/actions/military_horn.png"
-dest_files=["res://.godot/imported/military_horn.png-68b9e7eac44bc6dc.ctex"]
+dest_files=["res://.godot/imported/military_horn.png-68b9e7eac44bc6dcbd5177a660827130.ctex"]
 
 [params]
 

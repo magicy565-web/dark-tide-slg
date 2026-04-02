@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cbiy1v7iztp9"
-path="res://.godot/imported/crest_pirate.png-b30b50f1090a6151.ctex"
+uid="uid://bqjjysy0a3yps"
+path="res://.godot/imported/crest_pirate.png-b30b50f1090a615185b8b34ed8e22327.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/crests_hd/crest_pirate.png"
-dest_files=["res://.godot/imported/crest_pirate.png-b30b50f1090a6151.ctex"]
+dest_files=["res://.godot/imported/crest_pirate.png-b30b50f1090a615185b8b34ed8e22327.ctex"]
 
 [params]
 

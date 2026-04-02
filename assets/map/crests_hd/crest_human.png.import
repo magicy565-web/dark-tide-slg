@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://gxo1kn65q7eh"
-path="res://.godot/imported/crest_human.png-3824fcbd151afb3d.ctex"
+uid="uid://c8co80nwx0k1k"
+path="res://.godot/imported/crest_human.png-3824fcbd151afb3d906a5a12bc8df2da.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/crests_hd/crest_human.png"
-dest_files=["res://.godot/imported/crest_human.png-3824fcbd151afb3d.ctex"]
+dest_files=["res://.godot/imported/crest_human.png-3824fcbd151afb3d906a5a12bc8df2da.ctex"]
 
 [params]
 

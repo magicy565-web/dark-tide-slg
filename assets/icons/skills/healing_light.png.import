@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://8i3idr4hvxyp"
-path="res://.godot/imported/healing_light.png-4873d7ceb1a024ed.ctex"
+uid="uid://g2p0pevtik0v"
+path="res://.godot/imported/healing_light.png-4873d7ceb1a024ed073114040c1029eb.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/healing_light.png"
-dest_files=["res://.godot/imported/healing_light.png-4873d7ceb1a024ed.ctex"]
+dest_files=["res://.godot/imported/healing_light.png-4873d7ceb1a024ed073114040c1029eb.ctex"]
 
 [params]
 

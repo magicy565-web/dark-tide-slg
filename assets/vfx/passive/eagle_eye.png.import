@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://uyr8o7ghd9e9"
-path="res://.godot/imported/eagle_eye.png-7bb03e154f5c8954.ctex"
+uid="uid://bl3c8mf33t1lc"
+path="res://.godot/imported/eagle_eye.png-7bb03e154f5c89540ded9f5c86b0a30c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/passive/eagle_eye.png"
-dest_files=["res://.godot/imported/eagle_eye.png-7bb03e154f5c8954.ctex"]
+dest_files=["res://.godot/imported/eagle_eye.png-7bb03e154f5c89540ded9f5c86b0a30c.ctex"]
 
 [params]
 

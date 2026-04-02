@@ -179,8 +179,8 @@ func _add_slot_row(slot_index: int, label: String) -> void:
 		# BUG FIX: save data uses "faction" (int) and "timestamp", not "faction_name"/"save_date"
 		var faction_id = info.get("faction", -1)
 		var faction: String = "???"
-		if faction_id is int and faction_id >= 0 and FactionData.has_method("get_faction_name"):
-			faction = FactionData.get_faction_name(faction_id)
+		if faction_id is int and faction_id >= 0:
+			faction = FactionData.FACTION_NAMES.get(faction_id, "???")
 		elif info.has("faction_name"):
 			faction = info.get("faction_name", "???")
 		var date: String = info.get("timestamp", info.get("save_date", ""))

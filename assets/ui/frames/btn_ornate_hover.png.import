@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ypv6sfwc14l3"
-path="res://.godot/imported/btn_ornate_hover.png-72ca7883ec5b1457.ctex"
+uid="uid://7deqqqqe6lud"
+path="res://.godot/imported/btn_ornate_hover.png-72ca7883ec5b14571d869f45a070ee21.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/btn_ornate_hover.png"
-dest_files=["res://.godot/imported/btn_ornate_hover.png-72ca7883ec5b1457.ctex"]
+dest_files=["res://.godot/imported/btn_ornate_hover.png-72ca7883ec5b14571d869f45a070ee21.ctex"]
 
 [params]
 

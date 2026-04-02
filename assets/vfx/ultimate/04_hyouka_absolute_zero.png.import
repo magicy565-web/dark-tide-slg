@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b6x9judc49ps"
-path="res://.godot/imported/04_hyouka_absolute_zero.png-51df6c7342bb7ca1.ctex"
+uid="uid://bobx7kcybvb0y"
+path="res://.godot/imported/04_hyouka_absolute_zero.png-51df6c7342bb7ca1704f5bcee282d707.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/04_hyouka_absolute_zero.png"
-dest_files=["res://.godot/imported/04_hyouka_absolute_zero.png-51df6c7342bb7ca1.ctex"]
+dest_files=["res://.godot/imported/04_hyouka_absolute_zero.png-51df6c7342bb7ca1704f5bcee282d707.ctex"]
 
 [params]
 

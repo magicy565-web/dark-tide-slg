@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://86ohq1ukp1z0"
-path="res://.godot/imported/human_samurai_lv2.png-7cf8689245e35a7a.ctex"
+uid="uid://d0cqaxsjssd5e"
+path="res://.godot/imported/human_samurai_lv2.png-7cf8689245e35a7ac9fc12b9135cdb36.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops_light/human_samurai_lv2.png"
-dest_files=["res://.godot/imported/human_samurai_lv2.png-7cf8689245e35a7a.ctex"]
+dest_files=["res://.godot/imported/human_samurai_lv2.png-7cf8689245e35a7ac9fc12b9135cdb36.ctex"]
 
 [params]
 

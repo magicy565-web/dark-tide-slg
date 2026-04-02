@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://rz6bhxq325hg"
-path="res://.godot/imported/buff_atk_up.png-24dbe3f8acb45e2a.ctex"
+uid="uid://cxg1o3q6rgl41"
+path="res://.godot/imported/buff_atk_up.png-24dbe3f8acb45e2a9d9cb057d3a5ec37.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/buff_atk_up.png"
-dest_files=["res://.godot/imported/buff_atk_up.png-24dbe3f8acb45e2a.ctex"]
+dest_files=["res://.godot/imported/buff_atk_up.png-24dbe3f8acb45e2a9d9cb057d3a5ec37.ctex"]
 
 [params]
 

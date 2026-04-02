@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ctu3cm242u29"
-path="res://.godot/imported/crest_neutral.png-615fac7e0a730c14.ctex"
+uid="uid://cfyycomcrtoqm"
+path="res://.godot/imported/crest_neutral.png-615fac7e0a730c145cab90533c633306.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/crests_hd/crest_neutral.png"
-dest_files=["res://.godot/imported/crest_neutral.png-615fac7e0a730c14.ctex"]
+dest_files=["res://.godot/imported/crest_neutral.png-615fac7e0a730c145cab90533c633306.ctex"]
 
 [params]
 

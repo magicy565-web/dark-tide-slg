@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xyvij4tmh2gq"
-path="res://.godot/imported/18_youya_dark_funeral.png-c85cd5d7d11f746c.ctex"
+uid="uid://b1yoo7vjbmcw2"
+path="res://.godot/imported/18_youya_dark_funeral.png-c85cd5d7d11f746c5bdd043c8909d283.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/18_youya_dark_funeral.png"
-dest_files=["res://.godot/imported/18_youya_dark_funeral.png-c85cd5d7d11f746c.ctex"]
+dest_files=["res://.godot/imported/18_youya_dark_funeral.png-c85cd5d7d11f746c5bdd043c8909d283.ctex"]
 
 [params]
 

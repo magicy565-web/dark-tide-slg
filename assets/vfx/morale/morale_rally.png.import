@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://srj5ivudb3v7"
-path="res://.godot/imported/morale_rally.png-2ec17339fbf46db8.ctex"
+uid="uid://bd7e71wwkovlt"
+path="res://.godot/imported/morale_rally.png-2ec17339fbf46db8e9157282a6f0a384.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/morale/morale_rally.png"
-dest_files=["res://.godot/imported/morale_rally.png-2ec17339fbf46db8.ctex"]
+dest_files=["res://.godot/imported/morale_rally.png-2ec17339fbf46db8e9157282a6f0a384.ctex"]
 
 [params]
 

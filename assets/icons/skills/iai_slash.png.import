@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://k8g6ux9qebot"
-path="res://.godot/imported/iai_slash.png-624917917b0d0e1d.ctex"
+uid="uid://c7b6tyckvhvu3"
+path="res://.godot/imported/iai_slash.png-624917917b0d0e1d223c587ee01512d9.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/iai_slash.png"
-dest_files=["res://.godot/imported/iai_slash.png-624917917b0d0e1d.ctex"]
+dest_files=["res://.godot/imported/iai_slash.png-624917917b0d0e1d223c587ee01512d9.ctex"]
 
 [params]
 

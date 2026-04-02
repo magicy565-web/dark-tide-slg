@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://f0xad3gazabi"
-path="res://.godot/imported/mana_surge.png-dd22fbb137e26ef6.ctex"
+uid="uid://b22a10cmkq7vh"
+path="res://.godot/imported/mana_surge.png-dd22fbb137e26ef661a8ee7f611c718e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/mana_surge.png"
-dest_files=["res://.godot/imported/mana_surge.png-dd22fbb137e26ef6.ctex"]
+dest_files=["res://.godot/imported/mana_surge.png-dd22fbb137e26ef661a8ee7f611c718e.ctex"]
 
 [params]
 

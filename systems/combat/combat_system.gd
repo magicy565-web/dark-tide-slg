@@ -73,7 +73,7 @@ class BattleUnit:
 	var hero_knocked_out: bool = false  ## 英雄被击倒 (失去被动加成)
 	var morale: int = 100               ## 士气 (0 = rout)
 	var is_routed: bool = false          ## 已溃败
-	var exp: int = 0                     ## 累积经验值 (老兵/精锐判定用)
+	var xp: int = 0                     ## 累积经验值 (老兵/精锐判定用)
 	var _death_resist_used: bool = false  ## v4.5: death_resist one-time trigger flag
 	var _ghost_shield_active: bool = false ## v4.5: ghost_shield first-hit immunity flag
 	var _dragon_slayer_bonus: int = 0     ## v4.5: dragon_slayer accumulated ATK bonus
@@ -449,7 +449,7 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 		bu.has_acted = false
 		bu.first_attack = true
 		bu.mana = 0
-		bu.exp = d.get("exp", 0)
+		bu.xp = d.get("exp", 0)
 
 		# Pull troop base stats from GameData autoload if available.
 		# NOTE: Skipped — input atk/def already includes base stats from
@@ -507,11 +507,11 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 				bu.morale = mini(100, bu.morale + BalanceConfig.HERO_TROOP_SYNERGY_MORALE)
 
 		# v4.3: Veteran / Elite bonuses based on accumulated EXP
-		if bu.exp >= BalanceConfig.ELITE_EXP_THRESHOLD:
+		if bu.xp >= BalanceConfig.ELITE_EXP_THRESHOLD:
 			bu.atk += BalanceConfig.ELITE_ATK_BONUS
 			bu.def_stat += BalanceConfig.ELITE_DEF_BONUS
 			bu.morale = mini(100, bu.morale + BalanceConfig.ELITE_MORALE_BONUS)
-		elif bu.exp >= BalanceConfig.VETERAN_EXP_THRESHOLD:
+		elif bu.xp >= BalanceConfig.VETERAN_EXP_THRESHOLD:
 			bu.atk += BalanceConfig.VETERAN_ATK_BONUS
 			bu.morale = mini(100, bu.morale + BalanceConfig.VETERAN_MORALE_BONUS)
 

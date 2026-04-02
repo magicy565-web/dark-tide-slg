@@ -441,7 +441,7 @@ func _get_treaty_effects_text(treaty_type_id: int) -> String:
 			return "Effects: Full political merge. Shared armies and resources. (Endgame)"
 	return "Effects: Unknown treaty type."
 
-func _estimate_acceptance_probability(partner_id: int, treaty_type_id: int, faction_key: String) -> int:
+func _estimate_acceptance_probability(_partner_id: int, treaty_type_id: int, faction_key: String) -> int:
 	var rep: int = DiplomacyManager.get_reputation(faction_key) if faction_key != "" else 0
 	var threat: int = ThreatManager.get_threat() if ThreatManager else 0
 	var base: int = 50
@@ -908,7 +908,7 @@ func _build_treaties_tab() -> void:
 	propose_btn.pressed.connect(_open_proposal_popup.bind(-1))
 	content_container.add_child(propose_btn); _faction_nodes.append(propose_btn)
 
-func _build_treaty_card(treaty: Dictionary, pid: int) -> PanelContainer:
+func _build_treaty_card(treaty: Dictionary, _pid: int) -> PanelContainer:
 	var card := PanelContainer.new()
 	var s := StyleBoxFlat.new()
 	s.bg_color = ColorTheme.BG_CARD
@@ -1160,8 +1160,8 @@ func _build_reputation_card(faction_key: String) -> PanelContainer:
 	vbox.add_child(bar_row)
 
 	var rep_val_lbl := Label.new()
-	var sign: String = "+" if rep >= 0 else ""
-	rep_val_lbl.text = "%s%d" % [sign, rep]
+	var sign_str: String = "+" if rep >= 0 else ""
+	rep_val_lbl.text = "%s%d" % [sign_str, rep]
 	rep_val_lbl.custom_minimum_size = Vector2(50, 0)
 	rep_val_lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
 	rep_val_lbl.add_theme_color_override("font_color", tier_color)
@@ -1427,10 +1427,10 @@ func _build_reputation_label(faction_key: String) -> Label:
 	var rep: int = DiplomacyManager.get_reputation(faction_key)
 	var level: String = DiplomacyManager.get_reputation_level(faction_key)
 	var rep_lbl := Label.new()
-	var sign: String = "+" if rep >= 0 else ""
+	var sign_str: String = "+" if rep >= 0 else ""
 	var level_cn: String = _get_rep_tier_label(rep)
 	var rep_color: Color = _get_rep_tier_color(rep)
-	rep_lbl.text = "Rep: %s%d (%s)" % [sign, rep, level_cn]
+	rep_lbl.text = "Rep: %s%d (%s)" % [sign_str, rep, level_cn]
 	rep_lbl.add_theme_font_size_override("font_size", 12)
 	rep_lbl.add_theme_color_override("font_color", rep_color)
 	return rep_lbl

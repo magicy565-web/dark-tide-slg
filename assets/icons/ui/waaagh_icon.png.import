@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://n4sziqrnj2y4"
-path="res://.godot/imported/waaagh_icon.png-a9779cf10b3c6740.ctex"
+uid="uid://xiqqehqwffgk"
+path="res://.godot/imported/waaagh_icon.png-a9779cf10b3c6740d353c3e78e5f9fad.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/waaagh_icon.png"
-dest_files=["res://.godot/imported/waaagh_icon.png-a9779cf10b3c6740.ctex"]
+dest_files=["res://.godot/imported/waaagh_icon.png-a9779cf10b3c6740d353c3e78e5f9fad.ctex"]
 
 [params]
 

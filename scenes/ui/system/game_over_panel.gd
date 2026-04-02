@@ -185,11 +185,11 @@ func _show(is_victory: bool, victory_type: String, reason: String) -> void:
 
 	# Entrance animation
 	visible = true
-	modulate.a = 0.0
+	_panel.modulate.a = 0.0
 	_panel.scale = Vector2(0.85, 0.85)
 	_panel.pivot_offset = _panel.size / 2.0
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(self, "modulate:a", 1.0, 0.5).set_ease(Tween.EASE_OUT)
+	tw.tween_property(_panel, "modulate:a", 1.0, 0.5).set_ease(Tween.EASE_OUT)
 	tw.tween_property(_panel, "scale", Vector2(1.0, 1.0), 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
 

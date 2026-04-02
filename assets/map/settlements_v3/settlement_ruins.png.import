@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1f3p8jiwgpvs"
-path="res://.godot/imported/settlement_ruins.png-4e82fbc2c6c45664.ctex"
+uid="uid://bv0r72y0uro6d"
+path="res://.godot/imported/settlement_ruins.png-4e82fbc2c6c45664a8c8f6b659fb1abf.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/settlements_v3/settlement_ruins.png"
-dest_files=["res://.godot/imported/settlement_ruins.png-4e82fbc2c6c45664.ctex"]
+dest_files=["res://.godot/imported/settlement_ruins.png-4e82fbc2c6c45664a8c8f6b659fb1abf.ctex"]
 
 [params]
 

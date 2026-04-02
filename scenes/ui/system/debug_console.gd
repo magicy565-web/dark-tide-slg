@@ -654,7 +654,7 @@ func _cmd_help() -> void:
 
 
 func _cmd_give_resource(res_key: String, args: Array) -> void:
-	var amount := _parse_int(args, 0, 100)
+	var amount: Variant = _parse_int(args, 0, 100)
 	if amount == null:
 		return
 	var pid := _human_pid()
@@ -671,7 +671,7 @@ func _cmd_give_resource(res_key: String, args: Array) -> void:
 
 
 func _cmd_give_ap(args: Array) -> void:
-	var amount := _parse_int(args, 0, 5)
+	var amount: Variant = _parse_int(args, 0, 5)
 	if amount == null:
 		return
 	var gm := _get_autoload("GameManager")
@@ -691,7 +691,7 @@ func _cmd_give_ap(args: Array) -> void:
 
 
 func _cmd_set_turn(args: Array) -> void:
-	var val := _parse_int(args, 0, 1)
+	var val: Variant = _parse_int(args, 0, 1)
 	if val == null:
 		return
 	var gm := _get_autoload("GameManager")
@@ -703,7 +703,7 @@ func _cmd_set_turn(args: Array) -> void:
 
 
 func _cmd_set_threat(args: Array) -> void:
-	var val := _parse_int(args, 0, 0)
+	var val: Variant = _parse_int(args, 0, 0)
 	if val == null:
 		return
 	var tm := _get_autoload("ThreatManager")
@@ -716,7 +716,7 @@ func _cmd_set_threat(args: Array) -> void:
 
 
 func _cmd_set_order(args: Array) -> void:
-	var val := _parse_int(args, 0, 50)
+	var val: Variant = _parse_int(args, 0, 50)
 	if val == null:
 		return
 	var om := _get_autoload("OrderManager")
@@ -743,7 +743,7 @@ func _cmd_spawn(args: Array) -> void:
 
 
 func _cmd_teleport(args: Array) -> void:
-	var tile_idx := _parse_int(args, 0, 0)
+	var tile_idx: Variant = _parse_int(args, 0, 0)
 	if tile_idx == null:
 		_print_error("用法: tp <tile_index>")
 		return
@@ -784,7 +784,7 @@ func _cmd_god() -> void:
 			_emit_resources_changed(pid)
 		var gm := _get_autoload("GameManager")
 		if gm:
-			var player := gm.get_player_by_id(pid) if gm.has_method("get_player_by_id") else {}
+			var player: Variant = gm.get_player_by_id(pid) if gm.has_method("get_player_by_id") else {}
 			if not player.is_empty():
 				player["ap"] = 99
 	else:
@@ -801,7 +801,7 @@ func _cmd_win() -> void:
 
 
 func _cmd_kill(args: Array) -> void:
-	var army_id := _parse_int(args, 0, -1)
+	var army_id: Variant = _parse_int(args, 0, -1)
 	if army_id == null or army_id < 0:
 		_print_error("用法: kill <army_id>")
 		return
@@ -884,7 +884,7 @@ func _cmd_eval(expr_str: String) -> void:
 
 
 func _cmd_speed(args: Array) -> void:
-	var val := _parse_int(args, 0, 1)
+	var val: Variant = _parse_int(args, 0, 1)
 	if val == null:
 		return
 	val = clampi(val, 1, 10)
@@ -993,7 +993,7 @@ func _refresh_game_state() -> void:
 	_add_state_row("军队总数", str(gm.armies.size()) if gm else "?")
 
 	if gm and gm.has_method("get_player_by_id"):
-		var player := gm.get_player_by_id(pid)
+		var player: Variant = gm.get_player_by_id(pid)
 		if not player.is_empty():
 			_add_state_heading("玩家信息")
 			_add_state_row("名称", str(player.get("name", "?")))

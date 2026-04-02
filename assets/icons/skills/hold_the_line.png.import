@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b362ae8ag22t"
-path="res://.godot/imported/hold_the_line.png-b8d3beffe611291f.ctex"
+uid="uid://dh8iiudphicw6"
+path="res://.godot/imported/hold_the_line.png-b8d3beffe611291fce16ffa5309d25e3.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/hold_the_line.png"
-dest_files=["res://.godot/imported/hold_the_line.png-b8d3beffe611291f.ctex"]
+dest_files=["res://.godot/imported/hold_the_line.png-b8d3beffe611291fce16ffa5309d25e3.ctex"]
 
 [params]
 

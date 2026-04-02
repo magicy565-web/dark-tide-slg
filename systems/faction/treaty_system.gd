@@ -234,10 +234,10 @@ func get_treaties_with(player_a: int, player_b: int) -> Array:
 			result.append(t)
 	return result
 
-func has_treaty_type(player_a: int, player_b: int, type: int) -> bool:
+func has_treaty_type(player_a: int, player_b: int, treaty_type: int) -> bool:
 	## Check whether a specific treaty type exists between two parties.
 	for t in get_treaties_with(player_a, player_b):
-		if t["type"] == type:
+		if t["type"] == treaty_type:
 			return true
 	return false
 

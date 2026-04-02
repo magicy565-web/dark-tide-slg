@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xvdb1mszzoat"
-path="res://.godot/imported/combo_spacetime.png-18531c9c933470c9.ctex"
+uid="uid://cif1sodd5ybmx"
+path="res://.godot/imported/combo_spacetime.png-18531c9c933470c97fc84f77a43ce862.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/combo/combo_spacetime.png"
-dest_files=["res://.godot/imported/combo_spacetime.png-18531c9c933470c9.ctex"]
+dest_files=["res://.godot/imported/combo_spacetime.png-18531c9c933470c97fc84f77a43ce862.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://carqwgobunql"
-path="res://.godot/imported/12_sara_dust_storm.png-84a7810b3d1aadd9.ctex"
+uid="uid://dlnwtoife1d8l"
+path="res://.godot/imported/12_sara_dust_storm.png-84a7810b3d1aadd98df7cb1ffc5678e8.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/12_sara_dust_storm.png"
-dest_files=["res://.godot/imported/12_sara_dust_storm.png-84a7810b3d1aadd9.ctex"]
+dest_files=["res://.godot/imported/12_sara_dust_storm.png-84a7810b3d1aadd98df7cb1ffc5678e8.ctex"]
 
 [params]
 

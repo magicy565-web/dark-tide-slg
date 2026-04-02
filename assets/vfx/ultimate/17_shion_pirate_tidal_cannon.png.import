@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://jnkm7lhjzo74"
-path="res://.godot/imported/17_shion_pirate_tidal_cannon.png-e22bb04cc40f4f43.ctex"
+uid="uid://bukvugeg27n0f"
+path="res://.godot/imported/17_shion_pirate_tidal_cannon.png-e22bb04cc40f4f437781dadde21897a0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/17_shion_pirate_tidal_cannon.png"
-dest_files=["res://.godot/imported/17_shion_pirate_tidal_cannon.png-e22bb04cc40f4f43.ctex"]
+dest_files=["res://.godot/imported/17_shion_pirate_tidal_cannon.png-e22bb04cc40f4f437781dadde21897a0.ctex"]
 
 [params]
 

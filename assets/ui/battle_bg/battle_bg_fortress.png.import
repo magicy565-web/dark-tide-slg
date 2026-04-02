@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://yj9bsqagxxyl"
-path="res://.godot/imported/battle_bg_fortress.png-2d169c340669eeae.ctex"
+uid="uid://oj21lv8c754y"
+path="res://.godot/imported/battle_bg_fortress.png-2d169c340669eeaee864c1aa8763f801.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/battle_bg/battle_bg_fortress.png"
-dest_files=["res://.godot/imported/battle_bg_fortress.png-2d169c340669eeae.ctex"]
+dest_files=["res://.godot/imported/battle_bg_fortress.png-2d169c340669eeaee864c1aa8763f801.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://wzs2d6wyy4pa"
-path="res://.godot/imported/panel_event_popup.png-9dd2c7c956e25f33.ctex"
+uid="uid://bxpedjv3llxt0"
+path="res://.godot/imported/panel_event_popup.png-9dd2c7c956e25f3356bdd7bc77a6e63b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/panel_event_popup.png"
-dest_files=["res://.godot/imported/panel_event_popup.png-9dd2c7c956e25f33.ctex"]
+dest_files=["res://.godot/imported/panel_event_popup.png-9dd2c7c956e25f3356bdd7bc77a6e63b.ctex"]
 
 [params]
 

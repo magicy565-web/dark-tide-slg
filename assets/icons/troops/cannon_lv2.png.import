@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://zwxv71a1z5ln"
-path="res://.godot/imported/cannon_lv2.png-cb3a47990a3c0bd4.ctex"
+uid="uid://dxm3fj2co6i1v"
+path="res://.godot/imported/cannon_lv2.png-cb3a47990a3c0bd4ed1f373b99950613.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops/cannon_lv2.png"
-dest_files=["res://.godot/imported/cannon_lv2.png-cb3a47990a3c0bd4.ctex"]
+dest_files=["res://.godot/imported/cannon_lv2.png-cb3a47990a3c0bd4ed1f373b99950613.ctex"]
 
 [params]
 

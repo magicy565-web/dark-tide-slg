@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://sank8cot7jzh"
-path="res://.godot/imported/battle_bg_temple.png-dbd490d2bd743982.ctex"
+uid="uid://nd7fssoqfd8w"
+path="res://.godot/imported/battle_bg_temple.png-dbd490d2bd743982810e8b23af63052e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/battle_bg_temple.png"
-dest_files=["res://.godot/imported/battle_bg_temple.png-dbd490d2bd743982.ctex"]
+dest_files=["res://.godot/imported/battle_bg_temple.png-dbd490d2bd743982810e8b23af63052e.ctex"]
 
 [params]
 

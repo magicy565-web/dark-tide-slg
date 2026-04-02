@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://u0rwb8swo1b3"
-path="res://.godot/imported/cavalry_charge.png-b4dacd4509307142.ctex"
+uid="uid://savt322ra2ui"
+path="res://.godot/imported/cavalry_charge.png-b4dacd45093071428343990d141ef374.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/cavalry_charge.png"
-dest_files=["res://.godot/imported/cavalry_charge.png-b4dacd4509307142.ctex"]
+dest_files=["res://.godot/imported/cavalry_charge.png-b4dacd45093071428343990d141ef374.ctex"]
 
 [params]
 

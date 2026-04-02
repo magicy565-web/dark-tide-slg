@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://z8ilh7mrklph"
-path="res://.godot/imported/light_priest.png-694a59a0667e4d3f.ctex"
+uid="uid://coxx0wrp0gi8e"
+path="res://.godot/imported/light_priest.png-694a59a0667e4d3f76191ae5430fbc40.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/light/light_priest.png"
-dest_files=["res://.godot/imported/light_priest.png-694a59a0667e4d3f.ctex"]
+dest_files=["res://.godot/imported/light_priest.png-694a59a0667e4d3f76191ae5430fbc40.ctex"]
 
 [params]
 

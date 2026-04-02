@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://kjcchvh5txej"
-path="res://.godot/imported/popup_bg.png-6e8123992b5fff08.ctex"
+uid="uid://w1uf72udgyje"
+path="res://.godot/imported/popup_bg.png-6e8123992b5fff08355140d038c08eed.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/popup_bg.png"
-dest_files=["res://.godot/imported/popup_bg.png-6e8123992b5fff08.ctex"]
+dest_files=["res://.godot/imported/popup_bg.png-6e8123992b5fff08355140d038c08eed.ctex"]
 
 [params]
 

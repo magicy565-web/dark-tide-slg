@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://efstu7qvoc9r"
-path="res://.godot/imported/01_rin_sakura_tempest.png-0f0150170d7af83a.ctex"
+uid="uid://c4uu8212iu7qp"
+path="res://.godot/imported/01_rin_sakura_tempest.png-0f0150170d7af83a2d2e1903ce609ae9.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/01_rin_sakura_tempest.png"
-dest_files=["res://.godot/imported/01_rin_sakura_tempest.png-0f0150170d7af83a.ctex"]
+dest_files=["res://.godot/imported/01_rin_sakura_tempest.png-0f0150170d7af83a2d2e1903ce609ae9.ctex"]
 
 [params]
 

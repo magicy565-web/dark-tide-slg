@@ -584,18 +584,18 @@ func _audit_hero_level_scaling() -> void:
 	for hero_id in HeroLevelData.HERO_BASE_STATS:
 		var stats_lv1: Dictionary = HeroLevelData.get_hero_stats_at_level(hero_id, 1)
 		var stats_lv20: Dictionary = HeroLevelData.get_hero_stats_at_level(hero_id, 20)
-		var name: String = HeroLevelData.HERO_BASE_STATS[hero_id].get("name", hero_id)
+		var hero_name: String = HeroLevelData.HERO_BASE_STATS[hero_id].get("name", hero_id)
 
 		# Check ATK growth doesn't exceed 3× base
 		if stats_lv20["atk"] > stats_lv1["atk"] * 3.5:
 			_log("WARN", "HeroGrowth", "%s ATK grows from %d to %d (>3.5× base)" % [
-				name, stats_lv1["atk"], stats_lv20["atk"]])
+				hero_name, stats_lv1["atk"], stats_lv20["atk"]])
 
 		# Check no stat exceeds 30 at Lv20 (combat formula assumes 1-20 range)
 		for stat_key in ["atk", "def", "int_stat", "spd"]:
 			if stats_lv20[stat_key] > 30:
 				_log("WARN", "HeroGrowth", "%s %s=%d at Lv20 exceeds soft cap 30" % [
-					name, stat_key, stats_lv20[stat_key]])
+					hero_name, stat_key, stats_lv20[stat_key]])
 
 		# Check HP pool is reasonable (not > 60)
 		if stats_lv20["hp"] > 60:

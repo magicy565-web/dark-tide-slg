@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://se01io21ts7j"
-path="res://.godot/imported/btn_diplomacy.png-5489c25b48b2224b.ctex"
+uid="uid://b5lefixy1esr3"
+path="res://.godot/imported/btn_diplomacy.png-5489c25b48b2224bda96384c3ba9ba85.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/btn_diplomacy.png"
-dest_files=["res://.godot/imported/btn_diplomacy.png-5489c25b48b2224b.ctex"]
+dest_files=["res://.godot/imported/btn_diplomacy.png-5489c25b48b2224bda96384c3ba9ba85.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ztv33qtrdguw"
-path="res://.godot/imported/team_buff.png-8453b880d7cefd42.ctex"
+uid="uid://duge6mp5u3km0"
+path="res://.godot/imported/team_buff.png-8453b880d7cefd42f8e5093a1a04422a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/buff/team_buff.png"
-dest_files=["res://.godot/imported/team_buff.png-8453b880d7cefd42.ctex"]
+dest_files=["res://.godot/imported/team_buff.png-8453b880d7cefd42f8e5093a1a04422a.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://sj0h7vt3d3za"
-path="res://.godot/imported/military_garrison.png-d4bd68f7373a459b.ctex"
+uid="uid://b2pgywbivh5sc"
+path="res://.godot/imported/military_garrison.png-d4bd68f7373a459be834349f37a28115.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/actions/military_garrison.png"
-dest_files=["res://.godot/imported/military_garrison.png-d4bd68f7373a459b.ctex"]
+dest_files=["res://.godot/imported/military_garrison.png-d4bd68f7373a459be834349f37a28115.ctex"]
 
 [params]
 

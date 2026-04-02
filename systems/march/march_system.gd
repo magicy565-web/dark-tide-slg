@@ -470,7 +470,7 @@ func _consume_supply(army_id: int, order: Dictionary, army: Dictionary) -> void:
 		EventBus.army_supply_low.emit(army_id, order["supply"])
 
 
-func _apply_attrition(army_id: int, order: Dictionary, army: Dictionary) -> Dictionary:
+func _apply_attrition(army_id: int, _order: Dictionary, army: Dictionary) -> Dictionary:
 	## Apply soldier losses when supply is depleted.
 	var total_lost: int = 0
 	for troop in army.get("troops", []):

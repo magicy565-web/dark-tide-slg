@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://r1n7yizuyd89"
-path="res://.godot/imported/elf_ashigaru_lv2.png-00c774bd85831ffc.ctex"
+uid="uid://dl86atrvowlvd"
+path="res://.godot/imported/elf_ashigaru_lv2.png-00c774bd85831ffc0dd41afd21cfeb5f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops_light/elf_ashigaru_lv2.png"
-dest_files=["res://.godot/imported/elf_ashigaru_lv2.png-00c774bd85831ffc.ctex"]
+dest_files=["res://.godot/imported/elf_ashigaru_lv2.png-00c774bd85831ffc0dd41afd21cfeb5f.ctex"]
 
 [params]
 

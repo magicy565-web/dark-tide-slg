@@ -125,7 +125,7 @@ func _tick_faction(player_id: int, faction_id: int) -> void:
 	_try_counter_espionage(player_id, faction_id)
 
 
-func _try_strategic_raid(player_id: int, source_tiles: Array, faction_id: int) -> void:
+func _try_strategic_raid(_player_id: int, source_tiles: Array, faction_id: int) -> void:
 	## Strategic raid: pick the best target instead of random.
 	var ai_key: String = _faction_to_ai_key(faction_id)
 	var raid_chance: float = float(BalanceConfig.EVIL_RAID_CHANCE_PCT) * AIScaling.get_personality_mod(ai_key, "raid_chance_mult")
@@ -207,7 +207,7 @@ func _try_strategic_raid(player_id: int, source_tiles: Array, faction_id: int) -
 	_raid_cooldowns[faction_id] = 2  # Cooldown after raid
 
 
-func _execute_diversion_raid(player_id: int, source_tiles: Array, faction_id: int, target_tile: int) -> void:
+func _execute_diversion_raid(_player_id: int, source_tiles: Array, faction_id: int, target_tile: int) -> void:
 	## Execute a diversion/feint raid on a specific target tile.
 	if target_tile < 0 or target_tile >= GameManager.tiles.size():
 		return
@@ -312,7 +312,7 @@ func _try_legacy_raid(player_id: int, source_tiles: Array, faction_id: int) -> v
 		EventBus.message_log.emit("击退了敌方突袭, 驻军-1")
 
 
-func _consolidate_garrison(source_tiles: Array, faction_id: int) -> void:
+func _consolidate_garrison(source_tiles: Array, _faction_id: int) -> void:
 	## CONSOLIDATE strategy: redistribute garrison from safe interior to threatened border tiles.
 	var border_tiles: Array = []
 	var interior_tiles: Array = []
@@ -355,7 +355,7 @@ func _consolidate_garrison(source_tiles: Array, faction_id: int) -> void:
 		remaining -= give
 
 
-func _try_coordinated_attack(player_id: int, faction_id: int, source_tiles: Array) -> void:
+func _try_coordinated_attack(_player_id: int, faction_id: int, source_tiles: Array) -> void:
 	## If AIStrategicPlanner has a coordinated target, add garrison pressure toward it.
 	var coord_target: int = AIStrategicPlanner.get_coordinated_target()
 	if coord_target < 0 or coord_target >= GameManager.tiles.size():

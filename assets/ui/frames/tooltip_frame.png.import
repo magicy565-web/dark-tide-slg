@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://nc4jeriohdhx"
-path="res://.godot/imported/tooltip_frame.png-873af2febcdd8735.ctex"
+uid="uid://d0ralvixvemkd"
+path="res://.godot/imported/tooltip_frame.png-873af2febcdd87354e6e79fb8a9cad88.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/tooltip_frame.png"
-dest_files=["res://.godot/imported/tooltip_frame.png-873af2febcdd8735.ctex"]
+dest_files=["res://.godot/imported/tooltip_frame.png-873af2febcdd87354e6e79fb8a9cad88.ctex"]
 
 [params]
 

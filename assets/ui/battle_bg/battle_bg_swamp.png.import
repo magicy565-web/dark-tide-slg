@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://nkbdqvpumgqk"
-path="res://.godot/imported/battle_bg_swamp.png-f9fbc0a847475bb7.ctex"
+uid="uid://fk62vyyeeuqb"
+path="res://.godot/imported/battle_bg_swamp.png-f9fbc0a847475bb728b4ee8585ce5c6b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/battle_bg/battle_bg_swamp.png"
-dest_files=["res://.godot/imported/battle_bg_swamp.png-f9fbc0a847475bb7.ctex"]
+dest_files=["res://.godot/imported/battle_bg_swamp.png-f9fbc0a847475bb728b4ee8585ce5c6b.ctex"]
 
 [params]
 

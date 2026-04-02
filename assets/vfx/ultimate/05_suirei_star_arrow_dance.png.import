@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dfolul2wn040"
-path="res://.godot/imported/05_suirei_star_arrow_dance.png-c3270df1d33c8faf.ctex"
+uid="uid://dhs7nah3obh2j"
+path="res://.godot/imported/05_suirei_star_arrow_dance.png-c3270df1d33c8faf966f075dc53e7ba1.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/05_suirei_star_arrow_dance.png"
-dest_files=["res://.godot/imported/05_suirei_star_arrow_dance.png-c3270df1d33c8faf.ctex"]
+dest_files=["res://.godot/imported/05_suirei_star_arrow_dance.png-c3270df1d33c8faf966f075dc53e7ba1.ctex"]
 
 [params]
 

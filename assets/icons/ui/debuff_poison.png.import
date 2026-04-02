@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://yymaoajopdls"
-path="res://.godot/imported/debuff_poison.png-1225db21056d9767.ctex"
+uid="uid://3yexvnyxxpta"
+path="res://.godot/imported/debuff_poison.png-1225db21056d9767e338970c79d02dd8.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/debuff_poison.png"
-dest_files=["res://.godot/imported/debuff_poison.png-1225db21056d9767.ctex"]
+dest_files=["res://.godot/imported/debuff_poison.png-1225db21056d9767e338970c79d02dd8.ctex"]
 
 [params]
 

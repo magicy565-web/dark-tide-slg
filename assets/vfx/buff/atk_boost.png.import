@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://9q6xmi9p7pqj"
-path="res://.godot/imported/atk_boost.png-3ae7e7fceaadb26c.ctex"
+uid="uid://bjtjc5c5cacdg"
+path="res://.godot/imported/atk_boost.png-3ae7e7fceaadb26cf64fafabda08be80.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/buff/atk_boost.png"
-dest_files=["res://.godot/imported/atk_boost.png-3ae7e7fceaadb26c.ctex"]
+dest_files=["res://.godot/imported/atk_boost.png-3ae7e7fceaadb26cf64fafabda08be80.ctex"]
 
 [params]
 

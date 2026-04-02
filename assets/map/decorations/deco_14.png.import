@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://n2vtmlb0p0zq"
-path="res://.godot/imported/deco_14.png-e50466b4e2669490.ctex"
+uid="uid://cld1xnne4v1w0"
+path="res://.godot/imported/deco_14.png-e50466b4e266949046539e118ffb3b9c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/decorations/deco_14.png"
-dest_files=["res://.godot/imported/deco_14.png-e50466b4e2669490.ctex"]
+dest_files=["res://.godot/imported/deco_14.png-e50466b4e266949046539e118ffb3b9c.ctex"]
 
 [params]
 

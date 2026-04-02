@@ -262,7 +262,7 @@ func _execute_intervention(type_key: int, target: Variant) -> void:
 #                   TARGET SELECTOR
 # ═══════════════════════════════════════════════════════════
 
-func _show_target_selector(type_key: int, data: Dictionary) -> void:
+func _show_target_selector(type_key: int, _data: Dictionary) -> void:
 	_clear_target_selector()
 	_pending_type = type_key
 

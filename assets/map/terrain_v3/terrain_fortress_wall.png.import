@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://mfjkmvl8f20k"
-path="res://.godot/imported/terrain_fortress_wall.png-e08f0fc0f850be73.ctex"
+uid="uid://b6d0b30dlu8jd"
+path="res://.godot/imported/terrain_fortress_wall.png-e08f0fc0f850be739b3e97c526ab5e0c.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/terrain_v3/terrain_fortress_wall.png"
-dest_files=["res://.godot/imported/terrain_fortress_wall.png-e08f0fc0f850be73.ctex"]
+dest_files=["res://.godot/imported/terrain_fortress_wall.png-e08f0fc0f850be739b3e97c526ab5e0c.ctex"]
 
 [params]
 

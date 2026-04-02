@@ -1121,8 +1121,8 @@ func _on_attack_army_selected(army_id: int) -> void:
 		if tile["garrison"] > 0:
 			label_text += " Garrison:%d" % tile["garrison"]
 		if tile["owner_id"] >= 0:
-			var owner: Dictionary = GameManager.get_player_by_id(tile["owner_id"])
-			label_text += " [%s]" % owner.get("name", "???")
+			var tile_owner: Dictionary = GameManager.get_player_by_id(tile["owner_id"])
+			label_text += " [%s]" % tile_owner.get("name", "???")
 		# v5.0: Show siege/fortification status
 		if SiegeSystem.is_tile_under_siege(tidx):
 			var siege: Dictionary = SiegeSystem.get_siege_at_tile(tidx)
@@ -3860,12 +3860,12 @@ func _make_icon_label(icon: Texture2D, text: String, size: int, color: Color, mi
 	hb.add_theme_constant_override("separation", 2)
 	hb.custom_minimum_size.x = min_w
 	if icon:
-		var tr := TextureRect.new()
-		tr.texture = icon
-		tr.custom_minimum_size = Vector2(18, 18)
-		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		hb.add_child(tr)
+		var tex_rect := TextureRect.new()
+		tex_rect.texture = icon
+		tex_rect.custom_minimum_size = Vector2(18, 18)
+		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hb.add_child(tex_rect)
 	var lbl := _make_label(text, size, color)
 	hb.add_child(lbl)
 	return hb

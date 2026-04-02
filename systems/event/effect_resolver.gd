@@ -286,7 +286,7 @@ func _apply_soldiers(value, context) -> String:
 
 # ── Order ──
 
-func _apply_order(value, context) -> String:
+func _apply_order(value, _context) -> String:
 	if OrderManager != null:
 		OrderManager.change_order(value)
 	return "order %+d" % value
@@ -294,7 +294,7 @@ func _apply_order(value, context) -> String:
 
 # ── Threat ──
 
-func _apply_threat(value, context) -> String:
+func _apply_threat(value, _context) -> String:
 	if ThreatManager != null:
 		ThreatManager.change_threat(value)
 	return "threat %+d" % value
@@ -410,14 +410,14 @@ func _apply_wall_boost(value, context) -> String:
 
 # ── Unlock building ──
 
-func _apply_unlock_building(value, context) -> String:
+func _apply_unlock_building(value, _context) -> String:
 	EventBus.message_log.emit("[color=green]解锁特殊建筑: %s[/color]" % str(value))
 	return "unlock_building: %s" % str(value)
 
 
 # ── Unlock unit ──
 
-func _apply_unlock_unit(value, context) -> String:
+func _apply_unlock_unit(value, _context) -> String:
 	EventBus.message_log.emit("[color=green]解锁部队类型: %s[/color]" % str(value))
 	return "unlock_unit: %s" % str(value)
 
@@ -493,7 +493,7 @@ func _apply_special_npc(value, context) -> String:
 
 # ── Special unit ──
 
-func _apply_special_unit(value, context) -> String:
+func _apply_special_unit(value, _context) -> String:
 	EventBus.message_log.emit("[color=green]获得特殊部队: %s[/color]" % str(value))
 	return "special_unit: %s" % str(value)
 
@@ -555,7 +555,7 @@ func _apply_hero_affection_all(value, context) -> String:
 
 # ── Hero stat bonus (from character_interaction_events) ──
 
-func _apply_hero_stat_bonus(value, context) -> String:
+func _apply_hero_stat_bonus(value, _context) -> String:
 	if not value is Array:
 		return "hero_stat_bonus: invalid (not array)"
 	for bonus in value:
@@ -592,7 +592,7 @@ func _apply_affection_boost(value, context) -> String:
 
 # ── Corruption boost ──
 
-func _apply_corruption_boost(value, context) -> String:
+func _apply_corruption_boost(value, _context) -> String:
 	var boost_val: int = int(value)
 	if HeroSystem != null and "captured_heroes" in HeroSystem and "hero_corruption" in HeroSystem:
 		for hid in HeroSystem.captured_heroes:
@@ -637,7 +637,7 @@ func _apply_all_stats_bonus(value, context) -> String:
 
 # ── Delayed gold ──
 
-func _apply_gold_delayed(value, context) -> String:
+func _apply_gold_delayed(value, _context) -> String:
 	var amount: int = int(value)
 	_pending_gold += amount
 	# Also notify EventSystem if it tracks pending gold
@@ -661,7 +661,7 @@ func _apply_temp_soldiers(value, context) -> String:
 
 # ── Reputation all ──
 
-func _apply_reputation_all(value, context) -> String:
+func _apply_reputation_all(value, _context) -> String:
 	var rep_val: int = int(value)
 	if DiplomacyManager != null and DiplomacyManager.has_method("get_all_reputations"):
 		var reps: Dictionary = DiplomacyManager.get_all_reputations()
@@ -672,7 +672,7 @@ func _apply_reputation_all(value, context) -> String:
 
 # ── Immobile ──
 
-func _apply_immobile(value, context) -> String:
+func _apply_immobile(value, _context) -> String:
 	if not value:
 		return "immobile: skipped (false)"
 	if EventSystem != null and "_immobile_this_turn" in EventSystem:
@@ -683,14 +683,14 @@ func _apply_immobile(value, context) -> String:
 
 # ── AP (action points) ──
 
-func _apply_ap(value, context) -> String:
+func _apply_ap(value, _context) -> String:
 	EventBus.message_log.emit("[color=yellow]行动点变化: %+d[/color]" % int(value))
 	return "ap %+d" % int(value)
 
 
 # ── Tech point ──
 
-func _apply_tech_point(value, context) -> String:
+func _apply_tech_point(value, _context) -> String:
 	var amount: int = int(value)
 	EventBus.message_log.emit("[color=cyan]获得 %d 科技点[/color]" % amount)
 	return "tech_point +%d" % amount
@@ -698,7 +698,7 @@ func _apply_tech_point(value, context) -> String:
 
 # ── Combo passive ──
 
-func _apply_combo_passive(value, context) -> String:
+func _apply_combo_passive(value, _context) -> String:
 	EventBus.message_log.emit("[color=green]解锁战术配合: %s[/color]" % str(value))
 	return "combo_passive: %s" % str(value)
 
@@ -724,7 +724,7 @@ func _apply_espionage_bonus(value, context) -> String:
 
 # ── Unit buff ──
 
-func _apply_unit_buff(value, context) -> String:
+func _apply_unit_buff(value, _context) -> String:
 	if not value is Dictionary:
 		return "unit_buff: invalid"
 	EventBus.message_log.emit("[color=green]%s部队 %s+%d (持续%d回合)[/color]" % [
@@ -735,7 +735,7 @@ func _apply_unit_buff(value, context) -> String:
 
 # ── Terrain buff ──
 
-func _apply_terrain_buff(value, context) -> String:
+func _apply_terrain_buff(value, _context) -> String:
 	EventBus.message_log.emit("[color=green]获得地形增益: %s[/color]" % str(value))
 	return "terrain_buff: %s" % str(value)
 

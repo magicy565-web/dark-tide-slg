@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://4m216fjg4lrs"
-path="res://.godot/imported/battle_bg_mountain.png-2f00f0f879d27e44.ctex"
+uid="uid://daaq8kdb3tavb"
+path="res://.godot/imported/battle_bg_mountain.png-2f00f0f879d27e449317a8c44ce3e4d7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/battle_bg/battle_bg_mountain.png"
-dest_files=["res://.godot/imported/battle_bg_mountain.png-2f00f0f879d27e44.ctex"]
+dest_files=["res://.godot/imported/battle_bg_mountain.png-2f00f0f879d27e449317a8c44ce3e4d7.ctex"]
 
 [params]
 

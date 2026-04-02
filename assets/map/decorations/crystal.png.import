@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://422x3v4k5way"
-path="res://.godot/imported/crystal.png-6dbd769634825999.ctex"
+uid="uid://dj24vrcjtkou3"
+path="res://.godot/imported/crystal.png-6dbd769634825999c383774be491561f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/decorations/crystal.png"
-dest_files=["res://.godot/imported/crystal.png-6dbd769634825999.ctex"]
+dest_files=["res://.godot/imported/crystal.png-6dbd769634825999c383774be491561f.ctex"]
 
 [params]
 

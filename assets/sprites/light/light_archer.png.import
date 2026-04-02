@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://mgdgmqs2ibr5"
-path="res://.godot/imported/light_archer.png-c3a30eb4e6850166.ctex"
+uid="uid://dnw3tagnrdhfh"
+path="res://.godot/imported/light_archer.png-c3a30eb4e6850166417ac3a7f138b11b.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/sprites/light/light_archer.png"
-dest_files=["res://.godot/imported/light_archer.png-c3a30eb4e6850166.ctex"]
+dest_files=["res://.godot/imported/light_archer.png-c3a30eb4e6850166417ac3a7f138b11b.ctex"]
 
 [params]
 

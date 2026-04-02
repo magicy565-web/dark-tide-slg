@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://i0yfx3aaqo95"
-path="res://.godot/imported/btn_auto_battle.png-42844d8ed6c9a6da.ctex"
+uid="uid://dppestoe3frk7"
+path="res://.godot/imported/btn_auto_battle.png-42844d8ed6c9a6da0501af3ad776a48d.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/btn_auto_battle.png"
-dest_files=["res://.godot/imported/btn_auto_battle.png-42844d8ed6c9a6da.ctex"]
+dest_files=["res://.godot/imported/btn_auto_battle.png-42844d8ed6c9a6da0501af3ad776a48d.ctex"]
 
 [params]
 

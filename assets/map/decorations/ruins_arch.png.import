@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://j2pdo1mbirqh"
-path="res://.godot/imported/ruins_arch.png-81bf62c7376212af.ctex"
+uid="uid://co7egsbt1ilgc"
+path="res://.godot/imported/ruins_arch.png-81bf62c7376212af06d54d107eb96989.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/decorations/ruins_arch.png"
-dest_files=["res://.godot/imported/ruins_arch.png-81bf62c7376212af.ctex"]
+dest_files=["res://.godot/imported/ruins_arch.png-81bf62c7376212af06d54d107eb96989.ctex"]
 
 [params]
 

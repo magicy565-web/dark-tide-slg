@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://isjyf031e906"
-path="res://.godot/imported/terrain_coastal.png-a4e6d204b21fe884.ctex"
+uid="uid://dj2wbamh571fb"
+path="res://.godot/imported/terrain_coastal.png-a4e6d204b21fe884e0428a1737c18c66.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/terrain_v3/terrain_coastal.png"
-dest_files=["res://.godot/imported/terrain_coastal.png-a4e6d204b21fe884.ctex"]
+dest_files=["res://.godot/imported/terrain_coastal.png-a4e6d204b21fe884e0428a1737c18c66.ctex"]
 
 [params]
 

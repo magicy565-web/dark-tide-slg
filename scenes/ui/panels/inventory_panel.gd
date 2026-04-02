@@ -384,12 +384,12 @@ func _refresh_hero_equip_tab() -> void:
 				if ResourceLoader.exists(icon_path):
 					var tex: Texture2D = load(icon_path)
 					if tex:
-						var tr := TextureRect.new()
-						tr.texture = tex
-						tr.custom_minimum_size = Vector2(28, 28)
-						tr.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-						tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-						eq_hb.add_child(tr)
+						var tex_rect := TextureRect.new()
+						tex_rect.texture = tex
+						tex_rect.custom_minimum_size = Vector2(28, 28)
+						tex_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+						tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+						eq_hb.add_child(tex_rect)
 
 			var eq_name := Label.new()
 			eq_name.text = eq_def.get("name", equip_id)
@@ -476,12 +476,12 @@ func _on_hero_equip_picker(hero_id: String) -> void:
 			if ResourceLoader.exists(icon_path):
 				var tex: Texture2D = load(icon_path)
 				if tex:
-					var tr := TextureRect.new()
-					tr.texture = tex
-					tr.custom_minimum_size = Vector2(32, 32)
-					tr.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-					tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-					row.add_child(tr)
+					var tex_rect := TextureRect.new()
+					tex_rect.texture = tex
+					tex_rect.custom_minimum_size = Vector2(32, 32)
+					tex_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+					tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+					row.add_child(tex_rect)
 
 		var info_vbox := VBoxContainer.new()
 		info_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL

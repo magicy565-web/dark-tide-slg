@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://q5gy4w2gqozy"
-path="res://.godot/imported/14_kaede_thousand_shadows.png-6655f05a16410384.ctex"
+uid="uid://c17rod6f0p3ax"
+path="res://.godot/imported/14_kaede_thousand_shadows.png-6655f05a16410384159814f772f861d1.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/ultimate/14_kaede_thousand_shadows.png"
-dest_files=["res://.godot/imported/14_kaede_thousand_shadows.png-6655f05a16410384.ctex"]
+dest_files=["res://.godot/imported/14_kaede_thousand_shadows.png-6655f05a16410384159814f772f861d1.ctex"]
 
 [params]
 

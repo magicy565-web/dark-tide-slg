@@ -242,7 +242,7 @@ func process_enchantment_passive(hero_id: String, action_result: Dictionary) -> 
 
 
 ## Apply burn debuff damage at start of round for units with burn.
-func tick_burn_debuffs(units: Array, log: Array) -> void:
+func tick_burn_debuffs(units: Array, combat_log: Array) -> void:
 	for unit in units:
 		if not unit.get("is_alive", false):
 			continue
@@ -256,7 +256,7 @@ func tick_burn_debuffs(units: Array, log: Array) -> void:
 			unit["soldiers"] = maxi(0, unit["soldiers"] - burn_dmg)
 			if unit["soldiers"] <= 0:
 				unit["is_alive"] = false
-			log.append("%s [%s] 灼烧伤害 -%d兵" % [unit.get("unit_type", ""), unit.get("side", ""), burn_dmg])
+			combat_log.append("%s [%s] 灼烧伤害 -%d兵" % [unit.get("unit_type", ""), unit.get("side", ""), burn_dmg])
 
 
 ## Apply slow debuff (reduce SPD) for units with slow.

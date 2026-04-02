@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7e2n2aya902l"
-path="res://.godot/imported/mage_lv1.png-3b57731a5dbebb3a.ctex"
+uid="uid://beghddi653wo8"
+path="res://.godot/imported/mage_lv1.png-3b57731a5dbebb3a93f97f1def109a54.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/troops/mage_lv1.png"
-dest_files=["res://.godot/imported/mage_lv1.png-3b57731a5dbebb3a.ctex"]
+dest_files=["res://.godot/imported/mage_lv1.png-3b57731a5dbebb3a93f97f1def109a54.ctex"]
 
 [params]
 

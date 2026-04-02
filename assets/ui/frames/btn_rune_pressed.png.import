@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://wtfk95yl45pp"
-path="res://.godot/imported/btn_rune_pressed.png-7fc1fa54b7ee1d35.ctex"
+uid="uid://culi0eslm6g3p"
+path="res://.godot/imported/btn_rune_pressed.png-7fc1fa54b7ee1d3590cafef30bad5d15.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/ui/frames/btn_rune_pressed.png"
-dest_files=["res://.godot/imported/btn_rune_pressed.png-7fc1fa54b7ee1d35.ctex"]
+dest_files=["res://.godot/imported/btn_rune_pressed.png-7fc1fa54b7ee1d3590cafef30bad5d15.ctex"]
 
 [params]
 

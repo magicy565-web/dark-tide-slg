@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://7m8u1m0ybbml"
-path="res://.godot/imported/immovable_mountain.png-49e0a5dd8110b932.ctex"
+uid="uid://dcxmmvphnnrcc"
+path="res://.godot/imported/immovable_mountain.png-49e0a5dd8110b932324f6e0190207a23.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/immovable_mountain.png"
-dest_files=["res://.godot/imported/immovable_mountain.png-49e0a5dd8110b932.ctex"]
+dest_files=["res://.godot/imported/immovable_mountain.png-49e0a5dd8110b932324f6e0190207a23.ctex"]
 
 [params]
 

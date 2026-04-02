@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://077ixhebcbak"
-path="res://.godot/imported/combo_barbarian.png-60ef6c917643c350.ctex"
+uid="uid://dto8t6t0cp2ey"
+path="res://.godot/imported/combo_barbarian.png-60ef6c917643c350681828c7bcf155e0.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/combo/combo_barbarian.png"
-dest_files=["res://.godot/imported/combo_barbarian.png-60ef6c917643c350.ctex"]
+dest_files=["res://.godot/imported/combo_barbarian.png-60ef6c917643c350681828c7bcf155e0.ctex"]
 
 [params]
 

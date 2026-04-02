@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://980mk90j8ktv"
-path="res://.godot/imported/debuff_burn.png-8bbbab4b485c9582.ctex"
+uid="uid://1sl5ca7gx6lx"
+path="res://.godot/imported/debuff_burn.png-8bbbab4b485c9582c2fe8071110cf6f8.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/ui/debuff_burn.png"
-dest_files=["res://.godot/imported/debuff_burn.png-8bbbab4b485c9582.ctex"]
+dest_files=["res://.godot/imported/debuff_burn.png-8bbbab4b485c9582c2fe8071110cf6f8.ctex"]
 
 [params]
 

@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://o51ag48vniyj"
-path="res://.godot/imported/action_deploy.png-ae7dabd6f7ef9337.ctex"
+uid="uid://btlgh1vrmuivw"
+path="res://.godot/imported/action_deploy.png-ae7dabd6f7ef933700d5cee1a8e240d7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/map/actions/action_deploy.png"
-dest_files=["res://.godot/imported/action_deploy.png-ae7dabd6f7ef9337.ctex"]
+dest_files=["res://.godot/imported/action_deploy.png-ae7dabd6f7ef933700d5cee1a8e240d7.ctex"]
 
 [params]
 

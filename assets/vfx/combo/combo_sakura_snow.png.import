@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://kzgir112mpdj"
-path="res://.godot/imported/combo_sakura_snow.png-483b86d9e6fb1039.ctex"
+uid="uid://cpv8uroqq7tmp"
+path="res://.godot/imported/combo_sakura_snow.png-483b86d9e6fb10398a6ac7cac8055feb.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/vfx/combo/combo_sakura_snow.png"
-dest_files=["res://.godot/imported/combo_sakura_snow.png-483b86d9e6fb1039.ctex"]
+dest_files=["res://.godot/imported/combo_sakura_snow.png-483b86d9e6fb10398a6ac7cac8055feb.ctex"]
 
 [params]
 

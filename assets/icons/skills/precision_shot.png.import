@@ -2,13 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://yf6ps0oaykbg"
-path="res://.godot/imported/precision_shot.png-2571e6fc84d036f1.ctex"
+uid="uid://cbscukausi04k"
+path="res://.godot/imported/precision_shot.png-2571e6fc84d036f139b6bb5680d86814.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/icons/skills/precision_shot.png"
-dest_files=["res://.godot/imported/precision_shot.png-2571e6fc84d036f1.ctex"]
+dest_files=["res://.godot/imported/precision_shot.png-2571e6fc84d036f139b6bb5680d86814.ctex"]
 
 [params]
 
