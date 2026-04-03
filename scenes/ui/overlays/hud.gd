@@ -1668,6 +1668,10 @@ func _on_interrogate_pressed() -> void:
 
 	_show_target_panel("Interrogate Prisoner - Select")
 
+	var pid: int = GameManager.get_human_player_id()
+	var player: Dictionary = GameManager.get_player_by_id(pid)
+	var has_ap: bool = player.get("ap", 0) >= 1
+
 	if HeroSystem.captured_heroes.is_empty():
 		_add_target_label("(No prisoners)")
 		return
@@ -1677,7 +1681,9 @@ func _on_interrogate_pressed() -> void:
 		var hero_name: String = hero_data.get("name", hero_id)
 		var corruption: int = HeroSystem.hero_corruption.get(hero_id, 0)
 		var label_text: String = "%s (Corruption: %d/100)" % [hero_name, corruption]
-		_add_target_button(label_text, _on_interrogate_target.bind(hero_id))
+		if not has_ap:
+			label_text += " [No AP]"
+		_add_target_button(label_text, _on_interrogate_target.bind(hero_id), not has_ap)
 
 
 func _on_interrogate_target(hero_id: String) -> void:
@@ -2003,34 +2009,13 @@ func _on_split_target(army_id: int) -> void:
 
 
 func _on_troop_training() -> void:
-	var main_node = get_tree().current_scene
-	if main_node and "troop_training_panel" in main_node and main_node.troop_training_panel:
-		main_node.troop_training_panel.show_panel()
-	else:
-		var panel = get_tree().current_scene.get_node_or_null("troop_training_panel")
-		if panel == null:
-			# Try searching children
-			for child in get_tree().current_scene.get_children():
-				if child.has_method("show_panel") and child.get_script() and "troop_training" in child.get_script().resource_path:
-					panel = child
-					break
-		if panel and panel.has_method("show_panel"):
-			panel.show_panel()
-		else:
-			EventBus.message_log.emit("Troop training panel not available.")
+	if PanelManager.has_method("open_panel"):
+		PanelManager.open_panel("troop_training")
 
 
 func _on_equipment_forge() -> void:
-	var main_node = get_tree().current_scene
-	if main_node and "equipment_forge_panel" in main_node and main_node.equipment_forge_panel:
-		main_node.equipment_forge_panel.show_panel()
-	else:
-		# Fallback: search children for forge panel script
-		for child in get_tree().current_scene.get_children():
-			if child.has_method("show_panel") and child.get_script() and "equipment_forge" in child.get_script().resource_path:
-				child.show_panel()
-				return
-		EventBus.message_log.emit("Equipment forge panel not available.")
+	if PanelManager.has_method("open_panel"):
+		PanelManager.open_panel("equipment_forge")
 
 
 func _on_upgrade_troop() -> void:
@@ -2392,31 +2377,144 @@ func _on_corruption_confirm(tile_index: int) -> void:
 func _on_hero_pressed() -> void:
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("open_panel")
-	# Notify tutorial system that hero panel was opened
 	if TutorialManager and TutorialManager.has_method("notify_hero_panel_opened"):
 		TutorialManager.notify_hero_panel_opened()
-	# Hero panel is managed by main.gd scene — find it via tree
-	var hero_panel = get_tree().get_root().find_child("HeroPanel", true, false)
-	if hero_panel and hero_panel.has_method("show_panel"):
-		hero_panel.show_panel()
+	if PanelManager.has_method("open_panel"):
+		PanelManager.open_panel("hero_panel")
+func _on_economy_pressed() -> void:
+	if _current_mode == ActionMode.DOMESTIC_SUB and _domestic_sub_type == "economy_report":
+		_close_target_panel()
+		return
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "economy_report"
+	domestic_panel.visible = false
 
+	var pid: int = GameManager.get_human_player_id()
+	_show_target_panel("Economy Report")
 
-func _on_quest_journal_pressed() -> void:
-	var quest_panel = get_tree().get_root().find_child("QuestJournalPanel", true, false)
-	if quest_panel and quest_panel.has_method("show_panel"):
-		quest_panel.show_panel()
+	var rtl := RichTextLabel.new()
+	rtl.bbcode_enabled = true
+	rtl.fit_content = true
+	rtl.scroll_active = false
+	rtl.mouse_filter = Control.MOUSE_FILTER_PASS
+	rtl.add_theme_font_size_override("normal_font_size", 11)
+	rtl.add_theme_color_override("default_color", Color(0.8, 0.8, 0.85))
+
+	var bbtext: String = ""
+
+	# ── INCOME BREAKDOWN ──
+	bbtext += "[b][color=gold]-- Income Breakdown --[/color][/b]\n"
+	var type_totals: Dictionary = {}  # tile_type -> {gold, food, iron, count}
+	var faction_id: int = GameManager.get_player_faction(pid)
+	var params: Dictionary = FactionData.FACTION_PARAMS.get(faction_id, {})
+	var gold_mult: float = params.get("gold_income_mult", 1.0) * params.get("base_production_mult", 1.0)
+	var food_mult: float = params.get("food_production_mult", 1.0) * params.get("base_production_mult", 1.0)
+	var iron_mult: float = params.get("iron_income_mult", 1.0) * params.get("base_production_mult", 1.0)
+
+	for tile in GameManager.tiles:
+		if tile == null:
+			continue
+		if tile.get("owner_id", -1) != pid:
+			continue
+		var ttype: int = tile.get("type", -1)
+		var base: Dictionary = tile.get("base_production", {})
+		var level: int = maxi(tile.get("level", 1), 1)
+		var level_idx: int = clampi(level - 1, 0, GameManager.UPGRADE_PROD_MULT.size() - 1)
+		var level_m: float = GameManager.UPGRADE_PROD_MULT[level_idx] if GameManager.UPGRADE_PROD_MULT.size() > 0 else 1.0
+		var tile_order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+		var order_m: float = ProductionCalculator.get_tile_order_multiplier(tile_order)
+		var g: int = int(roundf(float(base.get("gold", 0)) * level_m * gold_mult * order_m))
+		var f: int = int(roundf(float(base.get("food", 0)) * level_m * food_mult * order_m))
+		var ir: int = int(roundf(float(base.get("iron", 0)) * level_m * iron_mult * order_m))
+		if not type_totals.has(ttype):
+			type_totals[ttype] = {"gold": 0, "food": 0, "iron": 0, "count": 0}
+		type_totals[ttype]["gold"] += g
+		type_totals[ttype]["food"] += f
+		type_totals[ttype]["iron"] += ir
+		type_totals[ttype]["count"] += 1
+
+	var total_gold_income: int = 0
+	var total_food_income: int = 0
+	var total_iron_income: int = 0
+	for ttype in type_totals:
+		var entry: Dictionary = type_totals[ttype]
+		var tname: String = GameManager.TILE_NAMES.get(ttype, "Tile#%d" % ttype)
+		bbtext += "  %s (x%d): G+%d F+%d I+%d\n" % [tname, entry["count"], entry["gold"], entry["food"], entry["iron"]]
+		total_gold_income += entry["gold"]
+		total_food_income += entry["food"]
+		total_iron_income += entry["iron"]
+
+	# Full calculated income (includes building bonuses, relics, etc.)
+	var full_income: Dictionary = ProductionCalculator.calculate_turn_income(pid)
+	var bonus_gold: int = full_income.get("gold", 0) - total_gold_income
+	var bonus_food: int = full_income.get("food", 0) - total_food_income
+	var bonus_iron: int = full_income.get("iron", 0) - total_iron_income
+	if bonus_gold != 0 or bonus_food != 0 or bonus_iron != 0:
+		bbtext += "  [color=cyan]Bonuses (buildings/relics/buffs):[/color] G%+d F%+d I%+d\n" % [bonus_gold, bonus_food, bonus_iron]
+
+	bbtext += "[color=green]Total Income: G+%d  F+%d  I+%d[/color]\n\n" % [
+		full_income.get("gold", 0), full_income.get("food", 0), full_income.get("iron", 0)]
+
+	# ── UPKEEP BREAKDOWN ──
+	bbtext += "[b][color=gold]-- Upkeep Breakdown --[/color][/b]\n"
+	var food_upkeep: int = ProductionCalculator.calculate_food_upkeep(pid)
+	var military_food_upkeep: int = GameData.get_army_upkeep(RecruitManager._get_army_ref(pid))
+	var total_food_upkeep: int = food_upkeep + military_food_upkeep
+	var gold_upkeep: int = ProductionCalculator.calculate_gold_upkeep(pid)
+
+	bbtext += "  Army food (base): [color=orange]%d[/color]\n" % food_upkeep
+	bbtext += "  Army food (T2+ tier): [color=orange]%d[/color]\n" % military_food_upkeep
+	bbtext += "  Army gold (salary): [color=orange]%d[/color]\n" % gold_upkeep
+	bbtext += "[color=red]Total Upkeep: G-%d  F-%d[/color]\n\n" % [gold_upkeep, total_food_upkeep]
+
+	# ── NET PROFIT ──
+	bbtext += "[b][color=gold]-- Net Profit --[/color][/b]\n"
+	var net_gold: int = full_income.get("gold", 0) - gold_upkeep
+	var net_food: int = full_income.get("food", 0) - total_food_upkeep
+	var net_iron: int = full_income.get("iron", 0)
+	var gold_color: String = "green" if net_gold >= 0 else "red"
+	var food_color: String = "green" if net_food >= 0 else "red"
+	bbtext += "  Gold: [color=%s]%+d /turn[/color]\n" % [gold_color, net_gold]
+	bbtext += "  Food: [color=%s]%+d /turn[/color]\n" % [food_color, net_food]
+	bbtext += "  Iron: [color=green]+%d /turn[/color]\n\n" % net_iron
+
+	# ── TERRITORY EFFECTS ──
+	bbtext += "[b][color=gold]-- Territory Effects --[/color][/b]\n"
+	var te: Dictionary = GameManager._active_territory_effects
+	var active_ids: Array = te.get("_active_ids", [])
+	if active_ids.is_empty():
+		bbtext += "  [color=gray](No active territory effects)[/color]\n"
+	else:
+		for eid in active_ids:
+			var eff_data: Dictionary = BalanceConfig.TERRITORY_EFFECTS.get(eid, {})
+			bbtext += "  [color=cyan]%s[/color]: %s\n" % [eff_data.get("name", eid), eff_data.get("desc", "")]
+	bbtext += "\n"
+
+	# ── PREDICTIONS ──
+	bbtext += "[b][color=gold]-- Predictions --[/color][/b]\n"
+	var current_gold: int = ResourceManager.get_resource(pid, "gold")
+	var current_food: int = ResourceManager.get_resource(pid, "food")
+	if net_gold < 0:
+		var turns_gold: int = ceili(float(current_gold) / float(-net_gold))
+		bbtext += "  [color=red]Gold runs out in ~%d turns[/color]\n" % turns_gold
+	else:
+		bbtext += "  [color=green]Gold: surplus of %d/turn[/color]\n" % net_gold
+	if net_food < 0:
+		var turns_food: int = ceili(float(current_food) / float(-net_food))
+		bbtext += "  [color=red]Food runs out in ~%d turns[/color]\n" % turns_food
+	else:
+		bbtext += "  [color=green]Food: surplus of %d/turn[/color]\n" % net_food
+
+	rtl.text = bbtext
+	target_container.add_child(rtl)
+	target_buttons.append(rtl)quest_journal")
 
 
 func _on_armies_pressed() -> void:
-	# Open the dedicated SR07-style Army Management Panel
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("open_panel")
-	var army_panel_node = get_tree().get_root().find_child("ArmyPanel", true, false)
-	if army_panel_node and army_panel_node.has_method("show_panel"):
-		army_panel_node.show_panel()
-	else:
-		# Fallback: inline army details (legacy)
-		_on_armies_pressed_legacy()
+	if PanelManager.has_method("open_panel"):
+		PanelManager.open_panel("army")
 
 
 func _on_armies_pressed_legacy() -> void:
@@ -2651,62 +2749,20 @@ func _on_economy_pressed() -> void:
 
 
 func _on_event_manager_pressed() -> void:
-	var event_panel = get_tree().get_root().find_child("EventManagerPanel", true, false)
-	if event_panel and event_panel.has_method("toggle_panel"):
-		event_panel.toggle_panel()
+	if PanelManager.has_method("toggle_panel"):
+		PanelManager.toggle_panel("event_manager")
+
+
+func _on_mission_pressed() -> void:
+	if PanelManager.has_method("toggle_panel"):
+		PanelManager.toggle_panel("mission")
 
 
 func _on_research_pressed() -> void:
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("open_panel")
-	# Show research/training tree in target panel
-	_current_mode = ActionMode.DOMESTIC_SUB
-	_domestic_sub_type = "research"
-	domestic_panel.visible = false
-
-	var pid: int = GameManager.get_human_player_id()
-	_show_target_panel("Research Tree")
-
-	# Get research state from ResearchManager
-	if not ResearchManager.has_method("get_research_status"):
-		_add_target_label("(Loading research system...)")
-		return
-
-	var status: Dictionary = ResearchManager.get_research_status(pid)
-	if status.is_empty():
-		_add_target_label("(No available research)")
-		return
-
-	# Show current research
-	var current: Dictionary = status.get("current", {})
-	if not current.is_empty():
-		_add_target_label("Researching: %s (%d/%d)" % [
-			current.get("name", "???"),
-			current.get("progress", 0),
-			current.get("cost", 0)
-		], Color(0.4, 0.8, 1.0))
-
-	# Show available research
-	var available: Array = status.get("available", [])
-	for entry in available:
-		var label_text: String = "%s (Cost:%d)" % [entry.get("name", "???"), entry.get("cost", 0)]
-		if entry.get("desc", "") != "":
-			label_text += "\n  %s" % entry["desc"]
-		var btn := Button.new()
-		btn.text = label_text
-		btn.custom_minimum_size = Vector2(380, 36)
-		btn.add_theme_font_size_override("font_size", 11)
-		btn.disabled = not entry.get("can_research", false)
-		btn.pressed.connect(_on_start_research.bind(entry.get("tech_id", "")))
-		target_container.add_child(btn)
-		target_buttons.append(btn)
-
-	# Show completed research
-	var completed: Array = status.get("completed", [])
-	if not completed.is_empty():
-		_add_target_label("\nCompleted:", Color(0.5, 0.7, 0.4))
-		for tech_name in completed:
-			_add_target_label("  %s" % tech_name, Color(0.4, 0.6, 0.35))
+	if PanelManager.has_method("open_panel"):
+		PanelManager.open_panel("tech_tree")
 
 
 func _on_start_research(tech_id: String) -> void:
@@ -4098,34 +4154,12 @@ func _on_mission_pressed() -> void:
 
 
 func _on_territory_info_pressed() -> void:
-	## Open the comprehensive territory info panel.
-	## 优先使用新的 ProvinceInfoPanel，降级到旧的 TerritoryInfoPanel。
-	var main = get_tree().current_scene
-	# 优先：使用新的 ProvinceInfoPanel
-	if main and "province_info_panel" in main and main.province_info_panel != null:
-		var pip = main.province_info_panel
-		if pip.is_panel_visible():
-			pip.hide_panel()
+	if PanelManager.has_method("toggle_panel"):
+		var sel_tile: int = -1
+		var board_node = get_tree().get_root().find_child("Board", true, false)
+		if board_node and board_node.has_method("get_selected_tile"):
+			sel_tile = board_node.get_selected_tile()
+		if sel_tile >= 0:
+			PanelManager.toggle_panel("province_info", [sel_tile])
 		else:
-			# 尝试获取当前选中的据点索引
-			var board_node = get_tree().get_root().find_child("Board", true, false)
-			var sel_tile: int = -1
-			if board_node and board_node.has_method("get_selected_tile"):
-				sel_tile = board_node.get_selected_tile()
-			if sel_tile >= 0:
-				pip.show_for_tile(sel_tile)
-			else:
-				pip.show_panel()
-		return
-	# 降级：旧的 TerritoryInfoPanel
-	if main and "territory_info_panel" in main and main.territory_info_panel:
-		if main.territory_info_panel.is_panel_visible():
-			main.territory_info_panel.hide_panel()
-		else:
-			main.territory_info_panel.show_panel()
-		return
-	# Fallback: walk root children for TerritoryInfo node
-	for child in get_tree().root.get_children():
-		if child.has_method("show_for_tile") and "TerritoryInfo" in child.name:
-			child.show_panel()
-			return
+			PanelManager.toggle_panel("province_info")
