@@ -284,23 +284,23 @@ func _build_ui() -> void:
 	btn_row.add_theme_constant_override("separation", 10)
 	vbox.add_child(btn_row)
 
-	# Progress label
+	# Progress label (Sengoku Rance style: shows hero name + chapter progress)
 	progress_label = Label.new()
 	progress_label.text = ""
-	progress_label.add_theme_font_size_override("font_size", 11)
-	progress_label.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	progress_label.add_theme_font_size_override("font_size", 12)
+	progress_label.add_theme_color_override("font_color", Color(0.85, 0.75, 0.45))  # Gold tint
 	progress_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn_row.add_child(progress_label)
 
 	btn_skip = Button.new()
-	btn_skip.text = "Skip"
+	btn_skip.text = "跳过"
 	btn_skip.custom_minimum_size = Vector2(70, 32)
 	btn_skip.add_theme_font_size_override("font_size", 12)
 	btn_skip.pressed.connect(_on_skip)
 	btn_row.add_child(btn_skip)
 
 	btn_next = Button.new()
-	btn_next.text = "Next ▶"
+	btn_next.text = "下一步 ▶"
 	btn_next.custom_minimum_size = Vector2(90, 32)
 	btn_next.add_theme_font_size_override("font_size", 13)
 	btn_next.pressed.connect(_on_next)
@@ -351,14 +351,22 @@ func show_story_event(hero_id: String, event: Dictionary) -> void:
 		VnDirector.setup_scene(hero_id, right_hero, event_mood)
 		_show_right_portrait(right_hero, "")
 
-	# Show progress
+	# Show progress (Sengoku Rance style: 「英雄名 · 路线 第3章/7」)
 	var route: String = StoryEventSystem.get_route(hero_id)
 	var events: Array = StoryEventSystem.get_route_events(hero_id, route)
 	var prog: Dictionary = StoryEventSystem.get_progress(hero_id)
 	var idx: int = prog.get("current_event", 0)
-	progress_label.text = "%s — %s (%d/%d)" % [
+	const ROUTE_DISPLAY: Dictionary = {
+		"training": "训练路线",
+		"pure_love": "纯爱路线",
+		"friendly": "友好路线",
+		"neutral": "中立路线",
+		"hostile": "对抗路线",
+	}
+	var route_display: String = ROUTE_DISPLAY.get(route, route)
+	progress_label.text = "%s · %s — 第%d章 / 共%d章" % [
 		_get_hero_name(hero_id),
-		event.get("name", ""),
+		route_display,
 		idx + 1,
 		events.size()
 	]
@@ -562,13 +570,19 @@ func _on_choice_selected(index: int) -> void:
 	_waiting_for_choice = false
 	choice_container.visible = false
 	var event_id: String = _current_event.get("id", "")
-	# If this is a branch-point choice (event has "choices" array), resolve via StoryEventSystem
+	# If this is a branch-point choice (event has "choices" array), resolve via StoryEventSystem.
+	# IMPORTANT: resolve_story_choice() already calls complete_current_event() internally.
+	# We must NOT call _advance_dialogue() -> _finish_event() -> complete_current_event() again,
+	# as that would double-advance the story progress (skip one event).
+	# Instead: unlock CGs and close the dialog directly.
 	if _is_branch_choice:
-		StoryEventSystem.resolve_story_choice(_current_hero_id, event_id, index)
 		_is_branch_choice = false
+		_unlock_event_cgs(_current_hero_id, _current_event)
+		StoryEventSystem.resolve_story_choice(_current_hero_id, event_id, index)
+		_hide_animated()
 	else:
 		EventBus.story_choice_made.emit(_current_hero_id, event_id, index)
-	_advance_dialogue()
+		_advance_dialogue()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -599,7 +613,14 @@ func _on_next() -> void:
 
 
 func _on_skip() -> void:
-	# Skip to end of current event
+	# Skip to end of current event.
+	# If a branch choice is pending, we must clear it from StoryEventSystem before completing.
+	if _is_branch_choice:
+		_is_branch_choice = false
+		_waiting_for_choice = false
+		var event_id: String = _current_event.get("id", "")
+		# Erase pending choice so complete_current_event works correctly
+		StoryEventSystem._pending_choices.erase(_current_hero_id)
 	_finish_event()
 
 
@@ -640,10 +661,11 @@ func _show_branch_choices(choices: Array) -> void:
 		btn.custom_minimum_size = Vector2(500, 0)
 		btn.add_theme_font_size_override("font_size", 13)
 
-		# Build rich choice text: label + hint
-		var choice_text: String = choice.get("text", "选项 %d" % (i + 1))
+		# Build rich choice text: support both "label" (story data format) and "text" (legacy format)
+		var choice_text: String = choice.get("label", choice.get("text", "选项 %d" % (i + 1)))
+		# Append description as consequence hint if present
 		var hint: String = choice.get("hint", "")
-		var consequence: String = choice.get("consequence", "")
+		var consequence: String = choice.get("consequence", choice.get("description", ""))
 
 		if hint != "":
 			choice_text += "  [%s]" % hint

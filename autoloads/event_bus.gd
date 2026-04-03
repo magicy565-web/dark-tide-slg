@@ -216,6 +216,7 @@ signal story_choice_requested(hero_id: String, event_id: String, choices: Array)
 # ── Mission Panel (Sengoku Rance-style manual event trigger) ──
 signal mission_execute_requested(hero_id: String)
 signal mission_panel_refreshed()
+signal mission_available(hero_id: String, event_data: Dictionary)  # Emitted when a new mission becomes available for a hero
 
 # ── CG & Gallery System (v3.8) ──
 signal cg_unlocked(cg_id: String, hero_id: String)

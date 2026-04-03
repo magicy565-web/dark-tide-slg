@@ -306,9 +306,56 @@ func complete_current_event(hero_id: String) -> void:
 		_apply_event_effects(hero_id, event)
 		# Emit completion signal
 		EventBus.story_event_completed.emit(hero_id, event_id)
+		# Sengoku Rance style: show reward summary in message log
+		_emit_event_reward_summary(hero_id, event)
 		# Check if route is complete
 		if prog["current_event"] >= events.size():
+			var hero_name: String = _get_hero_display_name(hero_id)
+			EventBus.message_log.emit("[color=gold]★ %s 的故事路线已全部完成。[/color]" % hero_name)
 			EventBus.story_route_completed.emit(hero_id, route)
+
+
+## Emit a Sengoku Rance-style reward summary after event completion.
+func _emit_event_reward_summary(hero_id: String, event: Dictionary) -> void:
+	var effects: Dictionary = event.get("effects", {})
+	if effects.is_empty():
+		return
+	var hero_name: String = _get_hero_display_name(hero_id)
+	var parts: Array = []
+	for key in effects:
+		var val = effects[key]
+		match key:
+			"affection":
+				if val > 0:
+					parts.append("[color=#88ccff]好感度 +%d[/color]" % val)
+				elif val < 0:
+					parts.append("[color=#ff8888]好感度 %d[/color]" % val)
+			"corruption":
+				if val > 0:
+					parts.append("[color=#cc88ff]调教度 +%d[/color]" % val)
+			"submission":
+				if val > 0:
+					parts.append("[color=#ff88aa]臣民度 +%d[/color]" % val)
+			"prestige":
+				if val > 0:
+					parts.append("[color=#ffcc44]威望 +%d[/color]" % val)
+			"gold":
+				if val > 0:
+					parts.append("[color=#ffdd66]黄金 +%d[/color]" % val)
+			"soldiers":
+				if val > 0:
+					parts.append("[color=#88ff88]兵力 +%d[/color]" % val)
+			"unlock_skill":
+				parts.append("[color=#44ffcc]解锁技能: %s[/color]" % str(val))
+			"set_flag":
+				# Only show meaningful flags (not internal ones)
+				if val is Dictionary:
+					for f in val:
+						if not f.begins_with("_"):
+							parts.append("[color=#aaaaff]标记: %s[/color]" % f)
+	if parts.is_empty():
+		return
+	EventBus.message_log.emit("【%s】事件奖励：%s" % [hero_name, " / ".join(parts)])
 
 
 # ═══════════════ TRIGGER EVALUATION ═══════════════
@@ -523,7 +570,14 @@ func _on_affection_changed(hero_id: String, _new_value: int) -> void:
 	# Check if affection threshold triggers next event
 	var route: String = story_progress.get(hero_id, {}).get("route", "")
 	if route in MANUAL_TRIGGER_ROUTES:
-		EventBus.message_log.emit("[color=orchid]新任务可用: %s[/color]" % _get_hero_display_name(hero_id))
+		# Only notify if a mission actually became available (trigger conditions now met)
+		if check_trigger(hero_id):
+			var hero_name: String = _get_hero_display_name(hero_id)
+			var next_event: Dictionary = get_next_event(hero_id)
+			var event_name: String = next_event.get("name", "新任务")
+			EventBus.message_log.emit("[color=orchid]★ 新任务解锁：%s 「%s」——打开据点面板可执行[/color]" % [hero_name, event_name])
+			if EventBus.has_signal("mission_available"):
+				EventBus.mission_available.emit(hero_id, next_event)
 		return
 	try_trigger_next(hero_id)
 

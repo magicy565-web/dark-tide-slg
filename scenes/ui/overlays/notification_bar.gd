@@ -37,6 +37,8 @@ func _connect_signals() -> void:
 	EventBus.hidden_hero_discovered.connect(_on_hidden_hero_discovered)
 	EventBus.story_window_triggered.connect(_on_story_window_triggered)
 	EventBus.story_window_expired.connect(_on_story_window_expired)
+	if EventBus.has_signal("mission_available"):
+		EventBus.mission_available.connect(_on_mission_available)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -120,16 +122,16 @@ func _remove_notification(panel: PanelContainer) -> void:
 
 func _on_hero_captured(hero_id: String) -> void:
 	var hero_name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
-	show_notification("Hero captured: %s" % hero_name, Color(0.9, 0.6, 0.9))
+	show_notification("【英雄被捕】%s" % hero_name, Color(0.9, 0.6, 0.9))
 
 
 func _on_hero_recruited(hero_id: String) -> void:
 	var hero_name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
-	show_notification("%s joined!" % hero_name, Color(0.4, 1.0, 0.5))
+	show_notification("【加入阵营】%s" % hero_name, Color(0.4, 1.0, 0.5))
 
 
 func _on_tech_complete(_pid: int) -> void:
-	show_notification("Research complete!", Color(0.4, 0.8, 1.0))
+	show_notification("【研究完成】技术研究已完成", Color(0.4, 0.8, 1.0))
 
 
 func _on_tile_captured(pid: int, tile_index: int) -> void:
@@ -138,27 +140,27 @@ func _on_tile_captured(pid: int, tile_index: int) -> void:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
-	show_notification("Captured: %s" % tile.get("name", "???"), Color(0.4, 1.0, 0.4))
+	show_notification("【占领据点】%s" % tile.get("name", "???"), Color(0.4, 1.0, 0.4))
 
 
 func _on_expedition(_tile_index: int) -> void:
-	show_notification("Expedition incoming!", Color(1.0, 0.3, 0.2), 5.0)
+	show_notification("【警告】远征军队来袭！", Color(1.0, 0.3, 0.2), 5.0)
 
 
 func _on_rebellion(tile_index: int) -> void:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
-	show_notification("Rebellion! %s" % tile.get("name", "???"), Color(1.0, 0.5, 0.2))
+	show_notification("【叛乱】%s 发生暴动！" % tile.get("name", "???"), Color(1.0, 0.5, 0.2))
 
 
 func _on_relic(_pid: int, relic_id: String) -> void:
-	show_notification("Relic obtained: %s" % relic_id, Color(1.0, 0.8, 0.2))
+	show_notification("【得到神器】%s" % relic_id, Color(1.0, 0.8, 0.2))
 
 
 func _on_ai_threat(faction_key: String, _threat: int, new_tier: int) -> void:
 	if new_tier >= 2:
-		show_notification("%s faction reached threat level %d!" % [faction_key, new_tier], Color(1.0, 0.4, 0.3), 5.0)
+		show_notification("【警告】%s 势力已升至第%d级威胁！" % [faction_key, new_tier], Color(1.0, 0.4, 0.3), 5.0)
 
 
 func _on_unit_routed(unit_type: String, side: String) -> void:
@@ -167,12 +169,20 @@ func _on_unit_routed(unit_type: String, side: String) -> void:
 
 
 func _on_hidden_hero_discovered(_hero_id: String, hero_name: String, message: String) -> void:
-	show_notification("发现隐藏英雄: %s! %s" % [hero_name, message], Color(0.7, 0.4, 1.0), 5.0)
+	show_notification("【发现英雄】%s！%s" % [hero_name, message], Color(0.7, 0.4, 1.0), 5.0)
 
 
 func _on_story_window_triggered(_window_id: String, title: String, _narrative: String) -> void:
-	show_notification("限时事件触发: %s" % title, Color(0.3, 0.9, 0.4), 5.0)
+	show_notification("【限时事件】%s" % title, Color(0.3, 0.9, 0.4), 5.0)
 
 
 func _on_story_window_expired(_window_id: String, title: String, consequence: String) -> void:
-	show_notification("事件已过期: %s — %s" % [title, consequence], Color(1.0, 0.3, 0.2), 5.0)
+	show_notification("【事件过期】%s — %s" % [title, consequence], Color(1.0, 0.3, 0.2), 5.0)
+
+
+## Sengoku Rance-style mission available notification
+func _on_mission_available(hero_id: String, event_data: Dictionary) -> void:
+	var hero_name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
+	var event_name: String = event_data.get("name", "新任务")
+	# Show a prominent golden notification — Sengoku Rance style
+	show_notification("★ 新任务：%s「%s」" % [hero_name, event_name], Color(1.0, 0.85, 0.2), 5.0)

@@ -173,26 +173,34 @@ func _refresh() -> void:
 		if m.get("status", "") == "available":
 			available_count += 1
 
-	header_label.text = "据点任務 (%d Available)" % available_count
+	header_label.text = "据点任務 (%d 个可用)" % available_count
 
-	if missions.is_empty():
+	# Filter: only show available and completed missions (hide locked future events)
+	var visible_missions: Array = missions.filter(func(m): return m.get("status", "") != "locked")
+
+	if visible_missions.is_empty():
 		_add_empty_notice()
 		return
 
 	# Group by hero_name
 	var groups: Dictionary = {}
 	var group_order: Array = []
-	for m in missions:
+	for m in visible_missions:
 		var hero_name: String = m.get("hero_name", "???")
 		if not groups.has(hero_name):
 			groups[hero_name] = []
 			group_order.append(hero_name)
 		groups[hero_name].append(m)
 
-	# Render each group
+	# Render each group (sorted: available first, then completed)
 	for hero_name in group_order:
 		_add_character_group_header(hero_name)
-		for mission in groups[hero_name]:
+		var sorted_missions: Array = groups[hero_name].duplicate()
+		sorted_missions.sort_custom(func(a, b):
+			var order: Dictionary = {"available": 0, "completed": 1}
+			return order.get(a.get("status", ""), 2) < order.get(b.get("status", ""), 2)
+		)
+		for mission in sorted_missions:
 			_add_mission_card(mission)
 
 
@@ -203,11 +211,19 @@ func _clear_content() -> void:
 
 func _add_empty_notice() -> void:
 	var lbl := Label.new()
-	lbl.text = "No missions available"
+	lbl.text = "暂无可用任务"
 	lbl.add_theme_color_override("font_color", COLOR_LOCKED)
 	lbl.add_theme_font_size_override("font_size", 15)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	content_container.add_child(lbl)
+
+	var hint_lbl := Label.new()
+	hint_lbl.text = "提示：提升英雄好感度或满足触发条件后，任务将在此处显示。"
+	hint_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.4))
+	hint_lbl.add_theme_font_size_override("font_size", 12)
+	hint_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content_container.add_child(hint_lbl)
 
 
 func _add_character_group_header(hero_name: String) -> void:
@@ -286,7 +302,7 @@ func _add_mission_card(mission: Dictionary) -> void:
 		vbox.add_child(detail_row)
 
 		var route_lbl := Label.new()
-		route_lbl.text = "Route: %s" % route_label
+		route_lbl.text = "路线：%s" % route_label
 		route_lbl.add_theme_font_size_override("font_size", 13)
 		route_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 		route_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -294,14 +310,14 @@ func _add_mission_card(mission: Dictionary) -> void:
 
 		if status == "available":
 			var cost_lbl := Label.new()
-			cost_lbl.text = "Cost: %d AP" % AP_COST
+			cost_lbl.text = "消耗：%d AP" % AP_COST
 			cost_lbl.add_theme_font_size_override("font_size", 13)
 			cost_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.5))
 			detail_row.add_child(cost_lbl)
 	else:
 		# Completed: show route in muted tone
 		var route_lbl := Label.new()
-		route_lbl.text = "Route: %s" % route_label
+		route_lbl.text = "路线：%s" % route_label
 		route_lbl.add_theme_font_size_override("font_size", 13)
 		route_lbl.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
 		vbox.add_child(route_lbl)
@@ -313,7 +329,7 @@ func _add_mission_card(mission: Dictionary) -> void:
 		vbox.add_child(btn_row)
 
 		var execute_btn := Button.new()
-		execute_btn.text = "▶ Execute"
+		execute_btn.text = "▶ 执行任务"
 		execute_btn.custom_minimum_size = Vector2(120, 30)
 		execute_btn.add_theme_font_size_override("font_size", 13)
 
@@ -334,10 +350,10 @@ func _add_mission_card(mission: Dictionary) -> void:
 
 func _status_text(status: String) -> String:
 	match status:
-		"available": return "[Available]"
-		"locked": return "[Locked]"
-		"completed": return "[Completed]"
-	return "[Unknown]"
+		"available": return "【可执行】"
+		"locked": return "【未解锁】"
+		"completed": return "【已完成】"
+	return "【未知】"
 
 
 func _status_color(status: String) -> Color:
