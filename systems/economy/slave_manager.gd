@@ -203,7 +203,8 @@ func get_labor_income(player_id: int) -> Dictionary:
 	## Returns per-turn income from slave labor allocations.
 	var alloc: Dictionary = get_allocation(player_id)
 	var eff: float = get_efficiency_mult(player_id)
-	var params: Dictionary = FactionData.FACTION_PARAMS.get(FactionData.FactionID.DARK_ELF, {})
+	var faction_id: int = GameManager.get_player_faction(player_id) if GameManager else FactionData.FactionID.DARK_ELF
+	var params: Dictionary = FactionData.FACTION_PARAMS.get(faction_id, {})
 	# BUG FIX R12: return ints, not floats — ResourceManager expects integer values
 	return {
 		"gold": int(float(alloc["mine"]) * 0.5 * eff),
@@ -239,8 +240,7 @@ func check_revolt(player_id: int) -> bool:
 				var from_role: int = mini(alloc.get(role, 0), remaining)
 				alloc[role] -= from_role
 				remaining -= from_role
-			ResourceManager.apply_delta(player_id, {"slaves": -lost})
-			# 暴动后同步奴隶计数
+			# 暴动后同步奴隶计数（alloc已手动调整，sync会reconcile ResourceManager）
 			sync_slave_count(player_id)
 			EventBus.message_log.emit("[color=red]奴隶暴动! 损失 %d 名奴隶![/color]" % lost)
 			return true
@@ -290,9 +290,12 @@ func tick_conversion(player_id: int) -> int:
 		queue[i]["turns_left"] -= 1
 		if queue[i]["turns_left"] <= 0:
 			var count: int = queue[i]["count"]
-			var soldiers: int = maxi(1, count / SLAVES_PER_SOLDIER)
-			total_soldiers += soldiers
-			EventBus.message_log.emit("[color=purple]奴隶转化完成: %d名奴隶 → %d名士兵[/color]" % [count, soldiers])
+			var soldiers: int = count / SLAVES_PER_SOLDIER
+			if soldiers > 0:
+				total_soldiers += soldiers
+				EventBus.message_log.emit("[color=purple]奴隶转化完成: %d名奴隶 → %d名士兵[/color]" % [count, soldiers])
+			else:
+				EventBus.message_log.emit("[color=gray]奴隶转化失败: %d名奴隶不足以转化为士兵[/color]" % count)
 			queue.remove_at(i)
 		i -= 1
 	return total_soldiers

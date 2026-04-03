@@ -6363,7 +6363,8 @@ func check_win_condition() -> void:
 
 	# ── Victory Path 5: Diplomatic Victory (与所有存活势力结盟) ──
 	var surviving_rivals: Array = []
-	for pid in range(1, players.size()):
+	for idx in range(players.size()):
+		var pid: int = players[idx]["id"]
 		if pid == human_id:
 			continue
 		if count_tiles_owned(pid) > 0:

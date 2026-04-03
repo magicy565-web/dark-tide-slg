@@ -3342,7 +3342,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_U:
 				_on_troop_training()
 				get_viewport().set_input_as_handled()
-			KEY_J:
+			KEY_F:
 				_on_equipment_forge()
 				get_viewport().set_input_as_handled()
 			KEY_ENTER, KEY_SPACE:
@@ -4028,7 +4028,7 @@ func _show_next_diplomatic_event() -> void:
 		EventBus.event_choice_selected.disconnect(_on_diplo_popup_choice_any)
 	# Store current event for the choice handler
 	_diplo_current_event = evt
-	EventBus.event_choice_selected.connect(_on_diplo_popup_choice_any)
+	EventBus.event_choice_selected.connect(_on_diplo_popup_choice_any, CONNECT_ONE_SHOT)
 
 
 var _diplo_current_event: Dictionary = {}
@@ -4041,9 +4041,7 @@ func _on_diplo_popup_choice_any(choice_index: int) -> void:
 	var evt: Dictionary = _diplo_current_event
 	_diplo_current_event = {}
 
-	# Disconnect so we don't intercept non-diplomatic popups
-	if EventBus.event_choice_selected.is_connected(_on_diplo_popup_choice_any):
-		EventBus.event_choice_selected.disconnect(_on_diplo_popup_choice_any)
+	# No manual disconnect needed — CONNECT_ONE_SHOT handles auto-disconnection
 
 	# Resolve: if dismiss (-1), treat as last choice (reject/ignore)
 	var actual_index: int = choice_index

@@ -142,9 +142,9 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Toggle side panel with KEY_I
+	# Toggle side panel with KEY_L
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_I:
+		if event.keycode == KEY_L:
 			_toggle_side_panel()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_H:

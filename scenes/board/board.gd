@@ -354,6 +354,21 @@ func _clamp_camera() -> void:
 
 # ═══════════════ BOARD BUILDING ═══════════════
 func _clear_board() -> void:
+	# Kill active tweens before freeing nodes
+	for key in _fog_tweens:
+		if _fog_tweens[key] and _fog_tweens[key].is_valid():
+			_fog_tweens[key].kill()
+	_fog_tweens.clear()
+	if _ap_flash_tween and _ap_flash_tween.is_valid():
+		_ap_flash_tween.kill()
+	_ap_flash_tween = null
+	if _camera_follow_tween and _camera_follow_tween.is_valid():
+		_camera_follow_tween.kill()
+	_camera_follow_tween = null
+	if _camera_zoom_restore_tween and _camera_zoom_restore_tween.is_valid():
+		_camera_zoom_restore_tween.kill()
+	_camera_zoom_restore_tween = null
+
 	for idx in tile_visuals:
 		var v: Dictionary = tile_visuals[idx]
 		if is_instance_valid(v["root"]): v["root"].queue_free()

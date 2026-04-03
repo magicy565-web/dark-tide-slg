@@ -401,6 +401,17 @@ func _on_invest() -> void:
 		_es.invest_in_intel(_player_id, EspionageSystem.INTEL_COST_PER_POINT)
 		_refresh()
 
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if _target_popup and is_instance_valid(_target_popup):
+			_clear_target_popup()
+		else:
+			hide_panel()
+			panel_closed.emit()
+		get_viewport().set_input_as_handled()
+
 func _on_close() -> void:
 	hide_panel()
 	panel_closed.emit()

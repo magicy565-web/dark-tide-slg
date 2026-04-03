@@ -71,7 +71,7 @@ func _connect_signals() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not GameManager.game_active: return
 	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_T:
+		if event.keycode == KEY_Y:
 			if _visible: hide_panel()
 			else: show_panel()
 			get_viewport().set_input_as_handled()

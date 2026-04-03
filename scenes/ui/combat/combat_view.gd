@@ -2449,6 +2449,11 @@ func _on_close() -> void:
 	if _vs_tween and _vs_tween.is_valid():
 		_vs_tween.kill()
 		_vs_tween = null
+	_is_finishing = false
+	if _zoom_tween and _zoom_tween.is_valid():
+		_zoom_tween.kill()
+	_zoom_tween = null
+	_is_zooming = false
 	# Clean up chibi video players and refs
 	_chibi_cleanup()
 	# Clean up VFX controller state

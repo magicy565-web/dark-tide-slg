@@ -1633,10 +1633,9 @@ func _start_of_round(state: Dictionary, combat_log: Array) -> void:
 			if d["id"] == "poison_dot" and d["duration"] > 0:
 				dot_damage += 1
 		if dot_damage > 0:
-			unit["soldiers"] -= dot_damage
+			unit["soldiers"] = maxi(0, unit["soldiers"] - dot_damage)
 			combat_log.append("%s [%s] 中毒! -%d兵" % [unit["unit_type"], unit["side"], dot_damage])
 			if unit["soldiers"] <= 0:
-				unit["soldiers"] = 0
 				unit["is_alive"] = false
 				combat_log.append("%s [%s] 中毒身亡!" % [unit["unit_type"], unit["side"]])
 				continue
@@ -2746,9 +2745,9 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 		combat_log.append("%s [%s] 铁颚板甲: 抵抗致命伤害，保留1兵!" % [target["unit_type"], target["side"]])
 		return
 
-	target["soldiers"] -= damage
+	target["soldiers"] = maxi(0, target["soldiers"] - damage)
 	combat_log.append("%s [%s] 受到 %d 伤害 (剩余 %d 兵)" % [
-		target["unit_type"], target["side"], damage, maxi(target["soldiers"], 0)])
+		target["unit_type"], target["side"], damage, target["soldiers"]])
 
 	# Morale: reduce for damage taken
 	if "morale_immune" not in target["passives"] and not target.get("immovable", false) and not target.get("is_routed", false):

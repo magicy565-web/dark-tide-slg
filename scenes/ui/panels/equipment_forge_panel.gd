@@ -80,7 +80,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _is_game_active():
 		return
 	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_J:
+		if event.keycode == KEY_F:
 			if _visible:
 				hide_panel()
 			else:

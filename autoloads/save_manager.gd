@@ -307,6 +307,10 @@ func _save_game_state() -> Dictionary:
 		"next_army_id": GameManager._next_army_id,
 		"guard_timers": guard_timers_data,
 		"sat_points": sat_points_data,
+		"game_stats": GameManager.game_stats.duplicate(true),
+		"_last_grand_festival_turn": GameManager._last_grand_festival_turn,
+		"_imperial_decree_used": GameManager._imperial_decree_used,
+		"_forge_alliance_used": GameManager._forge_alliance_used,
 	}
 
 
@@ -547,6 +551,10 @@ func _load_game_state(gs: Dictionary) -> void:
 		GameManager.current_player_index = 0
 	GameManager.turn_number = int(gs.get("turn_number", 0))
 	GameManager.game_active = gs.get("game_active", true)
+	GameManager.game_stats = gs.get("game_stats", {"battles_won": 0, "battles_lost": 0, "capital_tile": -1})
+	GameManager._last_grand_festival_turn = int(gs.get("_last_grand_festival_turn", -999))
+	GameManager._imperial_decree_used = gs.get("_imperial_decree_used", false)
+	GameManager._forge_alliance_used = gs.get("_forge_alliance_used", false)
 
 	# Reset transient state
 	GameManager.has_rolled = false
@@ -655,6 +663,8 @@ func _migrate_3_to_4(data: Dictionary) -> Dictionary:
 		data["dynamic_situation_events"] = {}
 	if not data.has("crisis_countdown"):
 		data["crisis_countdown"] = {}
+	if not data.has("tile_development"):
+		data["tile_development"] = {"tile_dev": {}, "rebuilding_tiles": {}}
 	return data
 
 
