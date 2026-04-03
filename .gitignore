@@ -1,6 +1,6 @@
 # Godot
 .godot/
-*.import
+# *.import  # Re-enabled: import files needed for Godot to load resources without editor
 export/
 
 # OS
