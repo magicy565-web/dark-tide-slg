@@ -563,6 +563,8 @@ func _load_game_state(gs: Dictionary) -> void:
 	GameManager.reachable_tiles.clear()
 	GameManager._had_combat_this_turn = false
 	GameManager._prev_turn_had_combat = false
+	GameManager._pending_event_queue.clear()
+	GameManager._scheduler_event_queue.clear()
 
 	# Restore armies (JSON keys are strings, convert back to int)
 	GameManager.armies.clear()

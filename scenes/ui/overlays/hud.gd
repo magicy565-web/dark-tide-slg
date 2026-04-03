@@ -4047,7 +4047,7 @@ func _on_diplo_popup_choice_any(choice_index: int) -> void:
 	var actual_index: int = choice_index
 	var choices: Array = evt.get("choices", [])
 	if actual_index < 0 or actual_index >= choices.size():
-		actual_index = choices.size() - 1 if choices.size() > 0 else 0
+		actual_index = 0  # Default to first (passive) choice on dismiss
 
 	# Dispatch to DiplomacyManager or HeroSystem for resolution
 	var evt_type: String = evt.get("type", "")

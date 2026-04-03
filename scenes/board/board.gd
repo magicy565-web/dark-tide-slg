@@ -1461,6 +1461,10 @@ func show_attack_route(from_idx: int, to_idx: int) -> void:
 	var full_path: Array = [from_idx] + route
 	var total_cost: float = 0.0
 	var chokepoint_count: int = 0
+	# Clean up any existing dot meshes before re-creation
+	for m in attack_route_meshes:
+		if is_instance_valid(m): m.queue_free()
+	attack_route_meshes.clear()
 	# Draw route segments
 	for i in range(full_path.size() - 1):
 		var fi: int = full_path[i]; var ti: int = full_path[i + 1]

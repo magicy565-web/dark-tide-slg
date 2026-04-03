@@ -11,6 +11,10 @@ var _cache: Dictionary = {}
 var _load_queue: Array = []
 var _loading: bool = false
 
+# Retry tracking for stuck threaded loads (prevents infinite re-queue)
+var _retry_counts: Dictionary = {}  # path -> int (frame count)
+const MAX_LOAD_RETRIES: int = 60   # ~1 second at 60fps
+
 # Stats
 var _cache_hits: int = 0
 var _cache_misses: int = 0
@@ -89,10 +93,22 @@ func _process_queue() -> void:
 				if res is Texture2D:
 					_cache[path] = res
 					asset_loaded.emit(path)
+				_retry_counts.erase(path)
 			elif status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
-				# Re-queue and continue with other items
-				_load_queue.append(path)
+				# Track retries to prevent infinite re-queue on stuck resources
+				var retries: int = _retry_counts.get(path, 0) + 1
+				if retries >= MAX_LOAD_RETRIES:
+					push_warning("AssetLoader: Skipping stuck resource after %d retries: %s" % [retries, path])
+					_retry_counts.erase(path)
+				else:
+					_retry_counts[path] = retries
+					_load_queue.append(path)
+			else:
+				# THREAD_LOAD_FAILED or other error status
+				push_warning("AssetLoader: Load failed for resource: %s (status=%d)" % [path, status])
+				_retry_counts.erase(path)
 
+	_retry_counts.clear()
 	_loading = false
 	preload_batch_done.emit([])
 

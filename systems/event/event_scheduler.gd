@@ -78,7 +78,7 @@ func resolve_turn() -> Array:
 	for c in _candidates:
 		if c["priority"] >= PRIORITY_CRITICAL:
 			_scheduled.append(c)
-			_record_fired(c["id"])
+			_event_history[c["id"]] = _current_turn  # history only; don't inflate _events_fired_this_turn
 
 	# Weighted random selection for remaining slots
 	var remaining_slots: int = MAX_EVENTS_PER_TURN - _scheduled.size()

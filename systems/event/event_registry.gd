@@ -48,6 +48,9 @@ const CATEGORY_DEFAULT_WEIGHT: Dictionary = {
 
 func _ready() -> void:
 	_auto_discover_all()
+	# EventSystem loads after us in autoload order, defer its discovery
+	# so it runs after all autoloads have completed _ready().
+	call_deferred("_deferred_discover_event_system")
 	print("[EventRegistry] Indexed %d events from %d sources across %d categories." % [
 		_registry.size(), _by_source.size(), _by_category.size()])
 
@@ -55,7 +58,10 @@ func _ready() -> void:
 # ═══════════════ AUTO-DISCOVERY ═══════════════
 
 func _auto_discover_all() -> void:
-	_discover_event_system()
+	# NOTE: EventSystem discovery is intentionally skipped here.
+	# It is handled by _deferred_discover_event_system() via call_deferred
+	# in _ready(), because EventSystem loads after EventRegistry in the
+	# autoload order and its _events may not be populated yet.
 	_discover_seasonal_events()
 	_discover_crisis_countdown()
 	_discover_faction_destruction_events()
@@ -66,20 +72,21 @@ func _auto_discover_all() -> void:
 	_discover_extra_events_v5()
 
 
-func _discover_event_system() -> void:
-	if not EventSystem:
-		return
-	# EventSystem._events may not be populated yet at our _ready if it inits
-	# in its own _ready. Use call_deferred to also try later.
-	if EventSystem._events.size() > 0:
-		_register_source("event_system", EventSystem._events, "base")
-	else:
-		call_deferred("_deferred_discover_event_system")
-
-
 func _deferred_discover_event_system() -> void:
 	if EventSystem and EventSystem._events.size() > 0:
 		_register_source("event_system", EventSystem._events, "base")
+		print("[EventRegistry] Deferred: discovered %d events from EventSystem." % EventSystem._events.size())
+		return
+	# EventSystem may still be initializing — retry for up to 10 frames.
+	var retries: int = 10
+	while retries > 0:
+		await get_tree().process_frame
+		if EventSystem and EventSystem._events.size() > 0:
+			_register_source("event_system", EventSystem._events, "base")
+			print("[EventRegistry] Deferred: discovered %d events from EventSystem after retry." % EventSystem._events.size())
+			return
+		retries -= 1
+	push_warning("[EventRegistry] Failed to discover EventSystem events after retries.")
 
 
 func _discover_seasonal_events() -> void:

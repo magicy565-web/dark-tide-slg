@@ -3112,12 +3112,34 @@ func _on_combat_started(_attacker_id: int, _tile_index: int) -> void:
 	pass
 
 func _setup_intervention_panel() -> void:
-	var InterventionPanel = load("res://scenes/ui/combat/combat_intervention_panel.gd")
-	_intervention_panel = InterventionPanel.new()
-	get_tree().root.call_deferred("add_child", _intervention_panel)
+	# Find the existing panel created by main.gd instead of creating a duplicate.
+	# Use call_deferred because child _ready runs before parent _ready,
+	# so main.gd may not have created the panel yet.
+	_bind_intervention_panel.call_deferred()
 	EventBus.combat_intervention_phase.connect(_on_intervention_phase)
-	_intervention_panel.intervention_decided.connect(_on_intervention_decided)
-	_intervention_panel.intervention_skipped.connect(_on_intervention_skipped)
+
+func _bind_intervention_panel() -> void:
+	# Try to get the panel from the parent (main scene) which owns it.
+	var main_node = get_parent()
+	if main_node and main_node.get("combat_intervention_panel") != null:
+		_intervention_panel = main_node.combat_intervention_panel
+	else:
+		# Fallback: search the full tree
+		var InterventionPanelScript = load("res://scenes/ui/combat/combat_intervention_panel.gd")
+		for child in get_tree().root.get_children():
+			if child.get_script() == InterventionPanelScript:
+				_intervention_panel = child
+				break
+	if _intervention_panel == null:
+		# Last resort: create one (should not happen in normal flow)
+		var InterventionPanel = load("res://scenes/ui/combat/combat_intervention_panel.gd")
+		_intervention_panel = CanvasLayer.new()
+		_intervention_panel.set_script(InterventionPanel)
+		get_tree().root.call_deferred("add_child", _intervention_panel)
+	if not _intervention_panel.intervention_decided.is_connected(_on_intervention_decided):
+		_intervention_panel.intervention_decided.connect(_on_intervention_decided)
+	if not _intervention_panel.intervention_skipped.is_connected(_on_intervention_skipped):
+		_intervention_panel.intervention_skipped.connect(_on_intervention_skipped)
 
 func _on_intervention_phase(state: Dictionary) -> void:
 	# Panel shows during combat resolution (before combat_view playback).

@@ -1421,6 +1421,8 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC, fixed_map: bool
 	game_active = true
 	has_rolled = false
 	waiting_for_move = false
+	_pending_event_queue.clear()
+	_scheduler_event_queue.clear()
 
 	# v3.0: Run balance audit on game start (dev mode)
 	if OS.is_debug_build():
