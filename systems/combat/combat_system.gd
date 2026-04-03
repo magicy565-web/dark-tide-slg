@@ -103,6 +103,9 @@ class BattleState:
 	var city_def: int = 0
 	var mana_attacker: int = 0
 	var mana_defender: int = 0
+	var atk_formations: Array = []   ## Active attacker formations (FormationID values)
+	var def_formations: Array = []   ## Active defender formations (FormationID values)
+	var terrain_str: String = ""     ## Terrain string for formation revalidation
 
 	## Return all living units for a side.
 	func living_attackers() -> Array[BattleUnit]:
@@ -209,8 +212,11 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 	var atk_unit_dicts: Array = _build_formation_dicts(state.attacker_units)
 	var def_unit_dicts: Array = _build_formation_dicts(state.defender_units)
 	var terrain_str: String = FactionData.TERRAIN_DATA.get(state.terrain, {}).get("name", "plains")
+	state.terrain_str = terrain_str
 	var atk_formations: Array = FormationSystem.detect_formations(atk_unit_dicts, terrain_str)
 	var def_formations: Array = FormationSystem.detect_formations(def_unit_dicts, terrain_str)
+	state.atk_formations = atk_formations.duplicate()
+	state.def_formations = def_formations.duplicate()
 	if not atk_formations.is_empty():
 		var atk_bonuses: Dictionary = FormationSystem.get_formation_bonuses(atk_formations)
 		FormationSystem.apply_formation_to_units(atk_unit_dicts, atk_bonuses)
@@ -1010,6 +1016,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 				_apply_kill_heal(unit, state)
 				# v4.5: dragon_slayer — on kill, ATK+1 permanently for battle
 				_apply_dragon_slayer(unit, state)
+				# Revalidate formation bonuses — dying unit may break a formation
+				_revalidate_formations_for_side(t, state)
 
 		unit.first_attack = false
 		# Emit one attack entry per AoE target for combat_view compatibility
@@ -1083,6 +1091,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		_apply_kill_heal(unit, state)
 		# v4.5: dragon_slayer — on kill, ATK+1 permanently for battle
 		_apply_dragon_slayer(unit, state)
+		# Revalidate formation bonuses — dying unit may break a formation
+		_revalidate_formations_for_side(target, state)
 		return { "action": "_already_logged" }
 
 	return entry
@@ -1496,10 +1506,10 @@ func _get_enemies(unit: BattleUnit, state: BattleState) -> Array[BattleUnit]:
 
 ## Recalculate soldier count from current HP.
 func _recalc_soldiers(unit: BattleUnit) -> void:
-	if unit.hp <= 0 or unit.hp_per_soldier <= 0:
+	if unit.hp <= 0:
 		unit.soldiers = 0
 	else:
-		unit.soldiers = ceili(float(unit.hp) / float(unit.hp_per_soldier))
+		unit.soldiers = ceili(float(unit.hp) / maxf(1.0, float(unit.hp_per_soldier)))
 
 # ---------------------------------------------------------------------------
 # Morale System
@@ -1690,6 +1700,43 @@ func _sync_formation_to_battle_units(units: Array[BattleUnit], dicts: Array) -> 
 		u.atk = d.get("atk", u.atk)
 		u.def_stat = d.get("def", u.def_stat)
 		u.spd = d.get("spd", u.spd)
+
+
+## Revalidate formation bonuses after a unit dies.  If the side no longer
+## qualifies for a formation it had at battle start, revert the stat bonuses
+## that formation granted.
+func _revalidate_formations_for_side(dead_unit: BattleUnit, state: BattleState) -> void:
+	var is_atk: bool = dead_unit.is_attacker
+	var side_units: Array[BattleUnit] = state.attacker_units if is_atk else state.defender_units
+	var prev_formations: Array = state.atk_formations if is_atk else state.def_formations
+	if prev_formations.is_empty():
+		return
+	var living_dicts: Array = _build_formation_dicts(side_units)
+	var result: Dictionary = FormationSystem.revalidate_formations(
+		living_dicts, state.terrain_str, prev_formations
+	)
+	var lost: Array = result["lost"]
+	if lost.is_empty():
+		return
+	# Revert stat bonuses on the living unit dicts, then sync back
+	FormationSystem.revert_formation_bonuses(living_dicts, lost)
+	_sync_formation_to_battle_units(side_units, living_dicts)
+	# Update stored formations
+	if is_atk:
+		state.atk_formations = result["active"]
+	else:
+		state.def_formations = result["active"]
+	# Log the formation break
+	var side_str: String = "attacker" if is_atk else "defender"
+	for fid in lost:
+		var fname_cn: String = FormationSystem.FORMATION_NAMES_CN.get(fid, "")
+		state.action_log.append({
+			"action": "formation_lost",
+			"side": side_str,
+			"formation": FormationSystem.FORMATION_NAMES.get(fid, "Unknown").to_lower().replace(" ", "_"),
+			"name_cn": fname_cn,
+			"desc": "%s 阵型瓦解: %s" % ["攻方" if is_atk else "守方", fname_cn],
+		})
 
 
 # ---------------------------------------------------------------------------

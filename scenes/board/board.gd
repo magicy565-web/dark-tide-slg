@@ -255,15 +255,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			var old_zoom := _camera_zoom_target
 			_camera_zoom_target = clampf(_camera_zoom_target - ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX)
 			_zoom_toward_cursor(event.position, old_zoom, _camera_zoom_target)
+			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			var old_zoom := _camera_zoom_target
 			_camera_zoom_target = clampf(_camera_zoom_target + ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX)
 			_zoom_toward_cursor(event.position, old_zoom, _camera_zoom_target)
+			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			if hovered_tile >= 0:
 				_show_context_menu(hovered_tile)
 			else:
 				_deselect_tile()
+			get_viewport().set_input_as_handled()
 		elif event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			_hide_context_menu()
 			if _input_mode == "attack" and hovered_tile >= 0:

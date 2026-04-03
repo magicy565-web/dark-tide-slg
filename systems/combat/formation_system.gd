@@ -629,6 +629,58 @@ static func apply_formation_to_units(units: Array, bonuses: Dictionary) -> void:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PUBLIC API — revalidate_formations
+# ═══════════════════════════════════════════════════════════════════════════════
+
+## Given the current living units and terrain, recheck which formations still
+## qualify.  Returns a Dictionary with:
+##   "lost" : Array of FormationID values that were active but no longer qualify
+##   "active": Array of FormationID values still valid
+static func revalidate_formations(
+	living_units: Array, terrain: String, previous_formations: Array
+) -> Dictionary:
+	var current: Array = detect_formations(living_units, terrain)
+	var lost: Array = []
+	for fid in previous_formations:
+		if fid not in current:
+			lost.append(fid)
+	return { "lost": lost, "active": current }
+
+
+## Remove stat bonuses that were granted by formations which are no longer
+## active.  Only the flat bonuses applied by apply_formation_to_units are
+## reverted (multiplicative lone-wolf bonuses are excluded because LONE_WOLF
+## cannot be "lost" mid-battle — you start with 1 unit or you don't).
+static func revert_formation_bonuses(units: Array, lost_formations: Array) -> void:
+	if lost_formations.is_empty():
+		return
+	var lost_bonuses: Dictionary = get_formation_bonuses(lost_formations)
+	var global_atk: int = lost_bonuses.get("atk_add", 0)
+	var global_def: int = lost_bonuses.get("def_add", 0)
+	var global_spd: int = lost_bonuses.get("spd_add", 0)
+	var front_def: int = lost_bonuses.get("front_def_add", 0)
+	var ranged_def_pen: int = lost_bonuses.get("ranged_def_penalty", 0)
+	var orc_atk: int = lost_bonuses.get("orc_atk_add", 0)
+	var ranged_atk: int = lost_bonuses.get("ranged_atk_add", 0)
+
+	for u in units:
+		var atk_mod: int = global_atk
+		var def_mod: int = global_def
+		var spd_mod: int = global_spd
+		if _is_front(u):
+			def_mod += front_def
+		if _is_ranged(u):
+			def_mod += ranged_def_pen
+			atk_mod += ranged_atk
+		if _is_orc(u):
+			atk_mod += orc_atk
+		u["base_atk"] = u.get("base_atk", 0) - atk_mod
+		u["base_def"] = maxi(0, u.get("base_def", 0) - def_mod)
+		if u.has("spd"):
+			u["spd"] = u.get("spd", 0) - spd_mod
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # SIGNAL EMISSION HELPERS
 # ═══════════════════════════════════════════════════════════════════════════════
 # These are static convenience methods that emit on EventBus (the autoload).
