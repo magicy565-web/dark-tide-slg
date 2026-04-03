@@ -436,3 +436,12 @@ signal nation_capital_captured(player_id: int, nation_id: String, tile_index: in
 signal nation_bonus_activated(player_id: int, nation_id: String)
 signal nation_bonus_deactivated(player_id: int, nation_id: String)
 signal border_conflict(nation_a: String, nation_b: String, tile_index: int)
+
+# ── Province Quick Actions (v5.2) ──
+## Emitted by province_info_panel when a quick action button is pressed.
+## action: String — one of "recruit", "guard", "domestic", "explore", "ritual",
+##                  "excavate", "block_supply", "fortify", "exploit",
+##                  "train_elite", "upgrade_outpost", "upgrade_facility",
+##                  "upgrade_walls", "build_market", "research", "diplomacy"
+## tile_index: int — the tile the action targets
+signal action_requested(action: String, tile_index: int)

@@ -438,6 +438,8 @@ func _ready() -> void:
 	if not _event_choice_connected:
 		EventBus.event_choice_selected.connect(_on_random_event_choice)
 		EventBus.event_combat_requested.connect(_on_event_combat_requested)
+		# Fix #9: Connect province quick-action signal to central dispatcher
+		EventBus.action_requested.connect(_on_action_requested)
 		_event_choice_connected = true
 
 
@@ -6172,6 +6174,343 @@ func action_explore(player_id: int, target_tile_index: int) -> bool:
 		EventBus.message_log.emit("探索无果，但扩展了视野")
 
 	EventBus.player_arrived.emit(player_id, target_tile_index)
+	return true
+
+
+# ═══════════════ PROVINCE QUICK ACTIONS (v5.2) ═══════════════
+## Central dispatcher for province_info_panel quick-action buttons.
+## Connected to EventBus.action_requested in _ready().
+func _on_action_requested(action: String, tile_index: int) -> void:
+	var pid: int = get_human_player_id()
+	match action:
+		"recruit":
+			if has_method("open_recruit_panel"):
+				open_recruit_panel(tile_index)
+		"domestic":
+			if has_method("open_domestic_panel"):
+				open_domestic_panel(tile_index)
+		"explore":
+			action_explore(pid, tile_index)
+		"guard":
+			action_guard_territory(pid, tile_index)
+		"ritual":
+			action_ritual(pid, tile_index)
+		"excavate":
+			action_excavate(pid, tile_index)
+		"block_supply":
+			action_block_supply(pid, tile_index)
+		"fortify":
+			action_fortify(pid, tile_index)
+		"exploit":
+			action_exploit(pid, tile_index)
+		"train_elite":
+			action_train_elite(pid, tile_index)
+		"upgrade_outpost":
+			action_upgrade_outpost(pid, tile_index)
+		"upgrade_facility":
+			action_upgrade_facility(pid, tile_index)
+		"upgrade_walls":
+			action_upgrade_walls(pid, tile_index)
+		"build_market":
+			action_build_market(pid, tile_index)
+		"research":
+			if has_method("open_research_panel"):
+				open_research_panel()
+		"diplomacy":
+			action_diplomacy(pid, -1)
+		_:
+			EventBus.message_log.emit("[color=yellow]未知行动: %s[/color]" % action)
+
+
+## 举行仪式：消耗魔晶获得暗影精华和秩序加成。适用于法术居点。消耗 1 AP。
+func action_ritual(player_id: int, tile_index: int) -> bool:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit("只能在自己的领地举行仪式!")
+		return false
+	player["ap"] -= 1
+	# 消耗魔晶换取暗影精华和秩序
+	var has_crystal: bool = ResourceManager.get_resource(player_id, "magic_crystal") >= 1
+	if has_crystal:
+		ResourceManager.apply_delta(player_id, {"magic_crystal": -1, "shadow_essence": 2})
+		OrderManager.change_order(3)
+		EventBus.message_log.emit("[color=orchid][仪式] 消耗 1 魔晶，获得 +2 暗影精华，秩序+3。[/color]")
+	else:
+		# 无魔晶时仅获得少量秩序加成
+		OrderManager.change_order(2)
+		EventBus.message_log.emit("[color=orchid][仪式] 秩序+2。（魔晶不足，暗影精华产出减少）[/color]")
+	# 25% 概率触发随机事件
+	if randf() < 0.25:
+		_trigger_event(player, tile)
+	return true
+
+
+## 发掘运址：对古迹居点进行考古发掘，获得资源或遗物。消耗 1 AP。
+func action_excavate(player_id: int, tile_index: int) -> bool:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit("只能在自己的领地发掘!")
+		return false
+	player["ap"] -= 1
+	_reveal_around(tile_index, player_id)
+	var roll: float = randf()
+	if roll < 0.20:
+		# 发现遗物
+		_give_random_item(player)
+		EventBus.message_log.emit("[color=gold][发掘] 发现古代遗物![/color]")
+	elif roll < 0.50:
+		# 发现鐵矿和金币
+		var iron_amt: int = randi_range(15, 35)
+		var gold_amt: int = randi_range(10, 25)
+		ResourceManager.apply_delta(player_id, {"iron": iron_amt, "gold": gold_amt})
+		EventBus.message_log.emit("[color=gold][发掘] 发现古代宝藏：铁+%d，金币+%d[/color]" % [iron_amt, gold_amt])
+	elif roll < 0.70:
+		# 触发事件
+		_trigger_event(player, tile)
+		EventBus.message_log.emit("[发掘] 发现了某种古代遗迹…")
+	else:
+		# 无收获
+		EventBus.message_log.emit("[发掘] 没有发现任何有价値的东西。")
+	return true
+
+
+## 封锁补给：封锁指定居点的补给线，降低敌方的簮食产出并提升威望。消耗 1 AP。
+func action_block_supply(player_id: int, tile_index: int) -> bool:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit("只能封锁自己领地的补给线!")
+		return false
+	player["ap"] -= 1
+	# 封锁补给：降低附近敌方簮食产出，提升威望
+	var nearby_enemies: int = 0
+	for neighbor_idx in _get_neighbors(tile_index):
+		if neighbor_idx >= 0 and neighbor_idx < tiles.size():
+			var ntile: Dictionary = tiles[neighbor_idx]
+			if ntile["owner_id"] != player_id and ntile["owner_id"] >= 0:
+				nearby_enemies += 1
+	if nearby_enemies > 0:
+		# 对每个相邻敌方居点施加簮食减少
+		for eid in range(players.size()):
+			var ep: Dictionary = players[eid]
+			if ep.get("is_ai", true) and ep["id"] != player_id:
+				ResourceManager.apply_delta(ep["id"], {"food": -nearby_enemies * 3})
+		ThreatManager.change_threat(nearby_enemies * 2)
+		EventBus.message_log.emit("[color=cyan][封锁补给] 封锁%d个敌方居点的补给线，敌方簮食共减少%d。[/color]" % [nearby_enemies, nearby_enemies * 3])
+	else:
+		EventBus.message_log.emit("[封锁补给] 附近没有敌方居点可以封锁。")
+	return true
+
+
+## 加固防线：对前线居点进行工事加固，提升城防并降低威胁。消耗 1 AP。
+func action_fortify(player_id: int, tile_index: int) -> bool:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit("只能加固自己的领地!")
+		return false
+	player["ap"] -= 1
+	var wall_boost: int = 10
+	var current_wall: int = tile.get("wall_hp", 0)
+	tile["wall_hp"] = current_wall + wall_boost
+	ThreatManager.change_threat(-2)
+	var tile_name: String = tile.get("name", TILE_NAMES.get(tile["type"], "领地"))
+	EventBus.message_log.emit("[color=cyan][加固] %s 城防+%d，威胁-2。[/color]" % [tile_name, wall_boost])
+	return true
+
+
+## 开采资源：对资源居点加大开采力度，获得额外资源。消耗 1 AP。
+func action_exploit(player_id: int, tile_index: int) -> bool:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit("只能开采自己的领地!")
+		return false
+	player["ap"] -= 1
+	# 根据居点类型决定开采资源类型
+	var tile_type: int = tile.get("type", 0)
+	var resource_type: String = "gold"
+	var amount: int = randi_range(15, 30)
+	match tile_type:
+		3: # 矿山
+			resource_type = "iron"
+			amount = randi_range(20, 40)
+		4: # 農田
+			resource_type = "food"
+			amount = randi_range(20, 40)
+		_:
+			resource_type = "gold"
+			amount = randi_range(15, 30)
+	ResourceManager.apply_delta(player_id, {resource_type: amount})
+	EventBus.message_log.emit("[color=yellow][开采] %s+%d[/color]" % [resource_type, amount])
+	return true
+
+
+## 训练精锐：对居点内的部队进行精锐训练，提升战斗力。消耗 1 AP。
+func action_train_elite(player_id: int, tile_index: int) -> bool:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit("只能训练自己领地的部队!")
+		return false
+	player["ap"] -= 1
+	# 训练精锐：消耗簮食获得临时战斗加成
+	var food_cost: int = 10
+	var has_food: bool = ResourceManager.get_resource(player_id, "food") >= food_cost
+	if has_food:
+		ResourceManager.apply_delta(player_id, {"food": -food_cost})
+		# 添加临时 buff
+		if BuffManager != null and BuffManager.has_method("add_buff"):
+			BuffManager.add_buff(player_id, "elite_training", "atk_pct", 15, 2, "train_elite")
+		EventBus.message_log.emit("[color=lime][精锐训练] 消耗簮食%d，全军 ATK+15%% 持续 2 回合。[/color]" % food_cost)
+	else:
+		EventBus.message_log.emit("[精锐训练] 簮食不足，无法训练。")
+		player["ap"] += 1  # 退还 AP
+		return false
+	return true
+
+
+## 升级前哨：对前哨居点进行升级改造，提升偵查范围和防御。消耗 1 AP。
+func action_upgrade_outpost(player_id: int, tile_index: int) -> bool:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit("只能升级自己的前哨!")
+		return false
+	player["ap"] -= 1
+	var iron_cost: int = 20
+	var has_iron: bool = ResourceManager.get_resource(player_id, "iron") >= iron_cost
+	if has_iron:
+		ResourceManager.apply_delta(player_id, {"iron": -iron_cost})
+		var current_level: int = tile.get("outpost_level", 0)
+		tile["outpost_level"] = mini(current_level + 1, 3)
+		_reveal_around(tile_index, player_id)  # 升级后扩大视野
+		EventBus.message_log.emit("[color=cyan][升级前哨] 消耗铁矿%d，前哨升级至 Lv%d，视野扩大。[/color]" % [iron_cost, tile["outpost_level"]])
+	else:
+		EventBus.message_log.emit("[升级前哨] 铁矿不足（需要 %d）。" % iron_cost)
+		player["ap"] += 1
+		return false
+	return true
+
+
+## 升级设施：对工业/资源居点升级生产设施，提升资源产出。消耗 1 AP。
+func action_upgrade_facility(player_id: int, tile_index: int) -> bool:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit("只能升级自己的设施!")
+		return false
+	player["ap"] -= 1
+	var gold_cost: int = 30
+	var has_gold: bool = ResourceManager.get_resource(player_id, "gold") >= gold_cost
+	if has_gold:
+		ResourceManager.apply_delta(player_id, {"gold": -gold_cost})
+		var current_level: int = tile.get("facility_level", 0)
+		tile["facility_level"] = mini(current_level + 1, 3)
+		EventBus.message_log.emit("[color=yellow][升级设施] 消耗金币%d，设施升级至 Lv%d，资源产出提升。[/color]" % [gold_cost, tile["facility_level"]])
+	else:
+		EventBus.message_log.emit("[升级设施] 金币不足（需要 %d）。" % gold_cost)
+		player["ap"] += 1
+		return false
+	return true
+
+
+## 升级城墙：对城堡居点建造更堆实的防御工事。消耗 1 AP。
+func action_upgrade_walls(player_id: int, tile_index: int) -> bool:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit("只能升级自己的城墙!")
+		return false
+	player["ap"] -= 1
+	var iron_cost: int = 25
+	var has_iron: bool = ResourceManager.get_resource(player_id, "iron") >= iron_cost
+	if has_iron:
+		ResourceManager.apply_delta(player_id, {"iron": -iron_cost})
+		var wall_boost: int = 20
+		tile["wall_hp"] = tile.get("wall_hp", 0) + wall_boost
+		var tile_name: String = tile.get("name", TILE_NAMES.get(tile["type"], "领地"))
+		EventBus.message_log.emit("[color=cyan][升级城墙] %s 城防+%d。[/color]" % [tile_name, wall_boost])
+	else:
+		EventBus.message_log.emit("[升级城墙] 铁矿不足（需要 %d）。" % iron_cost)
+		player["ap"] += 1
+		return false
+	return true
+
+
+## 建造市场：在城镇居点建造市场，提升金币收入。消耗 1 AP。
+func action_build_market(player_id: int, tile_index: int) -> bool:
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or player["ap"] < 1:
+		EventBus.message_log.emit("行动点不足!")
+		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return false
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit("只能在自己的领地建造市场!")
+		return false
+	player["ap"] -= 1
+	var gold_cost: int = 40
+	var has_gold: bool = ResourceManager.get_resource(player_id, "gold") >= gold_cost
+	if has_gold:
+		ResourceManager.apply_delta(player_id, {"gold": -gold_cost})
+		# 建造市场：每回合额外获得金币
+		tile["market_built"] = true
+		var tile_name: String = tile.get("name", TILE_NAMES.get(tile["type"], "领地"))
+		EventBus.message_log.emit("[color=yellow][建造市场] %s 市场建造完成，每回合额外获得 +5 金币。[/color]" % tile_name)
+		EventBus.building_constructed.emit(player_id, tile_index, "market")
+	else:
+		EventBus.message_log.emit("[建造市场] 金币不足（需要 %d）。" % gold_cost)
+		player["ap"] += 1
+		return false
 	return true
 
 

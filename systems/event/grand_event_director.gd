@@ -34,7 +34,12 @@ func _register_grand_events() -> void:
 			{"speaker": "", "text": "你的命运，将由你自己书写。"},
 		],
 		"bgm": "bgm_prologue",
-		"choices": [],
+		# Fix #10: 序章事件必须有至少一个选项，否则 UI 无法关闭
+		"choices": [
+			{"text": "展开征途 (+10金币, 威望+5)", "effects": {"gold": 10, "prestige": 5}},
+			{"text": "谋划布局 (+1AP, 秩序+3)", "effects": {"ap": 1, "order": 3}},
+			{"text": "小心行事 (+15金币)", "effects": {"gold": 15}},
+		],
 	})
 
 	_grand_events.append({
@@ -114,7 +119,12 @@ func _register_grand_events() -> void:
 			{"speaker": "", "text": "但和平能持续多久，取决于你今后的选择。"},
 		],
 		"bgm": "bgm_victory",
-		"choices": [],
+		# Fix #10: 胜利结局事件必须有选项，否则 UI 无法关闭
+		"choices": [
+			{"text": "建立新秩序 (+20威望, 秩序+10)", "effects": {"prestige": 20, "order": 10}},
+			{"text": "居安思危 (+30金币, 威胁-20)", "effects": {"gold": 30, "threat": -20}},
+			{"text": "庆祝胜利 (+2AP, 全英雄好感+3)", "effects": {"ap": 2, "hero_affection_all": 3}},
+		],
 	})
 
 	_grand_events.append({

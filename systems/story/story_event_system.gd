@@ -504,6 +504,22 @@ func _apply_event_effects(hero_id: String, event: Dictionary) -> void:
 					clear_flag(hero_id, f)
 			"set_affection_cap":
 				set_flag(hero_id, "affection_cap", effects[key])
+			# Fix #11: Handle "unlock" field — switches hero to the specified route
+			# Used by exclusive_ending trigger events across all heroines
+			"unlock":
+				var unlock_target: String = effects[key]
+				var prog: Dictionary = story_progress.get(hero_id, {})
+				if not prog.is_empty() and unlock_target != "":
+					var current_route: String = prog.get("route", "")
+					if current_route != unlock_target:
+						# Switch to the unlocked route (e.g. exclusive_ending)
+						prog["route"] = unlock_target
+						prog["current_event"] = 0
+						# Preserve flags and completed events across route switch
+						var hero_name: String = HeroSystem.get_hero_name(hero_id) if HeroSystem and HeroSystem.has_method("get_hero_name") else hero_id
+						EventBus.message_log.emit("[color=gold]★ %s 的专属结局已解锁！[/color]" % hero_name)
+						if EventBus.has_signal("story_route_completed"):
+							EventBus.story_route_completed.emit(hero_id, current_route)
 	_processing_effects = false  # Release guard
 	# 延迟检查：效果处理期间被跳过的事件触发，在效果完成后重新检查
 	call_deferred("_check_deferred_triggers", hero_id)
