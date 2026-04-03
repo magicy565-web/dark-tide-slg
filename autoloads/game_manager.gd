@@ -8,6 +8,7 @@ const NationSystemClass = preload("res://systems/map/nation_system.gd")
 const MultiRouteBattle = preload("res://systems/combat/multi_route_battle.gd")
 const SkillAnimationData = preload("res://systems/combat/skill_animation_data.gd")
 const TerritoryEffectsData = preload("res://systems/map/territory_effects.gd")
+const TerritoryTypeSystem = preload("res://systems/map/territory_type_system.gd")
 
 # ── Enums ──
 enum TileType {
@@ -560,7 +561,7 @@ func get_tile_production(tile: Dictionary) -> Dictionary:
 	var cmd_mult: float = cmd_bonus.get("prod_mult", 1.0)
 	# 战国兰斯式重构: 据点类型产出加成
 	var type_prod_mult: float = 1.0
-	var TTS = load("res://systems/map/territory_type_system.gd")
+	var TTS = TerritoryTypeSystem
 	if TTS != null:
 		var prov_type: int = TTS.get_prov_type_from_tile(tile)
 		var bonuses: Dictionary = TTS.get_bonuses(prov_type)

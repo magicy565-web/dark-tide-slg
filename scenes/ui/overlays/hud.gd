@@ -4099,7 +4099,25 @@ func _on_mission_pressed() -> void:
 
 func _on_territory_info_pressed() -> void:
 	## Open the comprehensive territory info panel.
+	## 优先使用新的 ProvinceInfoPanel，降级到旧的 TerritoryInfoPanel。
 	var main = get_tree().current_scene
+	# 优先：使用新的 ProvinceInfoPanel
+	if main and "province_info_panel" in main and main.province_info_panel != null:
+		var pip = main.province_info_panel
+		if pip.is_panel_visible():
+			pip.hide_panel()
+		else:
+			# 尝试获取当前选中的据点索引
+			var board_node = get_tree().get_root().find_child("Board", true, false)
+			var sel_tile: int = -1
+			if board_node and board_node.has_method("get_selected_tile"):
+				sel_tile = board_node.get_selected_tile()
+			if sel_tile >= 0:
+				pip.show_for_tile(sel_tile)
+			else:
+				pip.show_panel()
+		return
+	# 降级：旧的 TerritoryInfoPanel
 	if main and "territory_info_panel" in main and main.territory_info_panel:
 		if main.territory_info_panel.is_panel_visible():
 			main.territory_info_panel.hide_panel()

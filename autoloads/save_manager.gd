@@ -248,6 +248,8 @@ func _collect_save_data() -> Dictionary:
 		"event_registry": EventRegistry.serialize() if EventRegistry != null else {},
 		"quest_progress_tracker": QuestProgressTracker.to_save_data() if QuestProgressTracker != null else {},
 		"event_scheduler": EventScheduler.to_save_data() if EventScheduler != null else {},
+		# v4.3 新增系统
+		"general_system": GeneralSystem.serialize() if GeneralSystem != null else {},
 	}
 
 
@@ -468,7 +470,9 @@ func _apply_save_data(data: Dictionary) -> void:
 	# 4t. Restore event scheduler state (v4.1+)
 	if data.has("event_scheduler") and EventScheduler != null:
 		EventScheduler.from_save_data(data.get("event_scheduler", {}))
-
+	# 4u. Restore general system state (v4.3+)
+	if data.has("general_system") and GeneralSystem != null:
+		GeneralSystem.deserialize(data.get("general_system", {}))
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
 	EventBus.resources_changed.emit(pid)

@@ -2,7 +2,8 @@
 ## 差异化据点信息面板 —— 战国兰斯式地域压制重构
 ## 不同类型的据点展现完全不同的视觉主题、颜色和功能按钮。
 ## 通过 T 键或点击据点触发，替代原有的 territory_info_panel。
-## 作者: Manus AI  版本: v1.0.0
+## 作者: Manus AI  版本: v1.1.0
+## v1.1.0 修复: 点击据点自动弹出面板 (P0 Bug); 连接 territory_deselected 信号
 extends CanvasLayer
 
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -70,6 +71,8 @@ func _ready() -> void:
 
 func _connect_signals() -> void:
 	EventBus.territory_selected.connect(_on_territory_selected)
+	if EventBus.has_signal("territory_deselected"):
+		EventBus.territory_deselected.connect(_on_territory_deselected)
 	if EventBus.has_signal("story_event_completed"):
 		EventBus.story_event_completed.connect(_on_story_event_completed)
 
@@ -371,8 +374,10 @@ func _build_section_stats(tile: Dictionary, prov_type: int) -> void:
 	# 驻守位
 	var max_slots: int = TerritoryTypeSystem.get_garrison_slots(prov_type)
 	var current_generals: int = 0
-	if GameManager.HeroSystem:
-		current_generals = GameManager.HeroSystem.get_tile_generals(_selected_tile).size() if GameManager.HeroSystem.has_method("get_tile_generals") else 0
+	if GeneralSystem != null:
+		current_generals = GeneralSystem.get_tile_generals(_selected_tile).size()
+	elif GameManager.HeroSystem and GameManager.HeroSystem.has_method("get_tile_generals"):
+		current_generals = GameManager.HeroSystem.get_tile_generals(_selected_tile).size()
 	var garrison_hbox := HBoxContainer.new()
 	garrison_hbox.add_theme_constant_override("separation", 8)
 	garrison_hbox.add_child(_make_label("驻守位:", CLR_LABEL))
@@ -403,7 +408,9 @@ func _build_section_garrison_generals(tile: Dictionary) -> void:
 	panel.add_child(vbox)
 
 	var generals: Array = []
-	if GameManager.HeroSystem and GameManager.HeroSystem.has_method("get_tile_generals"):
+	if GeneralSystem != null:
+		generals = GeneralSystem.get_tile_generals(_selected_tile)
+	elif GameManager.HeroSystem and GameManager.HeroSystem.has_method("get_tile_generals"):
 		generals = GameManager.HeroSystem.get_tile_generals(_selected_tile)
 
 	if generals.is_empty():
@@ -622,9 +629,18 @@ func _add_empty_notice(text: String) -> void:
 # ═══════════════════════════════════════════════════════════════
 
 func _on_territory_selected(tile_index: int) -> void:
+	## 点击据点时：若面板已打开则刷新内容，否则自动弹出面板。
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	_selected_tile = tile_index
 	if _visible:
 		_refresh()
+	else:
+		show_panel()
+
+func _on_territory_deselected() -> void:
+	## 取消选择据点时关闭面板。
+	hide_panel()
 
 func _on_story_event_completed(_event_id: String) -> void:
 	if _visible:

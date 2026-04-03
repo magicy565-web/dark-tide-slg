@@ -2,6 +2,35 @@
 
 ---
 
+## v4.3.0 — 2026-04-03 (ProvinceInfoPanel 接入修复 + GeneralSystem 存档支持)
+
+### 关键修复 (Critical)
+
+- **P0: 点击据点不弹出 ProvinceInfoPanel** — `province_info_panel.gd` 的 `_on_territory_selected` 函数原先仅在面板已显示时刷新内容，现改为：若面板未显示则自动调用 `show_panel()` 弹出面板。
+
+### 高优先级修复 (High)
+
+- **P1: Territory [T] 按钮未调用 ProvinceInfoPanel** — `hud.gd` 的 `_on_territory_info_pressed` 函数现优先检查并调用 `province_info_panel`，降级到旧的 `territory_info_panel`。
+- **P1: territory_deselected 信号未接入** — `province_info_panel.gd` 现在在 `_connect_signals()` 中连接 `EventBus.territory_deselected` 信号，取消选择据点时自动关闭面板。
+- **P1: GeneralSystem 存档数据丢失** — `save_manager.gd` 现在在 `_collect_save_data()` 中序列化 `GeneralSystem` 状态，并在 `_apply_save_data()` 中恢复，防止武将驻守/行动扇子数据在存档后丢失。
+
+### 代码质量 (Quality)
+
+- **性能: game_manager.gd 中动态 `load()` 改为 `preload()`** — `get_tile_production()` 函数每帧调用时不再动态加载 `territory_type_system.gd`，改为顶层 `const` preload，消除重复 I/O 开销。
+- **接口统一: province_info_panel.gd 驻守武将查询改用 GeneralSystem** — 驻守位数量和武将列表查询现优先使用 `GeneralSystem.get_tile_generals()`，降级到旧的 `HeroSystem` 接口。
+
+### 文件变更清单
+
+| 文件 | 变更类型 |
+|------|----------|
+| `scenes/ui/panels/province_info_panel.gd` | Bug 修复 (P0/P1: 自动弹出 + deselected 信号 + GeneralSystem 接入) |
+| `scenes/ui/overlays/hud.gd` | Bug 修复 (P1: Territory 按钮优先调用 ProvinceInfoPanel) |
+| `autoloads/save_manager.gd` | Bug 修复 (P1: GeneralSystem 存档/恢复) |
+| `autoloads/game_manager.gd` | 性能优化 (preload 替换动态 load) |
+| `CHANGELOG.md` | 新增条目 |
+
+---
+
 ## v4.2.0 — 2026-04-03 (数值审计修复: 11项平衡性问题)
 
 ### 关键修复 (Critical)
