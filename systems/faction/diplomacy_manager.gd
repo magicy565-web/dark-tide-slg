@@ -1441,3 +1441,26 @@ func from_save_data(data: Dictionary) -> void:
 	for key in _event_cooldowns:
 		_event_cooldowns[key] = int(_event_cooldowns[key])
 	_diplo_event_counter = int(data.get("diplo_event_counter", 0))
+
+
+# ═══════════════ MISSING METHOD STUBS (v5.3 audit) ═══════════════
+
+## Called by diplomacy_panel — returns pending treaty proposals.
+func get_pending_proposals() -> Array:
+	# Light peace is the only pending proposal type currently
+	var result: Array = []
+	if _pending_light_peace.get("active", false):
+		result.append({"id": 0, "type": "peace", "faction": "light", "gold": _pending_light_peace.get("gold", 0)})
+	return result
+
+
+## Called by diplomacy_panel — accepts a pending proposal by ID.
+func accept_proposal(proposal_id: int) -> void:
+	if proposal_id == 0 and _pending_light_peace.get("active", false):
+		accept_light_peace()
+
+
+## Called by diplomacy_panel — rejects a pending proposal by ID.
+func reject_proposal(proposal_id: int) -> void:
+	if proposal_id == 0 and _pending_light_peace.get("active", false):
+		reject_light_peace()

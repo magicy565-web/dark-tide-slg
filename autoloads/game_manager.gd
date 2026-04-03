@@ -7690,3 +7690,60 @@ func _on_scheduler_event_choice(_choice_index: int) -> void:
 	_scheduler_queue_connected = false
 	if not _scheduler_event_queue.is_empty():
 		call_deferred("_process_scheduler_event_queue")
+
+
+# ═══════════════ MISSING METHOD STUBS (v5.3 audit) ═══════════════
+## Called by province_info_panel fallback — delegates to action_explore.
+func execute_explore(tile_index: int) -> void:
+	action_explore(get_human_player_id(), tile_index)
+
+## Called by province_info_panel fallback — opens recruit UI for a tile.
+func open_recruit_panel(tile_index: int) -> void:
+	EventBus.message_log.emit("[color=cyan]征兵面板 → 据点 #%d[/color]" % tile_index)
+
+## Called by province_info_panel fallback — opens domestic management UI.
+func open_domestic_panel(tile_index: int) -> void:
+	EventBus.message_log.emit("[color=cyan]内政面板 → 据点 #%d[/color]" % tile_index)
+
+## Called by province_info_panel — opens research UI.
+func open_research_panel() -> void:
+	EventBus.message_log.emit("[color=cyan]研究面板已打开[/color]")
+
+## Called by grand_event_director — returns all faction dictionaries.
+func get_all_factions() -> Array:
+	return players.duplicate()
+
+## Called by espionage_system — returns current turn number.
+func get_current_turn() -> int:
+	return current_turn if "current_turn" in self else turn_number if "turn_number" in self else 0
+
+## Called by event_system — returns espionage level for a player.
+func get_espionage_level(player_id: int) -> int:
+	var p: Dictionary = get_player_by_id(player_id)
+	return p.get("espionage_level", 0)
+
+## Called by intel_overlay — returns faction display name.
+func get_faction_name(faction_id: int) -> String:
+	var p: Dictionary = get_player_by_id(faction_id)
+	return p.get("name", "未知势力")
+
+## Called by faction_destruction_events — returns tiles owned by a player.
+func get_player_tiles(player_id: int) -> Array:
+	var result: Array = []
+	for i in range(tiles.size()):
+		if tiles[i].get("owner_id", -1) == player_id:
+			result.append(i)
+	return result
+
+## Called by intel_overlay — returns tile index at a screen position.
+func get_tile_at_position(screen_pos: Vector2) -> int:
+	# Delegate to board if available
+	if BoardManager != null and BoardManager.has_method("get_tile_at_position"):
+		return BoardManager.get_tile_at_position(screen_pos)
+	return -1
+
+## Called by intel_overlay — checks if a tile is visible to a player.
+func is_tile_visible(player_id: int, tile_index: int) -> bool:
+	if FogManager != null and FogManager.has_method("is_visible"):
+		return FogManager.is_visible(player_id, tile_index)
+	return true  # Default: all visible if no fog system

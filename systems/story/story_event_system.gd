@@ -794,3 +794,12 @@ func get_completion_percent(hero_id: String) -> float:
 	if events.is_empty():
 		return 0.0
 	return float(prog.get("current_event", 0)) / float(events.size()) * 100.0
+
+
+# ═══════════════ MISSING METHOD STUBS (v5.3 audit) ═══════════════
+
+## Called by grand_event_director — records a global event in the story log.
+func record_event(event_id: String, event_name: String) -> void:
+	if not story_progress.has("_global_events"):
+		story_progress["_global_events"] = []
+	story_progress["_global_events"].append({"id": event_id, "name": event_name, "turn": GameManager.current_turn if "current_turn" in GameManager else 0})

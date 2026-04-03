@@ -347,3 +347,12 @@ func from_save_data(data: Dictionary) -> void:
 	for k in keys_to_fix:
 		_active_buffs[int(k)] = _active_buffs[k]
 		_active_buffs.erase(k)
+
+
+# ═══════════════ MISSING METHOD STUBS (v5.3 audit) ═══════════════
+
+## Called by game_manager — alias for add_buff with dict-style value.
+func apply_buff(player_id: int, buff_id: String, value_dict: Dictionary, duration: int = -1) -> void:
+	# apply_buff(pid, "sat_morale", {"morale_boost": 10}, 3)
+	# → add_buff(pid, "sat_morale", value_dict, null, duration)
+	add_buff(player_id, buff_id, value_dict, null, duration, "apply_buff")

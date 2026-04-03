@@ -178,3 +178,18 @@ func from_save_data(data: Dictionary) -> void:
 		for k in keys_to_fix:
 			dict_ref[int(k)] = dict_ref[k]
 			dict_ref.erase(k)
+
+
+# ═══════════════ MISSING METHOD STUBS (v5.3 audit) ═══════════════
+
+## Called by environment_system — adds a random resource to a player.
+func add_random_resource(player_id: int, qty: int) -> void:
+	var resource_keys: Array = ["gold", "food", "iron"]
+	var chosen: String = resource_keys[randi() % resource_keys.size()]
+	apply_delta(player_id, {chosen: qty})
+	EventBus.message_log.emit("获得随机资源: %s +%d" % [chosen, qty])
+
+
+## Called by dynamic_situation_events — returns army size for a player.
+func get_army_size(player_id: int) -> int:
+	return get_army(player_id)
