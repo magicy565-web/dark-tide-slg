@@ -242,7 +242,10 @@ func _ready() -> void:
 	add_child(multi_route_panel)
 
 	# Wire combat view close to resume gameplay
-	combat_view.combat_view_closed.connect(_on_combat_view_closed)
+	if combat_view.has_signal("combat_view_closed"):
+		combat_view.combat_view_closed.connect(_on_combat_view_closed)
+	else:
+		push_warning("main.gd: CombatView script failed to load — combat_view_closed signal unavailable")
 
 	# Listen for combat view requests from GameManager
 	EventBus.combat_view_requested.connect(_on_combat_view_requested)
