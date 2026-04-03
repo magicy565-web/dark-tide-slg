@@ -12,6 +12,8 @@
 class_name BattleVfxController
 extends Node
 
+const SkillAnimationData = preload("res://systems/combat/skill_animation_data.gd")
+
 # ── References (set by combat_view after instantiation) ──
 var shake_target: Control = null      # The shake_container from CombatView
 var overlay_parent: Control = null     # anim_layer for spawning VFX nodes
