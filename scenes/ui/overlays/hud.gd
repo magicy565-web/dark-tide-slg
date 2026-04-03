@@ -660,7 +660,7 @@ func _build_domestic_sub_panel(parent: Control) -> void:
 
 	btn_equipment_forge = _make_button("装备锻造")
 	btn_equipment_forge.custom_minimum_size = Vector2(140, 30)
-	btn_equipment_forge.tooltip_text = "锻造装备与传说武器 (J)"
+	btn_equipment_forge.tooltip_text = "锻造装备与传说武器 (F)"
 	btn_equipment_forge.pressed.connect(_on_equipment_forge)
 	vbox.add_child(btn_equipment_forge)
 
@@ -1519,9 +1519,10 @@ func _on_explore_target(tile_index: int) -> void:
 
 
 func _on_guard_pressed() -> void:
-	if _current_mode == ActionMode.EXPLORE:
+	if _current_mode == ActionMode.DOMESTIC_SUB:
 		_close_target_panel()
-	_current_mode = ActionMode.EXPLORE  # Reuse explore mode for territory selection
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "guard"
 	var pid: int = GameManager.get_human_player_id()
 	var owned_tiles: Array = GameManager.get_domestic_tiles(pid)
 
@@ -1550,9 +1551,10 @@ func _on_guard_target(tile_index: int) -> void:
 
 func _on_commander_pressed() -> void:
 	## SR07: Open territory commander assignment panel.
-	if _current_mode == ActionMode.EXPLORE:
+	if _current_mode == ActionMode.DOMESTIC_SUB:
 		_close_target_panel()
-	_current_mode = ActionMode.EXPLORE
+	_current_mode = ActionMode.DOMESTIC_SUB
+	_domestic_sub_type = "commander"
 	var pid: int = GameManager.get_human_player_id()
 	var owned_tiles: Array = GameManager.get_domestic_tiles(pid)
 
@@ -1629,7 +1631,7 @@ func _on_commander_remove(tile_index: int) -> void:
 
 
 func _on_sat_event_pressed() -> void:
-	if _current_mode == ActionMode.EXPLORE:
+	if _current_mode == ActionMode.DOMESTIC_SUB:
 		_close_target_panel()
 	_current_mode = ActionMode.DOMESTIC_SUB
 	_domestic_sub_type = "sat_event"
@@ -3014,6 +3016,11 @@ func _update_buttons() -> void:
 	btn_domestic.disabled = not has_ap
 	btn_diplomacy.disabled = not has_ap
 	btn_explore.disabled = not has_ap
+	# Operations buttons
+	btn_guard.disabled = not has_ap
+	btn_reinforce.disabled = not has_ap
+	btn_commander.disabled = false
+	btn_interrogate.disabled = HeroSystem.captured_heroes.is_empty()
 
 	# SAT Event button (free action, requires SAT points)
 	var sat_pts: int = GameManager.get_sat_points(pid)
@@ -3095,6 +3102,10 @@ func _set_all_buttons_disabled(val: bool) -> void:
 	btn_domestic.disabled = val
 	btn_diplomacy.disabled = val
 	btn_explore.disabled = val
+	btn_guard.disabled = val
+	btn_commander.disabled = val
+	btn_reinforce.disabled = val
+	btn_interrogate.disabled = val
 	btn_end_turn.disabled = val
 	btn_reduce_threat.disabled = val
 	btn_boost_order.disabled = val

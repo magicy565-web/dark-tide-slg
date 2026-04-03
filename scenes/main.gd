@@ -205,6 +205,7 @@ func _ready() -> void:
 	var TroopTrainingScript = preload("res://scenes/ui/panels/troop_training_panel.gd")
 	troop_training_panel = CanvasLayer.new()
 	troop_training_panel.set_script(TroopTrainingScript)
+	troop_training_panel.name = "troop_training_panel"
 	add_child(troop_training_panel)
 
 	# ── v3.4: Debug Console (highest layer) ──
@@ -238,6 +239,7 @@ func _ready() -> void:
 	var EquipmentForgePanelScript = preload("res://scenes/ui/panels/equipment_forge_panel.gd")
 	equipment_forge_panel = CanvasLayer.new()
 	equipment_forge_panel.set_script(EquipmentForgePanelScript)
+	equipment_forge_panel.name = "equipment_forge_panel"
 	add_child(equipment_forge_panel)
 
 	# ── v4.8: Nation Power Panel (fixed map, Key: N) ──

@@ -150,6 +150,46 @@ func get_available_techs(player_id: int) -> Array:
 	return result
 
 
+func get_research_status(player_id: int) -> Dictionary:
+	## Returns a summary dict used by HUD to display the research tree.
+	## Keys: "current" (dict), "available" (array), "completed" (array of names).
+	if not _research_state.has(player_id):
+		return {}
+	var state: Dictionary = _research_state[player_id]
+	var result: Dictionary = {}
+	# Current research
+	var current_id: String = state.get("current", "")
+	if current_id != "":
+		var tech_data: Dictionary = get_tech_data(current_id)
+		result["current"] = {
+			"tech_id": current_id,
+			"name": tech_data.get("name", current_id),
+			"progress": state.get("progress", 0),
+			"cost": tech_data.get("turns", 1),
+		}
+	else:
+		result["current"] = {}
+	# Available techs
+	var avail_raw: Array = get_available_techs(player_id)
+	var available: Array = []
+	for entry in avail_raw:
+		available.append({
+			"tech_id": entry["id"],
+			"name": entry["name"],
+			"cost": entry.get("turns", 1),
+			"desc": entry.get("desc", ""),
+			"can_research": entry.get("can_afford", false),
+		})
+	result["available"] = available
+	# Completed techs (names only)
+	var completed_names: Array = []
+	for tech_id in state.get("completed", []):
+		var td: Dictionary = get_tech_data(tech_id)
+		completed_names.append(td.get("name", tech_id))
+	result["completed"] = completed_names
+	return result
+
+
 # ── Start / Cancel / Queue ──
 func start_research(player_id: int, tech_id: String) -> bool:
 	if not _research_state.has(player_id):

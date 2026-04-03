@@ -470,8 +470,13 @@ func recruit_hero(hero_id: String) -> bool:
 	return result.get("ok", false)
 
 
-# ═══════════════ COMBAT STATS ═══════════════
+func get_hero_info(hero_id: String) -> Dictionary:
+	## Public wrapper for _get_hero_data. Returns the raw hero definition dict
+	## from FactionData.HEROES (or the hidden hero registry).
+	return _get_hero_data(hero_id)
 
+
+# ═══════════════ COMBAT STATS ═══════════════
 ## Get hero battle stats (commander stats for combat system)
 func get_hero_combat_stats(hero_id: String) -> Dictionary:
 	var hero_data: Dictionary = _get_hero_data(hero_id)
