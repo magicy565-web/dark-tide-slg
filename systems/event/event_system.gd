@@ -43,8 +43,6 @@ var _pending_chain_events: Array = []
 func _ready() -> void:
 	_register_events()
 	register_world_events()
-	if EventRegistry:
-		EventRegistry._register_source("event_system", _events, "base")
 
 
 func reset() -> void:

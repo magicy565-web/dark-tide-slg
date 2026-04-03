@@ -2,6 +2,8 @@
 ## 5 manual slots + auto-save slot
 extends CanvasLayer
 
+const FactionData = preload("res://systems/faction/faction_data.gd")
+
 # ── State ──
 var _visible: bool = false
 var _mode: String = "save"  # "save" or "load"

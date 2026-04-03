@@ -148,7 +148,7 @@ var game_over_panel: PanelContainer
 var game_over_label: Label
 var game_over_victory_type_label: Label
 var game_over_stats_vbox: VBoxContainer
-var game_over_style: StyleBoxFlat
+var game_over_style: StyleBox
 
 # ── UI refs: turn phase banner (v4.5) ──
 var _phase_banner: PanelContainer

@@ -3,20 +3,6 @@
 extends Node
 
 
-func _ready() -> void:
-	# Auto-register with EventSystem on load
-	call_deferred("register_with_event_system")
-	if EventRegistry:
-		EventRegistry._register_source("expanded_random_events", get_expanded_events(), "expanded")
-
-
-func register_with_event_system() -> void:
-	if not EventSystem:
-		return
-	var events: Array = get_expanded_events()
-	for ev in events:
-		EventSystem._events.append(ev)
-
 
 func get_expanded_events() -> Array:
 	var events: Array = []

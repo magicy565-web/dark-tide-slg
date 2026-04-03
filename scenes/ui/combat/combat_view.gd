@@ -216,7 +216,7 @@ var _shake_offset: Vector2 = Vector2.ZERO
 var _zoom_tween: Tween = null
 var _is_zooming: bool = false
 var _intervention_panel = null  # CombatInterventionPanel instance
-var _vfx_controller: BattleVfxController = null  # Battle VFX feedback controller
+var _vfx_controller = null  # BattleVfxController
 var _cmd_bar: HBoxContainer = null  # Interactive command bar
 var _cmd_continue_btn: Button = null
 var _cmd_auto_btn: Button = null
@@ -879,7 +879,7 @@ func _build_overlay_effects() -> void:
 
 ## Instantiate and wire up the BattleVfxController for EventBus-driven VFX.
 func _setup_vfx_controller() -> void:
-	_vfx_controller = BattleVfxController.new()
+	_vfx_controller = BattleVfxControllerScript.new()
 	_vfx_controller.name = "BattleVfxController"
 	_vfx_controller.shake_target = shake_container
 	_vfx_controller.overlay_parent = anim_layer

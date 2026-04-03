@@ -4,18 +4,6 @@
 ## Each chain: Step 1 (trigger) → Step 2 (2-4 turns later) → Step 3 (2-4 turns after step 2)
 extends Node
 
-func _ready() -> void:
-	call_deferred("register_with_event_system")
-	if EventRegistry:
-		EventRegistry._register_source("extra_events_v5", get_events(), "chain_v5")
-
-func register_with_event_system() -> void:
-	if not EventSystem:
-		push_warning("ExtraEventsV5: EventSystem not available")
-		return
-	var events: Array = get_events()
-	for ev in events:
-		EventSystem._events.append(ev)
 
 func get_events() -> Array:
 	var events: Array = []

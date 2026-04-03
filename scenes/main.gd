@@ -174,17 +174,21 @@ func _ready() -> void:
 
 	# ── v3.4: AI Indicator overlay ──
 	var AIIndicatorScript = preload("res://scenes/ui/overlays/ai_indicator.gd")
-	ai_indicator = CanvasLayer.new()
-	ai_indicator.layer = UILayerRegistry.LAYER_AI_INDICATOR
+	var ai_indicator_layer = CanvasLayer.new()
+	ai_indicator_layer.layer = UILayerRegistry.LAYER_AI_INDICATOR
+	add_child(ai_indicator_layer)
+	ai_indicator = Control.new()
 	ai_indicator.set_script(AIIndicatorScript)
-	add_child(ai_indicator)
+	ai_indicator_layer.add_child(ai_indicator)
 
 	# ── v3.4: Action Visualizer overlay ──
 	var ActionVisualizerScript = preload("res://scenes/ui/overlays/action_visualizer.gd")
-	action_visualizer = CanvasLayer.new()
-	action_visualizer.layer = UILayerRegistry.LAYER_ACTION_VISUALIZER
+	var action_visualizer_layer = CanvasLayer.new()
+	action_visualizer_layer.layer = UILayerRegistry.LAYER_ACTION_VISUALIZER
+	add_child(action_visualizer_layer)
+	action_visualizer = Control.new()
 	action_visualizer.set_script(ActionVisualizerScript)
-	add_child(action_visualizer)
+	action_visualizer_layer.add_child(action_visualizer)
 
 	# ── v3.4: Troop Training Panel ──
 	var TroopTrainingScript = preload("res://scenes/ui/panels/troop_training_panel.gd")
@@ -194,24 +198,30 @@ func _ready() -> void:
 
 	# ── v3.4: Debug Console (highest layer) ──
 	var DebugConsoleScript = preload("res://scenes/ui/system/debug_console.gd")
-	debug_console = CanvasLayer.new()
-	debug_console.layer = UILayerRegistry.LAYER_DEBUG_CONSOLE
+	var debug_console_layer = CanvasLayer.new()
+	debug_console_layer.layer = UILayerRegistry.LAYER_DEBUG_CONSOLE
+	add_child(debug_console_layer)
+	debug_console = Control.new()
 	debug_console.set_script(DebugConsoleScript)
-	add_child(debug_console)
+	debug_console_layer.add_child(debug_console)
 
 	# ── v3.5: Tile Indicator System (low layer, above board) ──
 	var TileIndicatorScript = preload("res://scenes/ui/overlays/tile_indicator_system.gd")
-	tile_indicator_system = CanvasLayer.new()
-	tile_indicator_system.layer = UILayerRegistry.LAYER_TILE_INDICATORS
+	var tile_indicator_layer = CanvasLayer.new()
+	tile_indicator_layer.layer = UILayerRegistry.LAYER_TILE_INDICATORS
+	add_child(tile_indicator_layer)
+	tile_indicator_system = Control.new()
 	tile_indicator_system.set_script(TileIndicatorScript)
-	add_child(tile_indicator_system)
+	tile_indicator_layer.add_child(tile_indicator_system)
 
 	# ── v3.5: Intel Overlay (above tile indicators) ──
 	var IntelOverlayScript = preload("res://scenes/ui/overlays/intel_overlay.gd")
-	intel_overlay = CanvasLayer.new()
-	intel_overlay.layer = UILayerRegistry.LAYER_INTEL_OVERLAY
+	var intel_overlay_layer = CanvasLayer.new()
+	intel_overlay_layer.layer = UILayerRegistry.LAYER_INTEL_OVERLAY
+	add_child(intel_overlay_layer)
+	intel_overlay = Control.new()
 	intel_overlay.set_script(IntelOverlayScript)
-	add_child(intel_overlay)
+	intel_overlay_layer.add_child(intel_overlay)
 
 	# ── v3.6: Equipment Forge Panel ──
 	var EquipmentForgePanelScript = preload("res://scenes/ui/panels/equipment_forge_panel.gd")
