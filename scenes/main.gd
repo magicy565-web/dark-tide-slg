@@ -48,6 +48,8 @@ var mission_panel = null
 
 # ── Territory Info Panel (comprehensive territory details) ──
 var territory_info_panel = null
+# ── Province Info Panel (差异化据点信息面板，战国兰斯式重构，按 P 键触发) ──
+var province_info_panel = null
 
 # ── v3.4 New panels ──
 var ai_indicator = null
@@ -116,11 +118,20 @@ func _ready() -> void:
 	mission_panel.set_script(MissionPanelScript)
 	add_child(mission_panel)
 
-	# Territory Info Panel (comprehensive territory details)
+	# Territory Info Panel (已被 ProvinceInfoPanel 替代，保留实例供内部逻辑调用，但禁用其 UI 显示)
 	var TerritoryInfoPanelScript = preload("res://scenes/ui/panels/territory_info_panel.gd")
 	territory_info_panel = CanvasLayer.new()
 	territory_info_panel.set_script(TerritoryInfoPanelScript)
 	add_child(territory_info_panel)
+	# 禁用旧面板的 territory_selected 信号监听，由新的 ProvinceInfoPanel 独占响应
+	await get_tree().process_frame
+	if EventBus.territory_selected.is_connected(territory_info_panel._on_territory_selected):
+		EventBus.territory_selected.disconnect(territory_info_panel._on_territory_selected)
+	# Province Info Panel (差异化据点信息面板，战国兰斯式重构)
+	var ProvinceInfoPanelScript = preload("res://scenes/ui/panels/province_info_panel.gd")
+	province_info_panel = CanvasLayer.new()
+	province_info_panel.set_script(ProvinceInfoPanelScript)
+	add_child(province_info_panel)
 
 	# Quest tracker (always-visible on-screen widget)
 	var QuestTrackerScript = preload("res://scenes/ui/overlays/quest_tracker.gd")
@@ -305,6 +316,7 @@ func _register_panels() -> void:
 	PanelManager.register_panel("pirate", pirate_panel, true)
 	PanelManager.register_panel("mission", mission_panel, true)
 	PanelManager.register_panel("territory_info", territory_info_panel, true)
+	PanelManager.register_panel("province_info", province_info_panel, true)
 	PanelManager.register_panel("troop_training", troop_training_panel, true)
 	PanelManager.register_panel("equipment_forge", equipment_forge_panel, true)
 	PanelManager.register_panel("nation", nation_panel, true)

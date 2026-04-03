@@ -3,7 +3,6 @@
 ## 每位武将每回合拥有固定数量的行动扇子，消耗完毕后本回合无法再行动。
 ## 武将可执行：出征、驻守据点、执行内政、外交任务等。
 ## 作者: Manus AI  版本: v1.0.0
-class_name GeneralSystem
 extends Node
 
 const FactionData = preload("res://systems/faction/faction_data.gd")
@@ -325,3 +324,30 @@ func _get_tile(tile_index: int) -> Dictionary:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return {}
 	return GameManager.tiles[tile_index]
+
+# ═══════════════════════════════════════════════════════════════
+#                    Autoload 生命周期（接入 EventBus）
+# ═══════════════════════════════════════════════════════════════
+
+func _ready() -> void:
+	## 作为 Autoload 节点，在游戏启动时自动连接回合信号
+	if EventBus.has_signal("turn_started"):
+		EventBus.turn_started.connect(_on_turn_started)
+	if EventBus.has_signal("turn_ended"):
+		EventBus.turn_ended.connect(_on_turn_ended)
+
+func _on_turn_started(player_id: int) -> void:
+	## 每回合开始时，重置该玩家所有已招募武将的行动扇子
+	if not is_instance_valid(GameManager):
+		return
+	if not GameManager.game_active:
+		return
+	# 获取该玩家已招募的武将列表（通过 HeroSystem）
+	var recruited: Array = []
+	if is_instance_valid(HeroSystem):
+		recruited = HeroSystem.get_recruited_heroes(player_id)
+	reset_fans_for_new_turn(recruited)
+
+func _on_turn_ended(_player_id: int) -> void:
+	## 回合结束时，将驻守武将的加成应用到据点防御（供战斗系统读取）
+	pass  # 当前版本通过 get_garrison_combat_bonus() 实时查询，无需缓存

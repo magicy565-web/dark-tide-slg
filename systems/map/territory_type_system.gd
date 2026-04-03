@@ -146,6 +146,8 @@ const TYPE_DATA: Dictionary = {
 		"description": "专项资源产地，包括矿场、农场、港口等，是势力经济的重要支柱。",
 		"bonuses": {
 			"resource_mult": 2.0,       # 专项资源产出翻倍
+			"iron_mult": 2.0,           # 铁矿产出倍率
+			"food_mult": 2.0,           # 簮食产出倍率（农场类）
 			"garrison_slots": 1,
 			"action_fan_cost": 1,
 		},

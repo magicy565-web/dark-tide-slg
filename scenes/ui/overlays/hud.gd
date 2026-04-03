@@ -139,6 +139,7 @@ var build_buttons: Array = []
 
 # ── UI refs: right tile info ──
 var tile_info_label: RichTextLabel
+var _tile_info_panel_container: PanelContainer  # 右侧信息面板容器，供 ProvinceInfoPanel 接管时隐藏
 
 # ── UI refs: bottom message log ──
 var message_log_label: RichTextLabel
@@ -739,6 +740,7 @@ func _build_tile_info(parent: Control) -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	panel.add_theme_stylebox_override("panel", _make_info_panel_style())
 	parent.add_child(panel)
+	_tile_info_panel_container = panel  # 保存引用以便 ProvinceInfoPanel 接管时隐藏
 
 	tile_info_label = RichTextLabel.new()
 	tile_info_label.bbcode_enabled = true
@@ -3456,7 +3458,15 @@ func _on_territory_selected(tile_index: int) -> void:
 	# Update tile info panel when a territory is clicked on the map
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
-	# Show the tile info for the selected territory
+	# 如果 ProvinceInfoPanel 已加载，则隐藏 HUD 右侧旧信息栏，让新面板独占显示
+	var main_node = get_tree().get_root().get_node_or_null("Main")
+	if main_node and "province_info_panel" in main_node and main_node.province_info_panel != null:
+		if _tile_info_panel_container:
+			_tile_info_panel_container.visible = false
+		return
+	# Show the tile info for the selected territory (fallback when ProvinceInfoPanel not available)
+	if _tile_info_panel_container:
+		_tile_info_panel_container.visible = true
 	_update_tile_info_for(tile_index)
 
 

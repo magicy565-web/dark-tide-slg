@@ -326,7 +326,7 @@ func _build_quick_action_bar(tile: Dictionary, prov_type: int) -> void:
 			btn.add_theme_stylebox_override("normal", style_normal)
 			btn.add_theme_color_override("font_color", header_color)
 
-		var action_copy := action_key
+		var action_copy: String = str(action_key)
 		btn.pressed.connect(func(): _on_quick_action_pressed(action_copy, tile))
 		quick_action_bar.add_child(btn)
 

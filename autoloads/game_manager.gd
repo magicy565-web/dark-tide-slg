@@ -558,6 +558,23 @@ func get_tile_production(tile: Dictionary) -> Dictionary:
 	# SR07: Apply garrison commander production bonus
 	var cmd_bonus: Dictionary = HeroSystem.get_garrison_commander_bonus(tile.get("index", -1)) if HeroSystem != null else {}
 	var cmd_mult: float = cmd_bonus.get("prod_mult", 1.0)
+	# 战国兰斯式重构: 据点类型产出加成
+	var type_prod_mult: float = 1.0
+	var TTS = load("res://systems/map/territory_type_system.gd")
+	if TTS != null:
+		var prov_type: int = TTS.get_prov_type_from_tile(tile)
+		var bonuses: Dictionary = TTS.get_bonuses(prov_type)
+		type_prod_mult = bonuses.get("gold_mult", 1.0) if bonuses.has("gold_mult") else 1.0
+		# 城镇金币加成、资源据点铁矿加成等均在此应用
+		var food_mult: float = bonuses.get("food_mult", 1.0) if bonuses.has("food_mult") else 1.0
+		var iron_mult: float = bonuses.get("iron_mult", 1.0) if bonuses.has("iron_mult") else 1.0
+		return {
+			"gold": int(float(base.get("gold", 0)) * mult * cmd_mult * type_prod_mult),
+			"food": int(float(base.get("food", 0)) * mult * cmd_mult * food_mult),
+			"iron": int(float(base.get("iron", 0)) * mult * cmd_mult * iron_mult),
+			"pop":  base.get("pop", 0),
+			"prov_type": prov_type,
+		}
 	return {
 		"gold": int(float(base.get("gold", 0)) * mult * cmd_mult),
 		"food": int(float(base.get("food", 0)) * mult * cmd_mult),

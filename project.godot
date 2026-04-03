@@ -1,6 +1,10 @@
 ; Engine configuration file.
 ; It's best edited using the editor UI and not directly,
-; but it can also be edited directly.
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -44,6 +48,7 @@ CombatResolver="*res://systems/combat/combat_resolver.gd"
 CommanderIntervention="*res://systems/combat/commander_intervention.gd"
 ResearchManager="*res://systems/building/research_manager.gd"
 HeroSystem="*res://systems/hero/hero_system.gd"
+GeneralSystem="*res://systems/general/general_system.gd"
 HeroLeveling="*res://systems/hero/hero_leveling.gd"
 EventRegistry="*res://systems/event/event_registry.gd"
 EffectResolver="*res://systems/event/effect_resolver.gd"
@@ -90,14 +95,15 @@ QuestProgressTracker="*res://systems/quest/quest_progress_tracker.gd"
 EventScheduler="*res://systems/event/event_scheduler.gd"
 AssetLoader="*res://autoloads/asset_loader.gd"
 
+[debug]
+
+gdscript/warnings/integer_division=0
+gdscript/warnings/narrowing_conversion=0
+
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
-
-[rendering]
-
-renderer/rendering_method="gl_compatibility"
 
 [gui]
 
@@ -105,7 +111,6 @@ theme/custom="res://assets/theme/default_theme.tres"
 theme/custom_font="res://assets/fonts/NotoSansCJKsc-Regular.otf"
 theme/default_font_size=16
 
-[debug]
+[rendering]
 
-gdscript/warnings/integer_division=0
-gdscript/warnings/narrowing_conversion=0
+renderer/rendering_method="gl_compatibility"

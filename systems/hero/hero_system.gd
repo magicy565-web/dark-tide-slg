@@ -709,15 +709,33 @@ func is_hero_available(hero_id: String) -> bool:
 
 func get_garrison_commander_bonus(tile_index: int) -> Dictionary:
 	## Returns stat bonuses from the garrison commander at a tile.
+	## 战国兰斯式重构: 加入据点类型协同加成
 	var hero_id: String = get_stationed_hero(tile_index)
 	if hero_id == "":
 		return {"def_mult": 1.0, "prod_mult": 1.0, "order_bonus": 0, "garrison_add": 0}
 	var stats: Dictionary = get_hero_combat_stats(hero_id)
+	# 基础加成
+	var def_mult: float = 1.25
+	var prod_mult: float = 1.15
+	# 据点类型协同加成（战国兰斯式重构）
+	var TTS = load("res://systems/map/territory_type_system.gd")
+	if TTS != null and tile_index >= 0 and tile_index < GameManager.tiles.size():
+		var tile: Dictionary = GameManager.tiles[tile_index]
+		var prov_type: int = TTS.get_prov_type_from_tile(tile)
+		# 要塞/关隘类据点：防御加成更高
+		if prov_type == TTS.ProvType.FORTRESS or prov_type == TTS.ProvType.GATE:
+			def_mult = 1.4
+		# 城镇类据点：产出加成更高
+		elif prov_type == TTS.ProvType.TOWN:
+			prod_mult = 1.3
+		# 祸坛类据点：技能加成
+		elif prov_type == TTS.ProvType.SANCTUARY:
+			prod_mult = 1.2
 	return {
-		"def_mult": 1.25,           # +25% garrison DEF
-		"prod_mult": 1.15,          # +15% territory production
-		"order_bonus": 10,           # +10 public order per turn
-		"garrison_add": maxi(int(stats.get("atk", 0)) / 3, 1),  # ATK/3 extra garrison
+		"def_mult": def_mult,
+		"prod_mult": prod_mult,
+		"order_bonus": 10,
+		"garrison_add": maxi(int(stats.get("atk", 0)) / 3, 1),
 		"hero_name": _get_hero_name(hero_id),
 	}
 
