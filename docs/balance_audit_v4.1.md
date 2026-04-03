@@ -21,6 +21,7 @@ The balance framework is well-structured with centralized constants and a built-
 - The WAAAGH! triple passive has a 2.50x power multiplier, far exceeding any other passive (next highest is `siege_ignore` at 2.00x).
 - Combined with the in-combat mechanic (ATK x3 when WAAAGH >= 80), this unit becomes 7.5x its base power.
 - **Recommendation:** Reduce WAAAGH! triple passive mult from 2.50 to 1.80 (still the strongest, but not runaway).
+- **FIX APPLIED v4.2:** Changed in balance_manager.gd.
 
 **C2: Dark Elf Food Economy is Unsustainable**
 - Dark Elf has `food_per_soldier: 0.9` (highest) combined with `food_production_mult: 0.8` and `base_production_mult: 0.75`.
@@ -28,7 +29,7 @@ The balance framework is well-structured with centralized constants and a built-
 - A 40-soldier army costs 36 food/turn, requiring ~8 L1 food tiles.
 - With only 3 starting territories, Dark Elf goes food-negative by turn 5 even without expanding army.
 - **Recommendation:** Reduce `food_per_soldier` from 0.9 to 0.7 in faction_data.gd (slaves supplement diet).
-- **NOT APPLIED** -- constant is in faction_data.gd, not balance_config.gd. Requires separate review.
+- **FIX APPLIED v4.2:** Changed food_per_soldier from 0.9 to 0.7 in faction_data.gd.
 
 **C3: Pirate Gold Upkeep vs Income Imbalance at Scale**
 - Pirate has `GOLD_UPKEEP_PER_SOLDIER_PIRATE: 0.35` (nearly 3x Orc's 0.12).
@@ -58,6 +59,7 @@ The balance framework is well-structured with centralized constants and a built-
 - But espionage operations like sabotage can reduce a tile's production by significant percentages.
 - At mid-game 600g+/turn income, sabotaging even one L3 tile (producing ~144g/turn) pays for itself in 7 turns of intel investment.
 - **Recommendation:** Raise `INTEL_COST_PER_POINT` from 10 to 15 (in espionage_system.gd, not balance_config.gd since it is defined there).
+- **FIX APPLIED v4.2:** Changed in espionage_system.gd.
 
 **H4: MAX_COMBAT_ROUNDS (8) May Cause Draw Issues with Tanky Armies**
 - Damage formula: `soldiers x max(1, ATK - DEF) / 10`.
@@ -73,6 +75,7 @@ The balance framework is well-structured with centralized constants and a built-
 - This means Orcs need ~4 turns to recruit a single squad when considering upkeep.
 - Combined with `diplomacy_type: "conquest_only"`, Orcs can't use trade for supplemental income.
 - **Recommendation:** Raise Orc gold_income_mult from 0.7 to 0.75. Small change, big early-game impact.
+- **FIX APPLIED v4.2:** Changed in faction_data.gd.
 
 ### MEDIUM (Noticeable but not critical)
 
@@ -261,15 +264,25 @@ The balance framework is well-structured with centralized constants and a built-
 
 ---
 
-## 7. Recommended Future Changes (Not Applied)
+## 6b. Changes Applied in v4.2 Audit Fix Pass
 
-1. **Raise espionage INTEL_COST_PER_POINT from 10 to 15** (in espionage_system.gd)
-2. **Add late-game gold sinks** -- prestige actions cost too little relative to income at turn 30+
-3. **Start War Exhaustion at turn 40** with 0.02/turn rate (currently turn 50, 0.01/turn)
-4. **Reduce Mountain def_mult from 1.40 to 1.30** (in faction_data.gd TERRAIN_DATA)
-5. **Reduce WAAAGH! triple passive mult from 2.50 to 1.80** (in balance_manager.gd)
-6. **Raise Orc gold_income_mult from 0.7 to 0.75** (in faction_data.gd FACTION_PARAMS)
-7. **Rename AP_PER_5_TILES** constant to match actual per-7-tiles behavior
-8. **Reconcile hero EXP constants** between hero_level_data.gd and balance_config.gd
-9. **Add gift cost scaling** -- expensive gifts should give more affection
-10. **Raise FORMATION_BACK_RANGED_ATK_MULT** from 1.10 to 1.15
+| Change | File | Old Value | New Value | Rationale |
+|--------|------|-----------|-----------|-----------|
+| WAAAGH! triple passive mult (C1) | balance_manager.gd | 2.50 | 1.80 | 7.5x combined multiplier was runaway; 1.80 still strongest passive |
+| Dark Elf food_per_soldier (C2) | faction_data.gd | 0.9 | 0.7 | Food-negative by turn 5 with 3 starting tiles; slaves supplement diet |
+| Espionage INTEL_COST_PER_POINT (H3) | espionage_system.gd | 10 | 15 | Sabotage ROI was too quick at 10g/point |
+| Orc gold_income_mult (H5) | faction_data.gd | 0.7 | 0.75 | 0.7x with conquest_only diplomacy created snowball trap |
+| Mountain def_mult (M3) | faction_data.gd | 1.40 | 1.30 | 1.87x defender advantage was near-impenetrable without siege |
+| WAR_EXHAUSTION_START_TURN (M4) | balance_config.gd | 50 | 40 | Only 10 turns of effect was too weak in 60-turn game |
+| WAR_EXHAUSTION_PCT_PER_TURN (M4) | balance_config.gd | 0.01 | 0.02 | +2%/turn for more pressure to close games (max 40% at turn 60) |
+| Gift affection scaling (M5) | faction_data.gd | all +1 | 30+g gifts → +2 | Flat +1 made expensive gifts pointless; players always bought cheapest |
+| FORMATION_BACK_RANGED_ATK_MULT (L1) | balance_config.gd | 1.10 | 1.15 | Ranged parity with front melee at same 1.10 was unfair |
+| AP_PER_5_TILES renamed (L2) | balance_config.gd | AP_PER_5_TILES | AP_PER_7_TILES | Name now matches game_manager logic (per 7 tiles) |
+| Hero EXP constants (M1) | hero_level_data.gd | 10/2 | 15/3 | Reconciled with BalanceConfig values that are actually used at runtime |
+
+---
+
+## 7. Remaining Recommendations (Not Applied)
+
+1. **Add late-game gold sinks** -- prestige actions cost too little relative to income at turn 30+
+2. **Cap hero level at 20 for standard games** -- Lv50 is unreachable in 60 turns, reserve for NG+

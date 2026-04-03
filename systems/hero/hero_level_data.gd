@@ -29,9 +29,9 @@ const EXP_TABLE: Array[int] = [
 #  2. 经验值奖励常量
 # =============================================================================
 
-const EXP_COMBAT_WIN: int = 10   ## 战斗胜利
+const EXP_COMBAT_WIN: int = 15   ## 战斗胜利 — v4.2: 10→15, 与 BalanceConfig.HERO_EXP_COMBAT_WIN 对齐
 const EXP_COMBAT_LOSS: int = 3   ## 战斗失败
-const EXP_PER_KILL: int = 2      ## 每击杀一个部队
+const EXP_PER_KILL: int = 3      ## 每击杀一个部队 — v4.2: 2→3, 与 BalanceConfig.HERO_EXP_PER_KILL 对齐
 const EXP_BOSS_BONUS: int = 15   ## 击败Boss额外奖励
 
 # =============================================================================

@@ -65,8 +65,8 @@ const ARMY_UPKEEP_SCALE_PCT: float = 0.20   # +20% per army beyond free count
 ## After WAR_EXHAUSTION_START_TURN, all costs increase by WAR_EXHAUSTION_PCT_PER_TURN
 ## per turn. Encourages finishing the game rather than turtling indefinitely.
 ## At turn 50+10 = turn 60 (the turn limit), costs are +10% — a nudge, not a wall.
-const WAR_EXHAUSTION_START_TURN: int = 50
-const WAR_EXHAUSTION_PCT_PER_TURN: float = 0.01  # +1% per turn past start
+const WAR_EXHAUSTION_START_TURN: int = 40   # v4.2: 50→40 — M4 audit fix: only 10 turns of effect was too weak
+const WAR_EXHAUSTION_PCT_PER_TURN: float = 0.02  # v4.2: 0.01→0.02 — M4 audit fix: +2% per turn for more pressure to close games
 
 ## Supply strain: armies in enemy territory take attrition
 const SUPPLY_ENEMY_TERRITORY_ATTRITION: float = 0.03  # 3% per turn in unowned tiles
@@ -116,7 +116,7 @@ const FORMATION_FRONT_ATK_MULT: float = 1.10   # Front row: ATK +10% (melee adva
 const FORMATION_FRONT_DEF_MULT: float = 1.05   # Front row: DEF +5%
 const FORMATION_BACK_ATK_MULT: float = 0.95    # Back row: ATK -5% (non-ranged)
 const FORMATION_BACK_DEF_MULT: float = 1.15    # Back row: DEF +15% (defensive advantage)
-const FORMATION_BACK_RANGED_ATK_MULT: float = 1.10  # Back row ranged: ATK +10% instead of -5%
+const FORMATION_BACK_RANGED_ATK_MULT: float = 1.15  # v4.2: 1.10→1.15 — L1 audit fix: ranged were relatively weaker than front melee at same 1.10
 
 ## Named formation pattern bonuses (based on front/back unit counts)
 const FORMATION_WALL_DEF_MULT: float = 1.10       # Wall (3 front, 0 back): front DEF +10%
@@ -153,7 +153,7 @@ const MAX_HEROES_PER_ARMY: int = 2
 ## instead of 5, so the jump from 2→3 AP requires real expansion (~7 tiles).
 ## Max raised to 6 so late-game empires (35+ tiles) feel powerful.
 const BASE_AP: int = 2
-const AP_PER_5_TILES: int = 1   # Note: actually per 7 tiles now, see game_manager
+const AP_PER_7_TILES: int = 1   # v4.2: renamed from AP_PER_5_TILES — L2 audit fix: name now matches game_manager logic
 const MAX_AP: int = 6
 
 ## Base population cap before tile bonuses

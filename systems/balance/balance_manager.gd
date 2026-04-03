@@ -49,7 +49,7 @@ const PASSIVE_POWER_MULT: Dictionary = {
 	"blood_ritual": 1.15,      # sacrifice to heal
 	"overload": 1.20,          # 3 attacks then self-destruct
 	"leadership": 1.20,        # adjacent ATK+2
-	"waaagh_triple": 2.50,     # ×3 ATK at WAAAGH! 80+ (aura)
+	"waaagh_triple": 1.80,     # ×3 ATK at WAAAGH! 80+ (aura) — v4.2: 2.50→1.80, was outlier (C1 audit fix)
 	"siege_ignore": 2.00,      # bypasses walls (aura)
 	"shadow_flight": 2.20,     # stealth aura + dominate
 	# Hero-bound passives

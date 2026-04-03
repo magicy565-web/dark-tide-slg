@@ -25,11 +25,11 @@ const SUBMISSION_MAX: int = 10                  # 服从度上限
 const GIFT_TYPES: Dictionary = {
 	"flower": {"name": "鲜花", "cost": 15, "affection": 1},
 	"book": {"name": "典籍", "cost": 20, "affection": 1},
-	"weapon_gift": {"name": "名刀", "cost": 30, "affection": 1},
-	"jewel": {"name": "宝石", "cost": 35, "affection": 1},
+	"weapon_gift": {"name": "名刀", "cost": 30, "affection": 2},
+	"jewel": {"name": "宝石", "cost": 35, "affection": 2},
 	"food_gift": {"name": "美食", "cost": 15, "affection": 1},
 	"medicine": {"name": "灵药", "cost": 25, "affection": 1},
-}
+}  # v4.2: M5 audit fix — expensive gifts (30+g) now give +2 affection instead of flat +1
 const GIFT_PREFERRED_BONUS: int = 1  # preferred gift gives +1 extra affection
 const GIFT_COOLDOWN_TURNS: int = 1   # 1 gift per hero per turn
 
@@ -263,7 +263,7 @@ const FACTION_PARAMS: Dictionary = {
 		"recruit_cost_iron": 6,            # v4.6: 8→6 — crude weapons are cheap
 		"slave_capture_bonus": 1.5,        # +50% slave capture
 		"base_production_mult": 1.0,
-		"gold_income_mult": 0.7,           # v4.6: 0.8→0.7 — orcs are terrible merchants
+		"gold_income_mult": 0.75,          # v4.2: 0.7→0.75 — H5 audit fix: 0.7 created snowball trap with conquest_only diplomacy
 		"iron_income_mult": 0.8,           # v0.7: iron x0.8
 		"food_production_mult": 1.1,       # v4.6: 1.0→1.1 — orcs forage well
 		# WAAAGH! graduated thresholds (per orc_mechanic.gd §3.1)
@@ -364,7 +364,7 @@ const FACTION_PARAMS: Dictionary = {
 		"intimidation_atk_per_point": 0.01,    # +1% ATK per threat above floor
 	},
 	FactionID.DARK_ELF: {
-		"food_per_soldier": 0.9,           # v4.6: 1.0→0.9 — slight relief, slaves supplement
+		"food_per_soldier": 0.7,           # v4.2: 0.9→0.7 — C2 audit fix: 0.9 was unsustainable with 3 starting tiles, slaves supplement diet
 		"recruit_cost_gold": 65,           # v4.6: 60→65 — quality elites cost more
 		"recruit_cost_iron": 3,            # v4.6: 5→3 — dark elves use enchanted weapons (less iron)
 		"slave_capture_bonus": 2.0,        # v0.7: +100% slave capture
@@ -1138,7 +1138,7 @@ const TERRAIN_DATA: Dictionary = {
 	TerrainType.MOUNTAIN: {
 		"name": "山地", "icon": "⛰️",
 		"desc": "防御方+40%防御，攻击方-25%攻击，视野增加，骑兵禁入",
-		"move_cost": 3, "atk_mult": 0.75, "def_mult": 1.40,
+		"move_cost": 3, "atk_mult": 0.75, "def_mult": 1.30,  # v4.2: 1.40→1.30 — M3 audit fix: 1.87x defender advantage was near-impenetrable
 		"production_mult": 0.7, "visibility_range": 3, "attrition_pct": 0.0,
 		"special_flags": ["cavalry_penalty", "high_ground"],
 		"unit_mods": {

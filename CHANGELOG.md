@@ -2,6 +2,48 @@
 
 ---
 
+## v4.2.0 — 2026-04-03 (数值审计修复: 11项平衡性问题)
+
+### 关键修复 (Critical)
+
+- **C1: WAAAGH!三倍被动乘数过高** — `balance_manager.gd` 中 `waaagh_triple` 从 2.50 降至 1.80. 原先配合战斗内×3 ATK 形成 7.5 倍乘数, 现降至 5.4 倍, 仍为最强被动.
+- **C2: 暗精灵粮食经济不可持续** — `faction_data.gd` 中 Dark Elf `food_per_soldier` 从 0.9 降至 0.7. 原先 3 块起始领地在第 5 回合即粮食赤字.
+
+### 高优先级修复 (High)
+
+- **H3: 情报投资成本过低** — `espionage_system.gd` 中 `INTEL_COST_PER_POINT` 从 10 升至 15. 破坏行动 ROI 过快.
+- **H5: 兽人金币收入雪球陷阱** — `faction_data.gd` 中 Orc `gold_income_mult` 从 0.7 升至 0.75. 配合 conquest_only 外交过于窒息.
+
+### 中优先级修复 (Medium)
+
+- **M1: 英雄经验值常量不一致** — `hero_level_data.gd` 中 `EXP_COMBAT_WIN` 从 10→15, `EXP_PER_KILL` 从 2→3, 与 BalanceConfig 运行时值对齐.
+- **M3: 山地地形防御过强** — `faction_data.gd` 中 Mountain `def_mult` 从 1.40 降至 1.30. 防守方优势从 1.87 倍降至 1.73 倍.
+- **M4: 战争疲劳启动过晚** — `balance_config.gd` 中 `WAR_EXHAUSTION_START_TURN` 从 50→40, `PCT_PER_TURN` 从 0.01→0.02. 60 回合游戏中最大效果从 +10% 升至 +40%.
+- **M5: 赠礼好感度扁平** — `faction_data.gd` 中 30g+ 礼物好感度从 +1 改为 +2. 廉价礼物不再完全替代昂贵礼物.
+
+### 低优先级修复 (Low)
+
+- **L1: 后排远程 ATK 乘数偏低** — `balance_config.gd` 中 `FORMATION_BACK_RANGED_ATK_MULT` 从 1.10 升至 1.15.
+- **L2: AP_PER_5_TILES 常量改名** — `balance_config.gd` 中重命名为 `AP_PER_7_TILES`, 与 game_manager 实际逻辑一致.
+
+### 文档更新
+
+- `docs/balance_audit_v4.1.md` — 新增 §6b 已应用修复表, §7 更新为仅剩余建议.
+
+### 文件变更清单
+
+| 文件 | 变更类型 |
+|------|----------|
+| systems/balance/balance_manager.gd | 数值调整 (waaagh_triple 2.50→1.80) |
+| systems/balance/balance_config.gd | 数值调整 (战争疲劳/远程ATK/AP常量改名) |
+| systems/faction/faction_data.gd | 数值调整 (暗精灵粮食/兽人金币/山地防御/赠礼) |
+| systems/faction/espionage_system.gd | 数值调整 (情报成本 10→15) |
+| systems/hero/hero_level_data.gd | 常量对齐 (EXP值与BalanceConfig同步) |
+| docs/balance_audit_v4.1.md | 文档更新 (标记已修复项) |
+| CHANGELOG.md | 新增条目 |
+
+---
+
 ## v4.1.0 — 2026-04-01 (代码质量: Autoload精简 + 数值外部化 + 文档)
 
 ### Autoload精简 (79 → 78)
