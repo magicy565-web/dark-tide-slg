@@ -30,6 +30,14 @@ func _ready() -> void:
 	pass
 
 
+# ── Reset (New Game) ──
+func reset() -> void:
+	_research_state.clear()
+	_speed_cache.clear()
+	_active_tree.clear()
+	_academy_missing_turns.clear()
+
+
 # ── Initialization ──
 func init_player(player_id: int) -> void:
 	_research_state[player_id] = {

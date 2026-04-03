@@ -1237,9 +1237,7 @@ func _get_faction_display_name(faction_key: String) -> String:
 	return faction_key.capitalize()
 
 func _record_reputation_change(faction_key: String, delta: int, reason: String) -> void:
-	var turn: int = GameManager.current_turn if GameManager.has_method("get") else 0
-	if "current_turn" in GameManager:
-		turn = GameManager.current_turn
+	var turn: int = GameManager.turn_number
 	_reputation_history.append({
 		"faction_key": faction_key, "delta": delta,
 		"reason": reason, "turn": turn,

@@ -31,6 +31,15 @@ var hero_current_mp: Dictionary = {}         # hero_id -> int
 # 初始化
 # =========================================================================== #
 
+## 重置所有英雄升级数据（用于 New Game）。
+func reset() -> void:
+	hero_exp.clear()
+	hero_level.clear()
+	hero_unlocked_passives.clear()
+	hero_current_hp.clear()
+	hero_current_mp.clear()
+
+
 ## 初始化英雄——设置为1级、0经验值。若已存在则跳过。
 func init_hero(hero_id: String) -> void:
 	if hero_exp.has(hero_id):
