@@ -2885,10 +2885,12 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 		return false
 
 	# Apply upgrade
-	ResourceManager.apply_delta(player_id, {"gold": -cost["gold"], "iron": -cost["iron"]})
+	# BUG FIX: validate new_data BEFORE deducting resources to avoid losing gold/iron
+	# if the upgrade_id has no data in TROOP_TYPES.
 	var new_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
 	if new_data.is_empty():
 		return false
+	ResourceManager.apply_delta(player_id, {"gold": -cost["gold"], "iron": -cost["iron"]})
 
 	var old_name: String = troop.get("name", current_id)
 	troop["troop_id"] = upgrade_id
@@ -2896,7 +2898,10 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 	troop["atk"] = new_data.get("atk", troop["atk"])
 	troop["def"] = new_data.get("def", troop["def"])
 	troop["spd"] = new_data.get("spd", troop.get("spd", 5))
-	troop["max_soldiers"] = new_data.get("max_soldiers", troop["max_soldiers"])
+	# BUG FIX: clamp current soldiers to new max_soldiers after upgrade
+	var new_max: int = new_data.get("max_soldiers", troop["max_soldiers"])
+	troop["max_soldiers"] = new_max
+	troop["soldiers"] = mini(troop.get("soldiers", new_max), new_max)
 	if new_data.has("passive"):
 		troop["passive"] = new_data["passive"]
 
@@ -6032,11 +6037,29 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 				EventBus.message_log.emit("已达人口上限!")
 				return false
 			ResourceManager.spend(pid, {"gold": gold_cost, "iron": iron_cost})
-			ResourceManager.add_army(pid, 1)
 			player["ap"] -= 1
+			# BUG FIX: Use RecruitManager to properly create a troop instance and add it
+			# to the player's army. Previously only ResourceManager.add_army(pid, 1) was
+			# called, which increments the abstract soldier count but never adds a troop
+			# instance to any army's 'troops' array, making recruited soldiers invisible
+			# in combat.
+			var _faction_troop_map: Dictionary = {
+				FactionData.FactionID.ORC: "orc_ashigaru",
+				FactionData.FactionID.PIRATE: "pirate_ashigaru",
+				FactionData.FactionID.DARK_ELF: "de_samurai",
+			}
+			var default_troop_id: String = _faction_troop_map.get(faction_id, "ashigaru")
+			var troop_inst: Dictionary = GameData.create_troop_instance(default_troop_id)
+			if not troop_inst.is_empty():
+				# BUG FIX: Only add to RecruitManager pool (which is the canonical army pool).
+				# Previously also appended to stationed_army['troops'], causing the same
+				# troop instance to be referenced in two places (double-count in combat).
+				RecruitManager.reinforce_army(pid, [troop_inst])
+			else:
+				ResourceManager.add_army(pid, 1)
 			sync_player_army(pid)
-			EventBus.message_log.emit("在 %s 招募了1个步兵" % tile["name"])
-			EventBus.action_visualize_recruit.emit(target_tile_index, "infantry", 1)
+			EventBus.message_log.emit("在 %s 招募了1个%s" % [tile["name"], params.get("default_troop", "步兵")])
+			EventBus.action_visualize_recruit.emit(target_tile_index, default_troop_id, 1)
 			return true
 
 		"upgrade":
@@ -6181,12 +6204,8 @@ func action_diplomacy(player_id: int, target_faction_id: int, diplomacy_type: St
 				return false
 			player["ap"] -= 1
 			ResourceManager.spend(player_id, {"gold": ceasefire_cost})
-			# Use DiplomacyManager ceasefire but with 3-turn duration
-			if not DiplomacyManager._ceasefire.has(player_id):
-				DiplomacyManager._ceasefire[player_id] = {}
-			DiplomacyManager._ceasefire[player_id][target_faction_id] = 3
-			if DiplomacyManager._relations.has(player_id) and DiplomacyManager._relations[player_id].has(target_faction_id):
-				DiplomacyManager._relations[player_id][target_faction_id]["ceasefire_active"] = true
+			# BUG FIX: Use public API offer_ceasefire() instead of directly accessing private variables.
+			DiplomacyManager.offer_ceasefire(player_id, target_faction_id, 3)
 			var fname: String = FactionData.FACTION_NAMES.get(target_faction_id, "???")
 			EventBus.message_log.emit("[color=cyan]与%s达成停战! 3回合内互不侵犯 (-%d金)[/color]" % [fname, ceasefire_cost])
 			EventBus.ap_changed.emit(player_id, player["ap"])
@@ -6544,11 +6563,17 @@ func action_block_supply(player_id: int, tile_index: int) -> bool:
 			if ntile["owner_id"] != player_id and ntile["owner_id"] >= 0:
 				nearby_enemies += 1
 	if nearby_enemies > 0:
-		# 对每个相邻敌方居点施加簮食减少
-		for eid in range(players.size()):
-			var ep: Dictionary = players[eid]
-			if ep.get("is_ai", true) and ep["id"] != player_id:
-				ResourceManager.apply_delta(ep["id"], {"food": -nearby_enemies * 3})
+		# BUG FIX: Only deduct food from players who own the adjacent enemy tiles,
+		# not from ALL AI players.
+		var affected_owners: Dictionary = {}
+		for neighbor_idx2 in adjacency.get(tile_index, []):
+			if neighbor_idx2 >= 0 and neighbor_idx2 < tiles.size():
+				var ntile2: Dictionary = tiles[neighbor_idx2]
+				var oid: int = ntile2.get("owner_id", -1)
+				if oid != player_id and oid >= 0:
+					affected_owners[oid] = affected_owners.get(oid, 0) + 1
+		for oid2 in affected_owners:
+			ResourceManager.apply_delta(oid2, {"food": -affected_owners[oid2] * 3})
 		ThreatManager.change_threat(nearby_enemies * 2)
 		EventBus.message_log.emit("[color=cyan][封锁补给] 封锁%d个敌方居点的补给线，敌方簮食共减少%d。[/color]" % [nearby_enemies, nearby_enemies * 3])
 	else:
@@ -6596,11 +6621,14 @@ func action_exploit(player_id: int, tile_index: int) -> bool:
 	var resource_type: String = "gold"
 	var amount: int = randi_range(15, 30)
 	match tile_type:
-		3: # 矿山
+		TileType.MINE_TILE: # 矿山
 			resource_type = "iron"
 			amount = randi_range(20, 40)
-		4: # 農田
+		TileType.FARM_TILE: # 農田
 			resource_type = "food"
+			amount = randi_range(20, 40)
+		TileType.RESOURCE_STATION: # 资源站
+			resource_type = "gold"
 			amount = randi_range(20, 40)
 		_:
 			resource_type = "gold"
@@ -7256,11 +7284,16 @@ func run_ai_turn() -> void:
 			var recruit_iron: int = params.get("recruit_cost_iron", 10)
 			if ResourceManager.can_afford(pid, {"gold": recruit_gold, "iron": recruit_iron}):
 				# Recruit at the tile where an army is stationed (or first owned tile)
+				# BUG FIX: army may not have 'troops' key; use .get() to avoid crash.
+				# Also verify the tile is owned by this player before recruiting there.
 				var recruit_tile: int = owned_tiles[0]["index"]
 				for army in ai_armies:
-					if army["troops"].size() < MAX_TROOPS_PER_ARMY:
-						recruit_tile = army["tile_index"]
-						break
+					var troop_count: int = army.get("troops", []).size()
+					var atile: int = army.get("tile_index", -1)
+					if troop_count < MAX_TROOPS_PER_ARMY and atile >= 0 and atile < tiles.size():
+						if tiles[atile].get("owner_id", -1) == pid:
+							recruit_tile = atile
+							break
 				action_domestic(pid, recruit_tile, "recruit")
 				EventBus.ai_action_completed.emit(_fk, "recruit", true)
 				continue
