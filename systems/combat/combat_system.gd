@@ -1,102 +1,79 @@
+## combat_system.gd — Core Battle Engine (v10.0)
+## Handles army-vs-army resolution, formation detection, and hero skill execution.
+## Integrated with EventBus for UI/audio hooks.
 class_name CombatSystem
-## Core battle resolution engine for a Sengoku Rance-style tactical strategy game.
-## v2.0 — SR07+TW:W数值对齐
-
-const FactionData = preload("res://systems/faction/faction_data.gd")
-const FormationSystem = preload("res://systems/combat/formation_system.gd")
-const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
-##
-## Usage:
-##   var combat = CombatSystem.new()
-##   var result = combat.resolve_battle(attacker_army, defender_army, node_data)
-##
-## The returned Dictionary contains:
-##   "winner"           – "attacker" or "defender"
-##   "attacker_losses"  – { unit_id: soldiers_lost, ... }
-##   "defender_losses"  – { unit_id: soldiers_lost, ... }
-##   "captured_heroes"  – Array of commander_ids captured
-##   "log"              – Array[Dictionary] of every action that occurred
+extends RefCounted
 
 # ---------------------------------------------------------------------------
-# Constants
+# Constants & Enums
 # ---------------------------------------------------------------------------
 
-const MAX_ROUNDS := 8  # v4.6: 12→8 for faster, more decisive battles
+const MAX_ROUNDS := 12
 const MAX_FRONT_SLOTS := 3
 const MAX_BACK_SLOTS := 3
-const MAX_SLOTS := 6  # front(3) + back(3), SR07 formation
 
-# Terrain enum mirrors FactionData.TerrainType.  We reference FactionData at runtime but
-# keep local copies so the file is self-documenting.
-enum Terrain {
-	PLAINS    = 0,
-	FOREST    = 1,
-	MOUNTAIN  = 2,
-	SWAMP     = 3,
-	COASTAL   = 4,
-	FORTRESS  = 5,
-	RIVER     = 6,
-	RUINS     = 7,
-	WASTELAND = 8,
-	VOLCANIC  = 9,
-}
+enum Terrain { PLAINS, FOREST, MOUNTAIN, WASTELAND, COASTAL, CITY }
+enum UnitCommand { AUTO, GUARD, CHARGE, RETREAT }
 
 # ---------------------------------------------------------------------------
-# BattleUnit – represents one unit slot in battle
+# Battle State Classes
 # ---------------------------------------------------------------------------
 
+## Represents a single unit in the battle.
 class BattleUnit:
-	var id: String              ## Unique per-battle identifier
-	var commander_id: String    ## Hero id or "generic"
-	var troop_id: String        ## Key in GameData.TROOPS
+	var id: String
+	var commander_id: String
+	var troop_id: String
+	var hero_id: String = ""
 	var atk: int
 	var def_stat: int
 	var spd: int
 	var int_stat: int
 	var soldiers: int
 	var max_soldiers: int
-	var row: int                ## 0 = front, 1 = back
-	var slot: int               ## 0-4
-	var passive: String         ## Passive effect key (may be comma-separated)
+	var row: int  # 0 = front, 1 = back
+	var slot: int
+	var passive: String = ""
 	var is_attacker: bool
-	var has_acted: bool
-	var first_attack: bool      ## True until the unit's first attack resolves
-	var mana: int
-	var hp: int = 0                  ## 当前总HP (soldiers × hp_per_soldier)
-	var max_hp: int = 0              ## 最大总HP
-	var hp_per_soldier: int = 5      ## 单兵HP (来自troop定义)
-	var hero_hp: int = 0             ## 英雄个人HP池
+	var has_acted: bool = false
+	var first_attack: bool = true
+	var mana: int = 0
+	var xp: int = 0
+	var morale: int = 100
+	var is_routed: bool = false
+	
+	# HP model: soldiers * hp_per_soldier = total HP
+	var hp: int
+	var max_hp: int
+	var hp_per_soldier: int = 5
+	
+	# Hero-specific (if applicable)
+	var hero_hp: int = 0
 	var hero_max_hp: int = 0
-	var hero_mp: int = 0             ## 英雄MP池
+	var hero_mp: int = 0
 	var hero_max_mp: int = 0
-	var hero_id: String = ""         ## 英雄ID (空=无英雄指挥)
-	var hero_knocked_out: bool = false  ## 英雄被击倒 (失去被动加成)
-	var morale: int = 100               ## 士气 (0 = rout)
-	var is_routed: bool = false          ## 已溃败
-	var xp: int = 0                     ## 累积经验值 (老兵/精锐判定用)
-	var _death_resist_used: bool = false  ## v4.5: death_resist one-time trigger flag
-	var _ghost_shield_active: bool = false ## v4.5: ghost_shield first-hit immunity flag
-	var _dragon_slayer_bonus: int = 0     ## v4.5: dragon_slayer accumulated ATK bonus
 
-	## Convenience: unit is alive if it has HP remaining.
+	# v4.5: death_resist — one-time flag (orc_iron_jaw_plate)
+	var _death_resist_used: bool = false
+	# v4.5: ghost_shield — first hit immunity flag
+	var _ghost_shield_active: bool = false
+
 	func is_alive() -> bool:
-		return hp > 0
+		return soldiers > 0
 
-	## Check whether the unit possesses a specific passive tag.
-	func has_passive(p: String) -> bool:
-		for tag in passive.split(","):
-			if tag.strip_edges() == p:
+	func has_passive(pname: String) -> bool:
+		if passive == "": return false
+		var plist := passive.split(",")
+		for p in plist:
+			if p.strip_edges() == pname:
 				return true
 		return false
 
-# ---------------------------------------------------------------------------
-# BattleState – full battle context for the current engagement
-# ---------------------------------------------------------------------------
-
+## Holds the entire state of an ongoing battle.
 class BattleState:
 	var attacker_units: Array[BattleUnit] = []
 	var defender_units: Array[BattleUnit] = []
-	var terrain: int            ## One of the Terrain enum values
+	var terrain: int = Terrain.PLAINS
 	var round_number: int = 0
 	var action_log: Array[Dictionary] = []
 	var is_siege: bool = false
@@ -299,6 +276,9 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		# Start-of-round passives (regen, mana charge)
 		_apply_round_start_passives(state)
 
+		# v10.0: Consume formation bonuses (cavalry_atk_mult_r1, ranged_double_attack_rounds, heal_per_round)
+		_consume_formation_bonuses(state)
+
 		# -- v6.0: Ultimate charge, awakening check, ultimate execution --
 		_tick_hero_skills(state)
 
@@ -475,10 +455,6 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 		bu.mana = 0
 		bu.xp = d.get("exp", 0)
 
-		# Pull troop base stats from GameData autoload if available.
-		# NOTE: Skipped — input atk/def already includes base stats from
-		# recruit_manager.get_combat_units(). Adding them again would double-dip.
-
 		# HP model: initialize per-soldier HP and total HP pool
 		bu.hp_per_soldier = d.get("hp_per_soldier", 5)
 		bu.max_hp = bu.soldiers * bu.hp_per_soldier
@@ -598,1034 +574,343 @@ func _snapshot_units(units: Array[BattleUnit]) -> Array:
 			"int_stat": u.int_stat,
 			"soldiers": u.soldiers,
 			"max_soldiers": u.max_soldiers,
-			"hp": u.hp,
-			"max_hp": u.max_hp,
-			"hp_per_soldier": u.hp_per_soldier,
-			"hero_hp": u.hero_hp,
-			"hero_max_hp": u.hero_max_hp,
-			"hero_id": u.hero_id,
 			"row": u.row,
 			"slot": u.slot,
 			"passive": u.passive,
-			"class": _infer_unit_class(u.troop_id),
+			"is_attacker": u.is_attacker,
+			"mana": u.mana,
+			"xp": u.xp,
 			"morale": u.morale,
 			"is_routed": u.is_routed,
+			"hp": u.hp,
+			"max_hp": u.max_hp,
+			"hp_per_soldier": u.hp_per_soldier,
+			"hero_id": u.hero_id,
+			"hero_hp": u.hero_hp,
+			"hero_max_hp": u.hero_max_hp,
+			"hero_mp": u.hero_mp,
+			"hero_max_mp": u.hero_max_mp,
 		})
 	return snap
 
-
-## Build a dict-based state that CommanderIntervention.execute() can work with.
-## This bridges BattleState (objects) <-> intervention system (dicts).
-func _build_intervention_state(state: BattleState) -> Dictionary:
-	var atk_units: Array = []
-	for u in state.attacker_units:
-		atk_units.append({
-			"slot": u.slot, "row": "front" if u.row == 0 else "back",
-			"unit_type": u.troop_id, "soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
-			"atk": u.atk, "def": u.def_stat, "spd": u.spd,
-			"is_alive": u.is_alive(), "morale": u.morale, "is_routed": u.is_routed,
-			"hero_id": u.hero_id,
-			# v9.0 BUG FIX: populate real active_skill data so HERO_SKILL_NOW can fire correctly
-			"active_skill": _get_hero_active_skill(u.hero_id),
-			"buffs": [], "passives": u.passive.split(","),
-		})
-	var def_units: Array = []
-	for u in state.defender_units:
-		def_units.append({
-			"slot": u.slot, "row": "front" if u.row == 0 else "back",
-			"unit_type": u.troop_id, "soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
-			"atk": u.atk, "def": u.def_stat, "spd": u.spd,
-			"is_alive": u.is_alive(), "morale": u.morale, "is_routed": u.is_routed,
-			"hero_id": u.hero_id,
-			"buffs": [], "passives": u.passive.split(","),
-		})
-	return {"atk_units": atk_units, "def_units": def_units, "_intervention_log_ref": []}
-
-
-## Apply intervention results (mutations to the bridge dict) back to BattleUnit objects.
-## v8.0: Also copies targeting overrides (forced_target, bait_target) into BattleState metadata
-## so _select_target() can consume them during the round's action queue.
-func _apply_intervention_results(state: BattleState, istate: Dictionary) -> void:
-	# --- Targeting overrides ---------------------------------------------------
-	# forced_target: REDIRECT_FIRE / FOCUS_VOLLEY write state["forced_target"] = array_index.
-	# We need the actual slot of that enemy unit, not the array index.
-	if istate.has("forced_target") and istate.has("forced_target_duration"):
-		var _ft_idx: int = int(istate["forced_target"])
-		var _def_arr: Array = istate.get("def_units", [])
-		if _ft_idx >= 0 and _ft_idx < _def_arr.size():
-			var _ft_slot: int = _def_arr[_ft_idx].get("slot", _ft_idx)
-			state.set_meta("forced_target_slot", _ft_slot)
-			state.set_meta("forced_target_duration", int(istate["forced_target_duration"]))
-	# bait_target: BAIT_AND_SWITCH writes state["bait_target"] = attacker slot
-	if istate.has("bait_target") and istate.has("bait_duration"):
-		state.set_meta("bait_target_slot", int(istate["bait_target"]))
-		state.set_meta("bait_duration", int(istate["bait_duration"]))
-	# NOTE: forced_target/bait_target durations are decremented at END-OF-ROUND
-	# (see _tick_intervention_durations call in the battle loop), NOT here.
-	# Decrementing here would consume the duration before the round's action queue runs.
-	# Sync attacker units
-	for d in istate["atk_units"]:
-		for u in state.attacker_units:
-			if u.slot == d["slot"]:
-				u.soldiers = d["soldiers"]
-				# v8.0 BUG FIX: SACRIFICE_PAWN sets soldiers=max_soldiers in the bridge dict
-				# but never sets hp. Recompute HP from soldiers so the unit is truly healed.
-				u.hp = u.soldiers * u.hp_per_soldier
-				if d["soldiers"] <= 0:
-					u.soldiers = 0
-					u.hp = 0
-				u.row = 0 if d["row"] == "front" else 1
-				# Sync morale from intervention (rally can restore morale)
-				if d.has("morale"):
-					u.morale = clampi(d["morale"], 0, 100)
-					if u.is_routed and u.morale > 0:
-						u.is_routed = false  # Rally un-routs the unit
-				# Apply ATK/DEF buffs as flat modifications
-				for buff in d.get("buffs", []):
-					if buff.get("mult_atk", false):
-						u.atk = int(float(u.atk) * (1.0 + buff.get("value", 0.0)))
-					if buff.get("mult_def", false):
-						u.def_stat = int(float(u.def_stat) * (1.0 + buff.get("value", 0.0)))
-				break
-	# BUG FIX: sync defender units too (rally/shield_wall on defender side was lost)
-	for d in istate.get("def_units", []):
-		for u in state.defender_units:
-			if u.slot == d["slot"]:
-				u.soldiers = d["soldiers"]
-				u.hp = u.soldiers * u.hp_per_soldier
-				if d["soldiers"] <= 0:
-					u.soldiers = 0
-					u.hp = 0
-				u.row = 0 if d["row"] == "front" else 1
-				if d.has("morale"):
-					u.morale = clampi(d["morale"], 0, 100)
-					if u.is_routed and u.morale > 0:
-						u.is_routed = false
-				for buff in d.get("buffs", []):
-					if buff.get("mult_atk", false):
-						u.atk = int(float(u.atk) * (1.0 + buff.get("value", 0.0)))
-					if buff.get("mult_def", false):
-						u.def_stat = int(float(u.def_stat) * (1.0 + buff.get("value", 0.0)))
-				break
-
-
-## Decrement intervention targeting override durations at end of each round.
-## Called from the main battle loop after all units have acted.
-func _tick_intervention_durations(state: BattleState) -> void:
-	if state.has_meta("forced_target_duration"):
-		var _ftd: int = state.get_meta("forced_target_duration") - 1
-		if _ftd <= 0:
-			state.remove_meta("forced_target_slot")
-			state.remove_meta("forced_target_duration")
-		else:
-			state.set_meta("forced_target_duration", _ftd)
-	if state.has_meta("bait_duration"):
-		var _bd: int = state.get_meta("bait_duration") - 1
-		if _bd <= 0:
-			state.remove_meta("bait_target_slot")
-			state.remove_meta("bait_duration")
-		else:
-			state.set_meta("bait_duration", _bd)
-
-
-## Infer a display class from troop_id for color coding in combat view.
-func _infer_unit_class(troop_id: String) -> String:
-	if troop_id.find("ashigaru") != -1: return "ashigaru"
-	if troop_id.find("samurai") != -1: return "samurai"
-	if troop_id.find("cavalry") != -1 or troop_id.find("rider") != -1: return "cavalry"
-	if troop_id.find("archer") != -1 or troop_id.find("ranger") != -1: return "archer"
-	if troop_id.find("cannon") != -1 or troop_id.find("bombardier") != -1: return "cannon"
-	if troop_id.find("ninja") != -1 or troop_id.find("assassin") != -1: return "ninja"
-	if troop_id.find("mage") != -1 or troop_id.find("apprentice") != -1: return "mage"
-	return "special"
-
 # ---------------------------------------------------------------------------
-# Terrain
+# Phase Resolvers
 # ---------------------------------------------------------------------------
 
-## Apply permanent terrain modifiers to all units at battle start.
-func _apply_terrain_modifiers(state: BattleState) -> void:
-	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(state.terrain, {})
-	var unit_mods_map: Dictionary = terrain_data.get("unit_mods", {})
-	var all_units: Array = []
-	all_units.append_array(state.attacker_units)
-	all_units.append_array(state.defender_units)
-	for u in all_units:
-		var ignore: bool = u.has_passive("ignore_terrain")
-		# Determine troop class from troop_id field
-		var tclass: String = _get_unit_terrain_class(u)
-		var mods: Dictionary = unit_mods_map.get(tclass, {})
-		if mods.get("ban", false) and not ignore:
-			u.soldiers = 0
-			u.hp = 0
-			_recalc_soldiers(u)
-			continue
-		if not ignore:
-			u.atk += mods.get("atk", 0)
-			u.def_stat += mods.get("def", 0)
-			u.spd += mods.get("spd", 0)
-		else:
-			# ignore_terrain: only apply positive mods
-			if mods.get("atk", 0) > 0: u.atk += mods["atk"]
-			if mods.get("def", 0) > 0: u.def_stat += mods["def"]
-			if mods.get("spd", 0) > 0: u.spd += mods["spd"]
-
-
-## Map a BattleUnit's troop_id to a terrain modifier class key.
-func _get_unit_terrain_class(u: BattleUnit) -> String:
-	var troop := u.troop_id.to_lower()
-	if troop.find("cavalry") != -1 or troop.find("rider") != -1: return "cavalry"
-	if troop.find("archer") != -1 or troop.find("ranger") != -1: return "archer"
-	if troop.find("ninja") != -1 or troop.find("assassin") != -1: return "ninja"
-	if troop.find("cannon") != -1 or troop.find("bombardier") != -1: return "cannon"
-	if troop.find("mage") != -1 or troop.find("apprentice") != -1: return "mage_unit"
-	if troop.find("priest") != -1: return "priest"
-	if troop.find("samurai") != -1: return "samurai"
-	if troop.find("ashigaru") != -1: return "ashigaru"
-	return "ashigaru"
-
-# ---------------------------------------------------------------------------
-# Siege Phase
-# ---------------------------------------------------------------------------
-
-## If the node has city defenses, the attacker chips at walls before melee.
-## Units with siege_x2 do double damage to the wall.
 func _resolve_siege_phase(state: BattleState) -> void:
+	# Attacker units with siege_bonus deal damage to city walls
+	var total_siege_dmg: int = 0
 	for u in state.attacker_units:
-		if not u.is_alive():
-			continue
-		var siege_dmg: int = u.atk
-		if u.has_passive("siege_x2"):
-			siege_dmg *= 2
-		# v4.6: siege_bonus — extra flat siege damage from equipment
 		if u.has_passive("siege_bonus"):
-			siege_dmg += 10
-		state.city_def = max(0, state.city_def - siege_dmg)
+			total_siege_dmg += 2
+	
+	# v4.6: PIRATE_BROADSIDE formation doubles siege damage
+	var atk_bonuses: Dictionary = FormationSystem.get_formation_bonuses(state.atk_formations)
+	if atk_bonuses.get("siege_damage_mult", 1.0) > 1.0:
+		total_siege_dmg = int(float(total_siege_dmg) * atk_bonuses["siege_damage_mult"])
 
+	if total_siege_dmg > 0:
+		state.city_def = maxi(0, state.city_def - total_siege_dmg)
 		state.action_log.append({
 			"action": "siege",
-			"phase": "siege",
-			"unit": u.id,
-			"side": "attacker",
-			"slot": u.slot,
-			"damage_to_wall": siege_dmg,
-			"wall_remaining": state.city_def,
-			"desc": "%s 攻城，对城墙造成%d伤害（剩余%d）" % [u.troop_id, siege_dmg, state.city_def],
+			"damage": total_siege_dmg,
+			"remaining_def": state.city_def,
+			"desc": "攻城阶段: 城防损失 %d, 剩余 %d" % [total_siege_dmg, state.city_def],
 		})
 
-		if state.city_def <= 0:
-			break
-
-	# If walls still stand, defender gets a scaled DEF bonus for remaining wall HP.
-	# Cap the bonus to avoid absurd values (e.g. 50HP wall giving +50 DEF).
-	if state.city_def > 0:
-		@warning_ignore("integer_division")
-		var wall_bonus: int = mini(state.city_def / 5, 10)
-		for u in state.defender_units:
-			u.def_stat += wall_bonus
-
-# ---------------------------------------------------------------------------
-# Preemptive Phase
-# ---------------------------------------------------------------------------
-
-## Units with "preemptive" or "preemptive_1_3" attack before the main queue.
 func _resolve_preemptive_phase(state: BattleState) -> void:
-	var pre_units: Array[BattleUnit] = []
-
-	var all_units: Array[BattleUnit] = []
-	all_units.append_array(state.attacker_units)
-	all_units.append_array(state.defender_units)
-
-	for u in all_units:
-		if u.is_alive() and (u.has_passive("preemptive") or u.has_passive("preemptive_1_3")):
-			pre_units.append(u)
-
-	# Sort preemptive units by SPD descending; assign random tiebreak keys first
-	# so the comparator is consistent (randi() inside sort_custom is non-deterministic
-	# and can cause infinite loops or incorrect ordering — Bug fix Round 3).
-	var _pre_tiebreak: Dictionary = {}
-	for u in pre_units:
-		_pre_tiebreak[u.id] = randi()
-	pre_units.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
-		if a.spd != b.spd:
-			return a.spd > b.spd
-		return _pre_tiebreak[a.id] > _pre_tiebreak[b.id]
-	)
-
-	for u in pre_units:
-		if not u.is_alive():
-			continue
-		var enemies := _get_enemies(u, state)
-		if enemies.is_empty():
-			continue
-		var target := _select_target(u, enemies, state)
-		if target == null:
-			continue
-
-		var mult := 1.3 if u.has_passive("preemptive_1_3") else 1.0
-		var dmg := _calculate_damage(u, target, state, mult)
-		_apply_damage(target, dmg, state, u)
-
-		var _pre_side := "attacker" if u.is_attacker else "defender"
-		var _pre_tgt_side := "attacker" if target.is_attacker else "defender"
-		state.action_log.append({
-			"action": "attack",
-			"phase": "preemptive",
-			"unit": u.id,
-			"side": _pre_side,
-			"slot": u.slot,
-			"target": target.id,
-			"target_side": _pre_tgt_side,
-			"target_slot": target.slot,
-			"target_name": target.troop_id,
-			"damage": dmg,
-			"remaining_soldiers": target.soldiers,
-			"max_soldiers": target.max_soldiers,
-			"round": state.round_number,
-			"flanking": u.get_meta("_last_hit_flanking", false),
-			"desc": "%s 先制%s攻击 %s" % [u.troop_id, "[侧击]" if u.get_meta("_last_hit_flanking", false) else "", target.troop_id],
-		})
-
-		# On-hit passives (counter, etc.)
-		_apply_passive_on_hit(u, target, dmg, state)
+	# Units with preemptive_shot act before the main loop
+	var preemptive_units: Array[BattleUnit] = []
+	for u in state.attacker_units + state.defender_units:
+		if u.is_alive() and u.has_passive("preemptive_shot"):
+			preemptive_units.append(u)
+	
+	# Sort by speed
+	preemptive_units.sort_custom(func(a, b): return a.spd > b.spd)
+	
+	for u in preemptive_units:
+		if u.is_alive():
+			var entry := _execute_action(u, state)
+			state.action_log.append(entry)
+			u.has_acted = true
 
 # ---------------------------------------------------------------------------
-# Round Start Passives
+# Core Action Logic
 # ---------------------------------------------------------------------------
 
-func _apply_round_start_passives(state: BattleState) -> void:
-	var all_units: Array[BattleUnit] = []
-	all_units.append_array(state.attacker_units)
-	all_units.append_array(state.defender_units)
-
-	for u in all_units:
-		if not u.is_alive():
-			continue
-
-		# regen_1: restore 1 soldier worth of HP at start of round (up to max)
-		if u.has_passive("regen_1"):
-			var _regen_before_hp: int = u.hp
-			u.hp = mini(u.hp + u.hp_per_soldier, u.max_hp)
-			_recalc_soldiers(u)
-			# v9.0 BUG FIX: add amount/remaining_soldiers/max_soldiers so the
-			# presentation system can show the floating +N heal number and update HP bar
-			var _regen_healed: int = u.hp - _regen_before_hp
-			var _regen_side := "attacker" if u.is_attacker else "defender"
-			state.action_log.append({
-				"action": "passive_vfx",
-				"side": _regen_side,
-				"slot": u.slot,
-				"passive_type": "regen",
-				"amount": _regen_healed,
-				"remaining_soldiers": u.soldiers,
-				"max_soldiers": u.max_soldiers,
-				"desc": "%s 再生回复 +%d HP" % [u.troop_id, _regen_healed],
-			})
-
-		# charge_mana_1: gain 1 mana per round
-		if u.has_passive("charge_mana_1"):
-			u.mana += 1
-			# Also contribute to the team pool
-			var current := state.get_mana(u.is_attacker)
-			state.set_mana(u.is_attacker, current + 1)
-
-		# v4.6: mana_regen — +2 mana to team pool per round
-		if u.has_passive("mana_regen"):
-			var mr_current := state.get_mana(u.is_attacker)
-			state.set_mana(u.is_attacker, mr_current + 2)
-
-		# v4.6: regen_aura — heal 1 soldier (1 hp_per_soldier HP) to most damaged friendly unit
-		if u.has_passive("regen_aura"):
-			var ra_allies: Array[BattleUnit] = state.attacker_units if u.is_attacker else state.defender_units
-			var ra_best: BattleUnit = null
-			var ra_best_ratio: float = 1.0
-			for ra_ally in ra_allies:
-				if not ra_ally.is_alive() or ra_ally.hp >= ra_ally.max_hp:
-					continue
-				var ra_ratio: float = float(ra_ally.hp) / float(maxi(ra_ally.max_hp, 1))
-				if ra_ratio < ra_best_ratio:
-					ra_best_ratio = ra_ratio
-					ra_best = ra_ally
-			if ra_best != null:
-				ra_best.hp = mini(ra_best.hp + ra_best.hp_per_soldier, ra_best.max_hp)
-				_recalc_soldiers(ra_best)
-				var _ra_side := "attacker" if u.is_attacker else "defender"
-				state.action_log.append({
-					"action": "passive",
-					"event": "regen_aura",
-					"unit": u.id,
-					"side": _ra_side,
-					"slot": u.slot,
-					"desc": "%s 再生光环: %s +1兵" % [u.troop_id, ra_best.troop_id],
-				})
-				state.action_log.append({
-					"action": "heal",
-					"side": _ra_side,
-					"slot": ra_best.slot,
-					"is_mass": false,
-					# v9.0 BUG FIX: include remaining_soldiers/max_soldiers so heal case updates HP bar
-					"remaining_soldiers": ra_best.soldiers,
-					"max_soldiers": ra_best.max_soldiers,
-					"desc": "%s 被再生光环治愈" % ra_best.troop_id,
-				})
-
-		# v4.6: poisoned_2 / poisoned_1 — poison DOT tick (1 hp_per_soldier damage/round)
-		if u.has_passive("poisoned_2") or u.has_passive("poisoned_1"):
-			var poison_dmg: int = u.hp_per_soldier  # 1 soldier worth of HP
-			var _was_alive_poison: bool = u.is_alive()
-			u.hp = maxi(0, u.hp - poison_dmg)
-			_recalc_soldiers(u)
-			var _poison_side := "attacker" if u.is_attacker else "defender"
-			state.action_log.append({
-				"action": "passive",
-				"event": "poison_dot",
-				"unit": u.id,
-				"side": _poison_side,
-				"slot": u.slot,
-				"desc": "%s 中毒! -%d HP" % [u.troop_id, poison_dmg],
-			})
-			# v7.0 BUG FIX: trigger death logging and morale cascades when poison kills a unit
-			if _was_alive_poison and not u.is_alive():
-				state.action_log.append({
-					"action": "death",
-					"unit": u.id,
-					"side": _poison_side,
-					"slot": u.slot,
-					"round": state.round_number,
-					"desc": "%s 中毒身亡!" % u.troop_id,
-				})
-				_apply_ally_death_morale(u, state)
-				_revalidate_formations_for_side(u, state)
-			# Decrement poison duration: poisoned_2 -> poisoned_1 -> remove
-			if u.has_passive("poisoned_2"):
-				var _new_passive: String = u.passive.replace("poisoned_2", "poisoned_1")
-				u.passive = _new_passive
-			elif u.has_passive("poisoned_1"):
-				var _new_passive2: String = u.passive.replace("poisoned_1", "")
-				# Clean up trailing/leading commas
-				_new_passive2 = _new_passive2.replace(",,", ",").strip_edges()
-				if _new_passive2.begins_with(","):
-					_new_passive2 = _new_passive2.substr(1)
-				if _new_passive2.ends_with(","):
-					_new_passive2 = _new_passive2.substr(0, _new_passive2.length() - 1)
-				u.passive = _new_passive2
-
-# ---------------------------------------------------------------------------
-# Action Queue
-# ---------------------------------------------------------------------------
-
-## Build the action queue for the current round.  All living units sorted by
-## SPD descending.  Preemptive units are NOT given priority here – they already
-## acted in the preemptive phase (only relevant in round 0/pre-battle).
 func _get_action_queue(state: BattleState) -> Array[BattleUnit]:
 	var queue: Array[BattleUnit] = []
-
-	for u in state.attacker_units:
+	for u in state.attacker_units + state.defender_units:
 		if u.is_alive() and not u.is_routed:
 			queue.append(u)
-	for u in state.defender_units:
-		if u.is_alive() and not u.is_routed:
-			queue.append(u)
-
-	# Sort by SPD descending; assign random tiebreak keys before sorting so the
-	# comparator is consistent (randi() inside sort_custom is non-deterministic
-	# and can cause infinite loops or incorrect ordering — Bug fix Round 3).
-	var _tiebreak: Dictionary = {}
-	for u in queue:
-		_tiebreak[u.id] = randi()
-	queue.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
+	
+	# Sort by speed (descending)
+	queue.sort_custom(func(a, b):
 		if a.spd != b.spd:
 			return a.spd > b.spd
-		return _tiebreak[a.id] > _tiebreak[b.id]
+		# If speed is equal, attacker goes first
+		return a.is_attacker and not b.is_attacker
 	)
-
 	return queue
 
-# ---------------------------------------------------------------------------
-# Execute Action
-# ---------------------------------------------------------------------------
-
-## A unit performs its action for this round.  Currently all AI-controlled
-## units simply attack (or use AoE if they have mana and the passive).
 func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 	unit.has_acted = true
-
-	var _unit_side := "attacker" if unit.is_attacker else "defender"
-
-	var enemies := _get_enemies(unit, state)
-	if enemies.is_empty():
-		return { "action": "idle", "unit": unit.id, "side": _unit_side, "slot": unit.slot, "reason": "no_targets", "desc": "%s 无目标" % unit.troop_id }
-
-	# ---- Decide whether to use AoE skill ---------------------------------
-	var use_aoe := false
-	var aoe_mult := 1.0
-	var aoe_cost := 0
-
-	if unit.has_passive("aoe_mana"):
-		aoe_cost = 5
-		aoe_mult = 1.0
-		if state.get_mana(unit.is_attacker) >= aoe_cost:
-			use_aoe = true
-
-	if unit.has_passive("aoe_1_5_cost5"):
-		aoe_cost = 5
-		aoe_mult = 1.5
-		if state.get_mana(unit.is_attacker) >= aoe_cost:
-			use_aoe = true
-
-	# ---- AoE path ---------------------------------------------------------
-	if use_aoe:
-		state.set_mana(unit.is_attacker, state.get_mana(unit.is_attacker) - aoe_cost)
-		# Determine target row – prefer front if it has living units.
-		var target_row := _pick_aoe_target_row(unit, enemies)
-		var row_targets: Array[BattleUnit] = []
-		for e in enemies:
-			if e.row == target_row:
-				row_targets.append(e)
-		if row_targets.is_empty():
-			# Fallback: hit any living enemies
-			row_targets = enemies
-
-		var total_dmg := 0
-		var sub_log: Array[Dictionary] = []
-		for t in row_targets:
-			var skill_mult := aoe_mult
-			# charge_1_5 bonus on first attack
-			if unit.first_attack and unit.has_passive("charge_1_5"):
-				skill_mult *= 1.5
-			var dmg := _calculate_damage(unit, t, state, skill_mult)
-			_apply_damage(t, dmg, state, unit)
-			total_dmg += dmg
-			var _aoe_tgt_side := "attacker" if t.is_attacker else "defender"
-			sub_log.append({ "target": t.id, "damage": dmg, "remaining_soldiers": t.soldiers, "target_side": _aoe_tgt_side, "target_slot": t.slot, "target_name": t.troop_id, "max_soldiers": t.max_soldiers })
-			_apply_passive_on_hit(unit, t, dmg, state)
-			# Emit death entry if target died
-			if t.soldiers <= 0:
-				state.action_log.append({
-					"action": "death",
-					"unit": t.id,
-					"side": _aoe_tgt_side,
-					"slot": t.slot,
-					"round": state.round_number,
-					"desc": "%s 被歼灭" % t.troop_id,
-				})
-				# Allies lose morale when a comrade is eliminated
-				_apply_ally_death_morale(t, state)
-				# v7.0: Killer's allies gain morale on kill
-				_apply_kill_morale_boost(unit, t, state)
-				# v4.4: kill_heal — attacker restores 1 soldier on kill (blood_moon_blade)
-				_apply_kill_heal(unit, state)
-				# v4.5: dragon_slayer — on kill, ATK+1 permanently for battle
-				_apply_dragon_slayer(unit, state)
-				# Revalidate formation bonuses — dying unit may break a formation
-				_revalidate_formations_for_side(t, state)
-
-		unit.first_attack = false
-			# Emit one attack entry per AoE target for combat_view compatibility
-		for _aoe_entry in sub_log:
+	
+	# 1) Check for active skills
+	var skill := _get_active_skill(unit)
+	if not skill.is_empty():
+		# Mana check
+		var side_mana: int = state.get_mana(unit.is_attacker)
+		if side_mana >= skill.get("mana_cost", 0):
+			state.set_mana(unit.is_attacker, side_mana - skill.get("mana_cost", 0))
+			return _execute_skill(unit, skill, state)
+	
+	# 2) Default: Basic Attack
+	var targets := _get_enemies(unit, state)
+	if targets.is_empty():
+		return {"action": "idle", "unit": unit.id, "desc": "%s 待机" % unit.troop_id}
+	
+	# v4.6: shadow_bypass_chance — Shadow Strike formation can bypass front row
+	var bonuses: Dictionary = FormationSystem.get_formation_bonuses(state.atk_formations if unit.is_attacker else state.def_formations)
+	var bypass_chance: float = 0.0
+	if state.round_number <= bonuses.get("shadow_bypass_rounds", 0):
+		bypass_chance = bonuses.get("shadow_bypass_chance", 0.0)
+	
+	var target: BattleUnit = null
+	if bypass_chance > 0.0 and randf() < bypass_chance:
+		# Try to find a back-row target
+		var back_targets: Array[BattleUnit] = []
+		for t in targets:
+			if t.row == 1:
+				back_targets.append(t)
+		if not back_targets.is_empty():
+			target = back_targets[randi() % back_targets.size()]
 			state.action_log.append({
-				"action": "attack",
+				"action": "passive",
+				"event": "shadow_bypass",
 				"unit": unit.id,
-				"side": _unit_side,
+				"side": "attacker" if unit.is_attacker else "defender",
 				"slot": unit.slot,
-				"target": _aoe_entry["target"],
-				"target_side": _aoe_entry["target_side"],
-				"target_slot": _aoe_entry["target_slot"],
-				"target_name": _aoe_entry["target_name"],
-				"damage": _aoe_entry["damage"],
-				"remaining_soldiers": _aoe_entry["remaining_soldiers"],
-				"max_soldiers": _aoe_entry["max_soldiers"],
-				"round": state.round_number,
-				# v8.0 BUG FIX: flanking flag was missing from AoE log entries
-				"flanking": unit.get_meta("_last_hit_flanking", false),
-				"desc": "%s %s范围攻击 %s" % [unit.troop_id, "[侧击]" if unit.get_meta("_last_hit_flanking", false) else "", _aoe_entry["target_name"]],
+				"desc": "%s 影袭绕后!" % unit.troop_id,
 			})
-		return { "action": "_already_logged" }
-
-	# ---- Normal single-target attack --------------------------------------
-	var target := _select_target(unit, enemies, state)
+	
 	if target == null:
-		return { "action": "idle", "unit": unit.id, "side": _unit_side, "slot": unit.slot, "reason": "no_valid_target", "desc": "%s 无有效目标" % unit.troop_id }
+		# Standard targeting: pick a random front-row enemy if any, else random back-row
+		var front_targets: Array[BattleUnit] = []
+		var back_targets: Array[BattleUnit] = []
+		for t in targets:
+			if t.row == 0:
+				front_targets.append(t)
+			else:
+				back_targets.append(t)
+		
+		if not front_targets.is_empty():
+			target = front_targets[randi() % front_targets.size()]
+		elif not back_targets.is_empty():
+			target = back_targets[randi() % back_targets.size()]
+	
+	if target == null:
+		return {"action": "idle", "unit": unit.id}
 
-	var skill_mult := 1.0
-	# charge_1_5: first attack deals x1.5 damage
-	if unit.first_attack and unit.has_passive("charge_1_5"):
-		skill_mult = 1.5
+	# v4.6: ARROW_STORM — ranged units attack twice in rounds 1-2
+	var mult := 1.0
+	var is_double_shot: bool = false
+	if state.round_number <= bonuses.get("ranged_double_attack_rounds", []).size():
+		if FormationSystem._is_ranged({"troop_id": unit.troop_id}):
+			is_double_shot = true
 
-	var dmg := _calculate_damage(unit, target, state, skill_mult)
-
-	_apply_damage(target, dmg, state, unit)
-	unit.first_attack = false
-
-	var _target_side := "attacker" if target.is_attacker else "defender"
-	var entry := {
-		"action": "attack",
-		"unit": unit.id,
-		"side": _unit_side,
-		"slot": unit.slot,
-		"target": target.id,
-		"target_side": _target_side,
-		"target_slot": target.slot,
-		"target_name": target.troop_id,
-		"damage": dmg,
-		"remaining_soldiers": target.soldiers,
-		"max_soldiers": target.max_soldiers,
-		"round": state.round_number,
-		"flanking": unit.get_meta("_last_hit_flanking", false),
-		"desc": "%s %s攻击 %s" % [unit.troop_id, "[侧击]" if unit.get_meta("_last_hit_flanking", false) else "", target.troop_id],
-	}
-
-	# On-hit passives (counter, death_burst, etc.)
-	_apply_passive_on_hit(unit, target, dmg, state)
-
-	# Emit death entry if target died
-	if target.soldiers <= 0:
-		state.action_log.append(entry)
-		state.action_log.append({
-			"action": "death",
-			"unit": target.id,
-			"side": _target_side,
-			"slot": target.slot,
-			"round": state.round_number,
-			"desc": "%s 被歼灭" % target.troop_id,
-		})
-		# Allies lose morale when a comrade is eliminated
-		_apply_ally_death_morale(target, state)
-		# v7.0: Killer's allies gain morale on kill
-		_apply_kill_morale_boost(unit, target, state)
-		# v4.4: kill_heal — attacker restores 1 soldier on kill (blood_moon_blade)
-		_apply_kill_heal(unit, state)
-		# v4.5: dragon_slayer — on kill, ATK+1 permanently for battle
-		_apply_dragon_slayer(unit, state)
-		# Revalidate formation bonuses — dying unit may break a formation
-		_revalidate_formations_for_side(target, state)
-		return { "action": "_already_logged" }
-
-	return entry
-
-# ---------------------------------------------------------------------------
-# Damage Calculation
-# ---------------------------------------------------------------------------
-
-## Core damage formula (SR07-style percentage-based).
-## base_damage = adjusted_soldiers * max(10, ATK - DEF) / 100.0
-## final_damage = base_damage * skill_multiplier
-## Result is HP damage (soldiers_killed equivalent × target hp_per_soldier).
-##
-## SR07 diminishing returns on troop count:
-##   0-8 troops: value = troops (1:1)
-##   9-15 troops: value = 8 + (troops-8)*0.5
-##   16+: value = 11.5 + (troops-15)*0.25
-func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: BattleState, skill_mult: float = 1.0) -> int:
-	var atk_val: int = attacker.atk
-	var def_val: int = defender.def_stat
-
-	# fort_def_3: +3 DEF when defending in owned node
-	if defender.has_passive("fort_def_3") and not defender.is_attacker:
-		def_val += 3
-
-	# Terrain defense multiplier
-	var terrain_def_mult := 1.0
-	var tdata_dmg: Dictionary = FactionData.TERRAIN_DATA.get(state.terrain, {})
-	if not defender.is_attacker:
-		terrain_def_mult = tdata_dmg.get("def_mult", 1.0)
-	def_val = int(float(def_val) * terrain_def_mult)
-
-	# Design doc formula: max(1, ATK - DEF) — was incorrectly max(10, ...) which
-	# made heavily-armored units take far too much damage (Bug fix Round 3).
-	var raw_diff: int = maxi(1, atk_val - def_val)
-
-	# SR07-style diminishing returns on troop count
-	var troops := float(attacker.soldiers)
-	var adjusted: float
-	if troops <= 8.0:
-		adjusted = troops
-	elif troops <= 15.0:
-		adjusted = 8.0 + (troops - 8.0) * 0.5
-	else:
-		adjusted = 11.5 + (troops - 15.0) * 0.25
-
-	var base_damage: float = adjusted * float(raw_diff) / 100.0
-
-	# Apply unit counter matrix multipliers (CounterMatrix)
-	var _counter: Dictionary = CounterMatrix.get_counter(attacker.troop_id, defender.troop_id)
-	if _counter["atk_mult"] != 1.0:
-		var counter_atk: float = _counter["atk_mult"]
-		# v4.4: rps_bonus — equipment passive enhances counter advantage
-		if attacker.has_passive("rps_bonus") and counter_atk > 1.0:
-			counter_atk += 0.15  # counter_tactics: +15% to counter multiplier
-		base_damage *= counter_atk
-	# BUG FIX: def_mult should multiply, not divide. def_mult < 1.0 reduces damage taken.
-	if _counter["def_mult"] != 1.0:
-		base_damage *= _counter["def_mult"]
-
-	# v4.5: light_slayer (rin_sacred_blade) — +15% damage vs light faction units
-	if attacker.has_passive("light_slayer"):
-		var def_troop: String = defender.troop_id.to_lower()
-		if def_troop.begins_with("elf_") or def_troop.begins_with("knight_") or def_troop.begins_with("human_") or def_troop.begins_with("temple_") or def_troop.begins_with("priest") or def_troop.begins_with("treant") or def_troop.begins_with("alliance_"):
-			base_damage *= 1.15
-
-	# v4.5: blood_oath — when unit is <50% soldiers, ATK×2 for damage calc
-	if attacker.has_passive("blood_oath"):
-		if float(attacker.soldiers) < float(attacker.max_soldiers) * 0.5:
-			base_damage *= 2.0
-
-	# v4.5: dragon_slayer — ATK bonus already applied permanently in _apply_dragon_slayer().
-	# _dragon_slayer_bonus is tracked for logging only; no extra damage calc needed here.
-
-	# v4.6: desert_mastery — ATK doubled on WASTELAND terrain
-	if attacker.has_passive("desert_mastery"):
-		if state.terrain == Terrain.WASTELAND:
-			base_damage *= 2.0
-
-	# v7.0: flanking_bonus — +20% damage when attacking back-row unit with no front-row cover
-	# Simulates a collapsed frontline where back-row units are exposed and vulnerable.
-	var _flanking_applied: bool = false
-	if defender.row == 1:
-		var enemy_units: Array[BattleUnit] = state.living_attackers() if defender.is_attacker else state.living_defenders()
-		var has_front_cover: bool = false
-		for eu in enemy_units:
-			if eu.row == 0 and eu != defender:
-				has_front_cover = true
-				break
-		if not has_front_cover:
-			base_damage *= 1.20
-			_flanking_applied = true
-
-	var final_damage: float = base_damage * skill_mult
-
-	# Convert from "equivalent soldiers killed" to HP damage
-	var soldiers_killed_equiv: int = int(floor(final_damage))
-	if soldiers_killed_equiv < 1 and attacker.soldiers > 0:
-		soldiers_killed_equiv = 1
-
-	var hp_damage: int = soldiers_killed_equiv * defender.hp_per_soldier
-
-	# Minimum 1 HP damage if the attacker is alive
-	if hp_damage < 1 and attacker.soldiers > 0:
-		hp_damage = 1
-
-	# v7.0: Store flanking flag as metadata on the attacker for the caller to log
-	if _flanking_applied:
-		attacker.set_meta("_last_hit_flanking", true)
-	else:
-		attacker.set_meta("_last_hit_flanking", false)
-
-	return hp_damage
-
-# ---------------------------------------------------------------------------
-# Damage Application
-# ---------------------------------------------------------------------------
-
-## Apply damage (HP loss) to a unit, respecting escape_30 passive.
-func _apply_damage(target: BattleUnit, damage: int, state: BattleState, attacker: BattleUnit = null) -> void:
-	if damage <= 0:
-		return
-
-	# v4.5: ghost_shield — first hit immunity (absorb full damage once)
-	if target._ghost_shield_active and target.has_passive("ghost_shield"):
+	var dmg := _calculate_damage(unit, target, state, mult)
+	var was_alive := target.is_alive()
+	
+	# Apply damage through HP system
+	var hp_dmg: int = dmg * target.hp_per_soldier
+	
+	# v4.5: ghost_shield — first hit immunity
+	if target._ghost_shield_active:
 		target._ghost_shield_active = false
-		var _gs_side := "attacker" if target.is_attacker else "defender"
+		hp_dmg = 0
 		state.action_log.append({
 			"action": "passive",
 			"event": "ghost_shield",
 			"unit": target.id,
-			"side": _gs_side,
+			"side": "attacker" if target.is_attacker else "defender",
 			"slot": target.slot,
-			"desc": "%s 幽灵护盾吸收了首次攻击!" % target.troop_id,
+			"desc": "%s 的幽灵护盾抵挡了攻击" % target.troop_id,
 		})
-		return
 
-	# v4.5: ranged_dodge (pirate_ghost_ship_coat) — 30% dodge vs ranged attacks
-	if attacker != null and target.has_passive("ranged_dodge"):
-		var atk_troop: String = attacker.troop_id.to_lower()
-		var is_ranged: bool = atk_troop.find("archer") != -1 or atk_troop.find("ranger") != -1 or atk_troop.find("mage") != -1 or atk_troop.find("cannon") != -1 or atk_troop.find("bombardier") != -1 or atk_troop.find("gunner") != -1
-		if is_ranged and randf() < 0.30:
-			var _rd_side := "attacker" if target.is_attacker else "defender"
-			state.action_log.append({
-				"action": "passive",
-				"event": "ranged_dodge",
-				"unit": target.id,
-				"side": _rd_side,
-				"slot": target.slot,
-				"desc": "%s 闪避了远程攻击!" % target.troop_id,
-			})
-			return
-
-	var new_hp: int = target.hp - damage
-
-	# v4.6: damage_reduce — reduce incoming damage by 20%
-	if target.has_passive("damage_reduce"):
-		damage = maxi(1, int(float(damage) * 0.80))
-		new_hp = target.hp - damage
-
-	# escape_30: 30% chance to survive lethal damage (kept at 1 soldier / hp_per_soldier HP)
-	if new_hp <= 0 and target.has_passive("escape_30"):
-		if randf() < 0.30:
-			target.hp = target.hp_per_soldier
-			target.soldiers = 1
-			var _esc_side := "attacker" if target.is_attacker else "defender"
-			state.action_log.append({
-				"action": "passive",
-				"event": "escape_30_triggered",
-				"unit": target.id,
-				"side": _esc_side,
-				"slot": target.slot,
-				"remaining_soldiers": 1,
-				"max_soldiers": target.max_soldiers,
-				"hp": target.hp,
-				"max_hp": target.max_hp,
-				"desc": "%s 触发逃脱被动，保留1兵" % target.troop_id,
-			})
-			return
-
-	# v4.5: death_resist (orc_iron_jaw_plate) — 100% survive lethal with 1 soldier, once per battle
-	if new_hp <= 0 and target.has_passive("death_resist") and not target._death_resist_used:
-		target._death_resist_used = true
-		target.hp = target.hp_per_soldier
-		target.soldiers = 1
-		var _dr_side := "attacker" if target.is_attacker else "defender"
-		state.action_log.append({
-			"action": "passive",
-			"event": "death_resist_triggered",
-			"unit": target.id,
-			"side": _dr_side,
-			"slot": target.slot,
-			"remaining_soldiers": 1,
-			"max_soldiers": target.max_soldiers,
-			"hp": target.hp,
-			"max_hp": target.max_hp,
-			"desc": "%s 铁颚板甲: 抵抗致命伤害，保留1兵!" % target.troop_id,
-		})
-		return
-
-	target.hp = maxi(0, new_hp)
+	target.hp = maxi(0, target.hp - hp_dmg)
+	var old_soldiers := target.soldiers
 	_recalc_soldiers(target)
-
-	# Morale loss on significant hit (5+ HP damage = significant)
-	if damage >= 5 and target.is_alive() and not target.is_routed:
-		_reduce_morale(target, 5, state)
-
-	# death_burst: on death, deal ATK*2 HP to all living enemies
-	if target.hp <= 0 and target.has_passive("death_burst"):
-		_trigger_death_burst(target, state)
-
-## death_burst: deal ATK*2 HP damage to every living enemy unit.
-func _trigger_death_burst(dead_unit: BattleUnit, state: BattleState) -> void:
-	var burst_dmg: int = dead_unit.atk * 2
-	var enemies := _get_enemies(dead_unit, state)
-	var _db_side := "attacker" if dead_unit.is_attacker else "defender"
-
-	for e in enemies:
-		var _db_was_alive: bool = e.is_alive()
-		e.hp = maxi(0, e.hp - burst_dmg)
-		_recalc_soldiers(e)
-		# v8.0 BUG FIX: emit death entries for burst kills so morale cascades fire
-		if _db_was_alive and not e.is_alive():
-			var _db_enemy_side := "attacker" if e.is_attacker else "defender"
-			state.action_log.append({
-				"action": "death",
-				"unit": e.id,
-				"side": _db_enemy_side,
-				"slot": e.slot,
-				"round": state.round_number,
-				"desc": "%s 被死亡爆发歼灭" % e.troop_id,
-			})
-			_apply_ally_death_morale(e, state)
-			_revalidate_formations_for_side(e, state)
-
-	state.action_log.append({
-		"action": "passive",
-		"event": "death_burst",
-		"unit": dead_unit.id,
-		"side": _db_side,
-		"slot": dead_unit.slot,
-		"damage_each": burst_dmg,
-		"targets_hit": enemies.size(),
-		"desc": "%s 死亡爆发，对%d个敌方各造成%d伤害" % [dead_unit.troop_id, enemies.size(), burst_dmg],
-	})
-
-# ---------------------------------------------------------------------------
-# Targeting
-# ---------------------------------------------------------------------------
-
-## Select the best target for a given attacker from the list of living enemies.
-##
-## Rules:
-##   0. forced_target / bait_target from interventions override normal targeting.
-##   1. Taunt units must be targeted first.
-##   2. Front-row melee units target enemy front row first.
-##   3. Back-row ranged (archer/mage/cannon) can target any row.
-##   4. Ninja / assassinate_back bypasses front row to hit back row.
-##   5. If the front row is empty, back row becomes targetable by melee.
-func _select_target(attacker: BattleUnit, enemies: Array[BattleUnit], state: BattleState = null) -> BattleUnit:
-	if enemies.is_empty():
-		return null
-
-	# --- 0. Intervention overrides: forced_target / bait_target ---------------
-	# v8.0 BUG FIX: REDIRECT_FIRE and FOCUS_VOLLEY write state["forced_target"] (slot int);
-	# BAIT_AND_SWITCH writes state["bait_target"] (slot int on attacker side).
-	# These were written to the bridge dict but never consumed here.
-	if state != null:
-		# forced_target: attacker must target the enemy unit at this slot
-		var _forced_slot: int = state.get_meta("forced_target_slot", -1)
-		if _forced_slot >= 0:
-			for e in enemies:
-				if e.slot == _forced_slot and e.is_alive():
-					return e
-			# Forced target dead/invalid — fall through to normal logic
-		# bait_target: enemies must target the attacker's highest-DEF unit
-		# (bait_target is on the defender's side; we check if attacker is the bait)
-		var _bait_slot: int = state.get_meta("bait_target_slot", -1)
-		if _bait_slot >= 0 and not attacker.is_attacker:
-			# Defender is being baited: must target the bait slot on attacker side
-			var _bait_targets: Array[BattleUnit] = state.attacker_units
-			for bt in _bait_targets:
-				if bt.slot == _bait_slot and bt.is_alive():
-					return bt
-
-	# --- 1. Taunt check: if any living enemy has taunt, must target them ---
-	var taunt_targets: Array[BattleUnit] = []
-	for e in enemies:
-		if e.is_alive() and e.has_passive("taunt"):
-			taunt_targets.append(e)
-	if not taunt_targets.is_empty():
-		return taunt_targets[randi() % taunt_targets.size()]
-
-	# --- Determine which rows the attacker can reach -----------------------
-	var can_hit_back_directly := false
-	var troop := attacker.troop_id.to_lower()
-
-	# Back-row ranged types can hit any row (use .find() to match partial troop_ids
-	# like "archer_elite", "mage_apprentice", "cannon_heavy" — Bug fix Round 3)
-	if troop.find("archer") != -1 or troop.find("ranger") != -1 or troop.find("mage") != -1 or troop.find("cannon") != -1 or troop.find("bombardier") != -1:
-		can_hit_back_directly = true
-	# Ninja or assassinate_back passive bypasses front
-	if troop.find("ninja") != -1 or troop.find("assassin") != -1 or attacker.has_passive("assassinate_back"):
-		can_hit_back_directly = true
-	# v4.5: assassinate_bonus (de_shadow_fang) — treat as assassinate_back
-	if attacker.has_passive("assassinate_bonus"):
-		can_hit_back_directly = true
-
-	# Separate enemies into front and back
-	var front: Array[BattleUnit] = []
-	var back: Array[BattleUnit] = []
-	for e in enemies:
-		if not e.is_alive():
-			continue
-		if e.row == 0:
-			front.append(e)
-		else:
-			back.append(e)
-
-	# --- 2. Ninja / assassinate: prefer back row --------------------------
-	if (troop.find("ninja") != -1 or troop.find("assassin") != -1 or attacker.has_passive("assassinate_back") or attacker.has_passive("assassinate_bonus")) and not back.is_empty():
-		return back[randi() % back.size()]
-
-	# --- 3. Front-row attacker: target enemy front first ------------------
-	if attacker.row == 0:
-		if not front.is_empty():
-			return front[randi() % front.size()]
-		# Front empty – back row is now reachable
-		if not back.is_empty():
-			return back[randi() % back.size()]
-
-	# --- 4. Back-row attacker (ranged): can hit anyone --------------------
-	if can_hit_back_directly:
-		# Prefer front row to peel for own front line
-		if not front.is_empty():
-			return front[randi() % front.size()]
-		if not back.is_empty():
-			return back[randi() % back.size()]
-
-	# --- 5. Fallback: any living enemy ------------------------------------
-	var alive: Array[BattleUnit] = []
-	for e in enemies:
-		if e.is_alive():
-			alive.append(e)
-	if alive.is_empty():
-		return null
-	return alive[randi() % alive.size()]
-
-## Pick the target row for an AoE attack.  Prefer front if it has enemies.
-func _pick_aoe_target_row(attacker: BattleUnit, enemies: Array[BattleUnit]) -> int:
-	var has_front := false
-	var has_back := false
-	for e in enemies:
-		if e.row == 0:
-			has_front = true
-		else:
-			has_back = true
-
-	# Ninja / assassinate_back prefers back row for AoE too (use .find() for partial
-	# troop_id matching, consistent with targeting — Bug fix Round 3)
-	var _aoe_troop := attacker.troop_id.to_lower()
-	if (_aoe_troop.find("ninja") != -1 or _aoe_troop.find("assassin") != -1 or attacker.has_passive("assassinate_back") or attacker.has_passive("assassinate_bonus")) and has_back:
-		return 1
-
-	return 0 if has_front else 1
-
-# ---------------------------------------------------------------------------
-# On-Hit Passives
-# ---------------------------------------------------------------------------
-
-## Apply reactive passives after damage is dealt.
-func _apply_passive_on_hit(attacker: BattleUnit, defender: BattleUnit, damage: int, state: BattleState) -> void:
-	# counter_1_2: defender counterattacks at x1.2 when hit
-	if defender.is_alive() and defender.has_passive("counter_1_2"):
-		# v4.5: counter_damage_bonus (homura_flame_gauntlet) — boost counter from x1.2 to x1.5
-		var counter_mult: float = 1.5 if defender.has_passive("counter_damage_bonus") else 1.2
-		var counter_dmg := _calculate_damage(defender, attacker, state, counter_mult)
-		_apply_damage(attacker, counter_dmg, state, defender)
-		var _ctr_side := "attacker" if defender.is_attacker else "defender"
-		var _ctr_tgt_side := "attacker" if attacker.is_attacker else "defender"
+	var actual_lost := old_soldiers - target.soldiers
+	
+	# v4.5: death_resist — orc_iron_jaw_plate: survive fatal hit with 1 soldier once
+	if was_alive and not target.is_alive() and target.has_passive("death_resist") and not target._death_resist_used:
+		target._death_resist_used = true
+		target.soldiers = 1
+		target.hp = target.hp_per_soldier
 		state.action_log.append({
 			"action": "passive",
-			"event": "counter_1_2",
+			"event": "death_resist",
+			"unit": target.id,
+			"side": "attacker" if target.is_attacker else "defender",
+			"slot": target.slot,
+			"desc": "%s 触发不屈，保留1兵力" % target.troop_id,
+		})
+
+	var entry := {
+		"action": "attack",
+		"unit": unit.id,
+		"side": "attacker" if unit.is_attacker else "defender",
+		"slot": unit.slot,
+		"target": target.id,
+		"target_side": "attacker" if target.is_attacker else "defender",
+		"target_slot": target.slot,
+		"damage": actual_lost,
+		"remaining_soldiers": target.soldiers,
+		"desc": "%s 攻击 %s，造成 %d 伤害" % [unit.troop_id, target.troop_id, actual_lost],
+	}
+	
+	# v4.4: kill_heal — restore HP on kill
+	if was_alive and not target.is_alive():
+		_apply_kill_heal(unit, state)
+		_apply_kill_morale_boost(unit, target, state)
+		state.action_log.append({
+			"action": "death",
+			"unit": target.id,
+			"side": "attacker" if target.is_attacker else "defender",
+			"slot": target.slot,
+			"round": state.round_number,
+			"desc": "%s 阵亡!" % target.troop_id,
+		})
+		_apply_ally_death_morale(target, state)
+		_revalidate_formations_for_side(target, state)
+	
+	# v4.3: Counter-attack logic
+	if target.is_alive() and not is_double_shot:
+		# Only front-row units counter-attack by default, or units with counter_bonus
+		if target.row == 0 or target.has_passive("counter_bonus"):
+			_resolve_counter_attack(target, unit, state)
+
+	# v4.5: poison_attack — apply poison debuff
+	if unit.has_passive("poison_attack") and target.is_alive():
+		_apply_poison(unit, target, state)
+
+	return entry
+
+func _execute_skill(unit: BattleUnit, skill: Dictionary, state: BattleState) -> Dictionary:
+	var type: String = skill.get("type", "damage")
+	var skill_mult: float = skill.get("damage_mult", 1.5)
+	var side_str: String = "attacker" if unit.is_attacker else "defender"
+	
+	match type:
+		"damage":
+			var targets := _get_enemies(unit, state)
+			if targets.is_empty(): return {"action": "idle", "unit": unit.id}
+			var target := targets[randi() % targets.size()]
+			var dmg := _calculate_damage(unit, target, state, skill_mult)
+			var old_soldiers := target.soldiers
+			target.hp = maxi(0, target.hp - dmg * target.hp_per_soldier)
+			_recalc_soldiers(target)
+			var actual_lost := old_soldiers - target.soldiers
+			return {
+				"action": "skill",
+				"unit": unit.id,
+				"side": side_str,
+				"slot": unit.slot,
+				"skill_name": skill.get("name", "技能"),
+				"target": target.id,
+				"damage": actual_lost,
+				"desc": "%s 发动 %s，造成 %d 伤害" % [unit.troop_id, skill.get("name"), actual_lost],
+			}
+		"heal":
+			var allies := state.attacker_units if unit.is_attacker else state.defender_units
+			var target: BattleUnit = null
+			var min_hp_ratio := 1.1
+			for a in allies:
+				if a.is_alive() and a.soldiers < a.max_soldiers:
+					var ratio := float(a.soldiers) / float(a.max_soldiers)
+					if ratio < min_hp_ratio:
+						min_hp_ratio = ratio
+						target = a
+			if target:
+				var heal_amt := int(float(target.max_soldiers) * 0.2)
+				target.hp = mini(target.max_hp, target.hp + heal_amt * target.hp_per_soldier)
+				_recalc_soldiers(target)
+				return {
+					"action": "skill",
+					"unit": unit.id,
+					"side": side_str,
+					"slot": unit.slot,
+					"skill_name": skill.get("name", "技能"),
+					"target": target.id,
+					"healed": heal_amt,
+					"desc": "%s 发动 %s，回复 %d 兵力" % [unit.troop_id, skill.get("name"), heal_amt],
+				}
+	return {"action": "skill", "unit": unit.id, "skill_name": skill.get("name", "技能")}
+
+func _resolve_counter_attack(defender: BattleUnit, attacker: BattleUnit, state: BattleState) -> void:
+	# Counter-attack deals 50% damage
+	var counter_mult := 0.5
+	# v4.4: counter_bonus — equipment passive increases counter damage
+	if defender.has_passive("counter_bonus"):
+		counter_mult = 0.8
+	
+	var counter_dmg := _calculate_damage(defender, attacker, state, counter_mult)
+	var old_soldiers := attacker.soldiers
+	attacker.hp = maxi(0, attacker.hp - counter_dmg * attacker.hp_per_soldier)
+	_recalc_soldiers(attacker)
+	var actual_lost := old_soldiers - attacker.soldiers
+	
+	if actual_lost > 0:
+		state.action_log.append({
+			"action": "counter",
 			"unit": defender.id,
-			"side": _ctr_side,
+			"side": "attacker" if defender.is_attacker else "defender",
 			"slot": defender.slot,
 			"target": attacker.id,
-			"target_side": _ctr_tgt_side,
-			"target_slot": attacker.slot,
-			"target_name": attacker.troop_id,
-			"damage": counter_dmg,
-			"remaining_soldiers": attacker.soldiers,
-			"max_soldiers": attacker.max_soldiers,
-			"desc": "%s 反击 %s，造成%d伤害" % [defender.troop_id, attacker.troop_id, counter_dmg],
+			"damage": actual_lost,
+			"desc": "%s 反击造成 %d 伤害" % [defender.troop_id, actual_lost],
 		})
-
-	# v4.6: poison_attack — on hit, apply poison DOT (2 rounds, 1 HP damage/round)
-	if attacker.has_passive("poison_attack") and damage > 0 and defender.is_alive():
-		# Apply 1 HP damage per round for 2 rounds via direct HP reduction in round start
-		# We track this by adding a tag; since BattleUnit doesn't have debuffs array,
-		# we apply immediate damage of 2 soldiers worth over time by reducing HP directly
-		# for simplicity, deal 1 hp_per_soldier damage now and tag for 1 more next round
-		var _pa_side := "attacker" if attacker.is_attacker else "defender"
-		var _pa_tgt_side := "attacker" if defender.is_attacker else "defender"
-		# Mark as poisoned using passive tag (checked in round start)
-		if not defender.has_passive("poisoned_2"):
-			if defender.passive == "":
-				defender.passive = "poisoned_2"
-			else:
-				defender.passive += ",poisoned_2"
+		if attacker.soldiers <= 0:
 			state.action_log.append({
-				"action": "passive",
-				"event": "poison_attack",
+				"action": "death",
 				"unit": attacker.id,
-				"side": _pa_side,
+				"side": "attacker" if attacker.is_attacker else "defender",
 				"slot": attacker.slot,
-				"target": defender.id,
-				"target_side": _pa_tgt_side,
-				"desc": "%s 毒击! %s 中毒(2回合)" % [attacker.troop_id, defender.troop_id],
+				"desc": "%s 被反击歼灭!" % attacker.troop_id,
 			})
-			state.action_log.append({
-				"action": "debuff",
-				"side": _pa_tgt_side,
-				"slot": defender.slot,
-				"debuff_type": "poison",
-				"desc": "%s 中毒!" % defender.troop_id,
-			})
+			_apply_ally_death_morale(attacker, state)
+			_revalidate_formations_for_side(attacker, state)
+
+func _apply_poison(attacker: BattleUnit, defender: BattleUnit, state: BattleState) -> void:
+	# We track this by adding a tag; since BattleUnit doesn't have debuffs array,
+	# we apply immediate damage of 2 soldiers worth over time by reducing HP directly
+	# for simplicity, deal 1 hp_per_soldier damage now and tag for 1 more next round
+	var _pa_side := "attacker" if attacker.is_attacker else "defender"
+	var _pa_tgt_side := "attacker" if defender.is_attacker else "defender"
+	# Mark as poisoned using passive tag (checked in round start)
+	if not defender.has_passive("poisoned_2"):
+		if defender.passive == "":
+			defender.passive = "poisoned_2"
+		else:
+			defender.passive += ",poisoned_2"
+		state.action_log.append({
+			"action": "passive",
+			"event": "poison_attack",
+			"unit": attacker.id,
+			"side": _pa_side,
+			"slot": attacker.slot,
+			"target": defender.id,
+			"target_side": _pa_tgt_side,
+			"desc": "%s 毒击! %s 中毒(2回合)" % [attacker.troop_id, defender.troop_id],
+		})
+		state.action_log.append({
+			"action": "debuff",
+			"side": _pa_tgt_side,
+			"slot": defender.slot,
+			"debuff_type": "poison",
+			"desc": "%s 中毒!" % defender.troop_id,
+		})
 
 # ---------------------------------------------------------------------------
 # Battle End Check
@@ -1801,52 +1086,577 @@ func _apply_kill_heal(killer: BattleUnit, state: BattleState) -> void:
 		"unit": killer.id,
 		"side": side_str,
 		"slot": killer.slot,
-		"desc": "%s 击杀回复%d兵" % [killer.troop_id, heal_soldiers],
-	})
-	state.action_log.append({
-		"action": "heal",
-		"side": side_str,
-		"slot": killer.slot,
-		"is_mass": false,
-		# v9.0 BUG FIX: include remaining_soldiers/max_soldiers so heal case updates HP bar
-		"remaining_soldiers": killer.soldiers,
-		"max_soldiers": killer.max_soldiers,
-		"desc": "%s 击杀回血" % killer.troop_id,
+		"healed": heal_soldiers,
+		"desc": "%s 击杀回复 +%d兵" % [killer.troop_id, heal_soldiers],
 	})
 
-## v4.5: dragon_slayer — on kill, gain ATK+1 permanently for this battle (like bloodlust).
-func _apply_dragon_slayer(killer: BattleUnit, state: BattleState) -> void:
-	if not killer.has_passive("dragon_slayer") or not killer.is_alive():
+# ---------------------------------------------------------------------------
+# Passive & Round Start Logic
+# ---------------------------------------------------------------------------
+
+func _apply_round_start_passives(state: BattleState) -> void:
+	for u in state.attacker_units + state.defender_units:
+		if not u.is_alive():
+			continue
+		
+		# v4.4: regen_1 / deep_regen — restore soldiers each round
+		var regen_amt := 0
+		if u.has_passive("deep_regen"):
+			regen_amt = 2
+		elif u.has_passive("regen_1"):
+			regen_amt = 1
+		
+		if regen_amt > 0 and u.soldiers < u.max_soldiers:
+			u.hp = mini(u.max_hp, u.hp + regen_amt * u.hp_per_soldier)
+			_recalc_soldiers(u)
+			var side_str: String = "attacker" if u.is_attacker else "defender"
+			state.action_log.append({
+				"action": "heal",
+				"unit": u.id,
+				"side": side_str,
+				"slot": u.slot,
+				"healed": regen_amt,
+				"desc": "%s 再生 +%d兵" % [u.troop_id, regen_amt],
+			})
+
+		# v4.5: poisoned_2 — take damage each round
+		if u.has_passive("poisoned_2"):
+			var poison_dmg := 1 * u.hp_per_soldier
+			u.hp = maxi(0, u.hp - poison_dmg)
+			_recalc_soldiers(u)
+			var side_str: String = "attacker" if u.is_attacker else "defender"
+			state.action_log.append({
+				"action": "damage",
+				"unit": u.id,
+				"side": side_str,
+				"slot": u.slot,
+				"damage": 1,
+				"desc": "%s 毒发损失 1兵" % u.troop_id,
+			})
+			# Check if unit died from poison
+			if not u.is_alive():
+				state.action_log.append({
+					"action": "death",
+					"unit": u.id,
+					"side": side_str,
+					"slot": u.slot,
+					"desc": "%s 毒发身亡!" % u.troop_id,
+				})
+				_apply_ally_death_morale(u, state)
+				_revalidate_formations_for_side(u, state)
+
+func _apply_terrain_modifiers(state: BattleState) -> void:
+	var tdata: Dictionary = FactionData.TERRAIN_DATA.get(state.terrain, {})
+	var atk_mult: float = tdata.get("atk_mult", 1.0)
+	var spd_mult: float = tdata.get("spd_mult", 1.0)
+	
+	if atk_mult != 1.0 or spd_mult != 1.0:
+		for u in state.attacker_units + state.defender_units:
+			u.atk = int(float(u.atk) * atk_mult)
+			u.spd = int(float(u.spd) * spd_mult)
+
+# ---------------------------------------------------------------------------
+# Hero Skill Logic (v6.0)
+# ---------------------------------------------------------------------------
+
+func _tick_hero_skills(state: BattleState) -> void:
+	# 1) Tick charges for all living heroes
+	var atk_heroes: Array = []
+	for u in state.attacker_units:
+		if u.is_alive() and not u.hero_id.is_empty():
+			HeroSkillsAdvanced.tick_charge(u.hero_id)
+			atk_heroes.append(u.hero_id)
+	
+	var def_heroes: Array = []
+	for u in state.defender_units:
+		if u.is_alive() and not u.hero_id.is_empty():
+			HeroSkillsAdvanced.tick_charge(u.hero_id)
+			def_heroes.append(u.hero_id)
+
+	# 2) Check awakening for all living heroes
+	for u in state.attacker_units + state.defender_units:
+		if not u.is_alive() or u.hero_id.is_empty():
+			continue
+		
+		var hid: String = u.hero_id
+		var side: String = "attacker" if u.is_attacker else "defender"
+		
+		if not HeroSkillsAdvanced.is_awakened(hid):
+			var hp_ratio := float(u.soldiers) / float(u.max_soldiers)
+			if HeroSkillsAdvanced.check_awakening(hid, hp_ratio):
+				var awk: Dictionary = HeroSkillsAdvanced.trigger_awakening(hid)
+				if not awk.is_empty():
+					# Store pre-awakening stats
+					u.set_meta("pre_awaken_atk", u.atk)
+					u.set_meta("pre_awaken_def", u.def_stat)
+					u.set_meta("pre_awaken_spd", u.spd)
+					# Apply multipliers
+					u.atk = int(float(u.atk) * awk.get("atk_mult", 1.0))
+					u.def_stat = int(float(u.def_stat) * awk.get("def_mult", 1.0))
+					u.spd = int(float(u.spd) * awk.get("spd_mult", 1.0))
+					
+					state.action_log.append({
+						"action": "awakening",
+						"hero_id": hid,
+						"side": side,
+						"slot": u.slot,
+						"desc": "%s — %s!" % [u.troop_id, awk.get("name", "覚醒")],
+					})
+
+			# 3) Tick awakening duration
+			if HeroSkillsAdvanced.is_awakened(hid):
+				if not HeroSkillsAdvanced.tick_awakening(hid):
+					# Revert to stored pre-awakening stats to avoid float drift
+					if u.has_meta("pre_awaken_atk"):
+						u.atk = u.get_meta("pre_awaken_atk")
+						u.def_stat = u.get_meta("pre_awaken_def")
+						u.spd = u.get_meta("pre_awaken_spd")
+					else:
+						var awk_data: Dictionary = HeroSkillsAdvanced.awakening_data.get(hid, {})
+						if not awk_data.is_empty():
+							u.atk /= awk_data.get("atk_mult", 1.0)
+							u.def_stat /= awk_data.get("def_mult", 1.0)
+							u.spd /= awk_data.get("spd_mult", 1.0)
+
+			# 4) Execute charged ultimate
+			if HeroSkillsAdvanced.is_charged(hid):
+				var battle_dict: Dictionary = _state_to_resolver_dict(state)
+				var ult_result: Dictionary = HeroSkillsAdvanced.execute_ultimate(hid, battle_dict)
+				if ult_result.get("ok", false):
+					ult_result["hero_id"] = hid
+					_apply_ultimate_damage(state, ult_result, side)
+					state.action_log.append({
+						"action": "ultimate",
+						"hero_id": hid,
+						"side": side,
+						"slot": u.slot,
+						"desc": "%s 发动 %s!" % [u.troop_id, ult_result.get("name", "必杀技")],
+						"damage": ult_result.get("total_damage", 0),
+					})
+					# Log buff/heal/freeze sub-effects from ultimates
+					var ult_skill: Dictionary = HeroSkillsAdvanced.ultimate_skills.get(hid, {})
+					var ult_effect: String = ult_skill.get("effect", "")
+					if ult_effect == "buff_all":
+						var allies: Array[BattleUnit] = state.attacker_units if side == "attacker" else state.defender_units
+						for si in range(allies.size()):
+							if allies[si].is_alive():
+								state.action_log.append({"action": "buff", "side": side, "slot": si, "buff_type": "team_buff", "desc": "全体增益!"})
+					elif ult_effect == "heal_all":
+						var allies: Array[BattleUnit] = state.attacker_units if side == "attacker" else state.defender_units
+						for si in range(allies.size()):
+							if allies[si].is_alive():
+								state.action_log.append({"action": "heal", "side": side, "slot": si, "is_mass": true, "desc": "全体治疗!"})
+					elif ult_effect == "aoe_damage_freeze":
+						var enemy_side: String = "defender" if side == "attacker" else "attacker"
+						var enemies: Array[BattleUnit] = state.defender_units if side == "attacker" else state.attacker_units
+						for si in range(enemies.size()):
+							if enemies[si].is_alive():
+								state.action_log.append({"action": "debuff", "side": enemy_side, "slot": si, "debuff_type": "freeze", "desc": "冻结!"})
+
+		# 5) Tick and execute combo skills
+		var army_heroes: Array = []
+		for u2 in state.attacker_units:
+			if u2.is_alive() and not u2.hero_id.is_empty():
+				army_heroes.append(u2.hero_id)
+		if not army_heroes.is_empty():
+			HeroSkillsAdvanced.tick_combo_charges(army_heroes)
+			var available_combos: Array = HeroSkillsAdvanced.check_available_combos(army_heroes)
+			for combo_info in available_combos:
+				if combo_info.get("charged", false):
+					var cid: int = combo_info.get("combo_id", -1)
+					var battle_dict: Dictionary = _state_to_resolver_dict(state)
+					var combo_result: Dictionary = HeroSkillsAdvanced.execute_combo(cid, battle_dict)
+					if combo_result.get("ok", false):
+						_apply_ultimate_damage(state, combo_result, "attacker")
+						state.action_log.append({
+							"action": "combo",
+							"combo_index": cid,
+							"combo_name": combo_result.get("name", ""),
+							"side": "attacker",
+							"slot": 0,
+							"desc": "连携技 %s 发动!" % combo_result.get("name", ""),
+							"damage": combo_result.get("total_damage", 0),
+						})
+		# Same for defender combos
+		var def_heroes: Array = []
+		for u2 in state.defender_units:
+			if u2.is_alive() and not u2.hero_id.is_empty():
+				def_heroes.append(u2.hero_id)
+		if not def_heroes.is_empty():
+			HeroSkillsAdvanced.tick_combo_charges(def_heroes)
+			var available_combos_d: Array = HeroSkillsAdvanced.check_available_combos(def_heroes)
+			for combo_info in available_combos_d:
+				if combo_info.get("charged", false):
+					var cid: int = combo_info.get("combo_id", -1)
+					var battle_dict: Dictionary = _state_to_resolver_dict(state)
+					var combo_result: Dictionary = HeroSkillsAdvanced.execute_combo(cid, battle_dict)
+					if combo_result.get("ok", false):
+						_apply_ultimate_damage(state, combo_result, "defender")
+						state.action_log.append({
+							"action": "combo",
+							"combo_index": cid,
+							"combo_name": combo_result.get("name", ""),
+							"side": "defender",
+							"slot": 0,
+							"desc": "连携技 %s 发动!" % combo_result.get("name", ""),
+							"damage": combo_result.get("total_damage", 0),
+						})
+
+
+func _apply_ultimate_damage(state: BattleState, ult_result: Dictionary, caster_side: String) -> void:
+	var targets_hit: Array = ult_result.get("targets_hit", [])
+	var enemy_units: Array[BattleUnit] = state.defender_units if caster_side == "attacker" else state.attacker_units
+	var ally_units: Array[BattleUnit] = state.attacker_units if caster_side == "attacker" else state.defender_units
+	var enemy_side: String = "defender" if caster_side == "attacker" else "attacker"
+
+	# v8.0 BUG FIX: build a shuffled living-enemy list so each targets_hit entry
+	# hits a DISTINCT unit (round-robin) instead of re-picking randomly each time.
+	var _ult_living: Array[BattleUnit] = []
+	for eu in enemy_units:
+		if eu.is_alive():
+			_ult_living.append(eu)
+	# Shuffle for random distribution
+	_ult_living.shuffle()
+	var _ult_hit_idx: int = 0
+
+	# v10.0: drain_damage support
+	var total_dmg_dealt: int = 0
+
+	for hit in targets_hit:
+		var dmg: int = hit.get("damage", 0)
+		var healed: int = hit.get("healed", 0)
+		if dmg > 0:
+			# Refresh living list if we've cycled through all
+			if _ult_hit_idx >= _ult_living.size():
+				_ult_living.clear()
+				for eu in enemy_units:
+					if eu.is_alive():
+						_ult_living.append(eu)
+				_ult_living.shuffle()
+				_ult_hit_idx = 0
+			if not _ult_living.is_empty():
+				var target: BattleUnit = _ult_living[_ult_hit_idx]
+				_ult_hit_idx += 1
+				# Apply damage through HP system to keep soldiers and HP in sync
+				var hp_dmg: int = dmg * target.hp_per_soldier
+				var was_alive: bool = target.is_alive()
+				
+				# v10.0: formation clash magic_damage_resist
+				var clashes: Dictionary = FormationSystem.check_formation_clash(state.atk_formations, state.def_formations)
+				var clash_key: String = "arcane_vs_holy_def" if caster_side == "attacker" else "arcane_vs_holy_atk"
+				if clashes.has(clash_key):
+					var resist: float = clashes[clash_key].get("magic_damage_resist", 0.0)
+					if resist > 0:
+						hp_dmg = int(float(hp_dmg) * (1.0 - resist))
+				
+				target.hp = maxi(0, target.hp - hp_dmg)
+				var old_soldiers: int = target.soldiers
+				_recalc_soldiers(target)
+				var actual_lost: int = old_soldiers - target.soldiers
+				total_dmg_dealt += actual_lost
+
+				# Trigger death logging and morale cascades when ultimate kills a unit
+				if was_alive and not target.is_alive():
+					state.action_log.append({
+						"action": "death",
+						"unit": target.id,
+						"side": enemy_side,
+						"slot": target.slot,
+						"round": state.round_number,
+						"desc": "%s 被必杀技歼灭" % target.troop_id,
+					})
+					_apply_ally_death_morale(target, state)
+					_revalidate_formations_for_side(target, state)
+		elif healed > 0:
+			# v8.0: heal logic for ultimates (e.g. akane)
+			for au in ally_units:
+				if au.is_alive() and au.soldiers < au.max_soldiers:
+					var heal_hp: int = healed * au.hp_per_soldier
+					au.hp = mini(au.hp + heal_hp, au.max_hp)
+					_recalc_soldiers(au)
+					state.action_log.append({
+						"action": "heal",
+						"unit": au.id,
+						"side": caster_side,
+						"slot": au.slot,
+						"healed": healed,
+						"remaining_soldiers": au.soldiers,
+						"max_soldiers": au.max_soldiers,
+						"desc": "%s 恢复了 %d 兵力" % [au.troop_id, healed],
+					})
+
+	# v10.0: drain_damage heal sync
+	if total_dmg_dealt > 0:
+		# Check if this was a drain_damage skill (e.g. mei, soul_binder)
+		var ult_skill: Dictionary = HeroSkillsAdvanced.ultimate_skills.get(ult_result.get("hero_id", ""), {})
+		if ult_skill.get("effect", "") == "drain_damage":
+			var heal_per_unit: int = maxi(1, int(float(total_dmg_dealt) / float(maxi(1, ally_units.size()))))
+			for au in ally_units:
+				if au.is_alive() and au.soldiers < au.max_soldiers:
+					var actual_heal: int = mini(heal_per_unit, au.max_soldiers - au.soldiers)
+					au.hp = mini(au.max_hp, au.hp + actual_heal * au.hp_per_soldier)
+					_recalc_soldiers(au)
+					state.action_log.append({
+						"action": "heal",
+						"unit": au.id,
+						"side": caster_side,
+						"slot": au.slot,
+						"healed": actual_heal,
+						"remaining_soldiers": au.soldiers,
+						"max_soldiers": au.max_soldiers,
+						"desc": "%s 灵魂吸取回复 +%d兵" % [au.troop_id, actual_heal],
+					})
+
+
+func _state_to_resolver_dict(state: BattleState) -> Dictionary:
+	var atk_units: Array = []
+	for u in state.attacker_units:
+		atk_units.append({
+			"hero_id": u.hero_id, 
+			"unit_type": u.troop_id,
+			"soldiers": u.soldiers, 
+			"max_soldiers": u.max_soldiers,
+			"atk": u.atk, 
+			"def": u.def_stat, 
+			"mana": u.mana,
+			"is_alive": u.is_alive(), 
+			"side": "attacker"
+		})
+	var def_units: Array = []
+	for u in state.defender_units:
+		def_units.append({
+			"hero_id": u.hero_id, 
+			"unit_type": u.troop_id,
+			"soldiers": u.soldiers, 
+			"max_soldiers": u.max_soldiers,
+			"atk": u.atk, 
+			"def": u.def_stat, 
+			"mana": u.mana,
+			"is_alive": u.is_alive(), 
+			"side": "defender"
+		})
+	return {
+		"atk_units": atk_units, 
+		"def_units": def_units, 
+		"round": state.round_number,
+		"atk_mana": state.mana_attacker,
+		"def_mana": state.mana_defender
+	}
+
+
+func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: BattleState, skill_mult: float = 1.0) -> int:
+	var atk_val: int = attacker.atk
+	var def_val: int = defender.def_stat
+
+	# fort_def_3: +3 DEF when defending in owned node
+	if defender.has_passive("fort_def_3") and not defender.is_attacker:
+		def_val += 3
+
+	# Terrain defense multiplier
+	var terrain_def_mult := 1.0
+	var tdata_dmg: Dictionary = FactionData.TERRAIN_DATA.get(state.terrain, {})
+	if not defender.is_attacker:
+		terrain_def_mult = tdata_dmg.get("def_mult", 1.0)
+	def_val = int(float(def_val) * terrain_def_mult)
+
+	# Design doc formula: max(1, ATK - DEF) — was incorrectly max(10, ...) which
+	# made heavily-armored units take far too much damage (Bug fix Round 3).
+	var raw_diff: int = maxi(1, atk_val - def_val)
+
+	# SR07-style diminishing returns on troop count
+	var troops := float(attacker.soldiers)
+	var adjusted: float
+	if troops <= 8.0:
+		adjusted = troops
+	elif troops <= 15.0:
+		adjusted = 8.0 + (troops - 8.0) * 0.5
+	else:
+		adjusted = 11.5 + (troops - 15.0) * 0.25
+
+	var base_damage: float = adjusted * float(raw_diff) / 100.0
+
+	# Apply unit counter matrix multipliers (CounterMatrix)
+	var _counter: Dictionary = CounterMatrix.get_counter(attacker.troop_id, defender.troop_id)
+	if _counter["atk_mult"] != 1.0:
+		var counter_atk: float = _counter["atk_mult"]
+		# v4.4: rps_bonus — equipment passive enhances counter advantage
+		if attacker.has_passive("rps_bonus") and counter_atk > 1.0:
+			counter_atk += 0.15  # counter_tactics: +15% to counter multiplier
+		base_damage *= counter_atk
+	# BUG FIX: def_mult should multiply, not divide. def_mult < 1.0 reduces damage taken.
+	if _counter["def_mult"] != 1.0:
+		base_damage *= _counter["def_mult"]
+
+	# v4.5: light_slayer (rin_sacred_blade) — +15% damage vs light faction units
+	if attacker.has_passive("light_slayer"):
+		var def_troop: String = defender.troop_id.to_lower()
+		if def_troop.begins_with("elf_") or def_troop.begins_with("knight_") or def_troop.begins_with("human_") or def_troop.begins_with("temple_") or def_troop.begins_with("priest") or def_troop.begins_with("treant") or def_troop.begins_with("alliance_"):
+			base_damage *= 1.15
+
+	# v4.5: blood_oath — when unit is <50% soldiers, ATK×2 for damage calc
+	if attacker.has_passive("blood_oath"):
+		if float(attacker.soldiers) < float(attacker.max_soldiers) * 0.5:
+			base_damage *= 2.0
+
+	# v4.6: desert_mastery — ATK doubled on WASTELAND terrain
+	if attacker.has_passive("desert_mastery"):
+		if state.terrain == Terrain.WASTELAND:
+			base_damage *= 2.0
+
+	# v7.0: flanking_bonus — +20% damage when attacking back-row unit with no front-row cover
+	# Simulates a collapsed frontline where back-row units are exposed and vulnerable.
+	var _flanking_applied: bool = false
+	if defender.row == 1:
+		var enemy_units: Array[BattleUnit] = state.living_attackers() if defender.is_attacker else state.living_defenders()
+		var has_front_cover: bool = false
+		for eu in enemy_units:
+			if eu.row == 0 and eu != defender:
+				has_front_cover = true
+				break
+		if not has_front_cover:
+			base_damage *= 1.20
+			_flanking_applied = true
+
+	# v10.0: shadow_ranged_dodge (Clash)
+	if FormationSystem._is_ranged({"troop_id": attacker.troop_id}):
+		var clashes: Dictionary = FormationSystem.check_formation_clash(state.atk_formations, state.def_formations)
+		var clash_key: String = "arrow_vs_shadow_def" if attacker.is_attacker else "arrow_vs_shadow_atk"
+		if clashes.has(clash_key):
+			var dodge: float = clashes[clash_key].get("shadow_ranged_dodge", 0.0)
+			if randf() < dodge:
+				state.action_log.append({
+					"action": "passive", "event": "shadow_dodge", "unit": defender.id,
+					"side": "attacker" if defender.is_attacker else "defender", "slot": defender.slot,
+					"desc": "%s 影袭闪避!" % defender.troop_id
+				})
+				return 0
+
+	var final_damage: float = base_damage * skill_mult
+
+	# Convert from "equivalent soldiers killed" to HP damage
+	var soldiers_killed_equiv: int = int(floor(final_damage))
+	if soldiers_killed_equiv < 1 and attacker.soldiers > 0:
+		soldiers_killed_equiv = 1
+	
+	return soldiers_killed_equiv
+
+
+func _consume_formation_bonuses(state: BattleState) -> void:
+	var atk_bonuses: Dictionary = FormationSystem.get_formation_bonuses(state.atk_formations)
+	var def_bonuses: Dictionary = FormationSystem.get_formation_bonuses(state.def_formations)
+	var clashes: Dictionary = FormationSystem.check_formation_clash(state.atk_formations, state.def_formations)
+
+	# 1) Cavalry Charge (Round 1)
+	if state.round_number == 1:
+		if atk_bonuses.get("cavalry_atk_mult_r1", 1.0) > 1.0:
+			var negate: bool = clashes.get("iron_wall_vs_cavalry", {}).get("negate_cavalry_charge", false)
+			if not negate:
+				for u in state.attacker_units:
+					if u.is_alive() and FormationSystem._is_cavalry({"troop_id": u.troop_id}):
+						u.atk = int(float(u.atk) * atk_bonuses["cavalry_atk_mult_r1"])
+		if def_bonuses.get("cavalry_atk_mult_r1", 1.0) > 1.0:
+			var negate: bool = clashes.get("iron_wall_vs_cavalry", {}).get("negate_cavalry_charge", false)
+			if not negate:
+				for u in state.defender_units:
+					if u.is_alive() and FormationSystem._is_cavalry({"troop_id": u.troop_id}):
+						u.atk = int(float(u.atk) * def_bonuses["cavalry_atk_mult_r1"])
+
+	# 2) Ranged Double Attack (Round 1 & 2)
+	# Handled in _execute_action by checking state.round_number and bonuses
+
+	# 3) Heal per round
+	var atk_heal: int = atk_bonuses.get("heal_per_round", 0)
+	if atk_heal > 0:
+		for u in state.attacker_units:
+			if u.is_alive() and u.soldiers < u.max_soldiers:
+				u.hp = mini(u.max_hp, u.hp + atk_heal * u.hp_per_soldier)
+				_recalc_soldiers(u)
+				state.action_log.append({
+					"action": "heal", "unit": u.id, "side": "attacker", "slot": u.slot,
+					"healed": atk_heal, "remaining_soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
+					"desc": "阵型回复: %s +%d兵" % [u.troop_id, atk_heal]
+				})
+	var def_heal: int = def_bonuses.get("heal_per_round", 0)
+	if def_heal > 0:
+		for u in state.defender_units:
+			if u.is_alive() and u.soldiers < u.max_soldiers:
+				u.hp = mini(u.max_hp, u.hp + def_heal * u.hp_per_soldier)
+				_recalc_soldiers(u)
+				state.action_log.append({
+					"action": "heal", "unit": u.id, "side": "defender", "slot": u.slot,
+					"healed": def_heal, "remaining_soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
+					"desc": "阵型回复: %s +%d兵" % [u.troop_id, def_heal]
+				})
+
+	# 4) Shadow Ranged Dodge (Clash)
+	# Handled in _calculate_damage
+
+
+func _apply_kill_heal(killer: BattleUnit, state: BattleState) -> void:
+	var heal_soldiers: int = 0
+	if killer.has_passive("kill_heal_2"):
+		heal_soldiers = 2
+	elif killer.has_passive("kill_heal"):
+		heal_soldiers = 1
+	if heal_soldiers == 0 or not killer.is_alive():
 		return
-	killer._dragon_slayer_bonus += 1
-	killer.atk += 1
+	if killer.hp >= killer.max_hp:
+		return
+	var heal: int = killer.hp_per_soldier * heal_soldiers
+	killer.hp = mini(killer.hp + heal, killer.max_hp)
+	_recalc_soldiers(killer)
 	var side_str: String = "attacker" if killer.is_attacker else "defender"
 	state.action_log.append({
 		"action": "passive",
-		"event": "dragon_slayer",
+		"event": "kill_heal",
 		"unit": killer.id,
 		"side": side_str,
 		"slot": killer.slot,
-		"desc": "%s 龙杀! 击杀后ATK+1(累积:%d)" % [killer.troop_id, killer._dragon_slayer_bonus],
-	})
-	state.action_log.append({
-		"action": "passive_vfx",
-		"side": side_str,
-		"slot": killer.slot,
-		"passive_type": "bloodlust",
-		"desc": "%s 龙杀发动" % killer.troop_id,
+		"healed": heal_soldiers,
+		"desc": "%s 击杀回复 +%d兵" % [killer.troop_id, heal_soldiers],
 	})
 
-## Look up a hero's active skill data from FactionData.HEROES.
-## Mirrors combat_resolver.gd's _get_hero_active_skill() so HERO_SKILL_NOW intervention
-## can read the real skill type, mana_cost, and cooldown.
-func _get_hero_active_skill(hero_id: String) -> Dictionary:
-	if hero_id == "":
-		return {}
-	if not _has_autoload("FactionData"):
-		# FactionData is a const-preloaded class, not an autoload — access directly
-		pass
-	var hdata: Dictionary = FactionData.HEROES.get(hero_id, {})
+
+# ---------------------------------------------------------------------------
+# Commander Intervention Helpers
+# ---------------------------------------------------------------------------
+
+func _build_intervention_state(state: BattleState) -> Dictionary:
+	var res := _state_to_resolver_dict(state)
+	res["is_siege"] = state.is_siege
+	res["city_def"] = state.city_def
+	return res
+
+func _apply_intervention_results(state: BattleState, istate: Dictionary) -> void:
+	# Sync units back
+	for i in range(state.attacker_units.size()):
+		var u := state.attacker_units[i]
+		var d: Dictionary = istate["atk_units"][i]
+		u.soldiers = d["soldiers"]
+		u.hp = u.soldiers * u.hp_per_soldier
+	for i in range(state.defender_units.size()):
+		var u := state.defender_units[i]
+		var d: Dictionary = istate["def_units"][i]
+		u.soldiers = d["soldiers"]
+		u.hp = u.soldiers * u.hp_per_soldier
+	state.mana_attacker = istate.get("atk_mana", state.mana_attacker)
+	state.mana_defender = istate.get("def_mana", state.mana_defender)
+	state.city_def = istate.get("city_def", state.city_def)
+
+func _tick_intervention_durations(state: BattleState) -> void:
+	# Mirrors combat_resolver.gd _end_of_round()
+	if _has_autoload("CommanderIntervention"):
+		var ci := _get_autoload("CommanderIntervention")
+		if ci and ci.has_method("tick_durations"):
+			ci.tick_durations()
+
+# ---------------------------------------------------------------------------
+# Utility
+# ---------------------------------------------------------------------------
+
+func _get_active_skill(unit: BattleUnit) -> Dictionary:
+	# Simplified skill lookup
+	var hdata: Dictionary = FactionData.HEROES.get(unit.hero_id, {})
 	if hdata.is_empty():
 		return {}
 	var skill_name: String = hdata.get("active", "")
@@ -1948,236 +1758,3 @@ func _revalidate_formations_for_side(dead_unit: BattleUnit, state: BattleState) 
 	# Revert stat bonuses on the living unit dicts, then sync back
 	FormationSystem.revert_formation_bonuses(living_dicts, lost)
 	_sync_formation_to_battle_units(side_units, living_dicts)
-	# Update stored formations
-	if is_atk:
-		state.atk_formations = result["active"]
-	else:
-		state.def_formations = result["active"]
-	# Log the formation break
-	var side_str: String = "attacker" if is_atk else "defender"
-	for fid in lost:
-		var fname_cn: String = FormationSystem.FORMATION_NAMES_CN.get(fid, "")
-		state.action_log.append({
-			"action": "formation_lost",
-			"side": side_str,
-			"formation": FormationSystem.FORMATION_NAMES.get(fid, "Unknown").to_lower().replace(" ", "_"),
-			"name_cn": fname_cn,
-			"desc": "%s 阵型瓦解: %s" % ["攻方" if is_atk else "守方", fname_cn],
-		})
-
-
-# ---------------------------------------------------------------------------
-# v6.0: Hero Skills Integration (Ultimate / Awakening)
-# ---------------------------------------------------------------------------
-
-func _tick_hero_skills(state: BattleState) -> void:
-	var all_units: Array[BattleUnit] = []
-	all_units.append_array(state.attacker_units)
-	all_units.append_array(state.defender_units)
-
-	for u in all_units:
-		if not u.is_alive():
-			continue
-		var hid: String = u.hero_id
-		if hid.is_empty():
-			continue
-		var side: String = "attacker" if state.attacker_units.has(u) else "defender"
-
-		# 1) Tick ultimate charge
-		HeroSkillsAdvanced.tick_charge(hid)
-
-		# 2) Check awakening trigger (HP < 30%)
-		var hp_ratio: float = float(u.soldiers) / float(maxi(1, u.max_soldiers))
-		if not HeroSkillsAdvanced.is_awakened(hid) and HeroSkillsAdvanced.check_awakening(hid, hp_ratio):
-			var awk: Dictionary = HeroSkillsAdvanced.trigger_awakening(hid)
-			if not awk.is_empty():
-				# Store original stats before awakening to avoid float drift on revert
-				u.set_meta("pre_awaken_atk", u.atk)
-				u.set_meta("pre_awaken_def", u.def_stat)
-				u.set_meta("pre_awaken_spd", u.spd)
-				u.atk *= awk.get("atk_mult", 1.0)
-				u.def_stat *= awk.get("def_mult", 1.0)
-				u.spd *= awk.get("spd_mult", 1.0)
-				state.action_log.append({
-					"action": "awakening",
-					"hero_id": hid,
-					"side": side,
-					"slot": u.slot,
-					"desc": "%s — %s!" % [u.troop_id, awk.get("name", "覚醒")],
-				})
-
-		# 3) Tick awakening duration
-		if HeroSkillsAdvanced.is_awakened(hid):
-			if not HeroSkillsAdvanced.tick_awakening(hid):
-				# Revert to stored pre-awakening stats to avoid float drift
-				if u.has_meta("pre_awaken_atk"):
-					u.atk = u.get_meta("pre_awaken_atk")
-					u.def_stat = u.get_meta("pre_awaken_def")
-					u.spd = u.get_meta("pre_awaken_spd")
-				else:
-					var awk_data: Dictionary = HeroSkillsAdvanced.awakening_data.get(hid, {})
-					if not awk_data.is_empty():
-						u.atk /= awk_data.get("atk_mult", 1.0)
-						u.def_stat /= awk_data.get("def_mult", 1.0)
-						u.spd /= awk_data.get("spd_mult", 1.0)
-
-		# 4) Execute charged ultimate
-		if HeroSkillsAdvanced.is_charged(hid):
-			var battle_dict: Dictionary = _state_to_resolver_dict(state)
-			var ult_result: Dictionary = HeroSkillsAdvanced.execute_ultimate(hid, battle_dict)
-			if ult_result.get("ok", false):
-				_apply_ultimate_damage(state, ult_result, side)
-				state.action_log.append({
-					"action": "ultimate",
-					"hero_id": hid,
-					"side": side,
-					"slot": u.slot,
-					"desc": "%s 发动 %s!" % [u.troop_id, ult_result.get("name", "必杀技")],
-					"damage": ult_result.get("total_damage", 0),
-				})
-				# Log buff/heal/freeze sub-effects from ultimates
-				var ult_skill: Dictionary = HeroSkillsAdvanced.ultimate_skills.get(hid, {})
-				var ult_effect: String = ult_skill.get("effect", "")
-				if ult_effect == "buff_all":
-					var allies: Array[BattleUnit] = state.attacker_units if side == "attacker" else state.defender_units
-					for si in range(allies.size()):
-						if allies[si].is_alive():
-							state.action_log.append({"action": "buff", "side": side, "slot": si, "buff_type": "team_buff", "desc": "全体增益!"})
-				elif ult_effect == "heal_all":
-					var allies: Array[BattleUnit] = state.attacker_units if side == "attacker" else state.defender_units
-					for si in range(allies.size()):
-						if allies[si].is_alive():
-							state.action_log.append({"action": "heal", "side": side, "slot": si, "is_mass": true, "desc": "全体治疗!"})
-				elif ult_effect == "aoe_damage_freeze":
-					var enemy_side: String = "defender" if side == "attacker" else "attacker"
-					var enemies: Array[BattleUnit] = state.defender_units if side == "attacker" else state.attacker_units
-					for si in range(enemies.size()):
-						if enemies[si].is_alive():
-							state.action_log.append({"action": "debuff", "side": enemy_side, "slot": si, "debuff_type": "freeze", "desc": "冻结!"})
-
-	# 5) Tick and execute combo skills
-	var army_heroes: Array = []
-	for u2 in state.attacker_units:
-		if u2.is_alive() and not u2.hero_id.is_empty():
-			army_heroes.append(u2.hero_id)
-	if not army_heroes.is_empty():
-		HeroSkillsAdvanced.tick_combo_charges(army_heroes)
-		var available_combos: Array = HeroSkillsAdvanced.check_available_combos(army_heroes)
-		for combo_info in available_combos:
-			if combo_info.get("charged", false):
-				var cid: int = combo_info.get("combo_id", -1)
-				var battle_dict: Dictionary = _state_to_resolver_dict(state)
-				var combo_result: Dictionary = HeroSkillsAdvanced.execute_combo(cid, battle_dict)
-				if combo_result.get("ok", false):
-					_apply_ultimate_damage(state, combo_result, "attacker")
-					state.action_log.append({
-						"action": "combo",
-						"combo_index": cid,
-						"combo_name": combo_result.get("name", ""),
-						"side": "attacker",
-						"slot": 0,
-						"desc": "连携技 %s 发动!" % combo_result.get("name", ""),
-						"damage": combo_result.get("total_damage", 0),
-					})
-	# Same for defender combos
-	var def_heroes: Array = []
-	for u2 in state.defender_units:
-		if u2.is_alive() and not u2.hero_id.is_empty():
-			def_heroes.append(u2.hero_id)
-	if not def_heroes.is_empty():
-		HeroSkillsAdvanced.tick_combo_charges(def_heroes)
-		var available_combos_d: Array = HeroSkillsAdvanced.check_available_combos(def_heroes)
-		for combo_info in available_combos_d:
-			if combo_info.get("charged", false):
-				var cid: int = combo_info.get("combo_id", -1)
-				var battle_dict: Dictionary = _state_to_resolver_dict(state)
-				var combo_result: Dictionary = HeroSkillsAdvanced.execute_combo(cid, battle_dict)
-				if combo_result.get("ok", false):
-					_apply_ultimate_damage(state, combo_result, "defender")
-					state.action_log.append({
-						"action": "combo",
-						"combo_index": cid,
-						"combo_name": combo_result.get("name", ""),
-						"side": "defender",
-						"slot": 0,
-						"desc": "连携技 %s 发动!" % combo_result.get("name", ""),
-						"damage": combo_result.get("total_damage", 0),
-					})
-
-
-func _apply_ultimate_damage(state: BattleState, ult_result: Dictionary, caster_side: String) -> void:
-	var targets_hit: Array = ult_result.get("targets_hit", [])
-	var enemy_units: Array[BattleUnit] = state.defender_units if caster_side == "attacker" else state.attacker_units
-	var ally_units: Array[BattleUnit] = state.attacker_units if caster_side == "attacker" else state.defender_units
-	var enemy_side: String = "defender" if caster_side == "attacker" else "attacker"
-
-	# v8.0 BUG FIX: build a shuffled living-enemy list so each targets_hit entry
-	# hits a DISTINCT unit (round-robin) instead of re-picking randomly each time.
-	var _ult_living: Array[BattleUnit] = []
-	for eu in enemy_units:
-		if eu.is_alive():
-			_ult_living.append(eu)
-	# Shuffle for random distribution
-	_ult_living.shuffle()
-	var _ult_hit_idx: int = 0
-
-	for hit in targets_hit:
-		var dmg: int = hit.get("damage", 0)
-		var healed: int = hit.get("healed", 0)
-		if dmg > 0:
-			# Refresh living list if we've cycled through all
-			if _ult_hit_idx >= _ult_living.size():
-				_ult_living.clear()
-				for eu in enemy_units:
-					if eu.is_alive():
-						_ult_living.append(eu)
-				_ult_living.shuffle()
-				_ult_hit_idx = 0
-			if not _ult_living.is_empty():
-				var target: BattleUnit = _ult_living[_ult_hit_idx]
-				_ult_hit_idx += 1
-				# Apply damage through HP system to keep soldiers and HP in sync
-				var hp_dmg: int = dmg * target.hp_per_soldier
-				var was_alive: bool = target.is_alive()
-				target.hp = maxi(0, target.hp - hp_dmg)
-				_recalc_soldiers(target)
-				# Trigger death logging and morale cascades when ultimate kills a unit
-				if was_alive and not target.is_alive():
-					state.action_log.append({
-						"action": "death",
-						"unit": target.id,
-						"side": enemy_side,
-						"slot": target.slot,
-						"round": state.round_number,
-						"desc": "%s 被必杀技歼灭" % target.troop_id,
-					})
-					_apply_ally_death_morale(target, state)
-					_revalidate_formations_for_side(target, state)
-		if healed > 0:
-			for au in ally_units:
-				if au.is_alive() and au.soldiers < au.max_soldiers:
-					var heal_hp: int = healed * au.hp_per_soldier
-					au.hp = mini(au.hp + heal_hp, au.max_hp)
-					_recalc_soldiers(au)
-					state.action_log.append({
-						"action": "heal",
-						"side": caster_side,
-						"slot": au.slot,
-						"is_mass": false,
-						"desc": "%s 被必杀技治愈" % au.troop_id,
-					})
-					break
-
-
-func _state_to_resolver_dict(state: BattleState) -> Dictionary:
-	var atk_units: Array = []
-	for u in state.attacker_units:
-		atk_units.append({"hero_id": u.hero_id, "unit_type": u.troop_id,
-			"soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
-			"atk": u.atk, "def": u.def_stat, "is_alive": u.is_alive(), "side": "attacker"})
-	var def_units: Array = []
-	for u in state.defender_units:
-		def_units.append({"hero_id": u.hero_id, "unit_type": u.troop_id,
-			"soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
-			"atk": u.atk, "def": u.def_stat, "is_alive": u.is_alive(), "side": "defender"})
-	return {"atk_units": atk_units, "def_units": def_units, "round": state.round_number}
