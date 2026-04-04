@@ -82,7 +82,9 @@ var faction_border_meshes: Array = []
 var path_preview_meshes: Array = []
 var water_anim_nodes: Array = []  # [{node, type}]
 var attack_route_meshes: Array = []
-var march_route_meshes: Array = []  # Persistent march path visuals
+## Per-army march route meshes: { army_id: int -> Array[MeshInstance3D] }
+## Using a Dictionary prevents multi-army marches from clearing each other's paths.
+var march_route_meshes: Dictionary = {}
 var supply_line_meshes: Array = []  # Supply route dot visuals
 var supply_depot_markers: Array = []  # 3D depot crate markers
 var isolated_overlay_meshes: Array = []  # Red overlay for isolated tiles
@@ -107,6 +109,11 @@ var _hover_glow: MeshInstance3D = null
 var _hover_glow_mat: StandardMaterial3D = null
 var _pulse_tween: Tween = null
 var _pulse_ring: MeshInstance3D = null
+# ── Garrison visual state ──
+## Per-army garrison shield meshes: { army_id: int -> MeshInstance3D }
+var _garrison_shield_meshes: Dictionary = {}
+## Per-army marching arrow meshes: { army_id: int -> MeshInstance3D }
+var _marching_arrow_meshes: Dictionary = {}
 # ── Input mode & undo state ──
 var _input_mode: String = "normal"  # "normal", "attack", "deploy"
 var _undo_stack: Array = []  # [{type, army_id, from_tile, to_tile, ap_cost}]
@@ -186,6 +193,20 @@ func _ready() -> void:
 	EventBus.army_march_started.connect(_on_march_started)
 	EventBus.army_march_arrived.connect(_on_march_arrived)
 	EventBus.army_march_cancelled.connect(_on_march_cancelled)
+	# March step / battle / intercept / supply signals
+	if EventBus.has_signal("army_march_step"):
+		EventBus.army_march_step.connect(_on_march_step)
+	if EventBus.has_signal("army_march_battle"):
+		EventBus.army_march_battle.connect(_on_march_battle)
+	if EventBus.has_signal("army_march_intercepted"):
+		EventBus.army_march_intercepted.connect(_on_march_intercepted)
+	if EventBus.has_signal("army_supply_low"):
+		EventBus.army_supply_low.connect(_on_army_supply_low)
+	# Garrison visual signals
+	if EventBus.has_signal("army_garrisoned"):
+		EventBus.army_garrisoned.connect(_on_army_garrisoned)
+	if EventBus.has_signal("army_ungarrisoned"):
+		EventBus.army_ungarrisoned.connect(_on_army_ungarrisoned)
 	if EventBus.has_signal("building_upgraded"):
 		EventBus.building_upgraded.connect(_on_building_upgraded)
 	if EventBus.has_signal("supply_line_cut"):
@@ -395,7 +416,9 @@ func _clear_board() -> void:
 	for m in attack_route_meshes:
 		if is_instance_valid(m): m.queue_free()
 	attack_route_meshes.clear()
-	_clear_march_routes()
+	_clear_all_march_routes()
+	_clear_all_garrison_shields()
+	_clear_all_marching_arrows()
 	_clear_supply_lines(); _clear_supply_depots(); _clear_isolated_overlays()
 	_clear_highlights(); _clear_path_preview(); _clear_pulse_ring()
 	if is_instance_valid(_hover_glow):
@@ -1769,21 +1792,79 @@ func _spawn_move_dust(pos: Vector3) -> void:
 	tw.chain().tween_callback(dust.queue_free)
 
 # ═══════════════ MARCH ROUTE VISUALIZATION ═══════════════
-func _on_march_started(_army_id: int, path: Array) -> void:
-	# Audio trigger for army march
+
+func _on_march_started(army_id: int, path: Array) -> void:
+	## Triggered when a march order is issued. Draws the persistent route and
+	## attaches a marching-arrow indicator above the army marker.
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("army_march")
-	_draw_march_route(path)
+	_draw_march_route(army_id, path)
+	_spawn_marching_arrow(army_id)
+	# Cancel garrison stance if the army was garrisoned
+	if MarchSystem.is_army_garrisoned(army_id):
+		MarchSystem.cancel_garrison_order(army_id)
 
-func _on_march_arrived(_army_id: int, _tile: int) -> void:
-	_clear_march_routes()
 
-func _on_march_cancelled(_army_id: int) -> void:
-	_clear_march_routes()
+func _on_march_arrived(army_id: int, tile: int) -> void:
+	## Triggered when the army reaches its destination.
+	_clear_march_route(army_id)
+	_clear_marching_arrow(army_id)
+	_update_territory_visual(tile)
+	# Camera follow to arrival tile
+	_camera_follow_delayed(tile, 0.2)
 
-func _draw_march_route(path: Array) -> void:
-	_clear_march_routes()
+
+func _on_march_cancelled(army_id: int) -> void:
+	## Triggered when a march order is cancelled.
+	_clear_march_route(army_id)
+	_clear_marching_arrow(army_id)
+
+
+func _on_march_step(army_id: int, from_tile: int, to_tile: int, _progress: float) -> void:
+	## Triggered each time an army advances one tile during turn processing.
+	## Plays the movement animation and updates territory visuals for both tiles.
+	_animate_army_move(from_tile, to_tile)
+	_update_territory_visual(from_tile)
+	_update_territory_visual(to_tile)
+	# Advance the marching arrow to the new tile
+	_move_marching_arrow(army_id, to_tile)
+	# Trim the route: remove the segment the army just traversed
+	_trim_march_route(army_id, from_tile)
+
+
+func _on_march_battle(army_id: int, tile_index: int) -> void:
+	## Triggered when a marching army encounters a hostile tile.
+	_clear_march_route(army_id)
+	_clear_marching_arrow(army_id)
+	_spawn_battle_toast(tile_index, "⚔ 遇敌!", Color(1.0, 0.45, 0.1))
+	_camera_follow_tile(tile_index, false)
+
+
+func _on_march_intercepted(army_id: int, _interceptor_id: int, tile_index: int) -> void:
+	## Triggered when a marching army is intercepted by an enemy.
+	_clear_march_route(army_id)
+	_clear_marching_arrow(army_id)
+	_spawn_battle_toast(tile_index, "⚠ 拦截!", Color(1.0, 0.85, 0.1))
+	_camera_follow_tile(tile_index, false)
+
+
+func _on_army_supply_low(army_id: int, supply: float) -> void:
+	## Triggered when an army's supply drops below the low threshold.
+	var army: Dictionary = GameManager.get_army(army_id)
+	if army.is_empty(): return
+	var tile_idx: int = army.get("tile_index", -1)
+	if tile_idx < 0: return
+	var pct_text: String = "%d%%" % int(supply)
+	_spawn_battle_toast(tile_idx, "⚠ 补给不足 " + pct_text, Color(0.95, 0.7, 0.1))
+
+
+# ── Per-army route drawing ──
+
+func _draw_march_route(army_id: int, path: Array) -> void:
+	## Draw the full planned route for a specific army.
+	_clear_march_route(army_id)
 	if path.size() < 2: return
+	var meshes: Array = []
 	for i in range(path.size() - 1):
 		var fi: int = path[i]
 		var ti: int = path[i + 1]
@@ -1811,7 +1892,7 @@ func _draw_march_route(path: Array) -> void:
 			dot.material_override = mat
 			add_child(dot)
 			dot.position = pos
-			march_route_meshes.append(dot)
+			meshes.append(dot)
 	# Add waypoint rings at each step
 	for i in range(1, path.size()):
 		var idx: int = path[i]
@@ -1833,12 +1914,157 @@ func _draw_march_route(path: Array) -> void:
 		ring.position = Vector3(p.x, elev + TILE_HEIGHT + 0.05, p.z)
 		ring.rotation_degrees.x = 90.0
 		add_child(ring)
-		march_route_meshes.append(ring)
+		meshes.append(ring)
+	march_route_meshes[army_id] = meshes
 
-func _clear_march_routes() -> void:
-	for m in march_route_meshes:
+
+func _trim_march_route(army_id: int, completed_from_tile: int) -> void:
+	## Remove the first segment of a route once the army has moved past it.
+	## This keeps the displayed path in sync with the remaining journey.
+	if not march_route_meshes.has(army_id): return
+	if not GameManager.tiles.size() > completed_from_tile: return
+	var from_pos: Vector3 = GameManager.tiles[completed_from_tile]["position_3d"]
+	var meshes: Array = march_route_meshes[army_id]
+	var keep: Array = []
+	for m in meshes:
+		if not is_instance_valid(m):
+			continue
+		# Keep meshes that are not near the completed_from_tile position
+		var d: float = Vector2(m.position.x - from_pos.x, m.position.z - from_pos.z).length()
+		if d < 0.8:
+			m.queue_free()
+		else:
+			keep.append(m)
+	march_route_meshes[army_id] = keep
+
+
+func _clear_march_route(army_id: int) -> void:
+	## Clear route meshes for a single army.
+	if not march_route_meshes.has(army_id): return
+	for m in march_route_meshes[army_id]:
 		if is_instance_valid(m): m.queue_free()
+	march_route_meshes.erase(army_id)
+
+
+func _clear_all_march_routes() -> void:
+	## Clear all per-army route meshes (used on board rebuild).
+	for aid in march_route_meshes:
+		for m in march_route_meshes[aid]:
+			if is_instance_valid(m): m.queue_free()
 	march_route_meshes.clear()
+
+
+# ── Marching arrow indicator ──
+
+func _spawn_marching_arrow(army_id: int) -> void:
+	## Spawn a small billboard arrow above the army marker to indicate active march.
+	_clear_marching_arrow(army_id)
+	var army: Dictionary = GameManager.get_army(army_id)
+	if army.is_empty(): return
+	var tile_idx: int = army.get("tile_index", -1)
+	if tile_idx < 0 or not tile_visuals.has(tile_idx): return
+	var vis: Dictionary = tile_visuals[tile_idx]
+	var am: Node3D = vis["army_marker"]
+	var arrow := Label3D.new()
+	arrow.name = "MarchArrow"
+	arrow.text = "➡"
+	arrow.font_size = 32
+	arrow.pixel_size = 0.010
+	arrow.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	arrow.no_depth_test = true
+	arrow.modulate = Color(0.35, 0.75, 1.0, 0.92)
+	arrow.outline_modulate = Color(0, 0, 0, 0.85)
+	arrow.outline_size = 10
+	arrow.position = Vector3(0, 1.6, 0)
+	am.add_child(arrow)
+	# Gentle bob animation
+	var tw := create_tween()
+	tw.set_loops()
+	tw.tween_property(arrow, "position:y", 1.85, 0.5).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(arrow, "position:y", 1.6, 0.5).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	_marching_arrow_meshes[army_id] = arrow
+
+
+func _move_marching_arrow(army_id: int, new_tile: int) -> void:
+	## Re-parent the marching arrow to the army marker at the new tile.
+	if not _marching_arrow_meshes.has(army_id): return
+	var arrow: Node3D = _marching_arrow_meshes[army_id]
+	if not is_instance_valid(arrow): return
+	if not tile_visuals.has(new_tile): return
+	var vis: Dictionary = tile_visuals[new_tile]
+	var am: Node3D = vis["army_marker"]
+	if arrow.get_parent() != am:
+		if is_instance_valid(arrow.get_parent()):
+			arrow.get_parent().remove_child(arrow)
+		am.add_child(arrow)
+
+
+func _clear_marching_arrow(army_id: int) -> void:
+	if not _marching_arrow_meshes.has(army_id): return
+	var arrow: Node3D = _marching_arrow_meshes[army_id]
+	if is_instance_valid(arrow): arrow.queue_free()
+	_marching_arrow_meshes.erase(army_id)
+
+
+func _clear_all_marching_arrows() -> void:
+	for aid in _marching_arrow_meshes:
+		var arrow: Node3D = _marching_arrow_meshes[aid]
+		if is_instance_valid(arrow): arrow.queue_free()
+	_marching_arrow_meshes.clear()
+
+
+# ── Garrison shield indicator ──
+
+func _on_army_garrisoned(army_id: int, tile_index: int) -> void:
+	## Spawn a shield icon above the garrisoned army marker.
+	_spawn_garrison_shield(army_id, tile_index)
+	_update_territory_visual(tile_index)
+
+
+func _on_army_ungarrisoned(army_id: int, tile_index: int) -> void:
+	## Remove the shield icon when garrison stance is cancelled.
+	_clear_garrison_shield(army_id)
+	_update_territory_visual(tile_index)
+
+
+func _spawn_garrison_shield(army_id: int, tile_index: int) -> void:
+	## Spawn a golden shield Label3D above the army marker to indicate garrison.
+	_clear_garrison_shield(army_id)
+	if not tile_visuals.has(tile_index): return
+	var vis: Dictionary = tile_visuals[tile_index]
+	var am: Node3D = vis["army_marker"]
+	var shield := Label3D.new()
+	shield.name = "GarrisonShield"
+	shield.text = "🛡"
+	shield.font_size = 30
+	shield.pixel_size = 0.010
+	shield.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	shield.no_depth_test = true
+	shield.modulate = Color(1.0, 0.88, 0.25, 0.95)
+	shield.outline_modulate = Color(0, 0, 0, 0.85)
+	shield.outline_size = 10
+	shield.position = Vector3(0, 1.6, 0)
+	am.add_child(shield)
+	# Slow pulse animation to draw attention
+	var tw := create_tween()
+	tw.set_loops()
+	tw.tween_property(shield, "modulate:a", 0.55, 1.2).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(shield, "modulate:a", 0.95, 1.2).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+	_garrison_shield_meshes[army_id] = shield
+
+
+func _clear_garrison_shield(army_id: int) -> void:
+	if not _garrison_shield_meshes.has(army_id): return
+	var shield: Node3D = _garrison_shield_meshes[army_id]
+	if is_instance_valid(shield): shield.queue_free()
+	_garrison_shield_meshes.erase(army_id)
+
+
+func _clear_all_garrison_shields() -> void:
+	for aid in _garrison_shield_meshes:
+		var shield: Node3D = _garrison_shield_meshes[aid]
+		if is_instance_valid(shield): shield.queue_free()
+	_garrison_shield_meshes.clear()
 
 # ═══════════════ CAMERA FOCUS ═══════════════
 func focus_on_tile(tile_index: int) -> void:

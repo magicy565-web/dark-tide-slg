@@ -91,6 +91,17 @@ func _connect_signals() -> void:
 	# Siege
 	if EventBus.has_signal("siege_started"):
 		EventBus.siege_started.connect(_on_siege_started)
+	# March system
+	if EventBus.has_signal("army_march_started"):
+		EventBus.army_march_started.connect(_on_march_started_vfx)
+	if EventBus.has_signal("army_march_battle"):
+		EventBus.army_march_battle.connect(_on_march_battle_vfx)
+	if EventBus.has_signal("army_march_intercepted"):
+		EventBus.army_march_intercepted.connect(_on_march_intercepted_vfx)
+	if EventBus.has_signal("army_supply_low"):
+		EventBus.army_supply_low.connect(_on_supply_low_vfx)
+	if EventBus.has_signal("army_garrisoned"):
+		EventBus.army_garrisoned.connect(_on_army_garrisoned_vfx)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -147,6 +158,16 @@ func _play_next() -> void:
 				p.get("turn_number", 1), p.get("faction_name", ""))
 		"capture_flash":
 			dur = _create_capture_flash(p.get("tile", 0), p.get("player_id", 0))
+		"march_start":
+			dur = _create_march_start_effect(p.get("tile", 0))
+		"march_battle":
+			dur = _create_march_battle_effect(p.get("tile", 0))
+		"march_intercept":
+			dur = _create_march_intercept_effect(p.get("tile", 0))
+		"supply_low":
+			dur = _create_supply_low_effect(p.get("tile", 0), p.get("supply", 0.0))
+		"garrison":
+			dur = _create_garrison_effect(p.get("tile", 0))
 		_:
 			dur = 0.1
 	# Overlap: start next effect slightly before current finishes.
@@ -697,6 +718,131 @@ func _on_siege_started(_attacker_army_id: int, tile_index: int, _turns: int) -> 
 	var pos: Vector2 = _estimate_screen_pos(tile_index)
 	_create_floating_text(pos, "围攻开始!", Color(0.95, 0.5, 0.2), 1.5, 22)
 	_create_pulse_ring(pos, Color(0.9, 0.3, 0.1, 0.5), 0.8)
+
+
+func _on_march_started_vfx(army_id: int, path: Array) -> void:
+	if path.is_empty(): return
+	var tile: int = path[0]
+	play_effect("march_start", {"tile": tile, "army_id": army_id})
+
+
+func _on_march_battle_vfx(army_id: int, tile_index: int) -> void:
+	play_effect("march_battle", {"tile": tile_index, "army_id": army_id})
+
+
+func _on_march_intercepted_vfx(army_id: int, _interceptor_id: int, tile_index: int) -> void:
+	play_effect("march_intercept", {"tile": tile_index, "army_id": army_id})
+
+
+func _on_supply_low_vfx(army_id: int, supply: float) -> void:
+	var gm = get_node_or_null("/root/GameManager")
+	if not gm: return
+	var army: Dictionary = gm.get_army(army_id) if gm.has_method("get_army") else {}
+	if army.is_empty(): return
+	var tile: int = army.get("tile_index", -1)
+	if tile < 0: return
+	play_effect("supply_low", {"tile": tile, "supply": supply})
+
+
+func _on_army_garrisoned_vfx(army_id: int, tile_index: int) -> void:
+	play_effect("garrison", {"tile": tile_index, "army_id": army_id})
+
+
+# ═══════════════════════════════════════════════════════════════
+#              EFFECT: MARCH START
+# ═══════════════════════════════════════════════════════════════
+
+## Plays when an army begins a march order: a cyan pulse ring + floating text.
+func _create_march_start_effect(tile: int) -> float:
+	var pos: Vector2 = _estimate_screen_pos(tile)
+	var dur: float = _dur(1.2)
+	_create_pulse_ring(pos, Color(0.3, 0.75, 1.0, 0.6), dur * 0.5)
+	_create_floating_text(pos, "行军!", Color(0.35, 0.8, 1.0), dur * 0.7, 20)
+	return dur
+
+
+# ═══════════════════════════════════════════════════════════════
+#              EFFECT: MARCH BATTLE
+# ═══════════════════════════════════════════════════════════════
+
+## Plays when a marching army encounters a hostile tile: red flash + clash icon.
+func _create_march_battle_effect(tile: int) -> float:
+	var pos: Vector2 = _estimate_screen_pos(tile)
+	var dur: float = _dur(1.6)
+	# Red screen flash
+	_create_screen_flash(Color(0.85, 0.1, 0.05, 0.22), dur * 0.35)
+	# Clash icon at tile
+	var clash := Label.new()
+	clash.text = "⚔"
+	clash.add_theme_font_size_override("font_size", 40)
+	clash.add_theme_color_override("font_color", Color(1.0, 0.35, 0.1))
+	clash.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clash.position = pos - Vector2(22, 22)
+	clash.set_meta("vfx", true)
+	add_child(clash)
+	var tw := create_tween()
+	tw.tween_property(clash, "scale", Vector2(1.6, 1.6), dur * 0.12).set_ease(Tween.EASE_OUT)
+	tw.tween_property(clash, "scale", Vector2(1.0, 1.0), dur * 0.1)
+	tw.tween_property(clash, "modulate:a", 0.0, dur * 0.45).set_delay(dur * 0.25)
+	tw.tween_callback(_cleanup_effect.bind(clash))
+	# Floating text
+	_create_floating_text(pos, "遇敌!", Color(1.0, 0.4, 0.15), dur * 0.6, 22)
+	return dur
+
+
+# ═══════════════════════════════════════════════════════════════
+#              EFFECT: MARCH INTERCEPT
+# ═══════════════════════════════════════════════════════════════
+
+## Plays when a marching army is intercepted: yellow warning flash + icon.
+func _create_march_intercept_effect(tile: int) -> float:
+	var pos: Vector2 = _estimate_screen_pos(tile)
+	var dur: float = _dur(1.4)
+	# Yellow-orange screen flash
+	_create_screen_flash(Color(0.9, 0.75, 0.05, 0.18), dur * 0.3)
+	# Warning icon
+	var warn := Label.new()
+	warn.text = "⚠"
+	warn.add_theme_font_size_override("font_size", 38)
+	warn.add_theme_color_override("font_color", Color(1.0, 0.88, 0.1))
+	warn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	warn.position = pos - Vector2(20, 20)
+	warn.set_meta("vfx", true)
+	add_child(warn)
+	var tw := create_tween()
+	tw.tween_property(warn, "scale", Vector2(1.5, 1.5), dur * 0.1).set_ease(Tween.EASE_OUT)
+	tw.tween_property(warn, "scale", Vector2(1.0, 1.0), dur * 0.1)
+	tw.tween_property(warn, "modulate:a", 0.0, dur * 0.45).set_delay(dur * 0.3)
+	tw.tween_callback(_cleanup_effect.bind(warn))
+	_create_floating_text(pos, "拦截!", Color(1.0, 0.85, 0.1), dur * 0.55, 20)
+	return dur
+
+
+# ═══════════════════════════════════════════════════════════════
+#              EFFECT: SUPPLY LOW
+# ═══════════════════════════════════════════════════════════════
+
+## Plays when an army's supply drops below the critical threshold.
+func _create_supply_low_effect(tile: int, supply: float) -> float:
+	var pos: Vector2 = _estimate_screen_pos(tile)
+	var dur: float = _dur(1.3)
+	var pct_text: String = "%d%%" % int(supply)
+	_create_floating_text(pos, "⚠ 补给 " + pct_text, Color(0.95, 0.65, 0.1), dur * 0.7, 18)
+	_create_pulse_ring(pos, Color(0.9, 0.6, 0.1, 0.45), dur * 0.4)
+	return dur
+
+
+# ═══════════════════════════════════════════════════════════════
+#              EFFECT: GARRISON
+# ═══════════════════════════════════════════════════════════════
+
+## Plays when an army enters garrison stance: gold pulse ring + shield text.
+func _create_garrison_effect(tile: int) -> float:
+	var pos: Vector2 = _estimate_screen_pos(tile)
+	var dur: float = _dur(1.2)
+	_create_pulse_ring(pos, Color(1.0, 0.85, 0.2, 0.55), dur * 0.5)
+	_create_floating_text(pos, "🛡 驻守", Color(1.0, 0.88, 0.25), dur * 0.7, 20)
+	return dur
 
 
 # ═══════════════════════════════════════════════════════════════

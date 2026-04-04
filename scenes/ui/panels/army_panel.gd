@@ -65,6 +65,11 @@ func _connect_signals() -> void:
 	EventBus.army_march_started.connect(_on_march_changed)
 	EventBus.army_march_arrived.connect(_on_march_arrived)
 	EventBus.army_march_cancelled.connect(_on_march_cancelled)
+	# Garrison stance signals
+	if EventBus.has_signal("army_garrisoned"):
+		EventBus.army_garrisoned.connect(_on_garrison_changed)
+	if EventBus.has_signal("army_ungarrisoned"):
+		EventBus.army_ungarrisoned.connect(_on_garrison_changed)
 
 
 func _on_army_changed(_pid: int, _aid: int, _extra = null) -> void:
@@ -88,6 +93,12 @@ func _on_march_arrived(_aid: int, _tile: int) -> void:
 
 
 func _on_march_cancelled(_aid: int) -> void:
+	if _visible:
+		_refresh_all()
+
+
+func _on_garrison_changed(_aid: int, _tile: int) -> void:
+	## Refresh army list when garrison stance changes so status badges update.
 	if _visible:
 		_refresh_all()
 
@@ -298,12 +309,16 @@ func _get_player_armies() -> Array:
 
 
 func _get_army_status(army_id: int) -> String:
-	# Check march system first
+	## Priority: marching > explicit garrison order > tile-type garrison > idle.
+	# 1. Check active march order
 	if MarchSystem and MarchSystem.march_orders.has(army_id):
 		var order: Dictionary = MarchSystem.march_orders[army_id]
 		if order.get("state", "") == "marching":
 			return "marching"
-	# Check if tile has garrison building or is a fortress
+	# 2. Check explicit garrison order (new system)
+	if MarchSystem and MarchSystem.is_army_garrisoned(army_id):
+		return "garrisoned"
+	# 3. Fallback: army on a fortress/stronghold tile is implicitly garrisoned
 	var army: Dictionary = GameManager.get_army(army_id)
 	if army.is_empty():
 		return "idle"
@@ -459,8 +474,14 @@ func _create_army_card(army: Dictionary) -> PanelContainer:
 	loc_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	info_vbox.add_child(loc_label)
 
-	# Status indicator (right side)
-	var status_label := ColorTheme.make_label(status.capitalize(), ColorTheme.FONT_SMALL, status_color)
+	# Status indicator (right side) — icon prefix for instant visual scanning
+	var status_icon: String
+	match status:
+		"marching": status_icon = "➡ "
+		"garrisoned": status_icon = "🛡 "
+		"in_combat": status_icon = "⚔ "
+		_: status_icon = "● "
+	var status_label := ColorTheme.make_label(status_icon + status.capitalize(), ColorTheme.FONT_SMALL, status_color)
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	status_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	hbox.add_child(status_label)
@@ -530,6 +551,16 @@ func _refresh_detail() -> void:
 			detail_container.add_child(march_lbl)
 			# Supply bar
 			_add_bar(detail_container, "Supply", supply, 100.0, _get_supply_color(supply))
+
+	# Garrison detail info if garrisoned
+	if MarchSystem and MarchSystem.is_army_garrisoned(army_id):
+		var g_order: Dictionary = MarchSystem.garrison_orders.get(army_id, {})
+		var turns_g: int = g_order.get("turns_garrisoned", 0)
+		var def_bonus: float = MarchSystem.get_garrison_defence_bonus(army_id)
+		var def_pct: int = int((def_bonus - 1.0) * 100.0)
+		var g_lbl := ColorTheme.make_label("🛡 驻守中  +%d%% 防御  (%d回合)", ColorTheme.FONT_BODY, STATUS_GARRISONED)
+		g_lbl.text = "🛡 驻守中  +%d%% 防御  (%d回合)" % [def_pct, turns_g]
+		detail_container.add_child(g_lbl)
 
 	# Combat power
 	var power: int = GameManager.get_army_combat_power(army_id)

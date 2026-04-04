@@ -40,9 +40,17 @@ const NO_SUPPLY_ATTRITION_PCT: float = 0.05
 # { army_id: int -> march order Dictionary }
 var march_orders: Dictionary = {}
 
+# ── Garrison orders storage ──
+# { army_id: int -> garrison order Dictionary }
+# A garrison order marks an army as intentionally stationary (guard stance).
+# This is distinct from simply being idle: garrisoned armies receive a +15%
+# defence bonus and display a shield icon on the board.
+var garrison_orders: Dictionary = {}
+
 
 func reset() -> void:
 	march_orders.clear()
+	garrison_orders.clear()
 
 
 # ══════════════════ PATHFINDING ══════════════════
@@ -503,6 +511,70 @@ func get_supply_combat_modifier(army_id: int) -> Dictionary:
 	elif order["supply"] < SUPPLY_LOW_THRESHOLD:
 		return {"atk_mult": 0.9, "def_mult": 0.9}  # -10%
 	return {"atk_mult": 1.0, "def_mult": 1.0}
+
+
+# ══════════════════ GARRISON ORDERS ══════════════════
+
+func issue_garrison_order(army_id: int) -> bool:
+	## Place an army into garrison (guard) stance at its current tile.
+	## Cancels any active march order first.
+	if not GameManager.armies.has(army_id):
+		return false
+	var army: Dictionary = GameManager.armies[army_id]
+	var tile_index: int = army.get("tile_index", -1)
+	if tile_index < 0:
+		return false
+	# Cancel march if active
+	if march_orders.has(army_id):
+		cancel_march_order(army_id)
+	# Already garrisoned — no-op
+	if garrison_orders.has(army_id):
+		return true
+	garrison_orders[army_id] = {
+		"army_id": army_id,
+		"player_id": army["player_id"],
+		"tile_index": tile_index,
+		"turns_garrisoned": 0,
+	}
+	EventBus.army_garrisoned.emit(army_id, tile_index)
+	EventBus.message_log.emit("[color=yellow]%s 进入驻守状态[/color]" % army.get("name", "军团"))
+	return true
+
+
+func cancel_garrison_order(army_id: int) -> void:
+	## Remove garrison stance from an army.
+	if not garrison_orders.has(army_id):
+		return
+	var order: Dictionary = garrison_orders[army_id]
+	garrison_orders.erase(army_id)
+	EventBus.army_ungarrisoned.emit(army_id, order.get("tile_index", -1))
+
+
+func is_army_garrisoned(army_id: int) -> bool:
+	return garrison_orders.has(army_id)
+
+
+func get_garrison_defence_bonus(army_id: int) -> float:
+	## Returns a flat defence multiplier bonus for garrisoned armies.
+	if not garrison_orders.has(army_id):
+		return 1.0
+	var order: Dictionary = garrison_orders[army_id]
+	var turns: int = order.get("turns_garrisoned", 0)
+	# Bonus scales from +15% (first turn) up to +30% (5+ turns entrenched).
+	var bonus: float = 0.15 + minf(float(turns) * 0.03, 0.15)
+	return 1.0 + bonus
+
+
+func process_garrison_turns(player_id: int) -> void:
+	## Increment garrison turn counters for all garrisoned armies of this player.
+	for army_id in garrison_orders:
+		var order: Dictionary = garrison_orders[army_id]
+		if order.get("player_id", -1) != player_id:
+			continue
+		order["turns_garrisoned"] += 1
+		# Sync tile_index in case army was moved externally
+		if GameManager.armies.has(army_id):
+			order["tile_index"] = GameManager.armies[army_id].get("tile_index", order["tile_index"])
 
 
 # ══════════════════ SAVE / LOAD ══════════════════

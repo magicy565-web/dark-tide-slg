@@ -38,7 +38,7 @@ func _safe_load(path: String) -> Resource:
 	return null
 
 # ── Action mode state machine ──
-enum ActionMode { NONE, ATTACK, DEPLOY, DOMESTIC, DIPLOMACY, EXPLORE, DOMESTIC_SUB, SELECT_ATTACK_TARGET, SELECT_DEPLOY_TARGET }
+enum ActionMode { NONE, ATTACK, DEPLOY, MARCH, DOMESTIC, DIPLOMACY, EXPLORE, DOMESTIC_SUB, SELECT_ATTACK_TARGET, SELECT_DEPLOY_TARGET, SELECT_MARCH_ARMY, SELECT_MARCH_TARGET }
 
 var _current_mode: int = ActionMode.NONE
 var _domestic_sub_type: String = ""   # "recruit", "upgrade", "build"
@@ -77,6 +77,7 @@ var shadow_essence_label: Label
 var action_panel: PanelContainer
 var btn_attack: Button
 var btn_deploy: Button
+var btn_march: Button   # Long-range march order (multi-turn movement via MarchSystem)
 var btn_domestic: Button
 var btn_diplomacy: Button
 var btn_explore: Button
@@ -214,6 +215,14 @@ func _connect_signals() -> void:
 	EventBus.strategic_resource_changed.connect(_on_strategic_resource_changed)
 	EventBus.diplomatic_event_triggered.connect(_on_diplomatic_event_triggered)
 	EventBus.recruitment_event_triggered.connect(_on_recruitment_event_triggered)
+	# ── Army action panel requests from GameManager/ProvinceInfoPanel ──
+	if EventBus.has_signal("open_recruit_panel_requested"):
+		EventBus.open_recruit_panel_requested.connect(_on_open_recruit_panel_requested)
+	if EventBus.has_signal("open_march_panel_requested"):
+		EventBus.open_march_panel_requested.connect(_on_open_march_panel_requested)
+	# ── Army ready-to-march notification ──
+	if EventBus.has_signal("army_ready_to_march"):
+		EventBus.army_ready_to_march.connect(_on_army_ready_to_march)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -424,6 +433,11 @@ func _build_action_panel(parent: Control) -> void:
 	btn_deploy.tooltip_text = "Move an army to an adjacent friendly territory. Costs 1 Action Point."
 	btn_deploy.pressed.connect(_on_deploy_pressed)
 	vbox.add_child(btn_deploy)
+
+	btn_march = _make_button("行军 [M] (1AP)", _icon_action_deploy)
+	btn_march.tooltip_text = "Issue a long-range march order. The army moves one step per turn automatically until it reaches the destination or encounters an enemy."
+	btn_march.pressed.connect(_on_march_pressed)
+	vbox.add_child(btn_march)
 
 	btn_domestic = _make_button("Domestic [3] (1AP)", _icon_action_build)
 	btn_domestic.tooltip_text = "Recruit troops, upgrade territories, build structures, manage armies."
@@ -1178,6 +1192,145 @@ func _on_deploy_army_selected(army_id: int) -> void:
 	for tidx in deployable:
 		var tile: Dictionary = GameManager.tiles[tidx]
 		_add_target_button("%s (Lv%d)" % [tile["name"], tile["level"]], _on_deploy_target.bind(tidx))
+
+
+# ═══════════════════════════════════════════════════════════════
+#           MARCH (LONG-RANGE MOVEMENT)
+# ═══════════════════════════════════════════════════════════════
+
+func _on_march_pressed() -> void:
+	## Open march army selection panel.
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("button_click")
+	if _current_mode == ActionMode.MARCH:
+		_close_target_panel()
+		return
+	_current_mode = ActionMode.MARCH
+	_selected_army_id = -1
+	_pulse_button(btn_march)
+	var pid: int = GameManager.get_human_player_id()
+	var armies: Array = GameManager.get_player_armies(pid)
+
+	_show_target_panel("行军 - 选择军团")
+
+	if armies.is_empty():
+		_add_target_label("(没有可用军团)")
+		return
+
+	for army in armies:
+		var soldiers: int = GameManager.get_army_soldier_count(army["id"])
+		var tile_idx: int = army.get("tile_index", -1)
+		var tile_name: String = GameManager.tiles[tile_idx]["name"] if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "???"
+		var is_marching: bool = MarchSystem != null and MarchSystem.is_army_marching(army["id"])
+		var label_text: String = "%s (兵力:%d) @%s" % [army["name"], soldiers, tile_name]
+		if is_marching:
+			var order: Dictionary = MarchSystem.get_march_order(army["id"])
+			var dest: int = order.get("target_tile", -1)
+			var dest_name: String = GameManager.tiles[dest]["name"] if dest >= 0 and dest < GameManager.tiles.size() else "???"
+			label_text += " [行军中→%s]" % dest_name
+		if soldiers <= 0:
+			label_text += " [无兵力]"
+		_add_target_button(label_text, _on_march_army_selected.bind(army["id"]), soldiers <= 0)
+
+
+## Army selected for march — show all reachable tiles as destination options.
+func _on_march_army_selected(army_id: int) -> void:
+	_selected_army_id = army_id
+	_current_mode = ActionMode.SELECT_MARCH_ARMY
+	var army: Dictionary = GameManager.get_army(army_id)
+	var is_marching: bool = MarchSystem != null and MarchSystem.is_army_marching(army_id)
+
+	if is_marching:
+		# Already marching: show cancel or retarget options
+		var order: Dictionary = MarchSystem.get_march_order(army_id)
+		var dest: int = order.get("target_tile", -1)
+		var dest_name: String = GameManager.tiles[dest]["name"] if dest >= 0 and dest < GameManager.tiles.size() else "???"
+		_show_target_panel("行军 - %s (行军中→%s)" % [army["name"], dest_name])
+		_add_target_button("取消行军命令", func(): _cancel_march(army_id))
+		_add_target_button("重新指定目标…", func(): _show_march_targets(army_id))
+		return
+
+	_show_march_targets(army_id)
+
+
+## Show all tiles reachable by march (uses MarchSystem pathfinding).
+func _show_march_targets(army_id: int) -> void:
+	_current_mode = ActionMode.SELECT_MARCH_TARGET
+	var army: Dictionary = GameManager.get_army(army_id)
+	_show_target_panel("行军 - %s → 选择目标" % army["name"])
+
+	# Build candidate list: all owned tiles not adjacent to current tile
+	var pid: int = GameManager.get_human_player_id()
+	var from_tile: int = army.get("tile_index", -1)
+	var candidates: Array = []
+	for i in range(GameManager.tiles.size()):
+		var tile: Dictionary = GameManager.tiles[i]
+		if i == from_tile:
+			continue
+		# Allow marching to any tile (owned or enemy) — MarchSystem handles blocking
+		# Prioritise owned tiles; enemy tiles shown with warning
+		if tile.get("owner_id", -1) == pid or tile.get("owner_id", -1) != pid:
+			candidates.append(i)
+
+	if candidates.is_empty():
+		_add_target_label("(无可达目标)")
+		return
+
+	# Estimate path and turns for each candidate (limit to 30 for performance)
+	var shown: int = 0
+	for tidx in candidates:
+		if shown >= 30:
+			break
+		var tile: Dictionary = GameManager.tiles[tidx]
+		var path: Array = MarchSystem.find_path(from_tile, tidx) if MarchSystem != null else []
+		if path.is_empty():
+			continue
+		var est_turns: int = MarchSystem.get_estimated_turns(path, army_id) if MarchSystem != null else path.size()
+		var owner_id: int = tile.get("owner_id", -1)
+		var owner_tag: String = ""
+		if owner_id == pid:
+			owner_tag = " [己方]"
+		elif owner_id >= 0:
+			var op: Dictionary = GameManager.get_player_by_id(owner_id)
+			owner_tag = " [敢方:%s]" % op.get("name", "?")
+		else:
+			owner_tag = " [中立]"
+		var label_text: String = "%s (Lv%d)%s ~%d回合" % [tile["name"], tile.get("level", 1), owner_tag, est_turns]
+		_add_target_button(label_text, _on_march_target.bind(tidx))
+		shown += 1
+
+
+## Confirm march order to a target tile.
+func _on_march_target(tile_index: int) -> void:
+	if _selected_army_id < 0 or MarchSystem == null:
+		_close_target_panel()
+		return
+	var player: Dictionary = GameManager.get_player_by_id(GameManager.get_human_player_id())
+	if player.get("ap", 0) < 1:
+		EventBus.message_log.emit("[color=red]行动力不足!行军需要至少 1 AP。[/color]")
+		_close_target_panel()
+		return
+	var order: Dictionary = MarchSystem.issue_march_order(_selected_army_id, tile_index)
+	if not order.is_empty():
+		# Deduct 1 AP for issuing the march order
+		player["ap"] -= 1
+		EventBus.ap_changed.emit(player["id"], player["ap"])
+		if GameManager.armies.has(_selected_army_id):
+			GameManager.armies[_selected_army_id]["state"] = "marching"
+		_update_player_info()
+	_selected_army_id = -1
+	_close_target_panel()
+	_after_action()
+
+
+## Cancel an active march order.
+func _cancel_march(army_id: int) -> void:
+	if MarchSystem != null:
+		MarchSystem.cancel_march_order(army_id)
+		if GameManager.armies.has(army_id):
+			GameManager.armies[army_id]["state"] = "idle"
+	_selected_army_id = -1
+	_close_target_panel()
 
 
 func _on_domestic_pressed() -> void:
@@ -2880,6 +3033,13 @@ func _update_buttons() -> void:
 	# Main four action buttons -- all require at least 1 AP
 	btn_attack.disabled = not has_ap
 	btn_deploy.disabled = not has_ap
+	# March button: enabled if player has AP and at least one army with troops
+	var has_army_with_troops: bool = false
+	for army in GameManager.get_player_armies(pid):
+		if GameManager.get_army_soldier_count(army["id"]) > 0:
+			has_army_with_troops = true
+			break
+	btn_march.disabled = not has_ap or not has_army_with_troops
 	btn_domestic.disabled = not has_ap
 	btn_diplomacy.disabled = not has_ap
 	btn_explore.disabled = not has_ap
@@ -2951,6 +3111,7 @@ func _update_buttons() -> void:
 	# Highlight active mode button
 	_set_mode_highlight(btn_attack, _current_mode == ActionMode.ATTACK or _current_mode == ActionMode.SELECT_ATTACK_TARGET)
 	_set_mode_highlight(btn_deploy, _current_mode == ActionMode.DEPLOY or _current_mode == ActionMode.SELECT_DEPLOY_TARGET)
+	_set_mode_highlight(btn_march, _current_mode == ActionMode.MARCH or _current_mode == ActionMode.SELECT_MARCH_ARMY or _current_mode == ActionMode.SELECT_MARCH_TARGET)
 	_set_mode_highlight(btn_domestic, _current_mode == ActionMode.DOMESTIC)
 	_set_mode_highlight(btn_diplomacy, _current_mode == ActionMode.DIPLOMACY)
 	_set_mode_highlight(btn_explore, _current_mode == ActionMode.EXPLORE)
@@ -2966,6 +3127,7 @@ func _set_mode_highlight(btn: Button, active: bool) -> void:
 func _set_all_buttons_disabled(val: bool) -> void:
 	btn_attack.disabled = val
 	btn_deploy.disabled = val
+	btn_march.disabled = val
 	btn_domestic.disabled = val
 	btn_diplomacy.disabled = val
 	btn_explore.disabled = val
@@ -3718,6 +3880,35 @@ func _on_army_deployed(_pid: int, _army_id: int, _from: int, _to: int) -> void:
 
 func _on_strategic_resource_changed(_pid: int, _key: String, _val: int) -> void:
 	_update_player_info()
+
+
+## Called when GameManager requests the recruit panel open for a specific tile.
+func _on_open_recruit_panel_requested(tile_index: int) -> void:
+	# Pre-select the tile on the board so _on_domestic_recruit picks it up
+	var board_node = get_tree().get_root().find_child("Board", true, false)
+	if board_node and board_node.has_method("set_selected_tile"):
+		board_node.set_selected_tile(tile_index)
+	_on_domestic_pressed()
+	_on_domestic_recruit()
+
+
+## Called when GameManager requests the march panel open for a specific army.
+func _on_open_march_panel_requested(army_id: int) -> void:
+	_current_mode = ActionMode.MARCH
+	_selected_army_id = army_id
+	_show_march_targets(army_id)
+
+
+## Called when a newly created army is ready to march (has troops).
+func _on_army_ready_to_march(army_id: int, tile_index: int) -> void:
+	var army: Dictionary = GameManager.get_army(army_id)
+	if army.is_empty():
+		return
+	# Only notify for human player armies
+	if army.get("player_id", -1) != GameManager.get_human_player_id():
+		return
+	var tile_name: String = GameManager.tiles[tile_index]["name"] if tile_index >= 0 and tile_index < GameManager.tiles.size() else "???"
+	EventBus.message_log.emit("[color=green]▶ %s 已就绪，可以发出行军命令。(当前位置: %s)[/color]" % [army["name"], tile_name])
 
 
 # ═══════════════════════════════════════════════════════════════

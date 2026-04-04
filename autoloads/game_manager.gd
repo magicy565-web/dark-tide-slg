@@ -470,6 +470,18 @@ func _get_faction_key(player_id: int) -> String:
 	return _get_faction_tag_for_player(player_id)
 
 
+func _get_default_troop_id(faction_tag: String) -> String:
+	## Returns the default (T1) infantry troop ID for a faction.
+	## Used when seeding a newly created army with initial troops.
+	match faction_tag:
+		"orc": return "orc_warrior"
+		"pirate": return "pirate_sailor"
+		"dark_elf": return "dark_elf_soldier"
+		"high_elf": return "high_elf_spearman"
+		"mage": return "mage_apprentice"
+		_: return "human_swordsman"
+
+
 func get_player_by_id(player_id: int) -> Dictionary:
 	for p in players:
 		if p["id"] == player_id:
@@ -1709,6 +1721,39 @@ func begin_turn() -> void:
 	# ── Guard timer tick (decrement and expire) ──
 	_tick_guard_timers(pid)
 
+	# ── March System: advance all marching armies for this player ──
+	# This is the ONLY place process_marches() is called. It advances each
+	# marching army by one step, handles interception, supply, and attrition.
+	if MarchSystem != null:
+		var march_events: Array = MarchSystem.process_marches(pid)
+		for evt in march_events:
+			match evt.get("type", ""):
+				"arrived":
+					# Army arrived: update its state and refresh tile visual
+					var aid: int = evt.get("army_id", -1)
+					if armies.has(aid):
+						armies[aid]["state"] = "idle"
+						_reveal_around(evt.get("tile_index", -1), pid)
+				"battle":
+					# Army hit an enemy/neutral tile: state becomes in_combat, trigger attack
+					var aid: int = evt.get("army_id", -1)
+					var btile: int = evt.get("tile_index", -1)
+					if armies.has(aid) and btile >= 0:
+						armies[aid]["state"] = "in_combat"
+						# Deferred attack so march events finish processing first
+						call_deferred("action_attack_with_army", aid, btile)
+				"intercepted":
+					# Army intercepted: state becomes in_combat, trigger counter-attack
+					var aid: int = evt.get("army_id", -1)
+					var iid: int = evt.get("interceptor_army_id", -1)
+					if armies.has(aid):
+						armies[aid]["state"] = "in_combat"
+						if iid >= 0:
+							EventBus.action_visualize_attack.emit(
+								armies[aid].get("tile_index", -1),
+								armies.get(iid, {}).get("tile_index", -1),
+								{"won": false, "army_id": aid, "intercepted": true})
+
 	# ── Phase 0: Build per-turn cache ──
 	_build_turn_cache()
 
@@ -2591,10 +2636,31 @@ func create_army(player_id: int, tile_index: int, army_name: String = "") -> int
 		"name": army_name,
 		"troops": [],   # Array of troop instances (from GameData.create_troop_instance)
 		"heroes": [],   # Array of hero_id strings
+		"state": "idle",  # idle | marching | garrisoned | in_combat
 	}
 
-	EventBus.message_log.emit("创建军团: %s (驻扎于 %s)" % [army_name, tiles[tile_index]["name"]])
+	# ── Seed initial troops from tile garrison pool ──
+	# Pull up to 2 default infantry squads from the tile's garrison count so the
+	# army is immediately combat-ready without requiring a separate recruit step.
+	var tile_data: Dictionary = tiles[tile_index]
+	var garrison_pool: int = tile_data.get("garrison", 0)
+	if garrison_pool > 0 and GameData != null and GameData.has_method("create_troop_instance"):
+		var faction_tag: String = _get_faction_tag_for_player(player_id)
+		var default_troop_id: String = _get_default_troop_id(faction_tag)
+		var squads_to_seed: int = mini(2, garrison_pool)
+		for _i in range(squads_to_seed):
+			var instance: Dictionary = GameData.create_troop_instance(default_troop_id)
+			if not instance.is_empty():
+				armies[army_id]["troops"].append(instance)
+				EventBus.army_troops_assigned.emit(army_id, default_troop_id, instance.get("soldiers", 0))
+		tile_data["garrison"] = maxi(0, garrison_pool - squads_to_seed)
+
+	var troop_count: int = armies[army_id]["troops"].size()
+	EventBus.message_log.emit("[color=cyan]创建军团: %s (驻扎于 %s, 初始兵种%d队)[/color]" % [
+		army_name, tiles[tile_index]["name"], troop_count])
 	EventBus.army_created.emit(player_id, army_id, tile_index)
+	if troop_count > 0:
+		EventBus.army_ready_to_march.emit(army_id, tile_index)
 	return army_id
 
 
@@ -2900,6 +2966,7 @@ func get_army_attackable_tiles(army_id: int) -> Array:
 
 func action_deploy_army(army_id: int, target_tile: int) -> bool:
 	## Move an army to an adjacent owned tile. Costs 1 AP.
+	## Also cancels any active march order (manual deploy overrides march).
 	if not armies.has(army_id):
 		return false
 	var army: Dictionary = armies[army_id]
@@ -2909,22 +2976,38 @@ func action_deploy_army(army_id: int, target_tile: int) -> bool:
 		return false
 	var required_ap: int = tiles[target_tile].get("terrain_move_cost", 1)
 	if player.is_empty() or player["ap"] < required_ap:
-		EventBus.message_log.emit("行动点不足!")
+		EventBus.message_log.emit("[color=red]行动点不足! 部署需要 %d AP。[/color]" % required_ap)
 		return false
 	var deployable: Array = get_army_deployable_tiles(army_id)
 	if not deployable.has(target_tile):
-		EventBus.message_log.emit("无法部署到该地域!")
+		EventBus.message_log.emit("[color=red]无法部署到该地域! 目标必须是相邻的己方领地且无其他军队驻扎。[/color]")
 		return false
+
+	# Cancel any active march order — manual deploy takes priority
+	if MarchSystem != null and MarchSystem.is_army_marching(army_id):
+		MarchSystem.cancel_march_order(army_id)
+		EventBus.message_log.emit("[color=yellow]手动部署已取消当前行军命令。[/color]")
 
 	var from_tile: int = army["tile_index"]
 	army["tile_index"] = target_tile
 	var move_ap: int = tiles[target_tile].get("terrain_move_cost", 1)
 	player["ap"] -= move_ap
 
+	# Update army state
+	army["state"] = "idle"
+
 	_reveal_around(target_tile, player_id)
-	EventBus.message_log.emit("%s 部署到 %s" % [army["name"], tiles[target_tile]["name"]])
+
+	# Terrain-aware feedback
+	var terrain_tag: String = ""
+	var terrain_cost: int = tiles[target_tile].get("terrain_move_cost", 1)
+	if terrain_cost > 1:
+		terrain_tag = " [%s, 耗%dAP]" % [tiles[target_tile].get("terrain_type", "地形"), terrain_cost]
+	EventBus.message_log.emit("[color=cyan]%s 部署到 %s%s[/color]" % [army["name"], tiles[target_tile]["name"], terrain_tag])
+
 	EventBus.army_deployed.emit(player_id, army_id, from_tile, target_tile)
 	EventBus.action_visualize_deploy.emit(army_id, from_tile, target_tile)
+	EventBus.ap_changed.emit(player_id, player["ap"])
 	return true
 
 
@@ -7699,7 +7782,20 @@ func execute_explore(tile_index: int) -> void:
 
 ## Called by province_info_panel fallback — opens recruit UI for a tile.
 func open_recruit_panel(tile_index: int) -> void:
-	EventBus.message_log.emit("[color=cyan]征兵面板 → 据点 #%d[/color]" % tile_index)
+	## Delegate to the HUD's domestic recruit flow, pre-selecting the given tile.
+	var pid: int = get_human_player_id()
+	if tile_index < 0 or tile_index >= tiles.size():
+		EventBus.message_log.emit("[color=red]无效地块，无法打开征兵面板[/color]")
+		return
+	if tiles[tile_index].get("owner_id", -1) != pid:
+		EventBus.message_log.emit("[color=red]只能在己方领地征兵![/color]")
+		return
+	# Signal the HUD to open the recruit panel for this tile.
+	# The HUD listens on EventBus.open_recruit_panel_requested.
+	if EventBus.has_signal("open_recruit_panel_requested"):
+		EventBus.open_recruit_panel_requested.emit(tile_index)
+	else:
+		EventBus.message_log.emit("[color=cyan]征兵面板 → 据点 #%d[/color]" % tile_index)
 
 ## Called by province_info_panel fallback — opens domestic management UI.
 func open_domestic_panel(tile_index: int) -> void:

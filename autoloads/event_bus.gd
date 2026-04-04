@@ -188,6 +188,18 @@ signal army_march_arrived(army_id: int, tile_index: int)
 signal army_march_cancelled(army_id: int)
 signal army_march_intercepted(army_id: int, interceptor_id: int, tile_index: int)
 signal army_supply_low(army_id: int, supply: float)
+## Emitted when an army explicitly enters garrison (guard) stance.
+signal army_garrisoned(army_id: int, tile_index: int)
+## Emitted when an army leaves garrison stance.
+signal army_ungarrisoned(army_id: int, tile_index: int)
+## Emitted when troops are assigned to an army (recruit → army linkage).
+signal army_troops_assigned(army_id: int, troop_id: String, soldiers: int)
+## Emitted when an army is ready to march (has troops and is at a valid tile).
+signal army_ready_to_march(army_id: int, tile_index: int)
+## Emitted by GameManager to ask HUD to open recruit panel for a specific tile.
+signal open_recruit_panel_requested(tile_index: int)
+## Emitted by GameManager to ask HUD to open march planning for a specific army.
+signal open_march_panel_requested(army_id: int)
 
 # ── Tutorial ──
 signal tutorial_step(step_id: String)
