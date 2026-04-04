@@ -6538,7 +6538,7 @@ func action_block_supply(player_id: int, tile_index: int) -> bool:
 	player["ap"] -= 1
 	# 封锁补给：降低附近敌方簮食产出，提升威望
 	var nearby_enemies: int = 0
-	for neighbor_idx in _get_neighbors(tile_index):
+	for neighbor_idx in adjacency.get(tile_index, []):
 		if neighbor_idx >= 0 and neighbor_idx < tiles.size():
 			var ntile: Dictionary = tiles[neighbor_idx]
 			if ntile["owner_id"] != player_id and ntile["owner_id"] >= 0:
@@ -7965,7 +7965,7 @@ func get_all_factions() -> Array:
 
 ## Called by espionage_system — returns current turn number.
 func get_current_turn() -> int:
-	return current_turn if "current_turn" in self else turn_number if "turn_number" in self else 0
+	return turn_number
 
 ## Called by event_system — returns espionage level for a player.
 func get_espionage_level(player_id: int) -> int:
@@ -7988,12 +7988,12 @@ func get_player_tiles(player_id: int) -> Array:
 ## Called by intel_overlay — returns tile index at a screen position.
 func get_tile_at_position(screen_pos: Vector2) -> int:
 	# Delegate to board if available
-	if BoardManager != null and BoardManager.has_method("get_tile_at_position"):
-		return BoardManager.get_tile_at_position(screen_pos)
+	if Engine.has_singleton("BoardManager") and Engine.get_singleton("BoardManager").has_method("get_tile_at_position"):
+		return Engine.get_singleton("BoardManager").get_tile_at_position(screen_pos)
 	return -1
 
 ## Called by intel_overlay — checks if a tile is visible to a player.
 func is_tile_visible(player_id: int, tile_index: int) -> bool:
-	if FogManager != null and FogManager.has_method("is_visible"):
-		return FogManager.is_visible(player_id, tile_index)
+	if Engine.has_singleton("FogManager") and Engine.get_singleton("FogManager").has_method("is_visible"):
+		return Engine.get_singleton("FogManager").is_visible(player_id, tile_index)
 	return true  # Default: all visible if no fog system

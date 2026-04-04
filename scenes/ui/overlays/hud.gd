@@ -4465,3 +4465,8 @@ func _on_territory_info_pressed() -> void:
 			PanelManager.toggle_panel("province_info", [sel_tile])
 		else:
 			PanelManager.toggle_panel("province_info")
+func _on_quest_journal_pressed() -> void:
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("open_panel")
+	if PanelManager.has_method("toggle_panel"):
+		PanelManager.toggle_panel("quest_journal")

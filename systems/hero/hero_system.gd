@@ -1819,7 +1819,7 @@ func _directly_recruit_hero(hero_id: String) -> void:
 ## Called by effect_resolver / character_interaction_events — adds a permanent stat bonus.
 func add_stat_bonus(hero_id: String, stat: String, value: int) -> void:
 	modify_hero_stat(hero_id, stat, value)
-	EventBus.message_log.emit("[color=lime]%s %s +%d[/color]" % [get_hero_name(hero_id), stat, value])
+	EventBus.message_log.emit("[color=lime]%s %s +%d[/color]" % [_get_hero_name(hero_id), stat, value])
 
 
 ## Called by effect_resolver / grand_event_director / seasonal_events — changes affection.
@@ -1837,7 +1837,7 @@ func force_recruit_hero(_player_id: int, hero_id: String) -> void:
 	if hero_id in recruited_heroes:
 		return
 	_directly_recruit_hero(hero_id)
-	EventBus.message_log.emit("[color=gold]★ %s 加入了你的队伍！[/color]" % get_hero_name(hero_id))
+	EventBus.message_log.emit("[color=gold]★ %s 加入了你的队伍！[/color]" % _get_hero_name(hero_id))
 
 
 ## Called by event_system — grants XP to all recruited heroes.
@@ -1855,7 +1855,7 @@ func set_hero_level(hero_id: String, level: int) -> void:
 	else:
 		var hdata: Dictionary = _get_hero_data(hero_id)
 		hdata["level"] = level
-	EventBus.message_log.emit("[DEBUG] %s 等级设为 %d" % [get_hero_name(hero_id), level])
+	EventBus.message_log.emit("[DEBUG] %s 等级设为 %d" % [_get_hero_name(hero_id), level])
 
 
 ## Called by game_manager — unassigns a hero from an army.

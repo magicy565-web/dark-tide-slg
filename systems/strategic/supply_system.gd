@@ -450,6 +450,7 @@ func _apply_army_isolation_penalties(player_id: int) -> void:
 				EventBus.message_log.emit("[color=red]⚠ %s 补给线断绝! 士气-%.0f, 减员中...[/color]" % [army_name, ARMY_CUTOFF_MORALE_DRAIN])
 		else:
 			# Strained supply (distance 4-6): emit partial supply warning
+			var army_id: int = army.get("id", -1)
 			var supply_status: Dictionary = get_army_supply_status(army)
 			var status: String = supply_status.get("status", "supplied")
 			if status == "strained" or status == "extended":
