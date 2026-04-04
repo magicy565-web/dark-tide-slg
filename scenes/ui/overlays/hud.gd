@@ -1370,6 +1370,9 @@ func _cancel_march(army_id: int) -> void:
 func _on_domestic_pressed() -> void:
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("button_click")
+	# 通知教程系统：内政面板已打开
+	if TutorialManager and TutorialManager.has_method("notify_domestic_action_started"):
+		TutorialManager.notify_domestic_action_started()
 	if _current_mode == ActionMode.DOMESTIC:
 		_close_target_panel()
 		return
@@ -1469,6 +1472,9 @@ func _on_diplomacy_pressed() -> void:
 func _on_explore_pressed() -> void:
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("button_click")
+	# 通知教程系统：探索操作开始
+	if TutorialManager and TutorialManager.has_method("notify_action_explore_started"):
+		TutorialManager.notify_action_explore_started()
 	if _current_mode == ActionMode.EXPLORE:
 		_close_target_panel()
 		return
@@ -1696,6 +1702,8 @@ func _on_diplomacy_target(entry: Dictionary) -> void:
 func _on_diplomacy_option(faction_id: int, diplomacy_type: String) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	GameManager.action_diplomacy(pid, faction_id, diplomacy_type)
+	# 通知教程系统：外交操作完成
+	EventBus.tutorial_diplomacy_done.emit(diplomacy_type)
 	_close_target_panel()
 	_after_action()
 
@@ -1813,6 +1821,11 @@ func _on_guard_target(tile_index: int) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	if GameManager.has_method("action_guard_territory"):
 		GameManager.action_guard_territory(pid, tile_index)
+	# 通知教程系统：驻守/压制操作完成
+	if TutorialManager and TutorialManager.has_method("notify_action_guard_started"):
+		TutorialManager.notify_action_guard_started()
+	# 直接发出压制信号（不需要检查私有方法）
+	EventBus.tutorial_suppression_done.emit(tile_index)
 	_close_target_panel()
 	_after_action()
 
@@ -4483,5 +4496,8 @@ func _on_territory_info_pressed() -> void:
 func _on_quest_journal_pressed() -> void:
 	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
 		AudioManager.play_sfx_by_name("open_panel")
+	# 通知教程系统：任务日志已打开
+	if TutorialManager and TutorialManager.has_method("notify_quest_journal_opened"):
+		TutorialManager.notify_quest_journal_opened()
 	if PanelManager.has_method("toggle_panel"):
 		PanelManager.toggle_panel("quest_journal")

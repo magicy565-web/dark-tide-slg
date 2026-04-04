@@ -297,6 +297,8 @@ var _turn_cache: Dictionary = {}
 var _active_territory_effects: Dictionary = {}  # Cached per-turn territory effects
 var _sat_points: Dictionary = {}  # SAT (満足度) points: player_id -> int
 
+# ── Tutorial Mode ──
+var is_tutorial_mode: bool = false  ## True when running the tutorial level
 # ── Fixed Map & Nation System (Direction D) ──
 var use_fixed_map: bool = false
 var nation_system: NationSystemClass = null  # Instantiated when use_fixed_map = true
@@ -2238,6 +2240,9 @@ func end_turn() -> void:
 	reachable_tiles.clear()
 	selected_army_id = -1
 	EventBus.turn_ended.emit(player["id"])
+	# 通知教程系统：回合结束
+	if player["id"] == get_human_player_id():
+		EventBus.tutorial_turn_ended.emit(turn_number)
 
 	# Auto-save at end of human player's turn if setting enabled
 	if player["id"] == get_human_player_id():
@@ -3810,6 +3815,8 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 
 	EventBus.combat_result.emit(pid, defender_desc, won)
 	_record_battle_stat(pid, won)
+	# 通知教程系统：战斗结算完成
+	EventBus.tutorial_combat_done.emit(won, tile.get("index", -1))
 
 	# ── Emit detailed combat result (casualty numbers, outcome) ──
 	var total_att_lost_final: int = 0
@@ -5283,6 +5290,8 @@ func _check_conquest_events(pid: int, tile_index: int) -> void:
 	if tile_type == TileType.TRADING_POST:
 		EventBus.message_log.emit("[color=gold]交易站占领: %s — 商人蜂拥而至![/color]" % tile_name)
 		ResourceManager.apply_delta(pid, {"gold": 30})
+		# 通知教程系统：交易站已占领（交易流程验证）
+		EventBus.tutorial_trade_done.emit()
 
 	# Ruins: discovery event
 	if tile_type == TileType.RUINS:
@@ -6066,6 +6075,8 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 			sync_player_army(pid)
 			EventBus.message_log.emit("在 %s 招募了1个%s" % [tile["name"], params.get("default_troop", "步兵")])
 			EventBus.action_visualize_recruit.emit(target_tile_index, default_troop_id, 1)
+			# 通知教程系统：内政招募完成
+			EventBus.tutorial_domestic_done.emit("recruit", target_tile_index)
 			return true
 
 		"upgrade":
@@ -6083,6 +6094,8 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 			tile["level"] += 1
 			OrderManager.on_tile_upgraded()
 			EventBus.message_log.emit("%s 升级到Lv%d!" % [tile["name"], tile["level"]])
+			# 通知教程系统：内政升级完成
+			EventBus.tutorial_domestic_done.emit("upgrade", target_tile_index)
 			return true
 
 		"build":
@@ -6107,6 +6120,8 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 			EventBus.building_constructed.emit(pid, target_tile_index, building_id)
 			EventBus.action_visualize_build.emit(target_tile_index, building_id)
 			EventBus.message_log.emit("建造了 %s" % BuildingRegistry.get_building_name(building_id, target_level))
+			# 通知教程系统：内政建造完成
+			EventBus.tutorial_domestic_done.emit("build", target_tile_index)
 			return true
 
 	return false
@@ -8045,3 +8060,177 @@ func is_tile_visible(player_id: int, tile_index: int) -> bool:
 	if Engine.has_singleton("FogManager") and Engine.get_singleton("FogManager").has_method("is_visible"):
 		return Engine.get_singleton("FogManager").is_visible(player_id, tile_index)
 	return true  # Default: all visible if no fog system
+
+# ═══════════════ TUTORIAL LEVEL (教程关卡) ═══════════════
+## start_tutorial_game() — 启动教程关卡。
+## 使用精简地图（9个格子、3×3布局），禁用AI回合，覆盖所有核心流程的验证。
+## 教程地图布局（3×3）:
+##   [0:玩家起点] - [1:荒野] - [2:中立村庄]
+##   [3:矿场]    - [4:交易站] - [5:中立据点]
+##   [6:农场]    - [7:关隘] - [8:光明前哨]
+func start_tutorial_game() -> void:
+	is_tutorial_mode = true
+	use_fixed_map = false
+	_generate_tutorial_map()
+	players.clear()
+	_player_factions.clear()
+	armies.clear()
+	_next_army_id = 1
+	selected_army_id = -1
+	_sat_points.clear()
+	_pending_conquest_tile_index = -1
+	_last_grand_festival_turn = -999
+	_imperial_decree_used = false
+	_forge_alliance_used = false
+	turn_number = 0
+	# Reset all subsystems
+	ResourceManager.reset()
+	SlaveManager.reset()
+	FactionManager.reset()
+	OrderManager.reset()
+	ThreatManager.reset()
+	BuffManager.reset()
+	ItemManager.reset()
+	RelicManager.reset()
+	NpcManager.reset()
+	QuestManager.reset()
+	RecruitManager.reset()
+	DiplomacyManager.reset()
+	StrategicResourceManager.reset()
+	AllianceAI.reset()
+	EvilFactionAI.reset()
+	LightFactionAI.reset()
+	AIStrategicPlanner.reset()
+	StoryEventSystem.reset()
+	if EquipmentForge != null:
+		EquipmentForge.reset()
+	# 创建玩家（使用兽人阵营，资源充足便于教程演示）
+	var chosen_faction: int = FactionData.FactionID.ORC
+	var tutorial_start_res: Dictionary = {
+		"gold": 300, "food": 200, "iron": 150, "army": 15,
+		"slaves": 0, "prestige": 0,
+		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0,
+		"shadow_essence": 0, "trade_goods": 0, "soul_crystals": 0, "arcane_dust": 0,
+	}
+	players.append({
+		"id": 0, "name": "教程指挥官", "is_ai": false,
+		"position": 0, "ap": 5,
+		"color": FactionData.FACTION_COLORS[chosen_faction],
+		"atk_bonus": 0, "def_bonus": 0,
+		"combat_power": 15 * COMBAT_POWER_PER_UNIT,
+		"army_count": 15,
+	})
+	_player_factions[0] = chosen_faction
+	ResourceManager.init_player(0, tutorial_start_res)
+	SlaveManager.init_player(0, 0)
+	FactionManager.init_faction(0, chosen_faction)
+	ItemManager.init_player(0)
+	RelicManager.init_player(0)
+	NpcManager.init_player(0)
+	QuestManager.init_player(0)
+	QuestJournal.init_journal(chosen_faction)
+	RecruitManager.init_player(0)
+	_give_starting_army(0, chosen_faction)
+	DiplomacyManager.init_player(0)
+	StrategicResourceManager.init_player(0)
+	ResearchManager.init_player(0)
+	if EquipmentForge != null:
+		EquipmentForge.init_player(0)
+	OrcMechanic.init_player(0)
+	# 设置玩家起始领地（tile 0, 1, 3）
+	for idx in [0, 1, 3]:
+		tiles[idx]["owner_id"] = 0
+		tiles[idx]["garrison"] = 8
+		tiles[idx]["public_order"] = 0.7
+	# 创建起始军团
+	_create_starting_army(0, chosen_faction, 0)
+	game_stats = {"battles_won": 0, "battles_lost": 0, "capital_tile": 0}
+	# 揭示所有格子（教程中无迷雾）
+	for i in range(tiles.size()):
+		tiles[i]["revealed"][0] = true
+	# 初始化中立势力
+	NeutralFactionAI.reset()
+	NeutralFactionAI.init_neutral_territories()
+	# 初始化光明阵营防御（教程地图有光明前哨）
+	LightFactionAI.init_light_defenses()
+	# 初始化驻守组成
+	_init_light_garrisons()
+	# 生成初始流浪者
+	_spawn_initial_wanderers()
+	current_player_index = 0
+	game_active = true
+	has_rolled = false
+	waiting_for_move = false
+	_pending_event_queue.clear()
+	_scheduler_event_queue.clear()
+	EventBus.message_log.emit("═══ 暗潮教程关卡 — 欢迎! ═══")
+	EventBus.message_log.emit("[color=cyan]本关卡将引导你跑通所有核心流程，验证功能正常。[/color]")
+	begin_turn()
+
+## 生成教程专用精简地图（9个格子，3×3布局）
+func _generate_tutorial_map() -> void:
+	tiles.clear()
+	adjacency.clear()
+	var layout: Array = [
+		# [index, name, type, terrain, garrison, public_order, x, z]
+		[0, "暗潮营地",   TileType.DARK_BASE,        FactionData.TerrainType.PLAINS,       8,  0.7, 0.0,  0.0],
+		[1, "荒野丘陵",   TileType.WILDERNESS,       FactionData.TerrainType.PLAINS,       3,  0.5, 2.6,  0.0],
+		[2, "中立村庄",   TileType.NEUTRAL_BASE,     FactionData.TerrainType.PLAINS,       5,  0.5, 5.2,  0.0],
+		[3, "铁矿山",     TileType.MINE_TILE,        FactionData.TerrainType.MOUNTAIN,     4,  0.6, 0.0, -2.6],
+		[4, "流浪商队站", TileType.TRADING_POST,     FactionData.TerrainType.PLAINS,       2,  0.5, 2.6, -2.6],
+		[5, "中立据点",   TileType.NEUTRAL_BASE,     FactionData.TerrainType.FOREST,       8,  0.5, 5.2, -2.6],
+		[6, "肥沃农田",   TileType.FARM_TILE,        FactionData.TerrainType.PLAINS,       3,  0.6, 0.0, -5.2],
+		[7, "关隘要道",   TileType.CHOKEPOINT,       FactionData.TerrainType.MOUNTAIN,     6,  0.5, 2.6, -5.2],
+		[8, "光明前哨",   TileType.LIGHT_STRONGHOLD, FactionData.TerrainType.FORTRESS_WALL,12, 0.8, 5.2, -5.2],
+	]
+	for entry in layout:
+		var tile: Dictionary = {
+			"index": entry[0],
+			"type": entry[1],
+			"name": entry[2],
+			"position_3d": Vector3(entry[6], 0.0, entry[7]),
+			"owner_id": -1,
+			"garrison": entry[4],
+			"revealed": {},
+			"base_production": {"gold": 8, "food": 5, "iron": 3, "pop": 2},
+			"level": 1,
+			"building_id": "",
+			"building_level": 1,
+			"light_faction": -1,
+			"resource_station_type": "",
+			"neutral_faction_id": -1,
+			"core_fortress_effect": "",
+			"core_fortress_wall_hp": 0,
+			"core_fortress_fall_effect": "",
+			"original_faction": -1,
+			"terrain": entry[3],
+			"is_chokepoint": entry[1] == TileType.CHOKEPOINT,
+			"terrain_move_cost": 1,
+			"named_outpost_id": "",
+			"public_order": entry[5],
+			"wall_hp": 0,
+			"alliance_def_bonus": 0,
+			"region_id": "tutorial",
+			"region_name": "教程区域",
+			"is_region_border": false,
+		}
+		tiles.append(tile)
+	# 设置中立势力
+	tiles[2]["neutral_faction_id"] = FactionData.NeutralFaction.WANDERING_CARAVAN
+	tiles[5]["neutral_faction_id"] = FactionData.NeutralFaction.IRONHAMMER_DWARF
+	# 设置交易站资源类型
+	tiles[4]["resource_station_type"] = "magic_crystal"
+	# 设置光明阵营（tile 8）
+	tiles[8]["light_faction"] = FactionData.LightFaction.HUMAN_KINGDOM
+	# 邻接关系（3×3网格）
+	adjacency = {
+		0: [1, 3],
+		1: [0, 2, 4],
+		2: [1, 5],
+		3: [0, 4, 6],
+		4: [1, 3, 5, 7],
+		5: [2, 4, 8],
+		6: [3, 7],
+		7: [4, 6, 8],
+		8: [5, 7],
+	}

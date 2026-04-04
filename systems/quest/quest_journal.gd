@@ -457,6 +457,8 @@ func _complete_quest_entry(progress_dict: Dictionary, quest_id: String, reward: 
 		EventBus.message_log.emit("[color=white]%s[/color]" % msg_text)
 	if EventBus.has_signal("quest_journal_updated"):
 		EventBus.quest_journal_updated.emit()
+	# 通知教程系统：任务完成
+	EventBus.tutorial_quest_done.emit(quest_id)
 
 
 func _complete_challenge(challenge: Dictionary, player_id: int) -> void:

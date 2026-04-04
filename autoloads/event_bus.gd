@@ -211,6 +211,25 @@ signal open_march_panel_requested(army_id: int)
 signal tutorial_step(step_id: String)
 # KEPT: tutorial system compat — tutorial_manager has its own local signal but this may be needed
 signal tutorial_completed()
+# ── Tutorial Level — 教程关卡专用信号 ──
+## 教程关卡启动
+signal tutorial_game_started()
+## 玩家完成一个教程行动（内政、探索、居地升级等）
+signal tutorial_domestic_done(action: String, tile_index: int)
+## 玩家完成一次战斗（包括小兵、中立、光明阵营）
+signal tutorial_combat_done(won: bool, target_tile: int)
+## 玩家完成一次外交操作
+signal tutorial_diplomacy_done(diplomacy_type: String)
+## 玩家完成一次交易操作
+signal tutorial_trade_done()
+## 玩家完成地域压制操作
+signal tutorial_suppression_done(tile_index: int)
+## 玩家完成一个任务流程
+signal tutorial_quest_done(quest_id: String)
+## 玩家处理了一个事件
+signal tutorial_event_handled(event_id: String)
+## 玩家结束回合
+signal tutorial_turn_ended(turn_number: int)
 
 # ── Balance / Difficulty (v3.0) ──
 # KEPT: emitted in balance_manager.gd — no listeners yet but expected for settings UI

@@ -2,6 +2,7 @@
 extends CanvasLayer
 
 signal game_started(faction_id: int, fixed_map: bool)
+signal tutorial_game_requested()
 
 # ── Map mode ──
 var _use_fixed_map: bool = false
@@ -192,6 +193,12 @@ func _build_title_panel() -> void:
 	btn_new_game = _make_menu_button("New Campaign")
 	btn_new_game.pressed.connect(_on_new_game)
 	vbox.add_child(btn_new_game)
+
+	# Tutorial Level Button
+	var btn_tutorial := _make_menu_button("教程关卡 Tutorial")
+	btn_tutorial.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
+	btn_tutorial.pressed.connect(_on_tutorial_game)
+	vbox.add_child(btn_tutorial)
 
 	btn_continue = _make_menu_button("Continue")
 	btn_continue.pressed.connect(_on_continue)
@@ -543,6 +550,14 @@ func _show_loading() -> void:
 
 func _on_new_game() -> void:
 	_show_faction_select()
+
+
+func _on_tutorial_game() -> void:
+	## 教程关卡入口：不需要选择阵营，直接启动教程
+	_show_loading()
+	await get_tree().process_frame
+	tutorial_game_requested.emit()
+	_hide_menu()
 
 
 func _on_continue() -> void:

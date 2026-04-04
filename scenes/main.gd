@@ -73,8 +73,10 @@ func _ready() -> void:
 	# Start with HUD hidden, menu visible (board stays visible - camera needs it)
 	hud.visible = false
 
-	# Connect main menu signal
+	# Connect main menu signals
 	main_menu.game_started.connect(_on_game_started)
+	if main_menu.has_signal("tutorial_game_requested"):
+		main_menu.tutorial_game_requested.connect(_on_tutorial_game_requested)
 
 	# Create hero panel dynamically (no .tscn dependency for autoload-like behavior)
 	var hero_panel_scene := preload("res://scenes/ui/panels/hero_panel.tscn")
@@ -289,6 +291,39 @@ func _on_game_started(faction_id: int, fixed_map: bool = false) -> void:
 			add_child(overlay)
 		if popup.get_parent() == null:
 			add_child(popup)
+
+
+func _on_tutorial_game_requested() -> void:
+	## 教程关卡入口：使用兵兽人阵营（faction_id=0）和教程地图启动游戏
+	hud.visible = true
+
+	# 重置教程状态，确保教程可以重新运行
+	TutorialManager.reset()
+
+	# 使用教程模式启动游戏（兵兽人阵营，小地图）
+	if GameManager.has_method("start_tutorial_game"):
+		GameManager.start_tutorial_game()
+	else:
+		# 备用：如果 start_tutorial_game 不存在，用普通方式启动
+		GameManager.start_game(0, false)
+
+	# 重建地图
+	if board.has_method("rebuild"):
+		board.rebuild()
+	EventBus.board_ready.emit()
+
+	# 启动教程关卡
+	TutorialManager.start_tutorial_level()
+
+	# 将教程 UI 添加到场景树
+	var overlay := TutorialManager.get_overlay_control()
+	var popup := TutorialManager.get_popup_control()
+	if overlay.get_parent() == null:
+		add_child(overlay)
+	if popup.get_parent() == null:
+		add_child(popup)
+
+	EventBus.message_log.emit("[color=cyan]教程关卡已启动！请按照提示逐步完成所有流程。[/color]")
 
 
 func _on_combat_view_closed() -> void:
