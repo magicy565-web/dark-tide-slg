@@ -229,7 +229,7 @@ func _build_proposal_popup() -> void:
 	partner_row.add_theme_constant_override("separation", 8)
 	pvbox.add_child(partner_row)
 	var partner_lbl := Label.new()
-	partner_lbl.text = "Partner:"
+	partner_lbl.text = "缔约方:"
 	partner_lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
 	partner_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_NORMAL)
 	partner_lbl.custom_minimum_size = Vector2(100, 0)
@@ -343,7 +343,7 @@ func _open_proposal_popup(preselect_faction: int = -1) -> void:
 	var preselect_idx: int = 0
 	for fid in factions:
 		if fid == player_faction: continue
-		var fname: String = FactionData.FACTION_NAMES.get(fid, "Unknown")
+		var fname: String = FactionData.FACTION_NAMES.get(fid, "未知势力")
 		_popup_partner_option.add_item(fname, fid)
 		if fid == preselect_faction:
 			preselect_idx = idx
@@ -354,7 +354,7 @@ func _open_proposal_popup(preselect_faction: int = -1) -> void:
 	# Populate treaty types from TreatySystem if available
 	if _treaty_system:
 		for t_val in TreatySystem.TreatyType.values():
-			var t_name: String = TreatySystem.TREATY_NAMES.get(t_val, "Unknown")
+			var t_name: String = TreatySystem.TREATY_NAMES.get(t_val, "未知条约")
 			_popup_type_option.add_item(t_name, t_val)
 	else:
 		# Fallback to basic types
@@ -386,7 +386,7 @@ func _update_popup_preview() -> void:
 
 	var partner_id: int = _popup_partner_option.get_item_id(_popup_partner_option.selected)
 	var treaty_type_id: int = _popup_type_option.get_item_id(_popup_type_option.selected)
-	var partner_name: String = FactionData.FACTION_NAMES.get(partner_id, "Unknown")
+	var partner_name: String = FactionData.FACTION_NAMES.get(partner_id, "未知势力")
 	var faction_key: String = _get_faction_key(partner_id)
 
 	# Terms text
@@ -398,7 +398,7 @@ func _update_popup_preview() -> void:
 		rep_threshold = TreatySystem.TREATY_REP_THRESHOLD.get(treaty_type_id, 0)
 		break_penalty = TreatySystem.TREATY_BREAK_PENALTY.get(treaty_type_id, -20)
 
-	var dur_text: String = "Permanent" if duration == -1 else "%d turns" % duration
+	var dur_text: String = "永久" if duration == -1 else "%d 回合" % duration
 	_popup_terms_label.text = "Treaty with %s\nDuration: %s\nRequired reputation: %d\nBreak penalty: %d rep" % [partner_name, dur_text, rep_threshold, break_penalty]
 
 	# Effects preview
@@ -439,7 +439,7 @@ func _get_treaty_effects_text(treaty_type_id: int) -> String:
 			return "Effects: Vassal pays tribute each turn. Overlord provides protection."
 		TreatySystem.TreatyType.CONFEDERATION:
 			return "Effects: Full political merge. Shared armies and resources. (Endgame)"
-	return "Effects: Unknown treaty type."
+	return "效果: 未知条约类型。"
 
 func _estimate_acceptance_probability(_partner_id: int, treaty_type_id: int, faction_key: String) -> int:
 	var rep: int = DiplomacyManager.get_reputation(faction_key) if faction_key != "" else 0
@@ -544,7 +544,7 @@ func _build_evil_factions() -> void:
 	for fid in factions:
 		if fid == player_faction: continue
 		var rel: Dictionary = DiplomacyManager.get_all_relations(pid).get(fid, {})
-		var fname: String = FactionData.FACTION_NAMES.get(fid, "Unknown")
+		var fname: String = FactionData.FACTION_NAMES.get(fid, "未知势力")
 		var recruited: bool = rel.get("recruited", false)
 		var hostile: bool = rel.get("hostile", false)
 		var ceasefire: bool = DiplomacyManager.is_ceasefire_active(pid, fid)
@@ -851,7 +851,7 @@ func _build_treaties_tab() -> void:
 
 	# ── Section: Active Treaties ──
 	var active_header := Label.new()
-	active_header.text = "Active Treaties"
+	active_header.text = "当前条约"
 	active_header.add_theme_font_size_override("font_size", ColorTheme.FONT_SUBHEADING)
 	active_header.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 	content_container.add_child(active_header); _faction_nodes.append(active_header)
@@ -859,7 +859,7 @@ func _build_treaties_tab() -> void:
 	var active_treaties: Array = DiplomacyManager.get_active_treaties(pid)
 	if active_treaties.size() == 0:
 		var empty_lbl := Label.new()
-		empty_lbl.text = "No active treaties."
+		empty_lbl.text = "暂无有效条约。"
 		empty_lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
 		empty_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 		content_container.add_child(empty_lbl); _faction_nodes.append(empty_lbl)
@@ -871,7 +871,7 @@ func _build_treaties_tab() -> void:
 	# ── Section: Incoming Proposals ──
 	content_container.add_child(HSeparator.new())
 	var incoming_header := Label.new()
-	incoming_header.text = "Incoming Proposals"
+	incoming_header.text = "待处理提案"
 	incoming_header.add_theme_font_size_override("font_size", ColorTheme.FONT_SUBHEADING)
 	incoming_header.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 	content_container.add_child(incoming_header); _faction_nodes.append(incoming_header)
@@ -879,7 +879,7 @@ func _build_treaties_tab() -> void:
 	var proposals: Array = _get_pending_proposals()
 	if proposals.size() == 0:
 		var empty_lbl2 := Label.new()
-		empty_lbl2.text = "No incoming proposals."
+		empty_lbl2.text = "暂无待处理提案。"
 		empty_lbl2.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
 		empty_lbl2.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
 		content_container.add_child(empty_lbl2); _faction_nodes.append(empty_lbl2)
@@ -891,13 +891,13 @@ func _build_treaties_tab() -> void:
 	# ── Section: Propose New Treaty ──
 	content_container.add_child(HSeparator.new())
 	var propose_header := Label.new()
-	propose_header.text = "Propose New Treaty"
+	propose_header.text = "提出新条约"
 	propose_header.add_theme_font_size_override("font_size", ColorTheme.FONT_SUBHEADING)
 	propose_header.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 	content_container.add_child(propose_header); _faction_nodes.append(propose_header)
 
 	var propose_btn := Button.new()
-	propose_btn.text = "Open Treaty Proposal..."
+	propose_btn.text = "打开条约提案面板..."
 	propose_btn.custom_minimum_size = Vector2(220, 36)
 	propose_btn.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
 	var ps := StyleBoxFlat.new()
@@ -907,6 +907,25 @@ func _build_treaties_tab() -> void:
 	propose_btn.add_theme_stylebox_override("normal", ps)
 	propose_btn.pressed.connect(_open_proposal_popup.bind(-1))
 	content_container.add_child(propose_btn); _faction_nodes.append(propose_btn)
+	# ── Section: AI Trade Routes (v0.9.3 新增) ──
+	var trade_routes: Array = DiplomacyManager.get_active_trade_routes()
+	if trade_routes.size() > 0:
+		content_container.add_child(HSeparator.new())
+		var trade_header := Label.new()
+		trade_header.text = "⚠ 敌方军火贸易路线"
+		trade_header.add_theme_font_size_override("font_size", ColorTheme.FONT_SUBHEADING)
+		trade_header.add_theme_color_override("font_color", Color(0.9, 0.4, 0.2))
+		content_container.add_child(trade_header); _faction_nodes.append(trade_header)
+		var trade_hint := Label.new()
+		trade_hint.text = "可通过间谍行动截断这些运输路线以削弱敌方。"
+		trade_hint.add_theme_font_size_override("font_size", 12)
+		trade_hint.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
+		trade_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content_container.add_child(trade_hint); _faction_nodes.append(trade_hint)
+		for ri in range(trade_routes.size()):
+			var route: Dictionary = trade_routes[ri]
+			var route_card := _build_trade_route_card(route, ri)
+			content_container.add_child(route_card); _faction_nodes.append(route_card)
 
 func _build_treaty_card(treaty: Dictionary, _pid: int) -> PanelContainer:
 	var card := PanelContainer.new()
@@ -937,18 +956,18 @@ func _build_treaty_card(treaty: Dictionary, _pid: int) -> PanelContainer:
 	title_row.add_child(type_lbl)
 
 	# Partner
-	var partner_name: String = FactionData.FACTION_NAMES.get(treaty.get("target", -1), "Unknown")
+	var partner_name: String = FactionData.FACTION_NAMES.get(treaty.get("target", -1), "未知势力")
 	var partner_lbl := Label.new()
-	partner_lbl.text = "Partner: %s" % partner_name
+	partner_lbl.text = "缔约方: %s" % partner_name
 	partner_lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
 	partner_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_NORMAL)
 	vbox.add_child(partner_lbl)
 
 	# Duration
 	var turns_left: int = treaty.get("turns_left", -1)
-	var dur_text: String = "Permanent" if turns_left == -1 else "%d turns remaining" % turns_left
+	var dur_text: String = "永久" if turns_left == -1 else "剩余 %d 回合" % turns_left
 	var dur_lbl := Label.new()
-	dur_lbl.text = "Duration: %s" % dur_text
+	dur_lbl.text = "有效期: %s" % dur_text
 	dur_lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_SMALL)
 	dur_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_DIM)
 	vbox.add_child(dur_lbl)
@@ -956,14 +975,14 @@ func _build_treaty_card(treaty: Dictionary, _pid: int) -> PanelContainer:
 	# Terms/extras
 	if treaty.has("gold_per_turn") and treaty["gold_per_turn"] > 0:
 		var terms_lbl := Label.new()
-		terms_lbl.text = "Terms: %d gold/turn" % treaty["gold_per_turn"]
+		terms_lbl.text = "条款: 每回合 %d 金币" % treaty["gold_per_turn"]
 		terms_lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_SMALL)
 		terms_lbl.add_theme_color_override("font_color", Color(0.9, 0.7, 0.3))
 		vbox.add_child(terms_lbl)
 
 	# Break button
 	var break_btn := Button.new()
-	break_btn.text = "Break Treaty"
+	break_btn.text = "撕毁条约"
 	break_btn.custom_minimum_size = Vector2(120, 26)
 	break_btn.add_theme_font_size_override("font_size", 11)
 	break_btn.add_theme_color_override("font_color", ColorTheme.TEXT_WARNING)
@@ -990,8 +1009,8 @@ func _build_proposal_card(proposal: Dictionary) -> PanelContainer:
 	vbox.add_theme_constant_override("separation", 4)
 	card.add_child(vbox)
 
-	var from_name: String = FactionData.FACTION_NAMES.get(proposal.get("from", -1), "Unknown")
-	var type_name: String = proposal.get("type_name", "Unknown")
+	var from_name: String = FactionData.FACTION_NAMES.get(proposal.get("from", -1), "未知势力")
+	var type_name: String = proposal.get("type_name", "未知类型")
 	var title_lbl := Label.new()
 	title_lbl.text = "%s proposes: %s" % [from_name, type_name]
 	title_lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_SUBHEADING)
@@ -1000,7 +1019,7 @@ func _build_proposal_card(proposal: Dictionary) -> PanelContainer:
 
 	if proposal.has("terms"):
 		var terms_lbl := Label.new()
-		terms_lbl.text = "Terms: %s" % proposal["terms"]
+		terms_lbl.text = "条款: %s" % proposal["terms"]
 		terms_lbl.add_theme_font_size_override("font_size", ColorTheme.FONT_SMALL)
 		terms_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_DIM)
 		terms_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -1347,7 +1366,7 @@ func _on_send_gift(faction_id: int) -> void:
 	var faction_key: String = _get_faction_key(faction_id)
 	if faction_key != "":
 		_record_reputation_change(faction_key, 5, "Sent gift (50g)")
-	EventBus.message_log.emit("Sent tribute to %s (-50g, Rep +5)" % FactionData.FACTION_NAMES.get(faction_id, "Unknown"))
+	EventBus.message_log.emit("向 %s 纳贡 (-50金, 声望+5)" % FactionData.FACTION_NAMES.get(faction_id, "未知势力"))
 	_refresh()
 
 func _on_quick_propose(faction_id: int, treaty_type: String) -> void:
@@ -1510,3 +1529,57 @@ func _get_quick_propose_label(treaty_type: String) -> String:
 		"trade": return "Quick: Trade"
 		"alliance": return "Quick: Alliance"
 	return "Quick: %s" % treaty_type
+
+## 构建 AI 贸易路线卡片（v0.9.3 新增）
+func _build_trade_route_card(route: Dictionary, route_index: int) -> PanelContainer:
+	var card := PanelContainer.new()
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(0.18, 0.10, 0.08, 0.95)
+	s.border_color = Color(0.8, 0.4, 0.1)
+	s.set_border_width_all(1); s.set_corner_radius_all(5); s.set_content_margin_all(8)
+	card.add_theme_stylebox_override("panel", s)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	card.add_child(vbox)
+	# 路线描述
+	var from_name: String = route.get("from", "?")
+	var to_name: String = route.get("to", "?")
+	var resource: String = route.get("resource", "?")
+	var amount: int = route.get("amount", 0)
+	var turns_left: int = route.get("turns_left", 0)
+	var resource_cn: Dictionary = {
+		"iron": "铁矿", "gold": "黄金", "magic_crystal": "魔晶",
+		"food": "粮草", "gunpowder": "火药",
+	}
+	var faction_cn: Dictionary = {
+		"human": "人类王国", "elf": "高等精灵",
+		"mage": "法师公会", "dwarf": "矮人堡垒",
+	}
+	var route_lbl := Label.new()
+	route_lbl.text = "%s → %s" % [faction_cn.get(from_name, from_name), faction_cn.get(to_name, to_name)]
+	route_lbl.add_theme_font_size_override("font_size", 14)
+	route_lbl.add_theme_color_override("font_color", Color(0.9, 0.5, 0.2))
+	vbox.add_child(route_lbl)
+	var detail_lbl := Label.new()
+	detail_lbl.text = "运输: %s ×%d  |  剩余 %d 回合" % [resource_cn.get(resource, resource), amount, turns_left]
+	detail_lbl.add_theme_font_size_override("font_size", 12)
+	detail_lbl.add_theme_color_override("font_color", ColorTheme.TEXT_MUTED)
+	vbox.add_child(detail_lbl)
+	# 截断按钮（需要间谍行动支持）
+	var disrupt_btn := Button.new()
+	disrupt_btn.text = "🗡 截断此路线（需间谍行动）"
+	disrupt_btn.custom_minimum_size = Vector2(200, 28)
+	disrupt_btn.add_theme_font_size_override("font_size", 12)
+	var pid: int = GameManager.get_human_player_id()
+	var espionage_lvl: int = GameManager.get_espionage_level(pid) if GameManager.has_method("get_espionage_level") else 0
+	disrupt_btn.disabled = espionage_lvl < 1
+	if espionage_lvl < 1:
+		disrupt_btn.tooltip_text = "需要间谍等级 ≥ 1 才能截断贸易路线"
+	var ri_copy: int = route_index
+	disrupt_btn.pressed.connect(func():
+		var result: Dictionary = DiplomacyManager.disrupt_trade_route(ri_copy)
+		if not result.is_empty():
+			_refresh()
+	)
+	vbox.add_child(disrupt_btn)
+	return card

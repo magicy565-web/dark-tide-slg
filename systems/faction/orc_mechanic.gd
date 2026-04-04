@@ -249,6 +249,14 @@ func tick(player_id: int, had_combat: bool) -> void:
 			_add_waaagh(player_id, waaagh_gain)
 			EventBus.waaagh_changed.emit(player_id, _waaagh[player_id])
 			EventBus.message_log.emit("[color=red]蛮牛酋长光环: WAAAGH! +%d[/color]" % waaagh_gain)
+	# ── v0.9.3: Tech buff waaagh_regen_bonus (from 蛮族士气 tech) ──
+	if BuffManager and BuffManager.has_method("get_buff_value"):
+		var _raw_waaagh_regen = BuffManager.get_buff_value(player_id, "tech_waaagh_regen_bonus", 0)
+		var waaagh_regen_bonus: int = int(_raw_waaagh_regen) if (_raw_waaagh_regen is int or _raw_waaagh_regen is float) else 0
+		if waaagh_regen_bonus > 0:
+			_add_waaagh(player_id, waaagh_regen_bonus)
+			EventBus.waaagh_changed.emit(player_id, _waaagh[player_id])
+			EventBus.message_log.emit("[color=red]蛮族士气: WAAAGH! +%d[/color]" % waaagh_regen_bonus)
 
 	# ── Momentum bonus: Blood Tide (3+ streak) gives +50% WAAAGH gain ──
 	# (Already applied inside on_combat_result; streak itself tracked above)

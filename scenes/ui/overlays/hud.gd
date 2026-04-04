@@ -141,6 +141,10 @@ var btn_formation: Button
 var btn_unit_orders: Button
 var btn_troop_training: Button
 var btn_equipment_forge: Button
+# ── 终局威望行动按钮 (v7.0) ──
+var btn_grand_festival: Button     # 盛大祭典: 200金, +15秩序, +3好感
+var btn_forge_alliance: Button     # 铸造联盟: 300金, 强制结盟最弱势力
+var btn_empire_decree: Button      # 帝国法令: 100威望, 全军+15%战斗力, 3回合
 var _formation_army_id: int = -1
 var _orders_army_id: int = -1
 var _tile_dev_panel: Node = null
@@ -470,195 +474,223 @@ func _build_action_panel(parent: Control) -> void:
 	ap_display.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ap_display.custom_minimum_size.x = 40
 	ap_hbox.add_child(ap_display)
-	var ap_max_lbl := _make_label("/ turn", 10, Color(0.6, 0.6, 0.65))
+	var ap_max_lbl := _make_label("/ 回合", 10, Color(0.6, 0.6, 0.65))
 	ap_hbox.add_child(ap_max_lbl)
 
-	var title := _make_label("Actions", ColorTheme.FONT_SUBHEADING, ColorTheme.TEXT_HEADING)
+	var title := _make_label("行动", ColorTheme.FONT_SUBHEADING, ColorTheme.TEXT_HEADING)
 	vbox.add_child(title)
 
-	var section_combat := _make_label("-- Combat --", 10, Color(0.7, 0.5, 0.5))
+	var section_combat := _make_label("── 战斗行动 ──", 10, Color(0.7, 0.5, 0.5))
 	vbox.add_child(section_combat)
 
-	btn_attack = _make_button("Attack [1] (1AP)", _icon_action_attack, "danger")
-	btn_attack.tooltip_text = "Select an army and attack an adjacent enemy territory. Costs 1 Action Point."
+	btn_attack = _make_button("攻击 [1] (1AP)", _icon_action_attack, "danger")
+	btn_attack.tooltip_text = "选择一支军队，攻击相邻的敌方据点。消耗 1 行动点。"
 	btn_attack.pressed.connect(_on_attack_pressed)
 	vbox.add_child(btn_attack)
 
-	btn_deploy = _make_button("Deploy [2] (1AP)", _icon_action_deploy)
-	btn_deploy.tooltip_text = "Move an army to an adjacent friendly territory. Costs 1 Action Point."
+	btn_deploy = _make_button("部署 [2] (1AP)", _icon_action_deploy)
+	btn_deploy.tooltip_text = "将军队移动到相邻的己方据点。消耗 1 行动点。"
 	btn_deploy.pressed.connect(_on_deploy_pressed)
 	vbox.add_child(btn_deploy)
 
 	btn_march = _make_button("行农 [M] (1AP)", _icon_action_march)  # P1-FIX: 使用专用行农图标
-	btn_march.tooltip_text = "Issue a long-range march order. The army moves one step per turn automatically until it reaches the destination or encounters an enemy."
+	btn_march.tooltip_text = "发布远程行军命令。军队每回合自动前进一步，直到抵达目的地或遭遇敌军。消耗 1 行动点。"
 	btn_march.pressed.connect(_on_march_pressed)
 	vbox.add_child(btn_march)
 	btn_garrison = _make_button("🛡 驻守 [G] (1AP)", _icon_action_garrison)  # P1-FIX: 添加驻守图标
-	btn_garrison.tooltip_text = "令军队就地驻守。驻守状态下防御逐回叠加，最高+30%。再次点击可选择取消驻守。"
+	btn_garrison.tooltip_text = "令军队就地驻守。驻守状态下防御逐回叠加，最高 +30%。再次点击可选择取消驻守。"
 	btn_garrison.pressed.connect(_on_garrison_pressed)
 	vbox.add_child(btn_garrison)
 
-	btn_domestic = _make_button("Domestic [3] (1AP)", _icon_action_build)
-	btn_domestic.tooltip_text = "Recruit troops, upgrade territories, build structures, manage armies."
+	btn_domestic = _make_button("内政 [3] (1AP)", _icon_action_build)
+	btn_domestic.tooltip_text = "征兵、升级据点、建造建筑、管理军队。消耗 1 行动点。"
 	btn_domestic.pressed.connect(_on_domestic_pressed)
 	vbox.add_child(btn_domestic)
 
-	btn_diplomacy = _make_button("Diplomacy [4] (1AP)", _icon_action_diplomacy)
-	btn_diplomacy.tooltip_text = "Negotiate with other factions: ceasefire, tribute, alliance, or taming."
+	btn_diplomacy = _make_button("外交 [4] (1AP)", _icon_action_diplomacy)
+	btn_diplomacy.tooltip_text = "与其他势力谈判：停战、纳贡、结盟或招募。消耗 1 行动点。"
 	btn_diplomacy.pressed.connect(_on_diplomacy_pressed)
 	vbox.add_child(btn_diplomacy)
 
-	btn_explore = _make_button("Explore [5] (1AP)", _icon_action_explore)  # P1-FIX: 添加探索图标
-	btn_explore.tooltip_text = "Explore unclaimed territories to discover resources and events."
+	btn_explore = _make_button("探索 [5] (1AP)", _icon_action_explore)  # P1-FIX: 添加探索图标
+	btn_explore.tooltip_text = "探索未占领的据点，发现资源和事件。消耗 1 行动点。"
 	btn_explore.pressed.connect(_on_explore_pressed)
 	vbox.add_child(btn_explore)
 
-	var section_ops := _make_label("-- Operations --", 10, Color(0.5, 0.6, 0.7))
+	var section_ops := _make_label("── 战略行动 ──", 10, Color(0.5, 0.6, 0.7))
 	vbox.add_child(section_ops)
 
 	# TODO: MISSING_ASSET 防守专用图标 assets/map/actions/action_guard.png 待创建
-	btn_guard = _make_button("Guard (1AP)", _icon_action_garrison)  # P1-FIX: 临时复用驻守图标
+	btn_guard = _make_button("警戒 (1AP)", _icon_action_garrison)  # P1-FIX: 临时复用驻守图标
+	btn_guard.tooltip_text = "进入警戒状态：本回合防御+20%，并自动拦截进入范围的敌军。消耗 1 行动点。"
 	btn_guard.pressed.connect(_on_guard_pressed)
 	vbox.add_child(btn_guard)
 
 	# TODO: MISSING_ASSET 指挥官专用图标 assets/map/actions/action_commander.png 待创建
-	btn_commander = _make_button("Commander (0AP)", _icon_action_hero)  # P1-FIX: 临时复用英雄图标
+	btn_commander = _make_button("武将指挥 (0AP)", _icon_action_hero)  # P1-FIX: 临时复用英雄图标
+	btn_commander.tooltip_text = "选择一名武将执行专属指挥行动（技能/好感/任务）。不消耗行动点。"
 	btn_commander.pressed.connect(_on_commander_pressed)
 	vbox.add_child(btn_commander)
 
 	# TODO: MISSING_ASSET 审讯专用图标 assets/map/actions/action_interrogate.png 待创建
-	btn_interrogate = _make_button("Interrogate (1AP)", _icon_action_espionage)  # P1-FIX: 临时复用情报图标
+	btn_interrogate = _make_button("审讯俘虏 (1AP)", _icon_action_espionage)  # P1-FIX: 临时复用情报图标
+	btn_interrogate.tooltip_text = "审讯被俘的敌方武将，获取情报或将其招募。消耗 1 行动点。"
 	btn_interrogate.pressed.connect(_on_interrogate_pressed)
 	vbox.add_child(btn_interrogate)
 
 	# TODO: MISSING_ASSET 支援专用图标 assets/map/actions/action_reinforce.png 待创建
-	btn_reinforce = _make_button("Reinforce (1AP)", _icon_action_supply)  # P1-FIX: 临时复用补给图标
+	btn_reinforce = _make_button("增援 (1AP)", _icon_action_supply)  # P1-FIX: 临时复用补给图标
+	btn_reinforce.tooltip_text = "向相邻友军据点派遣增援部队。消耗 1 行动点。"
 	btn_reinforce.pressed.connect(_on_reinforce_pressed)
 	vbox.add_child(btn_reinforce)
 
 	# TODO: MISSING_ASSET 事件专用图标 assets/map/actions/action_event.png 待创建
-	btn_sat_event = _make_button("SAT Event (0)")  # 暂无匹配图标
+	btn_sat_event = _make_button("特殊行动 (0AP)")  # 暂无匹配图标
+	btn_sat_event.tooltip_text = "触发当前可用的特殊战略事件（不消耗行动点）。"
 	btn_sat_event.pressed.connect(_on_sat_event_pressed)
 	vbox.add_child(btn_sat_event)
 
-	var btn_mission = _make_button("Mission [M] (1AP)")
+	var btn_mission = _make_button("任务 [M] (1AP)")
+	btn_mission.tooltip_text = "查看并执行当前可用的战略任务。消耗 1 行动点。"
 	btn_mission.pressed.connect(_on_mission_pressed)
 	vbox.add_child(btn_mission)
 
-	var btn_territory_info = _make_button("Territory [T]")
+	var btn_territory_info = _make_button("领地信息 [T]")
+	btn_territory_info.tooltip_text = "查看当前选中据点的详细信息（不消耗行动点）。"
 	btn_territory_info.pressed.connect(_on_territory_info_pressed)
 	vbox.add_child(btn_territory_info)
 
 	# Prestige actions
-	var section_prestige := _make_label("-- Prestige --", 10, Color(0.7, 0.7, 0.5))
+	var section_prestige := _make_label("── 威望行动 ──", 10, Color(0.7, 0.7, 0.5))
 	vbox.add_child(section_prestige)
 
 	# TODO: MISSING_ASSET 降威胁专用图标 assets/map/actions/action_reduce_threat.png 待创建
-	btn_reduce_threat = _make_button("Reduce Threat -10 (20 Prestige)")  # 暂无匹配图标
+	btn_reduce_threat = _make_button("降低威胁 -10 (20威望)")  # 暂无匹配图标
+	btn_reduce_threat.tooltip_text = "消耗 20 威望，将光明联盟威胁值降低 10 点。"
 	btn_reduce_threat.pressed.connect(_on_reduce_threat)
 	vbox.add_child(btn_reduce_threat)
 
 	# TODO: MISSING_ASSET 提升秩序专用图标 assets/map/actions/action_boost_order.png 待创建
-	btn_boost_order = _make_button("Boost Order +10 (15 Prestige)")  # 暂无匹配图标
+	btn_boost_order = _make_button("提升秩序 +10 (15威望)")  # 暂无匹配图标
+	btn_boost_order.tooltip_text = "消耗 15 威望，将全域公共秩序提升 10 点。"
 	btn_boost_order.pressed.connect(_on_boost_order)
 	vbox.add_child(btn_boost_order)
 
+	# ── 终局威望行动 (v7.0, 第40回合后解锁) ──
+	var section_endgame := _make_label("── 终局行动 ──", 10, Color(0.8, 0.6, 0.3))
+	vbox.add_child(section_endgame)
+	btn_grand_festival = _make_button("盛大祭典 (200金)")
+	btn_grand_festival.tooltip_text = "消耗 200 金币，全域秩序+15，所有英雄好感+3。每 10 回合可用一次。"
+	btn_grand_festival.pressed.connect(_on_grand_festival_pressed)
+	btn_grand_festival.visible = false
+	vbox.add_child(btn_grand_festival)
+	btn_forge_alliance = _make_button("铸造联盟 (300金)")
+	btn_forge_alliance.tooltip_text = "消耗 300 金币，强制与最弱势力建立军事同盟。每局只能使用一次。"
+	btn_forge_alliance.pressed.connect(_on_forge_alliance_pressed)
+	btn_forge_alliance.visible = false
+	vbox.add_child(btn_forge_alliance)
+	btn_empire_decree = _make_button("帝国法令 (100威望)")
+	btn_empire_decree.tooltip_text = "消耗 100 威望，全军战斗力+15%，持续 3 回合。每局只能使用一次。"
+	btn_empire_decree.pressed.connect(_on_empire_decree_pressed)
+	btn_empire_decree.visible = false
+	vbox.add_child(btn_empire_decree)
 	# Pirate slave trade (shown conditionally)
-	btn_sell_slave = _make_button("Sell Slave (25g)")
+	btn_sell_slave = _make_button("出售奴隶 (25金)")
+	btn_sell_slave.tooltip_text = "（海盗/暗精灵专属）将奴隶出售换取 25 金币。"
 	btn_sell_slave.pressed.connect(_on_sell_slave)
 	btn_sell_slave.visible = false
 	vbox.add_child(btn_sell_slave)
 
-	btn_buy_slave = _make_button("Buy Slave (40g)")
+	btn_buy_slave = _make_button("购买奴隶 (40金)")
 	btn_buy_slave.pressed.connect(_on_buy_slave)
 	btn_buy_slave.visible = false
 	vbox.add_child(btn_buy_slave)
 
 	# Hero & Research buttons (free actions)
-	var section_info := _make_label("-- Info & Management --", 10, Color(0.5, 0.7, 0.6))
+	var section_info := _make_label("── 信息管理 ──", 10, Color(0.5, 0.7, 0.6))
 	vbox.add_child(section_info)
 
-	btn_hero = _make_button("Heroes (H)", _icon_action_hero)  # 图标已存在
+	btn_hero = _make_button("英雄管理 (H)", _icon_action_hero)  # 图标已存在
 	btn_hero.pressed.connect(_on_hero_pressed)
 	vbox.add_child(btn_hero)
 
-	btn_research = _make_button("Research", _icon_action_quest)  # P1-FIX: 临时复用任务图标
+	btn_research = _make_button("科技研究", _icon_action_quest)  # P1-FIX: 临时复用任务图标
 	# TODO: MISSING_ASSET 科技专用图标 assets/icons/ui/btn_research.png 待创建
 	btn_research.pressed.connect(_on_research_pressed)
 	vbox.add_child(btn_research)
 
-	btn_quest_journal = _make_button("Quest Log (J)", _icon_action_quest)  # P1-FIX: 添加任务日志图标
+	btn_quest_journal = _make_button("任务日志 (J)", _icon_action_quest)  # P1-FIX: 添加任务日志图标
 	btn_quest_journal.pressed.connect(_on_quest_journal_pressed)
 	vbox.add_child(btn_quest_journal)
 
 	# TODO: MISSING_ASSET 军队专用图标 assets/icons/ui/btn_armies.png 待创建
-	btn_armies = _make_button("Armies (A)", _icon_action_march)  # P1-FIX: 临时复用行农图标
+	btn_armies = _make_button("军队管理 (A)", _icon_action_march)  # P1-FIX: 临时复用行农图标
 	btn_armies.pressed.connect(_on_armies_pressed)
 	vbox.add_child(btn_armies)
 
 	# TODO: MISSING_ASSET 经济专用图标 assets/icons/ui/btn_economy.png 待创建
-	btn_economy = _make_button("Economy ($)")  # 暂无匹配图标
+	btn_economy = _make_button("经济概览 ($)")  # 暂无匹配图标
 	btn_economy.pressed.connect(_on_economy_pressed)
 	vbox.add_child(btn_economy)
 
-	var btn_event_mgr := _make_button("Event Mgr (E)")
+	var btn_event_mgr := _make_button("事件管理 (E)")
 	btn_event_mgr.pressed.connect(_on_event_manager_pressed)
 	vbox.add_child(btn_event_mgr)
 
 	# ── Faction-specific ability buttons ──
-	var section_faction := _make_label("-- Faction Abilities --", 10, Color(0.8, 0.5, 0.3))
+	var section_faction := _make_label("── 派系专属 ──", 10, Color(0.8, 0.5, 0.3))
 	vbox.add_child(section_faction)
 
 	# Orc buttons
-	btn_waaagh_burst = _make_button("WAAAGH! Burst (0AP)", null, "danger")
+	btn_waaagh_burst = _make_button("WAAAGH! 爆发 (0AP)", null, "danger")
 	btn_waaagh_burst.tooltip_text = "Spend 10 WAAAGH! Power: +30% ATK for 3 turns, then -15% for 2 turns."
 	btn_waaagh_burst.pressed.connect(_on_waaagh_burst_pressed)
 	btn_waaagh_burst.visible = false
 	vbox.add_child(btn_waaagh_burst)
 
-	btn_blood_tribute = _make_button("Blood Tribute (0AP)")
+	btn_blood_tribute = _make_button("血祭献礼 (0AP)")
 	btn_blood_tribute.tooltip_text = "Sacrifice a captured hero: permanent +2 ATK to all armies. Reputation cost."
 	btn_blood_tribute.pressed.connect(_on_blood_tribute_pressed)
 	btn_blood_tribute.visible = false
 	vbox.add_child(btn_blood_tribute)
 
 	# Pirate buttons
-	btn_rare_market = _make_button("Rare Market (0AP)")
+	btn_rare_market = _make_button("稀有市场 (0AP)")
 	btn_rare_market.tooltip_text = "Browse rare items at 50% markup. No reputation cost. Restocks every 5 turns."
 	btn_rare_market.pressed.connect(_on_rare_market_pressed)
 	btn_rare_market.visible = false
 	vbox.add_child(btn_rare_market)
-	btn_pirate_fleet = _make_button("Pirate Fleet (P)")
+	btn_pirate_fleet = _make_button("海盗舰队 (P)")
 	btn_pirate_fleet.tooltip_text = "Open Pirate Fleet panel: Black Market, Treasure Hunt, Smuggle Routes, Mercenaries, Raids."
 	btn_pirate_fleet.pressed.connect(_on_pirate_fleet_pressed)
 	btn_pirate_fleet.visible = false
 	vbox.add_child(btn_pirate_fleet)
 
 	# Dark Elf buttons
-	btn_shadow_network = _make_button("Shadow Network (0AP)")
+	btn_shadow_network = _make_button("暗影网络 (0AP)")
 	btn_shadow_network.tooltip_text = "Toggle: reveal all enemy army positions. Costs 10g/turn upkeep."
 	btn_shadow_network.pressed.connect(_on_shadow_network_pressed)
 	btn_shadow_network.visible = false
 	vbox.add_child(btn_shadow_network)
 
-	btn_assassination = _make_button("Assassinate (2AP)")
+	btn_assassination = _make_button("暗杀行动 (2AP)")
 	btn_assassination.tooltip_text = "Attempt to kill an enemy hero. 40% success, -20 reputation."
 	btn_assassination.pressed.connect(_on_assassination_pressed)
 	btn_assassination.visible = false
 	vbox.add_child(btn_assassination)
 
-	btn_corruption = _make_button("Corrupt Tile (0AP)")
+	btn_corruption = _make_button("腐化据点 (0AP)")
 	btn_corruption.tooltip_text = "Corrupt a neutral tile to join you without combat. Costs prestige, 3-turn process."
 	btn_corruption.pressed.connect(_on_corruption_pressed)
 	btn_corruption.visible = false
 	vbox.add_child(btn_corruption)
 
 	# Save/Load buttons (free actions)
-	var btn_save := _make_button("Save (F5)", _icon_action_save)  # P1-FIX: 添加保存图标
+	var btn_save := _make_button("保存 (F5)", _icon_action_save)  # P1-FIX: 添加保存图标
 	btn_save.pressed.connect(_on_save_pressed)
 	vbox.add_child(btn_save)
 
-	var btn_load := _make_button("Load (F9)")
+	var btn_load := _make_button("读取 (F9)")
 	btn_load.pressed.connect(_on_load_pressed)
 	vbox.add_child(btn_load)
 
@@ -667,7 +699,7 @@ func _build_action_panel(parent: Control) -> void:
 	sep2.add_theme_constant_override("separation", 8)
 	vbox.add_child(sep2)
 
-	btn_end_turn = _make_button("End Turn [Enter]", _icon_action_end_turn)
+	btn_end_turn = _make_button("结束回合 [Enter]", _icon_action_end_turn)
 	btn_end_turn.pressed.connect(_on_end_turn_pressed)
 	vbox.add_child(btn_end_turn)
 
@@ -2004,7 +2036,7 @@ func _on_sat_event_pressed() -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var sat_pts: int = GameManager.get_sat_points(pid)
 
-	_show_target_panel("SAT Event - Select Hero")
+	_show_target_panel("特殊行动 - 选择英雄")
 
 	if sat_pts <= 0:
 		_add_target_label("(No SAT points available)")
@@ -3310,11 +3342,21 @@ func _update_buttons() -> void:
 		btn_end_turn.disabled = not is_human
 		return
 
-	var has_ap: bool = player.get("ap", 0) >= 1
+	var current_ap: int = player.get("ap", 0)
+	var has_ap: bool = current_ap >= 1
+	var no_ap_hint: String = "（行动点不足，无法执行）"
 
 	# Main four action buttons -- all require at least 1 AP
 	btn_attack.disabled = not has_ap
+	if not has_ap:
+		btn_attack.tooltip_text = "攻击 — " + no_ap_hint
+	else:
+		btn_attack.tooltip_text = "选择一支军队，攻击相邻的敌方据点。消耗 1 行动点。"
 	btn_deploy.disabled = not has_ap
+	if not has_ap:
+		btn_deploy.tooltip_text = "部署 — " + no_ap_hint
+	else:
+		btn_deploy.tooltip_text = "将军队移动到相邻的己方据点。消耗 1 行动点。"
 	# March button: enabled if player has AP and at least one army with troops
 	var has_army_with_troops: bool = false
 	for army in GameManager.get_player_armies(pid):
@@ -3336,8 +3378,20 @@ func _update_buttons() -> void:
 			break
 	btn_garrison.disabled = not has_garrisonable_army
 	btn_domestic.disabled = not has_ap
+	if not has_ap:
+		btn_domestic.tooltip_text = "内政 — " + no_ap_hint
+	else:
+		btn_domestic.tooltip_text = "征兵、升级据点、建造建筑、管理军队。消耗 1 行动点。"
 	btn_diplomacy.disabled = not has_ap
+	if not has_ap:
+		btn_diplomacy.tooltip_text = "外交 — " + no_ap_hint
+	else:
+		btn_diplomacy.tooltip_text = "与其他势力谈判：停战、纳贡、结盟或招募。消耗 1 行动点。"
 	btn_explore.disabled = not has_ap
+	if not has_ap:
+		btn_explore.tooltip_text = "探索 — " + no_ap_hint
+	else:
+		btn_explore.tooltip_text = "探索未占领的据点，发现资源和事件。消耗 1 行动点。"
 	# Operations buttons
 	btn_guard.disabled = not has_ap
 	btn_reinforce.disabled = not has_ap
@@ -3346,7 +3400,7 @@ func _update_buttons() -> void:
 
 	# SAT Event button (free action, requires SAT points)
 	var sat_pts: int = GameManager.get_sat_points(pid)
-	btn_sat_event.text = "SAT Event (%d)" % sat_pts
+	btn_sat_event.text = "特殊行动 (%d)" % sat_pts
 	btn_sat_event.disabled = sat_pts <= 0
 
 	# End turn is always available to the human player (player decides when to stop)
@@ -3373,7 +3427,7 @@ func _update_buttons() -> void:
 	btn_blood_tribute.visible = is_orc
 	if is_orc:
 		var waaagh_power: int = OrcMechanic.get_waaagh_power(pid)
-		btn_waaagh_burst.text = "WAAAGH! Burst (%d/10)" % waaagh_power
+		btn_waaagh_burst.text = "WAAAGH! 爆发 (%d/10)" % waaagh_power
 		btn_waaagh_burst.disabled = not OrcMechanic.can_trigger_waaagh_burst(pid)
 		var has_prisoners: bool = not HeroSystem.captured_heroes.is_empty()
 		btn_blood_tribute.disabled = not has_prisoners
@@ -3384,10 +3438,10 @@ func _update_buttons() -> void:
 	if is_pirate:
 		var timer: int = PirateMechanic.get_rare_restock_timer(pid)
 		var stock: Array = PirateMechanic.get_rare_market_stock(pid)
-		btn_rare_market.text = "Rare Market (%d items, %dT)" % [stock.size(), timer]
+		btn_rare_market.text = "稀有市场 (%d件, %d回)" % [stock.size(), timer]
 		btn_rare_market.disabled = stock.is_empty()
 		var infamy: int = PirateMechanic.get_infamy(pid)
-		btn_pirate_fleet.text = "Pirate Fleet (Infamy:%d)" % infamy
+		btn_pirate_fleet.text = "海盗舰队 (恶名:%d)" % infamy
 
 	# Dark Elf buttons
 	btn_shadow_network.visible = is_dark_elf
@@ -3395,14 +3449,14 @@ func _update_buttons() -> void:
 	btn_corruption.visible = is_dark_elf
 	if is_dark_elf:
 		var net_active: bool = DarkElfMechanic.is_shadow_network_active(pid)
-		btn_shadow_network.text = "Shadow Network [%s]" % ("ON" if net_active else "OFF")
+		btn_shadow_network.text = "暗影网络 [%s]" % ("开启" if net_active else "关闭")
 		btn_shadow_network.disabled = false
 		var can_assassinate: bool = DarkElfMechanic.can_assassinate(pid)
 		var cooldown: int = DarkElfMechanic.get_assassination_cooldown(pid)
 		if cooldown > 0:
-			btn_assassination.text = "Assassinate (CD:%d)" % cooldown
+			btn_assassination.text = "暗杀行动 (冷却:%d)" % cooldown
 		else:
-			btn_assassination.text = "Assassinate (2AP)"
+			btn_assassination.text = "暗杀行动 (2AP)"
 		btn_assassination.disabled = not can_assassinate
 		btn_corruption.disabled = not ResourceManager.can_afford(pid, {"prestige": 15})
 
@@ -3413,6 +3467,38 @@ func _update_buttons() -> void:
 	_set_mode_highlight(btn_domestic, _current_mode == ActionMode.DOMESTIC)
 	_set_mode_highlight(btn_diplomacy, _current_mode == ActionMode.DIPLOMACY)
 	_set_mode_highlight(btn_explore, _current_mode == ActionMode.EXPLORE)
+	# ── 终局威望行动可见性 (第40回合后解锁) ──
+	var is_endgame: bool = GameManager.turn_number >= 40
+	if btn_grand_festival:
+		btn_grand_festival.visible = is_endgame
+		if is_endgame:
+			var gf_cd: int = GameManager.get_grand_festival_cooldown() if GameManager.has_method("get_grand_festival_cooldown") else 0
+			var can_gf: bool = ResourceManager.can_afford(pid, {"gold": 200}) and gf_cd <= 0
+			btn_grand_festival.disabled = not can_gf
+			if gf_cd > 0:
+				btn_grand_festival.text = "盛大祭典 (冷却:%d)" % gf_cd
+			else:
+				btn_grand_festival.text = "盛大祭典 (200金)"
+	if btn_forge_alliance:
+		btn_forge_alliance.visible = is_endgame
+		if is_endgame:
+			var fa_used: bool = GameManager.get("_forge_alliance_used") == true
+			var can_fa: bool = ResourceManager.can_afford(pid, {"gold": 300}) and not fa_used
+			btn_forge_alliance.disabled = not can_fa
+			if fa_used:
+				btn_forge_alliance.text = "铸造联盟 (已使用)"
+			else:
+				btn_forge_alliance.text = "铸造联盟 (300金)"
+	if btn_empire_decree:
+		btn_empire_decree.visible = is_endgame
+		if is_endgame:
+			var ed_used: bool = GameManager.get("_empire_decree_used") == true
+			var can_ed: bool = ResourceManager.can_afford(pid, {"prestige": 100}) and not ed_used
+			btn_empire_decree.disabled = not can_ed
+			if ed_used:
+				btn_empire_decree.text = "帝国法令 (已使用)"
+			else:
+				btn_empire_decree.text = "帝国法令 (100威望)"
 
 
 func _set_mode_highlight(btn: Button, active: bool) -> void:
@@ -3440,6 +3526,13 @@ func _set_all_buttons_disabled(val: bool) -> void:
 	btn_sell_slave.disabled = val
 	btn_buy_slave.disabled = val
 	btn_sat_event.disabled = val
+	# Endgame prestige buttons
+	if btn_grand_festival:
+		btn_grand_festival.disabled = val
+	if btn_forge_alliance:
+		btn_forge_alliance.disabled = val
+	if btn_empire_decree:
+		btn_empire_decree.disabled = val
 
 
 func _update_player_info() -> void:
@@ -3450,10 +3543,10 @@ func _update_player_info() -> void:
 	if player.is_empty():
 		return
 
-	turn_label.text = "Turn %d %s" % [GameManager.turn_number, player.get("name", "???")]
+	turn_label.text = "第 %d 回合  %s" % [GameManager.turn_number, player.get("name", "???")]
 	turn_label.add_theme_color_override("font_color", player.get("color", Color.WHITE))
 
-	gold_label.text = str(ResourceManager.get_resource(pid, "gold")) if _has_resource_icons else "Gold:%d" % ResourceManager.get_resource(pid, "gold")
+	gold_label.text = str(ResourceManager.get_resource(pid, "gold")) if _has_resource_icons else "金:%d" % ResourceManager.get_resource(pid, "gold")
 	food_label.text = str(ResourceManager.get_resource(pid, "food")) if _has_resource_icons else "Food:%d" % ResourceManager.get_resource(pid, "food")
 	iron_label.text = str(ResourceManager.get_resource(pid, "iron")) if _has_resource_icons else "Iron:%d" % ResourceManager.get_resource(pid, "iron")
 	slaves_label.text = ("%d/%d" % [ResourceManager.get_slaves(pid), ResourceManager.get_slave_capacity(pid)]) if _has_resource_icons else "Slaves:%d/%d" % [ResourceManager.get_slaves(pid), ResourceManager.get_slave_capacity(pid)]
@@ -4647,3 +4740,33 @@ func _on_quest_journal_pressed() -> void:
 		TutorialManager.notify_quest_journal_opened()
 	if PanelManager.has_method("toggle_panel"):
 		PanelManager.toggle_panel("quest_journal")
+
+# ═══════════════════════════════════════════════════════════════
+#         终局威望行动回调 (v7.0)
+# ═══════════════════════════════════════════════════════════════
+func _on_grand_festival_pressed() -> void:
+	## 盛大祭典: 消耗 200 金，全域秩序+15，所有英雄好感+3，每 10 回合可用一次。
+	if GameManager.has_method("action_grand_festival"):
+		var ok: bool = GameManager.action_grand_festival()
+		if ok:
+			_update_buttons()
+	else:
+		EventBus.message_log.emit("[color=red]盛大祭典功能尚未实现。[/color]")
+
+func _on_forge_alliance_pressed() -> void:
+	## 铸造联盟: 消耗 300 金，强制与最弱势力建立军事同盟，每局只能使用一次。
+	if GameManager.has_method("action_forge_alliance"):
+		var ok: bool = GameManager.action_forge_alliance()
+		if ok:
+			_update_buttons()
+	else:
+		EventBus.message_log.emit("[color=red]铸造联盟功能尚未实现。[/color]")
+
+func _on_empire_decree_pressed() -> void:
+	## 帝国法令: 消耗 100 威望，全军战斗力+15%，持续 3 回合，每局只能使用一次。
+	if GameManager.has_method("action_empire_decree"):
+		var ok: bool = GameManager.action_empire_decree()
+		if ok:
+			_update_buttons()
+	else:
+		EventBus.message_log.emit("[color=red]帝国法令功能尚未实现。[/color]")

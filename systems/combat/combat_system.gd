@@ -417,6 +417,17 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 
 		if tile_bonuses.get("atk", 0) > 0: bu.atk += tile_bonuses["atk"]
 		if tile_bonuses.get("morale", 0) > 0: bu.morale = mini(100, bu.morale + tile_bonuses["morale"])
+		# v0.9.3: Apply tech morale_cap_bonus buff — raises the morale ceiling above 100
+		var _morale_cap: int = 100
+		if army.get("is_player", false) and _has_autoload("BuffManager"):
+			var _bm_buf: Node = _get_autoload("BuffManager")
+			if _bm_buf != null and _bm_buf.has_method("get_buff_value"):
+				var _pid: int = army.get("player_id", -1)
+				var _raw_mc = _bm_buf.get_buff_value(_pid, "tech_morale_cap_bonus", 0)
+				var _mc_bonus: int = int(_raw_mc) if (_raw_mc is int or _raw_mc is float) else 0
+				_morale_cap = 100 + _mc_bonus
+		# Re-clamp morale with the (potentially raised) cap
+		bu.morale = clampi(bu.morale, 0, _morale_cap)
 
 		if army.get("is_player", false) and _has_autoload("BalanceManager"):
 			var _bm: Node = _get_autoload("BalanceManager")

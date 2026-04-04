@@ -743,14 +743,14 @@ func _refresh_detail() -> void:
 		detail_container.add_child(cost_title)
 		for key in cost:
 			var cl := Label.new()
-			cl.text = "  %s %s: %d" % [_res_icon(key), key.capitalize(), cost[key]]
+			cl.text = "  %s %s: %d" % [_res_icon(key), _res_cn_name(key), cost[key]]
 			cl.add_theme_font_size_override("font_size", 12)
 			cl.add_theme_color_override("font_color", _res_color(key))
 			detail_container.add_child(cl)
 
 	# Turns
 	var tl := Label.new()
-	tl.text = "Research: %d turns" % data.get("turns", 1)
+	tl.text = "研究耗时: %d 回合" % data.get("turns", 1)
 	tl.add_theme_font_size_override("font_size", 12)
 	tl.add_theme_color_override("font_color", Color(0.6, 0.7, 0.85))
 	detail_container.add_child(tl)
@@ -760,7 +760,7 @@ func _refresh_detail() -> void:
 	if not prereqs.is_empty():
 		detail_container.add_child(HSeparator.new())
 		var pt := Label.new()
-		pt.text = "Prerequisites:"
+		pt.text = "前置科技:"
 		pt.add_theme_font_size_override("font_size", 13)
 		pt.add_theme_color_override("font_color", Color(0.7, 0.55, 0.4))
 		detail_container.add_child(pt)
@@ -779,7 +779,7 @@ func _refresh_detail() -> void:
 	if not effects.is_empty():
 		detail_container.add_child(HSeparator.new())
 		var et := Label.new()
-		et.text = "Effects:"
+		et.text = "科技效果:"
 		et.add_theme_font_size_override("font_size", 13)
 		et.add_theme_color_override("font_color", Color(0.5, 0.85, 0.55))
 		detail_container.add_child(et)
@@ -796,7 +796,7 @@ func _refresh_detail() -> void:
 			else:
 				ec = Color(0.7, 0.8, 0.7); icon = "•"
 			var el := Label.new()
-			el.text = "  %s %s: %s" % [icon, key, _format_effect_value(effects[key])]
+			el.text = "  %s %s: %s" % [icon, _effect_cn_name(key), _format_effect_value(effects[key])]
 			el.add_theme_font_size_override("font_size", 11)
 			el.add_theme_color_override("font_color", ec)
 			el.autowrap_mode = TextServer.AUTOWRAP_WORD
@@ -806,7 +806,7 @@ func _refresh_detail() -> void:
 	detail_container.add_child(HSeparator.new())
 	if state == "completed":
 		var done_lbl := Label.new()
-		done_lbl.text = "✓ Research Complete"
+		done_lbl.text = "✓ 研究完成"
 		done_lbl.add_theme_font_size_override("font_size", 14)
 		done_lbl.add_theme_color_override("font_color", Color(0.35, 0.95, 0.45))
 		detail_container.add_child(done_lbl)
@@ -814,7 +814,7 @@ func _refresh_detail() -> void:
 		var prog: Variant = _rm.get_research_progress(pid)
 		var total: int = data.get("turns", 1)
 		var pl := Label.new()
-		pl.text = "⟳ Researching... %d/%d turns" % [prog, total]
+		pl.text = "⟳ 研究中... %d/%d 回合" % [prog, total]
 		pl.add_theme_font_size_override("font_size", 13)
 		pl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
 		detail_container.add_child(pl)
@@ -823,7 +823,7 @@ func _refresh_detail() -> void:
 		bar.custom_minimum_size = Vector2(0, 14); bar.show_percentage = false
 		detail_container.add_child(bar)
 		var bc := Button.new()
-		bc.text = "Cancel Research"; bc.custom_minimum_size = Vector2(140, 34)
+		bc.text = "取消研究"; bc.custom_minimum_size = Vector2(140, 34)
 		bc.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY)
 		bc.pressed.connect(_on_cancel_research)
 		var ds: Dictionary = ColorTheme.make_button_style_danger()
@@ -831,7 +831,7 @@ func _refresh_detail() -> void:
 		bc.add_theme_color_override("font_color", ColorTheme.TEXT_WARNING)
 		detail_container.add_child(bc)
 	elif state == "available":
-		var btn_text: String = "Start Research" if current == "" else "Queue Research"
+		var btn_text: String = "开始研究" if current == "" else "加入研究队列"
 		var bs := Button.new()
 		bs.text = btn_text; bs.custom_minimum_size = Vector2(160, 38)
 		bs.add_theme_font_size_override("font_size", ColorTheme.FONT_BODY + 1)
@@ -842,25 +842,25 @@ func _refresh_detail() -> void:
 		detail_container.add_child(bs)
 	elif state == "queued":
 		var ql := Label.new()
-		ql.text = "⊕ Queued for research"
+		ql.text = "⊕ 已加入研究队列"
 		ql.add_theme_font_size_override("font_size", 13)
 		ql.add_theme_color_override("font_color", Color(0.8, 0.7, 0.3))
 		detail_container.add_child(ql)
 	else:
 		var ll := Label.new()
-		ll.text = "🔒 Prerequisites not met"
+		ll.text = "🔒 前置科技未完成"
 		ll.add_theme_font_size_override("font_size", 13)
 		ll.add_theme_color_override("font_color", Color(0.5, 0.4, 0.4))
 		detail_container.add_child(ll)
 
 func _branch_name(branch_val) -> String:
 	match branch_val:
-		TrainingData.TechBranch.VANGUARD: return "Vanguard"
-		TrainingData.TechBranch.RANGED: return "Ranged"
-		TrainingData.TechBranch.MOBILE: return "Mobile"
-		TrainingData.TechBranch.MAGIC: return "Magic"
-		TrainingData.TechBranch.FACTION_SPECIAL: return "Special"
-		_: return "Unknown"
+		TrainingData.TechBranch.VANGUARD: return "先锋"
+		TrainingData.TechBranch.RANGED: return "远程"
+		TrainingData.TechBranch.MOBILE: return "机动"
+		TrainingData.TechBranch.MAGIC: return "魔法"
+		TrainingData.TechBranch.FACTION_SPECIAL: return "派系专属"
+		_: return "未知"
 
 func _res_color(key: String) -> Color:
 	match key:
@@ -931,3 +931,43 @@ func _on_tech_effects(_pid: int) -> void:
 
 func _on_dim_bg_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed: hide_panel()
+
+## 资源名称中文映射（v0.9.3 新增）
+func _res_cn_name(key: String) -> String:
+	var cn_map: Dictionary = {
+		"gold": "黄金", "iron": "铁矿", "crystal": "魔晶",
+		"food": "粮草", "shadow": "暗影精华", "gunpowder": "火药",
+		"slaves": "奴隶", "prestige": "威望", "mana": "法力",
+		"wood": "木材", "stone": "石料",
+	}
+	return cn_map.get(key, key)
+
+## 科技效果键名中文映射（v0.9.3 新增）
+func _effect_cn_name(key: String) -> String:
+	var cn_map: Dictionary = {
+		# 战斗效果
+		"atk_bonus": "攻击加成", "def_bonus": "防御加成",
+		"spd_bonus": "速度加成", "int_bonus": "智力加成",
+		"morale_cap_bonus": "士气上限提升", "morale_bonus": "士气加成",
+		"crit_chance": "暴击率", "crit_mult": "暴击倍率",
+		"counter_bonus": "反击加成", "flanking_bonus": "侧翼加成",
+		# 后勤效果
+		"army_cap_bonus": "军队上限", "supply_range_bonus": "补给范围",
+		"food_consume_reduction": "粮草消耗减少",
+		"march_speed_bonus": "行军速度",
+		# 经济效果
+		"gold_per_turn": "每回合金币", "iron_per_turn": "每回合铁矿",
+		"food_per_turn": "每回合粮草", "research_speed": "研究速度",
+		"recruit_discount": "招募折扣",
+		# 特殊效果
+		"waaagh_regen_bonus": "WAAAGH! 再生", "infamy_gain_bonus": "恶名获取",
+		"shadow_per_turn": "每回合暗影", "corruption_range": "腐化范围",
+		"assassination_success_bonus": "暗杀成功率",
+		# 被动/主动技能
+		"passive": "被动技能", "active": "主动技能",
+		"unlock_passive": "解锁被动", "unlock_active": "解锁主动",
+		# 通用
+		"hp_bonus": "生命值加成", "hp_regen": "生命回复",
+		"siege_bonus": "攻城加成", "garrison_bonus": "驻守加成",
+	}
+	return cn_map.get(key, key)

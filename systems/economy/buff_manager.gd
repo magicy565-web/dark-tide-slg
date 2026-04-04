@@ -221,6 +221,11 @@ func get_atk_multiplier(player_id: int) -> float:
 	var atk_pct: float = raw_pct as float if raw_pct != null else 0.0
 	if atk_pct != 0.0:
 		mult *= (1.0 + atk_pct / 100.0)
+	# v7.0: Empire Decree combat buff (+15% combat power for 3 turns)
+	var raw_decree = get_buff_value(player_id, "empire_decree_combat")
+	var decree_bonus: float = raw_decree as float if raw_decree != null else 0.0
+	if decree_bonus > 0.0:
+		mult *= (1.0 + decree_bonus)
 	return clampf(mult, 0.1, 5.0)
 
 

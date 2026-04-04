@@ -30,6 +30,38 @@ var AVAILABLE_BONUSES: Dictionary = {
 		"cost": 1500,
 		"max": 1
 	}
+,
+	# ── v7.0 新增战略奖励 ──
+	"starting_territory_plus_2": {
+		"name": "扩张先机",
+		"desc": "开局额外占领 2 个随机邻近据点",
+		"cost": 600,
+		"max": 1
+	},
+	"starting_research_boost": {
+		"name": "先进知识",
+		"desc": "开局直接解锁科技树第一层全部节点",
+		"cost": 700,
+		"max": 1
+	},
+	"starting_prestige_100": {
+		"name": "威名远播",
+		"desc": "开局获得 100 威望",
+		"cost": 400,
+		"max": 2
+	},
+	"starting_army_elite": {
+		"name": "精锐传承",
+		"desc": "开局第一支军队的士兵质量提升为精锐（攻防+20%）",
+		"cost": 800,
+		"max": 1
+	},
+	"diplomatic_head_start": {
+		"name": "外交先机",
+		"desc": "开局与一个随机势力建立停战协议（持续5回合）",
+		"cost": 500,
+		"max": 1
+	}
 }
 
 var _selected_bonuses: Dictionary = {}  # bonus_id -> count
@@ -133,6 +165,45 @@ func _apply_bonus(player_id: int, bonus_id: String) -> void:
 				ThreatManager.change_threat(80 - current)
 			_hard_mode_active = true
 			EventBus.message_log.emit("[color=red][NG+] 挑战剧本：光明方进入殊死抵抗状态！通关得分×1.5[/color]")
+		# ── v7.0 新增战略奖励 ──
+		"starting_territory_plus_2":
+			# Grant 2 random adjacent tiles to player starting position
+			if GameManager != null and GameManager.has_method("grant_starting_territories"):
+				GameManager.grant_starting_territories(player_id, 2)
+			else:
+				ResourceManager.apply_delta(player_id, {"gold": 200})
+			EventBus.message_log.emit("[color=green][NG+] 扩张先机：开局额外获得 2 个据点！[/color]")
+		"starting_research_boost":
+			# Unlock first tier of research tree
+			if ResearchManager != null and ResearchManager.has_method("unlock_first_tier"):
+				ResearchManager.unlock_first_tier(player_id)
+			else:
+				ResourceManager.apply_delta(player_id, {"gold": 300})
+			EventBus.message_log.emit("[color=green][NG+] 先进知识：科技树第一层已解锁！[/color]")
+		"starting_prestige_100":
+			ResourceManager.apply_delta(player_id, {"prestige": 100})
+			EventBus.message_log.emit("[color=gold][NG+] 威名远播：获得 100 威望！[/color]")
+		"starting_army_elite":
+			# Mark first army as elite quality
+			if GameManager != null:
+				var armies: Array = GameManager.get_player_armies(player_id)
+				if not armies.is_empty():
+					armies[0]["elite_quality"] = true
+					armies[0]["atk_bonus"] = armies[0].get("atk_bonus", 0) + 20
+					armies[0]["def_bonus"] = armies[0].get("def_bonus", 0) + 20
+			EventBus.message_log.emit("[color=purple][NG+] 精锐传承：第一支军队升级为精锐！[/color]")
+		"diplomatic_head_start":
+			# Create a ceasefire with a random faction
+			if DiplomacyManager != null and GameManager != null:
+				var factions: Array = []
+				for p in GameManager.players:
+					if p["id"] != player_id:
+						factions.append(p["id"])
+				if not factions.is_empty():
+					var target_id: int = factions[randi() % factions.size()]
+					var treaty := {"type": "ceasefire", "target": target_id, "turns_left": 5}
+					DiplomacyManager._get_player_treaties(player_id).append(treaty)
+					EventBus.message_log.emit("[color=green][NG+] 外交先机：与一个势力建立停战协议（5回合）！[/color]")
 
 func reset() -> void:
 	_selected_bonuses.clear()

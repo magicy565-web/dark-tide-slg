@@ -739,7 +739,7 @@ func _build_raids() -> void:
 	content_container.add_child(header_card); _content_nodes.append(header_card)
 
 	if raids.is_empty():
-		_add_empty_label("No active AI raids -- peacetime"); return
+		_add_empty_label("暂无 AI 袭击 — 和平时期"); return
 
 	for i in range(raids.size()):
 		var raid: Dictionary = raids[i]

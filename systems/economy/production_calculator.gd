@@ -370,6 +370,7 @@ func _get_station_output(station_type: String, tile_level: int) -> int:
 func calculate_food_upkeep(player_id: int) -> int:
 	## Returns total food consumed this turn by army.
 	## Skeleton legion (undead) units do not consume food.
+	## v0.9.3: Applies tech buff "tech_food_consume_reduction" (e.g. Orc Warcry Basic -10%).
 	var faction_id: int = GameManager.get_player_faction(player_id)
 	var params: Dictionary = FactionData.FACTION_PARAMS.get(faction_id, {})
 	if params.is_empty():
@@ -379,10 +380,17 @@ func calculate_food_upkeep(player_id: int) -> int:
 	# Subtract skeleton legion from food calculation (undead don't eat)
 	var skeleton_count: int = RecruitManager.get_army_composition(player_id).get("neutral_skeleton", 0)
 	var food_army: int = maxi(0, army - skeleton_count)
+	# Apply tech food_consume_reduction buff (stored as fraction, e.g. 0.10 = -10%)
+	var reduction: float = 0.0
+	if BuffManager and BuffManager.has_method("get_buff_value"):
+		var raw = BuffManager.get_buff_value(player_id, "tech_food_consume_reduction", 0.0)
+		if raw is float or raw is int:
+			reduction = clampf(float(raw), 0.0, 0.9)
+	var effective_rate: float = food_rate * (1.0 - reduction)
 	# Orc uses ceili for the whole army
 	if faction_id == FactionData.FactionID.ORC:
-		return ceili(float(food_army) * food_rate)
-	return int(float(food_army) * food_rate)
+		return ceili(float(food_army) * effective_rate)
+	return int(float(food_army) * effective_rate)
 
 
 func calculate_gold_upkeep(player_id: int) -> int:

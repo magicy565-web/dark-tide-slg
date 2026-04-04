@@ -71,18 +71,41 @@ func on_victory() -> void:
 	_save_persistent()
 
 
-## v4.7: Calculate the final victory score based on game state.
+## v7.0: Calculate the final victory score based on game state (enhanced scoring).
 func _calculate_victory_score() -> int:
 	var score: int = 500  # Base score for winning
 	# Bonus: heroes at affection 10 (+100 each)
+	var max_affection_heroes: int = 0
 	for hero_id in HeroSystem.hero_affection:
 		if HeroSystem.hero_affection[hero_id] >= 10:
 			score += 100
+			max_affection_heroes += 1
+	# Bonus: territories controlled (+10 per territory)
+	if GameManager != null:
+		var pid: int = GameManager.get_human_player_id()
+		var owned: int = GameManager.get_cached_owned_tiles(pid).size() if GameManager.has_method("get_cached_owned_tiles") else 0
+		score += owned * 10
+	# Bonus: turn efficiency (faster clear = more points)
+	var turn_bonus: int = maxi(0, 300 - GameManager.turn_number * 3) if GameManager != null else 0
+	score += turn_bonus
+	# Bonus: resources remaining (+1 per 10 gold)
+	if ResourceManager != null and GameManager != null:
+		var pid2: int = GameManager.get_human_player_id()
+		var gold_left: int = ResourceManager.get_resource(pid2, "gold")
+		score += gold_left / 10
+	# Bonus: prestige earned (+1 per prestige)
+	if ResourceManager != null and GameManager != null:
+		var pid3: int = GameManager.get_human_player_id()
+		var prestige: int = ResourceManager.get_resource(pid3, "prestige")
+		score += prestige
 	# Bonus: NG+ level multiplier
 	score = int(float(score) * (1.0 + float(_ngplus_level) * 0.1))
 	# v1.1: Hard mode bonus (挑战剧本通关得分×1.5)
 	if NGPlusShop != null and NGPlusShop.is_hard_mode_active():
 		score = int(float(score) * 1.5)
+	# Log score breakdown
+	EventBus.message_log.emit("[color=gold]得分明细: 基础500 + 英雄好感%d + 领地%d + 速通%d + 资源+威望[/color]" % [
+		max_affection_heroes * 100, (score - 500 - max_affection_heroes * 100 - turn_bonus) / 10 * 10, turn_bonus])
 	return score
 
 

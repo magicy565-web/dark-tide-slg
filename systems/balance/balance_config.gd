@@ -1112,4 +1112,9 @@ const IMPERIAL_DECREE_COST_AP: int = 3
 const IMPERIAL_DECREE_COST_GOLD: int = 100
 const IMPERIAL_DECREE_THREAT_REDUCTION: int = 20
 
-const FORGE_ALLIANCE_COST_GOLD: int = 150
+const FORGE_ALLIANCE_COST_GOLD: int = 300  # v7.0: increased from 150 to 300
+
+## Empire Decree (v7.0): Costs 100 prestige, grants +15% combat power for 3 turns. Once per game.
+const EMPIRE_DECREE_COST_PRESTIGE: int = 100
+const EMPIRE_DECREE_COMBAT_BONUS: int = 15    # +15% combat power
+const EMPIRE_DECREE_DURATION: int = 3         # lasts 3 turns

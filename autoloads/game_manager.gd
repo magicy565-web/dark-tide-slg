@@ -308,6 +308,8 @@ var _guard_timers: Dictionary = {}  # tile_index -> { "player_id": int, "turns_r
 var _last_grand_festival_turn: int = -999  # Turn when last grand festival was held
 var _imperial_decree_used: bool = false     # Once per game
 var _forge_alliance_used: bool = false      # Once per game
+var _empire_decree_used: bool = false       # v7.0: Once per game (prestige-based combat buff)
+var _empire_decree_turns_left: int = 0     # v7.0: Remaining turns of Empire Decree combat buff
 
 # ── Game Statistics (tracked for end-game score screen) ──
 var game_stats: Dictionary = {
@@ -1334,6 +1336,8 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC, fixed_map: bool
 	_last_grand_festival_turn = -999
 	_imperial_decree_used = false
 	_forge_alliance_used = false
+	_empire_decree_used = false
+	_empire_decree_turns_left = 0
 	turn_number = 0
 
 	# Reset all subsystems
@@ -2291,9 +2295,9 @@ func begin_turn() -> void:
 
 	# ── Phase banner for UI feedback (v4.5) ──
 	if pid == get_human_player_id():
-		EventBus.phase_banner_requested.emit("Your Turn - Turn %d" % turn_number, false)
+		EventBus.phase_banner_requested.emit("你的回合 — 第 %d 回合" % turn_number, false)
 	else:
-		EventBus.phase_banner_requested.emit("Enemy Turn - %s..." % player["name"], true)
+		EventBus.phase_banner_requested.emit("敌方回合 — %s..." % player["name"], true)
 
 	# Turn milestone events (Rance 07 style)
 	if pid == get_human_player_id():
@@ -2533,6 +2537,39 @@ func action_forge_alliance() -> bool:
 	return true
 
 
+## Empire Decree (v7.0): Costs 100 prestige, grants +15% combat power for 3 turns. Once per game.
+func action_empire_decree() -> bool:
+	var pid: int = get_human_player_id()
+	if not game_active:
+		EventBus.message_log.emit("[color=red]游戏未在进行中。[/color]")
+		return false
+	if _empire_decree_used:
+		EventBus.message_log.emit("[color=red]帝国法令每局游戏只能颁布一次![/color]")
+		return false
+	# Cost check: prestige
+	var prestige_cost: int = BalanceConfig.EMPIRE_DECREE_COST_PRESTIGE
+	if not ResourceManager.can_afford(pid, {"prestige": prestige_cost}):
+		EventBus.message_log.emit("[color=red]威望不足! 帝国法令需要%d威望。[/color]" % prestige_cost)
+		return false
+	# Apply effects
+	ResourceManager.apply_delta(pid, {"prestige": -prestige_cost})
+	_empire_decree_used = true
+	_empire_decree_turns_left = BalanceConfig.EMPIRE_DECREE_DURATION
+	# Apply combat buff via BuffManager
+	var buff_key: String = "empire_decree_combat"
+	var bonus: float = float(BalanceConfig.EMPIRE_DECREE_COMBAT_BONUS) / 100.0
+	BuffManager.add_buff(pid, buff_key, bonus, BalanceConfig.EMPIRE_DECREE_DURATION)
+	EventBus.message_log.emit("[color=gold][b]═══ 帝国法令颁布! ═══[/b][/color]")
+	EventBus.message_log.emit("[color=gold]消耗%d威望，全军战斗力+%d%%，持续%d回合![/color]" % [
+		prestige_cost, BalanceConfig.EMPIRE_DECREE_COMBAT_BONUS, BalanceConfig.EMPIRE_DECREE_DURATION])
+	return true
+
+## Returns remaining cooldown turns for Grand Festival (0 = ready to use).
+func get_grand_festival_cooldown() -> int:
+	var cooldown: int = BalanceConfig.GRAND_FESTIVAL_COOLDOWN
+	var elapsed: int = turn_number - _last_grand_festival_turn
+	return maxi(0, cooldown - elapsed)
+
 ## Process deferred tile and turn effects (gold_next_visit, attacked_next_turn, etc.)
 func _process_deferred_effects(player_id: int, player: Dictionary) -> void:
 	# 1. Process deferred attacks scheduled for this turn
@@ -2672,10 +2709,19 @@ func get_max_armies(player_id: int) -> int:
 	if training_lv3_count > 0:
 		cap += 1  # First Lv3 training ground unlocks +1 army slot
 
-	# Check research: completed "logistics_mastery" tech grants +1 army slot
+	# Check research: completed "logistics_mastery" tech grants +1 army slot (legacy string check)
+	var logistics_mastery_counted: bool = false
 	if ResearchManager and ResearchManager.has_method("is_completed"):
 		if ResearchManager.is_completed(player_id, "logistics_mastery"):
 			cap += 1
+			logistics_mastery_counted = true
+	# v0.9.3: Also check BuffManager for tech_army_cap_bonus (covers all factions via misc effects)
+	# Avoids double-counting if logistics_mastery was already applied above.
+	if BuffManager and BuffManager.has_method("get_buff_value"):
+		var _raw_army_cap = BuffManager.get_buff_value(player_id, "tech_army_cap_bonus", 0)
+		var tech_army_bonus: int = int(_raw_army_cap) if (_raw_army_cap is int or _raw_army_cap is float) else 0
+		if tech_army_bonus > 0 and not logistics_mastery_counted:
+			cap += tech_army_bonus
 
 	# Check faction-specific bonuses
 	var faction_id: int = get_player_faction(player_id)

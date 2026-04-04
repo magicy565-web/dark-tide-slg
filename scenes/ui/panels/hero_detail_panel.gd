@@ -455,7 +455,7 @@ func _refresh() -> void:
 		_add_skill(skill_data)
 	else:
 		var nsl := Label.new()
-		nsl.text = "No active skill"; nsl.add_theme_font_size_override("font_size", 12)
+		nsl.text = "暂无主动技能"; nsl.add_theme_font_size_override("font_size", 12)
 		nsl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))
 		_add(nsl)
 	# Second skill (affection 7 unlock)

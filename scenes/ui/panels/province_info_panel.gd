@@ -279,7 +279,9 @@ func _refresh() -> void:
 
 	# ── 构建各内容区块 ──
 	_build_section_stats(tile, _current_prov_type)
+	_build_section_building(tile)
 	_build_section_garrison_generals(tile)
+	_build_section_garrison_armies(tile)
 	_build_section_bonuses(_current_prov_type)
 	_build_section_synergy(_current_prov_type, tile)
 	_build_section_adjacency(tile)
@@ -670,3 +672,192 @@ func _on_quick_action_pressed(action: String, tile: Dictionary) -> void:
 			_:
 				EventBus.message_log.emit("行动: %s → 据点 #%d" % [ACTION_LABELS.get(action, action), _selected_tile])
 	hide_panel()
+
+
+# ═══════════════════════════════════════════════════════════════
+#          区块：建筑状态（v0.9.3 新增）
+# ═══════════════════════════════════════════════════════════════
+## 区块：建筑状态 —— 显示当前建筑名称、等级、效果摘要及公共秩序
+func _build_section_building(tile: Dictionary) -> void:
+	var type_data: Dictionary = TerritoryTypeSystem.get_type_data(_current_prov_type)
+	var header_color: Color = type_data.get("header_color", CLR_GOLD)
+	content_container.add_child(_make_section_header("建筑 & 秩序", header_color))
+	var panel := _make_section_panel()
+	content_container.add_child(panel)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 5)
+	panel.add_child(vbox)
+
+	# ── 建筑状态 ──
+	var bld_id: String = tile.get("building_id", "")
+	var bld_level: int = tile.get("building_level", 1)
+	if bld_id == "":
+		vbox.add_child(_make_hbox_pair("建筑:", "（空地）", CLR_LABEL, CLR_DIM))
+	else:
+		var bld_name: String = bld_id
+		if BuildingRegistry and BuildingRegistry.has_method("get_building_name"):
+			bld_name = BuildingRegistry.get_building_name(bld_id, bld_level)
+		var max_level: int = 3
+		if BuildingRegistry and BuildingRegistry.has_method("get_building_max_level"):
+			max_level = BuildingRegistry.get_building_max_level(bld_id)
+		var level_color: Color = CLR_GOLD if bld_level >= max_level else CLR_GREEN
+		vbox.add_child(_make_hbox_pair("建筑:", bld_name, CLR_LABEL, level_color))
+		# 建筑效果摘要
+		if BuildingRegistry and BuildingRegistry.has_method("get_building_effects"):
+			var effects: Dictionary = BuildingRegistry.get_building_effects(bld_id, bld_level)
+			var effect_parts: Array = []
+			if effects.get("gold_per_turn", 0) > 0:
+				effect_parts.append("金 +%d/回" % effects["gold_per_turn"])
+			if effects.get("food_bonus", 0) > 0:
+				effect_parts.append("粮 +%d/回" % effects["food_bonus"])
+			if effects.get("iron_bonus", 0) > 0:
+				effect_parts.append("铁 +%d/回" % effects["iron_bonus"])
+			if effects.get("iron_per_turn", 0) > 0:
+				effect_parts.append("铁 +%d/回" % effects["iron_per_turn"])
+			if effects.get("gunpowder_per_turn", 0) > 0:
+				effect_parts.append("火药 +%d/回" % effects["gunpowder_per_turn"])
+			if effects.get("slaves_per_turn", 0) > 0:
+				effect_parts.append("奴隶 +%d/回" % effects["slaves_per_turn"])
+			var se_total: int = effects.get("shadow_per_turn", 0) + effects.get("shadow_essence_per_turn", 0)
+			if se_total > 0:
+				effect_parts.append("暗影 +%d/回" % se_total)
+			if effects.get("recruit_discount", 0) > 0:
+				effect_parts.append("招募折扣 -%d%%" % effects["recruit_discount"])
+			if effects.get("def_bonus", 0) > 0:
+				effect_parts.append("防御 +%d" % effects["def_bonus"])
+			if effect_parts.size() > 0:
+				var eff_lbl := _make_label("  → " + ", ".join(effect_parts), CLR_DIM, 12)
+				eff_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				vbox.add_child(eff_lbl)
+		# 升级提示
+		if bld_level < max_level:
+			var next_cost: Dictionary = {}
+			if BuildingRegistry and BuildingRegistry.has_method("get_building_cost"):
+				next_cost = BuildingRegistry.get_building_cost(bld_id, bld_level + 1)
+			var cost_parts: Array = []
+			if next_cost.get("gold", 0) > 0: cost_parts.append("金%d" % next_cost["gold"])
+			if next_cost.get("iron", 0) > 0: cost_parts.append("铁%d" % next_cost["iron"])
+			if next_cost.get("slaves", 0) > 0: cost_parts.append("奴隶%d" % next_cost["slaves"])
+			var cost_str: String = "（%s）" % ", ".join(cost_parts) if cost_parts.size() > 0 else ""
+			vbox.add_child(_make_label("  ↑ 可升至 Lv%d %s" % [bld_level + 1, cost_str], CLR_CYAN, 12))
+		else:
+			vbox.add_child(_make_label("  ✓ 已达最高等级", CLR_GOLD, 12))
+
+	# ── 公共秩序 ──
+	var pub_order: float = tile.get("public_order", 0.8)
+	var order_pct: int = int(pub_order * 100.0)
+	var order_label: String = "正常运转"
+	var order_color: Color = CLR_GREEN
+	if pub_order >= 0.9:
+		order_label = "繁荣安定"
+		order_color = Color(0.3, 1.0, 0.5)
+	elif pub_order >= 0.7:
+		order_label = "正常运转"
+		order_color = CLR_GREEN
+	elif pub_order >= 0.5:
+		order_label = "略有动荡"
+		order_color = Color(0.9, 0.8, 0.2)
+	elif pub_order >= 0.3:
+		order_label = "民心不稳"
+		order_color = Color(0.9, 0.5, 0.1)
+	else:
+		order_label = "濒临叛乱"
+		order_color = CLR_RED
+
+	var order_row := HBoxContainer.new()
+	order_row.add_theme_constant_override("separation", 8)
+	order_row.add_child(_make_label("公共秩序:", CLR_LABEL))
+	order_row.add_child(_make_label("%d%% %s" % [order_pct, order_label], order_color))
+	vbox.add_child(order_row)
+
+	# 产出倍率提示
+	if ProductionCalculator and ProductionCalculator.has_method("get_tile_order_multiplier"):
+		var prod_mult: float = ProductionCalculator.get_tile_order_multiplier(pub_order)
+		if prod_mult < 1.0:
+			vbox.add_child(_make_label("  ⚠ 产出 ×%.2f（秩序惩罚）" % prod_mult, CLR_RED, 12))
+
+	# ── 战略价值 ──
+	var tile_idx: int = tile.get("index", -1)
+	if tile_idx >= 0:
+		var strat_val: int = 1
+		# TerritoryEffects is a class (not autoload), call via static method
+		if TerritoryEffects.has_method("get_strategic_value"):
+			strat_val = TerritoryEffects.get_strategic_value(tile_idx)
+		elif GameManager.has_method("get_chokepoint_strategic_value"):
+			strat_val = int(GameManager.get_chokepoint_strategic_value(tile_idx))
+		var star_str: String = ""
+		for _si in range(mini(strat_val, 10)):
+			star_str += "★"
+		for _si in range(10 - mini(strat_val, 10)):
+			star_str += "☆"
+		var val_color: Color = CLR_DIM
+		if strat_val >= 8: val_color = CLR_RED
+		elif strat_val >= 6: val_color = CLR_GOLD
+		elif strat_val >= 4: val_color = CLR_CYAN
+		vbox.add_child(_make_hbox_pair("战略价值:", "%s (%d/10)" % [star_str, strat_val], CLR_LABEL, val_color))
+
+
+# ═══════════════════════════════════════════════════════════════
+#          区块：驻守军队（v0.9.3 新增）
+# ═══════════════════════════════════════════════════════════════
+## 区块：驻守军队 —— 显示当前在此据点的军队及其兵力
+func _build_section_garrison_armies(tile: Dictionary) -> void:
+	var tile_idx: int = tile.get("index", -1)
+	if tile_idx < 0:
+		return
+	# 收集在此据点的所有军队
+	var armies_here: Array = []
+	for army_id in GameManager.armies:
+		var army: Dictionary = GameManager.armies[army_id]
+		if army.get("tile_index", -1) == tile_idx:
+			armies_here.append(army)
+	if armies_here.is_empty():
+		return
+
+	content_container.add_child(_make_section_header("驻守军队", CLR_SILVER))
+	var panel := _make_section_panel()
+	content_container.add_child(panel)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	panel.add_child(vbox)
+
+	var pid: int = GameManager.get_human_player_id()
+	for army in armies_here:
+		var army_row := HBoxContainer.new()
+		army_row.add_theme_constant_override("separation", 8)
+		# 归属颜色
+		var owner_pid: int = army.get("player_id", -1)
+		var is_player_army: bool = (owner_pid == pid)
+		var army_color: Color = CLR_GREEN if is_player_army else CLR_RED
+		# 军队状态图标
+		var state_icon: String = "⚔"
+		var army_id_val: int = army.get("id", -1)
+		if MarchSystem and MarchSystem.has_method("is_army_garrisoned"):
+			if MarchSystem.is_army_garrisoned(army_id_val):
+				state_icon = "🛡"
+		elif army.get("is_garrisoned", false):
+			state_icon = "🛡"
+		army_row.add_child(_make_label(state_icon, army_color, 14))
+		# 军队名称
+		var army_name: String = army.get("name", "军队 #%d" % army_id_val)
+		var name_lbl := _make_label(army_name, army_color, 13)
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		army_row.add_child(name_lbl)
+		# 兵力
+		var soldiers: int = 0
+		if GameManager.has_method("get_army_soldier_count"):
+			soldiers = GameManager.get_army_soldier_count(army_id_val)
+		else:
+			soldiers = army.get("soldiers", 0)
+		var max_soldiers: int = army.get("max_soldiers", maxi(soldiers, 1))
+		var soldier_color: Color = CLR_GREEN
+		if soldiers < max_soldiers / 2:
+			soldier_color = CLR_RED
+		elif soldiers < max_soldiers * 3 / 4:
+			soldier_color = Color(0.9, 0.8, 0.2)
+		army_row.add_child(_make_label("%d/%d 兵" % [soldiers, max_soldiers], soldier_color, 12))
+		# 所属派系
+		var faction_id: int = GameManager.get_player_faction(owner_pid)
+		var faction_name: String = FactionData.FACTION_NAMES.get(faction_id, "未知") if FactionData.FACTION_NAMES.has(faction_id) else "未知"
+		army_row.add_child(_make_label("(%s)" % faction_name, CLR_DIM, 11))
+		vbox.add_child(army_row)
