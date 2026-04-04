@@ -3527,11 +3527,22 @@ func action_storm_walls(army_id: int, tile_index: int) -> bool:
 	if siege.is_empty():
 		EventBus.message_log.emit("该据点没有进行中的围攻!")
 		return false
-	# Mark as stormed (applies DEF penalty in combat) and remove siege
-	SiegeSystem.storm_walls(siege["siege_id"])
+	# BUG FIX: Do NOT erase the siege here — keep it in _active_sieges with stormed=true
+	# so that _resolve_army_combat can read the stormed flag and apply DEF penalty.
+	# The siege will be cleaned up after combat in _resolve_army_combat.
+	var siege_id: String = siege["siege_id"]
+	if SiegeSystem._active_sieges.has(siege_id):
+		SiegeSystem._active_sieges[siege_id]["stormed"] = true
+		SiegeSystem._active_sieges[siege_id]["wall_hp"] = 0.0
+		SiegeSystem._active_sieges[siege_id]["turns_remaining"] = 0
+		EventBus.siege_ended.emit(tile_index, "assault")
 	# Spend extra AP (action_attack_with_army costs 1 more AP internally)
 	player["ap"] -= (SiegeSystem.STORM_AP_COST - 1)
-	return await action_attack_with_army(army_id, tile_index)
+	var _storm_result: bool = await action_attack_with_army(army_id, tile_index)
+	# Clean up siege record after combat
+	if SiegeSystem._active_sieges.has(siege_id):
+		SiegeSystem._active_sieges.erase(siege_id)
+	return _storm_result
 
 
 ## Direction C: Multi-route coordinated attack (合战). 2-4 armies attack one tile simultaneously.
@@ -3608,7 +3619,7 @@ func action_multi_route_attack(army_ids: Array, target_tile_index: int) -> bool:
 			"defender_remaining_soldiers": tile["garrison"],
 			"attacker_losses": 0,
 			"defender_losses": 0,
-			"rounds_fought": 8,
+			# BUG FIX: removed hardcoded 8; MultiRouteBattle only needs attacker_won and garrison
 		}
 
 		var more_phases: bool = MultiRouteBattle.record_phase_result(battle_ctx, i, phase_result)
@@ -3804,6 +3815,12 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		OrcMechanic.apply_waaagh_bonus_to_units(pid, attacker_units)
 	elif faction_id == FactionData.FactionID.PIRATE:
 		PirateMechanic.apply_rum_bonus_to_units(pid, attacker_units)
+		# BUG FIX: Apply intimidation ATK bonus (threat-based flat bonus) to all pirate units
+		var _intim_bonus: int = PirateMechanic.get_intimidation_atk_bonus(pid)
+		if _intim_bonus > 0:
+			for _au in attacker_units:
+				_au["atk"] = _au.get("atk", 0) + _intim_bonus
+			EventBus.message_log.emit("[color=orange]威慑加成! 全军ATK+%d[/color]" % _intim_bonus)
 
 	# v4.4: Apply consumable item buffs to attacker units before combat
 	var _atk_mult: float = BuffManager.get_atk_multiplier(pid)
@@ -3959,6 +3976,27 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		for hero_id in captured_heroes:
 			if HeroSystem != null:
 				HeroSystem.attempt_capture(str(hero_id))
+
+		# BUG FIX: Call faction win callbacks (prestige, WAAAGH, threat) missing from this path
+		var _faction_id_win: int = get_player_faction(pid)
+		FactionManager.on_combat_win(pid, _faction_id_win)
+		ThreatManager.on_army_destroyed()
+		# WAAAGH! gain for Orc
+		if _get_faction_tag_for_player(pid) == "orc":
+			var _orc_count: int = attacker_units.size()
+			var _enemy_destroyed: int = 0
+			for _dk in def_losses.values():
+				_enemy_destroyed += _dk
+			OrcMechanic.on_combat_result(pid, _orc_count, maxi(1, _enemy_destroyed))
+		# BUG FIX: Pirate post-win rewards (plunder gold, treasure map, sex slaves)
+		elif _get_faction_tag_for_player(pid) == "pirate":
+			var _enemy_strength: int = 0
+			for _du in defender_units:
+				_enemy_strength += _du.get("remaining_soldiers", _du.get("soldiers", 0))
+			PirateMechanic.on_combat_win_plunder(pid, maxi(_enemy_strength, 1))
+			PirateMechanic.on_combat_win_treasure_check(pid)
+			if _slaves_captured > 0:
+				PirateMechanic.add_sex_slaves(pid, _slaves_captured)
 	else:
 		# Garrison takes losses but survives
 		# BUG FIX: match by slot index to handle duplicate troop types correctly
@@ -4029,7 +4067,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		"tile_index": tile.get("index", -1),
 		"attacker_losses": total_att_lost_final,
 		"defender_losses": total_def_lost_final,
-		"rounds": result.get("rounds_fought", 0),
+		"rounds": result.get("rounds", 0),  # BUG FIX: CombatSystem returns "rounds" not "rounds_fought"
 		"routed": not won and (float(total_att_lost_final) / float(maxi(1, total_att_lost_final + _get_army_total_soldiers(army))) >= 0.5),
 		# BUG FIX: forward kill count from CombatSystem result for hero EXP calculation
 		"enemy_troops_killed": result.get("enemy_troops_killed", total_def_lost_final),
