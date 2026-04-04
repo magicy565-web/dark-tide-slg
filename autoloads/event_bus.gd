@@ -486,3 +486,13 @@ signal border_conflict(nation_a: String, nation_b: String, tile_index: int)
 ##                  "upgrade_walls", "build_market", "research", "diplomacy"
 ## tile_index: int — the tile the action targets
 signal action_requested(action: String, tile_index: int)
+
+# ── Human Kingdom AI (v1.0) ──
+## Emitted when human kingdom mobilization level changes.
+signal human_mobilization_changed(new_level: int)
+## Emitted when a human hero is deployed to a tile for combat.
+signal human_hero_deployed(hero_id: String, tile_index: int)
+## Emitted when a noble defects or refuses mobilization order.
+signal human_noble_defected(noble_name: String)
+## Emitted when a human kingdom event requires player choice.
+signal human_event_choice_requested(event_id: String, player_id: int, event_data: Dictionary)

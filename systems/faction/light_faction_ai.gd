@@ -342,8 +342,14 @@ func tick_light_factions() -> void:
 	regen_light_garrison()
 	# Mage AI: try to cast spells on threatened tiles
 	_mage_ai_cast()
-	# 人类王国：主动将内部守军向前线集结
+	# 人类王国：主动将内部守军向前线集结（旧逻辑，保留兼容）
 	human_kingdom_action()
+	# v1.0: 人类王国AI完整系统 tick（动员度、英雄出击、圣战等）
+	if HumanKingdomAI != null:
+		HumanKingdomAI.tick(0)
+	# v1.0: 人类王国事件链 tick（女骑士巡逻、圣战buff计时等）
+	if HumanKingdomEvents != null:
+		HumanKingdomEvents.tick(0)
 	# 精灵族：屏障失效时重新激活
 	high_elf_action()
 	# Alliance coordination: light factions help each other against shared threats
