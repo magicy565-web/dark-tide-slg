@@ -1,4 +1,11 @@
 ## orc_mechanic.gd - Complete Orc faction mechanics (v2.1 — 兽人完整游戏性)
+## ═══════════════════════════════════════════════════════════════════════════
+## [DEV POLICY] AI-ONLY FACTION — DO NOT DEVELOP FOR PLAYER
+## This file handles ORC faction AI behavior exclusively.
+## The ORC faction is NOT selectable by the player (see main_menu.gd).
+## Do NOT add new player-facing mechanics, UI hooks, or HUD integrations.
+## Maintenance only: bug fixes for AI correctness are acceptable.
+## ═══════════════════════════════════════════════════════════════════════════
 ##
 ## Graduated WAAAGH! thresholds:
 ##   0-29:  No bonus

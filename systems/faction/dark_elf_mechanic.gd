@@ -1,4 +1,11 @@
 ## dark_elf_mechanic.gd - Dark Elf Council specific mechanics
+## ═══════════════════════════════════════════════════════════════════════════
+## [DEV POLICY] AI-ONLY FACTION — DO NOT DEVELOP FOR PLAYER
+## This file handles DARK ELF faction AI behavior exclusively.
+## The DARK_ELF faction is NOT selectable by the player (see main_menu.gd).
+## Do NOT add new player-facing mechanics, UI hooks, or HUD integrations.
+## Maintenance only: bug fixes for AI correctness are acceptable.
+## ═══════════════════════════════════════════════════════════════════════════
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
 

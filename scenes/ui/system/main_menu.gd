@@ -1,4 +1,7 @@
 ## main_menu.gd - Title screen + Faction selection for Dark Tide SLG (v4.0-pixel)
+## DEV NOTE: Only PIRATE faction is available for player selection.
+## ORC and DARK_ELF factions are retained as AI-only opponents.
+## Do NOT add new player-facing features for ORC or DARK_ELF.
 extends CanvasLayer
 
 signal game_started(faction_id: int, fixed_map: bool)
@@ -54,8 +57,10 @@ const CREST_PATHS := {
 }
 
 # Faction data for display
+# DEV NOTE: Only FactionID.PIRATE (1) is shown to the player.
+# ORC (0) and DARK_ELF (2) entries are kept for AI reference only.
 const FACTION_DISPLAY := {
-	0: {  # ORC
+	0: {  # ORC — AI-ONLY, not shown in player selection
 		"name": "Orc Horde",
 		"color": Color(0.8, 0.3, 0.2),
 		"icon": "WAAAGH!",
@@ -69,7 +74,7 @@ const FACTION_DISPLAY := {
 		"desc": "[b]Pirate Alliance[/b]\n\n[color=orange]Special Mechanic: Plunder & Slave Trade[/color]\n\nVictories yield bonus gold and capture prisoners as slaves:\n- Assign slaves to mines/farms for extra output\n- Buy and sell slaves on the black market\n- Dark elves can convert slaves into elite troops\n\n[color=yellow]Unique Troops:[/color] Pirate Cutlass / Musketeer / Cannoneer\n\n[color=gray]Difficulty: ★★★ Economy playstyle[/color]",
 		"start_bonus": "Starting gold +30, Black Market unlocked",
 	},
-	2: {  # DARK_ELF
+	2: {  # DARK_ELF — AI-ONLY, not shown in player selection
 		"name": "Dark Elf Council",
 		"color": Color(0.5, 0.2, 0.7),
 		"icon": "SHADOW",
@@ -275,7 +280,7 @@ func _build_faction_panel_content() -> void:
 	main_hbox.add_child(left_vbox)
 
 	var header := Label.new()
-	header.text = "Choose Your Faction"
+	header.text = "Pirate Alliance Campaign"
 	_apply_font_to_label(header)
 	header.add_theme_font_size_override("font_size", 22)
 	header.add_theme_color_override("font_color", Color(0.9, 0.75, 0.4))
@@ -289,8 +294,11 @@ func _build_faction_panel_content() -> void:
 	faction_container.add_theme_constant_override("separation", 6)
 	left_vbox.add_child(faction_container)
 
-	# Create faction buttons with crest icons
+	# DEV NOTE: Only PIRATE faction (fid == 1) is shown as a selectable option.
+	# ORC and DARK_ELF are AI-only and intentionally excluded from this list.
 	for fid in FACTION_DISPLAY.keys():
+		if fid != FactionData.FactionID.PIRATE:
+			continue  # Skip non-pirate factions — AI-only, not player-selectable
 		var fdata: Dictionary = FACTION_DISPLAY[fid]
 		var btn_hbox := HBoxContainer.new()
 		btn_hbox.add_theme_constant_override("separation", 8)
@@ -609,9 +617,12 @@ func _on_back_to_title() -> void:
 func _on_confirm_faction() -> void:
 	if _selected_faction < 0:
 		return
+	# DEV LOCK: Enforce pirate-only. Even if somehow a non-pirate faction_id
+	# was set (e.g. via save-file tampering), clamp it to PIRATE before starting.
+	var safe_faction: int = FactionData.FactionID.PIRATE
 	_show_loading()
 	await get_tree().process_frame
-	game_started.emit(_selected_faction, _use_fixed_map)
+	game_started.emit(safe_faction, _use_fixed_map)
 	# The main scene will handle starting the game, then hide this menu
 	_hide_menu()
 
@@ -630,10 +641,12 @@ func show_menu() -> void:
 # ═══════════════════════════════════════════════════════════════
 
 func _update_faction_highlight() -> void:
+	# Only one button exists (PIRATE), so faction_buttons[0] maps to FactionID.PIRATE.
 	for i in range(faction_buttons.size()):
 		var btn: Button = faction_buttons[i]
-		if i == _selected_faction:
-			var fdata: Dictionary = FACTION_DISPLAY[i]
+		var actual_fid: int = FactionData.FactionID.PIRATE  # Only pirate buttons exist
+		if actual_fid == _selected_faction:
+			var fdata: Dictionary = FACTION_DISPLAY[actual_fid]
 			btn.add_theme_color_override("font_color", fdata["color"])
 			var sel_style := StyleBoxFlat.new()
 			sel_style.bg_color = fdata["color"] * 0.25
