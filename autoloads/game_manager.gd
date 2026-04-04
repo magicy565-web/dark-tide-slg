@@ -736,7 +736,7 @@ func _place_nodes() -> Array:
 	var rows: int = 10
 	var spacing_x: float = 2.6
 	var spacing_z: float = 2.6
-	var jitter: float = 0.6
+	var jitter: float = 0.3  # P0-FIX: 减小jitter，最大间距从3.8降至3.2，TILE_RADIUS=2.0可完全覆盖
 
 	for row in range(rows):
 		for col in range(cols):

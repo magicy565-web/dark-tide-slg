@@ -15,12 +15,16 @@ var _deco_textures: Dictionary = {}  # Extracted decoration sprites by terrain/t
 var _military_icon_tex: Texture2D = null  # Military army icon for 3D markers
 
 func _load_map_assets() -> void:
-	# Map background — prefer v3 hand-painted, fall back to others
-	_map_bg_texture = _safe_tex_load("res://assets/map/backgrounds/map_bg_v3.png")
+	# P1-FIX: 优先使用风格统一的 map_hd_tw_v1.png（Total War风格，包含各阵营区域色彩）
+	_map_bg_texture = _safe_tex_load("res://assets/map/backgrounds/map_hd_tw_v1.png")
+	if not _map_bg_texture:
+		_map_bg_texture = _safe_tex_load("res://assets/map/backgrounds/map_hd_mj_v3.png")
+	if not _map_bg_texture:
+		_map_bg_texture = _safe_tex_load("res://assets/map/backgrounds/map_bg_v3.png")
 	if not _map_bg_texture:
 		_map_bg_texture = _safe_tex_load("res://assets/map/map_background.png")
-	# Load alternative backgrounds for faction-themed maps
-	for bg_name in ["map_bg_v3", "map_pixel_hd", "map_hd_v1", "map_hd_tw_v1", "map_hd_mj_v0", "map_hd_mj_v1", "map_hd_mj_v2", "map_hd_mj_v3"]:
+	# P1-FIX: 加载备选背景，优先选择风格一致的暗色调背景
+	for bg_name in ["map_hd_tw_v1", "map_hd_mj_v3", "map_hd_mj_v2", "map_hd_mj_v1", "map_hd_mj_v0", "map_hd_v1", "map_pixel_hd", "map_bg_v3"]:
 		var tex: Texture2D = _safe_tex_load("res://assets/map/backgrounds/%s.png" % bg_name)
 		if tex:
 			_map_bg_variants.append(tex)
@@ -49,24 +53,15 @@ func _load_map_assets() -> void:
 		_crest_textures["neutral"] = null  # Neutral deliberately has no crest
 
 func _select_faction_background() -> void:
-	## Pick a map background variant based on the player's faction for thematic consistency.
+	## P1-FIX: 所有阵营都使用风格统一的 map_hd_tw_v1.png 作为默认背景。
+	## 备选背景仅在 map_hd_tw_v1 不存在时才使用其他风格一致的暗色调图片。
 	if _map_bg_variants.is_empty():
 		return
 	if GameManager.players.is_empty():
 		return
-	var pid: int = GameManager.get_human_player_id()
-	var fid: int = GameManager.get_player_faction(pid)
-	# Faction → preferred background index (pixel_hd=0, hd_v1=1, tw_v1=2, mj_v0-v3=3-6)
-	var bg_idx: int = 0
-	match fid:
-		FactionData.FactionID.ORC:
-			bg_idx = 2  # Total War style for Orc warfare theme
-		FactionData.FactionID.PIRATE:
-			bg_idx = 1  # HD style for naval/coastal feel
-		FactionData.FactionID.DARK_ELF:
-			bg_idx = 0  # Pixel HD for dark fantasy aesthetic
-	if bg_idx < _map_bg_variants.size():
-		_map_bg_texture = _map_bg_variants[bg_idx]
+	# P1-FIX: 所有阵营都使用第一个可用背景（即 map_hd_tw_v1）以保持风格一致性
+	# 不再根据阵营切换不同风格的背景图
+	_map_bg_texture = _map_bg_variants[0]
 
 func _safe_tex_load(path: String) -> Texture2D:
 	if ResourceLoader.exists(path):
@@ -133,7 +128,7 @@ const EDGE_SCROLL_MARGIN: float = 30.0
 const EDGE_SCROLL_SPEED: float = 8.0
 const CAM_LERP_SPEED: float = 6.0
 const DOUBLE_CLICK_TIME: float = 0.35
-const TILE_RADIUS: float = 1.8
+const TILE_RADIUS: float = 2.0  # P0-FIX: 增大半径消除图块缝隙（spacing=2.6, jitter=0.6, 最大间距3.8, 需要radius>=1.9）
 const TILE_HEIGHT: float = 0.18
 const GROUND_Y: float = -0.1
 
@@ -258,12 +253,17 @@ func _setup_ground() -> void:
 	var m := StandardMaterial3D.new()
 	if _map_bg_texture:
 		m.albedo_texture = _map_bg_texture
-		m.albedo_color = Color(0.85, 0.8, 0.7)
+		# P1-FIX: 使用中性白色调以保持背景图原色
+		m.albedo_color = Color(1.0, 1.0, 1.0, 1.0)
 		m.uv1_scale = Vector3(1, 1, 1)
 		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	else:
-		m.albedo_color = Color(0.18, 0.2, 0.14)
+		# P1-FIX: 改为暗色调山地风格背景色
+		m.albedo_color = Color(0.22, 0.18, 0.14)
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; g.material_override = m
+	# P1-FIX: 增大地面平面尺寸以确保覆盖全部视口（修复顶部黑条）
+	var gm := g.mesh as PlaneMesh
+	if gm: gm.size = Vector2(100, 90)
 	g.position = Vector3(9.0, GROUND_Y - 0.15, -7.0); add_child(g)
 	# ── Ocean/void boundary ring around the playable area ──
 	_build_map_boundary()

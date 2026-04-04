@@ -6,6 +6,13 @@ var _visible: bool = false
 var _choices: Array = []
 var _current_event_id: String = ""
 
+# ── Content image textures (P0-FIX: 事件内容图片资源) ──
+var _content_tex_default: Texture2D
+var _content_tex_combat: Texture2D
+var _content_tex_blessing: Texture2D
+var _content_tex_quest: Texture2D
+var _content_tex_plague: Texture2D
+
 # ── UI refs ──
 var root: Control
 var dim_bg: ColorRect
@@ -16,6 +23,7 @@ var choice_container: VBoxContainer
 var choice_buttons: Array = []
 var btn_dismiss: Button
 var icon_label: Label
+var content_image: TextureRect  # P0-FIX: 内容图片区域
 
 # ── Animation ──
 var _tween: Tween = null
@@ -42,6 +50,13 @@ func _connect_signals() -> void:
 # ═══════════════════════════════════════════════════════════════
 
 func _build_ui() -> void:
+	# P0-FIX: 预加载内容图片资源
+	_content_tex_default = _safe_load_tex("res://assets/icons/ui/panel_event_popup.png")
+	_content_tex_combat = _safe_load_tex("res://assets/icons/ui/panel_dialog.png")
+	_content_tex_blessing = _safe_load_tex("res://assets/icons/ui/panel_info.png")
+	_content_tex_quest = _safe_load_tex("res://assets/icons/ui/panel_event_popup.png")
+	_content_tex_plague = _safe_load_tex("res://assets/icons/ui/panel_dialog.png")
+
 	root = Control.new()
 	root.name = "EventRoot"
 	root.anchor_right = 1.0
@@ -82,6 +97,24 @@ func _build_ui() -> void:
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 10)
 	popup_panel.add_child(vbox)
+
+	# P0-FIX: 内容图片区域（显示在标题下方）
+	content_image = TextureRect.new()
+	content_image.name = "ContentImage"
+	content_image.custom_minimum_size = Vector2(0, 120)
+	content_image.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	content_image.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	if _content_tex_default:
+		content_image.texture = _content_tex_default
+		content_image.modulate = Color(1.0, 1.0, 1.0, 0.85)
+	else:
+		# 如果图片未加载，显示一个装饰性分隔线
+		var placeholder := ColorRect.new()
+		placeholder.custom_minimum_size = Vector2(0, 4)
+		placeholder.color = Color(0.5, 0.4, 0.2, 0.6)
+		vbox.add_child(placeholder)
+	vbox.add_child(content_image)
 
 	# Header row: icon + title
 	var header := HBoxContainer.new()
@@ -165,6 +198,9 @@ func show_event(title: String, description: String, choices: Array = [], event_i
 			btn.pressed.connect(_on_choice.bind(i))
 			choice_container.add_child(btn)
 			choice_buttons.append(btn)
+
+	# P0-FIX: 更新内容图片
+	_update_content_image(event_id)
 
 	# Set icon based on event type
 	_set_event_icon(event_id)
@@ -269,3 +305,31 @@ func _set_event_icon(event_id: String) -> void:
 
 func _is_conquest_popup() -> bool:
 	return title_label.text.begins_with("Conquest")
+
+
+# P0-FIX: 加载图片资源的安全函数
+func _safe_load_tex(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		return load(path)
+	return null
+
+
+# P0-FIX: 根据事件类型更新内容图片
+func _update_content_image(event_id: String) -> void:
+	if not is_instance_valid(content_image):
+		return
+	var tex: Texture2D = _content_tex_default
+	if event_id.begins_with("plague") or event_id.begins_with("famine"):
+		tex = _content_tex_plague if _content_tex_plague else _content_tex_default
+	elif event_id.begins_with("blessing") or event_id.begins_with("hero"):
+		tex = _content_tex_blessing if _content_tex_blessing else _content_tex_default
+	elif event_id.begins_with("combat") or event_id.begins_with("raid"):
+		tex = _content_tex_combat if _content_tex_combat else _content_tex_default
+	elif event_id.begins_with("quest"):
+		tex = _content_tex_quest if _content_tex_quest else _content_tex_default
+	if tex:
+		content_image.texture = tex
+		content_image.visible = true
+		content_image.modulate = Color(1.0, 1.0, 1.0, 0.85)
+	else:
+		content_image.visible = false

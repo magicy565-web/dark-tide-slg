@@ -22,6 +22,16 @@ var _icon_action_diplomacy: Texture2D
 var _icon_action_end_turn: Texture2D
 var _icon_action_hero: Texture2D
 var _icon_action_recruit: Texture2D
+# P1-FIX: 新增缺失的按钮图标变量
+var _icon_action_garrison: Texture2D
+var _icon_action_march: Texture2D
+var _icon_action_explore: Texture2D
+var _icon_action_supply: Texture2D
+var _icon_action_espionage: Texture2D
+var _icon_action_quest: Texture2D
+var _icon_action_save: Texture2D
+var _icon_action_weather: Texture2D
+var _icon_action_move: Texture2D
 var _has_resource_icons: bool = false
 
 # ── HD UI frame textures (extracted from ui_panels sprite sheets) ──
@@ -290,6 +300,16 @@ func _build_ui() -> void:
 	_icon_action_end_turn = _safe_load("res://assets/map/actions/action_end_turn.png")
 	_icon_action_hero = _safe_load("res://assets/map/actions/action_hero.png")
 	_icon_action_recruit = _safe_load("res://assets/map/actions/action_recruit.png")
+	# P1-FIX: 加载新增缺失的按钮图标
+	_icon_action_garrison = _safe_load("res://assets/map/actions/military_garrison.png")
+	_icon_action_march = _safe_load("res://assets/map/actions/military_horn.png")
+	_icon_action_explore = _safe_load("res://assets/icons/ui/btn_move.png")
+	_icon_action_supply = _safe_load("res://assets/icons/ui/btn_supply.png")
+	_icon_action_espionage = _safe_load("res://assets/icons/ui/btn_espionage.png")
+	_icon_action_quest = _safe_load("res://assets/icons/ui/btn_quest_journal.png")
+	_icon_action_save = _safe_load("res://assets/icons/ui/btn_save.png")
+	_icon_action_weather = _safe_load("res://assets/icons/ui/btn_weather.png")
+	_icon_action_move = _safe_load("res://assets/icons/ui/btn_move.png")
 	_has_resource_icons = _icon_gold != null
 
 	# HD UI frame textures (v2 with fallback to v1)
@@ -469,12 +489,11 @@ func _build_action_panel(parent: Control) -> void:
 	btn_deploy.pressed.connect(_on_deploy_pressed)
 	vbox.add_child(btn_deploy)
 
-	btn_march = _make_button("行军 [M] (1AP)", _icon_action_deploy)
+	btn_march = _make_button("行农 [M] (1AP)", _icon_action_march)  # P1-FIX: 使用专用行农图标
 	btn_march.tooltip_text = "Issue a long-range march order. The army moves one step per turn automatically until it reaches the destination or encounters an enemy."
 	btn_march.pressed.connect(_on_march_pressed)
 	vbox.add_child(btn_march)
-
-	btn_garrison = _make_button("🛡 驻守 [G] (1AP)")
+	btn_garrison = _make_button("🛡 驻守 [G] (1AP)", _icon_action_garrison)  # P1-FIX: 添加驻守图标
 	btn_garrison.tooltip_text = "令军队就地驻守。驻守状态下防御逐回叠加，最高+30%。再次点击可选择取消驻守。"
 	btn_garrison.pressed.connect(_on_garrison_pressed)
 	vbox.add_child(btn_garrison)
@@ -489,7 +508,7 @@ func _build_action_panel(parent: Control) -> void:
 	btn_diplomacy.pressed.connect(_on_diplomacy_pressed)
 	vbox.add_child(btn_diplomacy)
 
-	btn_explore = _make_button("Explore [5] (1AP)")
+	btn_explore = _make_button("Explore [5] (1AP)", _icon_action_explore)  # P1-FIX: 添加探索图标
 	btn_explore.tooltip_text = "Explore unclaimed territories to discover resources and events."
 	btn_explore.pressed.connect(_on_explore_pressed)
 	vbox.add_child(btn_explore)
@@ -497,23 +516,28 @@ func _build_action_panel(parent: Control) -> void:
 	var section_ops := _make_label("-- Operations --", 10, Color(0.5, 0.6, 0.7))
 	vbox.add_child(section_ops)
 
-	btn_guard = _make_button("Guard (1AP)")
+	# TODO: MISSING_ASSET 防守专用图标 assets/map/actions/action_guard.png 待创建
+	btn_guard = _make_button("Guard (1AP)", _icon_action_garrison)  # P1-FIX: 临时复用驻守图标
 	btn_guard.pressed.connect(_on_guard_pressed)
 	vbox.add_child(btn_guard)
 
-	btn_commander = _make_button("Commander (0AP)")
+	# TODO: MISSING_ASSET 指挥官专用图标 assets/map/actions/action_commander.png 待创建
+	btn_commander = _make_button("Commander (0AP)", _icon_action_hero)  # P1-FIX: 临时复用英雄图标
 	btn_commander.pressed.connect(_on_commander_pressed)
 	vbox.add_child(btn_commander)
 
-	btn_interrogate = _make_button("Interrogate (1AP)")
+	# TODO: MISSING_ASSET 审讯专用图标 assets/map/actions/action_interrogate.png 待创建
+	btn_interrogate = _make_button("Interrogate (1AP)", _icon_action_espionage)  # P1-FIX: 临时复用情报图标
 	btn_interrogate.pressed.connect(_on_interrogate_pressed)
 	vbox.add_child(btn_interrogate)
 
-	btn_reinforce = _make_button("Reinforce (1AP)")
+	# TODO: MISSING_ASSET 支援专用图标 assets/map/actions/action_reinforce.png 待创建
+	btn_reinforce = _make_button("Reinforce (1AP)", _icon_action_supply)  # P1-FIX: 临时复用补给图标
 	btn_reinforce.pressed.connect(_on_reinforce_pressed)
 	vbox.add_child(btn_reinforce)
 
-	btn_sat_event = _make_button("SAT Event (0)")
+	# TODO: MISSING_ASSET 事件专用图标 assets/map/actions/action_event.png 待创建
+	btn_sat_event = _make_button("SAT Event (0)")  # 暂无匹配图标
 	btn_sat_event.pressed.connect(_on_sat_event_pressed)
 	vbox.add_child(btn_sat_event)
 
@@ -529,11 +553,13 @@ func _build_action_panel(parent: Control) -> void:
 	var section_prestige := _make_label("-- Prestige --", 10, Color(0.7, 0.7, 0.5))
 	vbox.add_child(section_prestige)
 
-	btn_reduce_threat = _make_button("Reduce Threat -10 (20 Prestige)")
+	# TODO: MISSING_ASSET 降威胁专用图标 assets/map/actions/action_reduce_threat.png 待创建
+	btn_reduce_threat = _make_button("Reduce Threat -10 (20 Prestige)")  # 暂无匹配图标
 	btn_reduce_threat.pressed.connect(_on_reduce_threat)
 	vbox.add_child(btn_reduce_threat)
 
-	btn_boost_order = _make_button("Boost Order +10 (15 Prestige)")
+	# TODO: MISSING_ASSET 提升秩序专用图标 assets/map/actions/action_boost_order.png 待创建
+	btn_boost_order = _make_button("Boost Order +10 (15 Prestige)")  # 暂无匹配图标
 	btn_boost_order.pressed.connect(_on_boost_order)
 	vbox.add_child(btn_boost_order)
 
@@ -552,23 +578,26 @@ func _build_action_panel(parent: Control) -> void:
 	var section_info := _make_label("-- Info & Management --", 10, Color(0.5, 0.7, 0.6))
 	vbox.add_child(section_info)
 
-	btn_hero = _make_button("Heroes (H)", _icon_action_hero)
+	btn_hero = _make_button("Heroes (H)", _icon_action_hero)  # 图标已存在
 	btn_hero.pressed.connect(_on_hero_pressed)
 	vbox.add_child(btn_hero)
 
-	btn_research = _make_button("Research")
+	btn_research = _make_button("Research", _icon_action_quest)  # P1-FIX: 临时复用任务图标
+	# TODO: MISSING_ASSET 科技专用图标 assets/icons/ui/btn_research.png 待创建
 	btn_research.pressed.connect(_on_research_pressed)
 	vbox.add_child(btn_research)
 
-	btn_quest_journal = _make_button("Quest Log (J)")
+	btn_quest_journal = _make_button("Quest Log (J)", _icon_action_quest)  # P1-FIX: 添加任务日志图标
 	btn_quest_journal.pressed.connect(_on_quest_journal_pressed)
 	vbox.add_child(btn_quest_journal)
 
-	btn_armies = _make_button("Armies (A)")
+	# TODO: MISSING_ASSET 军队专用图标 assets/icons/ui/btn_armies.png 待创建
+	btn_armies = _make_button("Armies (A)", _icon_action_march)  # P1-FIX: 临时复用行农图标
 	btn_armies.pressed.connect(_on_armies_pressed)
 	vbox.add_child(btn_armies)
 
-	btn_economy = _make_button("Economy ($)")
+	# TODO: MISSING_ASSET 经济专用图标 assets/icons/ui/btn_economy.png 待创建
+	btn_economy = _make_button("Economy ($)")  # 暂无匹配图标
 	btn_economy.pressed.connect(_on_economy_pressed)
 	vbox.add_child(btn_economy)
 
@@ -625,7 +654,7 @@ func _build_action_panel(parent: Control) -> void:
 	vbox.add_child(btn_corruption)
 
 	# Save/Load buttons (free actions)
-	var btn_save := _make_button("Save (F5)")
+	var btn_save := _make_button("Save (F5)", _icon_action_save)  # P1-FIX: 添加保存图标
 	btn_save.pressed.connect(_on_save_pressed)
 	vbox.add_child(btn_save)
 
@@ -773,17 +802,37 @@ func _build_target_panel(parent: Control) -> void:
 func _build_item_panel(parent: Control) -> void:
 	item_panel = PanelContainer.new()
 	item_panel.position = Vector2(10, 450)
-	item_panel.size = Vector2(200, 130)
+	item_panel.size = Vector2(200, 150)  # P2-FIX: 稍微增大面板高度以容纳装饰元素
 	item_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	item_panel.add_theme_stylebox_override("panel", _make_content_panel_style())
 	parent.add_child(item_panel)
 
 	item_container = VBoxContainer.new()
-	item_container.add_theme_constant_override("separation", 3)
+	item_container.add_theme_constant_override("separation", 4)  # P2-FIX: 增大间距
 	item_panel.add_child(item_container)
 
+	# P2-FIX: 添加装饰性标题行（图标+文字）
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 4)
+	item_container.add_child(title_row)
+	var inv_icon_tex: Texture2D = _safe_load("res://assets/icons/ui/btn_inventory.png")
+	if inv_icon_tex:
+		var inv_icon := TextureRect.new()
+		inv_icon.texture = inv_icon_tex
+		inv_icon.custom_minimum_size = Vector2(16, 16)
+		inv_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		title_row.add_child(inv_icon)
 	var title := _make_label("Inventory", ColorTheme.FONT_BODY, ColorTheme.TEXT_HEADING)
-	item_container.add_child(title)
+	title_row.add_child(title)
+
+	# P2-FIX: 添加装饰性分隔线
+	var sep := HSeparator.new()
+	var sep_style := StyleBoxFlat.new()
+	sep_style.bg_color = Color(0.5, 0.4, 0.2, 0.6)
+	sep_style.content_margin_top = 1
+	sep_style.content_margin_bottom = 1
+	sep.add_theme_stylebox_override("separator", sep_style)
+	item_container.add_child(sep)
 
 
 # ── Right panel: tile info ──
@@ -826,13 +875,36 @@ func _build_message_log(parent: Control) -> void:
 	panel.add_theme_stylebox_override("panel", _make_parchment_style())
 	parent.add_child(panel)
 
+	# P2-FIX: 使用 VBoxContainer 添加标题行和分隔线，增强视觉层次感
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 2)
+	panel.add_child(vbox)
+
+	# P2-FIX: 添加标题行
+	var header_row := HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", 6)
+	vbox.add_child(header_row)
+	var log_label_title := _make_label("■ Event Log", ColorTheme.FONT_SMALL, Color(0.7, 0.6, 0.4, 0.9))
+	header_row.add_child(log_label_title)
+
+	# P2-FIX: 添加装饰性分隔线
+	var sep := HSeparator.new()
+	var sep_style := StyleBoxFlat.new()
+	sep_style.bg_color = Color(0.45, 0.35, 0.18, 0.7)
+	sep_style.content_margin_top = 1
+	sep_style.content_margin_bottom = 1
+	sep.add_theme_stylebox_override("separator", sep_style)
+	vbox.add_child(sep)
+
 	message_log_label = RichTextLabel.new()
 	message_log_label.bbcode_enabled = true
 	message_log_label.scroll_following = true
+	message_log_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	message_log_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	message_log_label.add_theme_font_size_override("normal_font_size", ColorTheme.FONT_SMALL)
-	message_log_label.add_theme_color_override("default_color", ColorTheme.TEXT_DIM)
-	panel.add_child(message_log_label)
+	# P2-FIX: 提亮文字颜色，从极暗灰改为温暖的美山红色调，增强可读性
+	message_log_label.add_theme_color_override("default_color", Color(0.75, 0.68, 0.55, 1.0))
+	vbox.add_child(message_log_label)
 
 
 # ── Game over overlay ──
@@ -4292,8 +4364,10 @@ func _make_info_panel_style() -> StyleBox:
 
 
 func _make_content_panel_style() -> StyleBox:
+	# P2-FIX: 修正 tex_margin 参数以匹配 action_panel_frame_v2.png (1536x2752) 的实际边框宽度
+	# 实测边框像素: L=88, T=120, R=85, B=144
 	return _make_frame_style(_frame_content,
-		[25, 20, 25, 30], [14, 12, 14, 16],
+		[88, 120, 85, 144], [20, 30, 20, 30],
 		ColorTheme.BG_PANEL)
 
 
@@ -4304,8 +4378,11 @@ func _make_action_bar_style() -> StyleBox:
 
 
 func _make_parchment_style() -> StyleBox:
+	# P2-FIX: 修正 tex_margin 参数以匹配 parchment_bg.png (640x310) 的实际边框
+	# 实测边框像素: L=87, T=74, R=87, B=74
+	# 增大边距以展示皮革纹理和金色边框，增强视觉层次感
 	return _make_frame_style(_frame_parchment,
-		[8, 8, 8, 8], [10, 10, 10, 10],
+		[87, 74, 87, 74], [16, 14, 16, 14],
 		ColorTheme.BG_DARK)
 
 
@@ -4362,13 +4439,18 @@ func _make_label(text: String, size: int, color: Color) -> Label:
 	return ColorTheme.make_label(text, size, color)
 
 
+## P1-FIX: 统一图标尺寸常量（所有按钮图标统一为 24x24 显示）
+const ICON_SIZE: int = 24
+
 func _make_button(text: String, icon: Texture2D = null, style_type: String = "default") -> Button:
 	var btn := Button.new()
 	btn.text = text
 	if icon:
 		btn.icon = icon
 		btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.expand_icon = true
+		# P1-FIX: 禁用 expand_icon，改用 icon_max_width/height 统一图标尺寸为 24x24
+		btn.expand_icon = false
+		btn.add_theme_constant_override("icon_max_width", ICON_SIZE)
 	btn.custom_minimum_size = Vector2(180, 32)
 	btn.add_theme_font_size_override("font_size", 12)
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
