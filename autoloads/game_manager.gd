@@ -1094,6 +1094,7 @@ func _assign_tile_types(positions: Array) -> void:
 		"public_order": BalanceConfig.TILE_ORDER_DEFAULT,
 			# Runtime fields used by subsystems (initialized for safety)
 			"wall_hp": core_fortress_wall_hp,
+			"garrison_cap": garrison,  # v4.7: max garrison for this tile (used by HumanKingdomAI crusade mobilization)
 			"alliance_def_bonus": 0,
 			# Region data for strategic map display
 			"region_id": _region_data["region_id"],

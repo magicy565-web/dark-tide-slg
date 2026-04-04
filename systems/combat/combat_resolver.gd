@@ -1078,6 +1078,11 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		if bld.get("tactical_sim", false):
 			spd += 1.0
 
+	# v4.7: Fatigue penalty — exhausted hero units have ATK/DEF halved
+	if hero_id != "" and HeroSystem.is_hero_exhausted(hero_id):
+		var fatigue_mult: float = HeroSystem.get_fatigue_defense_mult(hero_id)
+		base_atk *= fatigue_mult
+		base_def *= fatigue_mult
 	# Determine max actions
 	var max_actions: int = 1
 	if "extra_action" in passives:

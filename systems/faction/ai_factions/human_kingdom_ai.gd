@@ -259,9 +259,9 @@ func _try_ally_with_elves() -> void:
 
 
 func _try_arms_trade_with_mage() -> void:
-	var threat: int = ThreatManager.get_threat()
-	if threat >= 30:
-		DiplomacyManager.process_ai_trade_routes(threat)
+	## v4.7 fix: process_ai_trade_routes is now called once per turn by GameManager (Phase 5e4b).
+	## This function is intentionally a no-op here to avoid double-calling the route processor.
+	pass  # Handled by GameManager._process_turn() Phase 5e4b
 
 
 func _try_warn_player() -> void:

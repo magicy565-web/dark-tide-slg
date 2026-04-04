@@ -363,6 +363,28 @@ func grant_random_loot(player_id: int) -> String:
 	return item_id
 
 
+func grant_random_legendary(player_id: int) -> String:
+	## v4.7: Grant a random legendary equipment to player. Returns item_id or "" on failure.
+	## Called by NGPlusShop.inherit_legendary bonus.
+	var legendary_ids: Array = []
+	for eid in FactionData.EQUIPMENT_DEFS:
+		if FactionData.EQUIPMENT_DEFS[eid].get("rarity", "") == "legendary":
+			legendary_ids.append(eid)
+	if legendary_ids.is_empty():
+		EventBus.message_log.emit("[color=red][NG+传承] 没有可用的传奇装备，改为发放500金币。[/color]")
+		ResourceManager.apply_delta(player_id, {"gold": 500})
+		return ""
+	if is_full(player_id):
+		EventBus.message_log.emit("[color=orange][NG+传承] 背包已满，传奇装备无法放入，改为发放500金币。[/color]")
+		ResourceManager.apply_delta(player_id, {"gold": 500})
+		return ""
+	var chosen: String = legendary_ids[randi() % legendary_ids.size()]
+	add_item(player_id, chosen)
+	var chosen_name: String = FactionData.EQUIPMENT_DEFS[chosen].get("name", chosen)
+	EventBus.message_log.emit("[color=gold][NG+传承] 获得传奇装备：%s！[/color]" % chosen_name)
+	return chosen
+
+
 # ═══════════════ INTERNAL HELPERS ═══════════════
 
 const ITEM_ICON_DIR: String = "res://assets/icons/items/"
