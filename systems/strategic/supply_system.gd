@@ -664,3 +664,10 @@ func reset() -> void:
 	_player_capitals.clear()
 	_tile_class.clear()
 	_prev_connected.clear()
+## process_turn — called each turn from game_manager (via scene tree node lookup)
+## Delegates to the autoload SupplySystem methods for supply line processing.
+func process_turn(player_id: int) -> void:
+	recalculate_supply_lines(player_id)
+	classify_territories(player_id)
+	apply_isolation_penalties(player_id)
+	apply_rear_order_recovery(player_id)

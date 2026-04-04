@@ -298,7 +298,10 @@ func _trigger_grand_event(ge: Dictionary) -> void:
 	# Set BGM
 	if ge.has("bgm") and AudioManager != null:
 		if AudioManager.has_method("play_bgm"):
-			AudioManager.play_bgm(ge["bgm"])
+			var _bgm_val = ge["bgm"]
+			if typeof(_bgm_val) == TYPE_STRING:
+				_bgm_val = _bgm_val.to_int()
+			AudioManager.play_bgm(_bgm_val)
 
 	# Record in StoryEventSystem
 	if StoryEventSystem != null and StoryEventSystem.has_method("record_event"):

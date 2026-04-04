@@ -36,12 +36,7 @@ const GUIDE_QUESTS: Array = [
 	{
 		"id": "pirate_g1",
 		"name": "第一桶金",
-		"desc": (
-			"海盗的生存之道是掠夺！赢得你的第一场战斗，"
-			"让敌人的财富成为你的战利品。\n\n"
-			"[color=yellow]提示：[/color]点击左侧「攻击」按钮，选择相邻的中立格子发动进攻。"
-			"战斗胜利后会自动结算掠夺金币。"
-		),
+		"desc":"海盗的生存之道是掠夺！赢得你的第一场战斗，让敌人的财富成为你的战利品。\n\n[color=yellow]提示：[/color]点击左侧「攻击」按钮，选择相邻的中立格子发动进攻。战斗胜利后会自动结算掠夺金币。",
 		"category": "guide",
 		"faction": FactionData.FactionID.PIRATE,
 		"trigger": {},   # 游戏开始即激活
@@ -60,12 +55,7 @@ const GUIDE_QUESTS: Array = [
 	{
 		"id": "pirate_g2",
 		"name": "黑市初体验",
-		"desc": (
-			"海盗的秘密武器——[color=gold]黑市[/color]！"
-			"按 [color=cyan][P][/color] 键打开海盗面板，在「Black Market」标签购买一件商品。\n\n"
-			"[color=yellow]提示：[/color]黑市每回合刷新商品，恶名越低价格越优惠。"
-			"走私军火、朗姆酒桶、藏宝图都是常见商品。"
-		),
+		"desc":"海盗的秘密武器——[color=gold]黑市[/color]！按 [color=cyan][P][/color] 键打开海盗面板，在「Black Market」标签购买一件商品。\n\n[color=yellow]提示：[/color]黑市每回合刷新商品，恶名越低价格越优惠。走私军火、朗姆酒桶、藏宝图都是常见商品。",
 		"category": "guide",
 		"faction": FactionData.FactionID.PIRATE,
 		"trigger": {"prev_guide_done": "pirate_g1"},
@@ -84,12 +74,7 @@ const GUIDE_QUESTS: Array = [
 	{
 		"id": "pirate_g3",
 		"name": "朗姆酒的力量",
-		"desc": (
-			"[color=orange]朗姆酒[/color]是海盗战斗力的秘密来源！"
-			"士气值 ≥50 时全军 ATK+2，≥90 时 ATK+4（但 DEF-2）。\n\n"
-			"在黑市购买「朗姆酒桶」，或在海盗面板直接使用，"
-			"将朗姆酒士气提升到 50 以上，激活战斗加成。"
-		),
+		"desc":"[color=orange]朗姆酒[/color]是海盗战斗力的秘密来源！士气值 ≥50 时全军 ATK+2，≥90 时 ATK+4（但 DEF-2）。\n\n在黑市购买「朗姆酒桶」，或在海盗面板直接使用，将朗姆酒士气提升到 50 以上，激活战斗加成。",
 		"category": "guide",
 		"faction": FactionData.FactionID.PIRATE,
 		"trigger": {"prev_guide_done": "pirate_g2"},
@@ -108,12 +93,7 @@ const GUIDE_QUESTS: Array = [
 	{
 		"id": "pirate_g4",
 		"name": "寻宝猎人",
-		"desc": (
-			"[color=yellow]藏宝图[/color]是海盗的专属福利！"
-			"每次战斗胜利有 15% 概率获得藏宝图，也可在黑市购买。\n\n"
-			"获得藏宝图后，在海盗面板「Treasure Hunt」标签中点击「探索」，"
-			"可能获得金币、佣兵、朗姆酒或稀有道具。"
-		),
+		"desc":"[color=yellow]藏宝图[/color]是海盗的专属福利！每次战斗胜利有 15% 概率获得藏宝图，也可在黑市购买。\n\n获得藏宝图后，在海盗面板「Treasure Hunt」标签中点击「探索」，可能获得金币、佣兵、朗姆酒或稀有道具。",
 		"category": "guide",
 		"faction": FactionData.FactionID.PIRATE,
 		"trigger": {"prev_guide_done": "pirate_g3"},
@@ -132,12 +112,7 @@ const GUIDE_QUESTS: Array = [
 	{
 		"id": "pirate_g5",
 		"name": "秘密航线",
-		"desc": (
-			"[color=cyan]走私航线[/color]是海盗的被动收入来源，"
-			"每条航线每回合提供 +8 金币。\n\n"
-			"在海盗面板「Smuggle Routes」标签中，选择两块你控制的领地建立航线。"
-			"最多可建立 3 条航线，是稳定经济的关键。"
-		),
+		"desc":"[color=cyan]走私航线[/color]是海盗的被动收入来源，每条航线每回合提供 +8 金币。\n\n在海盗面板「Smuggle Routes」标签中，选择两块你控制的领地建立航线。最多可建立 3 条航线，是稳定经济的关键。",
 		"category": "guide",
 		"faction": FactionData.FactionID.PIRATE,
 		"trigger": {"prev_guide_done": "pirate_g4"},
@@ -156,14 +131,7 @@ const GUIDE_QUESTS: Array = [
 	{
 		"id": "pirate_g6",
 		"name": "恶名昭著",
-		"desc": (
-			"[color=red]恶名[/color]是海盗的双刃剑：\n"
-			"• 恶名 ≥70：光明阵营拒绝交易\n"
-			"• 恶名 ≥50：掠夺倍率 +0.3，雇佣兵费用降低\n"
-			"• 恶名 ≤30：黑暗阵营不信任你\n\n"
-			"每次战斗胜利 +5 恶名，每回合自然衰减 -2。"
-			"将恶名提升到 50，解锁「サイレン」英雄的加入条件。"
-		),
+		"desc":"[color=red]恶名[/color]是海盗的双刃剑：\n• 恶名 ≥70：光明阵营拒绝交易\n• 恶名 ≥50：掠夺倍率 +0.3，雇佣兵费用降低\n• 恶名 ≤30：黑暗阵营不信任你\n\n每次战斗胜利 +5 恶名，每回合自然衰减 -2。将恶名提升到 50，解锁「サイレン」英雄的加入条件。",
 		"category": "guide",
 		"faction": FactionData.FactionID.PIRATE,
 		"trigger": {"prev_guide_done": "pirate_g5"},
@@ -183,13 +151,7 @@ const GUIDE_QUESTS: Array = [
 	{
 		"id": "pirate_g7",
 		"name": "雇佣军团",
-		"desc": (
-			"[color=magenta]雇佣兵[/color]是海盗快速扩充兵力的手段！"
-			"不需要铁矿，只需金币即可雇佣。\n\n"
-			"在海盗面板「Mercenaries」标签中选择兵种雇佣。"
-			"恶名越高、黑市等级越高，雇佣费用越低。\n\n"
-			"可选兵种：佣兵剑士(30金)、佣兵弓手(35金)、佣兵重甲(45金)、佣兵刺客(60金)"
-		),
+		"desc":"[color=magenta]雇佣兵[/color]是海盗快速扩充兵力的手段！不需要铁矿，只需金币即可雇佣。\n\n在海盗面板「Mercenaries」标签中选择兵种雇佣。恶名越高、黑市等级越高，雇佣费用越低。\n\n可选兵种：佣兵剑士(30金)、佣兵弓手(35金)、佣兵重甲(45金)、佣兵刺客(60金)",
 		"category": "guide",
 		"faction": FactionData.FactionID.PIRATE,
 		"trigger": {"prev_guide_done": "pirate_g6"},
@@ -208,16 +170,7 @@ const GUIDE_QUESTS: Array = [
 	{
 		"id": "pirate_g8",
 		"name": "传奇英雄",
-		"desc": (
-			"海盗阵营拥有独特的[color=gold]英雄解锁条件[/color]，"
-			"每位英雄都有专属加入要求：\n\n"
-			"• [color=cyan]潮音[/color] — 第15回合后自动加入\n"
-			"• [color=magenta]サイレン[/color] — 恶名 ≥50（已满足！）\n"
-			"• [color=orange]アイアンフック[/color] — 累计掠夺 ≥100 金\n"
-			"• [color=yellow]ストームコーラー[/color] — 第18回合后\n"
-			"• [color=red]シャドウブレード[/color] — 走私航线 ≥2\n\n"
-			"打开「英雄」面板（按 H 键），查看并招募可用英雄。"
-		),
+		"desc":"海盗阵营拥有独特的[color=gold]英雄解锁条件[/color]，每位英雄都有专属加入要求：\n\n• [color=cyan]潮音[/color] — 第15回合后自动加入\n• [color=magenta]サイレン[/color] — 恶名 ≥50（已满足！）\n• [color=orange]アイアンフック[/color] — 累计掠夺 ≥100 金\n• [color=yellow]ストームコーラー[/color] — 第18回合后\n• [color=red]シャドウブレード[/color] — 走私航线 ≥2\n\n打开「英雄」面板（按 H 键），查看并招募可用英雄。",
 		"category": "guide",
 		"faction": FactionData.FactionID.PIRATE,
 		"trigger": {"prev_guide_done": "pirate_g7"},
@@ -236,15 +189,7 @@ const GUIDE_QUESTS: Array = [
 	{
 		"id": "pirate_g9",
 		"name": "海上霸主",
-		"desc": (
-			"[color=cyan]港口[/color]是海盗阵营的战略核心！\n\n"
-			"占领港口可以：\n"
-			"• 触发「海盗宝藏」剧情支线任务\n"
-			"• 解锁走私航线的更多组合\n"
-			"• 增加性奴隶容量上限\n"
-			"• 满足挑战任务 pirate_c2「恐怖航路」的条件\n\n"
-			"在地图上找到港口格子（HARBOR 类型），发动攻击并占领它！"
-		),
+		"desc":"[color=cyan]港口[/color]是海盗阵营的战略核心！\n\n占领港口可以：\n• 触发「海盗宝藏」剧情支线任务\n• 解锁走私航线的更多组合\n• 增加性奴隶容量上限\n• 满足挑战任务 pirate_c2「恐怖航路」的条件\n\n在地图上找到港口格子（HARBOR 类型），发动攻击并占领它！",
 		"category": "guide",
 		"faction": FactionData.FactionID.PIRATE,
 		"trigger": {"prev_guide_done": "pirate_g8"},
@@ -263,15 +208,7 @@ const GUIDE_QUESTS: Array = [
 	{
 		"id": "pirate_g10",
 		"name": "传奇之路",
-		"desc": (
-			"你已掌握了海盗阵营的所有基础机制！\n\n"
-			"现在是时候踏上[color=gold]传奇之路[/color]了——"
-			"完成挑战任务「首次掠夺」（pirate_c1），"
-			"获得传说装备「海王之刃」，开启海盗挑战链！\n\n"
-			"[color=yellow]挑战链预览：[/color]\n"
-			"pirate_c1 首次掠夺 → pirate_c2 恐怖航路 → pirate_c3 幽灵船试炼\n"
-			"→ pirate_c4 黑市之王 → pirate_c5 海上霸权 → pirate_c6 七海之王"
-		),
+		"desc":"你已掌握了海盗阵营的所有基础机制！\n\n现在是时候踏上[color=gold]传奇之路[/color]了——完成挑战任务「首次掠夺」（pirate_c1），获得传说装备「海王之刃」，开启海盗挑战链！\n\n[color=yellow]挑战链预览：[/color]\npirate_c1 首次掠夺 → pirate_c2 恐怖航路 → pirate_c3 幽灵船试炼\n→ pirate_c4 黑市之王 → pirate_c5 海上霸权 → pirate_c6 七海之王",
 		"category": "guide",
 		"faction": FactionData.FactionID.PIRATE,
 		"trigger": {"prev_guide_done": "pirate_g9"},
@@ -281,10 +218,7 @@ const GUIDE_QUESTS: Array = [
 		"reward": {
 			"gold": 300,
 			"prestige": 20,
-			"message": (
-				"[color=gold]✓ 引导任务全部完成！"
-				"你已成为真正的海盗首领！七海之王的传说从此开始！[/color]"
-			),
+			"message":"[color=gold]✓ 引导任务全部完成！你已成为真正的海盗首领！七海之王的传说从此开始！[/color]",
 		},
 		"hint": "积累800金币即可完成挑战任务 pirate_c1，获得「海王之刃」传说装备。",
 		"unlock_next": "",   # 引导链结束

@@ -667,19 +667,46 @@ func generate_fixed_map() -> void:
 		"NEUTRAL": -1, "BANDIT": -1,
 	}
 
+	# Terrain string -> TerrainType enum mapping for fixed map
+	var _terrain_str_map: Dictionary = {
+		"PLAINS": FactionData.TerrainType.PLAINS,
+		"FOREST": FactionData.TerrainType.FOREST,
+		"MOUNTAIN": FactionData.TerrainType.MOUNTAIN,
+		"SWAMP": FactionData.TerrainType.SWAMP,
+		"COASTAL": FactionData.TerrainType.COASTAL,
+		"COAST": FactionData.TerrainType.COASTAL,
+		"FORTRESS_WALL": FactionData.TerrainType.FORTRESS_WALL,
+		"WALL": FactionData.TerrainType.FORTRESS_WALL,
+		"RIVER": FactionData.TerrainType.RIVER,
+		"RUINS": FactionData.TerrainType.RUINS,
+		"WASTELAND": FactionData.TerrainType.WASTELAND,
+		"VOLCANIC": FactionData.TerrainType.VOLCANIC,
+	}
+	# Build zone cache for fixed map (maps faction string -> tile index array)
+	_zone_cache = {"orc": [], "pirate": [], "dark_elf": []}
+	var _fixed_faction_zone_map: Dictionary = {
+		"ORC": "orc", "PIRATE": "pirate", "DARK_ELF": "dark_elf"
+	}
+	for t_idx in range(FixedMapData.TERRITORIES.size()):
+		var t_z: Dictionary = FixedMapData.TERRITORIES[t_idx]
+		var zone_key: String = _fixed_faction_zone_map.get(t_z.get("faction", ""), "")
+		if not zone_key.is_empty():
+			_zone_cache[zone_key].append(t_idx)
 	for t in FixedMapData.TERRITORIES:
 		var tile: Dictionary = {
 			"type": type_map.get(t["type"], TileType.WILDERNESS),
 			"owner": faction_owner_map.get(t["faction"], -1),
+			"owner_id": faction_owner_map.get(t["faction"], -1),
 			"position": t["position"],
 			"position_3d": Vector3(t["position"].x * 0.02, 0.0, -t["position"].y * 0.02),
 			"level": t["level"],
 			"garrison": t["garrison_base"],
 			"city_def": t.get("city_def", 0),
 			"name": t["name"],
-			"terrain": t.get("terrain", "PLAINS"),
+			"terrain": _terrain_str_map.get(t.get("terrain", "PLAINS"), FactionData.TerrainType.PLAINS),
 			"buildings": [],
 			"order": 80,
+			"public_order": 80,
 			"revealed": {},
 			"nation_id": t["nation_id"],
 			"is_capital": t.get("is_capital", false),
@@ -687,6 +714,7 @@ func generate_fixed_map() -> void:
 			"resource_type": t.get("resource_type", ""),
 			"description": t.get("description", ""),
 		}
+		tile["index"] = tiles.size()  # BUG FIX: fixed map tiles need index field
 		tiles.append(tile)
 
 	# Build adjacency from FixedMapData connections
@@ -7304,6 +7332,10 @@ func run_ai_turn() -> void:
 			var army_power: int = get_army_combat_power(army["id"])
 			if army_power < 3:
 				continue
+			# BUG FIX: Also check that army has actual soldiers (not just hero power)
+			var _soldier_count: int = get_army_soldier_count(army["id"])
+			if _soldier_count <= 0:
+				continue
 			# Score all targets
 			var best_tile_idx: int = -1
 			var best_score: float = -999.0
@@ -7390,7 +7422,9 @@ func run_ai_turn() -> void:
 			var params: Dictionary = FactionData.FACTION_PARAMS.get(faction_id, {})
 			var recruit_gold: int = params.get("recruit_cost_gold", 50)
 			var recruit_iron: int = params.get("recruit_cost_iron", 10)
-			if ResourceManager.can_afford(pid, {"gold": recruit_gold, "iron": recruit_iron}):
+			# BUG FIX: Check population cap BEFORE attempting recruit to prevent infinite loop.
+			var _at_pop_cap: bool = ResourceManager.get_army(pid) >= get_population_cap(pid)
+			if not _at_pop_cap and ResourceManager.can_afford(pid, {"gold": recruit_gold, "iron": recruit_iron}):
 				# Recruit at the tile where an army is stationed (or first owned tile)
 				# BUG FIX: army may not have 'troops' key; use .get() to avoid crash.
 				# Also verify the tile is owned by this player before recruiting there.
@@ -7689,6 +7723,10 @@ func _run_orc_ai(player_id: int) -> void:
 			# Orcs attack even with low combat power (unlike generic AI which needs >= 3)
 			var army_power: int = get_army_combat_power(army["id"])
 			if army_power < 1:
+				continue
+			# BUG FIX: Check actual soldiers to prevent "军团没有士兵" spam
+			var _orc_soldiers: int = get_army_soldier_count(army["id"])
+			if _orc_soldiers <= 0:
 				continue
 
 			# Score each target with orc-specific logic

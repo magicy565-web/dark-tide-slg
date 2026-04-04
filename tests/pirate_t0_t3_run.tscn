@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://pirate_t0t3_run"]
+
+[ext_resource type="Script" path="res://tests/pirate_t0_t3_run.gd" id="1_pirate_run"]
+
+[node name="PirateT0T3Run" type="Node"]
+script = ExtResource("1_pirate_run")

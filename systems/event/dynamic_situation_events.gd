@@ -40,18 +40,14 @@ func _ready() -> void:
 
 # ═══════════════ PLACEHOLDER for combat result ═══════════════
 
-func _on_combat_result(result: Dictionary) -> void:
-	if result.get("winner", -1) == 0:
+func _on_combat_result(attacker_id: int, _defender_desc: String, won: bool) -> void:
+	if attacker_id == 0 and won:
 		_win_streak += 1
 		_total_wins += 1
-	else:
+	elif attacker_id == 0:
 		_win_streak = 0
-	_last_battle_losses = result.get("attacker_losses", 0) if result.get("attacker_id", -1) == 0 else result.get("defender_losses", 0)
-	_last_battle_tile_type = result.get("tile_type", "")
-
-
-# ═══════════════ EVENT REGISTRATION ═══════════════
-
+	_last_battle_losses = 0
+	_last_battle_tile_type = ""
 func _register_dynamic_events() -> void:
 	# --- Resource-based (6) ---
 	_dynamic_events.append({
