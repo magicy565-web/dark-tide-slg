@@ -313,6 +313,8 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 
 		# -- Commander Intervention Phase (human player only) --
 		if player_controlled:
+			# v8.0 BUG FIX: CP regen was never called — regenerate at rounds 4 and 8
+			CommanderIntervention.check_cp_regen(state.round_number)
 			CommanderIntervention.tick_cooldowns()
 			if CommanderIntervention.get_current_cp() > 0:
 				var available: Array = CommanderIntervention.get_available_interventions()
@@ -608,12 +610,45 @@ func _build_intervention_state(state: BattleState) -> Dictionary:
 
 
 ## Apply intervention results (mutations to the bridge dict) back to BattleUnit objects.
+## v8.0: Also copies targeting overrides (forced_target, bait_target) into BattleState metadata
+## so _select_target() can consume them during the round's action queue.
 func _apply_intervention_results(state: BattleState, istate: Dictionary) -> void:
+	# --- Targeting overrides ---------------------------------------------------
+	# forced_target: REDIRECT_FIRE / FOCUS_VOLLEY write state["forced_target"] = array_index.
+	# We need the actual slot of that enemy unit, not the array index.
+	if istate.has("forced_target") and istate.has("forced_target_duration"):
+		var _ft_idx: int = int(istate["forced_target"])
+		var _def_arr: Array = istate.get("def_units", [])
+		if _ft_idx >= 0 and _ft_idx < _def_arr.size():
+			var _ft_slot: int = _def_arr[_ft_idx].get("slot", _ft_idx)
+			state.set_meta("forced_target_slot", _ft_slot)
+			state.set_meta("forced_target_duration", int(istate["forced_target_duration"]))
+	# bait_target: BAIT_AND_SWITCH writes state["bait_target"] = attacker slot
+	if istate.has("bait_target") and istate.has("bait_duration"):
+		state.set_meta("bait_target_slot", int(istate["bait_target"]))
+		state.set_meta("bait_duration", int(istate["bait_duration"]))
+	# Clear expired overrides (decremented each round)
+	if state.has_meta("forced_target_duration"):
+		var _ftd: int = state.get_meta("forced_target_duration") - 1
+		if _ftd <= 0:
+			state.remove_meta("forced_target_slot")
+			state.remove_meta("forced_target_duration")
+		else:
+			state.set_meta("forced_target_duration", _ftd)
+	if state.has_meta("bait_duration"):
+		var _bd: int = state.get_meta("bait_duration") - 1
+		if _bd <= 0:
+			state.remove_meta("bait_target_slot")
+			state.remove_meta("bait_duration")
+		else:
+			state.set_meta("bait_duration", _bd)
 	# Sync attacker units
 	for d in istate["atk_units"]:
 		for u in state.attacker_units:
 			if u.slot == d["slot"]:
 				u.soldiers = d["soldiers"]
+				# v8.0 BUG FIX: SACRIFICE_PAWN sets soldiers=max_soldiers in the bridge dict
+				# but never sets hp. Recompute HP from soldiers so the unit is truly healed.
 				u.hp = u.soldiers * u.hp_per_soldier
 				if d["soldiers"] <= 0:
 					u.soldiers = 0
@@ -783,7 +818,7 @@ func _resolve_preemptive_phase(state: BattleState) -> void:
 		var enemies := _get_enemies(u, state)
 		if enemies.is_empty():
 			continue
-		var target := _select_target(u, enemies)
+		var target := _select_target(u, enemies, state)
 		if target == null:
 			continue
 
@@ -1036,7 +1071,7 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 				_revalidate_formations_for_side(t, state)
 
 		unit.first_attack = false
-		# Emit one attack entry per AoE target for combat_view compatibility
+			# Emit one attack entry per AoE target for combat_view compatibility
 		for _aoe_entry in sub_log:
 			state.action_log.append({
 				"action": "attack",
@@ -1051,12 +1086,14 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 				"remaining_soldiers": _aoe_entry["remaining_soldiers"],
 				"max_soldiers": _aoe_entry["max_soldiers"],
 				"round": state.round_number,
-				"desc": "%s 范围攻击 %s" % [unit.troop_id, _aoe_entry["target_name"]],
+				# v8.0 BUG FIX: flanking flag was missing from AoE log entries
+				"flanking": unit.get_meta("_last_hit_flanking", false),
+				"desc": "%s %s范围攻击 %s" % [unit.troop_id, "[侧击]" if unit.get_meta("_last_hit_flanking", false) else "", _aoe_entry["target_name"]],
 			})
 		return { "action": "_already_logged" }
 
 	# ---- Normal single-target attack --------------------------------------
-	var target := _select_target(unit, enemies)
+	var target := _select_target(unit, enemies, state)
 	if target == null:
 		return { "action": "idle", "unit": unit.id, "side": _unit_side, "slot": unit.slot, "reason": "no_valid_target", "desc": "%s 无有效目标" % unit.troop_id }
 
@@ -1327,12 +1364,26 @@ func _apply_damage(target: BattleUnit, damage: int, state: BattleState, attacker
 func _trigger_death_burst(dead_unit: BattleUnit, state: BattleState) -> void:
 	var burst_dmg: int = dead_unit.atk * 2
 	var enemies := _get_enemies(dead_unit, state)
+	var _db_side := "attacker" if dead_unit.is_attacker else "defender"
 
 	for e in enemies:
+		var _db_was_alive: bool = e.is_alive()
 		e.hp = maxi(0, e.hp - burst_dmg)
 		_recalc_soldiers(e)
+		# v8.0 BUG FIX: emit death entries for burst kills so morale cascades fire
+		if _db_was_alive and not e.is_alive():
+			var _db_enemy_side := "attacker" if e.is_attacker else "defender"
+			state.action_log.append({
+				"action": "death",
+				"unit": e.id,
+				"side": _db_enemy_side,
+				"slot": e.slot,
+				"round": state.round_number,
+				"desc": "%s 被死亡爆发歼灭" % e.troop_id,
+			})
+			_apply_ally_death_morale(e, state)
+			_revalidate_formations_for_side(e, state)
 
-	var _db_side := "attacker" if dead_unit.is_attacker else "defender"
 	state.action_log.append({
 		"action": "passive",
 		"event": "death_burst",
@@ -1351,14 +1402,37 @@ func _trigger_death_burst(dead_unit: BattleUnit, state: BattleState) -> void:
 ## Select the best target for a given attacker from the list of living enemies.
 ##
 ## Rules:
+##   0. forced_target / bait_target from interventions override normal targeting.
 ##   1. Taunt units must be targeted first.
 ##   2. Front-row melee units target enemy front row first.
 ##   3. Back-row ranged (archer/mage/cannon) can target any row.
 ##   4. Ninja / assassinate_back bypasses front row to hit back row.
 ##   5. If the front row is empty, back row becomes targetable by melee.
-func _select_target(attacker: BattleUnit, enemies: Array[BattleUnit]) -> BattleUnit:
+func _select_target(attacker: BattleUnit, enemies: Array[BattleUnit], state: BattleState = null) -> BattleUnit:
 	if enemies.is_empty():
 		return null
+
+	# --- 0. Intervention overrides: forced_target / bait_target ---------------
+	# v8.0 BUG FIX: REDIRECT_FIRE and FOCUS_VOLLEY write state["forced_target"] (slot int);
+	# BAIT_AND_SWITCH writes state["bait_target"] (slot int on attacker side).
+	# These were written to the bridge dict but never consumed here.
+	if state != null:
+		# forced_target: attacker must target the enemy unit at this slot
+		var _forced_slot: int = state.get_meta("forced_target_slot", -1)
+		if _forced_slot >= 0:
+			for e in enemies:
+				if e.slot == _forced_slot and e.is_alive():
+					return e
+			# Forced target dead/invalid — fall through to normal logic
+		# bait_target: enemies must target the attacker's highest-DEF unit
+		# (bait_target is on the defender's side; we check if attacker is the bait)
+		var _bait_slot: int = state.get_meta("bait_target_slot", -1)
+		if _bait_slot >= 0 and not attacker.is_attacker:
+			# Defender is being baited: must target the bait slot on attacker side
+			var _bait_targets: Array[BattleUnit] = state.attacker_units
+			for bt in _bait_targets:
+				if bt.slot == _bait_slot and bt.is_alive():
+					return bt
 
 	# --- 1. Taunt check: if any living enemy has taunt, must target them ---
 	var taunt_targets: Array[BattleUnit] = []
@@ -1945,22 +2019,38 @@ func _apply_ultimate_damage(state: BattleState, ult_result: Dictionary, caster_s
 	var enemy_units: Array[BattleUnit] = state.defender_units if caster_side == "attacker" else state.attacker_units
 	var ally_units: Array[BattleUnit] = state.attacker_units if caster_side == "attacker" else state.defender_units
 	var enemy_side: String = "defender" if caster_side == "attacker" else "attacker"
+
+	# v8.0 BUG FIX: build a shuffled living-enemy list so each targets_hit entry
+	# hits a DISTINCT unit (round-robin) instead of re-picking randomly each time.
+	var _ult_living: Array[BattleUnit] = []
+	for eu in enemy_units:
+		if eu.is_alive():
+			_ult_living.append(eu)
+	# Shuffle for random distribution
+	_ult_living.shuffle()
+	var _ult_hit_idx: int = 0
+
 	for hit in targets_hit:
 		var dmg: int = hit.get("damage", 0)
 		var healed: int = hit.get("healed", 0)
 		if dmg > 0:
-			var living: Array[BattleUnit] = []
-			for eu in enemy_units:
-				if eu.is_alive():
-					living.append(eu)
-			if not living.is_empty():
-				var target: BattleUnit = living[randi() % living.size()]
-				# BUG FIX: apply damage through HP system to keep soldiers and HP in sync
+			# Refresh living list if we've cycled through all
+			if _ult_hit_idx >= _ult_living.size():
+				_ult_living.clear()
+				for eu in enemy_units:
+					if eu.is_alive():
+						_ult_living.append(eu)
+				_ult_living.shuffle()
+				_ult_hit_idx = 0
+			if not _ult_living.is_empty():
+				var target: BattleUnit = _ult_living[_ult_hit_idx]
+				_ult_hit_idx += 1
+				# Apply damage through HP system to keep soldiers and HP in sync
 				var hp_dmg: int = dmg * target.hp_per_soldier
 				var was_alive: bool = target.is_alive()
 				target.hp = maxi(0, target.hp - hp_dmg)
 				_recalc_soldiers(target)
-				# v7.0 BUG FIX: trigger death logging and morale cascades when ultimate kills a unit
+				# Trigger death logging and morale cascades when ultimate kills a unit
 				if was_alive and not target.is_alive():
 					state.action_log.append({
 						"action": "death",

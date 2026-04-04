@@ -2685,6 +2685,39 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			if formation_key != "" and not _is_finishing:
 				play_formation_vfx(side, formation_key, name_cn)
 
+		# v8.0 FIX: formation_lost was falling through to the _ case with no visual feedback
+		"formation_lost":
+			var lost_key: String = entry.get("formation", "")
+			var lost_cn: String = entry.get("name_cn", "")
+			log_line = "[color=#f66][Formation Lost][/color] %s" % desc
+			if not _is_finishing:
+				# Red flash on all surviving cards of the side that lost the formation
+				var _fl_cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+				for _fl_slot in _fl_cards.keys():
+					var _fl_unit: Dictionary = _live_units[side].get(_fl_slot, {})
+					if _fl_unit.get("soldiers", 0) > 0:
+						_flash_card(side, _fl_slot, Color(0.7, 0.2, 0.2, 0.35))
+				# Passive banner showing formation name
+				var _fl_banner_text: String = lost_cn if lost_cn != "" else lost_key
+				_show_passive_banner("%s 阵型瓦解" % _fl_banner_text, side)
+				_screen_shake(SHAKE_LIGHT, 4.0)
+
+		# v8.0 FIX: rout was falling through to the _ case with no visual feedback
+		"rout":
+			log_line = "[color=#f44][Rout][/color] %s" % desc
+			if slot_idx >= 0 and not _is_finishing:
+				# Card shake + red flash + morale rout VFX
+				_flash_card(side, slot_idx, Color(0.8, 0.1, 0.1, 0.55))
+				play_morale_vfx(side, slot_idx, "rout")
+				_screen_shake(SHAKE_MEDIUM, 6.0)
+				# Chibi: show hurt pose
+				_set_chibi_state(side, slot_idx, "hurt", 0.8)
+				# Update soldier count to reflect rout losses
+				var rout_remaining: int = entry.get("remaining_soldiers", -1)
+				var rout_max: int = entry.get("max_soldiers", rout_remaining)
+				if rout_remaining >= 0:
+					_update_card_soldiers(side, slot_idx, rout_remaining, rout_max)
+
 		"morale":
 			var morale_type: String = entry.get("morale_type", "waver")
 			log_line = "[color=#f88][Morale][/color] %s" % desc
@@ -2719,6 +2752,33 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			log_line = "[color=#8cf][Passive][/color] %s" % desc
 			if slot_idx >= 0 and ptype != "" and not _is_finishing:
 				play_passive_vfx(side, slot_idx, ptype)
+				# v8.0 FIX: regen passive_vfx had no floating number — show healed amount
+				if ptype == "regen":
+					var regen_amt: int = entry.get("amount", 0)
+					if regen_amt > 0:
+						# Inline green +N floating label (regen is a heal, not damage)
+						var _regen_pos: Vector2 = _get_card_center(side, slot_idx)
+						var _regen_lbl := Label.new()
+						_regen_lbl.text = "+%d" % regen_amt
+						_regen_lbl.add_theme_font_size_override("font_size", 18)
+						_regen_lbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.45))
+						_regen_lbl.add_theme_constant_override("outline_size", 2)
+						_regen_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+						_regen_lbl.position = _regen_pos + Vector2(randf_range(-20, 20), -30)
+						_regen_lbl.z_index = 100
+						_regen_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+						_regen_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+						anim_layer.add_child(_regen_lbl)
+						var _regen_tw := create_tween().set_parallel(true)
+						_regen_tw.tween_property(_regen_lbl, "position:y", _regen_lbl.position.y - 50, 0.7 / _speed_mult).set_ease(Tween.EASE_OUT)
+						_regen_tw.tween_property(_regen_lbl, "modulate:a", 0.0, 0.7 / _speed_mult).set_delay(0.25 / _speed_mult)
+						_regen_tw.chain().tween_callback(func():
+							if is_instance_valid(_regen_lbl): _regen_lbl.queue_free()
+						)
+						var regen_remaining: int = entry.get("remaining_soldiers", -1)
+						var regen_max: int = entry.get("max_soldiers", regen_remaining)
+						if regen_remaining >= 0:
+							_update_card_soldiers(side, slot_idx, regen_remaining, regen_max)
 
 		_:
 			log_line = desc if desc != "" else str(entry)
