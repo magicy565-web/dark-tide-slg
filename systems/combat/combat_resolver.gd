@@ -2717,7 +2717,7 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 		if randf() < 0.3:
 			soldiers_killed *= 2
 
-		return soldiers_killed
+	return soldiers_killed
 
 # ---------------------------------------------------------------------------
 # v5.0: Nonlinear Troop Count Modifier (SR07-style)

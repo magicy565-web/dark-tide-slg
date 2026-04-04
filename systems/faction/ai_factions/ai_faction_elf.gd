@@ -4,8 +4,6 @@
 ## 此文件提供精灵族作为玩家可选势力时的辅助AI逻辑参考。
 extends "res://systems/faction/ai_factions/ai_faction_base.gd"
 
-const FactionData = preload("res://systems/faction/faction_data.gd")
-
 func _init() -> void:
 	## FactionConfig.FactionType.HIGH_ELF = 4
 	super._init(4, "elf_ai")
@@ -20,7 +18,7 @@ func _get_building_priority() -> Array:
 # ═══════════════════════════════════════════════════════════
 # 精灵族特有：军事策略（孤立主义，优先防御）
 # ═══════════════════════════════════════════════════════════
-func _score_attack_target(player_id: int, army: Dictionary, tile: Dictionary) -> float:
+func _score_attack_target(tile: Dictionary, player_id: int) -> float:
 	## 精灵族进攻评分：极度保守，只攻击孤立的弱小目标
 	var score: float = 0.0
 	var tile_idx: int = tile.get("index", -1)
@@ -45,10 +43,9 @@ func _score_attack_target(player_id: int, army: Dictionary, tile: Dictionary) ->
 				support_count += 1
 	score += float(4 - support_count) * 3.0  # 孤立目标大幅加分
 
-	# 精灵族避免攻打强敌
-	var army_power: float = float(GameManager.get_army_combat_power(army["id"]))
+	# 精灵族避免攻打强敌（无法在此签名中获取 army，用守备兵力估算）
 	var def_power: float = float(tile.get("garrison", 0)) * 8.0
-	if def_power > army_power * 1.1:
+	if def_power > 80.0:  # 守备过强时不进攻
 		score -= 20.0  # 精灵族极度谨慎
 
 	return score

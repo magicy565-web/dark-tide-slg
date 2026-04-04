@@ -2,8 +2,6 @@
 ## 特性：掠夺经济、炮击战术、海上机动、黑市贸易
 extends "res://systems/faction/ai_factions/ai_faction_base.gd"
 
-const PirateMechanic = preload("res://systems/faction/pirate_mechanic.gd")
-
 func _init() -> void:
 	super._init(1, "pirate") # FactionConfig.FactionType.PIRATE = 1
 
@@ -12,7 +10,8 @@ func _init() -> void:
 # ═══════════════════════════════════════════════════════════
 func _decide_strategy(player_id: int) -> void:
 	var gold: int = ResourceManager.get_gold(player_id) if ResourceManager != null else 0
-	var plunder: int = PirateMechanic.get_plunder(player_id) if PirateMechanic != null else 0
+	var pirate_node: Node = _get_pirate_mechanic()
+	var plunder: int = pirate_node.get_plunder_value(player_id) if pirate_node != null else 0
 	
 	if _retreat_mode:
 		_current_strategy = "defensive"
@@ -29,6 +28,13 @@ func _decide_strategy(player_id: int) -> void:
 		_current_strategy = "balanced"
 
 # ═══════════════════════════════════════════════════════════
+func _get_pirate_mechanic() -> Node:
+	if Engine.get_main_loop() is SceneTree:
+		var root: Node = (Engine.get_main_loop() as SceneTree).root
+		if root.has_node("PirateMechanic"):
+			return root.get_node("PirateMechanic")
+	return null
+
 # 覆盖：内政 (海盗优先经济)
 # ═══════════════════════════════════════════════════════════
 func _execute_domestic(player_id: int) -> void:

@@ -46,7 +46,7 @@ func test_combat_strong_attacker_wins() -> String:
 	combat.player_controlled = false
 	var att := _make_army(100, 12, 6)
 	var def := _make_army(20, 4, 3)
-	var result: Dictionary = combat.resolve_battle(att, def, {"terrain": 0, "is_siege": false, "city_def": 0})
+	var result: Dictionary = await combat.resolve_battle(att, def, {"terrain": 0, "is_siege": false, "city_def": 0})
 	return _assert(result.get("winner", "") == "attacker",
 		"强攻方应获胜，实际: %s" % result.get("winner", "?"))
 
@@ -56,7 +56,7 @@ func test_combat_weak_attacker_loses() -> String:
 	combat.player_controlled = false
 	var att := _make_army(10, 3, 2)
 	var def := _make_army(80, 10, 8)
-	var result: Dictionary = combat.resolve_battle(att, def, {"terrain": 0, "is_siege": false, "city_def": 0})
+	var result: Dictionary = await combat.resolve_battle(att, def, {"terrain": 0, "is_siege": false, "city_def": 0})
 	return _assert(result.get("winner", "") == "defender",
 		"弱攻方应失败，实际: %s" % result.get("winner", "?"))
 
@@ -66,7 +66,7 @@ func test_combat_result_has_required_keys() -> String:
 	combat.player_controlled = false
 	var att := _make_army(30, 7, 5)
 	var def := _make_army(30, 7, 5)
-	var result: Dictionary = combat.resolve_battle(att, def, {"terrain": 0, "is_siege": false, "city_def": 0})
+	var result: Dictionary = await combat.resolve_battle(att, def, {"terrain": 0, "is_siege": false, "city_def": 0})
 	var required_keys := ["winner", "attacker_losses", "defender_losses", "log", "rounds_fought"]
 	for k in required_keys:
 		if not result.has(k):
@@ -79,7 +79,7 @@ func test_combat_losses_are_non_negative() -> String:
 	combat.player_controlled = false
 	var att := _make_army(50, 8, 6)
 	var def := _make_army(50, 8, 6)
-	var result: Dictionary = combat.resolve_battle(att, def, {"terrain": 0, "is_siege": false, "city_def": 0})
+	var result: Dictionary = await combat.resolve_battle(att, def, {"terrain": 0, "is_siege": false, "city_def": 0})
 	for unit_id in result.get("attacker_losses", {}):
 		if result["attacker_losses"][unit_id] < 0:
 			return "FAIL: 攻方损失为负数 unit=%s loss=%d" % [unit_id, result["attacker_losses"][unit_id]]
@@ -94,7 +94,7 @@ func test_combat_rounds_within_max() -> String:
 	combat.player_controlled = false
 	var att := _make_army(200, 5, 20)  # 高防御，战斗持续更久
 	var def := _make_army(200, 5, 20)
-	var result: Dictionary = combat.resolve_battle(att, def, {"terrain": 0, "is_siege": false, "city_def": 0})
+	var result: Dictionary = await combat.resolve_battle(att, def, {"terrain": 0, "is_siege": false, "city_def": 0})
 	var rounds: int = result.get("rounds_fought", 0)
 	return _assert(rounds <= CombatSystem.MAX_ROUNDS,
 		"回合数 %d 超过 MAX_ROUNDS=%d" % [rounds, CombatSystem.MAX_ROUNDS])
@@ -105,7 +105,7 @@ func test_combat_undefended_tile_attacker_wins() -> String:
 	combat.player_controlled = false
 	var att := _make_army(30, 7, 5)
 	var def_empty := {"units": [], "player_id": -1}
-	var result: Dictionary = combat.resolve_battle(att, def_empty, {"terrain": 0, "is_siege": false, "city_def": 0})
+	var result: Dictionary = await combat.resolve_battle(att, def_empty, {"terrain": 0, "is_siege": false, "city_def": 0})
 	return _assert(result.get("winner", "") == "attacker",
 		"无守军应直接获胜，实际: %s" % result.get("winner", "?"))
 
@@ -115,13 +115,13 @@ func test_combat_pirate_rum_atk_bonus() -> String:
 	combat1.player_controlled = false
 	var att_no_rum := _make_army(20, 6, 5)
 	var def1 := _make_army(25, 6, 5)
-	var r1: Dictionary = combat1.resolve_battle(att_no_rum, def1, {"terrain": 0, "is_siege": false, "city_def": 0})
+	var r1: Dictionary = await combat1.resolve_battle(att_no_rum, def1, {"terrain": 0, "is_siege": false, "city_def": 0})
 
 	var combat2 := CombatSystem.new()
 	combat2.player_controlled = false
 	var att_with_rum := _make_army(20, 8, 5)  # ATK+2 模拟朗姆酒加成
 	var def2 := _make_army(25, 6, 5)
-	var r2: Dictionary = combat2.resolve_battle(att_with_rum, def2, {"terrain": 0, "is_siege": false, "city_def": 0})
+	var r2: Dictionary = await combat2.resolve_battle(att_with_rum, def2, {"terrain": 0, "is_siege": false, "city_def": 0})
 
 	# 有朗姆酒加成时，要么获胜，要么损失更少
 	var rum_better: bool = (r2.get("winner") == "attacker") or \
@@ -137,7 +137,7 @@ func test_combat_forest_terrain_applies() -> String:
 	combat.player_controlled = false
 	var att := _make_army(40, 7, 5)
 	var def := _make_army(40, 7, 5)
-	var result: Dictionary = combat.resolve_battle(att, def, {"terrain": 1, "is_siege": false, "city_def": 0})
+	var result: Dictionary = await combat.resolve_battle(att, def, {"terrain": 1, "is_siege": false, "city_def": 0})
 	return _assert(result.has("winner"), "森林地形战斗结果缺少 winner 键")
 
 func test_combat_siege_city_def_reduces_attacker() -> String:
@@ -146,13 +146,13 @@ func test_combat_siege_city_def_reduces_attacker() -> String:
 	combat1.player_controlled = false
 	var att1 := _make_army(60, 8, 6)
 	var def1 := _make_army(30, 6, 5)
-	var r_normal: Dictionary = combat1.resolve_battle(att1, def1, {"terrain": 0, "is_siege": false, "city_def": 0})
+	var r_normal: Dictionary = await combat1.resolve_battle(att1, def1, {"terrain": 0, "is_siege": false, "city_def": 0})
 
 	var combat2 := CombatSystem.new()
 	combat2.player_controlled = false
 	var att2 := _make_army(60, 8, 6)
 	var def2 := _make_army(30, 6, 5)
-	var r_siege: Dictionary = combat2.resolve_battle(att2, def2, {"terrain": 5, "is_siege": true, "city_def": 10})
+	var r_siege: Dictionary = await combat2.resolve_battle(att2, def2, {"terrain": 5, "is_siege": true, "city_def": 10})
 
 	# 攻城战不应崩溃，且结果合法
 	return _assert(r_siege.has("winner"), "攻城战结果缺少 winner 键")

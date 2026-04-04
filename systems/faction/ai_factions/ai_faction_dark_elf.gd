@@ -2,9 +2,6 @@
 ## 特性：情报网络、奴隶经济、魔法战术、暗影刺杀
 extends "res://systems/faction/ai_factions/ai_faction_base.gd"
 
-const DarkElfMechanic = preload("res://systems/faction/dark_elf_mechanic.gd")
-const EspionageSystem = preload("res://systems/faction/espionage_system.gd")
-
 func _init() -> void:
 	super._init(2, "dark_elf") # FactionConfig.FactionType.DARK_ELF = 2
 
@@ -13,7 +10,7 @@ func _init() -> void:
 # ═══════════════════════════════════════════════════════════
 func _decide_strategy(player_id: int) -> void:
 	var slaves: int = ResourceManager.get_slaves(player_id) if ResourceManager != null else 0
-	var intel: int = EspionageSystem.get_intel_level(player_id) if EspionageSystem != null else 0
+	var intel: int = EspionageSystem.get_intel(player_id)
 	
 	if _retreat_mode:
 		_current_strategy = "defensive"

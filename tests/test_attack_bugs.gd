@@ -349,7 +349,7 @@ func test_pirate_onboarding_save_load() -> String:
 	var po = Engine.get_singleton("PirateOnboarding")
 	if not po.has_method("to_save_data") or not po.has_method("from_save_data"):
 		return "FAIL: 缺少 to_save_data 或 from_save_data（存档不持久化 Bug）"
-	var saved := po.to_save_data()
+	var saved: Dictionary = po.to_save_data()
 	po.from_save_data({
 		"active": false, "current_step_index": 7,
 		"completed_steps": [], "onboarding_complete": false,
@@ -361,7 +361,7 @@ func test_pirate_onboarding_save_load() -> String:
 			"harbor_captured": false, "challenge_started": false,
 		}
 	})
-	var loaded := po.to_save_data()
+	var loaded: Dictionary = po.to_save_data()
 	po.from_save_data(saved)
 	return _assert(loaded.get("current_step_index", -1) == 7,
 		"存档往返后 current_step_index 错误: 期望7，实际%d" % loaded.get("current_step_index",-1))

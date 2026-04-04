@@ -49,15 +49,20 @@ func _execute_domestic(player_id: int) -> void:
 		_try_recruit(player_id, owned_tiles)
 
 func _repair_walls(player_id: int, owned_tiles: Array) -> void:
-	# 修缮受损城墙
-	if LightFactionAI == null:
+	# 修缮受损城墙 — LightFactionAI 是 Node 实例，需通过场景树获取
+	var lf_ai: Node = null
+	if Engine.get_main_loop() is SceneTree:
+		var root: Node = (Engine.get_main_loop() as SceneTree).root
+		if root.has_node("LightFactionAI"):
+			lf_ai = root.get_node("LightFactionAI")
+	if lf_ai == null:
 		return
 	for tile in owned_tiles:
 		var tile_idx: int = tile["index"]
-		var wall_hp: int = LightFactionAI.get_wall_hp(tile_idx)
+		var wall_hp: int = lf_ai.get_wall_hp(tile_idx)
 		# 城墙受损时修缮
 		if wall_hp > 0 and wall_hp < 20:
-			LightFactionAI.repair_wall(tile_idx, 5)
+			lf_ai.repair_wall(tile_idx, 5)
 
 # ═══════════════════════════════════════════════════════════
 # 覆盖：军事 (人类防御反击)

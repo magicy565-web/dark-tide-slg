@@ -2,8 +2,6 @@
 ## 特性：WAAAGH!战争狂热、近战爆发、数量优势、低外交
 extends "res://systems/faction/ai_factions/ai_faction_base.gd"
 
-const OrcMechanic = preload("res://systems/faction/orc_mechanic.gd")
-
 func _init() -> void:
 	super._init(0, "orc") # FactionConfig.FactionType.ORC = 0
 
@@ -12,7 +10,8 @@ func _init() -> void:
 # ═══════════════════════════════════════════════════════════
 func _decide_strategy(player_id: int) -> void:
 	# 兽人只有两种策略：进攻或WAAAGH!狂暴进攻
-	var waaagh: int = OrcMechanic.get_waaagh(player_id) if OrcMechanic != null else 0
+	var orc_node: Node = _get_orc_mechanic()
+	var waaagh: int = orc_node.get_waaagh(player_id) if orc_node != null else 0
 	
 	if _retreat_mode and _military_score < 0.2:
 		_current_strategy = "defensive"
@@ -36,7 +35,8 @@ func _execute_domestic(player_id: int) -> void:
 	var orc_priority: Array = ["arena", "training_ground", "labor_camp", "slave_market", "fortification"]
 	
 	# 如果WAAAGH!值高，优先招募
-	var waaagh: int = OrcMechanic.get_waaagh(player_id) if OrcMechanic != null else 0
+	var orc_node: Node = _get_orc_mechanic()
+	var waaagh: int = orc_node.get_waaagh(player_id) if orc_node != null else 0
 	if waaagh >= 30:
 		_try_recruit(player_id, owned_tiles)
 	
@@ -57,7 +57,8 @@ func _execute_military(player_id: int) -> void:
 		_create_initial_army(player_id)
 		return
 	
-	var waaagh: int = OrcMechanic.get_waaagh(player_id) if OrcMechanic != null else 0
+	var orc_node: Node = _get_orc_mechanic()
+	var waaagh: int = orc_node.get_waaagh(player_id) if orc_node != null else 0
 	
 	if waaagh >= 50:
 		# WAAAGH!模式：无视伤亡全力进攻
@@ -81,8 +82,9 @@ func _orc_waaagh_assault(player_id: int, armies: Array) -> void:
 		if best_target >= 0:
 			await GameManager.action_attack_with_army(army["id"], best_target)
 			# WAAAGH!消耗
-			if OrcMechanic != null:
-				OrcMechanic.consume_waaagh(player_id, 20)
+			var orc_node2: Node = _get_orc_mechanic()
+			if orc_node2 != null:
+				orc_node2.add_waaagh(player_id, -20)
 			break
 
 func _orc_standard_attack(player_id: int, armies: Array) -> void:
@@ -106,6 +108,13 @@ func _orc_standard_attack(player_id: int, armies: Array) -> void:
 		_advance_army(player_id, army)
 
 # ═══════════════════════════════════════════════════════════
+func _get_orc_mechanic() -> Node:
+	if Engine.get_main_loop() is SceneTree:
+		var root: Node = (Engine.get_main_loop() as SceneTree).root
+		if root.has_node("OrcMechanic"):
+			return root.get_node("OrcMechanic")
+	return null
+
 # 覆盖：外交 (兽人几乎不外交)
 # ═══════════════════════════════════════════════════════════
 func _execute_diplomacy(player_id: int) -> void:
