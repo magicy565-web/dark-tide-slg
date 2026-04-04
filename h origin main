@@ -1,0 +1,39 @@
+[33mcommit 96dfad8e03faace2e8a95a6d8992e75bd0befe55[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Manus Agent <manus-agent@manus.im>
+Date:   Fri Apr 3 12:09:14 2026 -0400
+
+    fix: 系统级审计 v5.3 — 补全 23 个缺失方法
+    
+    全面扫描 178 个 .gd 文件（125,756 行），发现并修复 23 个被调用但未定义的方法：
+    
+    GameManager (10 methods):
+      - execute_explore: 委托到 action_explore
+      - open_recruit_panel / open_domestic_panel / open_research_panel: UI 面板入口
+      - get_all_factions / get_current_turn / get_espionage_level: 状态查询
+      - get_faction_name / get_player_tiles / get_tile_at_position / is_tile_visible: 地图查询
+    
+    HeroSystem (7 methods):
+      - add_stat_bonus: 委托到 modify_hero_stat
+      - change_affection: 委托到 add_affection
+      - is_hero_recruited / force_recruit_hero: 招募状态查询/强制招募
+      - grant_xp_all / set_hero_level: 经验/等级操作
+      - unassign_hero_from_army: 委托到 unstation_hero_by_id
+    
+    ResourceManager (2 methods):
+      - add_random_resource: 随机选择 gold/food/iron 并 apply_delta
+      - get_army_size: 委托到 get_army
+    
+    BuffManager (1 method):
+      - apply_buff: add_buff 的 dict-value 别名
+    
+    DiplomacyManager (3 methods):
+      - get_pending_proposals / accept_proposal / reject_proposal: 条约提案系统
+    
+    StoryEventSystem (1 method):
+      - record_event: 全局事件日志记录
+    
+    验证结果:
+      - 0 个重复函数
+      - 0 个未声明信号
+      - 0 个缺失方法（从 23 降至 0）
+      - Tab 缩进一致性通过
