@@ -554,7 +554,10 @@ func get_population_cap(player_id: int) -> int:
 func calculate_action_points(player_id: int) -> int:
 	var owned: int = count_tiles_owned(player_id)
 	var ap: int = BASE_AP + owned / AP_PER_TILES + NgPlusManager.get_bonus_ap()
-	return mini(ap, MAX_AP)
+	# v4.7: Add PrestigeShop AP cap bonus and NGPlusShop starting AP bonus
+	var prestige_ap_bonus: int = PrestigeShop.get_ap_cap_bonus() if PrestigeShop != null else 0
+	var ngplus_ap_bonus: int = NGPlusShop.get_ap_bonus() if NGPlusShop != null else 0
+	return mini(ap, MAX_AP + prestige_ap_bonus + ngplus_ap_bonus)
 
 
 ## BUG FIX R11: get_army_count was referenced by production_calculator but never defined
@@ -1394,6 +1397,10 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC, fixed_map: bool
 
 	# Apply NG+ carry-over bonuses
 	NgPlusManager.apply_bonuses(0)
+	# v4.7: Initialize NGPlusShop with last clear score, then apply any pre-selected bonuses
+	NgPlusManager.init_ngplus_shop()
+	if NGPlusShop != null:
+		NGPlusShop.apply_selected_bonuses(0)
 
 	# Capture starting tiles for human
 	var human_zone_key: String = _faction_zone_key(chosen_faction)
@@ -1825,6 +1832,9 @@ func begin_turn() -> void:
 	player["atk_bonus"] = 0
 	player["def_bonus"] = 0
 	_ap_purchases_this_turn = 0
+	# v4.7: Clear hero fatigue at start of each turn
+	if HeroSystem != null and HeroSystem.has_method("clear_all_fatigue"):
+		HeroSystem.clear_all_fatigue()
 	# Legacy state reset (board compat)
 	has_rolled = false
 	waiting_for_move = false
@@ -2162,7 +2172,8 @@ func begin_turn() -> void:
 
 	# ── Phase 5e4: Light faction diplomacy tick (ceasefire, peace offers) ──
 	DiplomacyManager.tick_light_diplomacy()
-
+	# ── Phase 5e4b: v4.7 AI arms trade routes (威胁≥30时光明方互相军火交易) ──
+	DiplomacyManager.process_ai_trade_routes(ThreatManager.get_threat())
 	# ── Phase 5e5: Reputation decay ──
 	DiplomacyManager.tick_reputation_decay()
 
@@ -4072,6 +4083,10 @@ func _grant_hero_combat_exp(pid: int, result: Dictionary, attacker_wins: bool) -
 					FactionData.HEROES.get(hero_id, {}).get("name", hero_id),
 					p.get("name", p.get("passive_id", ""))])
 
+	# v4.7: Mark heroes as fatigued after combat (疲劳机制)
+	if HeroSystem != null and HeroSystem.has_method("set_hero_action_used"):
+		for hero_id in hero_ids:
+			HeroSystem.set_hero_action_used(hero_id)
 	# Shared battle affection: heroes in winning battles gain +1 affection
 	if attacker_wins and HeroSystem != null:
 		for hero_id in hero_ids:

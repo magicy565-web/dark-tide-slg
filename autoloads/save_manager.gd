@@ -253,6 +253,9 @@ func _collect_save_data() -> Dictionary:
 		"event_scheduler": EventScheduler.to_save_data() if EventScheduler != null else {},
 		# v4.3 新增系统
 		"general_system": GeneralSystem.serialize() if GeneralSystem != null else {},
+		# v4.7 新增系统
+		"prestige_shop": PrestigeShop.to_save_data() if PrestigeShop != null else {},
+		"ngplus_shop": NGPlusShop.to_save_data() if NGPlusShop != null else {},
 	}
 
 
@@ -482,6 +485,11 @@ func _apply_save_data(data: Dictionary) -> void:
 	# 4u. Restore general system state (v4.3+)
 	if data.has("general_system") and GeneralSystem != null:
 		GeneralSystem.deserialize(data.get("general_system", {}))
+	# 4v. Restore v4.7 new systems
+	if data.has("prestige_shop") and PrestigeShop != null:
+		PrestigeShop.from_save_data(data.get("prestige_shop", {}))
+	if data.has("ngplus_shop") and NGPlusShop != null:
+		NGPlusShop.from_save_data(data.get("ngplus_shop", {}))
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
 	EventBus.resources_changed.emit(pid)

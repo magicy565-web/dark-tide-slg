@@ -559,6 +559,9 @@ func _get_recruit_discount(player_id: int) -> float:
 	# NPC discount
 	var npc_bonuses: Dictionary = NpcManager.get_active_skill_bonuses(player_id)
 	discount += float(npc_bonuses.get("recruit_discount", 0))
+	# v4.7: PrestigeShop permanent recruit discount
+	if PrestigeShop != null:
+		discount += PrestigeShop.get_recruit_discount()
 	return discount
 
 

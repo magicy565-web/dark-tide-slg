@@ -80,6 +80,9 @@ func _calculate_victory_score() -> int:
 			score += 100
 	# Bonus: NG+ level multiplier
 	score = int(float(score) * (1.0 + float(_ngplus_level) * 0.1))
+	# v1.1: Hard mode bonus (挑战剧本通关得分×1.5)
+	if NGPlusShop != null and NGPlusShop.is_hard_mode_active():
+		score = int(float(score) * 1.5)
 	return score
 
 
