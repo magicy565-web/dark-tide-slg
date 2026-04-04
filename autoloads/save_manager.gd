@@ -209,6 +209,8 @@ func _collect_save_data() -> Dictionary:
 		"ai_scaling": AIScaling.to_save_data(),
 		"events": EventSystem.to_save_data(),
 		"light_faction_ai": LightFactionAI.to_save_data(),
+		"human_kingdom_ai": HumanKingdomAI.to_save_data() if HumanKingdomAI != null else {},
+		"human_kingdom_events": HumanKingdomEvents.to_save_data() if HumanKingdomEvents != null else {},
 		"alliance_ai": AllianceAI.to_save_data(),
 		"evil_faction_ai": EvilFactionAI.to_save_data(),
 		"ai_strategic_planner": AIStrategicPlanner.to_save_data(),
@@ -353,6 +355,10 @@ func _apply_save_data(data: Dictionary) -> void:
 	else:
 		# Legacy save: re-init from tile state
 		LightFactionAI.init_light_defenses()
+	if data.has("human_kingdom_ai") and HumanKingdomAI != null:
+		HumanKingdomAI.from_save_data(data.get("human_kingdom_ai", {}))
+	if data.has("human_kingdom_events") and HumanKingdomEvents != null:
+		HumanKingdomEvents.from_save_data(data.get("human_kingdom_events", {}))
 	AllianceAI.from_save_data(data.get("alliance_ai", {}))
 	EvilFactionAI.from_save_data(data.get("evil_faction_ai", {}))
 	AIStrategicPlanner.from_save_data(data.get("ai_strategic_planner", {}))

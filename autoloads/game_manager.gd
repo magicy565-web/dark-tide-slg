@@ -1349,6 +1349,10 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC, fixed_map: bool
 	AllianceAI.reset()
 	EvilFactionAI.reset()
 	LightFactionAI.reset()
+	if HumanKingdomAI != null:
+		HumanKingdomAI.reset()
+	if HumanKingdomEvents != null:
+		HumanKingdomEvents.reset()
 	AIStrategicPlanner.reset()
 	StoryEventSystem.reset()
 	if EquipmentForge != null:
@@ -8645,6 +8649,10 @@ func start_tutorial_game() -> void:
 	AllianceAI.reset()
 	EvilFactionAI.reset()
 	LightFactionAI.reset()
+	if HumanKingdomAI != null:
+		HumanKingdomAI.reset()
+	if HumanKingdomEvents != null:
+		HumanKingdomEvents.reset()
 	AIStrategicPlanner.reset()
 	StoryEventSystem.reset()
 	if EquipmentForge != null:
