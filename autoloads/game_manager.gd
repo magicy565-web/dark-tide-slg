@@ -3720,6 +3720,8 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			"slot": slot_idx,
 			# DEEP: always read passive from troop definition (instance may lack it after save/load)
 			"passive": GameData.get_troop_def(troop.get("troop_id", "")).get("passive", troop.get("passive", "")),
+			# v10.5: inject exp so CombatSystem._build_battle_units can apply veteran/elite bonuses
+			"exp": troop.get("exp", troop.get("xp", 0)),
 		}
 		# v4.4: Inject hero combat stats & equipment passives for CombatSystem v2
 		if _cmd_id != "generic" and _cmd_id != "" and HeroSystem != null:
@@ -3868,7 +3870,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			defender_units[0]["max_soldiers"] += _cmd_bonus["garrison_add"]
 		EventBus.message_log.emit("[color=cyan]驻防武将%s增援! DEF+25%%, 守军+%d[/color]" % [_cmd_bonus.get("hero_name", ""), _cmd_bonus.get("garrison_add", 0)])
 
-	var attacker_data: Dictionary = {"units": attacker_units, "player_id": pid}
+	var attacker_data: Dictionary = {"units": attacker_units, "player_id": pid, "is_player": true}  # v10.5: is_player enables BalanceManager ATK mult
 
 	# ── Siege combat modifiers (v5.0) ──
 	var _siege_at_tile: Dictionary = SiegeSystem.get_siege_at_tile(tile.get("index", -1))

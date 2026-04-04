@@ -945,6 +945,45 @@ func _apply_ultimate_damage(state: BattleState, ult_result: Dictionary, caster_s
 					au.hp = mini(au.hp + healed * au.hp_per_soldier, au.max_hp)
 					_recalc_soldiers(au)
 					state.action_log.append({"action": "heal", "unit": au.id, "side": caster_side, "slot": au.slot, "healed": healed, "remaining_soldiers": au.soldiers, "max_soldiers": au.max_soldiers, "desc": "%s 恢复了 %d 兵力" % [au.troop_id, healed]})
+		# v10.5: Sync buff_all ultimate buffs from battle_dict back to BattleUnit.active_buffs
+		var buffed: bool = hit.get("buffed", false)
+		if buffed:
+			# The buff was written into battle_dict ally units; find matching BattleUnit by slot order
+			for ai in range(ally_units.size()):
+				var au: BattleUnit = ally_units[ai]
+				if au.is_alive():
+					# Sync any new buffs from battle_dict that aren't already in active_buffs
+					var dict_units: Array = targets_hit  # use ult_result reference below
+					break  # handled via post-loop sync below
+	# v10.5: Post-loop: sync battle_dict buffs/debuffs back to BattleUnit.active_buffs
+	var battle_dict_ref: Dictionary = _state_to_resolver_dict(state)
+	var ally_dict_units: Array = battle_dict_ref.get("atk_units" if caster_side == "attacker" else "def_units", [])
+	for ai in range(mini(ally_units.size(), ally_dict_units.size())):
+		var au: BattleUnit = ally_units[ai]
+		var ad: Dictionary = ally_dict_units[ai]
+		var dict_buffs: Array = ad.get("buffs", [])
+		for db in dict_buffs:
+			var already_has := false
+			for existing in au.active_buffs:
+				if existing.get("id", "") == db.get("id", ""):
+					already_has = true; break
+			if not already_has and db.has("id"):
+				au.active_buffs.append(db)
+				state.action_log.append({"action": "buff", "unit": au.id, "side": caster_side, "slot": au.slot, "buff_type": db.get("id", "buff"), "desc": "%s 获得必杀技增益: %s" % [au.troop_id, db.get("id", "buff")]})
+	# v10.5: Sync aoe_damage_freeze debuffs from battle_dict enemy units back to BattleUnit.active_buffs
+	var enemy_dict_units: Array = battle_dict_ref.get("def_units" if caster_side == "attacker" else "atk_units", [])
+	for ei in range(mini(enemy_units.size(), enemy_dict_units.size())):
+		var eu: BattleUnit = enemy_units[ei]
+		var ed: Dictionary = enemy_dict_units[ei]
+		var dict_debuffs: Array = ed.get("debuffs", [])
+		for dd in dict_debuffs:
+			var already_has := false
+			for existing in eu.active_buffs:
+				if existing.get("id", "") == dd.get("id", ""):
+					already_has = true; break
+			if not already_has and dd.has("id"):
+				eu.active_buffs.append(dd)
+				state.action_log.append({"action": "debuff", "unit": eu.id, "side": enemy_side, "slot": eu.slot, "debuff_type": dd.get("id", "debuff"), "desc": "%s 被施加 %s" % [eu.troop_id, dd.get("id", "debuff")]})
 
 	# v10.0: drain_damage heal sync
 	if total_dmg_dealt > 0:
