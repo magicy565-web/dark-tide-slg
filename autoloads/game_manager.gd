@@ -2660,8 +2660,9 @@ func create_army(player_id: int, tile_index: int, army_name: String = "") -> int
 		tile_data["garrison"] = maxi(0, garrison_pool - squads_to_seed)
 
 	var troop_count: int = armies[army_id]["troops"].size()
+	var _tile_name_for_log: String = tiles[tile_index].get("name", "???") if tile_index >= 0 and tile_index < tiles.size() else "???"
 	EventBus.message_log.emit("[color=cyan]创建军团: %s (驻扎于 %s, 初始兵种%d队)[/color]" % [
-		army_name, tiles[tile_index]["name"], troop_count])
+		army_name, _tile_name_for_log, troop_count])
 	EventBus.army_created.emit(player_id, army_id, tile_index)
 	if troop_count > 0:
 		EventBus.army_ready_to_march.emit(army_id, tile_index)
@@ -3383,6 +3384,8 @@ func action_multi_route_attack(army_ids: Array, target_tile_index: int) -> bool:
 	# Consume 1 AP from each army's owner
 	var owners_charged: Dictionary = {}
 	for aid in army_ids:
+		if not armies.has(aid):
+			continue
 		var army: Dictionary = armies[aid]
 		var pid: int = army["player_id"]
 		if not owners_charged.has(pid):
@@ -3428,6 +3431,8 @@ func action_multi_route_attack(army_ids: Array, target_tile_index: int) -> bool:
 	if not defender_survived or any_won:
 		# First winning army captures the tile
 		for aid in army_ids:
+			if not armies.has(aid):
+				continue
 			var army: Dictionary = armies[aid]
 			var player: Dictionary = get_player_by_id(army["player_id"])
 			_capture_tile(player, tile)
@@ -5202,6 +5207,8 @@ func _calculate_conquest_loot(tile: Dictionary, pid: int) -> Dictionary:
 
 ## Check and trigger conquest events when capturing a tile
 func _check_conquest_events(pid: int, tile_index: int) -> void:
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	var tile_type: int = tile["type"]
 	var tile_name: String = tile["name"]

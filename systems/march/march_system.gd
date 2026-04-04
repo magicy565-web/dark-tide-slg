@@ -184,7 +184,8 @@ func issue_march_order(army_id: int, target_tile: int) -> Dictionary:
 
 	EventBus.army_march_started.emit(army_id, path)
 	var est_turns: int = get_estimated_turns(path, army_id)
-	var tile_name: String = GameManager.tiles[target_tile].get("name", "目标")
+	var _tiles: Array = GameManager.tiles
+	var tile_name: String = _tiles[target_tile].get("name", "目标") if target_tile >= 0 and target_tile < _tiles.size() else "目标"
 	EventBus.message_log.emit("[color=cyan]%s 开始行军前往 %s (预计%d回合)[/color]" % [
 		army.get("name", "军团"), tile_name, est_turns])
 

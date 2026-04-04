@@ -159,6 +159,16 @@ func _connect_signals() -> void:
 		EventBus.supply_line_cut.connect(_on_supply_line_cut)
 	if EventBus.has_signal("supply_line_restored"):
 		EventBus.supply_line_restored.connect(_on_supply_line_restored)
+	# Manual single-tile refresh signal (emitted by army deploy, garrison, etc.)
+	if EventBus.has_signal("tile_indicator_refresh"):
+		EventBus.tile_indicator_refresh.connect(_on_tile_indicator_refresh)
+	# Army state changes that affect tile display
+	if EventBus.has_signal("army_march_arrived"):
+		EventBus.army_march_arrived.connect(_on_army_march_arrived_indicator)
+	if EventBus.has_signal("army_garrisoned"):
+		EventBus.army_garrisoned.connect(_on_army_garrisoned_indicator)
+	if EventBus.has_signal("army_deployed"):
+		EventBus.army_deployed.connect(_on_army_deployed_indicator)
 
 
 func _on_turn_started(_player_id: int) -> void:
@@ -982,3 +992,31 @@ func _get_espionage_system():
 		if es:
 			return es
 	return null
+
+
+# ═══════════════════════════════════════════════════════════════
+#   ARMY STATE → TILE INDICATOR REFRESH HANDLERS
+# ═══════════════════════════════════════════════════════════════
+
+func _on_tile_indicator_refresh(tile_index: int) -> void:
+	## Refresh a single tile's indicators immediately (e.g. after deploy/garrison).
+	if tile_index >= 0 and tile_index < GameManager.tiles.size():
+		_update_tile_indicators(tile_index)
+
+
+func _on_army_march_arrived_indicator(army_id: int, tile_index: int) -> void:
+	## When an army arrives, refresh its destination tile and neighbours.
+	_on_tile_indicator_refresh(tile_index)
+	for n_idx in GameManager.adjacency.get(tile_index, []):
+		_update_tile_indicators(n_idx)
+
+
+func _on_army_garrisoned_indicator(army_id: int, tile_index: int) -> void:
+	## When an army garrisons, refresh the tile so the garrison badge updates.
+	_on_tile_indicator_refresh(tile_index)
+
+
+func _on_army_deployed_indicator(_player_id: int, _army_id: int, from_tile: int, to_tile: int) -> void:
+	## When an army deploys, refresh both origin and destination tiles.
+	_on_tile_indicator_refresh(from_tile)
+	_on_tile_indicator_refresh(to_tile)

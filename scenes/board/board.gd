@@ -1431,6 +1431,8 @@ func _hide_hover_glow() -> void:
 		_hover_glow.visible = false
 
 func _on_tile_clicked(tile_index: int) -> void:
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var old_sel: int = selected_tile
 	var pid: int = GameManager.get_human_player_id()
 	var tile: Dictionary = GameManager.tiles[tile_index]

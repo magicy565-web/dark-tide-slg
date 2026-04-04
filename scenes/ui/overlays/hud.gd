@@ -1583,6 +1583,8 @@ func _find_battle_prep():
 
 ## v5.0: Show siege options sub-menu for fortified tiles.
 func _show_siege_options(tile_index: int, army_id: int, siege_in_progress: bool) -> void:
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var tile_name: String = tile.get("name", "据点")
 	var player: Dictionary = GameManager.get_player_by_id(GameManager.get_human_player_id())
@@ -1832,9 +1834,11 @@ func _on_commander_pressed() -> void:
 
 func _on_commander_territory_selected(tile_index: int) -> void:
 	## Show available heroes to station at this territory.
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var pid: int = GameManager.get_human_player_id()
 	var stationed: String = HeroSystem.get_stationed_hero(tile_index)
-	var tile_name: String = GameManager.tiles[tile_index]["name"]
+	var tile_name: String = GameManager.tiles[tile_index].get("name", "???")
 
 	_show_target_panel("Commander for %s" % tile_name)
 
@@ -1868,7 +1872,7 @@ func _on_commander_territory_selected(tile_index: int) -> void:
 func _on_commander_assign(hero_id: String, tile_index: int) -> void:
 	HeroSystem.station_hero(hero_id, tile_index)
 	var hinfo: Dictionary = HeroSystem.get_hero_info(hero_id)
-	var tile_name: String = GameManager.tiles[tile_index]["name"]
+	var tile_name: String = GameManager.tiles[tile_index].get("name", "???") if tile_index >= 0 and tile_index < GameManager.tiles.size() else "???"
 	EventBus.message_log.emit("[color=orchid]%s[/color] assigned as commander of [color=gold]%s[/color]" % [hinfo.get("name", hero_id), tile_name])
 	_close_target_panel()
 	_update_tile_info()
@@ -1878,7 +1882,7 @@ func _on_commander_remove(tile_index: int) -> void:
 	var hero_id: String = HeroSystem.unstation_hero(tile_index)
 	if hero_id != "":
 		var hinfo: Dictionary = HeroSystem.get_hero_info(hero_id)
-		var tile_name: String = GameManager.tiles[tile_index]["name"]
+		var tile_name: String = GameManager.tiles[tile_index].get("name", "???") if tile_index >= 0 and tile_index < GameManager.tiles.size() else "???"
 		EventBus.message_log.emit("[color=orchid]%s[/color] relieved from [color=gold]%s[/color]" % [hinfo.get("name", hero_id), tile_name])
 	_close_target_panel()
 	_update_tile_info()
@@ -2483,6 +2487,8 @@ func _on_domestic_upgrade_target(tile_index: int) -> void:
 
 func _on_domestic_build_tile(tile_index: int) -> void:
 	# Show available buildings for this tile
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var pid: int = GameManager.get_human_player_id()
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var available: Array = BuildingRegistry.get_available_buildings_for(pid, tile)
@@ -3904,7 +3910,8 @@ func _on_game_over(winner_id: int) -> void:
 	var victory_type: String = ""
 	if is_victory:
 		victory_type = _detect_victory_type(human_id)
-		game_over_label.text = "%s Wins!" % GameManager.get_player_by_id(human_id).get("name", "Player")
+		var _p_win: Dictionary = GameManager.get_player_by_id(human_id)
+		game_over_label.text = "%s Wins!" % _p_win.get("name", "Player")
 		game_over_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 		game_over_victory_type_label.text = victory_type
 		game_over_victory_type_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
@@ -3945,7 +3952,8 @@ func _on_game_over_detailed(data: Dictionary) -> void:
 	if is_victory:
 		if victory_type == "":
 			victory_type = _detect_victory_type(human_id)
-		game_over_label.text = "%s Wins!" % GameManager.get_player_by_id(human_id).get("name", "Player")
+		var _p_win2: Dictionary = GameManager.get_player_by_id(human_id)
+		game_over_label.text = "%s Wins!" % _p_win2.get("name", "Player")
 		game_over_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)
 		game_over_victory_type_label.text = victory_type
 		game_over_victory_type_label.add_theme_color_override("font_color", ColorTheme.TEXT_GOLD)

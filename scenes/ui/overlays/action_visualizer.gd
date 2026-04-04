@@ -102,6 +102,19 @@ func _connect_signals() -> void:
 		EventBus.army_supply_low.connect(_on_supply_low_vfx)
 	if EventBus.has_signal("army_garrisoned"):
 		EventBus.army_garrisoned.connect(_on_army_garrisoned_vfx)
+	# Direct visualize signals (emitted by GameManager for specific actions)
+	if EventBus.has_signal("action_visualize_deploy"):
+		EventBus.action_visualize_deploy.connect(_on_action_visualize_deploy)
+	if EventBus.has_signal("action_visualize_recruit"):
+		EventBus.action_visualize_recruit.connect(_on_action_visualize_recruit)
+	if EventBus.has_signal("action_visualize_build"):
+		EventBus.action_visualize_build.connect(_on_action_visualize_build)
+	# Army selected — show selection ring
+	if EventBus.has_signal("army_selected"):
+		EventBus.army_selected.connect(_on_army_selected_vfx)
+	# Troops assigned — show recruit pulse
+	if EventBus.has_signal("army_troops_assigned"):
+		EventBus.army_troops_assigned.connect(_on_army_troops_assigned_vfx)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -875,3 +888,57 @@ func _get_faction_color_for_player(player_id: int) -> Color:
 		if fid >= 0 and ColorTheme.FACTION_ID_COLORS.has(fid):
 			return ColorTheme.FACTION_ID_COLORS[fid]
 	return ColorTheme.ACCENT_GOLD
+
+
+# ═══════════════════════════════════════════════════════════════
+#   HANDLERS FOR DIRECT VISUALIZE SIGNALS (GameManager → VFX)
+# ═══════════════════════════════════════════════════════════════
+
+func _on_action_visualize_deploy(army_id: int, from_tile: int, to_tile: int) -> void:
+	## Triggered by GameManager.action_deploy_army — show a deploy line effect.
+	play_effect("deploy", {"from_tile": from_tile, "to_tile": to_tile})
+
+
+func _on_action_visualize_recruit(tile_index: int, troop_id: String, count: int) -> void:
+	## Triggered by GameManager recruit actions — show a recruit glow at the tile.
+	play_effect("recruit", {"tile": tile_index, "troop_name": troop_id, "count": count})
+
+
+func _on_action_visualize_build(tile_index: int, _building_id: String) -> void:
+	## Triggered by GameManager.action_domestic build — show a build dust effect.
+	play_effect("build", {"tile": tile_index, "building_name": _building_id})
+
+
+func _on_army_selected_vfx(army_id: int) -> void:
+	## Show a brief selection ring pulse at the army's current tile.
+	if not GameManager.armies.has(army_id):
+		return
+	var tile_idx: int = GameManager.armies[army_id].get("tile_index", -1)
+	if tile_idx < 0:
+		return
+	var pos: Vector2 = _estimate_screen_pos(tile_idx)
+	# Brief cyan ring pulse
+	var ring := ColorRect.new()
+	ring.size = Vector2(60, 60)
+	ring.position = pos - Vector2(30, 30)
+	ring.color = Color(0.3, 0.85, 1.0, 0.0)
+	ring.set_meta("vfx", true)
+	add_child(ring)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(ring, "color:a", 0.55, 0.15).set_ease(Tween.EASE_OUT)
+	tw.tween_property(ring, "size", Vector2(80, 80), 0.35).set_ease(Tween.EASE_OUT)
+	tw.tween_property(ring, "position", pos - Vector2(40, 40), 0.35).set_ease(Tween.EASE_OUT)
+	tw.set_parallel(false)
+	tw.tween_property(ring, "color:a", 0.0, 0.25).set_ease(Tween.EASE_IN)
+	tw.tween_callback(_cleanup_effect.bind(ring))
+
+
+func _on_army_troops_assigned_vfx(army_id: int, _troop_id: String, _soldiers: int) -> void:
+	## Show a green recruit pulse at the army's tile when troops are assigned.
+	if not GameManager.armies.has(army_id):
+		return
+	var tile_idx: int = GameManager.armies[army_id].get("tile_index", -1)
+	if tile_idx < 0:
+		return
+	play_effect("recruit", {"tile": tile_idx, "troop_name": _troop_id, "count": _soldiers})
