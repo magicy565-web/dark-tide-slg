@@ -7,6 +7,11 @@ const FactionData = preload("res://systems/faction/faction_data.gd")
 const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
 const FormationSystem = preload("res://systems/combat/formation_system.gd")
 const BalanceConfig = preload("res://systems/combat/balance_config.gd")
+# v10.6: Integration with previously disconnected subsystems
+const CombatAbilities = preload("res://systems/combat/combat_abilities.gd")
+const EnvironmentSystem = preload("res://systems/combat/environment_system.gd")
+const SupplySystem = preload("res://systems/combat/supply_system.gd")
+const EnchantmentSystem = preload("res://systems/hero/enchantment_system.gd")
 
 # ---------------------------------------------------------------------------
 # Constants & Enums
@@ -103,6 +108,9 @@ class BattleState:
 	var atk_formations: Array = []
 	var def_formations: Array = []
 	var terrain_str: String = ""
+	# v10.6: army IDs for SupplySystem / EnvironmentSystem lookup
+	var attacker_army_id: int = -1
+	var defender_army_id: int = -1
 
 	func living_attackers() -> Array[BattleUnit]:
 		var out: Array[BattleUnit] = []
@@ -232,9 +240,10 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		state.round_number += 1
 		state.action_log.append({"action": "round_start", "round": state.round_number, "desc": "第%d回合开始" % state.round_number})
 
-		# v10.2: Tick Buff Durations at round start
+			# v10.2: Tick Buff Durations at round start
 		_tick_buff_durations(state)
-
+		# v10.6: Tick burn/slow debuffs from CombatAbilities (applied to battle_dict proxy)
+		_tick_combat_abilities_debuffs(state)
 		_apply_round_start_passives(state)
 		_consume_formation_bonuses(state)
 		_tick_hero_skills(state)
@@ -577,10 +586,25 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		if target.row == 0 or target.has_passive("counter_bonus"):
 			_resolve_counter_attack(target, unit, state)
 
-	# Poison
+		# Poison
 	if unit.has_passive("poison_attack") and target.is_alive():
 		_apply_poison(unit, target, state)
-
+	# v10.6: EnchantmentSystem — apply hero enchantment passive after each attack
+	if not unit.hero_id.is_empty():
+		var ench_result: Dictionary = EnchantmentSystem.apply_enchantment_in_combat(unit.hero_id, entry)
+		var ench_effects: Array = ench_result.get("enchantment_effects", [])
+		for eff in ench_effects:
+			var eff_type: String = eff.get("type", "")
+			if eff_type == "bonus_damage" and target.is_alive():
+				var bonus: int = eff.get("value", 0)
+				target.hp = maxi(0, target.hp - bonus * target.hp_per_soldier)
+				_recalc_soldiers(target)
+				state.action_log.append({"action": "enchantment", "unit": unit.id, "side": "attacker" if unit.is_attacker else "defender", "slot": unit.slot, "effect": eff_type, "value": bonus, "desc": "%s 附魔效果: +%d伤害" % [unit.troop_id, bonus]})
+			elif eff_type == "heal_self":
+				var heal: int = eff.get("value", 0)
+				unit.hp = mini(unit.max_hp, unit.hp + heal * unit.hp_per_soldier)
+				_recalc_soldiers(unit)
+				state.action_log.append({"action": "enchantment", "unit": unit.id, "side": "attacker" if unit.is_attacker else "defender", "slot": unit.slot, "effect": eff_type, "value": heal, "desc": "%s 附魔治疗: +%d兵" % [unit.troop_id, heal]})
 	return entry
 
 func _execute_skill(unit: BattleUnit, skill: Dictionary, state: BattleState) -> Dictionary:
@@ -819,7 +843,29 @@ func _tick_buff_durations(state: BattleState) -> void:
 			else:
 				state.action_log.append({"action": "buff_expire", "unit": u.id, "buff_id": b.get("id", "buff"), "desc": "%s 的 %s 效果消失" % [u.troop_id, b.get("id", "buff")]})
 		u.active_buffs = remaining
-
+# v10.6: Tick burn/slow debuffs from CombatAbilities on BattleUnit.active_buffs
+func _tick_combat_abilities_debuffs(state: BattleState) -> void:
+	for u in state.attacker_units + state.defender_units:
+		if not u.is_alive(): continue
+		var side_str: String = "attacker" if u.is_attacker else "defender"
+		for b in u.active_buffs:
+			var bid: String = b.get("id", "")
+			# Burn debuff: -1 soldier per round
+			if bid == "burn":
+				var burn_dmg: int = b.get("value", 1)
+				u.hp = maxi(0, u.hp - burn_dmg * u.hp_per_soldier)
+				_recalc_soldiers(u)
+				state.action_log.append({"action": "debuff_tick", "unit": u.id, "side": side_str, "slot": u.slot, "debuff": "burn", "damage": burn_dmg, "remaining_soldiers": u.soldiers, "desc": "%s 灼烧 -%d兵" % [u.troop_id, burn_dmg]})
+				if not u.is_alive():
+					state.action_log.append({"action": "death", "unit": u.id, "side": side_str, "slot": u.slot, "round": state.round_number, "desc": "%s 被灼烧消灭" % u.troop_id})
+					_apply_ally_death_morale(u, state)
+					_revalidate_formations_for_side(u, state)
+					break
+			# Slow debuff: reduce SPD (applied once via _applied flag)
+			elif bid == "slow" and not b.get("_applied", false):
+				u.spd = maxf(u.spd - 2.0, 1.0)
+				b["_applied"] = true
+				state.action_log.append({"action": "debuff_tick", "unit": u.id, "side": side_str, "slot": u.slot, "debuff": "slow", "desc": "%s 被减速 SPD-2" % u.troop_id})
 # ---------------------------------------------------------------------------
 # Hero Skill Logic (v6.0)
 # ---------------------------------------------------------------------------
@@ -1005,6 +1051,37 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 	# v10.2: Apply Buff Multipliers to ATK and DEF
 	var atk_val: int = int(float(attacker.atk) * attacker.get_stat_mult("atk"))
 	var def_val: int = int(float(defender.def_stat) * defender.get_stat_mult("def"))
+	# v10.6: CombatAbilities morale modifier — 50 morale = 1.0x, 0 = 0.6x, 100 = 1.15x
+	var morale_mult: float = clampf(0.6 + float(attacker.morale) * 0.008, 0.6, 1.15)
+	atk_val = int(float(atk_val) * morale_mult)
+	# v10.6: EnvironmentSystem time-of-day modifiers
+	if _has_autoload("EnvironmentSystem"):
+		var env: Node = _get_autoload("EnvironmentSystem")
+		if env != null and env.has_method("get_time_combat_modifiers"):
+			var time_mods: Dictionary = env.get_time_combat_modifiers()
+			# Assassin night ATK bonus
+			var assassin_bonus: int = time_mods.get("assassin_atk_bonus", 0)
+			if assassin_bonus != 0 and attacker.has_passive("assassin"):
+				atk_val += assassin_bonus
+			# Ranged accuracy modifier (affects ranged units)
+			var ranged_acc: float = time_mods.get("ranged_accuracy_mod", 0.0)
+			if ranged_acc != 0.0 and FormationSystem._is_ranged({"troop_id": attacker.troop_id}):
+				atk_val = int(float(atk_val) * (1.0 + ranged_acc))
+			# Undead ATK bonus
+			var undead_bonus: int = time_mods.get("undead_atk_bonus", 0)
+			if undead_bonus != 0 and attacker.has_passive("undead"):
+				atk_val += undead_bonus
+	# v10.6: SupplySystem combat modifiers (applied to attacker side only)
+	if _has_autoload("SupplySystem"):
+		var ss: Node = _get_autoload("SupplySystem")
+		if ss != null and ss.has_method("get_combat_modifiers_for_army"):
+			var army_id: int = state.attacker_army_id if attacker.is_attacker else state.defender_army_id
+			if army_id >= 0:
+				var supply_mods: Dictionary = ss.get_combat_modifiers_for_army(army_id)
+				var atk_mod: float = supply_mods.get("atk_mod", 0.0)
+				var def_mod_s: float = supply_mods.get("def_mod", 0.0)
+				if atk_mod != 0.0: atk_val = int(float(atk_val) * (1.0 + atk_mod))
+				if def_mod_s != 0.0: def_val = int(float(def_val) * (1.0 + def_mod_s))
 
 	if defender.has_passive("fort_def_3") and not defender.is_attacker: def_val += 3
 
