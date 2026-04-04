@@ -206,6 +206,10 @@ signal army_ready_to_march(army_id: int, tile_index: int)
 signal open_recruit_panel_requested(tile_index: int)
 ## Emitted by GameManager to ask HUD to open march planning for a specific army.
 signal open_march_panel_requested(army_id: int)
+## BUG FIX: Emitted by GameManager to ask HUD to open tile development panel for a specific tile.
+signal open_domestic_panel_requested(tile_index: int)
+## BUG FIX: Emitted by GameManager to ask HUD to open research panel.
+signal open_research_panel_requested()
 
 # ── Tutorial ──
 signal tutorial_step(step_id: String)

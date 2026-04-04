@@ -391,7 +391,17 @@ func _on_path_selected(path: int) -> void:
 func _on_confirm_yes() -> void:
 	confirm_overlay.visible = false
 	if _pending_path >= 0 and _tile_idx >= 0:
-		TileDevelopment.choose_path(_tile_idx, _pending_path)
+		# BUG FIX: Choosing a development path should cost 1 AP.
+		# Previously choose_path() was called without any AP check or deduction.
+		var pid: int = GameManager.get_human_player_id()
+		var player: Dictionary = GameManager.get_player_by_id(pid)
+		if not player.is_empty() and player.get("ap", 0) >= 1:
+			TileDevelopment.choose_path(_tile_idx, _pending_path)
+			player["ap"] -= 1
+			EventBus.ap_changed.emit(pid, player["ap"])
+			EventBus.message_log.emit("[color=cyan]已选择发展路线: %s (消耗 1 AP)[/color]" % TileDevelopment.get_path_name(_pending_path))
+		else:
+			EventBus.message_log.emit("[color=red]行动力不足，无法选择发展路线![/color]")
 	_pending_path = -1
 
 
@@ -407,10 +417,21 @@ func _on_build_pressed(building_id: String) -> void:
 	if not check["can"]:
 		return
 	var pid: int = GameManager.get_human_player_id()
+	# BUG FIX: Building a tile development building should cost 1 AP.
+	# Previously resources were spent but AP was never checked or deducted,
+	# allowing unlimited free builds per turn.
+	var player: Dictionary = GameManager.get_player_by_id(pid)
+	if player.is_empty() or player.get("ap", 0) < 1:
+		EventBus.message_log.emit("[color=red]行动力不足，无法建造![/color]")
+		return
 	if not ResourceManager.can_afford(pid, {"gold": check["cost_gold"], "iron": check["cost_iron"]}):
+		EventBus.message_log.emit("[color=red]资源不足，无法建造![/color]")
 		return
 	ResourceManager.spend(pid, {"gold": check["cost_gold"], "iron": check["cost_iron"]})
+	player["ap"] -= 1
+	EventBus.ap_changed.emit(pid, player["ap"])
 	TileDevelopment.build(_tile_idx, building_id)
+	EventBus.message_log.emit("[color=cyan]建造完成 (消耗 1 AP)[/color]")
 
 
 func _on_dim_bg_input(event: InputEvent) -> void:

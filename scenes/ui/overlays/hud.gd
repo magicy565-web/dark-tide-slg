@@ -225,6 +225,11 @@ func _connect_signals() -> void:
 		EventBus.open_recruit_panel_requested.connect(_on_open_recruit_panel_requested)
 	if EventBus.has_signal("open_march_panel_requested"):
 		EventBus.open_march_panel_requested.connect(_on_open_march_panel_requested)
+	# BUG FIX: Connect domestic panel and research panel signals from GameManager/ProvinceInfoPanel
+	if EventBus.has_signal("open_domestic_panel_requested"):
+		EventBus.open_domestic_panel_requested.connect(_on_open_domestic_panel_requested)
+	if EventBus.has_signal("open_research_panel_requested"):
+		EventBus.open_research_panel_requested.connect(_on_open_research_panel_requested)
 	# ── Army ready-to-march notification ──
 	if EventBus.has_signal("army_ready_to_march"):
 		EventBus.army_ready_to_march.connect(_on_army_ready_to_march)
@@ -2467,7 +2472,10 @@ func _on_domestic_upgrade() -> void:
 	var found: bool = false
 	for i in range(GameManager.tiles.size()):
 		var tile: Dictionary = GameManager.tiles[i]
-		if tile["owner_id"] == pid and tile["level"] < GameManager.MAX_TILE_LEVEL:
+		# BUG FIX: Added UPGRADE_COSTS.size() bounds check to prevent potential crash
+		# when tile level equals or exceeds the UPGRADE_COSTS array size.
+		if tile["owner_id"] == pid and tile["level"] < GameManager.MAX_TILE_LEVEL \
+				and tile["level"] < GameManager.UPGRADE_COSTS.size():
 			var cost: Array = GameManager.UPGRADE_COSTS[tile["level"]]
 			var label_text: String = "%s Lv%d -> Lv%d (%d gold %d iron)" % [
 				tile["name"], tile["level"], tile["level"] + 1, cost[0], cost[1]
@@ -2489,24 +2497,41 @@ func _on_domestic_upgrade() -> void:
 
 
 func _on_domestic_build() -> void:
-	# Show owned tiles that can have buildings
+	# BUG FIX: Show owned tiles that can have buildings OR upgrade existing buildings.
+	# Previously only showed tiles with no building (building_id == ""), which meant
+	# tiles with existing buildings could never be upgraded via this menu.
 	_current_mode = ActionMode.DOMESTIC_SUB
 	_domestic_sub_type = "build"
 	domestic_panel.visible = false
 
 	var pid: int = GameManager.get_human_player_id()
-	_show_target_panel("Build - Select Territory")
+	_show_target_panel("Build/Upgrade - Select Territory")
 
 	var found: bool = false
 	for i in range(GameManager.tiles.size()):
 		var tile: Dictionary = GameManager.tiles[i]
-		if tile["owner_id"] == pid and tile.get("building_id", "") == "":
-			var label_text: String = "%s (Lv%d)" % [tile["name"], tile["level"]]
+		if tile["owner_id"] != pid:
+			continue
+		var existing_bld: String = tile.get("building_id", "")
+		if existing_bld == "":
+			# No building: show as buildable
+			var label_text: String = "%s (Lv%d) — 空地" % [tile["name"], tile["level"]]
 			_add_target_button(label_text, _on_domestic_build_tile.bind(i))
 			found = true
+		else:
+			# Has building: check if it can be upgraded
+			var max_level: int = BuildingRegistry.get_building_max_level(existing_bld)
+			var cur_level: int = tile.get("building_level", 1)
+			if cur_level < max_level:
+				var label_text: String = "%s (Lv%d) — 升级 %s Lv%d→%d" % [
+					tile["name"], tile["level"],
+					BuildingRegistry.get_building_name(existing_bld), cur_level, cur_level + 1
+				]
+				_add_target_button(label_text, _on_domestic_build_tile.bind(i))
+				found = true
 
 	if not found:
-		_add_target_label("(No buildable territories)")
+		_add_target_label("(No buildable/upgradable territories)")
 
 
 func _on_domestic_upgrade_target(tile_index: int) -> void:
@@ -3529,7 +3554,8 @@ func _update_tile_info() -> void:
 		var territory: Array = NeutralFactionAI.get_faction_territory(nf_id)
 		info += "Territory nodes: %d\n" % territory.size()
 
-	if tile["owner_id"] == pid and tile["level"] < GameManager.MAX_TILE_LEVEL:
+	if tile["owner_id"] == pid and tile["level"] < GameManager.MAX_TILE_LEVEL \
+			and tile["level"] < GameManager.UPGRADE_COSTS.size():
 		var cost: Array = GameManager.UPGRADE_COSTS[tile["level"]]
 		info += "\n[color=yellow]Upgrade->Lv%d: %d gold %d iron[/color]" % [tile["level"] + 1, cost[0], cost[1]]
 
@@ -4097,6 +4123,21 @@ func _on_open_march_panel_requested(army_id: int) -> void:
 	_current_mode = ActionMode.MARCH
 	_selected_army_id = army_id
 	_show_march_targets(army_id)
+
+
+## BUG FIX: Called when GameManager requests the tile development panel open for a specific tile.
+## Previously open_domestic_panel() only printed a log; now it actually opens the UI.
+func _on_open_domestic_panel_requested(tile_index: int) -> void:
+	_ensure_tile_dev_panel()
+	if _tile_dev_panel:
+		_tile_dev_panel.show_panel(tile_index)
+
+
+## BUG FIX: Called when GameManager requests the research panel open.
+## Previously open_research_panel() only printed a log; now it actually opens the UI.
+func _on_open_research_panel_requested() -> void:
+	# Delegate to the existing research button handler which opens the tech tree panel
+	_on_research_pressed()
 
 
 ## Called when a newly created army is ready to march (has troops).

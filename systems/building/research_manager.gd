@@ -342,13 +342,16 @@ func _advance_queue(player_id: int) -> void:
 		var tech_data: Dictionary = get_tech_data(next_id)
 		# Verify prereqs are still met (may have changed since queuing)
 		if not _prereqs_met(player_id, next_id):
-			# Refund 50% of cost since prereqs no longer valid
+			# BUG FIX: Refund 100% of cost for queued research that never started.
+			# Previously only 50% was refunded, which was incorrect — the 50% penalty
+			# applies only to cancel_research() (in-progress research), not to items
+			# in the queue that were never started.
 			var cost: Dictionary = tech_data.get("cost", {})
 			var refund: Dictionary = {}
 			for key in cost:
-				refund[key] = int(cost[key] * 0.5)
+				refund[key] = int(cost[key])  # Full refund for never-started research
 			_refund_tech_cost(player_id, refund)
-			EventBus.message_log.emit("[color=red]队列中的研究 %s 前置条件不再满足, 已取消(退还50%%资源)[/color]" % tech_data.get("name", next_id))
+			EventBus.message_log.emit("[color=red]队列中的研究 %s 前置条件不再满足, 已取消(退还全额资源)[/color]" % tech_data.get("name", next_id))
 			research_cancelled.emit(player_id, next_id)
 			continue
 		state["current"] = next_id

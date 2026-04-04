@@ -1939,6 +1939,60 @@ func begin_turn() -> void:
 				var cur_po: float = t.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
 				t["public_order"] = minf(cur_po + float(td_order) * 0.01, 1.0)
 
+		# ── Phase 4a2: Building per-turn effects (undead_foundry, order_per_turn) ──
+		# BUG FIX: undead_foundry's undead_soldiers_per_turn and order_per_turn effects
+		# were defined in building_registry but never processed each turn.
+		for tidx in get_cached_owned_tiles(pid):
+			var t: Dictionary = tiles[tidx]
+			var bld: String = t.get("building_id", "")
+			if bld == "":
+				continue
+			var bld_lvl: int = t.get("building_level", 1)
+			var bld_eff: Dictionary = BuildingRegistry.get_building_effects(bld, bld_lvl)
+			# undead_soldiers_per_turn: spawn skeleton troops each turn (no food cost)
+			var undead_per_turn: int = int(bld_eff.get("undead_soldiers_per_turn", 0))
+			if undead_per_turn > 0:
+				var pop_cap: int = get_population_cap(pid)
+				var current_army: int = ResourceManager.get_army(pid)
+				var can_spawn: int = mini(undead_per_turn, pop_cap - current_army)
+				if can_spawn > 0:
+					for _u in range(can_spawn):
+						var inst: Dictionary = GameData.create_troop_instance("neutral_skeleton")
+						if not inst.is_empty():
+							RecruitManager.reinforce_army(pid, [inst])
+						else:
+							ResourceManager.add_army(pid, 1)
+					sync_player_army(pid)
+					EventBus.message_log.emit("[color=purple]亡灵兵工厂: 召唤 +%d 骷髅兵[/color]" % can_spawn)
+			# order_per_turn: apply public order change from buildings (e.g. undead_foundry penalty)
+			var order_delta: int = int(bld_eff.get("order_per_turn", 0))
+			if order_delta != 0:
+				var cur_po: float = t.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
+				t["public_order"] = clampf(cur_po + float(order_delta) * 0.01, 0.0, 1.0)
+			# BUG FIX: items_per_turn (black_market, trading_post Lv3) — grant a random item each turn.
+			# Previously this effect was defined in building_registry but never processed.
+			var items_per_turn: int = int(bld_eff.get("items_per_turn", 0))
+			if items_per_turn > 0:
+				for _i in range(items_per_turn):
+					if not ItemManager.is_full(pid):
+						var item_id: String = ItemManager.grant_random_loot(pid)
+						if item_id != "":
+							var item_name: String = ItemManager._get_item_name(item_id) if item_id != "" else item_id
+							EventBus.message_log.emit("[color=cyan]%s: 获得道具 [%s][/color]" % [BuildingRegistry.get_building_name(bld, bld_lvl), item_name])
+			# BUG FIX: plunder_per_turn (smugglers_den Lv3) — grant plunder value each turn.
+			# Previously this effect was defined in building_registry but never processed.
+			var plunder_per_turn: int = int(bld_eff.get("plunder_per_turn", 0))
+			if plunder_per_turn > 0 and PirateMechanic.has_method("add_plunder_bonus"):
+				PirateMechanic.add_plunder_bonus(pid, plunder_per_turn)
+				EventBus.message_log.emit("[color=cyan]%s: +%d 掠夺值[/color]" % [BuildingRegistry.get_building_name(bld, bld_lvl), plunder_per_turn])
+
+		# ── Phase 4a3: TileDevelopment rebuilding tick and military training ──
+		# BUG FIX: tick_rebuilding() and process_military_training() were defined in
+		# TileDevelopment but never called each turn, causing rebuilding timers to
+		# never decrement and military training EXP to never be granted.
+		TileDevelopment.tick_rebuilding()
+		TileDevelopment.process_military_training(pid)
+
 	# ── Phase 4b: Troop per-turn passive effects (regen, self_destruct, etc.) ──
 	_tick_troop_passives(pid)
 
@@ -4720,6 +4774,22 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 		if not skel_inst.is_empty():
 			RecruitManager.reinforce_army(pid, [skel_inst])
 			EventBus.message_log.emit("亡灵复活: +%d骷髅兵" % necro_res)
+	# BUG FIX: bone_tower reanimate_chance — after a won battle, a % of attacker losses
+	# are reanimated as skeleton troops. Previously reanimate_chance was defined in
+	# building_registry but never checked after combat.
+	if attacker_wins and attacker_losses > 0:
+		var bld_effects: Dictionary = BuildingRegistry.get_all_player_building_effects(pid)
+		var reanimate_chance: float = bld_effects.get("reanimate_chance", 0.0)
+		if reanimate_chance > 0.0:
+			var reanimated: int = 0
+			for _r in range(attacker_losses):
+				if randf() < reanimate_chance:
+					reanimated += 1
+			if reanimated > 0:
+				var skel_inst2: Dictionary = GameData.create_troop_instance("neutral_skeleton", reanimated)
+				if not skel_inst2.is_empty():
+					RecruitManager.reinforce_army(pid, [skel_inst2])
+					EventBus.message_log.emit("[color=purple]骷髅塔: 复活 +%d 骷髅兵[/color]" % reanimated)
 
 	# Log combat details
 	for detail in result.get("details", []):
@@ -8024,12 +8094,29 @@ func open_recruit_panel(tile_index: int) -> void:
 		EventBus.message_log.emit("[color=cyan]征兵面板 → 据点 #%d[/color]" % tile_index)
 
 ## Called by province_info_panel fallback — opens domestic management UI.
+## BUG FIX: Previously only printed a log message. Now emits a signal so the HUD
+## can open the actual TileDevelopmentPanel for the given tile.
 func open_domestic_panel(tile_index: int) -> void:
-	EventBus.message_log.emit("[color=cyan]内政面板 → 据点 #%d[/color]" % tile_index)
+	var pid: int = get_human_player_id()
+	if tile_index < 0 or tile_index >= tiles.size():
+		EventBus.message_log.emit("[color=red]无效地块，无法打开内政面板[/color]")
+		return
+	if tiles[tile_index].get("owner_id", -1) != pid:
+		EventBus.message_log.emit("[color=red]只能对己方领地进行内政管理![/color]")
+		return
+	if EventBus.has_signal("open_domestic_panel_requested"):
+		EventBus.open_domestic_panel_requested.emit(tile_index)
+	else:
+		EventBus.message_log.emit("[color=cyan]内政面板 → 据点 #%d[/color]" % tile_index)
 
 ## Called by province_info_panel — opens research UI.
+## BUG FIX: Previously only printed a log message. Now emits a signal so the HUD
+## can open the actual research panel.
 func open_research_panel() -> void:
-	EventBus.message_log.emit("[color=cyan]研究面板已打开[/color]")
+	if EventBus.has_signal("open_research_panel_requested"):
+		EventBus.open_research_panel_requested.emit()
+	else:
+		EventBus.message_log.emit("[color=cyan]研究面板已打开[/color]")
 
 ## Called by grand_event_director — returns all faction dictionaries.
 func get_all_factions() -> Array:

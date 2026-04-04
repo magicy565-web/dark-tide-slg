@@ -342,6 +342,18 @@ func _apply_building_income(bld: String, bld_level: int, income: Dictionary, fac
 	# Shadow essence per turn (shadow_conduit)
 	if effects.has("shadow_bonus"):
 		income["shadow_essence"] += int(effects["shadow_bonus"])
+	# BUG FIX: shadow_essence_per_turn (slave_pit Lv2/3, swamp_distillery Lv2/3)
+	# Previously this key was defined in building_registry but never handled here.
+	if effects.has("shadow_essence_per_turn"):
+		income["shadow_essence"] += int(effects["shadow_essence_per_turn"])
+	# BUG FIX: gunpowder_bonus (powder_mill) — different key from gunpowder_per_turn (gear_workshop)
+	# Previously powder_mill's gunpowder output was silently ignored.
+	if effects.has("gunpowder_bonus"):
+		income["gunpowder"] += int(effects["gunpowder_bonus"])
+	# BUG FIX: prestige_per_turn from buildings (dragon_lair)
+	# Previously dragon_lair's prestige output was never applied.
+	if effects.has("prestige_per_turn"):
+		income["prestige"] += int(effects["prestige_per_turn"])
 	# Smuggler's den (pirate faction bonus)
 	if bld == "smugglers_den" and faction_id == FactionData.FactionID.PIRATE:
 		income["gold"] += 5
