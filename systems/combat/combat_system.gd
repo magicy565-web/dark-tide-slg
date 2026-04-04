@@ -807,7 +807,8 @@ func _resolve_preemptive_phase(state: BattleState) -> void:
 			"remaining_soldiers": target.soldiers,
 			"max_soldiers": target.max_soldiers,
 			"round": state.round_number,
-			"desc": "%s 先制攻击 %s" % [u.troop_id, target.troop_id],
+			"flanking": u.get_meta("_last_hit_flanking", false),
+			"desc": "%s 先制%s攻击 %s" % [u.troop_id, "[侧击]" if u.get_meta("_last_hit_flanking", false) else "", target.troop_id],
 		})
 
 		# On-hit passives (counter, etc.)
@@ -886,6 +887,7 @@ func _apply_round_start_passives(state: BattleState) -> void:
 		# v4.6: poisoned_2 / poisoned_1 — poison DOT tick (1 hp_per_soldier damage/round)
 		if u.has_passive("poisoned_2") or u.has_passive("poisoned_1"):
 			var poison_dmg: int = u.hp_per_soldier  # 1 soldier worth of HP
+			var _was_alive_poison: bool = u.is_alive()
 			u.hp = maxi(0, u.hp - poison_dmg)
 			_recalc_soldiers(u)
 			var _poison_side := "attacker" if u.is_attacker else "defender"
@@ -897,6 +899,18 @@ func _apply_round_start_passives(state: BattleState) -> void:
 				"slot": u.slot,
 				"desc": "%s 中毒! -%d HP" % [u.troop_id, poison_dmg],
 			})
+			# v7.0 BUG FIX: trigger death logging and morale cascades when poison kills a unit
+			if _was_alive_poison and not u.is_alive():
+				state.action_log.append({
+					"action": "death",
+					"unit": u.id,
+					"side": _poison_side,
+					"slot": u.slot,
+					"round": state.round_number,
+					"desc": "%s 中毒身亡!" % u.troop_id,
+				})
+				_apply_ally_death_morale(u, state)
+				_revalidate_formations_for_side(u, state)
 			# Decrement poison duration: poisoned_2 -> poisoned_1 -> remove
 			if u.has_passive("poisoned_2"):
 				var _new_passive: String = u.passive.replace("poisoned_2", "poisoned_1")
@@ -1012,6 +1026,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 				})
 				# Allies lose morale when a comrade is eliminated
 				_apply_ally_death_morale(t, state)
+				# v7.0: Killer's allies gain morale on kill
+				_apply_kill_morale_boost(unit, t, state)
 				# v4.4: kill_heal — attacker restores 1 soldier on kill (blood_moon_blade)
 				_apply_kill_heal(unit, state)
 				# v4.5: dragon_slayer — on kill, ATK+1 permanently for battle
@@ -1068,7 +1084,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		"remaining_soldiers": target.soldiers,
 		"max_soldiers": target.max_soldiers,
 		"round": state.round_number,
-		"desc": "%s 攻击 %s" % [unit.troop_id, target.troop_id],
+		"flanking": unit.get_meta("_last_hit_flanking", false),
+		"desc": "%s %s攻击 %s" % [unit.troop_id, "[侧击]" if unit.get_meta("_last_hit_flanking", false) else "", target.troop_id],
 	}
 
 	# On-hit passives (counter, death_burst, etc.)
@@ -1087,6 +1104,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		})
 		# Allies lose morale when a comrade is eliminated
 		_apply_ally_death_morale(target, state)
+		# v7.0: Killer's allies gain morale on kill
+		_apply_kill_morale_boost(unit, target, state)
 		# v4.4: kill_heal — attacker restores 1 soldier on kill (blood_moon_blade)
 		_apply_kill_heal(unit, state)
 		# v4.5: dragon_slayer — on kill, ATK+1 permanently for battle
@@ -1172,6 +1191,20 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 		if state.terrain == Terrain.WASTELAND:
 			base_damage *= 2.0
 
+	# v7.0: flanking_bonus — +20% damage when attacking back-row unit with no front-row cover
+	# Simulates a collapsed frontline where back-row units are exposed and vulnerable.
+	var _flanking_applied: bool = false
+	if defender.row == 1:
+		var enemy_units: Array[BattleUnit] = state.living_attackers() if defender.is_attacker else state.living_defenders()
+		var has_front_cover: bool = false
+		for eu in enemy_units:
+			if eu.row == 0 and eu != defender:
+				has_front_cover = true
+				break
+		if not has_front_cover:
+			base_damage *= 1.20
+			_flanking_applied = true
+
 	var final_damage: float = base_damage * skill_mult
 
 	# Convert from "equivalent soldiers killed" to HP damage
@@ -1184,6 +1217,12 @@ func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: Battle
 	# Minimum 1 HP damage if the attacker is alive
 	if hp_damage < 1 and attacker.soldiers > 0:
 		hp_damage = 1
+
+	# v7.0: Store flanking flag as metadata on the attacker for the caller to log
+	if _flanking_applied:
+		attacker.set_meta("_last_hit_flanking", true)
+	else:
+		attacker.set_meta("_last_hit_flanking", false)
 
 	return hp_damage
 
@@ -1574,6 +1613,29 @@ func _rout_unit(unit: BattleUnit, state: BattleState) -> void:
 			# Other row: -5 morale (distant concern)
 			_reduce_morale(u, 5, state)
 
+## v7.0: When a unit kills an enemy, surviving same-side units gain morale.
+## Killing a unit with a hero grants extra morale (hero kill bonus).
+func _apply_kill_morale_boost(killer: BattleUnit, dead_unit: BattleUnit, state: BattleState) -> void:
+	var allies: Array[BattleUnit] = state.attacker_units if killer.is_attacker else state.defender_units
+	# Hero kill grants +10 morale to all allies; regular kill grants +5
+	var boost: int = 10 if dead_unit.hero_id != "" else 5
+	for u in allies:
+		if u == killer or not u.is_alive() or u.is_routed:
+			continue
+		u.morale = mini(100, u.morale + boost)
+		EventBus.unit_morale_changed.emit(u.troop_id, "attacker" if u.is_attacker else "defender", u.morale)
+	var side_str: String = "attacker" if killer.is_attacker else "defender"
+	state.action_log.append({
+		"action": "morale",
+		"side": side_str,
+		"slot": killer.slot,
+		"morale_type": "rally",
+		"source": "kill",  # v7.0: tag so presentation can show golden rally burst
+		"boost": boost,
+		"desc": "%s 歼灭敌军，我方士气提升+%d!" % [killer.troop_id, boost],
+	})
+
+
 ## When an ally dies, all surviving same-side units lose 15 morale.
 ## v4.3: If 50%+ of side's starting units are dead, remaining units lose extra morale.
 func _apply_ally_death_morale(dead_unit: BattleUnit, state: BattleState) -> void:
@@ -1882,6 +1944,7 @@ func _apply_ultimate_damage(state: BattleState, ult_result: Dictionary, caster_s
 	var targets_hit: Array = ult_result.get("targets_hit", [])
 	var enemy_units: Array[BattleUnit] = state.defender_units if caster_side == "attacker" else state.attacker_units
 	var ally_units: Array[BattleUnit] = state.attacker_units if caster_side == "attacker" else state.defender_units
+	var enemy_side: String = "defender" if caster_side == "attacker" else "attacker"
 	for hit in targets_hit:
 		var dmg: int = hit.get("damage", 0)
 		var healed: int = hit.get("healed", 0)
@@ -1894,12 +1957,34 @@ func _apply_ultimate_damage(state: BattleState, ult_result: Dictionary, caster_s
 				var target: BattleUnit = living[randi() % living.size()]
 				# BUG FIX: apply damage through HP system to keep soldiers and HP in sync
 				var hp_dmg: int = dmg * target.hp_per_soldier
+				var was_alive: bool = target.is_alive()
 				target.hp = maxi(0, target.hp - hp_dmg)
 				_recalc_soldiers(target)
+				# v7.0 BUG FIX: trigger death logging and morale cascades when ultimate kills a unit
+				if was_alive and not target.is_alive():
+					state.action_log.append({
+						"action": "death",
+						"unit": target.id,
+						"side": enemy_side,
+						"slot": target.slot,
+						"round": state.round_number,
+						"desc": "%s 被必杀技歼灭" % target.troop_id,
+					})
+					_apply_ally_death_morale(target, state)
+					_revalidate_formations_for_side(target, state)
 		if healed > 0:
 			for au in ally_units:
 				if au.is_alive() and au.soldiers < au.max_soldiers:
-					au.soldiers = mini(au.soldiers + healed, au.max_soldiers)
+					var heal_hp: int = healed * au.hp_per_soldier
+					au.hp = mini(au.hp + heal_hp, au.max_hp)
+					_recalc_soldiers(au)
+					state.action_log.append({
+						"action": "heal",
+						"side": caster_side,
+						"slot": au.slot,
+						"is_mass": false,
+						"desc": "%s 被必杀技治愈" % au.troop_id,
+					})
 					break
 
 

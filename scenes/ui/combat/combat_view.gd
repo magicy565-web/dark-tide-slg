@@ -2518,14 +2518,19 @@ func _apply_log_entry(entry: Dictionary) -> void:
 
 		"attack":
 			var is_crit := damage > max_s * 0.4
+			var is_flanking: bool = entry.get("flanking", false)
 			var dmg_color := "#fa4" if is_crit else "#f88"
-			log_line = "[color=#dda]%s[/color] → %s [color=%s](-%d troops)[/color]" % [desc, target_name, dmg_color, damage]
+			var flank_tag := " [color=#ffa040][侧击][/color]" if is_flanking else ""
+			log_line = "[color=#dda]%s[/color]%s → %s [color=%s](-%d troops)[/color]" % [desc, flank_tag, target_name, dmg_color, damage]
 			if target_slot >= 0:
 				_update_card_soldiers(target_side, target_slot, remaining, max_s)
 				var entry_morale: int = entry.get("target_morale", -1)
 				var entry_routed: bool = entry.get("target_is_routed", false)
 				if entry_morale >= 0:
 					_update_card_morale(target_side, target_slot, entry_morale, entry_routed)
+				# v7.0: flanking visual indicator on attacker card before projectile fires
+				if is_flanking and not _is_finishing:
+					_show_flanking_indicator(side, slot_idx)
 				_animate_attack(side, slot_idx, target_side, target_slot, damage, max_s, is_aoe)
 				# Chibi: attacker shows attack pose, target shows hurt pose
 				_set_chibi_state(side, slot_idx, "attack", 0.6)
@@ -2689,6 +2694,9 @@ func _apply_log_entry(entry: Dictionary) -> void:
 				if morale_type in ["rout", "collapse", "break"] and AudioManager:
 					if AudioManager.has_method("play_sfx_by_name"):
 						AudioManager.play_sfx_by_name("morale_break")
+				# v7.0: kill-morale rally — golden burst on all surviving allies
+				if morale_type == "rally" and entry.get("source", "") == "kill":
+					_show_kill_morale_rally(side)
 
 		"heal":
 			var is_mass_heal: bool = entry.get("is_mass", false)
@@ -3146,12 +3154,16 @@ func _on_intervention_phase(state: Dictionary) -> void:
 	# The combat_view may not be visible yet -- that's fine, the panel is independent.
 	_intervention_panel.show_panel(state)
 
-func _on_intervention_decided(intervention_type: int, target: Variant) -> void:
-	EventBus.combat_intervention_chosen.emit(intervention_type, target)
+func _on_intervention_decided(_intervention_type: int, _target: Variant) -> void:
+	# v7.0 BUG FIX: combat_intervention_panel.gd already emits EventBus.combat_intervention_chosen
+	# directly in _execute_intervention(). Re-emitting here caused double-wake of the await in
+	# combat_system.gd, advancing the battle state twice. Bridge is now a no-op.
+	pass
 
 func _on_intervention_skipped() -> void:
-	# Emit with -1 type to signal skip
-	EventBus.combat_intervention_chosen.emit(-1, null)
+	# v7.0 BUG FIX: same as above — panel already emits EventBus.combat_intervention_chosen(-1, null)
+	# in _on_skip(). No re-emit needed here.
+	pass
 
 func _intro_animation() -> void:
 	# Cards slide in from the sides with staggered timing
@@ -3933,9 +3945,69 @@ func _spawn_dot_pulsing_overlay(card: PanelContainer, color: Color) -> void:
 			)
 	)
 
-# ═══════════════════════════════════════════════════════════
+## ═════════════════════════════════════════════════════════
+#        v7.0: FLANKING & KILL-MORALE RALLY VFX
+# ═════════════════════════════════════════════════════════
+
+## Show a "[侧击]" floating label + orange card flash on the attacking unit's card.
+## Called when the action log entry has flanking == true.
+func _show_flanking_indicator(side: String, slot_idx: int) -> void:
+	var pos := _get_card_center(side, slot_idx)
+	# Orange flash on attacker card
+	_flash_card(side, slot_idx, Color(1.0, 0.55, 0.1, 0.45))
+	# Floating "[侧击]" label
+	var lbl := Label.new()
+	lbl.text = "[侧击]"
+	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.75, 0.2))
+	lbl.add_theme_constant_override("outline_size", 2)
+	lbl.add_theme_color_override("font_outline_color", Color(0.3, 0.1, 0.0, 0.9))
+	lbl.position = pos + Vector2(randf_range(-15, 15), -CARD_H * 0.5 - 8)
+	lbl.z_index = 60
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	anim_layer.add_child(lbl)
+	var spd := _speed_mult
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(lbl, "position:y", lbl.position.y - 28, 0.5 / spd).set_ease(Tween.EASE_OUT)
+	tw.tween_property(lbl, "modulate:a", 0.0, 0.5 / spd).set_delay(0.2 / spd)
+	tw.chain().tween_callback(func():
+		if is_instance_valid(lbl): lbl.queue_free()
+	)
+	# Sparkle burst in orange
+	for i in range(4):
+		_spawn_sparkle(pos + Vector2(randf_range(-20, 20), randf_range(-10, 10)), Color(1.0, 0.6, 0.2))
+
+## Show a golden rally burst on all surviving units of a side after a kill-morale event.
+## Triggered when morale entry has morale_type == "rally" and source is a kill.
+func _show_kill_morale_rally(side: String) -> void:
+	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
+	for slot_key in cards.keys():
+		var unit: Dictionary = _live_units[side].get(slot_key, {})
+		if unit.get("soldiers", 0) <= 0:
+			continue
+		var pos := _get_card_center(side, slot_key)
+		# Golden card flash
+		_flash_card(side, slot_key, Color(1.0, 0.85, 0.25, 0.35))
+		# Rising golden particles
+		var density := _particle_density_mult()
+		for i in range(maxi(3, int(6 * density))):
+			var p := ColorRect.new()
+			p.size = Vector2(3, 3)
+			p.color = Color(1.0, 0.85, 0.3, 0.9)
+			p.position = pos + Vector2(randf_range(-20, 20), randf_range(0, 10))
+			p.z_index = 46
+			p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			anim_layer.add_child(p)
+			var tw := create_tween().set_parallel(true)
+			tw.tween_property(p, "position:y", p.position.y - randf_range(30, 55), 0.5 / _speed_mult).set_ease(Tween.EASE_OUT)
+			tw.tween_property(p, "modulate:a", 0.0, 0.6 / _speed_mult)
+			tw.chain().tween_callback(func():
+				if is_instance_valid(p): p.queue_free()
+			)
+
+# ═════════════════════════════════════════════════════════
 #                  ULTIMATE / AWAKENING VFX
-# ═══════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════
 
 func play_ultimate_vfx(hero_id: String) -> void:
 	## Full-screen cinematic ultimate skill VFX sequence.
