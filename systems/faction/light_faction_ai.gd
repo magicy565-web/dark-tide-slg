@@ -264,7 +264,8 @@ func regen_mana() -> void:
 	for tile in GameManager.tiles:
 		if tile == null:
 			continue
-		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile.get("owner_id", -1) < 0:			uncaptured_count += 1
+		if tile.get("light_faction", -1) == FactionData.LightFaction.MAGE_TOWER and tile.get("owner_id", -1) < 0:
+			uncaptured_count += 1
 	_mana_max = uncaptured_count * BalanceConfig.MANA_PER_MAGE_TILE
 	# v0.9.0: mana_bonus equipment passive reduces enemy mana max & regen
 	var mana_reduction: int = 0
@@ -337,10 +338,14 @@ func tick_light_factions() -> void:
 	regen_walls()
 	refresh_barriers()
 	regen_mana()
-
+	# 光明势力驻军自动恢复（BUG FIX: 光明势力缺少garrison regen）
+	regen_light_garrison()
 	# Mage AI: try to cast spells on threatened tiles
 	_mage_ai_cast()
-
+	# 人类王国：主动将内部守军向前线集结
+	human_kingdom_action()
+	# 精灵族：屏障失效时重新激活
+	high_elf_action()
 	# Alliance coordination: light factions help each other against shared threats
 	_try_light_faction_coordination()
 
@@ -549,3 +554,87 @@ func _try_light_faction_coordination() -> void:
 			donor["garrison"] -= actual_transfer
 			recipient["garrison"] += actual_transfer
 			EventBus.message_log.emit("[光明阵营] 联盟协调: 增援%d兵力至薄弱据点#%d" % [actual_transfer, recipient["index"]])
+
+# ═══════════════ GARRISON REGEN & FACTION-SPECIFIC ACTIONS ═══════════════
+func regen_light_garrison() -> void:
+	## 光明势力驻军每回合自动恢复（类似邪恶势力的garrison regen）
+	var seasonal_factor: float = _get_seasonal_factor()
+	for tile in GameManager.tiles:
+		if tile == null:
+			continue
+		var lf: int = tile.get("light_faction", -1)
+		if lf < 0 or tile.get("owner_id", -1) >= 0:
+			continue
+		var base_garrison: int = 5
+		match tile.get("type", -1):
+			GameManager.TileType.CORE_FORTRESS: base_garrison = 20
+			GameManager.TileType.LIGHT_STRONGHOLD: base_garrison = 12
+			GameManager.TileType.LIGHT_VILLAGE: base_garrison = 8
+			_: base_garrison = 5
+		var wall_bonus: float = AIScaling.get_wall_bonus("human") if lf == FactionData.LightFaction.HUMAN_KINGDOM else 0.0
+		base_garrison = int(float(base_garrison) * (1.0 + wall_bonus))
+		var regen_rate: int = 1
+		if seasonal_factor < 1.0:
+			regen_rate = 2
+		if tile.get("garrison", 0) < base_garrison:
+			tile["garrison"] = mini(base_garrison, tile.get("garrison", 0) + regen_rate)
+		var player_nearby: bool = false
+		if GameManager.adjacency.has(tile["index"]):
+			for nb_idx in GameManager.adjacency[tile["index"]]:
+				if nb_idx < GameManager.tiles.size() and GameManager.tiles[nb_idx]["owner_id"] >= 0:
+					player_nearby = true
+					break
+		if player_nearby:
+			tile["garrison"] = mini(tile.get("garrison", 0) + 1, base_garrison + 5)
+
+func human_kingdom_action() -> void:
+	## 人类王国主动行动：将内部守军向前线集结
+	var border_tiles: Array = []
+	var interior_tiles: Array = []
+	for tile in GameManager.tiles:
+		if tile == null:
+			continue
+		if tile.get("light_faction", -1) != FactionData.LightFaction.HUMAN_KINGDOM:
+			continue
+		if tile.get("owner_id", -1) >= 0:
+			continue
+		var is_border: bool = false
+		if GameManager.adjacency.has(tile["index"]):
+			for nb_idx in GameManager.adjacency[tile["index"]]:
+				if nb_idx < GameManager.tiles.size() and GameManager.tiles[nb_idx]["owner_id"] >= 0:
+					is_border = true
+					break
+		if is_border:
+			border_tiles.append(tile)
+		else:
+			interior_tiles.append(tile)
+	if border_tiles.is_empty() or interior_tiles.is_empty():
+		return
+	for interior in interior_tiles:
+		var interior_garrison: int = interior.get("garrison", 0)
+		if interior_garrison <= 3:
+			continue
+		border_tiles.sort_custom(func(a, b): return a.get("garrison", 0) < b.get("garrison", 0))
+		var weakest_border: Dictionary = border_tiles[0]
+		if weakest_border.get("garrison", 0) >= interior_garrison:
+			continue
+		interior["garrison"] -= 1
+		weakest_border["garrison"] += 1
+		EventBus.message_log.emit("[人类王国] 内部守军向边界增强 #%d" % weakest_border["index"])
+		break
+
+func high_elf_action() -> void:
+	## 精灵族主动行动：当屏障失效时尝试重新激活
+	for tile in GameManager.tiles:
+		if tile == null:
+			continue
+		if tile.get("light_faction", -1) != FactionData.LightFaction.HIGH_ELVES:
+			continue
+		if tile.get("owner_id", -1) >= 0:
+			continue
+		var tile_idx: int = tile["index"]
+		if not is_barrier_active(tile_idx):
+			var ley_bonus: int = get_ley_line_bonus(tile_idx)
+			if ley_bonus >= 5:
+				_barrier_active[tile_idx] = true
+				EventBus.message_log.emit("[精灵族] 魔法屏障重新激活 #%d" % tile_idx)

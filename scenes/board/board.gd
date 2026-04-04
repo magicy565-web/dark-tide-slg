@@ -3468,7 +3468,7 @@ func _on_attack_confirmed() -> void:
 	_hide_attack_confirm()
 	_cancel_input_mode()
 	if aid >= 0 and tid >= 0:
-		GameManager.action_attack_with_army(aid, tid)
+		await GameManager.action_attack_with_army(aid, tid)
 		_deselect_tile()
 
 func _on_attack_cancelled() -> void:

@@ -123,6 +123,17 @@ func _tick_faction(player_id: int, faction_id: int) -> void:
 
 	# Counter-espionage: invest in counter-intel if being scouted
 	_try_counter_espionage(player_id, faction_id)
+	# ── 势力差异化行动 ──
+	match faction_id:
+		FactionData.FactionID.ORC:
+			# 兽人：当WAAAGH积累时，额外增兵前线
+			_orc_faction_action(player_id, source_tiles)
+		FactionData.FactionID.PIRATE:
+			# 海盗：优先攻击港口和贸易站
+			_pirate_faction_action(player_id, source_tiles)
+		FactionData.FactionID.DARK_ELF:
+			# 暗精灵：情报收集和精准打击
+			_dark_elf_faction_action(player_id, source_tiles)
 
 
 func _try_strategic_raid(_player_id: int, source_tiles: Array, faction_id: int) -> void:
@@ -565,3 +576,100 @@ func _try_counter_espionage(player_id: int, faction_id: int) -> void:
 		# Directly boost counter-intel for the AI faction (no gold cost for AI)
 		es.set_counter_intel(ai_pseudo_id, mini(50, current_ci + 5))
 		EventBus.message_log.emit("[%s] 检测到敌方侦察活动, 加强反情报措施" % ai_key)
+
+# ═══════════════ 势力差异化行动 ═══════════════
+func _orc_faction_action(player_id: int, source_tiles: Array) -> void:
+	## 兽人特有行动：当有多个源地块时，将守军向最前线集中（WAAAGH集结）
+	if source_tiles.size() < 2:
+		return
+	# 找到距离玩家最近的地块（边界地块）
+	var border_tiles: Array = []
+	var interior_tiles: Array = []
+	for tile in source_tiles:
+		var is_border: bool = false
+		if GameManager.adjacency.has(tile["index"]):
+			for nb_idx in GameManager.adjacency[tile["index"]]:
+				if nb_idx < GameManager.tiles.size() and GameManager.tiles[nb_idx]["owner_id"] == player_id:
+					is_border = true
+					break
+		if is_border:
+			border_tiles.append(tile)
+		else:
+			interior_tiles.append(tile)
+	if border_tiles.is_empty() or interior_tiles.is_empty():
+		return
+	# 从内部向边界转移1个守军（WAAAGH集结）
+	interior_tiles.sort_custom(func(a, b): return a.get("garrison", 0) > b.get("garrison", 0))
+	border_tiles.sort_custom(func(a, b): return a.get("garrison", 0) < b.get("garrison", 0))
+	var donor: Dictionary = interior_tiles[0]
+	var target: Dictionary = border_tiles[0]
+	if donor.get("garrison", 0) > 3:
+		donor["garrison"] -= 1
+		target["garrison"] += 1
+		EventBus.message_log.emit("[兽人部落] WAAAGH! 前线集结 #%d" % target["index"])
+
+func _pirate_faction_action(player_id: int, source_tiles: Array) -> void:
+	## 海盗特有行动：额外检查港口和贸易站，发动机会性突袭
+	if source_tiles.is_empty():
+		return
+	# 查找相邻的港口/贸易站
+	var harbor_targets: Array = []
+	for src in source_tiles:
+		if not GameManager.adjacency.has(src["index"]):
+			continue
+		for nb_idx in GameManager.adjacency[src["index"]]:
+			if nb_idx >= GameManager.tiles.size():
+				continue
+			var nb: Dictionary = GameManager.tiles[nb_idx]
+			if nb["owner_id"] != player_id:
+				continue
+			match nb.get("type", -1):
+				GameManager.TileType.HARBOR, GameManager.TileType.TRADING_POST:
+					harbor_targets.append({"tile": nb, "source": src})
+	if harbor_targets.is_empty():
+		return
+	# 对港口发动机会性突袭（不受冷却限制，但伤害较低）
+	var target_data: Dictionary = harbor_targets[randi() % harbor_targets.size()]
+	var target: Dictionary = target_data["tile"]
+	var source: Dictionary = target_data["source"]
+	var raid_strength: int = maxi(2, source.get("garrison", 0) / 3)
+	var target_garrison: int = target.get("garrison", 0)
+	if raid_strength > target_garrison:
+		target["garrison"] = maxi(0, target_garrison - 1)
+		EventBus.message_log.emit("[color=orange][暗黑海盗] 港口突袭! 据点#%d 驻军-1[/color]" % target["index"])
+
+func _dark_elf_faction_action(player_id: int, source_tiles: Array) -> void:
+	## 暗精灵特有行动：精准打击孤立目标（支援较少的玩家地块）
+	if source_tiles.is_empty():
+		return
+	# 找到支援最少的玩家地块（孤立目标）
+	var isolated_targets: Array = []
+	for src in source_tiles:
+		if not GameManager.adjacency.has(src["index"]):
+			continue
+		for nb_idx in GameManager.adjacency[src["index"]]:
+			if nb_idx >= GameManager.tiles.size():
+				continue
+			var nb: Dictionary = GameManager.tiles[nb_idx]
+			if nb["owner_id"] != player_id:
+				continue
+			# 计算该地块的友方支援数
+			var support: int = 0
+			if GameManager.adjacency.has(nb_idx):
+				for nb2_idx in GameManager.adjacency[nb_idx]:
+					if nb2_idx < GameManager.tiles.size() and GameManager.tiles[nb2_idx]["owner_id"] == player_id:
+						support += 1
+			if support <= 1:  # 孤立目标（只有1个或0个友方邻居）
+				isolated_targets.append({"tile": nb, "source": src, "support": support})
+	if isolated_targets.is_empty():
+		return
+	# 对孤立目标发动精准打击
+	isolated_targets.sort_custom(func(a, b): return a["support"] < b["support"])
+	var target_data: Dictionary = isolated_targets[0]
+	var target: Dictionary = target_data["tile"]
+	var source: Dictionary = target_data["source"]
+	var raid_strength: int = maxi(2, source.get("garrison", 0) / 3)
+	var target_garrison: int = target.get("garrison", 0)
+	if raid_strength > target_garrison:
+		target["garrison"] = maxi(0, target_garrison - 1)
+		EventBus.message_log.emit("[color=purple][黑暗精灵] 精准打击孤立据点#%d![/color]" % target["index"])

@@ -7275,10 +7275,19 @@ func run_ai_turn() -> void:
 	EventBus.ai_thinking.emit(_fk, true)
 	EventBus.ai_turn_progress.emit(_fk, 0, _total_phases)
 
-	# Orc AI: use aggressive WAAAGH-driven strategy instead of generic AI
+	# ── Faction-specific AI dispatch ──
 	var faction_id: int = get_player_faction(pid)
+	# Orc AI: use aggressive WAAAGH-driven strategy
 	if faction_id == FactionData.FactionID.ORC:
 		await _run_orc_ai(pid)
+		return
+	# Pirate AI: use opportunistic raiding strategy
+	if faction_id == FactionData.FactionID.PIRATE:
+		await _run_pirate_ai(pid)
+		return
+	# Dark Elf AI: use tactical precision strategy
+	if faction_id == FactionData.FactionID.DARK_ELF:
+		await _run_dark_elf_ai(pid)
 		return
 
 	while player["ap"] > 0 and game_active:
@@ -7905,6 +7914,408 @@ func _run_orc_ai(player_id: int) -> void:
 	if game_active:
 		end_turn()
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 海盗AI：机会主义掠夺策略
+# ═══════════════════════════════════════════════════════════════════════════════
+func _run_pirate_ai(player_id: int) -> void:
+	## 海盗AI：机会主义掠夺策略。优先攻击资源地块和孤立目标，经济充裕时展开扩张。
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or not game_active:
+		return
+	var _fk: String = _get_faction_key(player_id)
+	var _total_phases: int = 6
+	EventBus.ai_thinking.emit(_fk, true)
+	EventBus.ai_turn_progress.emit(_fk, 0, _total_phases)
+	var gold: int = ResourceManager.get_gold(player_id)
+	# ── Phase 0: Create army if we have none ──
+	var ai_armies: Array = get_player_armies(player_id)
+	if ai_armies.is_empty():
+		var owned: Array = get_domestic_tiles(player_id)
+		if not owned.is_empty():
+			var best_tile: int = owned[0]["index"]
+			for ot in owned:
+				if ot["type"] == TileType.CORE_FORTRESS or ot["type"] == TileType.DARK_BASE:
+					best_tile = ot["index"]
+					break
+			create_army(player_id, best_tile, player["name"] + "掠夺舰队")
+			ai_armies = get_player_armies(player_id)
+	var idle_count: int = 0
+	while player["ap"] > 0 and game_active:
+		await get_tree().create_timer(0.4).timeout
+		if not game_active:
+			return
+		gold = ResourceManager.get_gold(player_id)
+		ai_armies = get_player_armies(player_id)
+		var did_action: bool = false
+		# ── Phase 1: Attack resource tiles first (pirate priority) ──
+		EventBus.ai_action_started.emit(_fk, "attack", "Raiding for plunder")
+		for army in ai_armies:
+			if player["ap"] <= 0:
+				break
+			var attackable: Array = get_army_attackable_tiles(army["id"])
+			if attackable.is_empty():
+				continue
+			var army_power: int = get_army_combat_power(army["id"])
+			if army_power < 2:
+				continue
+			var soldier_count: int = get_army_soldier_count(army["id"])
+			if soldier_count <= 0:
+				continue
+			# Pirate: score targets with heavy bonus for resource tiles
+			var best_tile_idx: int = -1
+			var best_score: float = -999.0
+			for nb_idx in attackable:
+				var score: float = _pirate_score_attack(player, tiles[nb_idx], army, gold)
+				if score > best_score:
+					best_score = score
+					best_tile_idx = nb_idx
+			if best_score > 0.0 and best_tile_idx >= 0:
+				var _skip: bool = false
+				if SiegeSystem.is_tile_fortified(best_tile_idx):
+					if SiegeSystem.is_tile_under_siege(best_tile_idx):
+						var existing_siege: Dictionary = SiegeSystem.get_siege_at_tile(best_tile_idx)
+						if existing_siege.get("attacker_player_id", -1) == player_id:
+							_skip = true
+					else:
+						var siege_info: Dictionary = AIStrategicPlanner.evaluate_siege_cost(best_tile_idx)
+						if not siege_info.get("worth_sieging", true):
+							_skip = true
+				if not _skip:
+					await action_attack_with_army(army["id"], best_tile_idx)
+					EventBus.ai_action_completed.emit(_fk, "attack", true)
+					ai_armies = get_player_armies(player_id)
+					did_action = true
+					break
+		if did_action:
+			continue
+		EventBus.ai_action_completed.emit(_fk, "attack", false)
+		EventBus.ai_turn_progress.emit(_fk, 1, _total_phases)
+		# ── Phase 2: Deploy toward resource-rich areas ──
+		ai_armies = get_player_armies(player_id)
+		for army in ai_armies:
+			if player["ap"] <= 0:
+				break
+			var attackable: Array = get_army_attackable_tiles(army["id"])
+			if not attackable.is_empty():
+				continue
+			var deployable: Array = get_army_deployable_tiles(army["id"])
+			if deployable.is_empty():
+				continue
+			var best_deploy: int = -1
+			var best_deploy_score: float = -1.0
+			for dtile in deployable:
+				var dscore: float = 0.0
+				if adjacency.has(dtile):
+					for nb in adjacency[dtile]:
+						if nb < tiles.size() and tiles[nb]["owner_id"] >= 0 and tiles[nb]["owner_id"] != player_id:
+							dscore += 2.0
+							# Extra score for resource tiles
+							match tiles[nb]["type"]:
+								TileType.MINE_TILE, TileType.FARM_TILE: dscore += 3.0
+								TileType.HARBOR, TileType.TRADING_POST: dscore += 4.0
+								TileType.RESOURCE_STATION: dscore += 3.0
+				if dscore > best_deploy_score:
+					best_deploy_score = dscore
+					best_deploy = dtile
+			if best_deploy >= 0:
+				action_deploy_army(army["id"], best_deploy)
+				EventBus.ai_action_completed.emit(_fk, "deploy", true)
+				did_action = true
+				break
+		if did_action:
+			continue
+		EventBus.ai_turn_progress.emit(_fk, 2, _total_phases)
+		# ── Phase 3: Recruit if gold is plentiful ──
+		var owned_tiles: Array = get_domestic_tiles(player_id)
+		if owned_tiles.size() > 0:
+			var faction_id2: int = get_player_faction(player_id)
+			var params2: Dictionary = FactionData.FACTION_PARAMS.get(faction_id2, {})
+			var recruit_gold: int = params2.get("recruit_cost_gold", 55)
+			var recruit_iron: int = params2.get("recruit_cost_iron", 15)
+			var at_pop_cap: bool = ResourceManager.get_army(player_id) >= get_population_cap(player_id)
+			# Pirates recruit more aggressively when gold is high
+			var gold_threshold: int = 80 if gold > 200 else 120
+			if not at_pop_cap and gold > gold_threshold and ResourceManager.can_afford(player_id, {"gold": recruit_gold, "iron": recruit_iron}):
+				var recruit_tile: int = owned_tiles[0]["index"]
+				for army in ai_armies:
+					var troop_count: int = army.get("troops", []).size()
+					var atile: int = army.get("tile_index", -1)
+					if troop_count < MAX_TROOPS_PER_ARMY and atile >= 0 and atile < tiles.size():
+						if tiles[atile].get("owner_id", -1) == player_id:
+							recruit_tile = atile
+							break
+				action_domestic(player_id, recruit_tile, "recruit")
+				EventBus.ai_action_completed.emit(_fk, "recruit", true)
+				continue
+		EventBus.ai_turn_progress.emit(_fk, 3, _total_phases)
+		# ── Phase 4: Build merchant guild or warehouse if affordable ──
+		var owned_tiles2: Array = get_domestic_tiles(player_id)
+		if owned_tiles2.size() > 0 and gold > 150:
+			for ot in owned_tiles2:
+				var existing_bld: String = ot.get("building_id", "")
+				if existing_bld == "" and BuildingRegistry != null:
+					var bld_id: String = "merchant_guild"
+					if BuildingRegistry.can_build_at(player_id, ot, bld_id):
+						if action_domestic(player_id, ot["index"], "build", bld_id):
+							did_action = true
+							break
+				elif existing_bld == "merchant_guild" and ot.get("building_level", 1) < 3:
+					if BuildingRegistry.can_build_at(player_id, ot, "merchant_guild"):
+						if action_domestic(player_id, ot["index"], "build", "merchant_guild"):
+							did_action = true
+							break
+		if did_action:
+			continue
+		EventBus.ai_turn_progress.emit(_fk, 4, _total_phases)
+		# No valid action
+		idle_count += 1
+		if idle_count >= 3:
+			break
+	_ai_manage_sieges(player_id)
+	EventBus.ai_turn_progress.emit(_fk, _total_phases, _total_phases)
+	EventBus.ai_thinking.emit(_fk, false)
+	await get_tree().create_timer(0.3).timeout
+	if game_active:
+		end_turn()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 暗精灵AI：精准战术策略
+# ═══════════════════════════════════════════════════════════════════════════════
+func _run_dark_elf_ai(player_id: int) -> void:
+	## 暗精灵AI：精准战术策略。利用情报网络，优先攻击孤立目标，强化城防和奥隶经济。
+	var player: Dictionary = get_player_by_id(player_id)
+	if player.is_empty() or not game_active:
+		return
+	var _fk: String = _get_faction_key(player_id)
+	var _total_phases: int = 6
+	EventBus.ai_thinking.emit(_fk, true)
+	EventBus.ai_turn_progress.emit(_fk, 0, _total_phases)
+	# ── Phase 0: Create army if we have none ──
+	var ai_armies: Array = get_player_armies(player_id)
+	if ai_armies.is_empty():
+		var owned: Array = get_domestic_tiles(player_id)
+		if not owned.is_empty():
+			var best_tile: int = owned[0]["index"]
+			for ot in owned:
+				if ot["type"] == TileType.CORE_FORTRESS or ot["type"] == TileType.DARK_BASE:
+					best_tile = ot["index"]
+					break
+			create_army(player_id, best_tile, player["name"] + "暗影军团")
+			ai_armies = get_player_armies(player_id)
+	var idle_count: int = 0
+	while player["ap"] > 0 and game_active:
+		await get_tree().create_timer(0.4).timeout
+		if not game_active:
+			return
+		ai_armies = get_player_armies(player_id)
+		var did_action: bool = false
+		# ── Phase 0.5: Dark Elf tactical intelligence (feint + precision) ──
+		var de_plan: Dictionary = AIStrategicPlanner.get_tactical_plan("dark_elf_ai")
+		var de_plan_type: String = de_plan.get("type", "normal")
+		if de_plan_type == "concentration":
+			AIStrategicPlanner.execute_concentration("dark_elf_ai")
+		elif de_plan_type == "retreat":
+			for de_rt_idx in de_plan.get("tiles", []):
+				AIStrategicPlanner.execute_retreat("dark_elf_ai", de_rt_idx)
+		# ── Phase 1: Attack isolated/weak targets (precision strike) ──
+		EventBus.ai_action_started.emit(_fk, "attack", "Precision strike")
+		for army in ai_armies:
+			if player["ap"] <= 0:
+				break
+			var attackable: Array = get_army_attackable_tiles(army["id"])
+			if attackable.is_empty():
+				continue
+			var army_power: int = get_army_combat_power(army["id"])
+			if army_power < 2:
+				continue
+			var soldier_count: int = get_army_soldier_count(army["id"])
+			if soldier_count <= 0:
+				continue
+			var best_tile_idx: int = -1
+			var best_score: float = -999.0
+			for nb_idx in attackable:
+				var score: float = _dark_elf_score_attack(player, tiles[nb_idx], army)
+				if score > best_score:
+					best_score = score
+					best_tile_idx = nb_idx
+			if best_score > 0.0 and best_tile_idx >= 0:
+				var _skip: bool = false
+				if SiegeSystem.is_tile_fortified(best_tile_idx):
+					if SiegeSystem.is_tile_under_siege(best_tile_idx):
+						var existing_siege: Dictionary = SiegeSystem.get_siege_at_tile(best_tile_idx)
+						if existing_siege.get("attacker_player_id", -1) == player_id:
+							_skip = true
+					else:
+						var siege_info: Dictionary = AIStrategicPlanner.evaluate_siege_cost(best_tile_idx)
+						if not siege_info.get("worth_sieging", true):
+							_skip = true
+				if not _skip:
+					await action_attack_with_army(army["id"], best_tile_idx)
+					EventBus.ai_action_completed.emit(_fk, "attack", true)
+					ai_armies = get_player_armies(player_id)
+					did_action = true
+					break
+		if did_action:
+			continue
+		EventBus.ai_action_completed.emit(_fk, "attack", false)
+		EventBus.ai_turn_progress.emit(_fk, 1, _total_phases)
+		# ── Phase 2: Deploy toward isolated enemy tiles ──
+		ai_armies = get_player_armies(player_id)
+		for army in ai_armies:
+			if player["ap"] <= 0:
+				break
+			var attackable: Array = get_army_attackable_tiles(army["id"])
+			if not attackable.is_empty():
+				continue
+			var deployable: Array = get_army_deployable_tiles(army["id"])
+			if deployable.is_empty():
+				continue
+			var best_deploy: int = -1
+			var best_deploy_score: float = -1.0
+			for dtile in deployable:
+				var dscore: float = 0.0
+				if adjacency.has(dtile):
+					for nb in adjacency[dtile]:
+						if nb < tiles.size() and tiles[nb]["owner_id"] >= 0 and tiles[nb]["owner_id"] != player_id:
+							# Dark Elf: prefer isolated enemy tiles (few friendly neighbors)
+							var support: int = 0
+							if adjacency.has(nb):
+								for nb2 in adjacency[nb]:
+									if nb2 < tiles.size() and tiles[nb2]["owner_id"] >= 0 and tiles[nb2]["owner_id"] != player_id:
+										support += 1
+							dscore += float(5 - support) * 1.5
+							if tiles[nb].get("garrison", 0) < 5:
+								dscore += 2.0
+				if dscore > best_deploy_score:
+					best_deploy_score = dscore
+					best_deploy = dtile
+			if best_deploy >= 0:
+				action_deploy_army(army["id"], best_deploy)
+				EventBus.ai_action_completed.emit(_fk, "deploy", true)
+				did_action = true
+				break
+		if did_action:
+			continue
+		EventBus.ai_turn_progress.emit(_fk, 2, _total_phases)
+		# ── Phase 3: Recruit troops ──
+		var owned_tiles3: Array = get_domestic_tiles(player_id)
+		if owned_tiles3.size() > 0:
+			var faction_id3: int = get_player_faction(player_id)
+			var params3: Dictionary = FactionData.FACTION_PARAMS.get(faction_id3, {})
+			var recruit_gold3: int = params3.get("recruit_cost_gold", 60)
+			var recruit_iron3: int = params3.get("recruit_cost_iron", 10)
+			var at_pop_cap3: bool = ResourceManager.get_army(player_id) >= get_population_cap(player_id)
+			if not at_pop_cap3 and ResourceManager.can_afford(player_id, {"gold": recruit_gold3, "iron": recruit_iron3}):
+				var recruit_tile3: int = owned_tiles3[0]["index"]
+				for army in ai_armies:
+					var troop_count: int = army.get("troops", []).size()
+					var atile: int = army.get("tile_index", -1)
+					if troop_count < MAX_TROOPS_PER_ARMY and atile >= 0 and atile < tiles.size():
+						if tiles[atile].get("owner_id", -1) == player_id:
+							recruit_tile3 = atile
+							break
+				action_domestic(player_id, recruit_tile3, "recruit")
+				EventBus.ai_action_completed.emit(_fk, "recruit", true)
+				continue
+		EventBus.ai_turn_progress.emit(_fk, 3, _total_phases)
+		# ── Phase 4: Build academy or fortification ──
+		var owned_tiles4: Array = get_domestic_tiles(player_id)
+		if owned_tiles4.size() > 0:
+			var build_priority: Array = ["academy", "slave_market", "fortification"]
+			for bld_id in build_priority:
+				for ot in owned_tiles4:
+					if BuildingRegistry != null and BuildingRegistry.can_build_at(player_id, ot, bld_id):
+						if action_domestic(player_id, ot["index"], "build", bld_id):
+							did_action = true
+							break
+				if did_action:
+					break
+		if did_action:
+			continue
+		EventBus.ai_turn_progress.emit(_fk, 4, _total_phases)
+		# No valid action
+		idle_count += 1
+		if idle_count >= 3:
+			break
+	_ai_manage_sieges(player_id)
+	EventBus.ai_turn_progress.emit(_fk, _total_phases, _total_phases)
+	EventBus.ai_thinking.emit(_fk, false)
+	await get_tree().create_timer(0.3).timeout
+	if game_active:
+		end_turn()
+
+func _pirate_score_attack(player: Dictionary, tile: Dictionary, army: Dictionary, gold: int) -> float:
+	## 海盗进攻评分：重资源地块，弱守备目标。
+	var score: float = 0.0
+	match tile["type"]:
+		TileType.HARBOR, TileType.TRADING_POST: score += 18.0  # 海盗最爱港口
+		TileType.MINE_TILE: score += 15.0
+		TileType.FARM_TILE: score += 12.0
+		TileType.RESOURCE_STATION: score += 14.0
+		TileType.CORE_FORTRESS: score += 20.0
+		TileType.LIGHT_STRONGHOLD: score += 10.0
+		TileType.CHOKEPOINT: score += 6.0
+		_: score += 2.0
+	var army_power: float = float(get_army_combat_power(army["id"]))
+	var def_power: float = float(tile.get("garrison", 0)) * 8.0
+	if def_power > army_power * 1.3:
+		score -= 12.0  # 海盗避免硬打强敌
+	elif def_power > army_power * 0.8:
+		score -= 5.0
+	elif def_power < army_power * 0.4:
+		score += 4.0  # 弱小目标加分
+	# 金币不足时更激进
+	if gold < 100:
+		score += 5.0
+	var pid: int = player["id"]
+	var tile_idx: int = tile.get("index", -1)
+	if tile_idx >= 0 and adjacency.has(tile_idx):
+		var friendly_neighbors: int = 0
+		for nb in adjacency[tile_idx]:
+			if nb < tiles.size() and tiles[nb]["owner_id"] == pid:
+				friendly_neighbors += 1
+		score += friendly_neighbors * 1.5
+	if SiegeSystem.is_tile_fortified(tile_idx):
+		var siege_info: Dictionary = AIStrategicPlanner.evaluate_siege_cost(tile_idx)
+		score -= float(siege_info.get("siege_turns", 0)) * 3.0
+	return score
+
+func _dark_elf_score_attack(player: Dictionary, tile: Dictionary, army: Dictionary) -> float:
+	## 暗精灵进攻评分：优先孤立目标，高价値地块。
+	var score: float = 0.0
+	match tile["type"]:
+		TileType.CORE_FORTRESS: score += 20.0
+		TileType.LIGHT_STRONGHOLD: score += 14.0
+		TileType.CHOKEPOINT: score += 10.0
+		TileType.RESOURCE_STATION: score += 8.0
+		TileType.MINE_TILE: score += 7.0
+		TileType.HARBOR, TileType.TRADING_POST: score += 6.0
+		TileType.LIGHT_VILLAGE: score += 5.0
+		_: score += 1.0
+	var army_power: float = float(get_army_combat_power(army["id"]))
+	var def_power: float = float(tile.get("garrison", 0)) * 8.0
+	if def_power > army_power * 1.4:
+		score -= 14.0  # 暗精灵谨慎，不硬打强敌
+	elif def_power > army_power * 1.0:
+		score -= 6.0
+	elif def_power < army_power * 0.5:
+		score += 3.0
+	# 孤立目标加分（暗精灵核心特性）
+	var tile_idx: int = tile.get("index", -1)
+	var support_count: int = 0
+	if tile_idx >= 0 and adjacency.has(tile_idx):
+		var pid: int = player["id"]
+		for nb in adjacency[tile_idx]:
+			if nb < tiles.size() and tiles[nb]["owner_id"] >= 0 and tiles[nb]["owner_id"] != pid:
+				support_count += 1
+			if nb < tiles.size() and tiles[nb]["owner_id"] == pid:
+				score += 1.0  # 领土连接加分
+	score += float(5 - support_count) * 2.0  # 孤立目标分数高
+	if SiegeSystem.is_tile_fortified(tile_idx):
+		var siege_info: Dictionary = AIStrategicPlanner.evaluate_siege_cost(tile_idx)
+		score -= float(siege_info.get("siege_turns", 0)) * 4.0
+	return score
 
 func _orc_score_attack(army: Dictionary, tile: Dictionary, waaagh: int, in_frenzy: bool) -> float:
 	## Orc-specific attack scoring. More aggressive than generic _ai_score_attack.

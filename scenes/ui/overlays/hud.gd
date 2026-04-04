@@ -1547,7 +1547,7 @@ func _open_battle_prep(army_id: int, tile_index: int) -> void:
 	var prep = _find_battle_prep()
 	if not prep:
 		# Fallback: skip prep, attack directly
-		GameManager.action_attack_with_army(army_id, tile_index)
+		await GameManager.action_attack_with_army(army_id, tile_index)
 		_selected_army_id = -1
 		_close_target_panel()
 		_after_action()
@@ -1586,7 +1586,7 @@ func _on_battle_prep_confirmed(army_id: int, target_tile: int, slot_assignments:
 			if hid not in new_heroes:
 				new_heroes.append(hid)
 		army["heroes"] = new_heroes
-	GameManager.action_attack_with_army(army_id, target_tile)
+	await GameManager.action_attack_with_army(army_id, target_tile)
 	_selected_army_id = -1
 	_after_action()
 
@@ -1647,7 +1647,7 @@ func _show_siege_options(tile_index: int, army_id: int, siege_in_progress: bool)
 
 
 func _on_start_siege(army_id: int, tile_index: int) -> void:
-	GameManager.action_attack_with_army(army_id, tile_index)
+	await GameManager.action_attack_with_army(army_id, tile_index)
 	_selected_army_id = -1
 	_close_target_panel()
 	_after_action()
