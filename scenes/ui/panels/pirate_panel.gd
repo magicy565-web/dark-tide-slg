@@ -212,7 +212,7 @@ func _refresh_stats() -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var infamy: int = PirateMechanic.get_infamy(pid)
 	var rum: int = PirateMechanic.get_rum_morale(pid)
-	var streak: int = PirateMechanic._plunder_streak.get(pid, 0)
+	var streak: int = PirateMechanic.get_plunder_streak(pid)
 	stat_infamy.text = "Infamy: %d/100" % infamy
 	stat_infamy.add_theme_color_override("font_color", COL_WARN if infamy >= 70 else COL_GOLD)
 	stat_rum.text = "Rum Morale: %d/100" % rum

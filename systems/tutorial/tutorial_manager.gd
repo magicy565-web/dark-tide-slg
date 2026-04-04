@@ -399,7 +399,8 @@ func _build_ui() -> void:
 	_overlay.anchor_bottom = 1.0
 	_overlay.color = Color(0, 0, 0, 0.3)
 	_overlay.visible = false
-	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_overlay.z_index = 200
 
 	# 弹窗面板
 	_popup = PanelContainer.new()
@@ -484,6 +485,7 @@ func _build_ui() -> void:
 	vbox.add_child(_step_label)
 
 	_popup.visible = false
+	_popup.z_index = 201
 	add_child(_overlay)
 	add_child(_popup)
 

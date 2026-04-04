@@ -257,6 +257,9 @@ func reset() -> void:
 	_black_market_restock_timer.clear()
 	_black_market_rare_stock.clear()
 
+func get_plunder_streak(player_id: int) -> int:
+	return _plunder_streak.get(player_id, 0)
+
 
 func init_player(player_id: int) -> void:
 	_sex_slaves[player_id] = 1           # 开局1名性奴隶

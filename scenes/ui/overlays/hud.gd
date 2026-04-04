@@ -105,6 +105,7 @@ var btn_sat_event: Button
 var btn_waaagh_burst: Button       # Orc: WAAAGH! Burst
 var btn_blood_tribute: Button      # Orc: Blood Tribute
 var btn_rare_market: Button        # Pirate: Rare Black Market
+var btn_pirate_fleet: Button       # Pirate: Open Pirate Fleet Panel
 var btn_shadow_network: Button     # Dark Elf: Shadow Network
 var btn_assassination: Button      # Dark Elf: Assassination
 var btn_corruption: Button         # Dark Elf: Corruption
@@ -593,6 +594,11 @@ func _build_action_panel(parent: Control) -> void:
 	btn_rare_market.pressed.connect(_on_rare_market_pressed)
 	btn_rare_market.visible = false
 	vbox.add_child(btn_rare_market)
+	btn_pirate_fleet = _make_button("Pirate Fleet (P)")
+	btn_pirate_fleet.tooltip_text = "Open Pirate Fleet panel: Black Market, Treasure Hunt, Smuggle Routes, Mercenaries, Raids."
+	btn_pirate_fleet.pressed.connect(_on_pirate_fleet_pressed)
+	btn_pirate_fleet.visible = false
+	vbox.add_child(btn_pirate_fleet)
 
 	# Dark Elf buttons
 	btn_shadow_network = _make_button("Shadow Network (0AP)")
@@ -2631,6 +2637,13 @@ func _on_rare_market_buy(item_index: int) -> void:
 	_update_player_info()
 
 
+func _on_pirate_fleet_pressed() -> void:
+	if AudioManager and AudioManager.has_method("play_sfx_by_name"):
+		AudioManager.play_sfx_by_name("open_panel")
+	if PanelManager.has_method("toggle_panel"):
+		PanelManager.toggle_panel("pirate")
+
+
 func _on_shadow_network_pressed() -> void:
 	var pid: int = GameManager.get_human_player_id()
 	FactionManager.dark_elf_toggle_shadow_network(pid)
@@ -3263,11 +3276,14 @@ func _update_buttons() -> void:
 
 	# Pirate buttons
 	btn_rare_market.visible = is_pirate
+	btn_pirate_fleet.visible = is_pirate
 	if is_pirate:
 		var timer: int = PirateMechanic.get_rare_restock_timer(pid)
 		var stock: Array = PirateMechanic.get_rare_market_stock(pid)
 		btn_rare_market.text = "Rare Market (%d items, %dT)" % [stock.size(), timer]
 		btn_rare_market.disabled = stock.is_empty()
+		var infamy: int = PirateMechanic.get_infamy(pid)
+		btn_pirate_fleet.text = "Pirate Fleet (Infamy:%d)" % infamy
 
 	# Dark Elf buttons
 	btn_shadow_network.visible = is_dark_elf

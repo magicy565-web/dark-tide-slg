@@ -2000,7 +2000,7 @@ func begin_turn() -> void:
 	if pid == get_human_player_id():
 		var _ttp = _find_troop_training_panel()
 		if _ttp and _ttp.has_method("process_turn"):
-			_ttp.process_turn()
+			_ttp.process_turn(pid)
 
 	# ── Phase 5b4: Equipment forge crafting progress (v3.6) ──
 	if EquipmentForge != null:
