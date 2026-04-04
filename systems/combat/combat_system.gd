@@ -379,6 +379,10 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		for u in state.defender_units:
 			u.has_acted = false
 
+		# v9.0 BUG FIX: Decrement intervention targeting durations at end-of-round
+		# (mirrors combat_resolver.gd _end_of_round() behavior)
+		_tick_intervention_durations(state)
+
 		if winner == "":
 			winner = _check_battle_end(state)
 
@@ -620,7 +624,9 @@ func _build_intervention_state(state: BattleState) -> Dictionary:
 			"unit_type": u.troop_id, "soldiers": u.soldiers, "max_soldiers": u.max_soldiers,
 			"atk": u.atk, "def": u.def_stat, "spd": u.spd,
 			"is_alive": u.is_alive(), "morale": u.morale, "is_routed": u.is_routed,
-			"hero_id": u.hero_id, "active_skill": {},
+			"hero_id": u.hero_id,
+			# v9.0 BUG FIX: populate real active_skill data so HERO_SKILL_NOW can fire correctly
+			"active_skill": _get_hero_active_skill(u.hero_id),
 			"buffs": [], "passives": u.passive.split(","),
 		})
 	var def_units: Array = []
@@ -654,21 +660,9 @@ func _apply_intervention_results(state: BattleState, istate: Dictionary) -> void
 	if istate.has("bait_target") and istate.has("bait_duration"):
 		state.set_meta("bait_target_slot", int(istate["bait_target"]))
 		state.set_meta("bait_duration", int(istate["bait_duration"]))
-	# Clear expired overrides (decremented each round)
-	if state.has_meta("forced_target_duration"):
-		var _ftd: int = state.get_meta("forced_target_duration") - 1
-		if _ftd <= 0:
-			state.remove_meta("forced_target_slot")
-			state.remove_meta("forced_target_duration")
-		else:
-			state.set_meta("forced_target_duration", _ftd)
-	if state.has_meta("bait_duration"):
-		var _bd: int = state.get_meta("bait_duration") - 1
-		if _bd <= 0:
-			state.remove_meta("bait_target_slot")
-			state.remove_meta("bait_duration")
-		else:
-			state.set_meta("bait_duration", _bd)
+	# NOTE: forced_target/bait_target durations are decremented at END-OF-ROUND
+	# (see _tick_intervention_durations call in the battle loop), NOT here.
+	# Decrementing here would consume the duration before the round's action queue runs.
 	# Sync attacker units
 	for d in istate["atk_units"]:
 		for u in state.attacker_units:
@@ -713,6 +707,25 @@ func _apply_intervention_results(state: BattleState, istate: Dictionary) -> void
 					if buff.get("mult_def", false):
 						u.def_stat = int(float(u.def_stat) * (1.0 + buff.get("value", 0.0)))
 				break
+
+
+## Decrement intervention targeting override durations at end of each round.
+## Called from the main battle loop after all units have acted.
+func _tick_intervention_durations(state: BattleState) -> void:
+	if state.has_meta("forced_target_duration"):
+		var _ftd: int = state.get_meta("forced_target_duration") - 1
+		if _ftd <= 0:
+			state.remove_meta("forced_target_slot")
+			state.remove_meta("forced_target_duration")
+		else:
+			state.set_meta("forced_target_duration", _ftd)
+	if state.has_meta("bait_duration"):
+		var _bd: int = state.get_meta("bait_duration") - 1
+		if _bd <= 0:
+			state.remove_meta("bait_target_slot")
+			state.remove_meta("bait_duration")
+		else:
+			state.set_meta("bait_duration", _bd)
 
 
 ## Infer a display class from troop_id for color coding in combat view.
@@ -891,15 +904,22 @@ func _apply_round_start_passives(state: BattleState) -> void:
 
 		# regen_1: restore 1 soldier worth of HP at start of round (up to max)
 		if u.has_passive("regen_1"):
+			var _regen_before_hp: int = u.hp
 			u.hp = mini(u.hp + u.hp_per_soldier, u.max_hp)
 			_recalc_soldiers(u)
+			# v9.0 BUG FIX: add amount/remaining_soldiers/max_soldiers so the
+			# presentation system can show the floating +N heal number and update HP bar
+			var _regen_healed: int = u.hp - _regen_before_hp
 			var _regen_side := "attacker" if u.is_attacker else "defender"
 			state.action_log.append({
 				"action": "passive_vfx",
 				"side": _regen_side,
 				"slot": u.slot,
 				"passive_type": "regen",
-				"desc": "%s 再生回复" % u.troop_id,
+				"amount": _regen_healed,
+				"remaining_soldiers": u.soldiers,
+				"max_soldiers": u.max_soldiers,
+				"desc": "%s 再生回复 +%d HP" % [u.troop_id, _regen_healed],
 			})
 
 		# charge_mana_1: gain 1 mana per round
@@ -943,6 +963,9 @@ func _apply_round_start_passives(state: BattleState) -> void:
 					"side": _ra_side,
 					"slot": ra_best.slot,
 					"is_mass": false,
+					# v9.0 BUG FIX: include remaining_soldiers/max_soldiers so heal case updates HP bar
+					"remaining_soldiers": ra_best.soldiers,
+					"max_soldiers": ra_best.max_soldiers,
 					"desc": "%s 被再生光环治愈" % ra_best.troop_id,
 				})
 
@@ -1785,6 +1808,9 @@ func _apply_kill_heal(killer: BattleUnit, state: BattleState) -> void:
 		"side": side_str,
 		"slot": killer.slot,
 		"is_mass": false,
+		# v9.0 BUG FIX: include remaining_soldiers/max_soldiers so heal case updates HP bar
+		"remaining_soldiers": killer.soldiers,
+		"max_soldiers": killer.max_soldiers,
 		"desc": "%s 击杀回血" % killer.troop_id,
 	})
 
@@ -1810,6 +1836,44 @@ func _apply_dragon_slayer(killer: BattleUnit, state: BattleState) -> void:
 		"passive_type": "bloodlust",
 		"desc": "%s 龙杀发动" % killer.troop_id,
 	})
+
+## Look up a hero's active skill data from FactionData.HEROES.
+## Mirrors combat_resolver.gd's _get_hero_active_skill() so HERO_SKILL_NOW intervention
+## can read the real skill type, mana_cost, and cooldown.
+func _get_hero_active_skill(hero_id: String) -> Dictionary:
+	if hero_id == "":
+		return {}
+	if not _has_autoload("FactionData"):
+		# FactionData is a const-preloaded class, not an autoload — access directly
+		pass
+	var hdata: Dictionary = FactionData.HEROES.get(hero_id, {})
+	if hdata.is_empty():
+		return {}
+	var skill_name: String = hdata.get("active", "")
+	if skill_name == "":
+		return {}
+	# Map skill names to type/cost/cooldown (mirrors combat_resolver.gd)
+	match skill_name:
+		"圣光斩": return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 2}
+		"治愈之光": return {"name": skill_name, "type": "heal", "mana_cost": 0, "cooldown": 2}
+		"突击号令": return {"name": skill_name, "type": "buff", "mana_cost": 0, "cooldown": 3}
+		"不动如山": return {"name": skill_name, "type": "buff", "mana_cost": 0, "cooldown": 3}
+		"箭雨": return {"name": skill_name, "type": "aoe", "mana_cost": 0, "cooldown": 3}
+		"月光护盾": return {"name": skill_name, "type": "buff", "mana_cost": 3, "cooldown": 3}
+		"影步": return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 2}
+		"流星火雨": return {"name": skill_name, "type": "aoe", "mana_cost": 8, "cooldown": 4}
+		"时间减速": return {"name": skill_name, "type": "debuff", "mana_cost": 3, "cooldown": 3}
+		"爆裂火球": return {"name": skill_name, "type": "damage", "mana_cost": 3, "cooldown": 2}
+		"连射": return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 2}
+		"致命一击": return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 2}
+		"铁壁": return {"name": skill_name, "type": "buff", "mana_cost": 0, "cooldown": 2}
+		"沙暴": return {"name": skill_name, "type": "debuff", "mana_cost": 0, "cooldown": 3}
+		"亡灵召唤": return {"name": skill_name, "type": "summon", "mana_cost": 3, "cooldown": 4}
+		"分身": return {"name": skill_name, "type": "buff", "mana_cost": 0, "cooldown": 3}
+		"净化": return {"name": skill_name, "type": "heal", "mana_cost": 0, "cooldown": 2}
+		"集中轰炸": return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 3}
+	return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 3}
+
 
 ## Try to fetch an autoload node by name at runtime.
 func _has_autoload(aname: String) -> bool:

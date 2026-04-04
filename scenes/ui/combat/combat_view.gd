@@ -2562,6 +2562,7 @@ func _apply_log_entry(entry: Dictionary) -> void:
 						_highlight_aoe_targets(target_side, aoe_slots)
 
 		"passive":
+			var passive_event: String = entry.get("event", "")
 			log_line = "[color=#8cf][Passive][/color] %s" % desc
 			if slot_idx >= 0:
 				_flash_passive(side, slot_idx, desc)
@@ -2573,6 +2574,51 @@ func _apply_log_entry(entry: Dictionary) -> void:
 				if damage > 0:
 					var pos := _get_card_center(side, slot_idx)
 					_spawn_damage_popup(anim_layer, damage, pos)
+				# v9.0 FIX: event-specific visual feedback for key passive events
+				if not _is_finishing:
+					match passive_event:
+						"counter_1_2":
+							# Counter-attack: orange flash on the counterattacking unit
+							_flash_card(side, slot_idx, Color(1.0, 0.55, 0.1, 0.5))
+							_set_chibi_state(side, slot_idx, "attack", 0.5)
+							# Also flash the target that took counter damage
+							var ctr_tgt_side: String = entry.get("target_side", "")
+							var ctr_tgt_slot: int = entry.get("target_slot", -1)
+							if ctr_tgt_side != "" and ctr_tgt_slot >= 0:
+								var ctr_dmg: int = entry.get("damage", 0)
+								_flash_card(ctr_tgt_side, ctr_tgt_slot, Color(0.9, 0.3, 0.3, 0.4))
+								if ctr_dmg > 0:
+									var ctr_pos := _get_card_center(ctr_tgt_side, ctr_tgt_slot)
+									_spawn_damage_popup(anim_layer, ctr_dmg, ctr_pos)
+								var ctr_rem: int = entry.get("remaining_soldiers", -1)
+								var ctr_max: int = entry.get("max_soldiers", ctr_rem)
+								if ctr_rem >= 0:
+									_update_card_soldiers(ctr_tgt_side, ctr_tgt_slot, ctr_rem, ctr_max)
+						"ghost_shield":
+							# Ghost shield: bright white flash + "BLOCKED" banner
+							_flash_card(side, slot_idx, Color(0.9, 0.95, 1.0, 0.7))
+							_screen_flash_effect(Color(0.8, 0.9, 1.0, 0.08), 0.3)
+							_show_passive_banner("幽灵护盾: 吸收攻击!", side)
+						"death_resist_triggered":
+							# Death resist: golden flash + banner
+							_flash_card(side, slot_idx, Color(1.0, 0.85, 0.2, 0.6))
+							_show_passive_banner("铁颌板甲: 抗死!", side)
+						"death_burst":
+							# Death burst: red shockwave flash on all enemy cards
+							var burst_enemy_side: String = "defender" if side == "attacker" else "attacker"
+							var burst_cards: Dictionary = attacker_cards if burst_enemy_side == "attacker" else defender_cards
+							for burst_slot in burst_cards.keys():
+								_flash_card(burst_enemy_side, burst_slot, Color(0.9, 0.2, 0.2, 0.45))
+							_screen_shake(SHAKE_HEAVY, 7.0)
+							_screen_flash_effect(Color(1.0, 0.3, 0.2, 0.12), 0.4)
+						"escape_30_triggered":
+							# Escape: yellow flash + banner
+							_flash_card(side, slot_idx, Color(1.0, 0.9, 0.2, 0.5))
+							_show_passive_banner("逃脱发动!", side)
+						"ranged_dodge":
+							# Dodge: blue flash + banner
+							_flash_card(side, slot_idx, Color(0.4, 0.7, 1.0, 0.5))
+							_show_passive_banner("闪避!", side)
 
 		"ability":
 			log_line = "[color=#fc8][Skill][/color] %s" % desc
@@ -2739,6 +2785,12 @@ func _apply_log_entry(entry: Dictionary) -> void:
 				# Task 3: Play heal SFX
 				if AudioManager and AudioManager.has_method("play_combat_heal"):
 					AudioManager.play_combat_heal()
+				# v9.0 BUG FIX: update HP bar after heal (remaining_soldiers/max_soldiers
+				# are now included in kill_heal, regen_aura, and ultimate heal log entries)
+				var heal_remaining: int = entry.get("remaining_soldiers", -1)
+				var heal_max: int = entry.get("max_soldiers", heal_remaining)
+				if heal_remaining >= 0:
+					_update_card_soldiers(side, slot_idx, heal_remaining, heal_max)
 
 		"combo":
 			var combo_idx: int = entry.get("combo_index", 0)
