@@ -175,8 +175,10 @@ func convert_slaves_to_soldiers(player_id: int) -> bool:
 		EventBus.message_log.emit("奴隶不足! 需要 %d 名空闲奴隶" % SLAVES_PER_SOLDIER)
 		return false
 	alloc["idle"] -= SLAVES_PER_SOLDIER
-	# Only update ResourceManager — allocation already deducted above, skip sync to avoid triple deduction
-	ResourceManager.apply_delta(player_id, {"slaves": -SLAVES_PER_SOLDIER})
+	# BUG FIX: 不再手动调用 apply_delta({slaves:-3})，改用 sync_slave_count 统一对齐
+	# 原代码同时手动减 alloc["idle"] 又调用 apply_delta，下次 sync 会再次从 alloc 移除
+	# 3 名奴隶（三重扣减）。现在只修改 alloc，让 sync 负责更新 ResourceManager。
+	sync_slave_count(player_id)
 	ResourceManager.add_army(player_id, 1)
 	EventBus.message_log.emit("[color=purple]奴隶转化: %d名奴隶 → 1名士兵[/color]" % SLAVES_PER_SOLDIER)
 	return true

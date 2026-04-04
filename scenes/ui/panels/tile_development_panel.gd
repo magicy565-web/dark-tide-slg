@@ -430,7 +430,7 @@ func _on_build_pressed(building_id: String) -> void:
 	ResourceManager.spend(pid, {"gold": check["cost_gold"], "iron": check["cost_iron"]})
 	player["ap"] -= 1
 	EventBus.ap_changed.emit(pid, player["ap"])
-	TileDevelopment.build(_tile_idx, building_id)
+	TileDevelopment.build(_tile_idx, building_id, true)  # skip_cost_check: 费用已在此处处理
 	EventBus.message_log.emit("[color=cyan]建造完成 (消耗 1 AP)[/color]")
 
 

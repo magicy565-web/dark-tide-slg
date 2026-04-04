@@ -352,7 +352,10 @@ func from_save_data(data: Dictionary) -> void:
 # ═══════════════ MISSING METHOD STUBS (v5.3 audit) ═══════════════
 
 ## Called by game_manager — alias for add_buff with dict-style value.
+## BUG FIX: 原实现将 value_dict 作为 buff_type 传入，value=null，
+## 导致 buff 以 value=null 存储，后续 float()/int() 转换崩溃。
+## 修复：将 value_dict 作为 actual_value，buff_type 设为 buff_id。
 func apply_buff(player_id: int, buff_id: String, value_dict: Dictionary, duration: int = -1) -> void:
 	# apply_buff(pid, "sat_morale", {"morale_boost": 10}, 3)
-	# → add_buff(pid, "sat_morale", value_dict, null, duration)
-	add_buff(player_id, buff_id, value_dict, null, duration, "apply_buff")
+	# → add_buff(pid, "sat_morale", buff_type="sat_morale", value=value_dict, duration)
+	add_buff(player_id, buff_id, buff_id, value_dict, duration, "apply_buff")

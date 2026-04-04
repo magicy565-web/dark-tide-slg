@@ -170,10 +170,25 @@ func can_build(tile_idx: int, building_id: String) -> Dictionary:
 	return {"can": true, "cost_gold": cost_gold, "cost_iron": cost_iron}
 
 
-func build(tile_idx: int, building_id: String) -> bool:
+func build(tile_idx: int, building_id: String, skip_cost_check: bool = false) -> bool:
+	## skip_cost_check=true 允许调用方已在 UI 层处理费用（如 tile_development_panel）。
+	## 默认情况下 build() 自行检查并扣除费用，防止其他路径绕过 UI 层免费建造。
 	var check: Dictionary = can_build(tile_idx, building_id)
 	if not check["can"]:
 		return false
+	# BUG FIX: 如果调用方未在外部处理费用，在此处自行检查并扣除
+	if not skip_cost_check:
+		var owner_id: int = -1
+		for tile in GameManager.tiles:
+			if tile != null and tile.get("index", -1) == tile_idx:
+				owner_id = tile.get("owner_id", -1)
+				break
+		if owner_id >= 0:
+			var cost: Dictionary = {"gold": check.get("cost_gold", 0), "iron": check.get("cost_iron", 0)}
+			if not ResourceManager.can_afford(owner_id, cost):
+				EventBus.message_log.emit("[color=red]资源不足，无法建造![/color]")
+				return false
+			ResourceManager.spend(owner_id, cost)
 	var dev: Dictionary = get_tile_development(tile_idx)
 	dev["buildings"].append(building_id)
 	_tile_dev[tile_idx] = dev
