@@ -106,8 +106,10 @@ func _resolve_espionage_system() -> void:
 		_espionage_system = Engine.get_singleton("EspionageSystem")
 	elif has_node("/root/EspionageSystem"):
 		_espionage_system = get_node("/root/EspionageSystem")
-	elif has_node("/root/GameManager") and get_node("/root/GameManager").has_node("EspionageSystem"):
-		_espionage_system = get_node("/root/GameManager").get_node("EspionageSystem")
+	elif has_node("/root/GameManager"):
+		var _gm := get_node_or_null("/root/GameManager")
+		if _gm and _gm.has_node("EspionageSystem"):
+			_espionage_system = _gm.get_node_or_null("EspionageSystem")
 	# Fallback: search parent tree
 	if _espionage_system == null:
 		var parent := get_parent()

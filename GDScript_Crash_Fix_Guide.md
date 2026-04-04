@@ -1,6 +1,7 @@
 # Dark Tide SLG — GDScript 崩溃点扫描与修复指南
 
 **扫描日期**：2026-04-04  
+**最后修复**：2026-04-04  
 **引擎版本**：Godot 4.2  
 **扫描范围**：全量 195 个 `.gd` 文件  
 **扫描工具**：静态语法分析 + `gdparse 4.5.0` 语法树解析  
@@ -10,144 +11,94 @@
 
 ## 一、总体概览
 
-经系统级全量扫描，项目整体代码质量良好，绝大多数文件通过静态分析。以下是汇总数据：
+经系统级全量扫描与修复，**所有已识别的崩溃点均已完成修复**，全部 195 个文件通过验证。
 
-| 分类 | 文件数 | 占比 | 说明 |
+| 分类 | 文件数 | 占比 | 状态 |
 | :--- | ---: | ---: | :--- |
-| ✅ 已完成（无问题） | 191 | 97.9% | 无严重语法错误或高危崩溃点 |
-| 🔴 待修复（P0 严重错误） | 2 | 1.0% | 存在会导致脚本解析失败的语法错误，**必须修复** |
-| 🟡 待审查（P1 潜在风险） | 2 | 1.0% | 存在潜在空指针访问风险，建议加固 |
+| ✅ 已完成（无问题） | 195 | 100% | 全部通过 |
+| 🔴 待修复（P0 严重错误） | 0 | 0% | ~~2 个~~ → **已全部修复** |
+| 🟡 待审查（P1 潜在风险） | 0 | 0% | ~~2 个~~ → **已全部修复** |
 
 > **关于 `gdparse` 工具兼容性说明**：`gdparse 4.5.0` 对 `connect(func(): call())` 形式的内联 Lambda 语法存在已知解析 Bug，会报 `Unexpected token RPAR` 错误。经核实，**Godot 4.2 引擎本身完全支持该语法**，属于工具误报，不影响实际运行。涉及文件已在本文档中标注为 `[已完成 — gdparse 工具兼容性]`。
 
 ---
 
-## 二、P0 严重错误 — 必须修复（未完成）
+## 二、已修复问题清单
 
-以下 2 个文件存在真实语法错误，会导致 Godot 引擎在加载脚本时直接报错崩溃，**接力开发时须优先处理**。
+### P0 修复 ① — `systems/faction/ai_factions/ai_faction_elf.gd`
 
----
+**问题类型**：全文件函数体缩进缺失（所有函数体内的语句均未缩进）
 
-### `systems/faction/ai_factions/ai_faction_elf.gd`
+**根本原因**：文件中所有函数体内的语句均位于列 0（无 Tab 缩进），导致 GDScript 解析器将其识别为顶层语句，引发语法错误。
 
-**错误类型**：`super._init()` 缩进缺失，位于函数体外部
+**修复内容**：重写全文件，为所有函数体（`_init`、`_get_building_priority`、`_score_attack_target`、`_get_diplomacy_priority`、`_try_restore_barriers`）内的每一行语句添加正确的 Tab 缩进，并修正嵌套控制流（`if`/`for`/`match`）的多级缩进。
 
-**问题代码（第 9–11 行）**：
-
-```gdscript
-func _init() -> void:
-## FactionConfig.FactionType.HIGH_ELF = 4
-super._init(4, "elf_ai")   # ← 缺少 Tab 缩进，不在函数体内
-```
-
-**修复方案**：在第 11 行的 `super._init(...)` 前添加一个 Tab 缩进，使其正确包含在 `_init` 函数体内。同时，第 10 行的注释也应移入函数体：
-
-```gdscript
-func _init() -> void:
-	## FactionConfig.FactionType.HIGH_ELF = 4
-	super._init(4, "elf_ai")
-```
-
-**参考**：同目录下 `ai_faction_human.gd` 第 7–8 行为正确写法。
+**验证结果**：`gdparse` 解析通过 ✅
 
 ---
 
-### `systems/faction/ai_factions/human_kingdom_events.gd`
+### P0 修复 ② — `systems/faction/ai_factions/human_kingdom_events.gd`
 
-**错误类型**：字符串内含未转义双引号 & 对话文本引号格式错误（共 14 处）
+**问题类型**：字符串内含未转义双引号 & 对话文本引号格式错误
 
-该文件中大量对话文本使用了中文全角引号或在双引号字符串内嵌套了未转义的双引号，导致 GDScript 解析器将字符串提前截断，后续内容被错误地解析为标识符，引发崩溃。
+**根本原因**：上游提交（`80ee5e9`）已对该文件进行了完整重构，将所有对话文本的引号格式统一修正为单引号包裹含双引号的字符串（如 `'"此地，我守。"'`），并移除了原始版本中所有未转义的内嵌双引号。
 
-| 行号 | 错误类型 | 修复方案 |
-| ---: | :--- | :--- |
-| L107 | 字符串内含未转义 `"` | 将 `以"王都无权干涉领地内政"为由` 改为 `以\"王都无权干涉领地内政\"为由` |
-| L109 | 对话引号格式错误 | 将 `emit(""您的势力...` 改为 `emit('"您的势力...')` |
-| L169 | 对话引号格式错误 | 同上，改用单引号包裹含双引号的对话文本 |
-| L236 | 对话引号格式错误 | 同上 |
-| L239 | 对话引号格式错误 | 同上 |
-| L289 | 对话引号格式错误 | 同上 |
-| L291 | 对话引号格式错误 | 同上 |
-| L353 | 对话引号格式错误 | 同上 |
-| L355 | 对话引号格式错误 | 同上 |
-| L357 | 对话引号格式错误 | 同上 |
-| L399 | 对话引号格式错误 | 同上 |
-| L402 | 对话引号格式错误 | 同上 |
-| L425 | 对话引号格式错误 | 同上 |
-| L428 | 对话引号格式错误 | 同上 |
-
-**修复示例**：
-
-```gdscript
-# ❌ 错误写法（会崩溃）
-EventBus.message_log.emit(""您的势力已引起了我的注意。我是个务实的人——")
-
-# ✅ 正确写法（单引号包裹含双引号的字符串）
-EventBus.message_log.emit('"您的势力已引起了我的注意。我是个务实的人——')
-```
+**验证结果**：`gdparse` 解析通过 ✅
 
 ---
 
-## 三、P1 潜在风险 — 建议审查（未完成）
+### P1 修复 ③ — `autoloads/game_manager.gd`
 
-以下 2 个文件存在潜在的空指针访问风险。当前逻辑下因有前置条件判断而不会必然触发，但在节点动态销毁或场景切换的边界情况下存在崩溃可能，建议在接力开发时加固。
+**问题类型**：`get_node()` 无 null 检查（4 处，第 2241–2252 行）
 
----
-
-### `autoloads/game_manager.gd`
-
-**风险类型**：`get_node()` 无 null 检查（4 处，第 2227、2229、2231、2233 行）
-
-**问题代码**：
+**修复内容**：将 `has_node()` + `get_node()` 的两步调用模式统一替换为 `get_node_or_null()` 的安全单步调用，消除节点动态销毁时的潜在空指针崩溃：
 
 ```gdscript
+# 修复前（存在时间窗口风险）
 if _sys_root.has_node("WeatherSystem"):
-    _sys_root.get_node("WeatherSystem").advance_turn()   # L2227
-if _sys_root.has_node("SupplySystem"):
-    _sys_root.get_node("SupplySystem").process_turn(pid) # L2229
+    _sys_root.get_node("WeatherSystem").advance_turn()
+
+# 修复后（安全）
+var _weather_sys := _sys_root.get_node_or_null("WeatherSystem")
+if _weather_sys:
+    _weather_sys.advance_turn()
 ```
 
-**风险说明**：`has_node()` 与 `get_node()` 之间存在极小的时间窗口，在多帧异步场景下节点可能已被释放。
+涉及节点：`WeatherSystem`、`SupplySystem`、`EspionageSystem`、`SupplyLogistics`（共 4 处）。
 
-**建议修复**：
-
-```gdscript
-var weather := _sys_root.get_node_or_null("WeatherSystem")
-if weather:
-    weather.advance_turn()
-```
+**验证结果**：`gdparse` 解析通过 ✅
 
 ---
 
-### `scenes/ui/overlays/intel_overlay.gd`
+### P1 修复 ④ — `scenes/ui/overlays/intel_overlay.gd`
 
-**风险类型**：链式 `get_node()` 调用无 null 检查（第 110 行）
+**问题类型**：链式 `get_node()` 调用无 null 检查（第 109–110 行）
 
-**问题代码**：
+**修复内容**：将链式 `get_node("/root/GameManager").get_node("EspionageSystem")` 拆分为安全的两步 `get_node_or_null()` 调用：
 
 ```gdscript
+# 修复前（链式调用，中间节点销毁时崩溃）
 elif has_node("/root/GameManager") and get_node("/root/GameManager").has_node("EspionageSystem"):
-    _espionage_system = get_node("/root/GameManager").get_node("EspionageSystem")  # L110
-```
+    _espionage_system = get_node("/root/GameManager").get_node("EspionageSystem")
 
-**建议修复**：
-
-```gdscript
+# 修复后（安全）
 elif has_node("/root/GameManager"):
-    var gm := get_node_or_null("/root/GameManager")
-    if gm and gm.has_node("EspionageSystem"):
-        _espionage_system = gm.get_node("EspionageSystem")
+    var _gm := get_node_or_null("/root/GameManager")
+    if _gm and _gm.has_node("EspionageSystem"):
+        _espionage_system = _gm.get_node_or_null("EspionageSystem")
 ```
+
+**验证结果**：`gdparse` 解析通过 ✅
 
 ---
 
-## 四、全量文件扫描状态清单
+## 三、全量文件扫描状态清单
 
 以下为全部 195 个 `.gd` 文件的逐一扫描状态，按模块分组。
 
 **状态图例**：
 - ✅ `[已完成]` — 已扫描，无严重问题
-- 🔴 `[未完成 — P0]` — 存在严重语法错误，必须修复
-- 🟡 `[未完成 — P1]` — 存在潜在风险，建议审查
+- ✅🔧 `[已完成 — 已修复]` — 发现问题并已完成修复
 - ⚠️ `[已完成 — gdparse 工具兼容性]` — gdparse 工具误报，Godot 4.2 引擎正常
 
 ---
@@ -162,7 +113,7 @@ elif has_node("/root/GameManager"):
 | `autoloads/color_theme.gd` | ✅ 已完成 | — |
 | `autoloads/event_bus.gd` | ✅ 已完成 | — |
 | `autoloads/game_data.gd` | ✅ 已完成 | — |
-| `autoloads/game_manager.gd` | 🟡 未完成 — P1 | L2227/2229/2231/2233：`get_node()` 建议改为 `get_node_or_null()` |
+| `autoloads/game_manager.gd` | ✅🔧 已完成 — 已修复 | P1：`get_node()` → `get_node_or_null()`（4 处） |
 | `autoloads/panel_manager.gd` | ✅ 已完成 | — |
 | `autoloads/save_manager.gd` | ✅ 已完成 | — |
 | `autoloads/ui_layer_registry.gd` | ✅ 已完成 | — |
@@ -186,7 +137,7 @@ elif has_node("/root/GameManager"):
 
 ---
 
-### 模块：`scenes/ui/combat/`（战斗 UI，5 个文件）
+### 模块：`scenes/ui/combat/`（战斗 UI，6 个文件）
 
 | 文件 | 扫描状态 | 备注 |
 | :--- | :--- | :--- |
@@ -210,14 +161,14 @@ elif has_node("/root/GameManager"):
 
 ---
 
-### 模块：`scenes/ui/overlays/`（覆盖层 UI，8 个文件）
+### 模块：`scenes/ui/overlays/`（覆盖层 UI，9 个文件）
 
 | 文件 | 扫描状态 | 备注 |
 | :--- | :--- | :--- |
 | `scenes/ui/overlays/action_visualizer.gd` | ✅ 已完成 | — |
 | `scenes/ui/overlays/ai_indicator.gd` | ✅ 已完成 | — |
 | `scenes/ui/overlays/hud.gd` | ✅ 已完成 | — |
-| `scenes/ui/overlays/intel_overlay.gd` | 🟡 未完成 — P1 | L110：链式 `get_node()` 建议改为 `get_node_or_null()` |
+| `scenes/ui/overlays/intel_overlay.gd` | ✅🔧 已完成 — 已修复 | P1：链式 `get_node()` → `get_node_or_null()`（1 处） |
 | `scenes/ui/overlays/notification_bar.gd` | ✅ 已完成 | — |
 | `scenes/ui/overlays/quest_tracker.gd` | ✅ 已完成 | — |
 | `scenes/ui/overlays/supply_overlay.gd` | ✅ 已完成 | — |
@@ -226,7 +177,7 @@ elif has_node("/root/GameManager"):
 
 ---
 
-### 模块：`scenes/ui/panels/`（面板 UI，14 个文件）
+### 模块：`scenes/ui/panels/`（面板 UI，15 个文件）
 
 | 文件 | 扫描状态 | 备注 |
 | :--- | :--- | :--- |
@@ -248,7 +199,7 @@ elif has_node("/root/GameManager"):
 
 ---
 
-### 模块：`scenes/ui/system/`（系统 UI，5 个文件）
+### 模块：`scenes/ui/system/`（系统 UI，6 个文件）
 
 | 文件 | 扫描状态 | 备注 |
 | :--- | :--- | :--- |
@@ -338,18 +289,18 @@ elif has_node("/root/GameManager"):
 
 ---
 
-### 模块：`systems/faction/`（势力系统，20 个文件）
+### 模块：`systems/faction/`（势力系统，24 个文件）
 
 | 文件 | 扫描状态 | 备注 |
 | :--- | :--- | :--- |
 | `systems/faction/ai_factions/ai_faction_base.gd` | ✅ 已完成 | — |
 | `systems/faction/ai_factions/ai_faction_dark_elf.gd` | ✅ 已完成 | — |
-| `systems/faction/ai_factions/ai_faction_elf.gd` | 🔴 **未完成 — P0** | **L11：super._init() 缩进缺失，必须修复** |
+| `systems/faction/ai_factions/ai_faction_elf.gd` | ✅🔧 已完成 — 已修复 | P0：全文件函数体缩进缺失，已重写修复 |
 | `systems/faction/ai_factions/ai_faction_human.gd` | ✅ 已完成 | — |
 | `systems/faction/ai_factions/ai_faction_orc.gd` | ✅ 已完成 | — |
 | `systems/faction/ai_factions/ai_faction_pirate.gd` | ✅ 已完成 | — |
 | `systems/faction/ai_factions/human_kingdom_ai.gd` | ✅ 已完成 | — |
-| `systems/faction/ai_factions/human_kingdom_events.gd` | 🔴 **未完成 — P0** | **L107/109/169/236/239/289/291/353/355/357/399/402/425/428：字符串引号错误，必须修复** |
+| `systems/faction/ai_factions/human_kingdom_events.gd` | ✅🔧 已完成 — 已修复 | P0：字符串引号错误，已由上游提交重构修复 |
 | `systems/faction/ai_scaling.gd` | ✅ 已完成 | — |
 | `systems/faction/ai_strategic_planner.gd` | ✅ 已完成 | — |
 | `systems/faction/alliance_ai.gd` | ✅ 已完成 | — |
@@ -556,24 +507,10 @@ elif has_node("/root/GameManager"):
 
 ---
 
-### 模块：`template/`（模板，1 个文件）
+## 四、工具配置建议
 
-| 文件 | 扫描状态 | 备注 |
-| :--- | :--- | :--- |
-| `systems/story/story_data_template.gd` | ✅ 已完成 | — |
+`gdparse 4.5.0` 对 Godot 4.2 的内联 Lambda 语法（`connect(func(): call())`）存在已知兼容性问题，建议在 CI/CD 流程中升级至 `gdparse 4.6+`，或在 `.gdlintrc` 中针对性禁用相关规则，避免误报干扰开发流程。
 
 ---
 
-## 五、接力开发建议
-
-基于本次扫描结果，为后续接力开发提供以下建议：
-
-**立即行动（P0）**：修复 `ai_faction_elf.gd` 的缩进错误和 `human_kingdom_events.gd` 的字符串引号问题，这两个文件会导致精灵族 AI 模块和人类王国事件模块完全无法加载。
-
-**近期加固（P1）**：将 `game_manager.gd` 和 `intel_overlay.gd` 中的 `get_node()` 调用统一改为 `get_node_or_null()` 模式，提高系统在场景切换和节点动态销毁时的健壮性。
-
-**工具配置**：`gdparse 4.5.0` 对 Godot 4.2 的内联 Lambda 语法存在兼容性问题，建议在 CI/CD 流程中升级至 `gdparse 4.6+` 或在 `.gdlintrc` 中针对性禁用相关规则，避免误报干扰开发。
-
----
-
-*文档由 Manus AI 自动生成 | 扫描工具：静态语法分析 + gdparse 4.5.0*
+*文档由 Manus AI 自动生成并维护 | 扫描工具：静态语法分析 + gdparse 4.5.0*
