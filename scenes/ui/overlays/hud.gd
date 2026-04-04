@@ -1944,8 +1944,8 @@ func _on_sat_event_pressed() -> void:
 		return
 
 	for hero_id in heroes:
-		var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
-		var hero_name: String = hero_data.get("name", hero_id)
+		var _sat_hinfo: Dictionary = HeroSystem.get_hero_info(hero_id)
+		var hero_name: String = _sat_hinfo.get("name", hero_id)
 		var affection: int = HeroSystem.hero_affection.get(hero_id, 0)
 		var label_text: String = "%s (Affection: %d)" % [hero_name, affection]
 		_add_target_button(label_text, _on_sat_event_target.bind(hero_id))
@@ -1973,8 +1973,8 @@ func _on_interrogate_pressed() -> void:
 		return
 
 	for hero_id in HeroSystem.captured_heroes:
-		var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
-		var hero_name: String = hero_data.get("name", hero_id)
+		var _int_hinfo: Dictionary = HeroSystem.get_hero_info(hero_id)
+		var hero_name: String = _int_hinfo.get("name", hero_id)
 		var corruption: int = HeroSystem.hero_corruption.get(hero_id, 0)
 		var label_text: String = "%s (Corruption: %d/100)" % [hero_name, corruption]
 		if not has_ap:
@@ -2628,8 +2628,8 @@ func _on_blood_tribute_pressed() -> void:
 		_add_target_label("(No captured heroes)")
 	else:
 		for hero_id in prisoners:
-			var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
-			var hero_name: String = hero_data.get("name", hero_id)
+			var _bt_hinfo: Dictionary = HeroSystem.get_hero_info(hero_id)
+			var hero_name: String = _bt_hinfo.get("name", hero_id)
 			_add_target_button("Sacrifice %s (+2 ATK)" % hero_name, _on_blood_tribute_confirm.bind(hero_id))
 
 

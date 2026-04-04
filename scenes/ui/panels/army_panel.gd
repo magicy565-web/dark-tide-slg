@@ -345,8 +345,12 @@ func _get_commander_name(army: Dictionary) -> String:
 	if heroes.is_empty():
 		return "(No Commander)"
 	var hero_id: String = heroes[0]
-	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
-	return hero_data.get("name", hero_id)
+	# BUG FIX: use runtime HeroSystem.get_hero_info() instead of static FactionData.HEROES
+	if HeroSystem != null and HeroSystem.has_method("get_hero_info"):
+		var _hinfo: Dictionary = HeroSystem.get_hero_info(hero_id)
+		if not _hinfo.is_empty():
+			return _hinfo.get("name", hero_id)
+	return FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
 
 
 func _get_commander_stats(army: Dictionary) -> Dictionary:
@@ -354,8 +358,13 @@ func _get_commander_stats(army: Dictionary) -> Dictionary:
 	if heroes.is_empty():
 		return {}
 	var hero_id: String = heroes[0]
-	var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
-	return hero_data
+	# BUG FIX: use runtime HeroSystem.get_hero_combat_stats() instead of static FactionData.HEROES
+	# so level/equipment bonuses are reflected in the army panel display.
+	if HeroSystem != null and HeroSystem.has_method("get_hero_combat_stats"):
+		var _hcs: Dictionary = HeroSystem.get_hero_combat_stats(hero_id)
+		if not _hcs.is_empty():
+			return _hcs
+	return FactionData.HEROES.get(hero_id, {})
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -580,17 +589,24 @@ func _refresh_detail() -> void:
 		detail_container.add_child(no_cmd)
 	else:
 		for hero_id in heroes:
-			var hero_data: Dictionary = FactionData.HEROES.get(hero_id, {})
+			# BUG FIX: use runtime HeroSystem data instead of static FactionData.HEROES
+			var hero_data: Dictionary = {}
+			if HeroSystem != null and HeroSystem.has_method("get_hero_combat_stats"):
+				hero_data = HeroSystem.get_hero_combat_stats(hero_id)
+			if hero_data.is_empty():
+				hero_data = FactionData.HEROES.get(hero_id, {})
 			var hname: String = hero_data.get("name", hero_id)
-			var cmd_lbl := ColorTheme.make_label(hname, ColorTheme.FONT_BODY, ColorTheme.TEXT_TITLE)
+			var hlevel: int = hero_data.get("level", 1)
+			var cmd_lbl := ColorTheme.make_label("%s (Lv%d)" % [hname, hlevel], ColorTheme.FONT_BODY, ColorTheme.TEXT_TITLE)
 			detail_container.add_child(cmd_lbl)
 
-			# Show key stats
+			# Show key stats (runtime values include level + equipment bonuses)
 			var stats_text: String = ""
-			for stat_key in ["atk", "def", "int", "leadership"]:
-				var val = hero_data.get(stat_key, 0)
+			for stat_key in ["atk", "def", "int_stat", "spd"]:
+				var val = hero_data.get(stat_key, hero_data.get(stat_key.replace("int_stat", "int"), 0))
 				if val > 0:
-					stats_text += "%s:%d  " % [stat_key.to_upper(), val]
+					var display_key: String = stat_key.replace("int_stat", "INT").to_upper()
+					stats_text += "%s:%d  " % [display_key, val]
 			if not stats_text.is_empty():
 				var stats_lbl := ColorTheme.make_label(stats_text.strip_edges(), ColorTheme.FONT_SMALL, ColorTheme.TEXT_DIM)
 				detail_container.add_child(stats_lbl)

@@ -715,7 +715,11 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		passives.append(troop_passive)
 
 	# Hero commander stat bonuses
-	if hero_id != "" and FactionData.HEROES.has(hero_id):
+	# BUG FIX: if game_manager already injected runtime hero_data (with level+equip bonuses),
+	# do NOT re-add FactionData.HEROES static stats — that would double-count them.
+	var _raw_hero_data: Dictionary = raw.get("hero_data", {})
+	if hero_id != "" and _raw_hero_data.is_empty() and FactionData.HEROES.has(hero_id):
+		# Legacy path: no pre-injected hero_data, fall back to static FactionData.HEROES
 		var hdata: Dictionary = FactionData.HEROES[hero_id]
 		base_atk += float(hdata.get("atk", 0))
 		base_def += float(hdata.get("def", 0))
@@ -725,8 +729,24 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		var hero_passive: String = hdata.get("passive", "")
 		if hero_passive != "" and hero_passive not in passives:
 			passives.append(hero_passive)
+	elif hero_id != "" and not _raw_hero_data.is_empty():
+		# Modern path: hero_data already injected by game_manager with runtime stats.
+		# Only apply passives and level_passives (stats already baked into raw.atk/def/spd/int).
+		var _hd_passive: String = _raw_hero_data.get("passive", "")
+		if _hd_passive != "" and _hd_passive not in passives:
+			passives.append(_hd_passive)
+		# BUG FIX: inject level-unlocked passives (previously ignored in CombatResolver path)
+		var _level_passives: Array = _raw_hero_data.get("level_passives", [])
+		for _lp in _level_passives:
+			if _lp is String and _lp != "" and _lp not in passives:
+				passives.append(_lp)
+			elif _lp is Dictionary:
+				var _lp_id: String = _lp.get("passive_id", _lp.get("id", ""))
+				if _lp_id != "" and _lp_id not in passives:
+					passives.append(_lp_id)
 
-		# Affection combat bonuses
+	# Affection combat bonuses (applies to both legacy and modern hero paths)
+	if hero_id != "":
 		var aff: int = HeroSystem.hero_affection.get(hero_id, 0)
 		if aff >= 10:
 			base_atk += 4; base_def += 3

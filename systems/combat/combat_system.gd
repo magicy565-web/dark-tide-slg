@@ -406,6 +406,15 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		if u.soldiers <= 0 and u.commander_id != "generic":
 			captured.append(u.commander_id)
 
+	# BUG FIX: compute enemy_troops_killed so _grant_hero_combat_exp can award kill EXP.
+	# attacker_losses is a Dict{unit_id: soldiers_lost}; sum defender_losses for attacker's kills.
+	var _att_killed: int = 0
+	for _dk in defender_losses.values():
+		_att_killed += _dk
+	var _def_killed: int = 0
+	for _ak in attacker_losses.values():
+		_def_killed += _ak
+
 	return {
 		"winner": winner,
 		"attacker_losses": attacker_losses,
@@ -419,6 +428,9 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		"attacker_units_final": _snapshot_units(state.attacker_units),
 		"defender_units_final": _snapshot_units(state.defender_units),
 		"player_controlled": player_controlled,
+		# BUG FIX: provide kill counts for hero EXP calculation in game_manager
+		"enemy_troops_killed": _att_killed,
+		"defender_troops_killed": _def_killed,
 	}
 
 # ---------------------------------------------------------------------------
@@ -485,6 +497,21 @@ func _build_battle_units(army: Dictionary, is_attacker: bool) -> Array[BattleUni
 						bu.passive = ep
 					else:
 						bu.passive += "," + ep
+
+			# BUG FIX: level_passives (hero level-unlocked passives) were never merged
+			# into BattleUnit.passive, so they had zero effect in combat.
+			var lv_passives: Array = hero_data.get("level_passives", [])
+			for lp in lv_passives:
+				var lp_id: String = ""
+				if lp is String:
+					lp_id = lp
+				elif lp is Dictionary:
+					lp_id = lp.get("passive_id", lp.get("id", ""))
+				if lp_id != "" and lp_id != "none":
+					if bu.passive == "":
+						bu.passive = lp_id
+					elif lp_id not in bu.passive.split(","):
+						bu.passive += "," + lp_id
 
 			# v4.4: mana_bonus — increase team mana pool start value
 			if bu.has_passive("mana_bonus"):

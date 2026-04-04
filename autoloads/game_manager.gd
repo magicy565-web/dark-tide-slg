@@ -4031,6 +4031,8 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		"defender_losses": total_def_lost_final,
 		"rounds": result.get("rounds_fought", 0),
 		"routed": not won and (float(total_att_lost_final) / float(maxi(1, total_att_lost_final + _get_army_total_soldiers(army))) >= 0.5),
+		# BUG FIX: forward kill count from CombatSystem result for hero EXP calculation
+		"enemy_troops_killed": result.get("enemy_troops_killed", total_def_lost_final),
 	}
 	EventBus.combat_result_detailed.emit(pid, detailed_result)
 
@@ -4168,12 +4170,13 @@ func _grant_hero_combat_exp(pid: int, result: Dictionary, attacker_wins: bool) -
 	for hero_id in hero_ids:
 		var level_result: Dictionary = HeroLeveling.grant_hero_exp(hero_id, hero_exp_base)
 		if level_result.get("leveled_up", false):
+			var _lv_hname: String = HeroSystem.get_hero_info(hero_id).get("name", hero_id)
 			EventBus.message_log.emit("[color=yellow][升级] %s 升至 Lv%d！[/color]" % [
-				FactionData.HEROES.get(hero_id, {}).get("name", hero_id),
+				_lv_hname,
 				level_result.get("new_level", 1)])
 			for p in level_result.get("unlocked_passives", []):
 				EventBus.message_log.emit("[color=cyan][技能] %s 解锁被动: %s[/color]" % [
-					FactionData.HEROES.get(hero_id, {}).get("name", hero_id),
+					_lv_hname,
 					p.get("name", p.get("passive_id", ""))])
 
 	# v4.7: Mark heroes as fatigued after combat (疲劳机制)
@@ -4881,11 +4884,12 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	var attacker_losses: int = result.get("attacker_losses", 1)
 	var defender_losses: int = result.get("defender_losses", 0)
 	var slaves_captured: int = result.get("slaves_captured", 0)
-
+	# BUG FIX: CombatResolver does not set enemy_troops_killed; inject it so hero EXP works
+	if not result.has("enemy_troops_killed"):
+		result["enemy_troops_killed"] = defender_losses
 	# Grant experience to surviving troops (dynamic based on enemy composition)
 	var atk_exp: int = result.get("attacker_exp", BalanceConfig.COMBAT_XP_WIN if attacker_wins else BalanceConfig.COMBAT_XP_LOSS)
 	CombatAbilities.grant_combat_experience(pid, atk_exp)
-
 	# ── 英雄经验 (v3.1) ──
 	_grant_hero_combat_exp(pid, result, attacker_wins)
 
@@ -5052,6 +5056,9 @@ func _resolve_combat_vs_npc(player: Dictionary, tile: Dictionary, npc_units: Arr
 	var attacker_wins: bool = result.get("winner", "defender") == "attacker"
 	var attacker_losses: int = result.get("attacker_losses", 1)
 	var slaves_captured: int = result.get("slaves_captured", 0)
+	# BUG FIX: inject enemy_troops_killed for hero EXP (CombatResolver uses int defender_losses)
+	if not result.has("enemy_troops_killed"):
+		result["enemy_troops_killed"] = result.get("defender_losses", 0)
 
 	# Grant experience
 	var atk_exp: int = result.get("attacker_exp", BalanceConfig.COMBAT_XP_WIN if attacker_wins else BalanceConfig.COMBAT_XP_LOSS)

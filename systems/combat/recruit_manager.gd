@@ -354,10 +354,15 @@ func get_garrison_combat_units(tile_index: int) -> Array:
 			continue
 		var gar_row_int: int = td.get("row", GameData.Row.FRONT)
 		var gar_row_str: String = "back" if gar_row_int == GameData.Row.BACK else "front"
-		result.append({
+		var _eff_atk: int = td.get("base_atk", 5)
+		var _eff_def: int = td.get("base_def", 3)
+		var _eff_spd: int = td.get("spd", 5)
+		var _eff_int: int = td.get("int_stat", 0)
+		var _hero_id: String = troop.get("commander_id", "")
+		var _unit: Dictionary = {
 			"type": troop["troop_id"],
-			"atk": td.get("base_atk", 5),
-			"def": td.get("base_def", 3),
+			"atk": _eff_atk,
+			"def": _eff_def,
 			"hp": troop["soldiers"],
 			"special": td.get("passive", "none"),
 			"count": troop["soldiers"],
@@ -365,10 +370,31 @@ func get_garrison_combat_units(tile_index: int) -> Array:
 			"troop_class": td.get("troop_class", GameData.TroopClass.ASHIGARU),
 			"row": gar_row_str,
 			"max_soldiers": troop.get("max_soldiers", td.get("max_soldiers", troop.get("soldiers", 10))),
-			"spd": td.get("spd", 5),
-			"int_stat": td.get("int_stat", 0),
-			"hero_id": troop.get("commander_id", ""),
-		})
+			"spd": _eff_spd,
+			"int_stat": _eff_int,
+			"hero_id": _hero_id,
+		}
+		# BUG FIX: inject garrison commander hero_data so CombatResolver applies
+		# hero stat bonuses, passives, and level_passives in defensive battles.
+		if _hero_id != "" and HeroSystem != null and HeroSystem.has_method("get_hero_combat_stats"):
+			var _hcs: Dictionary = HeroSystem.get_hero_combat_stats(_hero_id)
+			if not _hcs.is_empty():
+				_unit["atk"] += _hcs.get("atk", 0)
+				_unit["def"] += _hcs.get("def", 0)
+				_unit["spd"] += _hcs.get("spd", 0)
+				_unit["int_stat"] += _hcs.get("int_stat", 0)
+				_unit["hero_data"] = {
+					"id": _hero_id,
+					"hp": _hcs.get("hp", 20),
+					"mp": _hcs.get("mp", 10),
+					"troop_specialty": _hcs.get("troop", ""),
+					"equipment_passives": _hcs.get("equipment_passives", []),
+					"level_passives": _hcs.get("level_passives", []),
+					"active_skill": _hcs.get("active", ""),
+					"active_skill_2": _hcs.get("active_2", ""),
+					"passive": _hcs.get("passive", ""),
+				}
+		result.append(_unit)
 	return result
 
 
