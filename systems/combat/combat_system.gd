@@ -74,10 +74,19 @@ class BattleUnit:
 		return false
 
 	## v10.2: Sum all buff multipliers for a given stat type.
+	## Supports both {type:"atk", value:0.2} and {mult_atk:true, value:0.2} formats
+	## (the latter is used by CommanderIntervention).
 	func get_stat_mult(stat_type: String) -> float:
 		var mult := 1.0
 		for b in active_buffs:
+			var matched := false
 			if b.get("type", "") == stat_type:
+				matched = true
+			elif stat_type == "atk" and b.get("mult_atk", false):
+				matched = true
+			elif stat_type == "def" and b.get("mult_def", false):
+				matched = true
+			if matched:
 				mult += b.get("value", 0.0)
 		return mult
 
@@ -491,6 +500,27 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 			target = back_targets[randi() % back_targets.size()]
 			state.action_log.append({"action": "passive", "event": "shadow_bypass", "unit": unit.id, "side": "attacker" if unit.is_attacker else "defender", "slot": unit.slot, "desc": "%s 影袭绕后!" % unit.troop_id})
 
+	# v10.4: forced_target — CommanderIntervention集火指令
+	if target == null and state.has_meta("forced_target_slot"):
+		var ft_slot: int = state.get_meta("forced_target_slot")
+		var ft_dur: int = state.get_meta("forced_target_duration", 0)
+		if ft_dur > 0:
+			for t in targets:
+				if t.slot == ft_slot and t.is_alive(): target = t; break
+			# Decrement duration after last unit in queue acts
+			state.set_meta("forced_target_duration", ft_dur - 1)
+			if ft_dur - 1 <= 0: state.remove_meta("forced_target_slot")
+
+	# v10.4: bait_target — CommanderIntervention诱敌指令（敌方单位优先攻击该槽位）
+	if target == null and not unit.is_attacker and state.has_meta("bait_target_slot"):
+		var bt_slot: int = state.get_meta("bait_target_slot")
+		var bt_dur: int = state.get_meta("bait_duration", 0)
+		if bt_dur > 0:
+			for t in targets:
+				if t.slot == bt_slot and t.is_alive(): target = t; break
+			state.set_meta("bait_duration", bt_dur - 1)
+			if bt_dur - 1 <= 0: state.remove_meta("bait_target_slot")
+
 	if target == null:
 		var front_targets: Array[BattleUnit] = []
 		var back_targets2: Array[BattleUnit] = []
@@ -564,11 +594,17 @@ func _execute_skill(unit: BattleUnit, skill: Dictionary, state: BattleState) -> 
 			if targets.is_empty(): return {"action": "idle", "unit": unit.id}
 			var target := targets[randi() % targets.size()]
 			var dmg := _calculate_damage(unit, target, state, skill_mult)
+			var was_alive_sk := target.is_alive()
 			var old_soldiers := target.soldiers
 			target.hp = maxi(0, target.hp - dmg * target.hp_per_soldier)
 			_recalc_soldiers(target)
 			var actual_lost := old_soldiers - target.soldiers
-			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "target": target.id, "damage": actual_lost, "desc": "%s 发动 %s，造成 %d 伤害" % [unit.troop_id, skill.get("name", "技能"), actual_lost]}
+			# Trigger death cascades when skill kills a unit
+			if was_alive_sk and not target.is_alive():
+				state.action_log.append({"action": "death", "unit": target.id, "side": "attacker" if target.is_attacker else "defender", "slot": target.slot, "round": state.round_number, "desc": "%s 被技能击杀!" % target.troop_id})
+				_apply_ally_death_morale(target, state)
+				_revalidate_formations_for_side(target, state)
+			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "target": target.id, "damage": actual_lost, "remaining_soldiers": target.soldiers, "desc": "%s 发动 %s，造成 %d 伤害" % [unit.troop_id, skill.get("name", "技能"), actual_lost]}
 		"heal":
 			var allies := state.attacker_units if unit.is_attacker else state.defender_units
 			var heal_target: BattleUnit = null
@@ -581,7 +617,60 @@ func _execute_skill(unit: BattleUnit, skill: Dictionary, state: BattleState) -> 
 				var heal_amt := int(float(heal_target.max_soldiers) * 0.2)
 				heal_target.hp = mini(heal_target.max_hp, heal_target.hp + heal_amt * heal_target.hp_per_soldier)
 				_recalc_soldiers(heal_target)
-				return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "target": heal_target.id, "healed": heal_amt, "desc": "%s 发动 %s，回复 %d 兵力" % [unit.troop_id, skill.get("name", "技能"), heal_amt]}
+				return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "target": heal_target.id, "healed": heal_amt, "remaining_soldiers": heal_target.soldiers, "max_soldiers": heal_target.max_soldiers, "desc": "%s 发动 %s，回复 %d 兵力" % [unit.troop_id, skill.get("name", "技能"), heal_amt]}
+		"aoe":
+			# AOE: hits all living enemies for reduced damage
+			var aoe_targets := _get_enemies(unit, state)
+			var total_aoe_dmg := 0
+			for aoe_t in aoe_targets:
+				var aoe_dmg := _calculate_damage(unit, aoe_t, state, skill_mult * 0.6)
+				var aoe_was_alive := aoe_t.is_alive()
+				var aoe_old := aoe_t.soldiers
+				aoe_t.hp = maxi(0, aoe_t.hp - aoe_dmg * aoe_t.hp_per_soldier)
+				_recalc_soldiers(aoe_t)
+				var aoe_lost := aoe_old - aoe_t.soldiers
+				total_aoe_dmg += aoe_lost
+				state.action_log.append({"action": "skill_hit", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "target": aoe_t.id, "damage": aoe_lost, "remaining_soldiers": aoe_t.soldiers, "desc": "%s 被 %s 命中，损失 %d 兵" % [aoe_t.troop_id, skill.get("name", "技能"), aoe_lost]})
+				if aoe_was_alive and not aoe_t.is_alive():
+					state.action_log.append({"action": "death", "unit": aoe_t.id, "side": "attacker" if aoe_t.is_attacker else "defender", "slot": aoe_t.slot, "round": state.round_number, "desc": "%s 被范围技能歼灭!" % aoe_t.troop_id})
+					_apply_ally_death_morale(aoe_t, state)
+					_revalidate_formations_for_side(aoe_t, state)
+			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "damage": total_aoe_dmg, "is_aoe": true, "desc": "%s 发动 %s (范围)，共造成 %d 伤害" % [unit.troop_id, skill.get("name", "技能"), total_aoe_dmg]}
+		"buff":
+			# Buff: apply ATK boost to all living allies for 2 rounds
+			var buff_allies := state.attacker_units if unit.is_attacker else state.defender_units
+			var buff_count := 0
+			for ba in buff_allies:
+				if ba.is_alive():
+					ba.active_buffs.append({"id": skill.get("name", "buff"), "duration": 2, "type": "atk", "value": 0.20})
+					buff_count += 1
+					state.action_log.append({"action": "buff", "unit": ba.id, "side": side_str, "slot": ba.slot, "buff_type": "atk_up", "desc": "%s 获得 %s 增益 (+20%% ATK, 2回合)" % [ba.troop_id, skill.get("name", "技能")]})
+			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "buffed_count": buff_count, "desc": "%s 发动 %s，为 %d 友军施加增益" % [unit.troop_id, skill.get("name", "技能"), buff_count]}
+		"debuff":
+			# Debuff: apply DEF reduction to all living enemies for 2 rounds
+			var debuff_targets := _get_enemies(unit, state)
+			var debuff_count := 0
+			for dt in debuff_targets:
+				if dt.is_alive():
+					dt.active_buffs.append({"id": skill.get("name", "debuff"), "duration": 2, "type": "def", "value": -0.20})
+					debuff_count += 1
+					state.action_log.append({"action": "debuff", "unit": dt.id, "side": "attacker" if dt.is_attacker else "defender", "slot": dt.slot, "debuff_type": "def_down", "desc": "%s 被 %s 削弱 (-20%% DEF, 2回合)" % [dt.troop_id, skill.get("name", "技能")]})
+			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "debuffed_count": debuff_count, "desc": "%s 发动 %s，为 %d 敌军施加减益" % [unit.troop_id, skill.get("name", "技能"), debuff_count]}
+		"summon":
+			# Summon: restore 10% max soldiers to the most injured ally
+			var summon_allies := state.attacker_units if unit.is_attacker else state.defender_units
+			var summon_target: BattleUnit = null
+			var summon_min_ratio := 1.1
+			for sa in summon_allies:
+				if sa.is_alive() and sa.soldiers < sa.max_soldiers:
+					var r := float(sa.soldiers) / float(sa.max_soldiers)
+					if r < summon_min_ratio: summon_min_ratio = r; summon_target = sa
+			if summon_target:
+				var summon_amt := int(float(summon_target.max_soldiers) * 0.10)
+				summon_target.hp = mini(summon_target.max_hp, summon_target.hp + summon_amt * summon_target.hp_per_soldier)
+				_recalc_soldiers(summon_target)
+				state.action_log.append({"action": "summon", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "target": summon_target.id, "summoned": summon_amt, "remaining_soldiers": summon_target.soldiers, "max_soldiers": summon_target.max_soldiers, "desc": "%s 发动 %s，召唤增援 +%d兵" % [unit.troop_id, skill.get("name", "技能"), summon_amt]})
+			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "desc": "%s 发动 %s" % [unit.troop_id, skill.get("name", "技能")]}
 	return {"action": "skill", "unit": unit.id, "skill_name": skill.get("name", "技能")}
 
 func _resolve_counter_attack(defender: BattleUnit, attacker: BattleUnit, state: BattleState) -> void:
@@ -1019,6 +1108,16 @@ func _apply_intervention_results(state: BattleState, istate: Dictionary) -> void
 	state.mana_attacker = istate.get("atk_mana", state.mana_attacker)
 	state.mana_defender = istate.get("def_mana", state.mana_defender)
 	state.city_def = istate.get("city_def", state.city_def)
+	# v10.4: Sync forced_target and bait_target from CommanderIntervention
+	if istate.has("forced_target") and istate.get("forced_target_duration", 0) > 0:
+		state.action_log.append({"action": "intervention_effect", "effect": "forced_target", "target_slot": istate["forced_target"], "duration": istate.get("forced_target_duration", 1), "desc": "指挥官命令: 集火第 %d 号目标" % istate["forced_target"]})
+		# Store on state for _execute_action to read
+		state.set_meta("forced_target_slot", istate["forced_target"])
+		state.set_meta("forced_target_duration", istate.get("forced_target_duration", 1))
+	if istate.has("bait_target") and istate.get("bait_duration", 0) > 0:
+		state.action_log.append({"action": "intervention_effect", "effect": "bait_target", "target_slot": istate["bait_target"], "duration": istate.get("bait_duration", 1), "desc": "指挥官命令: 诱敌至第 %d 号位" % istate["bait_target"]})
+		state.set_meta("bait_target_slot", istate["bait_target"])
+		state.set_meta("bait_duration", istate.get("bait_duration", 1))
 
 func _tick_intervention_durations(state: BattleState) -> void:
 	if _has_autoload("CommanderIntervention"):
