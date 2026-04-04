@@ -7,6 +7,7 @@ const FactionData = preload("res://systems/faction/faction_data.gd")
 const QuestDefs = preload("res://systems/quest/quest_definitions.gd")
 const ChallengeData = preload("res://systems/quest/challenge_quest_data.gd")
 const SideQuestData = preload("res://systems/quest/side_quest_data.gd")
+const PirateQuestGuide = preload("res://systems/quest/pirate_quest_guide.gd")
 
 # ═══════════════ STATE ═══════════════
 
@@ -15,6 +16,7 @@ var _main_progress: Dictionary = {}
 var _side_progress: Dictionary = {}
 var _challenge_progress: Dictionary = {}  # "faction_step" key, e.g. "orc_c1"
 var _character_progress: Dictionary = {}  # "hero_id_step" key, e.g. "rin_cq1"
+var _guide_progress: Dictionary = {}      # pirate guide quest id → { status, completed_at }
 
 # Unlocked traits and titles
 var _unlocked_traits: Array = []  # trait_id strings
@@ -104,6 +106,14 @@ func init_journal(player_faction: int) -> void:
 		for step in cq["steps"]:
 			_character_progress[step["id"]] = {"status": QuestDefs.QuestStatus.LOCKED, "completed_at": -1}
 
+	# Init pirate guide quests (only for pirate faction; first quest starts ACTIVE)
+	_guide_progress.clear()
+	if player_faction == FactionData.FactionID.PIRATE:
+		for i in range(PirateQuestGuide.GUIDE_QUESTS.size()):
+			var gq: Dictionary = PirateQuestGuide.GUIDE_QUESTS[i]
+			var gstatus: int = QuestDefs.QuestStatus.ACTIVE if i == 0 else QuestDefs.QuestStatus.LOCKED
+			_guide_progress[gq["id"]] = {"status": gstatus, "completed_at": -1}
+
 	_initialized = true
 	EventBus.message_log.emit("[color=cyan]任务日志已初始化[/color]")
 
@@ -113,6 +123,7 @@ func reset() -> void:
 	_side_progress.clear()
 	_challenge_progress.clear()
 	_character_progress.clear()
+	_guide_progress.clear()
 	_unlocked_traits.clear()
 	_unlocked_titles.clear()
 	_active_title = ""
@@ -139,6 +150,7 @@ func tick(player_id: int) -> void:
 	_check_side_quests(player_id)
 	_check_challenge_quests(player_id)
 	_check_character_quests(player_id)
+	_check_guide_quests(player_id)
 
 
 # ═══════════════ TRIGGER EVALUATION ═══════════════
@@ -251,6 +263,16 @@ func _evaluate_objective(obj: Dictionary, player_id: int) -> bool:
 			if PirateMechanic and PirateMechanic.has_method("get_infamy"):
 				return PirateMechanic.get_infamy(player_id) >= value
 			return false
+		"rum_morale_min":
+			if PirateMechanic and PirateMechanic.has_method("get_rum_morale"):
+				return PirateMechanic.get_rum_morale(player_id) >= value
+			return false
+		"smuggle_routes_min":
+			if PirateMechanic and PirateMechanic.has_method("get_smuggle_routes"):
+				return PirateMechanic.get_smuggle_routes(player_id).size() >= value
+			return false
+		"mercenary_hired_min":
+			return _stats.get("mercenary_hired", 0) >= value
 		"turn_min":
 			return GameManager.turn_number >= value
 		_:
@@ -339,6 +361,12 @@ func _evaluate_trigger(trigger: Dictionary, player_id: int) -> bool:
 					return false
 			"heroines_captured_min":
 				if _count_captured_heroines(player_id) < trigger[key]:
+					return false
+			"prev_guide_done":
+				# 前一个引导任务必须已完成
+				var prev_id: String = trigger[key]
+				var prev_state: Dictionary = _guide_progress.get(prev_id, {})
+				if prev_state.get("status", -1) != QuestDefs.QuestStatus.COMPLETED:
 					return false
 			_:
 				push_warning("QuestJournal: _evaluate_trigger unhandled key '%s'" % key)
@@ -443,6 +471,43 @@ func _check_character_quests(player_id: int) -> void:
 			elif state.get("status", -1) == QuestDefs.QuestStatus.ACTIVE:
 				if _evaluate_objective(step["objective"], player_id):
 					_complete_character_step(step, hero_id, player_id)
+
+
+func _check_guide_quests(player_id: int) -> void:
+	## 每回合检查海盗引导任务的解锁和完成条件
+	if _guide_progress.is_empty():
+		return
+	for i in range(PirateQuestGuide.GUIDE_QUESTS.size()):
+		var gq: Dictionary = PirateQuestGuide.GUIDE_QUESTS[i]
+		var state: Dictionary = _guide_progress.get(gq["id"], {})
+		if state.get("status", -1) == QuestDefs.QuestStatus.LOCKED:
+			# 检查解锁条件：第一个任务无前置，其余需要前一个完成
+			if _evaluate_trigger(gq.get("trigger", {}), player_id):
+				_guide_progress[gq["id"]]["status"] = QuestDefs.QuestStatus.ACTIVE
+				_notify_quest_available("引导", gq["name"])
+		elif state.get("status", -1) == QuestDefs.QuestStatus.ACTIVE:
+			# 检查所有目标是否完成
+			var all_done: bool = true
+			for obj in gq.get("objectives", []):
+				if not _evaluate_objective(obj, player_id):
+					all_done = false
+					break
+			if all_done:
+				_complete_guide_quest(gq, player_id)
+
+
+func _complete_guide_quest(gq: Dictionary, player_id: int) -> void:
+	## 完成一个引导任务并发放奖励
+	_guide_progress[gq["id"]]["status"] = QuestDefs.QuestStatus.COMPLETED
+	_guide_progress[gq["id"]]["completed_at"] = GameManager.turn_number
+	_apply_reward(gq.get("reward", {}), player_id)
+	var msg_text: String = gq.get("reward", {}).get("message", "")
+	EventBus.message_log.emit("[color=gold][引导任务完成] %s[/color]" % gq["name"])
+	if msg_text != "":
+		EventBus.message_log.emit("[color=white]%s[/color]" % msg_text)
+	if EventBus.has_signal("quest_journal_updated"):
+		EventBus.quest_journal_updated.emit()
+	EventBus.tutorial_quest_done.emit(gq["id"])
 
 
 # ═══════════════ COMPLETION LOGIC ═══════════════
@@ -664,6 +729,24 @@ func get_all_quests(player_id: int) -> Array:
 			var state: Dictionary = _character_progress.get(step["id"], {})
 			if state.get("status", -1) != QuestDefs.QuestStatus.LOCKED:
 				result.append(_format_character_quest(step, cq, state, player_id))
+	# Pirate Guide (only visible for pirate faction)
+	if not _guide_progress.is_empty():
+		for gq in PirateQuestGuide.GUIDE_QUESTS:
+			var state: Dictionary = _guide_progress.get(gq["id"], {})
+			if state.get("status", -1) != QuestDefs.QuestStatus.LOCKED:
+				var entry: Dictionary = {
+					"id": gq["id"],
+					"name": gq["name"],
+					"desc": gq.get("desc", ""),
+					"type": "guide",
+					"category": "guide",
+					"status": state.get("status", QuestDefs.QuestStatus.LOCKED),
+					"objectives": gq.get("objectives", []),
+					"reward": gq.get("reward", {}),
+					"hint": gq.get("hint", ""),
+					"completed_at": state.get("completed_at", -1),
+				}
+				result.append(entry)
 	return result
 
 
@@ -705,6 +788,14 @@ func get_active_title() -> String:
 
 func get_stats() -> Dictionary:
 	return _stats
+
+
+func increment_stat(stat_key: String, amount: int = 1) -> void:
+	## 增加指定统计计数器（由外部系统调用，如 pirate_panel.gd）
+	if _stats.has(stat_key):
+		_stats[stat_key] += amount
+	else:
+		_stats[stat_key] = amount
 
 
 ## Returns a list of active quests with objective details, for the on-screen tracker.
@@ -1074,6 +1165,7 @@ func to_save_data() -> Dictionary:
 		"side": _side_progress.duplicate(true),
 		"challenge": _challenge_progress.duplicate(true),
 		"character": _character_progress.duplicate(true),
+		"guide": _guide_progress.duplicate(true),
 		"traits": _unlocked_traits.duplicate(),
 		"titles": _unlocked_titles.duplicate(),
 		"active_title": _active_title,
@@ -1087,6 +1179,7 @@ func from_save_data(data: Dictionary) -> void:
 	_side_progress = data.get("side", {}).duplicate(true)
 	_challenge_progress = data.get("challenge", {}).duplicate(true)
 	_character_progress = data.get("character", {}).duplicate(true)
+	_guide_progress = data.get("guide", {}).duplicate(true)
 	_unlocked_traits = data.get("traits", []).duplicate()
 	_unlocked_titles = data.get("titles", []).duplicate()
 	_active_title = data.get("active_title", "")
@@ -1107,7 +1200,7 @@ func from_save_data(data: Dictionary) -> void:
 				if entry.has("count"):
 					entry["count"] = int(entry["count"])
 	# Fix status/completed_at in progress dicts
-	for prog_dict in [_main_progress, _side_progress, _challenge_progress, _character_progress]:
+	for prog_dict in [_main_progress, _side_progress, _challenge_progress, _character_progress, _guide_progress]:
 		for qid in prog_dict:
 			var entry: Dictionary = prog_dict[qid]
 			if entry.has("status"):

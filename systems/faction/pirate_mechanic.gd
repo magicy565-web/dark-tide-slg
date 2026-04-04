@@ -1025,6 +1025,9 @@ func establish_smuggle_route(player_id: int, tile_a: int, tile_b: int) -> bool:
 	_smuggle_routes[player_id] = routes
 	EventBus.message_log.emit("[color=gold]建立走私航线! 每回合收入 +%d金 (总航线: %d)[/color]" % [
 		SMUGGLE_INCOME_PER_ROUTE, routes.size()])
+	# 通知海盗阵营引导系统
+	if player_id == 0 and PirateOnboarding != null and PirateOnboarding.has_method("notify_smuggle_established"):
+		PirateOnboarding.notify_smuggle_established()
 	return true
 
 

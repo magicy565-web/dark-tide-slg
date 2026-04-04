@@ -215,6 +215,7 @@ func _collect_save_data() -> Dictionary:
 		"neutral_faction_ai": NeutralFactionAI.to_save_data(),
 		"audio": AudioManager.to_save_data(),
 		"tutorial": TutorialManager.to_save_data(),
+		"pirate_onboarding": PirateOnboarding.to_save_data() if PirateOnboarding != null else {},
 		"quest_journal": QuestJournal.to_save_data(),
 		"balance_manager": BalanceManager.serialize(),
 		"story": StoryEventSystem.to_save_data(),
@@ -369,6 +370,8 @@ func _apply_save_data(data: Dictionary) -> void:
 		AudioManager.from_save_data(data.get("audio", {}))
 	if data.has("tutorial"):
 		TutorialManager.from_save_data(data.get("tutorial", {}))
+	if data.has("pirate_onboarding") and PirateOnboarding != null:
+		PirateOnboarding.from_save_data(data.get("pirate_onboarding", {}))
 
 	# 4b. Restore quest journal (v2.4+)
 	if data.has("quest_journal"):

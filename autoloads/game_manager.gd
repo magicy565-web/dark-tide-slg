@@ -1464,6 +1464,12 @@ func start_game(chosen_faction: int = FactionData.FactionID.ORC, fixed_map: bool
 
 	EventBus.message_log.emit("═══ 暗潮 - %s 崛起! ═══" % FactionData.FACTION_NAMES[chosen_faction])
 	EventBus.message_log.emit("难度: %s" % BalanceManager.get_diff()["label"])
+
+	# ── 海盗阵营初始任务引导 ──
+	if chosen_faction == FactionData.FactionID.PIRATE:
+		if PirateOnboarding != null and PirateOnboarding.has_method("start_onboarding"):
+			PirateOnboarding.start_onboarding()
+
 	begin_turn()
 
 
@@ -5285,6 +5291,9 @@ func _check_conquest_events(pid: int, tile_index: int) -> void:
 	if tile_type == TileType.HARBOR:
 		EventBus.message_log.emit("[color=cyan]港口占领: %s — 海上补给线开通![/color]" % tile_name)
 		ResourceManager.apply_delta(pid, {"food": 20})
+		# 通知海盗阵营引导系统
+		if pid == 0 and PirateOnboarding != null and PirateOnboarding.has_method("notify_harbor_captured"):
+			PirateOnboarding.notify_harbor_captured()
 
 	# Trading Post: merchant bonus
 	if tile_type == TileType.TRADING_POST:

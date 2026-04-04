@@ -171,6 +171,9 @@ func _build_ui() -> void:
 
 func show_panel() -> void:
 	_visible = true; root.visible = true; _refresh()
+	# 通知海盗阵营引导系统
+	if PirateOnboarding != null and PirateOnboarding.has_method("notify_pirate_panel_opened"):
+		PirateOnboarding.notify_pirate_panel_opened()
 
 func hide_panel() -> void:
 	AudioManager.play_ui_cancel()
@@ -1012,6 +1015,12 @@ func _on_buy_market(item_index: int) -> void:
 	var ok: bool = PirateMechanic.buy_market_item(pid, item_index)
 	if ok:
 		AudioManager.play_ui_confirm()
+		# 通知海盗阵营引导系统
+		if PirateOnboarding != null and PirateOnboarding.has_method("notify_market_item_bought"):
+			PirateOnboarding.notify_market_item_bought()
+		# 更新 QuestJournal 统计（用于引导任务 black_market_trades_min 目标）
+		if QuestJournal != null and QuestJournal.has_method("increment_stat"):
+			QuestJournal.increment_stat("black_market_trades", 1)
 	if not ok:
 		EventBus.message_log.emit("[color=red]Not enough gold or item sold out[/color]")
 	_refresh()
@@ -1022,6 +1031,13 @@ func _on_explore_treasure(map_index: int) -> void:
 	var result: Dictionary = PirateMechanic.explore_treasure(pid, map_index)
 	if result.is_empty():
 		EventBus.message_log.emit("[color=red]Treasure exploration failed[/color]")
+	else:
+		# 通知海盗阵营引导系统
+		if PirateOnboarding != null and PirateOnboarding.has_method("notify_treasure_explored"):
+			PirateOnboarding.notify_treasure_explored()
+		# 更新 QuestJournal 统计（用于引导任务 treasure_maps_min 目标）
+		if QuestJournal != null and QuestJournal.has_method("increment_stat"):
+			QuestJournal.increment_stat("treasure_maps", 1)
 	_refresh()
 
 func _on_destroy_route(route_index: int) -> void:
@@ -1039,9 +1055,15 @@ func _on_hire_merc(pid: int, merc_id: String, cost: int) -> void:
 	# Add soldiers from mercenary
 	for merc in PirateMechanic.MERCENARY_TYPES:
 		if merc["id"] == merc_id:
-			ResourceManager.add_army(pid, merc["count"])
-			EventBus.message_log.emit("Hired %s x%d (-%dg)" % [merc["name"], merc["count"], cost])
-			break
+				ResourceManager.add_army(pid, merc["count"])
+				EventBus.message_log.emit("Hired %s x%d (-%dg)" % [merc["name"], merc["count"], cost])
+				# 通知海盗阵营引导系统
+				if PirateOnboarding != null and PirateOnboarding.has_method("notify_merc_hired"):
+					PirateOnboarding.notify_merc_hired()
+				# 更新 QuestJournal 统计（用于引导任务 mercenary_hired_min 目标）
+				if QuestJournal != null and QuestJournal.has_method("increment_stat"):
+					QuestJournal.increment_stat("mercenary_hired", 1)
+				break
 	_refresh()
 
 func _on_train_heroine(hero_id: String) -> void:
