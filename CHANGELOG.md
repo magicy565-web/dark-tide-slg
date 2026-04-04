@@ -1,4 +1,34 @@
 # 《暗潮 Dark Tide》更新日志
+---
+
+## v4.4.0 — 2026-04-04 (战略资源全面接入 + 停战通用化 + 战斗鲁棒性加固)
+
+### 关键修复 (Critical)
+- **P0: 战略资源 trade_goods / soul_crystals / arcane_dust 无法追踪** — `resource_manager.gd` 新增三种资源的常量与账本初始化；`production_calculator.gd` 的 `income` 字典新增这三个键，确保资源站产出能被正确累加；旧存档加载时自动补零，向下兼容。
+- **P0: 停战 (offer_ceasefire) 仅限兽人可用** — `diplomacy_manager.gd` 移除 `is_orc_player` 限制，改为所有阵营均可使用；新增 `skip_cost` 参数，当调用方已扣费时传入 `true` 避免双重扣金。`game_manager.gd` 的 `action_diplomacy` 已更新为 `skip_cost=true`。
+- **P0: 资源站开采 (action_exploit) 固定给金币** — `game_manager.gd` 中 `RESOURCE_STATION` 分支现读取 `tile["resource_station_type"]`，按站点类型给予对应战略资源（1-3 单位），而非固定 20-40 金。
+
+### 高优先级修复 (High)
+- **P1: 补充兵员后 total_hp 未更新** — `action_reinforce_army` 在恢复 `soldiers` 后立即重算 `total_hp = soldiers × hp_per_soldier`，修复战斗面板血量显示偏低问题。
+- **P1: 封锁补给日志数值不准确** — `action_block_supply` 原先日志固定显示 `nearby_enemies × 3`，现改为累计实际扣除量 `total_food_deducted` 后再输出，确保日志与实际效果一致。
+- **P1: 兽人 AI 招募阶段 army["troops"] 可能崩溃** — `_run_orc_ai` 招募循环改用 `army.get("troops", [])` 与 `army.get("tile_index", -1)`，防止新建军队字典缺键时崩溃。
+
+### 战斗系统加固 (Robustness)
+- **_resolve_army_combat 防御性访问** — `army["troops"]` 全部改为 `army.get("troops", [])`，避免空军队字典引发的空引用崩溃。
+- **STATION_TYPE_ROTATION 补全** — `game_manager.gd` 与 `faction_data.gd` 的资源站类型数组均已包含 `trade_goods`、`soul_crystals`、`arcane_dust`，战利品随机池同步更新。
+
+### UI 改进
+- **HUD 新增战略资源显示** — `hud.gd` 在资源栏新增 `trade_goods`（贸易品）、`soul_crystals`（灵魂水晶）、`arcane_dust`（奥术尘埃）三个标签，每回合刷新。
+
+### 文件变更清单
+| 文件 | 变更类型 |
+|------|----------|
+| `autoloads/game_manager.gd` | Bug 修复 (停战双重扣费 / 资源站开采 / 封锁补给日志 / 兽人AI招募 / 战斗鲁棒性) |
+| `systems/faction/diplomacy_manager.gd` | Bug 修复 (停战通用化 + skip_cost 参数) |
+| `systems/economy/resource_manager.gd` | 功能新增 (trade_goods / soul_crystals / arcane_dust 追踪 + 旧存档兼容) |
+| `systems/economy/production_calculator.gd` | Bug 修复 (income 字典补全三种战略资源) |
+| `scenes/ui/overlays/hud.gd` | UI 新增 (三种战略资源标签显示) |
+| `CHANGELOG.md` | 新增条目 |
 
 ---
 

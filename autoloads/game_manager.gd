@@ -196,7 +196,7 @@ const CORE_FORTRESS_DEFS: Array = [
 ]
 
 # ── Resource station type rotation ──
-const STATION_TYPE_ROTATION: Array = ["magic_crystal", "war_horse", "gunpowder", "shadow_essence"]
+const STATION_TYPE_ROTATION: Array = ["magic_crystal", "war_horse", "gunpowder", "shadow_essence", "trade_goods", "soul_crystals", "arcane_dust"]
 
 # ── Event definitions (v0.7 binary choice system) ──
 const EVENT_DEFS: Array = [
@@ -2843,6 +2843,8 @@ func action_reinforce_army(player_id: int, army_id: int) -> bool:
 			if ResourceManager.can_afford(player_id, cost):
 				ResourceManager.apply_delta(player_id, {"gold": -cost["gold"], "food": -cost["food"]})
 				troop["soldiers"] = current + restore
+				var hpp: int = troop.get("hp_per_soldier", 5)
+				troop["total_hp"] = troop["soldiers"] * hpp
 				total_restored += restore
 
 	if total_restored > 0:
@@ -3497,7 +3499,8 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	# Build attacker army dict for CombatSystem
 	var attacker_units: Array = []
 	var slot_idx: int = 0
-	for troop in army["troops"]:
+	# BUG FIX: use .get() to avoid crash if troops key is missing
+	for troop in army.get("troops", []):
 		if troop.get("soldiers", 0) <= 0:
 			continue
 		# BUG FIX: assign heroes round-robin to unit slots, not just first hero to slot 0
@@ -3723,10 +3726,12 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 
 	# Apply losses to attacker army troops
 	# BUG FIX: match by slot index instead of troop_id to handle duplicate troop types
-	for i in range(mini(army["troops"].size(), attacker_units.size())):
+	# BUG FIX: use .get() to avoid crash if troops key is missing
+	var _army_troops: Array = army.get("troops", [])
+	for i in range(mini(_army_troops.size(), attacker_units.size())):
 		var au: Dictionary = attacker_units[i]
 		if att_losses.has(au["id"]):
-			army["troops"][i]["soldiers"] = maxi(0, army["troops"][i]["soldiers"] - att_losses[au["id"]])
+			_army_troops[i]["soldiers"] = maxi(0, _army_troops[i]["soldiers"] - att_losses[au["id"]])
 
 	if won:
 		tile["garrison"] = 0
@@ -4763,7 +4768,7 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 					loot_msg = "[color=purple]稀有战利品: %s[/color]" % item_id
 				elif rare_roll < 0.40:
 					# Uncommon: strategic resources
-					var res_types: Array = ["magic_crystal", "war_horse", "gunpowder", "shadow_essence"]
+					var res_types: Array = ["magic_crystal", "war_horse", "gunpowder", "shadow_essence", "trade_goods", "soul_crystals", "arcane_dust"]
 					var res_type: String = res_types[randi() % res_types.size()]
 					var res_amt: int = randi_range(1, 3)
 					ResourceManager.apply_delta(pid, {res_type: res_amt})
@@ -6007,6 +6012,7 @@ func action_attack(player_id: int, target_tile_index: int) -> bool:
 
 func action_domestic(player_id: int, target_tile_index: int, domestic_type: String, building_id: String = "") -> bool:
 	## Execute a domestic action. domestic_type: "recruit", "upgrade", "build"
+	## Note: "exploit", "block_supply", "fortify", "train_elite" are handled by their own dedicated functions.
 	## Costs 1 AP.
 	var player: Dictionary = get_player_by_id(player_id)
 	if player.is_empty() or player["ap"] < 1:
@@ -6204,8 +6210,8 @@ func action_diplomacy(player_id: int, target_faction_id: int, diplomacy_type: St
 				return false
 			player["ap"] -= 1
 			ResourceManager.spend(player_id, {"gold": ceasefire_cost})
-			# BUG FIX: Use public API offer_ceasefire() instead of directly accessing private variables.
-			DiplomacyManager.offer_ceasefire(player_id, target_faction_id, 3)
+			# BUG FIX: Use public API offer_ceasefire() with skip_cost=true to avoid double-charging.
+			DiplomacyManager.offer_ceasefire(player_id, target_faction_id, 3, true)
 			var fname: String = FactionData.FACTION_NAMES.get(target_faction_id, "???")
 			EventBus.message_log.emit("[color=cyan]与%s达成停战! 3回合内互不侵犯 (-%d金)[/color]" % [fname, ceasefire_cost])
 			EventBus.ap_changed.emit(player_id, player["ap"])
@@ -6572,10 +6578,13 @@ func action_block_supply(player_id: int, tile_index: int) -> bool:
 				var oid: int = ntile2.get("owner_id", -1)
 				if oid != player_id and oid >= 0:
 					affected_owners[oid] = affected_owners.get(oid, 0) + 1
+		var total_food_deducted: int = 0
 		for oid2 in affected_owners:
-			ResourceManager.apply_delta(oid2, {"food": -affected_owners[oid2] * 3})
+			var deduction: int = affected_owners[oid2] * 3
+			ResourceManager.apply_delta(oid2, {"food": -deduction})
+			total_food_deducted += deduction
 		ThreatManager.change_threat(nearby_enemies * 2)
-		EventBus.message_log.emit("[color=cyan][封锁补给] 封锁%d个敌方居点的补给线，敌方簮食共减少%d。[/color]" % [nearby_enemies, nearby_enemies * 3])
+		EventBus.message_log.emit("[color=cyan][封锁补给] 封锁%d个敌方居点的补给线，敌方簮食共减少%d。[/color]" % [nearby_enemies, total_food_deducted])
 	else:
 		EventBus.message_log.emit("[封锁补给] 附近没有敌方居点可以封锁。")
 	return true
@@ -6627,9 +6636,14 @@ func action_exploit(player_id: int, tile_index: int) -> bool:
 		TileType.FARM_TILE: # 農田
 			resource_type = "food"
 			amount = randi_range(20, 40)
-		TileType.RESOURCE_STATION: # 资源站
-			resource_type = "gold"
-			amount = randi_range(20, 40)
+		TileType.RESOURCE_STATION: # 资源站 — use the tile's specific strategic resource type
+			var station_type: String = tile.get("resource_station_type", "")
+			if station_type != "":
+				resource_type = station_type
+				amount = randi_range(1, 3)  # Strategic resources are scarce
+			else:
+				resource_type = "gold"
+				amount = randi_range(20, 40)
 		_:
 			resource_type = "gold"
 			amount = randi_range(15, 30)
@@ -7696,10 +7710,11 @@ func _run_orc_ai(player_id: int) -> void:
 			for army in ai_armies:
 				if player["ap"] <= 0:
 					break
-				if army["troops"].size() >= MAX_TROOPS_PER_ARMY:
+				# BUG FIX: army may not have 'troops' key; use .get() to avoid crash
+				if army.get("troops", []).size() >= MAX_TROOPS_PER_ARMY:
 					continue
-				var recruit_tile: Dictionary = _get_tile_dict(army["tile_index"])
-				if recruit_tile.is_empty() or recruit_tile["owner_id"] != player_id:
+				var recruit_tile: Dictionary = _get_tile_dict(army.get("tile_index", -1))
+				if recruit_tile.is_empty() or recruit_tile.get("owner_id", -1) != player_id:
 					# Army not on owned tile, use first owned tile instead
 					recruit_tile = owned_tiles[0]
 				var available: Array = RecruitManager.get_available_units(player_id, recruit_tile)

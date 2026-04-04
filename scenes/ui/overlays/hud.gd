@@ -72,6 +72,9 @@ var magic_crystal_label: Label
 var war_horse_label: Label
 var gunpowder_label: Label
 var shadow_essence_label: Label
+var trade_goods_label: Label
+var soul_crystals_label: Label
+var arcane_dust_label: Label
 
 # ── UI refs: left action panel ──
 var action_panel: PanelContainer
@@ -402,6 +405,15 @@ func _build_top_bar(parent: Control) -> void:
 	shadow_essence_label = _make_label("Shadow:0", ColorTheme.FONT_SMALL, Color(0.5, 0.2, 0.7))
 	shadow_essence_label.custom_minimum_size.x = 55
 	hbox2.add_child(shadow_essence_label)
+	trade_goods_label = _make_label("Trade:0", ColorTheme.FONT_SMALL, Color(0.9, 0.8, 0.2))
+	trade_goods_label.custom_minimum_size.x = 55
+	hbox2.add_child(trade_goods_label)
+	soul_crystals_label = _make_label("Soul:0", ColorTheme.FONT_SMALL, Color(0.7, 0.3, 0.9))
+	soul_crystals_label.custom_minimum_size.x = 55
+	hbox2.add_child(soul_crystals_label)
+	arcane_dust_label = _make_label("Arcane:0", ColorTheme.FONT_SMALL, Color(0.3, 0.7, 0.9))
+	arcane_dust_label.custom_minimum_size.x = 55
+	hbox2.add_child(arcane_dust_label)
 
 
 # ── Left panel: main action buttons ──
@@ -3414,6 +3426,9 @@ func _update_player_info() -> void:
 	war_horse_label.text = "Horse:%d" % ResourceManager.get_resource(pid, "war_horse")
 	gunpowder_label.text = "Gunpowder:%d" % ResourceManager.get_resource(pid, "gunpowder")
 	shadow_essence_label.text = "Shadow:%d" % ResourceManager.get_resource(pid, "shadow_essence")
+	trade_goods_label.text = "Trade:%d" % ResourceManager.get_resource(pid, "trade_goods")
+	soul_crystals_label.text = "Soul:%d" % ResourceManager.get_resource(pid, "soul_crystals")
+	arcane_dust_label.text = "Arcane:%d" % ResourceManager.get_resource(pid, "arcane_dust")
 
 
 func _update_tile_info() -> void:

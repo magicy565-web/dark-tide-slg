@@ -399,17 +399,18 @@ func _get_autoload(aname: String) -> Node:
 	return null
 
 
-# ═══════════════ CEASEFIRE (ORC-ONLY) ═══════════════
+# ═══════════════ CEASEFIRE ═══════════════
 
-func offer_ceasefire(player_id: int, faction_id: int, turns: int = 5) -> bool:
-	## Orc can offer ceasefire (costs gold, temporary peace)
-	if not is_orc_player(player_id):
-		return false  # Only orcs use this
-	var cost: int = 100  # Ceasefire costs gold (tribute)
-	if not ResourceManager.can_afford(player_id, {"gold": cost}):
-		EventBus.message_log.emit("[color=red]金币不足! 停战需要%d金作为贡品[/color]" % cost)
-		return false
-	ResourceManager.spend(player_id, {"gold": cost})
+func offer_ceasefire(player_id: int, faction_id: int, turns: int = 5, skip_cost: bool = false) -> bool:
+	## Offer ceasefire (costs gold, temporary peace)
+	# BUG FIX: Allow all factions to use ceasefire, not just Orcs
+	# skip_cost=true when the caller (e.g. action_diplomacy) already deducted the gold.
+	var cost: int = 60
+	if not skip_cost:
+		if not ResourceManager.can_afford(player_id, {"gold": cost}):
+			EventBus.message_log.emit("[color=red]金币不足! 停战需要%d金[/color]" % cost)
+			return false
+		ResourceManager.spend(player_id, {"gold": cost})
 	if not _ceasefire.has(player_id):
 		_ceasefire[player_id] = {}
 	_ceasefire[player_id][faction_id] = turns

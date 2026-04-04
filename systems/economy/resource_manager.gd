@@ -13,7 +13,10 @@ const RES_WAR_HORSE := "war_horse"
 const RES_GUNPOWDER := "gunpowder"
 const RES_SHADOW_ESSENCE := "shadow_essence"
 const RES_MANA := "mana"
-const ALL_RESOURCES: Array = ["gold", "food", "iron", "slaves", "prestige", "magic_crystal", "war_horse", "gunpowder", "shadow_essence", "mana"]
+const RES_TRADE_GOODS := "trade_goods"
+const RES_SOUL_CRYSTALS := "soul_crystals"
+const RES_ARCANE_DUST := "arcane_dust"
+const ALL_RESOURCES: Array = ["gold", "food", "iron", "slaves", "prestige", "magic_crystal", "war_horse", "gunpowder", "shadow_essence", "mana", "trade_goods", "soul_crystals", "arcane_dust"]
 
 # ── Per-player ledgers  { player_id: { "gold": int, ... } } ──
 var _ledgers: Dictionary = {}
@@ -41,6 +44,9 @@ func init_player(player_id: int, starting: Dictionary) -> void:
 		RES_GUNPOWDER: starting.get("gunpowder", 0),
 		RES_SHADOW_ESSENCE: starting.get("shadow_essence", 0),
 		RES_MANA: starting.get("mana", 0),
+		RES_TRADE_GOODS: starting.get("trade_goods", 0),
+		RES_SOUL_CRYSTALS: starting.get("soul_crystals", 0),
+		RES_ARCANE_DUST: starting.get("arcane_dust", 0),
 	}
 	_army[player_id] = starting.get("army", 0)
 	_slave_capacity[player_id] = starting.get("slaves", 0) + 3  # base capacity 3 + starting
@@ -178,6 +184,12 @@ func from_save_data(data: Dictionary) -> void:
 		for k in keys_to_fix:
 			dict_ref[int(k)] = dict_ref[k]
 			dict_ref.erase(k)
+	# BUG FIX: Ensure all new strategic resource keys exist in old saves
+	var new_res_keys: Array = ["trade_goods", "soul_crystals", "arcane_dust"]
+	for pid in _ledgers:
+		for rk in new_res_keys:
+			if not _ledgers[pid].has(rk):
+				_ledgers[pid][rk] = 0
 
 
 # ═══════════════ MISSING METHOD STUBS (v5.3 audit) ═══════════════

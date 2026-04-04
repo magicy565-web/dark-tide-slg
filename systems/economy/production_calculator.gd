@@ -17,13 +17,13 @@ const BASE_PRODUCTION: Dictionary = {
 
 # Called by GameManager at start of each turn to compute total income.
 
-
 func calculate_turn_income(player_id: int) -> Dictionary:
 	## Returns delta dictionary: { "gold":X, "food":X, "iron":X, "slaves":X, "prestige":X,
-	## "magic_crystal":X, "war_horse":X, "gunpowder":X, "shadow_essence":X }
+	## "magic_crystal":X, "war_horse":X, "gunpowder":X, "shadow_essence":X, "trade_goods":X, "soul_crystals":X, "arcane_dust":X }
 	var income := {
 		"gold": 0, "food": 0, "iron": 0, "slaves": 0, "prestige": 0,
 		"magic_crystal": 0, "war_horse": 0, "gunpowder": 0, "shadow_essence": 0,
+		"trade_goods": 0, "soul_crystals": 0, "arcane_dust": 0,
 	}
 
 	var faction_id: int = GameManager.get_player_faction(player_id)
