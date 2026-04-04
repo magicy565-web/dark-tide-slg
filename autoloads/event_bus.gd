@@ -200,6 +200,10 @@ signal army_garrisoned(army_id: int, tile_index: int)
 signal army_ungarrisoned(army_id: int, tile_index: int)
 ## Emitted when troops are assigned to an army (recruit → army linkage).
 signal army_troops_assigned(army_id: int, troop_id: String, soldiers: int)
+## Emitted when a hero is assigned to an army via action_assign_hero_to_army.
+signal army_hero_assigned(player_id: int, army_id: int, hero_id: String)
+## Emitted when a hero is removed from an army via action_remove_hero_from_army.
+signal army_hero_removed(player_id: int, army_id: int, hero_id: String)
 ## Emitted when an army is ready to march (has troops and is at a valid tile).
 signal army_ready_to_march(army_id: int, tile_index: int)
 ## Emitted by GameManager to ask HUD to open recruit panel for a specific tile.

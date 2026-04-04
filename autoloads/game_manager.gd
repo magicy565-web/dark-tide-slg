@@ -2927,6 +2927,73 @@ func action_split_army(army_id: int) -> bool:
 	return true
 
 
+## Assign a recruited hero to an army (free action, 0 AP).
+## The hero must be recruited, not stationed, not in another army, and not fatigued.
+## Returns true on success.
+func action_assign_hero_to_army(player_id: int, hero_id: String, army_id: int) -> bool:
+	if not armies.has(army_id):
+		EventBus.message_log.emit("[color=red]军队不存在![/color]")
+		return false
+	var army: Dictionary = armies[army_id]
+	if army["player_id"] != player_id:
+		EventBus.message_log.emit("[color=red]不能操作他人军队![/color]")
+		return false
+	# Hero must be recruited
+	if HeroSystem == null or hero_id not in HeroSystem.recruited_heroes:
+		EventBus.message_log.emit("[color=red]英雄未招募![/color]")
+		return false
+	# Hero must not be stationed
+	if HeroSystem.is_hero_stationed(hero_id):
+		EventBus.message_log.emit("[color=red]%s 正在驻守据点，无法出征![/color]" % HeroSystem.get_hero_info(hero_id).get("name", hero_id))
+		return false
+	# Hero must not already be in another army
+	for aid in armies:
+		var a: Dictionary = armies[aid]
+		if hero_id in a.get("heroes", []):
+			if aid == army_id:
+				EventBus.message_log.emit("[color=yellow]%s 已在该军队中![/color]" % HeroSystem.get_hero_info(hero_id).get("name", hero_id))
+			else:
+				EventBus.message_log.emit("[color=red]%s 已在另一支军队中![/color]" % HeroSystem.get_hero_info(hero_id).get("name", hero_id))
+			return false
+	# Check army hero cap
+	if army.get("heroes", []).size() >= MAX_HEROES_PER_ARMY:
+		EventBus.message_log.emit("[color=red]军队英雄名额已满 (%d/%d)![/color]" % [army["heroes"].size(), MAX_HEROES_PER_ARMY])
+		return false
+	if not army.has("heroes"):
+		army["heroes"] = []
+	army["heroes"].append(hero_id)
+	var hname: String = HeroSystem.get_hero_info(hero_id).get("name", hero_id)
+	EventBus.message_log.emit("[color=cyan]%s 已加入 %s![/color]" % [hname, army.get("name", "军团")])
+	if EventBus.has_signal("army_hero_assigned"):
+		EventBus.army_hero_assigned.emit(player_id, army_id, hero_id)
+	return true
+
+
+## Remove a hero from an army (free action, 0 AP).
+## The hero returns to the available pool (not stationed, not in army).
+## Returns true on success.
+func action_remove_hero_from_army(player_id: int, hero_id: String, army_id: int) -> bool:
+	if not armies.has(army_id):
+		EventBus.message_log.emit("[color=red]军队不存在![/color]")
+		return false
+	var army: Dictionary = armies[army_id]
+	if army["player_id"] != player_id:
+		EventBus.message_log.emit("[color=red]不能操作他人军队![/color]")
+		return false
+	var heroes: Array = army.get("heroes", [])
+	if hero_id not in heroes:
+		EventBus.message_log.emit("[color=red]该英雄不在此军队中![/color]")
+		return false
+	heroes.erase(hero_id)
+	var hname: String = ""
+	if HeroSystem != null:
+		hname = HeroSystem.get_hero_info(hero_id).get("name", hero_id)
+	EventBus.message_log.emit("[color=yellow]%s 已从 %s 撤离![/color]" % [hname, army.get("name", "军团")])
+	if EventBus.has_signal("army_hero_removed"):
+		EventBus.army_hero_removed.emit(player_id, army_id, hero_id)
+	return true
+
+
 ## Reinforce an army at owned tile: restore depleted units (1 AP)
 func action_reinforce_army(player_id: int, army_id: int) -> bool:
 	if not armies.has(army_id):
@@ -3047,6 +3114,12 @@ func _get_troop_upgrade(troop_id: String) -> String:
 		# Human upgrades (for conquered units)
 		"human_ashigaru": "human_samurai",
 		"human_samurai": "human_cavalry",
+		# DEEP: High Elf upgrades (elf_archer T1 -> elf_mage T2 -> elf_ashigaru T3)
+		"elf_archer": "elf_mage",
+		"elf_mage": "elf_ashigaru",
+		# DEEP: Mage upgrades (mage_apprentice T1 -> mage_battle T2 -> mage_grand T3)
+		"mage_apprentice": "mage_battle",
+		"mage_battle": "mage_grand",
 	}
 	return upgrade_table.get(troop_id, "")
 
@@ -3627,13 +3700,15 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			# BUG FIX: troop instances don't have atk/def keys; look up from troop definition
 			"atk": GameData.get_troop_def(troop.get("troop_id", "")).get("base_atk", 5) + player.get("atk_bonus", 0),
 			"def": GameData.get_troop_def(troop.get("troop_id", "")).get("base_def", 5) + player.get("def_bonus", 0),
-			"spd": GameData.get_troop_def(troop.get("troop_id", "")).get("base_spd", 5),
-			"int": GameData.get_troop_def(troop.get("troop_id", "")).get("base_int", 5),
+			# BUG FIX: TroopRegistry uses "spd" and "int_stat", not "base_spd"/"base_int"
+			"spd": GameData.get_troop_def(troop.get("troop_id", "")).get("spd", GameData.get_troop_def(troop.get("troop_id", "")).get("base_spd", 5)),
+			"int": GameData.get_troop_def(troop.get("troop_id", "")).get("int_stat", GameData.get_troop_def(troop.get("troop_id", "")).get("base_int", 5)),
 			"soldiers": troop.get("soldiers", 0),
 			"max_soldiers": troop.get("max_soldiers", troop.get("soldiers", 0)),
 			"row": troop.get("row", 0 if slot_idx < 3 else 1),
 			"slot": slot_idx,
-			"passive": troop.get("passive", ""),
+			# DEEP: always read passive from troop definition (instance may lack it after save/load)
+			"passive": GameData.get_troop_def(troop.get("troop_id", "")).get("passive", troop.get("passive", "")),
 		}
 		# v4.4: Inject hero combat stats & equipment passives for CombatSystem v2
 		if _cmd_id != "generic" and _cmd_id != "" and HeroSystem != null:
@@ -3645,12 +3720,24 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 					"mp": _hero_stats.get("mp", 10),
 					"troop_specialty": _hero_stats.get("troop", ""),
 					"equipment_passives": _hero_stats.get("equipment_passives", []),
+					# DEEP: inject hero level-unlocked passives into hero_data for CombatSystem
+					"level_passives": _hero_stats.get("level_passives", []),
+					"active_skill": _hero_stats.get("active", ""),
+					"active_skill_2": _hero_stats.get("active_2", ""),
 				}
 				# Apply hero stat bonuses to the unit
 				_unit_dict["atk"] += _hero_stats.get("atk", 0)
 				_unit_dict["def"] += _hero_stats.get("def", 0)
 				_unit_dict["spd"] += _hero_stats.get("spd", 0)
 				_unit_dict["int"] += _hero_stats.get("int_stat", 0)
+				# DEEP: for hero-bound troops, append hero passive to unit passive field
+				var _troop_def: Dictionary = GameData.get_troop_def(troop.get("troop_id", ""))
+				if _troop_def.get("category", -1) == GameData.TroopCategory.HERO_BOUND:
+					var _hero_passive: String = _hero_stats.get("passive", "")
+					if _hero_passive != "" and _unit_dict["passive"] != "":
+						_unit_dict["passive"] = _unit_dict["passive"] + "," + _hero_passive
+					elif _hero_passive != "":
+						_unit_dict["passive"] = _hero_passive
 		attacker_units.append(_unit_dict)
 		slot_idx += 1
 
@@ -3672,8 +3759,9 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 				# BUG FIX: garrison troop instances don't have atk/def; look up from definition
 				"atk": GameData.get_troop_def(gt.get("troop_id", "")).get("base_atk", 5),
 				"def": GameData.get_troop_def(gt.get("troop_id", "")).get("base_def", 5),
-				"spd": GameData.get_troop_def(gt.get("troop_id", "")).get("base_spd", 5),
-				"int": GameData.get_troop_def(gt.get("troop_id", "")).get("base_int", 5),
+				# BUG FIX: TroopRegistry uses "spd" and "int_stat", not "base_spd"/"base_int"
+				"spd": GameData.get_troop_def(gt.get("troop_id", "")).get("spd", GameData.get_troop_def(gt.get("troop_id", "")).get("base_spd", 5)),
+				"int": GameData.get_troop_def(gt.get("troop_id", "")).get("int_stat", GameData.get_troop_def(gt.get("troop_id", "")).get("base_int", 5)),
 				"soldiers": gt.get("soldiers", 0),
 				"max_soldiers": gt.get("max_soldiers", gt.get("soldiers", 0)),
 				"row": gt.get("row", 0 if slot_idx < 3 else 1),

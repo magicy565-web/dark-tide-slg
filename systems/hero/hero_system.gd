@@ -508,9 +508,24 @@ func recruit_hero(hero_id: String) -> bool:
 
 
 func get_hero_info(hero_id: String) -> Dictionary:
-	## Public wrapper for _get_hero_data. Returns the raw hero definition dict
-	## from FactionData.HEROES (or the hidden hero registry).
-	return _get_hero_data(hero_id)
+	## Returns hero info enriched with runtime level and equipment data.
+	## BUG FIX: previously returned only static FactionData.HEROES data, so
+	## territory_info_panel.gd always showed level=1 and base stats.
+	var base: Dictionary = _get_hero_data(hero_id)
+	if base.is_empty():
+		return {}
+	var result: Dictionary = base.duplicate()
+	# Inject runtime level from HeroLeveling
+	if HeroLeveling != null:
+		result["level"] = HeroLeveling.get_hero_level(hero_id)
+	# Inject runtime combat stats (atk/def/int/spd with level+equip bonuses)
+	var cs: Dictionary = get_hero_combat_stats(hero_id)
+	if not cs.is_empty():
+		result["atk"] = cs.get("atk", result.get("atk", 0))
+		result["def"] = cs.get("def", result.get("def", 0))
+		result["int"] = cs.get("int_stat", result.get("int", 0))
+		result["spd"] = cs.get("spd", result.get("spd", 0))
+	return result
 
 
 # ═══════════════ COMBAT STATS ═══════════════
@@ -776,6 +791,9 @@ func get_garrison_commander_bonus(tile_index: int) -> Dictionary:
 	return {
 		"def_mult": def_mult,
 		"prod_mult": prod_mult,
+		# BUG FIX: territory_info_panel.gd expects integer-percentage keys, not multipliers
+		"def_bonus": int((def_mult - 1.0) * 100.0),
+		"prod_bonus": int((prod_mult - 1.0) * 100.0),
 		"order_bonus": 10,
 		"garrison_add": maxi(int(stats.get("atk", 0)) / 3, 1),
 		"hero_name": _get_hero_name(hero_id),

@@ -2822,18 +2822,25 @@ func _on_armies_pressed_legacy() -> void:
 			bbtext += "  [color=orange]Upkeep: %d food + %d gold /turn[/color]\n" % [army_food_upkeep, army_gold_upkeep]
 
 		# Heroes assigned to this army
+		# BUG FIX: use runtime HeroSystem.get_hero_combat_stats() instead of static
+		# FactionData.HEROES, so level/equipment bonuses are reflected correctly.
 		var hero_ids: Array = army.get("heroes", [])
 		if not hero_ids.is_empty():
 			for hid in hero_ids:
-				var hdata: Dictionary = FactionData.HEROES.get(hid, {})
-				if hdata.is_empty():
+				var hstats: Dictionary = {}
+				if HeroSystem != null and HeroSystem.has_method("get_hero_combat_stats"):
+					hstats = HeroSystem.get_hero_combat_stats(hid)
+				if hstats.is_empty():
+					hstats = FactionData.HEROES.get(hid, {})
+				if hstats.is_empty():
 					continue
-				var hname: String = hdata.get("name", hid)
-				var hatk: int = hdata.get("atk", 0)
-				var hdef: int = hdata.get("def", 0)
-				var hint: int = hdata.get("int", 0)
-				var hspd: int = hdata.get("spd", 0)
-				bbtext += "  [color=aqua]Hero: %s[/color]  ATK:%d DEF:%d INT:%d SPD:%d\n" % [hname, hatk, hdef, hint, hspd]
+				var hname: String = hstats.get("name", hid)
+				var hlv: int = hstats.get("level", 1)
+				var hatk: int = hstats.get("atk", 0)
+				var hdef: int = hstats.get("def", 0)
+				var hint: int = hstats.get("int_stat", hstats.get("int", 0))
+				var hspd: int = hstats.get("spd", 0)
+				bbtext += "  [color=aqua]Hero: %s (Lv%d)[/color]  ATK:%d DEF:%d INT:%d SPD:%d\n" % [hname, hlv, hatk, hdef, hint, hspd]
 		else:
 			bbtext += "  [color=gray]No hero assigned[/color]\n"
 

@@ -473,15 +473,23 @@ func get_hero_bound_troop(hero_id: String) -> String:
 	return ""
 
 func get_hero_bound_troops_for_player() -> Array:
-	## Returns all hero-bound troop_ids where the bound hero is recruited.
+	## Returns all hero-bound troop_ids where the bound hero is recruited AND alive.
+	## DEEP: added hero alive/captured check so dead/captured heroes can't field their
+	## exclusive troops, which previously allowed ghost-hero armies.
 	var result: Array = []
 	for tid in TROOP_TYPES:
 		var td: Dictionary = TROOP_TYPES[tid]
 		if td.get("category", -1) != TroopCategory.HERO_BOUND:
 			continue
 		var hero_id: String = td.get("hero_bound", "")
-		if hero_id != "" and HeroSystem.recruited_heroes.has(hero_id):
-			result.append(tid)
+		if hero_id == "":
+			continue
+		if not HeroSystem.recruited_heroes.has(hero_id):
+			continue
+		# DEEP: skip if hero is captured (in prison)
+		if HeroSystem.captured_heroes.has(hero_id):
+			continue
+		result.append(tid)
 	return result
 
 func get_recruit_cost(troop_id: String) -> int:
@@ -681,10 +689,13 @@ func get_recruitable_troops(faction_tag: String, tile_level: int) -> Array:
 		if td.get("faction", "") != faction_tag:
 			continue
 		var cat: int = td.get("category", -1)
-		# Hero-bound troops: only available if bound hero is recruited
+		# Hero-bound troops: only available if bound hero is recruited AND not captured
 		if cat == TroopCategory.HERO_BOUND:
 			var hero_id: String = td.get("hero_bound", "")
 			if hero_id == "" or not HeroSystem.recruited_heroes.has(hero_id):
+				continue
+			# DEEP: captured heroes cannot field their exclusive troops
+			if HeroSystem.captured_heroes.has(hero_id):
 				continue
 			if td.get("tier", 1) > tile_level:
 				continue
