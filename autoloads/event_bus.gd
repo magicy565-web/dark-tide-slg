@@ -50,6 +50,12 @@ signal choice_event_triggered(player_id: int, event_data: Dictionary)
 # ── Combat ──
 signal combat_started(attacker_id: int, tile_index: int)
 signal combat_result(attacker_id: int, defender_desc: String, won: bool)
+## Detailed combat result with casualty numbers and outcome metadata
+signal combat_result_detailed(attacker_id: int, result: Dictionary)
+## Army routed after defeat: forced to retreat to nearest safe tile
+signal army_routed(player_id: int, army_id: int, from_tile: int, to_tile: int)
+## Army disbanded (all troops wiped out)
+signal army_disbanded_in_combat(player_id: int, army_id: int, tile_index: int)
 signal tactical_orders_requested(player_id: int, tile_index: int)  # Pre-battle orders UI
 signal tactical_orders_confirmed(player_id: int)  # Orders set, proceed with combat
 

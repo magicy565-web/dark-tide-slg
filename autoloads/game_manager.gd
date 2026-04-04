@@ -3705,10 +3705,69 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 			for key in def_losses:
 				total_def_lost += def_losses[key]
 			tile["garrison"] = maxi(1, tile["garrison"] - total_def_lost)
-		EventBus.message_log.emit("[color=red]%s 进攻 %s 失败! (军团撤回)[/color]" % [army["name"], defender_desc])
+		# ── ROUT / RETREAT LOGIC ──
+		# When attacker loses, check if army is badly mauled (>50% casualties).
+		# If so, force a rout: army retreats to nearest safe friendly tile.
+		var total_att_lost: int = 0
+		for key in att_losses:
+			total_att_lost += att_losses[key]
+		var total_att_soldiers: int = 0
+		for troop in army.get("troops", []):
+			total_att_soldiers += troop.get("soldiers", 0)
+		var loss_ratio: float = float(total_att_lost) / float(maxi(1, total_att_soldiers + total_att_lost))
+		var is_routed: bool = loss_ratio >= 0.5
+
+		if is_routed:
+			# Find nearest safe friendly tile to retreat to
+			var from_tile: int = army.get("tile_index", -1)
+			var retreat_tile: int = _find_retreat_tile(army, from_tile)
+			if retreat_tile >= 0 and retreat_tile != from_tile:
+				var old_tile: int = from_tile
+				army["tile_index"] = retreat_tile
+				army["state"] = "idle"
+				# Cancel any march order
+				if MarchSystem != null and MarchSystem.is_army_marching(army.get("id", -1)):
+					MarchSystem.cancel_march_order(army.get("id", -1))
+				EventBus.message_log.emit("[color=red]☠ %s 溃败! 撤退至 %s[/color]" % [army["name"], tiles[retreat_tile]["name"]])
+				EventBus.army_routed.emit(pid, army.get("id", -1), old_tile, retreat_tile)
+			else:
+				EventBus.message_log.emit("[color=red]%s 进攻 %s 失败! (军团撤回)[/color]" % [army["name"], defender_desc])
+				army["state"] = "idle"
+		else:
+			EventBus.message_log.emit("[color=red]%s 进攻 %s 失败! (军团撤回)[/color]" % [army["name"], defender_desc])
+			army["state"] = "idle"
+
+	# Update army state on victory
+	if won:
+		army["state"] = "idle"
 
 	EventBus.combat_result.emit(pid, defender_desc, won)
 	_record_battle_stat(pid, won)
+
+	# ── Emit detailed combat result (casualty numbers, outcome) ──
+	var total_att_lost_final: int = 0
+	for key in att_losses:
+		total_att_lost_final += att_losses[key]
+	var total_def_lost_final: int = 0
+	for key in def_losses:
+		total_def_lost_final += def_losses[key]
+	var detailed_result: Dictionary = {
+		"won": won,
+		"army_id": army.get("id", -1),
+		"army_name": army.get("name", ""),
+		"defender_desc": defender_desc,
+		"tile_index": tile.get("index", -1),
+		"attacker_losses": total_att_lost_final,
+		"defender_losses": total_def_lost_final,
+		"rounds": result.get("rounds_fought", 0),
+		"routed": not won and (float(total_att_lost_final) / float(maxi(1, total_att_lost_final + _get_army_total_soldiers(army))) >= 0.5),
+	}
+	EventBus.combat_result_detailed.emit(pid, detailed_result)
+
+	# Refresh AP display after combat
+	var _player_post: Dictionary = get_player_by_id(pid)
+	if not _player_post.is_empty():
+		EventBus.ap_changed.emit(pid, _player_post.get("ap", 0))
 
 	# BUG FIX R7: Remove zombie troops with 0 soldiers from army after combat
 	var surviving_troops: Array = []
@@ -3731,6 +3790,42 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 
 	_cleanup_army_troops(army)
 	return won
+
+
+func _find_retreat_tile(army: Dictionary, from_tile: int) -> int:
+	## Find nearest safe friendly tile for a routed army to retreat to.
+	## Returns the tile index, or -1 if no safe tile found.
+	var pid: int = army.get("player_id", -1)
+	if pid < 0 or from_tile < 0:
+		return -1
+	# BFS from from_tile to find nearest owned tile with no enemy army
+	var visited: Dictionary = {}
+	var queue: Array = [from_tile]
+	visited[from_tile] = true
+	while not queue.is_empty():
+		var current: int = queue.pop_front()
+		if current != from_tile:
+			var t: Dictionary = tiles[current] if current >= 0 and current < tiles.size() else {}
+			if t.get("owner_id", -1) == pid:
+				# Check no enemy army on this tile
+				var occupying: Dictionary = get_army_at_tile(current)
+				if occupying.is_empty() or occupying.get("player_id", -1) == pid:
+					return current
+		for nb in adjacency.get(current, []):
+			if not visited.has(nb):
+				visited[nb] = true
+				queue.append(nb)
+		if visited.size() > 50:  # Safety limit
+			break
+	return -1
+
+
+func _get_army_total_soldiers(army: Dictionary) -> int:
+	## Returns total soldier count across all troops in an army.
+	var total: int = 0
+	for troop in army.get("troops", []):
+		total += troop.get("soldiers", 0)
+	return total
 
 
 func _terrain_to_combat_enum(terrain: String) -> int:
