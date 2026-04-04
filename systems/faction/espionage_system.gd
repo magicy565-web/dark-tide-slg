@@ -681,3 +681,67 @@ func _fix_int_keys(dict: Dictionary) -> void:
 	for k in fix_keys:
 		dict[int(k)] = dict[k]
 		dict.erase(k)
+
+
+# ═══════════════ v4.7: INTERCEPT TRADE ROUTE OPERATION ═══════════════
+## New espionage operation: disrupt an AI arms trade route.
+## Costs 20 gold + 30 intel. Success: intercept resources, route destroyed.
+
+const INTERCEPT_TRADE_GOLD_COST: int = 20
+const INTERCEPT_TRADE_INTEL_COST: int = 30
+const INTERCEPT_TRADE_SUCCESS_BASE: int = 55  # 55% base success rate
+
+
+func can_intercept_trade(player_id: int) -> Dictionary:
+	## Returns {possible: bool, missing: Array}
+	var result: Dictionary = {"possible": true, "missing": []}
+	var routes: Array = DiplomacyManager.get_active_trade_routes()
+	if routes.is_empty():
+		result["possible"] = false
+		result["missing"].append("当前没有活跃的AI军火运输路线")
+		return result
+	var gold: int = ResourceManager.get_resource(player_id, "gold")
+	var intel: int = _intel.get(player_id, 0)
+	if gold < INTERCEPT_TRADE_GOLD_COST:
+		result["possible"] = false
+		result["missing"].append("金币不足 (需要%d)" % INTERCEPT_TRADE_GOLD_COST)
+	if intel < INTERCEPT_TRADE_INTEL_COST:
+		result["possible"] = false
+		result["missing"].append("情报值不足 (需要%d)" % INTERCEPT_TRADE_INTEL_COST)
+	return result
+
+
+func attempt_intercept_trade(player_id: int, route_index: int) -> Dictionary:
+	## Attempt to intercept a specific trade route.
+	## Returns {success: bool, intercepted: Dictionary}
+	var check: Dictionary = can_intercept_trade(player_id)
+	if not check["possible"]:
+		return {"success": false, "intercepted": {}}
+	# Deduct costs
+	ResourceManager.apply_delta(player_id, {"gold": -INTERCEPT_TRADE_GOLD_COST})
+	_intel[player_id] = maxi(0, _intel.get(player_id, 0) - INTERCEPT_TRADE_INTEL_COST)
+	# Success roll (spy master bonus applies)
+	var success_chance: int = INTERCEPT_TRADE_SUCCESS_BASE
+	if _has_spy_master(player_id):
+		success_chance += SPY_MASTER_SUCCESS_BONUS
+	var roll: int = randi() % 100
+	if roll < success_chance:
+		var intercepted: Dictionary = DiplomacyManager.disrupt_trade_route(route_index)
+		if not intercepted.is_empty():
+			# Give intercepted resources to player
+			ResourceManager.apply_delta(player_id, {intercepted["resource"]: intercepted["amount"]})
+			EventBus.message_log.emit("[color=green][间谍行动成功] 截获 %d %s！[/color]" % [intercepted["amount"], intercepted["resource"]])
+		return {"success": true, "intercepted": intercepted}
+	else:
+		EventBus.message_log.emit("[color=red][间谍行动失败] 运输护卫发现了我方间谍，行动失败！[/color]")
+		# Counter-intel penalty on failure
+		_counter_intel[player_id] = mini(COUNTER_INTEL_MAX, _counter_intel.get(player_id, 0) + BLOWN_COVER_CI_GAIN)
+		return {"success": false, "intercepted": {}}
+
+
+func _has_spy_master(player_id: int) -> bool:
+	## Check if player has a spy master hero assigned.
+	for hero in HeroSystem.get_heroes_for_player(player_id):
+		if hero.get("role", "") == "spy_master":
+			return true
+	return false

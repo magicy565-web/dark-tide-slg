@@ -1465,3 +1465,52 @@ func accept_proposal(proposal_id: int) -> void:
 func reject_proposal(proposal_id: int) -> void:
 	if proposal_id == 0 and _pending_light_peace.get("active", false):
 		reject_light_peace()
+
+
+
+# ═══════════════ v4.7: AI ARMS TRADE SYSTEM ═══════════════
+## When threat >= 30, light factions begin trading resources among themselves.
+## Players can use espionage to disrupt these trade routes.
+
+var _ai_trade_routes: Array = []
+const ARMS_TRADE_DURATION: int = 5
+const ARMS_TRADE_IRON_AMOUNT: int = 15
+const ARMS_TRADE_GOLD_AMOUNT: int = 30
+
+func process_ai_trade_routes(threat_value: int) -> void:
+	var active: Array = []
+	for route in _ai_trade_routes:
+		route["turns_left"] -= 1
+		if route["turns_left"] > 0:
+			active.append(route)
+		else:
+			EventBus.message_log.emit("[color=gray][AI外交] %s → %s 的军火运输路线已结束[/color]" % [route["from"], route["to"]])
+	_ai_trade_routes = active
+	if threat_value < 30:
+		return
+	var existing_pairs: Array = []
+	for r in _ai_trade_routes:
+		existing_pairs.append(r["from"] + "_" + r["to"])
+	if not existing_pairs.has("human_mage") and threat_value >= 30:
+		_ai_trade_routes.append({"from": "human", "to": "mage", "resource": "iron", "amount": ARMS_TRADE_IRON_AMOUNT, "turns_left": ARMS_TRADE_DURATION})
+		EventBus.message_log.emit("[color=orange][AI外交] 人类王国开始向法师公会输送铁矿以换取魔法支援！[/color]")
+	if not existing_pairs.has("elf_human") and threat_value >= 40:
+		_ai_trade_routes.append({"from": "elf", "to": "human", "resource": "gold", "amount": ARMS_TRADE_GOLD_AMOUNT, "turns_left": ARMS_TRADE_DURATION})
+		EventBus.message_log.emit("[color=orange][AI外交] 高等精灵开始向人类王国输送军费以强化联合防线！[/color]")
+	if not existing_pairs.has("mage_elf") and threat_value >= 60:
+		_ai_trade_routes.append({"from": "mage", "to": "elf", "resource": "magic_crystal", "amount": 5, "turns_left": ARMS_TRADE_DURATION})
+		EventBus.message_log.emit("[color=orange][AI外交] 法师公会开始向高等精灵输送魔晶以强化灵脉屏障！[/color]")
+
+
+func get_active_trade_routes() -> Array:
+	return _ai_trade_routes.duplicate(true)
+
+
+func disrupt_trade_route(route_index: int) -> Dictionary:
+	if route_index < 0 or route_index >= _ai_trade_routes.size():
+		return {}
+	var route: Dictionary = _ai_trade_routes[route_index]
+	_ai_trade_routes.remove_at(route_index)
+	EventBus.message_log.emit("[color=green][间谍行动] 成功截断 %s → %s 的 %s 运输路线！[/color]" % [
+		route["from"], route["to"], route["resource"]])
+	return {"resource": route["resource"], "amount": route["amount"]}

@@ -12,6 +12,7 @@ const AFFECTION_CARRY_OVER: int = 3    # heroes with lv10 start at this
 var _ngplus_level: int = 0
 var _completed_heroes: Array = []  # hero_ids that reached affection 10
 var _total_wins: int = 0
+var _last_clear_score: int = 0  # v4.7: Score from last clear, used by NGPlusShop
 
 func _ready() -> void:
 	_load_persistent()
@@ -63,7 +64,35 @@ func on_victory() -> void:
 		if HeroSystem.hero_affection[hero_id] >= 10 and hero_id not in _completed_heroes:
 			_completed_heroes.append(hero_id)
 	_ngplus_level = mini(_ngplus_level + 1, MAX_NGPLUS)
+	# v4.7: Calculate and save final score for NGPlusShop
+	var final_score: int = _calculate_victory_score()
+	_last_clear_score = final_score
+	EventBus.message_log.emit("[color=gold]通关得分: %d 分 (可在下周目开局兑换奖励)[/color]" % final_score)
 	_save_persistent()
+
+
+## v4.7: Calculate the final victory score based on game state.
+func _calculate_victory_score() -> int:
+	var score: int = 500  # Base score for winning
+	# Bonus: heroes at affection 10 (+100 each)
+	for hero_id in HeroSystem.hero_affection:
+		if HeroSystem.hero_affection[hero_id] >= 10:
+			score += 100
+	# Bonus: NG+ level multiplier
+	score = int(float(score) * (1.0 + float(_ngplus_level) * 0.1))
+	return score
+
+
+## v4.7: Get the score from the last clear (for NGPlusShop).
+func get_last_clear_score() -> int:
+	return _last_clear_score
+
+
+## v4.7: Initialize NGPlusShop with last clear score at game start.
+func init_ngplus_shop() -> void:
+	if _last_clear_score > 0:
+		NGPlusShop.initialize(_last_clear_score)
+		EventBus.message_log.emit("[color=gold]NG+得分商店已开启！上周目得分: %d 分[/color]" % _last_clear_score)
 
 
 ## Apply NG+ bonuses at game start.
@@ -96,6 +125,7 @@ func _save_persistent() -> void:
 		"ngplus_level": _ngplus_level,
 		"completed_heroes": _completed_heroes.duplicate(),
 		"total_wins": _total_wins,
+		"last_clear_score": _last_clear_score,  # v4.7
 	}
 	var file := FileAccess.open(NGPLUS_PATH, FileAccess.WRITE)
 	if file:
@@ -119,6 +149,7 @@ func _load_persistent() -> void:
 		_ngplus_level = data.get("ngplus_level", 0)
 		_completed_heroes = data.get("completed_heroes", [])
 		_total_wins = data.get("total_wins", 0)
+		_last_clear_score = data.get("last_clear_score", 0)  # v4.7
 
 
 func reset_ngplus() -> void:
@@ -126,4 +157,5 @@ func reset_ngplus() -> void:
 	_ngplus_level = 0
 	_completed_heroes.clear()
 	_total_wins = 0
+	_last_clear_score = 0  # v4.7
 	_save_persistent()

@@ -12,6 +12,9 @@ const SkillAnimationData = preload("res://systems/combat/skill_animation_data.gd
 # Constants
 # ---------------------------------------------------------------------------
 const MAX_ROUNDS: int = 8  # v4.6: 12→8 for faster, more decisive battles
+const BATTLE_RATING_INIT: int = 50       # v4.7: Starting value of battle rating bar (0-100)
+const BATTLE_RATING_PER_KILL: int = 3    # v4.7: +3 per soldier killed by attacker
+const BATTLE_RATING_PER_UNIT_ELIM: int = 8  # v4.7: +8 per unit eliminated by attacker
 const FRONT_SLOTS: int = 3       # indices 0, 1, 2
 const BACK_SLOTS: int = 3        # indices 3, 4, 5
 const TOTAL_SLOTS: int = 6
@@ -489,16 +492,19 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			winner = result
 			break
 
-	# 8 rounds elapsed → defender wins (unless HOLD_LINE directive)
+	# v4.7: 8 rounds elapsed → use Battle Rating bar to determine winner
 	if winner == "":
-		# Defender HOLD_LINE: trade-off is +25% DEF but timeout = attacker wins
-		# (defender must eliminate attacker, can't just stall)
+		var rating: int = state.get("battle_rating", BATTLE_RATING_INIT)
+		# Defender HOLD_LINE: timeout = attacker wins (defender must eliminate attacker)
 		if state.get("def_directive", TacticalDirective.NONE) == TacticalDirective.HOLD_LINE:
 			winner = "attacker"
 			combat_log.append("坚守指令: 超时判定 — 防守方未能歼灭进攻方, 进攻方突破!")
+		elif rating > BATTLE_RATING_INIT:
+			winner = "attacker"
+			combat_log.append("8回合结束，战果条偏向进攻方 (%d/100) — 进攻方胜利!" % rating)
 		else:
 			winner = "defender"
-			combat_log.append("8回合结束，防守方胜利!")
+			combat_log.append("8回合结束，战果条偏向防守方 (%d/100) — 防守方胜利!" % rating)
 
 	# -- Phase 4: Finalize --
 	return _finalize_result(state, winner, wall_destroyed, combat_log, tile)
@@ -589,6 +595,8 @@ func _build_battle_state(attacker: Dictionary, defender: Dictionary, tile: Dicti
 		"barrier_active": false,
 		"barrier_tile_index": -1,
 		"barrier_used_this_round": false,
+		# v4.7: Battle Rating bar (0-100). >50 on timeout = attacker wins; <50 = defender wins.
+		"battle_rating": BATTLE_RATING_INIT,
 		"atk_synergy_specials": atk_synergy_specials,
 		"def_synergy_specials": def_synergy_specials,
 		# Commander Tactical Orders
@@ -2748,6 +2756,13 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 	target["soldiers"] = maxi(0, target["soldiers"] - damage)
 	combat_log.append("%s [%s] 受到 %d 伤害 (剩余 %d 兵)" % [
 		target["unit_type"], target["side"], damage, target["soldiers"]])
+	# v4.7: Update battle_rating based on who dealt damage
+	if state.has("battle_rating"):
+		var rating_delta: int = mini(damage, BATTLE_RATING_PER_KILL) * 1
+		if source["side"] == "attacker":
+			state["battle_rating"] = clampi(state["battle_rating"] + rating_delta, 0, 100)
+		else:
+			state["battle_rating"] = clampi(state["battle_rating"] - rating_delta, 0, 100)
 
 	# Morale: reduce for damage taken
 	if "morale_immune" not in target["passives"] and not target.get("immovable", false) and not target.get("is_routed", false):
@@ -2932,9 +2947,9 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, c
 	else:
 		slaves_captured = _check_slave_capture(def_pid, state["atk_units"])
 
-	combat_log.append("=== 战斗结束 === %s胜 | 攻方损失 %d | 守方损失 %d | 俘获奴隶 %d" % [
+	combat_log.append("=== 战斗结束 === %s胜 | 攻方损失 %d | 守方损失 %d | 俨获奴隶 %d | 战果条 %d/100" % [
 		"进攻方" if winner == "attacker" else "防守方",
-		attacker_losses, defender_losses, slaves_captured])
+		attacker_losses, defender_losses, slaves_captured, state.get("battle_rating", 50)])
 
 	# Passive: pillage — winning side gains +10 gold per unit with pillage
 	var winner_units: Array = state["atk_units"] if winner == "attacker" else state["def_units"]

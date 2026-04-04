@@ -52,6 +52,10 @@ var _recruitment_event_counter: int = 0       # unique event ID counter
 var _mercenary_loyalty: Dictionary = {}       # hero_id -> int (remaining loyalty turns)
 var _wandering_hero_pool: Array = []          # hero_ids that were rejected and may return later
 
+# ── v4.7: Commander Fatigue (SR07 武将疲劳机制) ──
+# hero_id -> bool: true = hero has acted this turn (attack or major action)
+var _hero_fatigue: Dictionary = {}  # cleared at turn_ended
+
 
 func reset() -> void:
 	captured_heroes.clear()
@@ -79,6 +83,7 @@ func reset() -> void:
 	_recruitment_event_counter = 0
 	_mercenary_loyalty.clear()
 	_wandering_hero_pool.clear()
+	_hero_fatigue.clear()
 
 
 ## Called when pirate faction is selected. Enables harem mechanics.
@@ -88,6 +93,32 @@ func init_pirate_mode() -> void:
 
 func is_pirate_mode() -> bool:
 	return _pirate_mode
+
+
+# ═════════════════ v4.7: COMMANDER FATIGUE SYSTEM ═════════════════
+## Mark a hero as having acted this turn (attack / major strategic action).
+## Exhausted heroes defending on the enemy turn suffer ATK/DEF halved.
+func set_hero_action_used(hero_id: String) -> void:
+	_hero_fatigue[hero_id] = true
+	EventBus.message_log.emit("[color=gray][%s] 指挥官已行动，本回合无法再次出战[/color]" % _get_hero_name(hero_id))
+
+
+## Returns true if hero has already acted this turn.
+func is_hero_exhausted(hero_id: String) -> bool:
+	return _hero_fatigue.get(hero_id, false)
+
+
+## Clear all fatigue at the start of player's new turn.
+func clear_all_fatigue() -> void:
+	_hero_fatigue.clear()
+
+
+## Get the combat stat multiplier for a hero when defending while exhausted.
+## Returns 1.0 normally, 0.5 if the hero is exhausted (acted this turn).
+func get_fatigue_defense_mult(hero_id: String) -> float:
+	if is_hero_exhausted(hero_id):
+		return 0.5
+	return 1.0
 
 
 # ═══════════════ CAPTURE ═══════════════
@@ -391,10 +422,16 @@ func get_affection_bonus(hero_id: String) -> Dictionary:
 		bonus["second_skill"] = true
 		bonus["tier_desc"] = "ATK+5%, DEF+5%, Loyal, 2nd Skill"
 	if aff >= 10:
-		bonus["all_pct"] = 0.10
+		bonus["all_pct"] = 0.20  # v4.7: 觉醒加成提升为+20%（原10%）
 		bonus["title"] = "Sworn Companion"
-		bonus["tier_desc"] = "All Stats+10%, Sworn Companion"
+		bonus["awakened"] = true  # v4.7: 觉醒标记，用于UI显示觉醒光效
+		bonus["tier_desc"] = "All Stats+20%, Awakened, Sworn Companion"
 	return bonus
+
+
+## v4.7: Returns true if the hero has reached Awakened state (affection Lv10).
+func is_hero_awakened(hero_id: String) -> bool:
+	return hero_affection.get(hero_id, 0) >= 10
 
 
 ## Apply affection-based percentage bonuses to a combat stats dictionary.
