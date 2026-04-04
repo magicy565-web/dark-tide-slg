@@ -23,6 +23,8 @@ func _ready() -> void:
 	_run_test_file("res://tests/test_effect_resolver.gd")
 	_run_test_file("res://tests/test_quest_progress_tracker.gd")
 	_run_test_file("res://tests/test_save_migration.gd")
+	_run_test_file("res://tests/test_realworld.gd")
+	_run_test_file("res://tests/test_attack_bugs.gd")
 
 	print("")
 	print("=" .repeat(60))
