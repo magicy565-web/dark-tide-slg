@@ -93,6 +93,7 @@ static func _register_evil_faction(d: Dictionary) -> void:
 		"base_atk": 7, "base_def": 3, "max_soldiers": 6, "hp_per_soldier": 5,
 		"recruit_cost": 14, "passive": "reload_shot", "category": CAT_FACTION,
 		"tier": 2, "desc": "先手齐射后需1回合装填",
+		"action_delay": 8,  # v5.0: 装填期间行动延迟（SR07 火绳枪射击待こ3参考）
 	}
 	d["pirate_cannon"] = {
 		"name": "炮击手", "faction": "pirate",
@@ -101,6 +102,7 @@ static func _register_evil_faction(d: Dictionary) -> void:
 		"recruit_cost": 40, "passive": "aoe_immobile", "category": CAT_FACTION,
 		"tier": 3, "desc": "定点AoE炮击+攻城×2+不可移动, 需要火药",
 		"strategic_cost": {"gunpowder": 2},
+		"action_delay": 20,  # v5.0: 重型火炮击发极慢（SR07 射击待こ3参考）
 	}
 	# ── Dark Elf 暗精灵议会 ──
 	d["de_samurai"] = {
@@ -115,7 +117,8 @@ static func _register_evil_faction(d: Dictionary) -> void:
 		"troop_class": TC_NINJA, "row": ROW_BACK,
 		"base_atk": 9, "base_def": 2, "max_soldiers": 5, "hp_per_soldier": 4,
 		"recruit_cost": 25, "passive": "assassin_crit", "category": CAT_FACTION,
-		"tier": 2, "desc": "无视嘲讽攻后排+30%暴击×2",
+		"tier": 2, "desc": "无视専沢攻后排+30%暴击×2",
+		"action_delay": 2,  # v5.0: 暗影刺客极快（SR07 音速手裏剣待こ2参考）
 	}
 	d["de_cavalry"] = {
 		"name": "冷蜥骑兵", "faction": "dark_elf",
@@ -141,6 +144,7 @@ static func _register_evil_faction(d: Dictionary) -> void:
 		"recruit_cost": 48, "passive": "siege_bombard", "category": CAT_FACTION,
 		"tier": 3, "desc": "高爆轰炸, 攻城×3+AoE溅射, 需要火药",
 		"strategic_cost": {"gunpowder": 3},
+		"action_delay": 25,  # v5.0: 最慢的轰炸兵种，但伤害极高
 	}
 	d["de_shadow_guard"] = {
 		"name": "暗影禁卫", "faction": "dark_elf",
@@ -221,6 +225,7 @@ static func _register_light_faction(d: Dictionary) -> void:
 		"base_atk": 10, "base_def": 5, "max_soldiers": 8, "hp_per_soldier": 5,
 		"recruit_cost": 36, "passive": "death_burst", "category": CAT_FACTION,
 		"tier": 3, "desc": "死亡时对敌全体ATK×2伤害, 高攻中低防",
+		"action_delay": 12,  # v5.0: 大法术施法需要引导时间
 	}
 
 # ═══════════════ NEUTRAL TROOPS (13) ═══════════════

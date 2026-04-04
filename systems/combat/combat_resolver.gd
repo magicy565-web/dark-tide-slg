@@ -155,6 +155,8 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	var def_formation: Dictionary = _calculate_formation_bonuses(state["def_units"])
 	_apply_formation_bonuses(state["atk_units"], atk_formation, state["def_units"], combat_log, "攻方")
 	_apply_formation_bonuses(state["def_units"], def_formation, state["atk_units"], combat_log, "守方")
+	# -- v5.0: Pre-Battle Setup — 军师付与（SR07风格）--
+	PreBattleSetup.apply(state, combat_log)
 
 	# -- v6.0: Apply environment modifiers (day/night, fatigue) --
 	var _env_time_mods: Dictionary = EnvironmentSystem.get_time_combat_modifiers()
@@ -1112,6 +1114,9 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		"has_charged": false,
 		"actions_this_round": 0,
 		"max_actions": max_actions,
+		# v5.0: Action Delay — units with high delay act later in the round queue
+		# Populated from troop_registry "action_delay" field; 0 = no delay
+		"action_delay": int(raw.get("action_delay", 0)),
 		"is_alive": true,
 		"player_id": player_id,
 		"buffs": [],
@@ -1796,7 +1801,12 @@ func _sort_by_spd(a: Dictionary, b: Dictionary) -> bool:
 			spd_b = maxf(spd_b - d["value"], 1.0)
 	if spd_a != spd_b:
 		return spd_a > spd_b
-	# Use hash-based tiebreaker for fairness instead of alphabetic ordering
+	# v5.0: Action Delay tiebreaker — lower delay acts first (SR07-style skill timing)
+	var delay_a: int = a.get("action_delay", 0)
+	var delay_b: int = b.get("action_delay", 0)
+	if delay_a != delay_b:
+		return delay_a < delay_b
+	# Final tiebreaker: hash-based for fairness
 	return hash(a.get("unit_type", "") + str(a.get("slot", 0))) > hash(b.get("unit_type", "") + str(b.get("slot", 0)))
 
 
@@ -2602,8 +2612,17 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 		var target_cmd_data: Dictionary = UNIT_COMMAND_DATA.get(target_cmd, {})
 		def_val *= target_cmd_data.get("def_mult", 1.0)
 
+	# v5.0: Pre-Battle armor pierce (from PreBattleSetup enchantment)
+	var _armor_pierce: float = PreBattleSetup.get_armor_pierce_pct(attacker_unit)
+	if _armor_pierce > 0.0:
+		def_val *= (1.0 - _armor_pierce)
 	# Core formula from design doc
-	var base_damage: float = float(soldiers) * maxf(1.0, atk - def_val) / 10.0
+	# v5.0: Nonlinear troop count scaling (inspired by Sengoku Rance 07)
+	# Prevents large armies from trivially crushing everything; preserves elite-squad value.
+	var effective_soldiers: float = _nonlinear_troop_count(soldiers)
+	var base_damage: float = effective_soldiers * maxf(1.0, atk - def_val) / 10.0
+	# v5.0: Hard cap — single-hit damage cannot exceed attacker's current soldier count
+	base_damage = minf(base_damage, float(soldiers))
 
 	# Apply unit counter matrix (atk_mult: attacker deals more/less damage)
 	var _counter_info: Dictionary = CounterMatrix.get_counter(attacker_unit["unit_type"], defender_unit["unit_type"])
@@ -2698,8 +2717,24 @@ func _calculate_damage(attacker_unit: Dictionary, defender_unit: Dictionary, sta
 		if randf() < 0.3:
 			soldiers_killed *= 2
 
-	return soldiers_killed
+		return soldiers_killed
 
+# ---------------------------------------------------------------------------
+# v5.0: Nonlinear Troop Count Modifier (SR07-style)
+# ---------------------------------------------------------------------------
+## Converts raw soldier count to an effective count for damage calculation.
+## Mirrors the non-linear scaling from Sengoku Rance 07 to prevent large armies
+## from trivially overwhelming small elite squads in late-game scenarios.
+## Breakpoints: <100 → 100; 100-499 → 1:1; 500-1999 → diminishing; 2000+ → heavy diminish
+func _nonlinear_troop_count(soldiers: int) -> float:
+	if soldiers < 100:
+		return 100.0
+	elif soldiers < 500:
+		return float(soldiers)
+	elif soldiers < 2000:
+		return 500.0 + float(soldiers - 500) * 0.5
+	else:
+		return 1250.0 + float(soldiers - 2000) * 0.25
 
 # ---------------------------------------------------------------------------
 # Damage Application
@@ -2755,7 +2790,14 @@ func _apply_damage_to_unit(state: Dictionary, target: Dictionary, damage: int, s
 	if target["soldiers"] - damage <= 0 and "death_resist" in target["passives"] and not target.get("_death_resist_used", false):
 		target["_death_resist_used"] = true
 		target["soldiers"] = 1
-		combat_log.append("%s [%s] 铁颚板甲: 抵抗致命伤害，保留1兵!" % [target["unit_type"], target["side"]])
+		combat_log.append("%s [%s] 铁颌板甲: 抗拕致命伤害，保留1兵!" % [target["unit_type"], target["side"]])
+		return
+	# v5.0: one_time_survive (PreBattleSetup 绝对防御) — survive lethal once with 1 soldier
+	if target["soldiers"] - damage <= 0 and "one_time_survive" in target["passives"] and not target.get("_one_time_survive_used", false):
+		target["_one_time_survive_used"] = true
+		target["passives"].erase("one_time_survive")  # consume the enchantment
+		target["soldiers"] = 1
+		combat_log.append("%s [%s] [战前付与]绝对防御: 以最后1兵存活!" % [target["unit_type"], target["side"]])
 		return
 
 	target["soldiers"] = maxi(0, target["soldiers"] - damage)
@@ -2878,7 +2920,9 @@ func _end_of_round(state: Dictionary, combat_log: Array) -> String:
 	for unit in state["atk_units"] + state["def_units"]:
 		if not unit["is_alive"] or unit.get("is_routed", false):
 			continue
-		if unit.get("morale", MORALE_START) <= MORALE_ROUT_THRESHOLD:
+		# v5.0: rout_threshold_bonus from PreBattleSetup (不死之志 enchantment)
+		var _rout_thresh: int = MORALE_ROUT_THRESHOLD + unit.get("rout_threshold_bonus", 0)
+		if unit.get("morale", MORALE_START) <= _rout_thresh:
 			if "morale_immune" not in unit["passives"] and not unit.get("immovable", false):
 				var rout_loss: int = int(float(unit["soldiers"]) * MORALE_ROUT_LOSS_PCT)
 				unit["soldiers"] = maxi(unit["soldiers"] - rout_loss, 0)
