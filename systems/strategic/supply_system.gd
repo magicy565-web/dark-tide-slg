@@ -442,10 +442,23 @@ func _apply_army_isolation_penalties(player_id: int) -> void:
 				if soldiers > 0:
 					var loss: int = maxi(1, int(float(soldiers) * ARMY_CUTOFF_ATTRITION_PCT))
 					troop["soldiers"] = maxi(0, soldiers - loss)
+			# Emit army_supply_low signal (used by board.gd / action_visualizer for visual alerts)
+			EventBus.army_supply_low.emit(army_id, 0.0)
 			# Emit warning for human player
 			if player_id == GameManager.get_human_player_id():
 				var army_name: String = army.get("name", "Army")
-				EventBus.message_log.emit("[color=red]%s 补给线断绝! 士气-%.0f, 减员中...[/color]" % [army_name, ARMY_CUTOFF_MORALE_DRAIN])
+				EventBus.message_log.emit("[color=red]⚠ %s 补给线断绝! 士气-%.0f, 减员中...[/color]" % [army_name, ARMY_CUTOFF_MORALE_DRAIN])
+		else:
+			# Strained supply (distance 4-6): emit partial supply warning
+			var supply_status: Dictionary = get_army_supply_status(army)
+			var status: String = supply_status.get("status", "supplied")
+			if status == "strained" or status == "extended":
+				# Emit supply_low with partial supply ratio (0.5 for strained, 0.25 for extended)
+				var supply_ratio: float = 0.5 if status == "strained" else 0.25
+				EventBus.army_supply_low.emit(army_id, supply_ratio)
+				if player_id == GameManager.get_human_player_id():
+					var army_name: String = army.get("name", "Army")
+					EventBus.message_log.emit("[color=orange]⚠ %s %s[/color]" % [army_name, supply_status.get("status_label", "")])
 
 
 func get_supply_production_mult(player_id: int, tile_index: int) -> float:

@@ -1754,6 +1754,10 @@ func begin_turn() -> void:
 								armies.get(iid, {}).get("tile_index", -1),
 								{"won": false, "army_id": aid, "intercepted": true})
 
+	# ── Garrison System: increment garrison turn counters ──
+	if MarchSystem != null:
+		MarchSystem.process_garrison_turns(pid)
+
 	# ── Phase 0: Build per-turn cache ──
 	_build_turn_cache()
 
@@ -3063,6 +3067,54 @@ func action_guard_territory(pid: int, tile_index: int) -> bool:
 	_guard_timers[tile_index] = {"player_id": pid, "turns_remaining": 1}
 	var tile_name: String = tile.get("name", TILE_NAMES.get(tile["type"], "领地"))
 	EventBus.message_log.emit("[color=cyan]%s 已部署防御! (驻军防御+20%%, 战斗DEF+50%%, 持续1回合)[/color]" % tile_name)
+	return true
+
+
+func action_garrison_army(army_id: int) -> bool:
+	## Place an army into garrison (guard) stance at its current tile.
+	## The army gains a stacking defence bonus each turn it stays garrisoned.
+	## Costs 1 AP. Cancels any active march order.
+	if not armies.has(army_id):
+		return false
+	var army: Dictionary = armies[army_id]
+	var pid: int = army.get("player_id", -1)
+	var player: Dictionary = get_player_by_id(pid)
+	if player.is_empty() or player.get("ap", 0) < 1:
+		EventBus.message_log.emit("[color=red]行动点不足![/color]")
+		return false
+	var tile_index: int = army.get("tile_index", -1)
+	if tile_index < 0:
+		return false
+	var tile: Dictionary = tiles[tile_index] if tile_index < tiles.size() else {}
+	if tile.get("owner_id", -1) != pid:
+		EventBus.message_log.emit("[color=red]只能在己方领地驻守![/color]")
+		return false
+	if MarchSystem == null:
+		return false
+	if MarchSystem.is_army_garrisoned(army_id):
+		EventBus.message_log.emit("[color=yellow]%s 已处于驻守状态[/color]" % army.get("name", "军团"))
+		return false
+	player["ap"] -= 1
+	var ok: bool = MarchSystem.issue_garrison_order(army_id)
+	if ok:
+		army["state"] = "garrisoned"
+		var bonus_pct: int = int((MarchSystem.get_garrison_defence_bonus(army_id) - 1.0) * 100.0)
+		EventBus.message_log.emit("[color=cyan]🛡 %s 已驻守于 %s (防御+%d%%)[/color]" % [army.get("name", ""), tile.get("name", ""), bonus_pct])
+		EventBus.ap_changed.emit(pid, player["ap"])
+	return ok
+
+
+func action_cancel_garrison(army_id: int) -> bool:
+	## Cancel garrison stance for an army. Free action (0 AP).
+	if not armies.has(army_id):
+		return false
+	var army: Dictionary = armies[army_id]
+	if MarchSystem == null or not MarchSystem.is_army_garrisoned(army_id):
+		EventBus.message_log.emit("该军团并未处于驻守状态")
+		return false
+	MarchSystem.cancel_garrison_order(army_id)
+	army["state"] = "idle"
+	EventBus.message_log.emit("[color=yellow]%s 解除驻守[/color]" % army.get("name", "军团"))
 	return true
 
 

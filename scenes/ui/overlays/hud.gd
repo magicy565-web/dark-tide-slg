@@ -38,7 +38,7 @@ func _safe_load(path: String) -> Resource:
 	return null
 
 # ── Action mode state machine ──
-enum ActionMode { NONE, ATTACK, DEPLOY, MARCH, DOMESTIC, DIPLOMACY, EXPLORE, DOMESTIC_SUB, SELECT_ATTACK_TARGET, SELECT_DEPLOY_TARGET, SELECT_MARCH_ARMY, SELECT_MARCH_TARGET }
+enum ActionMode { NONE, ATTACK, DEPLOY, MARCH, GARRISON, DOMESTIC, DIPLOMACY, EXPLORE, DOMESTIC_SUB, SELECT_ATTACK_TARGET, SELECT_DEPLOY_TARGET, SELECT_MARCH_ARMY, SELECT_MARCH_TARGET, SELECT_GARRISON_ARMY }
 
 var _current_mode: int = ActionMode.NONE
 var _domestic_sub_type: String = ""   # "recruit", "upgrade", "build"
@@ -78,6 +78,7 @@ var action_panel: PanelContainer
 var btn_attack: Button
 var btn_deploy: Button
 var btn_march: Button   # Long-range march order (multi-turn movement via MarchSystem)
+var btn_garrison: Button  # Garrison army at current tile (MarchSystem garrison stance)
 var btn_domestic: Button
 var btn_diplomacy: Button
 var btn_explore: Button
@@ -223,6 +224,22 @@ func _connect_signals() -> void:
 	# ── Army ready-to-march notification ──
 	if EventBus.has_signal("army_ready_to_march"):
 		EventBus.army_ready_to_march.connect(_on_army_ready_to_march)
+	# ── Supply system notifications ──
+	if EventBus.has_signal("supply_line_cut"):
+		EventBus.supply_line_cut.connect(_on_supply_line_cut)
+	if EventBus.has_signal("supply_line_restored"):
+		EventBus.supply_line_restored.connect(_on_supply_line_restored)
+	# ── Garrison state change notifications ──
+	if EventBus.has_signal("army_garrisoned"):
+		EventBus.army_garrisoned.connect(_on_army_garrisoned)
+	if EventBus.has_signal("army_ungarrisoned"):
+		EventBus.army_ungarrisoned.connect(_on_army_ungarrisoned)
+	# ── Combat rout notification ──
+	if EventBus.has_signal("army_routed"):
+		EventBus.army_routed.connect(_on_army_routed)
+	# ── Detailed combat result ──
+	if EventBus.has_signal("combat_result_detailed"):
+		EventBus.combat_result_detailed.connect(_on_combat_result_detailed)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -438,6 +455,11 @@ func _build_action_panel(parent: Control) -> void:
 	btn_march.tooltip_text = "Issue a long-range march order. The army moves one step per turn automatically until it reaches the destination or encounters an enemy."
 	btn_march.pressed.connect(_on_march_pressed)
 	vbox.add_child(btn_march)
+
+	btn_garrison = _make_button("🛡 驻守 [G] (1AP)")
+	btn_garrison.tooltip_text = "令军队就地驻守。驻守状态下防御逐回叠加，最高+30%。再次点击可选择取消驻守。"
+	btn_garrison.pressed.connect(_on_garrison_pressed)
+	vbox.add_child(btn_garrison)
 
 	btn_domestic = _make_button("Domestic [3] (1AP)", _icon_action_build)
 	btn_domestic.tooltip_text = "Recruit troops, upgrade territories, build structures, manage armies."
@@ -1671,6 +1693,85 @@ func _on_explore_target(tile_index: int) -> void:
 	_after_action()
 
 
+# ─────────────────────────────────────────────────────
+#           GARRISON (ARMY STANCE)
+# ─────────────────────────────────────────────────────
+func _on_garrison_pressed() -> void:
+	## Open army selection panel for garrison/cancel-garrison command.
+	if _current_mode == ActionMode.GARRISON:
+		_close_target_panel()
+		_current_mode = ActionMode.NONE
+		return
+	_current_mode = ActionMode.GARRISON
+	var pid: int = GameManager.get_human_player_id()
+	var player_armies: Array = []
+	for aid in GameManager.armies:
+		var a: Dictionary = GameManager.armies[aid]
+		if a.get("player_id", -1) == pid:
+			player_armies.append(a)
+
+	_show_target_panel("🛡 驻守 — 选择军队")
+
+	if player_armies.is_empty():
+		_add_target_label("(无可用军队)")
+		return
+
+	for army in player_armies:
+		var aid: int = army.get("id", -1)
+		var is_garrisoned: bool = MarchSystem != null and MarchSystem.is_army_garrisoned(aid)
+		var is_marching: bool = MarchSystem != null and MarchSystem.is_army_marching(aid)
+		var tile_idx: int = army.get("tile_index", -1)
+		var tile_name: String = ""
+		if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+			tile_name = GameManager.tiles[tile_idx].get("name", "")
+		var soldiers: int = 0
+		for troop in army.get("troops", []):
+			soldiers += troop.get("soldiers", 0)
+		var status_str: String = ""
+		if is_garrisoned:
+			var turns: int = 0
+			if MarchSystem != null:
+				var gord: Dictionary = MarchSystem.garrison_orders.get(aid, {})
+				turns = gord.get("turns_garrisoned", 0)
+				var bonus_pct: int = int((MarchSystem.get_garrison_defence_bonus(aid) - 1.0) * 100.0)
+				status_str = " [🛡驻守中 %d回合 +%d%%防御]" % [turns, bonus_pct]
+		elif is_marching:
+			status_str = " [行军中]" 
+		var label_text: String = "%s @ %s (%d兵)%s" % [army.get("name", ""), tile_name, soldiers, status_str]
+		var btn := Button.new()
+		btn.text = label_text
+		btn.custom_minimum_size = Vector2(320, 30)
+		btn.add_theme_font_size_override("font_size", 11)
+		btn.mouse_filter = Control.MOUSE_FILTER_STOP
+		# Disable if marching (must cancel march first)
+		btn.disabled = is_marching
+		if is_garrisoned:
+			# Already garrisoned: button cancels garrison
+			btn.pressed.connect(_on_cancel_garrison_army.bind(aid))
+			btn.modulate = Color(0.7, 1.0, 0.7)
+		else:
+			btn.pressed.connect(_on_garrison_army_selected.bind(aid))
+		target_container.add_child(btn)
+		target_buttons.append(btn)
+
+
+func _on_garrison_army_selected(army_id: int) -> void:
+	## Issue garrison order for the selected army.
+	var ok: bool = GameManager.action_garrison_army(army_id)
+	_close_target_panel()
+	_current_mode = ActionMode.NONE
+	if ok:
+		_update_buttons()
+
+
+func _on_cancel_garrison_army(army_id: int) -> void:
+	## Cancel garrison for the selected army.
+	GameManager.action_cancel_garrison(army_id)
+	_close_target_panel()
+	_current_mode = ActionMode.NONE
+	_update_buttons()
+
+
 func _on_guard_pressed() -> void:
 	if _current_mode == ActionMode.DOMESTIC_SUB:
 		_close_target_panel()
@@ -1907,17 +2008,21 @@ func _on_domestic_recruit() -> void:
 		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 
-	_show_target_panel("Recruit - Select Troop")
+	_show_target_panel("招募 — 选择兵种")
 
 	var available: Array = RecruitManager.get_available_units(pid, tile)
 	if available.is_empty():
-		_add_target_label("(No recruitable troops here)")
+		_add_target_label("(该地无可招募兵种)")
 		return
 
 	# Show army status header
 	var army_summary: Array = RecruitManager.get_army_summary(pid)
 	var pop_cap: int = RecruitManager._get_pop_cap(pid)
-	_add_target_label("Army: %d/%d slots" % [army_summary.size(), pop_cap])
+	var slot_color: String = "red" if army_summary.size() >= pop_cap else ("yellow" if army_summary.size() >= pop_cap - 2 else "white")
+	_add_target_label("[color=%s]名额: %d/%d | 总兵力: %d[/color]" % [slot_color, army_summary.size(), pop_cap, RecruitManager.get_total_soldiers(pid)])
+	# Supply check: can we recruit here?
+	if SupplySystem != null and not SupplySystem.can_recruit_at_tile(pid, tile_idx):
+		_add_target_label("[color=red]⚠ 该地已被包围，无法招募![/color]")
 
 	# Show current army composition
 	if not army_summary.is_empty():
@@ -1969,18 +2074,47 @@ func _on_domestic_recruit() -> void:
 func _on_recruit_troop(troop_id: String, tile: Dictionary) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	var player: Dictionary = GameManager.get_player_by_id(pid)
-	if player.is_empty() or player.get("ap", 0) < 1:
-		EventBus.message_log.emit("Not enough AP!")
+	if player.is_empty():
+		return
+	if player.get("ap", 0) < 1:
+		EventBus.message_log.emit("[color=red]行动点不足！无法招募。[/color]")
+		return
+	# Pre-check: roster full?
+	var pop_cap: int = RecruitManager._get_pop_cap(pid)
+	var current_count: int = RecruitManager._get_army_ref(pid).size()
+	if current_count >= pop_cap:
+		EventBus.message_log.emit("[color=red]军团名额已满 (%d/%d)！请先解散旧部队。[/color]" % [current_count, pop_cap])
 		return
 	var success: bool = RecruitManager.recruit_unit(pid, troop_id, tile)
 	if success:
 		player["ap"] -= 1
 		player["army_count"] = ResourceManager.get_army(pid)
+		# Emit ap_changed so AP display refreshes immediately
+		EventBus.ap_changed.emit(pid, player["ap"])
 		_update_player_info()
 		# Refresh the recruit panel to show updated state
 		_on_domestic_recruit()
 	else:
-		EventBus.message_log.emit("Recruit failed - insufficient resources or army full")
+		# Provide specific failure reason
+		var available: Array = RecruitManager.get_available_units(pid, tile)
+		var found: Dictionary = {}
+		for entry in available:
+			if entry["troop_id"] == troop_id:
+				found = entry
+				break
+		if not found.is_empty():
+			var cost_str: String = ""
+			for key in found.get("cost", {}):
+				var have: int = ResourceManager.get_resource(pid, key)
+				var need: int = found["cost"][key]
+				if have < need:
+					cost_str += "%s不足(%d/%d) " % [key, have, need]
+			if cost_str != "":
+				EventBus.message_log.emit("[color=red]招募失败: %s[/color]" % cost_str.strip_edges())
+			else:
+				EventBus.message_log.emit("[color=red]招募失败（条件不满足）[/color]")
+		else:
+			EventBus.message_log.emit("[color=red]招募失败（兵种不可用）[/color]")
 
 
 func _on_army_view() -> void:
@@ -3040,6 +3174,19 @@ func _update_buttons() -> void:
 			has_army_with_troops = true
 			break
 	btn_march.disabled = not has_ap or not has_army_with_troops
+	# Garrison button: enabled if player has AP and has at least one army on an owned tile
+	var has_garrisonable_army: bool = false
+	for army in GameManager.get_player_armies(pid):
+		var tidx: int = army.get("tile_index", -1)
+		if tidx >= 0 and tidx < GameManager.tiles.size():
+			if GameManager.tiles[tidx].get("owner_id", -1) == pid:
+				has_garrisonable_army = true
+				break
+		# Also allow cancel-garrison (free action) even without AP
+		if MarchSystem != null and MarchSystem.is_army_garrisoned(army.get("id", -1)):
+			has_garrisonable_army = true
+			break
+	btn_garrison.disabled = not has_garrisonable_army
 	btn_domestic.disabled = not has_ap
 	btn_diplomacy.disabled = not has_ap
 	btn_explore.disabled = not has_ap
@@ -3128,6 +3275,7 @@ func _set_all_buttons_disabled(val: bool) -> void:
 	btn_attack.disabled = val
 	btn_deploy.disabled = val
 	btn_march.disabled = val
+	btn_garrison.disabled = val
 	btn_domestic.disabled = val
 	btn_diplomacy.disabled = val
 	btn_explore.disabled = val
@@ -3909,6 +4057,83 @@ func _on_army_ready_to_march(army_id: int, tile_index: int) -> void:
 		return
 	var tile_name: String = GameManager.tiles[tile_index]["name"] if tile_index >= 0 and tile_index < GameManager.tiles.size() else "???"
 	EventBus.message_log.emit("[color=green]▶ %s 已就绪，可以发出行军命令。(当前位置: %s)[/color]" % [army["name"], tile_name])
+
+
+# ── Supply system signal handlers ──
+
+func _on_supply_line_cut(player_id: int, isolated_tiles: Array) -> void:
+	## Called when supply lines are cut for a player's tiles.
+	if player_id != GameManager.get_human_player_id():
+		return
+	var tile_names: Array = []
+	for tidx in isolated_tiles:
+		if tidx >= 0 and tidx < GameManager.tiles.size():
+			tile_names.append(GameManager.tiles[tidx].get("name", "???"))
+	if not tile_names.is_empty():
+		EventBus.message_log.emit("[color=red]✂ 补给线已断绝: %s (共%d地块)[/color]" % [", ".join(tile_names), tile_names.size()])
+
+
+func _on_supply_line_restored(player_id: int, tiles: Array) -> void:
+	## Called when supply lines are restored for a player's tiles.
+	if player_id != GameManager.get_human_player_id():
+		return
+	var tile_names: Array = []
+	for tidx in tiles:
+		if tidx >= 0 and tidx < GameManager.tiles.size():
+			tile_names.append(GameManager.tiles[tidx].get("name", "???"))
+	if not tile_names.is_empty():
+		EventBus.message_log.emit("[color=green]✅ 补给线已恢复: %s[/color]" % ", ".join(tile_names))
+
+
+# ── Garrison signal handlers ──
+
+func _on_army_garrisoned(army_id: int, tile_index: int) -> void:
+	## Called when an army enters garrison stance.
+	var army: Dictionary = GameManager.get_army(army_id)
+	if army.is_empty() or army.get("player_id", -1) != GameManager.get_human_player_id():
+		return
+	var tile_name: String = ""
+	if tile_index >= 0 and tile_index < GameManager.tiles.size():
+		tile_name = GameManager.tiles[tile_index].get("name", "???")
+	_update_buttons()
+
+
+func _on_army_ungarrisoned(army_id: int, _tile_index: int) -> void:
+	## Called when an army leaves garrison stance.
+	var army: Dictionary = GameManager.get_army(army_id)
+	if army.is_empty() or army.get("player_id", -1) != GameManager.get_human_player_id():
+		return
+	_update_buttons()
+
+
+# ── Combat rout handler ──
+
+func _on_army_routed(player_id: int, army_id: int, from_tile: int, to_tile: int) -> void:
+	## Called when an army is routed and forced to retreat.
+	if player_id != GameManager.get_human_player_id():
+		return
+	var army: Dictionary = GameManager.get_army(army_id)
+	var army_name: String = army.get("name", "军团") if not army.is_empty() else "军团"
+	var from_name: String = GameManager.tiles[from_tile].get("name", "???") if from_tile >= 0 and from_tile < GameManager.tiles.size() else "???"
+	var to_name: String = GameManager.tiles[to_tile].get("name", "???") if to_tile >= 0 and to_tile < GameManager.tiles.size() else "???"
+	EventBus.message_log.emit("[color=red]☠ %s 溃败! 已从 %s 撤退至 %s[/color]" % [army_name, from_name, to_name])
+	_update_buttons()
+
+
+# ── Detailed combat result handler ──
+
+func _on_combat_result_detailed(attacker_id: int, result: Dictionary) -> void:
+	## Show detailed combat summary in message log for human player.
+	if attacker_id != GameManager.get_human_player_id():
+		return
+	var won: bool = result.get("won", false)
+	var att_loss: int = result.get("attacker_losses", 0)
+	var def_loss: int = result.get("defender_losses", 0)
+	var rounds: int = result.get("rounds", 0)
+	var routed: bool = result.get("routed", false)
+	var outcome_color: String = "green" if won else "red"
+	var outcome_str: String = "胜利" if won else ("溃败" if routed else "失败")
+	EventBus.message_log.emit("[color=%s]⚔ 战斗结果: %s | 己方损失:%d 敌方损失:%d 回合:%d[/color]" % [outcome_color, outcome_str, att_loss, def_loss, rounds])
 
 
 # ═══════════════════════════════════════════════════════════════

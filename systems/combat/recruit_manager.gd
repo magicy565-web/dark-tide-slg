@@ -195,7 +195,15 @@ func recruit_unit(player_id: int, troop_id: String, tile: Dictionary) -> bool:
 	# Sync total soldier count to ResourceManager for legacy compatibility
 	_sync_army_count(player_id)
 
-	EventBus.message_log.emit("招募了 %s (%d兵)" % [found["name"], instance["soldiers"]])
+	# Emit army_troops_assigned signal so board.gd / army_panel.gd can refresh
+	var new_count: int = army_ref.size()
+	var new_pop_cap: int = _get_pop_cap(player_id)
+	if EventBus.has_signal("army_troops_assigned"):
+		EventBus.army_troops_assigned.emit(player_id, troop_id, instance.get("soldiers", 0))
+
+	var tier_str: String = "T%d" % found.get("tier", 1)
+	var remaining_slots: int = new_pop_cap - new_count
+	EventBus.message_log.emit("[color=cyan]✔ 招募 %s [%s] (%d兵) | 名额: %d/%d (剩余%d格)[/color]" % [found["name"], tier_str, instance.get("soldiers", 0), new_count, new_pop_cap, remaining_slots])
 	return true
 
 
