@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://04235c27165b6"
+path="res://.godot/imported/11_shion_pirate_chibi_attack.ogv-04235c27165b6d7a6c3ba016fd081dd5.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/11_shion_pirate_chibi_attack.ogv"
+dest_files=["res://.godot/imported/11_shion_pirate_chibi_attack.ogv-04235c27165b6d7a6c3ba016fd081dd5.oggvideo"]
+
+[params]
+

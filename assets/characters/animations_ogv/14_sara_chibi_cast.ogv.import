@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://abfe86a39cd1c"
+path="res://.godot/imported/14_sara_chibi_cast.ogv-abfe86a39cd1c6bbf018bbc04efd6e47.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/14_sara_chibi_cast.ogv"
+dest_files=["res://.godot/imported/14_sara_chibi_cast.ogv-abfe86a39cd1c6bbf018bbc04efd6e47.oggvideo"]
+
+[params]
+

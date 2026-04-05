@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://3e608afe18705"
+path="res://.godot/imported/03_momiji_chibi_idle.ogv-3e608afe187058e1b201640800922520.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/03_momiji_chibi_idle.ogv"
+dest_files=["res://.godot/imported/03_momiji_chibi_idle.ogv-3e608afe187058e1b201640800922520.oggvideo"]
+
+[params]
+

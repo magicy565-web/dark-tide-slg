@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://1d300cca380f6"
+path="res://.godot/imported/11_shion_pirate_chibi_hurt.ogv-1d300cca380f60ecb6abad046b399b4d.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/11_shion_pirate_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/11_shion_pirate_chibi_hurt.ogv-1d300cca380f60ecb6abad046b399b4d.oggvideo"]
+
+[params]
+

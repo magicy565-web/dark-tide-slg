@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://346b073393f08"
+path="res://.godot/imported/04_hyouka_chibi_victory.ogv-346b073393f08b6b6bb491abf54cae71.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/04_hyouka_chibi_victory.ogv"
+dest_files=["res://.godot/imported/04_hyouka_chibi_victory.ogv-346b073393f08b6b6bb491abf54cae71.oggvideo"]
+
+[params]
+

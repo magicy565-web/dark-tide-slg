@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://31af4e85559e8"
+path="res://.godot/imported/14_sara_chibi_defeated.ogv-31af4e85559e88bf801de2b134b33aae.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/14_sara_chibi_defeated.ogv"
+dest_files=["res://.godot/imported/14_sara_chibi_defeated.ogv-31af4e85559e88bf801de2b134b33aae.oggvideo"]
+
+[params]
+

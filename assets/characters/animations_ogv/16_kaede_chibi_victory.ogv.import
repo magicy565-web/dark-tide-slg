@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://4415e0b5f7de9"
+path="res://.godot/imported/16_kaede_chibi_victory.ogv-4415e0b5f7de960ef931c71be03f5ca1.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/16_kaede_chibi_victory.ogv"
+dest_files=["res://.godot/imported/16_kaede_chibi_victory.ogv-4415e0b5f7de960ef931c71be03f5ca1.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://7ec98ebe02a31"
+path="res://.godot/imported/13_hibiki_chibi_hurt.ogv-7ec98ebe02a315ad9a751cead62d637a.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/13_hibiki_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/13_hibiki_chibi_hurt.ogv-7ec98ebe02a315ad9a751cead62d637a.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://f768ed75426ac"
+path="res://.godot/imported/06_gekka_chibi_victory.ogv-f768ed75426ac829065b7c29a75424f6.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/06_gekka_chibi_victory.ogv"
+dest_files=["res://.godot/imported/06_gekka_chibi_victory.ogv-f768ed75426ac829065b7c29a75424f6.oggvideo"]
+
+[params]
+

@@ -23,25 +23,24 @@ const ESSENTIAL_CATEGORIES: Dictionary = {
 }
 
 # Deferred asset directories (large, loaded on demand)
+# Note: "backgrounds" and "video" directories were removed from the project;
+# "effects" and "designs" directories now have proper .import files.
 const DEFERRED_CATEGORIES: Dictionary = {
 	"effects": "res://assets/effects",
 	"designs": "res://assets/characters/designs",
-	"backgrounds": "res://assets/backgrounds",
 	"cg": "res://assets/cg",
-	"video": "res://assets/video",
 }
 
 # Hardcoded fallback paths for essential assets in case DirAccess fails
+# Updated to use actual existing asset paths in the project.
 const ESSENTIAL_FALLBACK_PATHS: Array = [
-	"res://assets/icons/gold.png",
-	"res://assets/icons/food.png",
-	"res://assets/icons/prestige.png",
-	"res://assets/icons/army.png",
-	"res://assets/icons/slaves.png",
-	"res://assets/icons/order.png",
-	"res://assets/ui/button_bg.png",
-	"res://assets/ui/panel_bg.png",
-	"res://assets/ui/frame.png",
+	"res://assets/ui/icon_gold_coin.png",
+	"res://assets/ui/icon_food_grain.png",
+	"res://assets/ui/icon_prestige_crown.png",
+	"res://assets/ui/icon_slave_chain.png",
+	"res://assets/ui/icon_order.png",
+	"res://assets/ui/panel_frame.png",
+	"res://assets/ui/btn_normal.png",
 	"res://assets/characters/heads/default.png",
 ]
 

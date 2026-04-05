@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://7a4d14a50587f"
+path="res://.godot/imported/18_hanabi_chibi_idle.ogv-7a4d14a50587f4b4aab495be6daa49e0.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/18_hanabi_chibi_idle.ogv"
+dest_files=["res://.godot/imported/18_hanabi_chibi_idle.ogv-7a4d14a50587f4b4aab495be6daa49e0.oggvideo"]
+
+[params]
+

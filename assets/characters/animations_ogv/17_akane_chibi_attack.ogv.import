@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://c213b263633d6"
+path="res://.godot/imported/17_akane_chibi_attack.ogv-c213b263633d6532324e72bfe1895439.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/17_akane_chibi_attack.ogv"
+dest_files=["res://.godot/imported/17_akane_chibi_attack.ogv-c213b263633d6532324e72bfe1895439.oggvideo"]
+
+[params]
+

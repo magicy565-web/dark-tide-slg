@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://972f7afea8ce0"
+path="res://.godot/imported/11_shion_pirate_chibi_idle.ogv-972f7afea8ce029ca937b959d2668c2c.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/11_shion_pirate_chibi_idle.ogv"
+dest_files=["res://.godot/imported/11_shion_pirate_chibi_idle.ogv-972f7afea8ce029ca937b959d2668c2c.oggvideo"]
+
+[params]
+

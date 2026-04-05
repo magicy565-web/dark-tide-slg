@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://384fe17ed2f2c"
+path="res://.godot/imported/07_hakagure_chibi_attack.ogv-384fe17ed2f2cb438a0f77e8a2ff9315.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/07_hakagure_chibi_attack.ogv"
+dest_files=["res://.godot/imported/07_hakagure_chibi_attack.ogv-384fe17ed2f2cb438a0f77e8a2ff9315.oggvideo"]
+
+[params]
+

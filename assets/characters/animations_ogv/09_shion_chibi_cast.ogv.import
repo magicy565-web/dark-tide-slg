@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://e093a29d51a66"
+path="res://.godot/imported/09_shion_chibi_cast.ogv-e093a29d51a6605e4ee8c3828ff20df5.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/09_shion_chibi_cast.ogv"
+dest_files=["res://.godot/imported/09_shion_chibi_cast.ogv-e093a29d51a6605e4ee8c3828ff20df5.oggvideo"]
+
+[params]
+

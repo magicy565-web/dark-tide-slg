@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://ae09e78d319f8"
+path="res://.godot/imported/08_sou_chibi_idle.ogv-ae09e78d319f81c0ec268cebbd48c492.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/08_sou_chibi_idle.ogv"
+dest_files=["res://.godot/imported/08_sou_chibi_idle.ogv-ae09e78d319f81c0ec268cebbd48c492.oggvideo"]
+
+[params]
+

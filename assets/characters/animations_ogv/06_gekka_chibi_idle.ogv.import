@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://8668b1e7022eb"
+path="res://.godot/imported/06_gekka_chibi_idle.ogv-8668b1e7022ebcfe02112eb253eb194e.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/06_gekka_chibi_idle.ogv"
+dest_files=["res://.godot/imported/06_gekka_chibi_idle.ogv-8668b1e7022ebcfe02112eb253eb194e.oggvideo"]
+
+[params]
+

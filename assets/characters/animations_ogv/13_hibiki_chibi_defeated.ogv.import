@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://84390a208ee33"
+path="res://.godot/imported/13_hibiki_chibi_defeated.ogv-84390a208ee3300b17314f08fb3bf078.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/13_hibiki_chibi_defeated.ogv"
+dest_files=["res://.godot/imported/13_hibiki_chibi_defeated.ogv-84390a208ee3300b17314f08fb3bf078.oggvideo"]
+
+[params]
+

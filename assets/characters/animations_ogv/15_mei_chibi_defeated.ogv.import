@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://f62768b5b24bb"
+path="res://.godot/imported/15_mei_chibi_defeated.ogv-f62768b5b24bbb007eab0526f4e10a10.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/15_mei_chibi_defeated.ogv"
+dest_files=["res://.godot/imported/15_mei_chibi_defeated.ogv-f62768b5b24bbb007eab0526f4e10a10.oggvideo"]
+
+[params]
+

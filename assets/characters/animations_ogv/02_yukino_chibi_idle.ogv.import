@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://b3ca643c82297"
+path="res://.godot/imported/02_yukino_chibi_idle.ogv-b3ca643c8229739dbb91816277805985.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/02_yukino_chibi_idle.ogv"
+dest_files=["res://.godot/imported/02_yukino_chibi_idle.ogv-b3ca643c8229739dbb91816277805985.oggvideo"]
+
+[params]
+

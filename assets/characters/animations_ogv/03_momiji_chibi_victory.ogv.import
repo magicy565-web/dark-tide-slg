@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://a92c1f7787d34"
+path="res://.godot/imported/03_momiji_chibi_victory.ogv-a92c1f7787d3433dee0c8064d9c81478.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/03_momiji_chibi_victory.ogv"
+dest_files=["res://.godot/imported/03_momiji_chibi_victory.ogv-a92c1f7787d3433dee0c8064d9c81478.oggvideo"]
+
+[params]
+

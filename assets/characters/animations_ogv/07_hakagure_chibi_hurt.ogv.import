@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://d55b33bd4ffe7"
+path="res://.godot/imported/07_hakagure_chibi_hurt.ogv-d55b33bd4ffe7034d6f22a98c8d826b3.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/07_hakagure_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/07_hakagure_chibi_hurt.ogv-d55b33bd4ffe7034d6f22a98c8d826b3.oggvideo"]
+
+[params]
+

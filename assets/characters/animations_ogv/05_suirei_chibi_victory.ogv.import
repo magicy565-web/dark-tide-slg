@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://f60617313add8"
+path="res://.godot/imported/05_suirei_chibi_victory.ogv-f60617313add8a09dee779b87466f85a.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/05_suirei_chibi_victory.ogv"
+dest_files=["res://.godot/imported/05_suirei_chibi_victory.ogv-f60617313add8a09dee779b87466f85a.oggvideo"]
+
+[params]
+

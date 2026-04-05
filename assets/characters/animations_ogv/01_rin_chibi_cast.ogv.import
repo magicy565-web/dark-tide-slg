@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://bd46eb3e81f18"
+path="res://.godot/imported/01_rin_chibi_cast.ogv-bd46eb3e81f1875628287063b94f3d35.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/01_rin_chibi_cast.ogv"
+dest_files=["res://.godot/imported/01_rin_chibi_cast.ogv-bd46eb3e81f1875628287063b94f3d35.oggvideo"]
+
+[params]
+

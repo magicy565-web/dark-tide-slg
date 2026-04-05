@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://91a49b88d87c8"
+path="res://.godot/imported/03_momiji_chibi_hurt.ogv-91a49b88d87c8ea8293993922577d007.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/03_momiji_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/03_momiji_chibi_hurt.ogv-91a49b88d87c8ea8293993922577d007.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://f2d095079493c"
+path="res://.godot/imported/01_rin_chibi_idle.ogv-f2d095079493c002900c4ee826f5eea8.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/01_rin_chibi_idle.ogv"
+dest_files=["res://.godot/imported/01_rin_chibi_idle.ogv-f2d095079493c002900c4ee826f5eea8.oggvideo"]
+
+[params]
+

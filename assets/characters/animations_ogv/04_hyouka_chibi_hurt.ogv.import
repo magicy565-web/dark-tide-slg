@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://06a63bc447e0f"
+path="res://.godot/imported/04_hyouka_chibi_hurt.ogv-06a63bc447e0f6129370f1982b15bbeb.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/04_hyouka_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/04_hyouka_chibi_hurt.ogv-06a63bc447e0f6129370f1982b15bbeb.oggvideo"]
+
+[params]
+

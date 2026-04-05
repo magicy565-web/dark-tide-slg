@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://7c02bbed38983"
+path="res://.godot/imported/04_hyouka_chibi_cast.ogv-7c02bbed389835bbdbcfd6f3784115c3.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/04_hyouka_chibi_cast.ogv"
+dest_files=["res://.godot/imported/04_hyouka_chibi_cast.ogv-7c02bbed389835bbdbcfd6f3784115c3.oggvideo"]
+
+[params]
+

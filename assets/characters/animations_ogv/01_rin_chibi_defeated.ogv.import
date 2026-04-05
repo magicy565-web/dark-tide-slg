@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://ef19b0ac67e57"
+path="res://.godot/imported/01_rin_chibi_defeated.ogv-ef19b0ac67e578fbc659979e67a08d02.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/01_rin_chibi_defeated.ogv"
+dest_files=["res://.godot/imported/01_rin_chibi_defeated.ogv-ef19b0ac67e578fbc659979e67a08d02.oggvideo"]
+
+[params]
+

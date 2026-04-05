@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://f26dccc033ea1"
+path="res://.godot/imported/05_suirei_chibi_cast.ogv-f26dccc033ea12e08fddf030c8dceae5.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/05_suirei_chibi_cast.ogv"
+dest_files=["res://.godot/imported/05_suirei_chibi_cast.ogv-f26dccc033ea12e08fddf030c8dceae5.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://8547975b8d914"
+path="res://.godot/imported/13_hibiki_chibi_idle.ogv-8547975b8d914c177663182c9e2de81d.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/13_hibiki_chibi_idle.ogv"
+dest_files=["res://.godot/imported/13_hibiki_chibi_idle.ogv-8547975b8d914c177663182c9e2de81d.oggvideo"]
+
+[params]
+

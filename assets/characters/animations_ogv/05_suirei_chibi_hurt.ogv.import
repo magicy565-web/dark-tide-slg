@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://73a38df3d3aee"
+path="res://.godot/imported/05_suirei_chibi_hurt.ogv-73a38df3d3aee9663e315766d669b9ec.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/05_suirei_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/05_suirei_chibi_hurt.ogv-73a38df3d3aee9663e315766d669b9ec.oggvideo"]
+
+[params]
+

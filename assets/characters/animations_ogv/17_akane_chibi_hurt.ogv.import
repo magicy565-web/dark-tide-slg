@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://bb148fec399d2"
+path="res://.godot/imported/17_akane_chibi_hurt.ogv-bb148fec399d2afd623563eb523af876.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/17_akane_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/17_akane_chibi_hurt.ogv-bb148fec399d2afd623563eb523af876.oggvideo"]
+
+[params]
+

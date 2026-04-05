@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://4df43aeebab30"
+path="res://.godot/imported/13_hibiki_chibi_attack.ogv-4df43aeebab30f7aa4a2e6d656e9787d.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/13_hibiki_chibi_attack.ogv"
+dest_files=["res://.godot/imported/13_hibiki_chibi_attack.ogv-4df43aeebab30f7aa4a2e6d656e9787d.oggvideo"]
+
+[params]
+

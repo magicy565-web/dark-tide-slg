@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://12af77265141d"
+path="res://.godot/imported/17_akane_chibi_victory.ogv-12af77265141d66e8efcfb46d1008e19.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/17_akane_chibi_victory.ogv"
+dest_files=["res://.godot/imported/17_akane_chibi_victory.ogv-12af77265141d66e8efcfb46d1008e19.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://7a8352c0f7402"
+path="res://.godot/imported/18_hanabi_chibi_cast.ogv-7a8352c0f740229f553bd648245fe0c2.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/18_hanabi_chibi_cast.ogv"
+dest_files=["res://.godot/imported/18_hanabi_chibi_cast.ogv-7a8352c0f740229f553bd648245fe0c2.oggvideo"]
+
+[params]
+

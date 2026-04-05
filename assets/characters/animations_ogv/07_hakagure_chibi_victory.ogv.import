@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://0aefe39e88051"
+path="res://.godot/imported/07_hakagure_chibi_victory.ogv-0aefe39e88051744c6c1303b67e8f7d7.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/07_hakagure_chibi_victory.ogv"
+dest_files=["res://.godot/imported/07_hakagure_chibi_victory.ogv-0aefe39e88051744c6c1303b67e8f7d7.oggvideo"]
+
+[params]
+

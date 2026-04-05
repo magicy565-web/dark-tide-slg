@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://4a3b0d43a4c92"
+path="res://.godot/imported/14_sara_chibi_victory.ogv-4a3b0d43a4c92a8185993c76277ab884.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/14_sara_chibi_victory.ogv"
+dest_files=["res://.godot/imported/14_sara_chibi_victory.ogv-4a3b0d43a4c92a8185993c76277ab884.oggvideo"]
+
+[params]
+

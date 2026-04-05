@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://b37a2ae401adc"
+path="res://.godot/imported/16_kaede_chibi_attack.ogv-b37a2ae401adcfe17b3d9d943c28150a.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/16_kaede_chibi_attack.ogv"
+dest_files=["res://.godot/imported/16_kaede_chibi_attack.ogv-b37a2ae401adcfe17b3d9d943c28150a.oggvideo"]
+
+[params]
+

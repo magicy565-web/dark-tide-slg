@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://14c768d3d2802"
+path="res://.godot/imported/06_gekka_chibi_cast.ogv-14c768d3d2802464975db2188ce59eb5.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/06_gekka_chibi_cast.ogv"
+dest_files=["res://.godot/imported/06_gekka_chibi_cast.ogv-14c768d3d2802464975db2188ce59eb5.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://ad8e1e09548a9"
+path="res://.godot/imported/10_homura_chibi_defeated.ogv-ad8e1e09548a9729944ab99934c29e1e.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/10_homura_chibi_defeated.ogv"
+dest_files=["res://.godot/imported/10_homura_chibi_defeated.ogv-ad8e1e09548a9729944ab99934c29e1e.oggvideo"]
+
+[params]
+

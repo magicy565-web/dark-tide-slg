@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://734649870fe4c"
+path="res://.godot/imported/12_youya_chibi_idle.ogv-734649870fe4ce454533d9ac2f01fd7a.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/12_youya_chibi_idle.ogv"
+dest_files=["res://.godot/imported/12_youya_chibi_idle.ogv-734649870fe4ce454533d9ac2f01fd7a.oggvideo"]
+
+[params]
+

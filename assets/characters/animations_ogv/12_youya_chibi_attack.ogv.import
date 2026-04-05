@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://b58f0f863f68d"
+path="res://.godot/imported/12_youya_chibi_attack.ogv-b58f0f863f68d8bbc60c0f031c13038b.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/12_youya_chibi_attack.ogv"
+dest_files=["res://.godot/imported/12_youya_chibi_attack.ogv-b58f0f863f68d8bbc60c0f031c13038b.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://bb44af415bb7f"
+path="res://.godot/imported/16_kaede_chibi_idle.ogv-bb44af415bb7f20957e6d74fd3c4b306.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/16_kaede_chibi_idle.ogv"
+dest_files=["res://.godot/imported/16_kaede_chibi_idle.ogv-bb44af415bb7f20957e6d74fd3c4b306.oggvideo"]
+
+[params]
+

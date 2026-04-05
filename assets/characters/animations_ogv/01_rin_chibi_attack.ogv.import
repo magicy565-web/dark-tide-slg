@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://858ef56362902"
+path="res://.godot/imported/01_rin_chibi_attack.ogv-858ef56362902d548273e29393959baf.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/01_rin_chibi_attack.ogv"
+dest_files=["res://.godot/imported/01_rin_chibi_attack.ogv-858ef56362902d548273e29393959baf.oggvideo"]
+
+[params]
+

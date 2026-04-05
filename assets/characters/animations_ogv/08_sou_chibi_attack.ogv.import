@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://e049ac0b5ef9d"
+path="res://.godot/imported/08_sou_chibi_attack.ogv-e049ac0b5ef9d236320eb91e15a47fcc.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/08_sou_chibi_attack.ogv"
+dest_files=["res://.godot/imported/08_sou_chibi_attack.ogv-e049ac0b5ef9d236320eb91e15a47fcc.oggvideo"]
+
+[params]
+

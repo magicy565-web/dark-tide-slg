@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://26489dbcd58cc"
+path="res://.godot/imported/04_hyouka_chibi_idle.ogv-26489dbcd58cc6c860ead7dc0381519d.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/04_hyouka_chibi_idle.ogv"
+dest_files=["res://.godot/imported/04_hyouka_chibi_idle.ogv-26489dbcd58cc6c860ead7dc0381519d.oggvideo"]
+
+[params]
+

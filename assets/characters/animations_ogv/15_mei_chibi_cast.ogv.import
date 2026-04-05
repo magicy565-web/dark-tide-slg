@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://72c67408f86b7"
+path="res://.godot/imported/15_mei_chibi_cast.ogv-72c67408f86b7c2b8dbec190e6246507.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/15_mei_chibi_cast.ogv"
+dest_files=["res://.godot/imported/15_mei_chibi_cast.ogv-72c67408f86b7c2b8dbec190e6246507.oggvideo"]
+
+[params]
+

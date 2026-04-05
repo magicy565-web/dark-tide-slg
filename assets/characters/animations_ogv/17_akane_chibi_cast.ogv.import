@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://a2e441e4a7f12"
+path="res://.godot/imported/17_akane_chibi_cast.ogv-a2e441e4a7f121ef88b8b0d3de8e0ca8.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/17_akane_chibi_cast.ogv"
+dest_files=["res://.godot/imported/17_akane_chibi_cast.ogv-a2e441e4a7f121ef88b8b0d3de8e0ca8.oggvideo"]
+
+[params]
+

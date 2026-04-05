@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://17192ceb449f9"
+path="res://.godot/imported/12_youya_chibi_victory.ogv-17192ceb449f9f07ceecbeadf5dca552.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/12_youya_chibi_victory.ogv"
+dest_files=["res://.godot/imported/12_youya_chibi_victory.ogv-17192ceb449f9f07ceecbeadf5dca552.oggvideo"]
+
+[params]
+

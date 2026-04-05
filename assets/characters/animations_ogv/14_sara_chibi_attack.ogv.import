@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://bd1e86a92b943"
+path="res://.godot/imported/14_sara_chibi_attack.ogv-bd1e86a92b94308fee368595e4f30b45.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/14_sara_chibi_attack.ogv"
+dest_files=["res://.godot/imported/14_sara_chibi_attack.ogv-bd1e86a92b94308fee368595e4f30b45.oggvideo"]
+
+[params]
+

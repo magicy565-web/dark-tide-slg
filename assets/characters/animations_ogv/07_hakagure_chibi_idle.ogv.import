@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://ebb66df7bb991"
+path="res://.godot/imported/07_hakagure_chibi_idle.ogv-ebb66df7bb991322ac30338446853cfc.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/07_hakagure_chibi_idle.ogv"
+dest_files=["res://.godot/imported/07_hakagure_chibi_idle.ogv-ebb66df7bb991322ac30338446853cfc.oggvideo"]
+
+[params]
+

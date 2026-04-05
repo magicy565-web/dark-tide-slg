@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://b6d66ee400e09"
+path="res://.godot/imported/18_hanabi_chibi_defeated.ogv-b6d66ee400e0966114f120ec31ce88d3.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/18_hanabi_chibi_defeated.ogv"
+dest_files=["res://.godot/imported/18_hanabi_chibi_defeated.ogv-b6d66ee400e0966114f120ec31ce88d3.oggvideo"]
+
+[params]
+

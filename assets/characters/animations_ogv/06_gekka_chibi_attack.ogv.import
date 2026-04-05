@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://c640963e6f1e1"
+path="res://.godot/imported/06_gekka_chibi_attack.ogv-c640963e6f1e10c8ec6b3319c3370247.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/06_gekka_chibi_attack.ogv"
+dest_files=["res://.godot/imported/06_gekka_chibi_attack.ogv-c640963e6f1e10c8ec6b3319c3370247.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://e7af8c7e13f29"
+path="res://.godot/imported/10_homura_chibi_idle.ogv-e7af8c7e13f29cd75fe2344e2cab3c5f.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/10_homura_chibi_idle.ogv"
+dest_files=["res://.godot/imported/10_homura_chibi_idle.ogv-e7af8c7e13f29cd75fe2344e2cab3c5f.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://36f7555716315"
+path="res://.godot/imported/07_hakagure_chibi_cast.ogv-36f7555716315968876d239fe8331e7a.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/07_hakagure_chibi_cast.ogv"
+dest_files=["res://.godot/imported/07_hakagure_chibi_cast.ogv-36f7555716315968876d239fe8331e7a.oggvideo"]
+
+[params]
+

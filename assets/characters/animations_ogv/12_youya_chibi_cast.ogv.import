@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://8fb907fe2fecd"
+path="res://.godot/imported/12_youya_chibi_cast.ogv-8fb907fe2fecd6bdc007ffdd1204ec72.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/12_youya_chibi_cast.ogv"
+dest_files=["res://.godot/imported/12_youya_chibi_cast.ogv-8fb907fe2fecd6bdc007ffdd1204ec72.oggvideo"]
+
+[params]
+

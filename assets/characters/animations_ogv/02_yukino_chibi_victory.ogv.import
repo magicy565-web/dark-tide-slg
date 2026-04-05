@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://9e908130e6a3b"
+path="res://.godot/imported/02_yukino_chibi_victory.ogv-9e908130e6a3b53e303f13c247bfd0fa.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/02_yukino_chibi_victory.ogv"
+dest_files=["res://.godot/imported/02_yukino_chibi_victory.ogv-9e908130e6a3b53e303f13c247bfd0fa.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://b74d53970d000"
+path="res://.godot/imported/15_mei_chibi_hurt.ogv-b74d53970d0000012fc1354cc3f8e28b.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/15_mei_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/15_mei_chibi_hurt.ogv-b74d53970d0000012fc1354cc3f8e28b.oggvideo"]
+
+[params]
+

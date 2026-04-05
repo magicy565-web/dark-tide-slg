@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://24b1586cd97d9"
+path="res://.godot/imported/03_momiji_chibi_defeated.ogv-24b1586cd97d92220981905e6fcd8b6c.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/03_momiji_chibi_defeated.ogv"
+dest_files=["res://.godot/imported/03_momiji_chibi_defeated.ogv-24b1586cd97d92220981905e6fcd8b6c.oggvideo"]
+
+[params]
+

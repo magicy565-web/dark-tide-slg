@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://df10071b90df3"
+path="res://.godot/imported/15_mei_chibi_attack.ogv-df10071b90df31fc618db32bf330e2cf.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/15_mei_chibi_attack.ogv"
+dest_files=["res://.godot/imported/15_mei_chibi_attack.ogv-df10071b90df31fc618db32bf330e2cf.oggvideo"]
+
+[params]
+

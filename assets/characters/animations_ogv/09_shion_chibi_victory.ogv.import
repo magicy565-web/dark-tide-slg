@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://ece4555ec3fbb"
+path="res://.godot/imported/09_shion_chibi_victory.ogv-ece4555ec3fbb3db301fe68b9f83c5bb.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/09_shion_chibi_victory.ogv"
+dest_files=["res://.godot/imported/09_shion_chibi_victory.ogv-ece4555ec3fbb3db301fe68b9f83c5bb.oggvideo"]
+
+[params]
+

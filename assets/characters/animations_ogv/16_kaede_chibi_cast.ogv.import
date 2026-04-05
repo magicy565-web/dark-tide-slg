@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://d388d731cdd3a"
+path="res://.godot/imported/16_kaede_chibi_cast.ogv-d388d731cdd3a3e94272cb4324ac4a21.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/16_kaede_chibi_cast.ogv"
+dest_files=["res://.godot/imported/16_kaede_chibi_cast.ogv-d388d731cdd3a3e94272cb4324ac4a21.oggvideo"]
+
+[params]
+

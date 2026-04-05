@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://c41e1e4d55d6e"
+path="res://.godot/imported/14_sara_chibi_idle.ogv-c41e1e4d55d6e7cc85ed4adf722db7a0.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/14_sara_chibi_idle.ogv"
+dest_files=["res://.godot/imported/14_sara_chibi_idle.ogv-c41e1e4d55d6e7cc85ed4adf722db7a0.oggvideo"]
+
+[params]
+

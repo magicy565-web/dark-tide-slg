@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://a480cf36a5370"
+path="res://.godot/imported/04_hyouka_chibi_attack.ogv-a480cf36a5370ae819e3b2e24e3b4048.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/04_hyouka_chibi_attack.ogv"
+dest_files=["res://.godot/imported/04_hyouka_chibi_attack.ogv-a480cf36a5370ae819e3b2e24e3b4048.oggvideo"]
+
+[params]
+

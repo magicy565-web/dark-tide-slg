@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://9372721964efb"
+path="res://.godot/imported/12_youya_chibi_hurt.ogv-9372721964efb25babd9923f3d0caaaa.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/12_youya_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/12_youya_chibi_hurt.ogv-9372721964efb25babd9923f3d0caaaa.oggvideo"]
+
+[params]
+

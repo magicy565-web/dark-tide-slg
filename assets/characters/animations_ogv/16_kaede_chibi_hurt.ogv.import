@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://f766d9a6f3341"
+path="res://.godot/imported/16_kaede_chibi_hurt.ogv-f766d9a6f33410529df1cc168855d022.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/16_kaede_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/16_kaede_chibi_hurt.ogv-f766d9a6f33410529df1cc168855d022.oggvideo"]
+
+[params]
+

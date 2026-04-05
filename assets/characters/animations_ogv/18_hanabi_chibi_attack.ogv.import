@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://8d18c833a4afd"
+path="res://.godot/imported/18_hanabi_chibi_attack.ogv-8d18c833a4afdb68b68180ea3080cc75.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/18_hanabi_chibi_attack.ogv"
+dest_files=["res://.godot/imported/18_hanabi_chibi_attack.ogv-8d18c833a4afdb68b68180ea3080cc75.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://6f133bfa86284"
+path="res://.godot/imported/10_homura_chibi_cast.ogv-6f133bfa862843542d2bb5900450d3cd.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/10_homura_chibi_cast.ogv"
+dest_files=["res://.godot/imported/10_homura_chibi_cast.ogv-6f133bfa862843542d2bb5900450d3cd.oggvideo"]
+
+[params]
+

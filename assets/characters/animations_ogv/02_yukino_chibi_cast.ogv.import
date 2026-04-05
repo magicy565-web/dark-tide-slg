@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://39cb068514e82"
+path="res://.godot/imported/02_yukino_chibi_cast.ogv-39cb068514e8202a7b7a1ca3fb453772.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/02_yukino_chibi_cast.ogv"
+dest_files=["res://.godot/imported/02_yukino_chibi_cast.ogv-39cb068514e8202a7b7a1ca3fb453772.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://7b3816022d6f4"
+path="res://.godot/imported/14_sara_chibi_hurt.ogv-7b3816022d6f4aa571a283be7b966222.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/14_sara_chibi_hurt.ogv"
+dest_files=["res://.godot/imported/14_sara_chibi_hurt.ogv-7b3816022d6f4aa571a283be7b966222.oggvideo"]
+
+[params]
+

@@ -1,0 +1,13 @@
+[remap]
+importer="theora"
+type="VideoStreamTheora"
+uid="uid://de67945ff155b"
+path="res://.godot/imported/10_homura_chibi_attack.ogv-de67945ff155b07253dd7088f3dd46c8.oggvideo"
+
+[deps]
+
+source_file="res://assets/characters/animations_ogv/10_homura_chibi_attack.ogv"
+dest_files=["res://.godot/imported/10_homura_chibi_attack.ogv-de67945ff155b07253dd7088f3dd46c8.oggvideo"]
+
+[params]
+
