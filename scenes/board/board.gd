@@ -22,7 +22,7 @@ func _load_map_assets() -> void:
 	if not _map_bg_texture:
 		_map_bg_texture = _safe_tex_load("res://assets/map/backgrounds/map_bg_v3.png")
 	if not _map_bg_texture:
-		_map_bg_texture = _safe_tex_load("res://assets/map/map_background.png")
+		_map_bg_texture = _safe_tex_load("res://assets/map/backgrounds/map_background.png")
 	# P1-FIX: 加载备选背景，优先选择风格一致的暗色调背景
 	for bg_name in ["map_hd_tw_v1", "map_hd_mj_v3", "map_hd_mj_v2", "map_hd_mj_v1", "map_hd_mj_v0", "map_hd_v1", "map_pixel_hd", "map_bg_v3"]:
 		var tex: Texture2D = _safe_tex_load("res://assets/map/backgrounds/%s.png" % bg_name)
