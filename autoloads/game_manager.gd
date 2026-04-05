@@ -6858,8 +6858,7 @@ func _on_action_requested(action: String, tile_index: int) -> void:
 			# v1.3.0: 根据地块类型路由到对应的专属面板
 			var _tile_for_panel = tiles[tile_index] if tile_index >= 0 and tile_index < tiles.size() else {}
 			var _prov_type_for_panel: int = -1
-			if TerritoryTypeSystem and TerritoryTypeSystem.has_method("get_prov_type_from_tile"):
-				_prov_type_for_panel = TerritoryTypeSystem.get_prov_type_from_tile(_tile_for_panel)
+			_prov_type_for_panel = TerritoryTypeSystem.get_prov_type_from_tile(_tile_for_panel)
 			var _is_cave: bool = _prov_type_for_panel in [TerritoryTypeSystem.ProvType.RUINS, TerritoryTypeSystem.ProvType.BANDIT]
 			var _is_village: bool = _prov_type_for_panel == TerritoryTypeSystem.ProvType.TOWN
 			var _is_fortress: bool = _prov_type_for_panel in [TerritoryTypeSystem.ProvType.FORTRESS, TerritoryTypeSystem.ProvType.GATE]

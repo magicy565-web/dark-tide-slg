@@ -1343,7 +1343,7 @@ func get_quest_by_id(quest_id: String) -> Dictionary:
 			var state: Dictionary = _main_progress.get(quest_id, {})
 			return {"id": quest_id, "name": q.get("name", quest_id), "status": state.get("status", QuestDefs.QuestStatus.LOCKED)}
 	# 再查支线任务
-	for q in SideQuestData.SIDE_QUESTS:
+	for q in SideQuestData.STORY_QUESTS + SideQuestData.BONUS_QUESTS + SideQuestData.INTEL_QUESTS:
 		if q.get("id", "") == quest_id:
 			var state: Dictionary = _side_progress.get(quest_id, {})
 			return {"id": quest_id, "name": q.get("name", quest_id), "status": state.get("status", QuestDefs.QuestStatus.LOCKED)}
