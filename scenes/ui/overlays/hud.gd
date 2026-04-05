@@ -148,6 +148,7 @@ var btn_empire_decree: Button      # 帝国法令: 100威望, 全军+15%战斗�
 var _formation_army_id: int = -1
 var _orders_army_id: int = -1
 var _tile_dev_panel: Node = null
+var _governance_panel: Node = null
 
 # ── UI refs: item panel ──
 var item_panel: PanelContainer
@@ -2336,12 +2337,17 @@ func _on_tile_dev_pressed() -> void:
 
 
 func _ensure_tile_dev_panel() -> void:
-	if _tile_dev_panel != null:
-		return
-	var panel_script = load("res://scenes/ui/panels/tile_development_panel.gd")
-	if panel_script:
-		_tile_dev_panel = panel_script.new()
-		get_tree().root.add_child(_tile_dev_panel)
+	if _tile_dev_panel == null:
+		var panel_script = load("res://scenes/ui/panels/tile_development_panel.gd")
+		if panel_script:
+			_tile_dev_panel = panel_script.new()
+			get_tree().root.add_child(_tile_dev_panel)
+	
+	if _governance_panel == null:
+		var gov_script = load("res://scenes/ui/panels/governance_panel.gd")
+		if gov_script:
+			_governance_panel = gov_script.new()
+			get_tree().root.add_child(_governance_panel)
 
 
 func _get_selected_owned_tile(pid: int) -> int:
@@ -4301,8 +4307,9 @@ func _on_open_march_panel_requested(army_id: int) -> void:
 ## Previously open_domestic_panel() only printed a log; now it actually opens the UI.
 func _on_open_domestic_panel_requested(tile_index: int) -> void:
 	_ensure_tile_dev_panel()
-	if _tile_dev_panel:
-		_tile_dev_panel.show_panel(tile_index)
+	# v1.2.0: Unified Governance & Development entry
+	if _governance_panel:
+		_governance_panel.show_panel(tile_index)
 
 
 ## BUG FIX: Called when GameManager requests the research panel open.

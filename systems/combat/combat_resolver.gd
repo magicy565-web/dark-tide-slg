@@ -1162,11 +1162,22 @@ func _apply_directive_modifiers(state: Dictionary) -> void:
 	## AMBUSH is handled per-round in _start_of_round, not here.
 	## FOCUS_FIRE targeting is handled in _select_target.
 	for side_key in ["atk", "def"]:
+		var units_key: String = side_key + "_units"
+		var units: Array = state[units_key]
+		
+		# v1.2.0: Apply Governance defense bonus for defender
+		if side_key == "def" and GameManager.governance_system:
+			var tile_idx: int = state.get("tile_index", -1)
+			if tile_idx >= 0:
+				var gov_mods: Dictionary = GameManager.governance_system.get_policy_modifiers(tile_idx)
+				if gov_mods.get("def_bonus", 0) > 0:
+					var bonus: float = float(gov_mods["def_bonus"])
+					for unit in units:
+						unit["def"] += bonus
+
 		var directive: int = state.get(side_key + "_directive", TacticalDirective.NONE)
 		if directive == TacticalDirective.NONE:
 			continue
-		var units_key: String = side_key + "_units"
-		var units: Array = state[units_key]
 
 		match directive:
 			TacticalDirective.ALL_OUT:

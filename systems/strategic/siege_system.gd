@@ -155,11 +155,19 @@ func process_sieges(player_id: int) -> Array:
 			sieges_to_remove.append(siege_id)
 			continue
 
-		# 5. Attacker attrition
-		var attrition_losses: int = _apply_attrition(siege["attacker_army_id"], siege["attrition_rate"])
-		if attrition_losses > 0:
-			events.append({"type": "attrition", "siege_id": siege_id, "losses": attrition_losses})
-			EventBus.message_log.emit("[color=red]围城消耗: 己方损失 %d 名士兵[/color]" % attrition_losses)
+			# 5. Attacker attrition
+			var current_attrition: float = siege["attrition_rate"]
+			# v1.2.0: Check for Governance defense strategies (e.g. Scorched Earth)
+			if GameManager.governance_system:
+				var gov_mods: Dictionary = GameManager.governance_system.get_policy_modifiers(tile_index)
+				if gov_mods.has("siege_attrition"):
+					current_attrition += gov_mods["siege_attrition"]
+					EventBus.message_log.emit("[color=orange]坚壁清野: 敌军额外损失 %.0f%% 兵力[/color]" % (gov_mods["siege_attrition"] * 100.0))
+			
+			var attrition_losses: int = _apply_attrition(siege["attacker_army_id"], current_attrition)
+			if attrition_losses > 0:
+				events.append({"type": "attrition", "siege_id": siege_id, "losses": attrition_losses})
+				EventBus.message_log.emit("[color=red]围城消耗: 己方损失 %d 名士兵[/color]" % attrition_losses)
 
 		# 6. Sortie check
 		var sortie_roll: float = randf()

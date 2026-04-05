@@ -9,6 +9,7 @@ const MultiRouteBattle = preload("res://systems/combat/multi_route_battle.gd")
 const SkillAnimationData = preload("res://systems/combat/skill_animation_data.gd")
 const TerritoryEffectsData = preload("res://systems/map/territory_effects.gd")
 const TerritoryTypeSystem = preload("res://systems/map/territory_type_system.gd")
+const GovernanceSystem = preload("res://systems/strategic/governance_system.gd")
 
 # ── Enums ──
 enum TileType {
@@ -355,6 +356,10 @@ var _combat_unit_commands: Dictionary = {}
 
 # Player faction mapping
 var _player_factions: Dictionary = {}   # player_id -> FactionData.FactionID
+var governance_system: Node = null
+var offensive_system: Node = null
+var morale_corruption_system: Node = null
+var development_path_system: Node = null
 
 # ── Conquest choice state ──
 var _pending_conquest_tile_index: int = -1
@@ -439,6 +444,28 @@ func _apply_slot_preferences_to_units(units: Array, prefs: Dictionary) -> void:
 
 
 func _ready() -> void:
+	governance_system = GovernanceSystem.new()
+	governance_system.name = "GovernanceSystem"
+	add_child(governance_system)
+	
+	# v1.2.0: Initialize OffensiveSystem
+	var OffensiveSystem = preload("res://systems/strategic/offensive_system.gd")
+	offensive_system = OffensiveSystem.new()
+	offensive_system.name = "OffensiveSystem"
+	add_child(offensive_system)
+	
+	# v1.2.0: Initialize MoraleCorruptionSystem
+	var MoraleCorruptionSystem = preload("res://systems/strategic/morale_corruption_system.gd")
+	morale_corruption_system = MoraleCorruptionSystem.new()
+	morale_corruption_system.name = "MoraleCorruptionSystem"
+	add_child(morale_corruption_system)
+	
+	# v1.2.0: Initialize DevelopmentPathSystem
+	var DevelopmentPathSystem = preload("res://systems/strategic/development_path_system.gd")
+	development_path_system = DevelopmentPathSystem.new()
+	development_path_system.name = "DevelopmentPathSystem"
+	add_child(development_path_system)
+	
 	if not _event_choice_connected:
 		EventBus.event_choice_selected.connect(_on_random_event_choice)
 		EventBus.event_combat_requested.connect(_on_event_combat_requested)
@@ -2344,6 +2371,9 @@ func begin_turn() -> void:
 func end_turn() -> void:
 	if not game_active:
 		return
+	
+	if governance_system:
+		governance_system.process_turn()
 	# BUG FIX: bounds check before accessing players array
 	if players.is_empty() or current_player_index < 0 or current_player_index >= players.size():
 		return
@@ -8753,15 +8783,16 @@ func open_recruit_panel(tile_index: int) -> void:
 func open_domestic_panel(tile_index: int) -> void:
 	var pid: int = get_human_player_id()
 	if tile_index < 0 or tile_index >= tiles.size():
-		EventBus.message_log.emit("[color=red]无效地块，无法打开内政面板[/color]")
+		EventBus.message_log.emit("[color=red]无效地块，无法打开治理面板[/color]")
 		return
 	if tiles[tile_index].get("owner_id", -1) != pid:
-		EventBus.message_log.emit("[color=red]只能对己方领地进行内政管理![/color]")
+		EventBus.message_log.emit("[color=red]只能对己方领地进行治理与发展![/color]")
 		return
+	
+	# v1.2.0: Now opens the unified Governance & Development panel
+	EventBus.message_log.emit("[color=cyan]治理与发展面板 → 据点 #%d[/color]" % tile_index)
 	if EventBus.has_signal("open_domestic_panel_requested"):
 		EventBus.open_domestic_panel_requested.emit(tile_index)
-	else:
-		EventBus.message_log.emit("[color=cyan]内政面板 → 据点 #%d[/color]" % tile_index)
 
 ## Called by province_info_panel — opens research UI.
 ## BUG FIX: Previously only printed a log message. Now emits a signal so the HUD

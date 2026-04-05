@@ -89,32 +89,59 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 			if income.has(station_type):
 				income[station_type] += station_output
 
-		# ── Tile Development Path modifiers ──
-		var tile_idx: int = tile.get("index", -1)
-		if tile_idx >= 0:
-			var tile_dev_effects: Dictionary = TileDevelopment.get_tile_path_effects(tile_idx)
-			income["gold"] += int(tile_dev_effects.get("gold_per_turn", 0))
-			income["gold"] += int(tile_dev_effects.get("gold_bonus", 0))
-			if tile_dev_effects.has("gold_mult"):
-				# BUG FIX R11: use current g (which includes supply_mod) as baseline,
-				# not the raw pre-supply value, to correctly adjust income
-				var g_before: int = g
-				g = int(float(g) * tile_dev_effects["gold_mult"])
-				income["gold"] -= g_before - g
-			income["iron"] += int(tile_dev_effects.get("iron_per_turn", 0))
-			income["iron"] += int(tile_dev_effects.get("iron_bonus", 0))
-			if tile_dev_effects.has("iron_mult"):
-				var ir_before: int = ir
-				var ir_adj: int = int(float(ir) * tile_dev_effects["iron_mult"])
-				income["iron"] -= ir_before - ir_adj
-				ir = ir_adj
-			income["food"] += int(tile_dev_effects.get("food_per_turn", 0))
-			if tile_dev_effects.has("food_mult"):
-				var f_before: int = f
-				var f_adj: int = int(float(f) * tile_dev_effects["food_mult"])
-				income["food"] -= f_before - f_adj
-				f = f_adj
-			income["prestige"] += int(tile_dev_effects.get("prestige_per_turn", 0))
+			# ── Governance & Policy modifiers (v1.2.0) ──
+			var tile_idx: int = tile.get("index", -1)
+			if tile_idx >= 0 and GameManager.governance_system:
+				var gov_mods: Dictionary = GameManager.governance_system.get_policy_modifiers(tile_idx)
+				if gov_mods.get("production_zero", false):
+					income["gold"] -= g
+					income["food"] -= f
+					income["iron"] -= ir
+					g = 0; f = 0; ir = 0
+				elif gov_mods.get("gold_mult", 1.0) != 1.0:
+					var g_before: int = g
+					g = int(float(g) * gov_mods["gold_mult"])
+					income["gold"] += (g - g_before)
+			
+			# ── Morale & Corruption modifiers (v1.2.0) ──
+			if tile_idx >= 0 and GameManager.morale_corruption_system:
+				var morale_mult: float = GameManager.morale_corruption_system.get_production_multiplier(tile_idx)
+				if morale_mult != 1.0:
+					var g_before: int = g
+					var f_before: int = f
+					var ir_before: int = ir
+					g = int(float(g) * morale_mult)
+					f = int(float(f) * morale_mult)
+					ir = int(float(ir) * morale_mult)
+					income["gold"] += (g - g_before)
+					income["food"] += (f - f_before)
+					income["iron"] += (ir - ir_before)
+
+			# ── Tile Development Path modifiers ──
+			if tile_idx >= 0:
+				var tile_dev_effects: Dictionary = TileDevelopment.get_tile_path_effects(tile_idx)
+				income["gold"] += int(tile_dev_effects.get("gold_per_turn", 0))
+				income["gold"] += int(tile_dev_effects.get("gold_bonus", 0))
+				if tile_dev_effects.has("gold_mult"):
+					# BUG FIX R11: use current g (which includes supply_mod) as baseline,
+					# not the raw pre-supply value, to correctly adjust income
+					var g_before: int = g
+					g = int(float(g) * tile_dev_effects["gold_mult"])
+					income["gold"] -= g_before - g
+				income["iron"] += int(tile_dev_effects.get("iron_per_turn", 0))
+				income["iron"] += int(tile_dev_effects.get("iron_bonus", 0))
+				if tile_dev_effects.has("iron_mult"):
+					var ir_before: int = ir
+					var ir_adj: int = int(float(ir) * tile_dev_effects["iron_mult"])
+					income["iron"] -= ir_before - ir_adj
+					ir = ir_adj
+				income["food"] += int(tile_dev_effects.get("food_per_turn", 0))
+				if tile_dev_effects.has("food_mult"):
+					var f_before: int = f
+					var f_adj: int = int(float(f) * tile_dev_effects["food_mult"])
+					income["food"] -= f_before - f_adj
+					f = f_adj
+				income["prestige"] += int(tile_dev_effects.get("prestige_per_turn", 0))
 
 			# Adjacent tile spillover effects from neighboring tiles
 			var adj_tiles: Array = GameManager.adjacency.get(tile_idx, [])
