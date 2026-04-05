@@ -93,8 +93,10 @@ func hide_panel() -> void:
 func _refresh() -> void:
 	for c in content_vbox.get_children(): c.queue_free()
 	
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
-	header_label.text = "治理 - %s" % tile.get("name", "据点")
+	header_label.text = "治理 — %s" % tile.get("name", "据点")
 	
 	# ── 民心与腐败数值 ──
 	if GameManager.morale_corruption_system:
@@ -103,6 +105,33 @@ func _refresh() -> void:
 		content_vbox.add_child(_make_stat_bar("民心", morale, Color.GREEN))
 		content_vbox.add_child(_make_stat_bar("腐败", corruption, Color.RED))
 		content_vbox.add_child(HSeparator.new())
+	
+	# ── 发展点数显示 ──
+	if GameManager.development_path_system:
+		var dev_data = GameManager.development_path_system.get_development_data(_tile_idx)
+		var dev_pts: int = dev_data.get("development_points", 0)
+		var pts_lbl = Label.new()
+		pts_lbl.text = "🏗 发展点数：%d" % dev_pts
+		pts_lbl.add_theme_font_size_override("font_size", 13)
+		pts_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 0.3))
+		content_vbox.add_child(pts_lbl)
+		content_vbox.add_child(HSeparator.new())
+	
+	# ── 活跃政策显示 ──
+	if GameManager.governance_system:
+		var gov_data = GameManager.governance_system.get_governance_data(_tile_idx)
+		var active_policies = gov_data.get("active_policies", {})
+		if not active_policies.is_empty():
+			content_vbox.add_child(_make_section_header("活跃中的政策"))
+			for pid in active_policies:
+				var turns_left: int = active_policies[pid]
+				var p_name: String = GovernanceSystem.POLICIES.get(pid, GovernanceSystem.DEFENSE_STRATEGIES.get(pid, {})).get("name", pid)
+				var active_lbl = Label.new()
+				active_lbl.text = "  • %s（剩余 %d 回合）" % [p_name, turns_left]
+				active_lbl.add_theme_font_size_override("font_size", 12)
+				active_lbl.add_theme_color_override("font_color", Color(0.5, 1.0, 0.6))
+				content_vbox.add_child(active_lbl)
+			content_vbox.add_child(HSeparator.new())
 	
 	# ── 政策部分 ──
 	content_vbox.add_child(_make_section_header("可用政策"))
@@ -122,6 +151,19 @@ func _refresh() -> void:
 	content_vbox.add_child(_make_section_header("防御策略"))
 	for s_id in GovernanceSystem.DEFENSE_STRATEGIES:
 		content_vbox.add_child(_make_strategy_row(s_id))
+	
+	content_vbox.add_child(HSeparator.new())
+	
+	# ── 快捷入口：进攻面板 ──
+	var btn_offensive = Button.new()
+	btn_offensive.text = "⚔ 打开进攻面板"
+	btn_offensive.custom_minimum_size = Vector2(0, 36)
+	btn_offensive.pressed.connect(func():
+		hide_panel()
+		if EventBus.has_signal("open_offensive_panel_requested"):
+			EventBus.open_offensive_panel_requested.emit(_tile_idx)
+	)
+	content_vbox.add_child(btn_offensive)
 
 func _make_stat_bar(label: String, value: float, color: Color) -> PanelContainer:
 	var pc = PanelContainer.new()

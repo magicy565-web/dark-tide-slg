@@ -204,6 +204,8 @@ func _ready() -> void:
 	layer = UILayerRegistry.LAYER_HUD
 	_build_ui()
 	_connect_signals()
+	# v1.2.0: 集成据点系统
+	_setup_stronghold_integration()
 
 
 func _connect_signals() -> void:
@@ -264,6 +266,33 @@ func _connect_signals() -> void:
 	# ── Detailed combat result ──
 	if EventBus.has_signal("combat_result_detailed"):
 		EventBus.combat_result_detailed.connect(_on_combat_result_detailed)
+	# ── Stronghold System (v1.2.0) ──
+	if EventBus.has_signal("governance_policy_activated"):
+		EventBus.governance_policy_activated.connect(_on_governance_policy_activated)
+	if EventBus.has_signal("governance_action_executed"):
+		EventBus.governance_action_executed.connect(_on_governance_action_executed)
+	if EventBus.has_signal("governance_strategy_deployed"):
+		EventBus.governance_strategy_deployed.connect(_on_governance_strategy_deployed)
+	if EventBus.has_signal("offensive_action_performed"):
+		EventBus.offensive_action_performed.connect(_on_offensive_action_performed)
+	if EventBus.has_signal("offensive_action_failed"):
+		EventBus.offensive_action_failed.connect(_on_offensive_action_failed)
+	if EventBus.has_signal("morale_changed"):
+		EventBus.morale_changed.connect(_on_stronghold_morale_changed)
+	if EventBus.has_signal("corruption_changed"):
+		EventBus.corruption_changed.connect(_on_stronghold_corruption_changed)
+	if EventBus.has_signal("development_path_upgraded"):
+		EventBus.development_path_upgraded.connect(_on_development_path_upgraded)
+	if EventBus.has_signal("milestone_unlocked"):
+		EventBus.milestone_unlocked.connect(_on_milestone_unlocked)
+	if EventBus.has_signal("open_governance_panel_requested"):
+		EventBus.open_governance_panel_requested.connect(_on_open_governance_panel_requested)
+	if EventBus.has_signal("open_offensive_panel_requested"):
+		EventBus.open_offensive_panel_requested.connect(_on_open_offensive_panel_requested)
+	if EventBus.has_signal("open_development_panel_requested"):
+		EventBus.open_development_panel_requested.connect(_on_open_development_panel_requested)
+	if EventBus.has_signal("rebellion_risk_changed"):
+		EventBus.rebellion_risk_changed.connect(_on_rebellion_risk_changed)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -4777,3 +4806,190 @@ func _on_empire_decree_pressed() -> void:
 			_update_buttons()
 	else:
 		EventBus.message_log.emit("[color=red]帝国法令功能尚未实现。[/color]")
+
+
+# ═══════════════════════════════════════════════════════════════
+#          STRONGHOLD SYSTEM INTEGRATION (v1.2.0)
+# ═══════════════════════════════════════════════════════════════
+
+var _offensive_panel: Node = null
+
+## 据点系统集成初始化 — 在 _ready() 中调用
+func _setup_stronghold_integration() -> void:
+	# 懒加载进攻面板（治理面板已在 _ensure_tile_dev_panel 中处理）
+	_ensure_offensive_panel()
+	# 在内政子菜单中追加据点系统按钮
+	_inject_stronghold_buttons()
+
+## 懒加载进攻面板
+func _ensure_offensive_panel() -> void:
+	if _offensive_panel == null:
+		var script = load("res://scenes/ui/panels/offensive_panel.gd")
+		if script:
+			_offensive_panel = script.new()
+			_offensive_panel.name = "OffensivePanelRoot"
+			get_tree().root.add_child(_offensive_panel)
+
+## 在内政子菜单注入据点系统按钮（治理 / 进攻 / 发展路径）
+func _inject_stronghold_buttons() -> void:
+	if domestic_panel == null:
+		return
+	var vbox: VBoxContainer = domestic_panel.get_child(0) as VBoxContainer
+	if vbox == null:
+		return
+
+	# ── 治理按钮 ──
+	var btn_gov = _make_button("⚖ 据点治理", null)
+	btn_gov.custom_minimum_size = Vector2(140, 30)
+	btn_gov.tooltip_text = "管理政策、治理行动与防御策略"
+	btn_gov.pressed.connect(_on_governance_btn_pressed)
+	vbox.add_child(btn_gov)
+
+	# ── 进攻行动按钮 ──
+	var btn_off = _make_button("⚔ 进攻行动", null)
+	btn_off.custom_minimum_size = Vector2(140, 30)
+	btn_off.tooltip_text = "对相邻敌方据点发动突袭、渗透、掠夺等行动"
+	btn_off.pressed.connect(_on_offensive_btn_pressed)
+	vbox.add_child(btn_off)
+
+	# ── 发展路径按钮 ──
+	var btn_dev_path = _make_button("🏛 发展路径", null)
+	btn_dev_path.custom_minimum_size = Vector2(140, 30)
+	btn_dev_path.tooltip_text = "升级军事、商业、文化、科技、宗教路径"
+	btn_dev_path.pressed.connect(_on_dev_path_btn_pressed)
+	vbox.add_child(btn_dev_path)
+
+# ───────────────────────────────────────────────────────────────
+# 据点按钮处理
+
+func _on_governance_btn_pressed() -> void:
+	domestic_panel.visible = false
+	var pid: int = GameManager.get_human_player_id()
+	var tile_idx: int = _get_selected_owned_tile(pid)
+	if tile_idx < 0:
+		EventBus.message_log.emit("[color=red]请先选择一个己方据点！[/color]")
+		return
+	_ensure_tile_dev_panel()
+	if _governance_panel:
+		_governance_panel.show_panel(tile_idx)
+
+func _on_offensive_btn_pressed() -> void:
+	domestic_panel.visible = false
+	var pid: int = GameManager.get_human_player_id()
+	var tile_idx: int = _get_selected_owned_tile(pid)
+	if tile_idx < 0:
+		EventBus.message_log.emit("[color=red]请先选择一个己方据点！[/color]")
+		return
+	_ensure_offensive_panel()
+	if _offensive_panel:
+		_offensive_panel.show_panel(tile_idx)
+
+func _on_dev_path_btn_pressed() -> void:
+	domestic_panel.visible = false
+	var pid: int = GameManager.get_human_player_id()
+	var tile_idx: int = _get_selected_owned_tile(pid)
+	if tile_idx < 0:
+		EventBus.message_log.emit("[color=red]请先选择一个己方据点！[/color]")
+		return
+	# 通过 EventBus 请求打开发展路径面板（由 governance_panel 的"发展地块"按钮处理）
+	EventBus.open_development_panel_requested.emit(tile_idx)
+
+# ───────────────────────────────────────────────────────────────
+# EventBus 信号处理 — 据点系统
+
+func _on_governance_policy_activated(tile_idx: int, policy_id: String) -> void:
+	_update_player_info()
+	var tile_name: String = GameManager.tiles[tile_idx].get("name", "据点#%d" % tile_idx) if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "?"
+	var policy_name: String = ""
+	if GameManager.governance_system and GameManager.governance_system.POLICIES.has(policy_id):
+		policy_name = GameManager.governance_system.POLICIES[policy_id].get("name", policy_id)
+	EventBus.message_log.emit("[color=cyan]【治理】%s 激活政策：%s[/color]" % [tile_name, policy_name])
+
+func _on_governance_action_executed(tile_idx: int, action_id: String) -> void:
+	_update_player_info()
+	var tile_name: String = GameManager.tiles[tile_idx].get("name", "据点#%d" % tile_idx) if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "?"
+	var action_name: String = ""
+	if GameManager.governance_system and GameManager.governance_system.GOVERNANCE_ACTIONS.has(action_id):
+		action_name = GameManager.governance_system.GOVERNANCE_ACTIONS[action_id].get("name", action_id)
+	EventBus.message_log.emit("[color=yellow]【治理】%s 执行行动：%s[/color]" % [tile_name, action_name])
+
+func _on_governance_strategy_deployed(tile_idx: int, strategy_id: String) -> void:
+	_update_player_info()
+	var tile_name: String = GameManager.tiles[tile_idx].get("name", "据点#%d" % tile_idx) if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "?"
+	var strategy_name: String = ""
+	if GameManager.governance_system and GameManager.governance_system.DEFENSE_STRATEGIES.has(strategy_id):
+		strategy_name = GameManager.governance_system.DEFENSE_STRATEGIES[strategy_id].get("name", strategy_id)
+	EventBus.message_log.emit("[color=green]【防御】%s 部署策略：%s[/color]" % [tile_name, strategy_name])
+
+func _on_offensive_action_performed(attacker_idx: int, action_id: String, target_idx: int, result: Dictionary) -> void:
+	_update_player_info()
+	var attacker_name: String = GameManager.tiles[attacker_idx].get("name", "#%d" % attacker_idx) if attacker_idx >= 0 and attacker_idx < GameManager.tiles.size() else "?"
+	var target_name: String = GameManager.tiles[target_idx].get("name", "#%d" % target_idx) if target_idx >= 0 and target_idx < GameManager.tiles.size() else "?"
+	var action_name: String = ""
+	if GameManager.offensive_system and GameManager.offensive_system.OFFENSIVE_ACTIONS.has(action_id):
+		action_name = GameManager.offensive_system.OFFENSIVE_ACTIONS[action_id].get("name", action_id)
+	if result.get("success", false):
+		EventBus.message_log.emit("[color=lime]【进攻】%s → %s：%s 成功！[/color]" % [attacker_name, target_name, action_name])
+	else:
+		EventBus.message_log.emit("[color=orange]【进攻】%s → %s：%s 失败（%s）[/color]" % [attacker_name, target_name, action_name, result.get("reason", "未知")])
+
+func _on_offensive_action_failed(tile_idx: int, action_id: String, reason: String) -> void:
+	EventBus.message_log.emit("[color=red]【进攻失败】%s[/color]" % reason)
+
+func _on_stronghold_morale_changed(tile_idx: int, old_morale: float, new_morale: float) -> void:
+	var delta: float = new_morale - old_morale
+	var color: String = "lime" if delta >= 0 else "red"
+	var tile_name: String = GameManager.tiles[tile_idx].get("name", "#%d" % tile_idx) if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "?"
+	EventBus.message_log.emit("[color=%s]【民心】%s：%.0f → %.0f（%+.0f）[/color]" % [color, tile_name, old_morale, new_morale, delta])
+	_update_player_info()
+
+func _on_stronghold_corruption_changed(tile_idx: int, old_corruption: float, new_corruption: float) -> void:
+	var delta: float = new_corruption - old_corruption
+	var color: String = "red" if delta >= 0 else "lime"
+	var tile_name: String = GameManager.tiles[tile_idx].get("name", "#%d" % tile_idx) if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "?"
+	EventBus.message_log.emit("[color=%s]【腐败】%s：%.0f → %.0f（%+.0f）[/color]" % [color, tile_name, old_corruption, new_corruption, delta])
+	_update_player_info()
+
+func _on_development_path_upgraded(tile_idx: int, path_id: String, new_level: int) -> void:
+	_update_player_info()
+	var tile_name: String = GameManager.tiles[tile_idx].get("name", "#%d" % tile_idx) if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "?"
+	var path_name: String = ""
+	if GameManager.development_path_system and GameManager.development_path_system.DEVELOPMENT_PATHS.has(path_id):
+		path_name = GameManager.development_path_system.DEVELOPMENT_PATHS[path_id].get("name", path_id)
+	EventBus.message_log.emit("[color=cyan]【发展】%s：%s 升级至 Lv%d[/color]" % [tile_name, path_name, new_level])
+
+func _on_milestone_unlocked(tile_idx: int, milestone_id: String) -> void:
+	var tile_name: String = GameManager.tiles[tile_idx].get("name", "#%d" % tile_idx) if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "?"
+	var milestone_name: String = ""
+	if GameManager.development_path_system and GameManager.development_path_system.MILESTONES.has(milestone_id):
+		milestone_name = GameManager.development_path_system.MILESTONES[milestone_id].get("name", milestone_id)
+	EventBus.message_log.emit("[color=gold]【里程碑】%s 解锁：%s！[/color]" % [tile_name, milestone_name])
+
+func _on_rebellion_risk_changed(tile_idx: int, risk_level: String) -> void:
+	var tile_name: String = GameManager.tiles[tile_idx].get("name", "#%d" % tile_idx) if tile_idx >= 0 and tile_idx < GameManager.tiles.size() else "?"
+	match risk_level:
+		"high":
+			EventBus.message_log.emit("[color=red]⚠ 【叛乱警告】%s 叛乱风险极高！[/color]" % tile_name)
+		"medium":
+			EventBus.message_log.emit("[color=orange]【叛乱风险】%s 民心动荡，需要关注。[/color]" % tile_name)
+		"low":
+			EventBus.message_log.emit("[color=yellow]【民心稳定】%s 叛乱风险降低。[/color]" % tile_name)
+
+# ───────────────────────────────────────────────────────────────
+# 面板打开请求处理
+
+func _on_open_governance_panel_requested(tile_idx: int) -> void:
+	_ensure_tile_dev_panel()
+	if _governance_panel:
+		_governance_panel.show_panel(tile_idx)
+
+func _on_open_offensive_panel_requested(tile_idx: int) -> void:
+	_ensure_offensive_panel()
+	if _offensive_panel:
+		_offensive_panel.show_panel(tile_idx)
+
+func _on_open_development_panel_requested(tile_idx: int) -> void:
+	# 通过治理面板的"发展地块"按钮打开，或直接打开 tile_dev_panel
+	_ensure_tile_dev_panel()
+	if _tile_dev_panel:
+		_tile_dev_panel.show_panel(tile_idx)

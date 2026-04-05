@@ -148,13 +148,20 @@ func upgrade_path(tile_idx: int, path_id: String) -> bool:
 	data["development_points"] -= cost
 	path_data["level"] += 1
 	path_data["progress"] = 0
+	var new_level: int = path_data["level"]
 	
 	EventBus.message_log.emit("[color=cyan]据点 #%d %s 升级到 Lv%d[/color]" % [
-		tile_idx, path["name"], path_data["level"]])
+		tile_idx, path["name"], new_level])
+	# 发射 EventBus 信号
+	if EventBus.has_signal("development_path_upgraded"):
+		EventBus.development_path_upgraded.emit(tile_idx, path_id, new_level)
 	
 	# 检查分支选择点
-	if path["levels"][path_data["level"] - 1].get("branch", false):
+	if path["levels"][new_level - 1].get("branch", false):
 		EventBus.message_log.emit("[color=yellow]可以选择分支方向![/color]")
+	
+	# 检查里程碑
+	check_milestones(tile_idx)
 	
 	return true
 
@@ -169,6 +176,8 @@ func choose_branch(tile_idx: int, path_id: String, branch: String) -> bool:
 	
 	path_data["branch"] = branch
 	EventBus.message_log.emit("[color=cyan]选择了分支: %s[/color]" % branch)
+	if EventBus.has_signal("development_branch_chosen"):
+		EventBus.development_branch_chosen.emit(tile_idx, path_id, branch)
 	return true
 
 func add_development_points(tile_idx: int, amount: int) -> void:
@@ -247,6 +256,8 @@ func check_milestones(tile_idx: int) -> Array:
 				data["milestones_unlocked"].append(milestone_id)
 				unlocked.append(milestone_id)
 				EventBus.message_log.emit("[color=gold]里程碑解锁: %s[/color]" % MILESTONES[milestone_id]["name"])
+				if EventBus.has_signal("milestone_unlocked"):
+					EventBus.milestone_unlocked.emit(tile_idx, milestone_id)
 	
 	return unlocked
 
@@ -275,16 +286,25 @@ func process_turn() -> void:
 	# 每回合增加发展点数
 	for tile_idx in _development_data:
 		var data = _development_data[tile_idx]
+		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+			continue
 		var tile = GameManager.tiles[tile_idx]
+		if tile == null:
+			continue
 		
 		# 基础发展点数
-		var base_points = 1
+		var base_points: int = 1
 		
 		# 根据建筑等级增加
-		var building_level = tile.get("building_level", 1)
+		var building_level: int = tile.get("building_level", 1)
 		base_points += building_level
 		
+		var old_pts: int = data["development_points"]
 		data["development_points"] += base_points
+		
+		# 发射变化信号
+		if EventBus.has_signal("development_points_changed"):
+			EventBus.development_points_changed.emit(tile_idx, old_pts, data["development_points"])
 		
 		# 检查里程碑
 		check_milestones(tile_idx)

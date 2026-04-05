@@ -104,6 +104,8 @@ func activate_policy(tile_idx: int, policy_id: String) -> bool:
 		tile["garrison"] = tile.get("garrison", 0) + policy["effects"]["garrison_bonus"]
 		
 	EventBus.message_log.emit("[color=cyan]据点 #%d 激活政策: %s[/color]" % [tile_idx, policy["name"]])
+	if EventBus.has_signal("governance_policy_activated"):
+		EventBus.governance_policy_activated.emit(tile_idx, policy_id)
 	return true
 
 func execute_action(tile_idx: int, action_id: String) -> bool:
@@ -121,6 +123,8 @@ func execute_action(tile_idx: int, action_id: String) -> bool:
 		data["popularity"] = clampf(data["popularity"] + action["effects"]["popularity_bonus"], 0, 100)
 		
 	EventBus.message_log.emit("[color=cyan]据点 #%d 执行治理: %s[/color]" % [tile_idx, action["name"]])
+	if EventBus.has_signal("governance_action_executed"):
+		EventBus.governance_action_executed.emit(tile_idx, action_id)
 	return true
 
 func activate_strategy(tile_idx: int, strategy_id: String) -> bool:
@@ -147,6 +151,8 @@ func activate_strategy(tile_idx: int, strategy_id: String) -> bool:
 		change_order(tile_idx, effects["order_change"])
 		
 	EventBus.message_log.emit("[color=cyan]据点 #%d 部署防御策略: %s[/color]" % [tile_idx, strategy["name"]])
+	if EventBus.has_signal("governance_strategy_deployed"):
+		EventBus.governance_strategy_deployed.emit(tile_idx, strategy_id)
 	return true
 
 func _check_and_spend_cost(cost: Dictionary) -> bool:
@@ -168,8 +174,9 @@ func _check_and_spend_cost(cost: Dictionary) -> bool:
 		if GameManager.current_ap < cost["ap"]:
 			EventBus.message_log.emit("[color=red]行动力不足![/color]")
 			return false
+		var pid_ap = GameManager.get_human_player_id()
 		GameManager.current_ap -= cost["ap"]
-		EventBus.ap_changed.emit(GameManager.current_ap)
+		EventBus.ap_changed.emit(pid_ap, GameManager.current_ap)
 		
 	return true
 
@@ -185,7 +192,9 @@ func change_order(tile_idx: int, amount: float) -> void:
 		if global_delta != 0:
 			OrderManager.change_order(global_delta)
 			
-	EventBus.order_changed.emit(tile_idx, new_order)
+	# order_changed 信号定义为 (new_value: int)，使用全局秩序小数表示
+	var global_order_val: int = OrderManager.get_order() if OrderManager != null else int(new_order * 100)
+	EventBus.order_changed.emit(global_order_val)
 
 func process_turn() -> void:
 	for tile_idx in _tile_governance:
@@ -200,7 +209,14 @@ func process_turn() -> void:
 		
 		for p_id in to_remove:
 			policies.erase(p_id)
-			EventBus.message_log.emit("[color=gray]据点 #%d 政策过期: %s[/color]" % [tile_idx, POLICIES[p_id]["name"]])
+			var expired_name: String = ""
+			if POLICIES.has(p_id):
+				expired_name = POLICIES[p_id].get("name", p_id)
+			elif DEFENSE_STRATEGIES.has(p_id):
+				expired_name = DEFENSE_STRATEGIES[p_id].get("name", p_id)
+			else:
+				expired_name = p_id
+			EventBus.message_log.emit("[color=gray]据点 #%d 政策过期: %s[/color]" % [tile_idx, expired_name])
 
 func get_policy_modifiers(tile_idx: int) -> Dictionary:
 	var mods = {"gold_mult": 1.0, "def_bonus": 0, "order_freeze": false, "build_discount": 0.0}

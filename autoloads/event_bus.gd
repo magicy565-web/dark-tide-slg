@@ -148,6 +148,35 @@ signal hero_released(hero_id: String)
 signal hero_executed(hero_id: String)
 signal hero_ransomed(hero_id: String)
 signal hero_exiled(hero_id: String)
+
+# ── Stronghold System (v1.2.0) ──
+# 治理系统信号
+signal governance_policy_activated(tile_idx: int, policy_id: String)
+signal governance_action_executed(tile_idx: int, action_id: String)
+signal governance_strategy_deployed(tile_idx: int, strategy_id: String)
+signal governance_order_changed(tile_idx: int, old_order: float, new_order: float)
+
+# 进攻系统信号
+signal offensive_action_performed(attacker_idx: int, action_id: String, target_idx: int, result: Dictionary)
+signal offensive_action_failed(tile_idx: int, action_id: String, reason: String)
+signal offensive_cooldown_updated(tile_idx: int, action_id: String, cooldown_remaining: int)
+
+# 民心腐败系统信号
+signal morale_changed(tile_idx: int, old_morale: float, new_morale: float)
+signal corruption_changed(tile_idx: int, old_corruption: float, new_corruption: float)
+signal rebellion_risk_changed(tile_idx: int, risk_level: String)
+
+# 发展路径系统信号
+signal development_path_upgraded(tile_idx: int, path_id: String, new_level: int)
+signal development_branch_chosen(tile_idx: int, path_id: String, branch: String)
+signal development_points_changed(tile_idx: int, old_points: int, new_points: int)
+signal milestone_unlocked(tile_idx: int, milestone_id: String)
+signal synergy_bonus_changed(tile_idx: int, synergy_bonus: float)
+
+# 据点面板信号
+signal open_governance_panel_requested(tile_idx: int)
+signal open_offensive_panel_requested(tile_idx: int)
+signal open_development_panel_requested(tile_idx: int)
 signal hero_stationed(hero_id: String, tile_index: int)
 signal hero_unstationed(hero_id: String, tile_index: int)
 

@@ -1,180 +1,308 @@
-## offensive_panel.gd — 进攻面板
-## 显示可用的进攻行动，允许玩家选择目标并执行进攻。
+## offensive_panel.gd — 据点进攻行动面板
+## 显示可用的进攻行动，允许玩家选择行动和目标并执行。
 extends CanvasLayer
 
 var _visible: bool = false
 var _tile_idx: int = -1
 var _selected_target_idx: int = -1
+var _selected_action_id: String = ""
 
-@onready var root = Control.new()
-@onready var panel = PanelContainer.new()
-@onready var vbox = VBoxContainer.new()
-@onready var header_label = Label.new()
-@onready var actions_vbox = VBoxContainer.new()
-@onready var target_label = Label.new()
-@onready var target_grid = GridContainer.new()
-@onready var execute_btn = Button.new()
-@onready var close_btn = Button.new()
+# ── UI 节点 ──
+var _root: Control
+var _panel: PanelContainer
+var _vbox: VBoxContainer
+var _header_label: Label
+var _action_vbox: VBoxContainer
+var _target_label: Label
+var _target_grid: GridContainer
+var _execute_btn: Button
+var _close_btn: Button
+var _status_label: Label
+
+# 追踪行动按钮与目标按钮
+var _action_buttons: Dictionary = {}   # action_id -> Button
+var _target_buttons: Dictionary = {}   # target_idx -> Button
 
 func _ready() -> void:
 	layer = UILayerRegistry.LAYER_DETAIL_PANELS
-	
-	root.anchor_left = 0.7
-	root.anchor_top = 0.2
-	root.anchor_right = 1.0
-	root.anchor_bottom = 0.8
-	add_child(root)
-	
+
+	_root = Control.new()
+	_root.name = "OffensivePanelRoot"
+	_root.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	_root.anchor_left = 0.68
+	_root.anchor_top = 0.15
+	_root.anchor_right = 1.0
+	_root.anchor_bottom = 0.90
+	_root.mouse_filter = Control.MOUSE_FILTER_PASS
+	add_child(_root)
+
+	_panel = PanelContainer.new()
+	_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.15, 0.95)
-	style.set_border_enabled_all(true)
-	style.set_border_color_all(Color(0.5, 0.5, 0.6))
-	panel.add_theme_stylebox_override("panel", style)
-	root.add_child(panel)
-	
-	panel.add_child(vbox)
-	vbox.add_theme_constant_override("separation", 8)
-	
-	header_label.text = "进攻行动"
-	header_label.add_theme_font_size_override("font_size", 18)
-	vbox.add_child(header_label)
-	
-	vbox.add_child(HSeparator.new())
-	
-	actions_vbox.add_theme_constant_override("separation", 4)
-	vbox.add_child(actions_vbox)
-	
-	vbox.add_child(HSeparator.new())
-	
-	target_label.text = "选择目标"
-	target_label.add_theme_font_size_override("font_size", 14)
-	vbox.add_child(target_label)
-	
-	target_grid.columns = 3
-	target_grid.add_theme_constant_override("h_separation", 4)
-	target_grid.add_theme_constant_override("v_separation", 4)
-	vbox.add_child(target_grid)
-	
-	vbox.add_child(HSeparator.new())
-	
-	var btn_hbox = HBoxContainer.new()
-	vbox.add_child(btn_hbox)
-	
-	execute_btn.text = "执行"
-	execute_btn.custom_minimum_size = Vector2(80, 30)
-	execute_btn.pressed.connect(_on_execute_pressed)
-	btn_hbox.add_child(execute_btn)
-	
-	btn_hbox.add_child(Control.new())  # spacer
-	
-	close_btn.text = "关闭"
-	close_btn.custom_minimum_size = Vector2(80, 30)
-	close_btn.pressed.connect(hide_panel)
-	btn_hbox.add_child(close_btn)
-	
-	root.visible = false
-	_visible = false
+	style.bg_color = Color(0.08, 0.08, 0.13, 0.96)
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.border_color = Color(0.6, 0.3, 0.2, 1.0)
+	style.set_content_margin_all(10)
+	_panel.add_theme_stylebox_override("panel", style)
+	_root.add_child(_panel)
+
+	_vbox = VBoxContainer.new()
+	_vbox.add_theme_constant_override("separation", 6)
+	_panel.add_child(_vbox)
+
+	# 标题行
+	var title_hbox = HBoxContainer.new()
+	_vbox.add_child(title_hbox)
+
+	_header_label = Label.new()
+	_header_label.text = "⚔ 进攻行动"
+	_header_label.add_theme_font_size_override("font_size", 16)
+	_header_label.add_theme_color_override("font_color", Color(1.0, 0.7, 0.3))
+	_header_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_hbox.add_child(_header_label)
+
+	_close_btn = Button.new()
+	_close_btn.text = "✕"
+	_close_btn.custom_minimum_size = Vector2(28, 28)
+	_close_btn.pressed.connect(hide_panel)
+	title_hbox.add_child(_close_btn)
+
+	_vbox.add_child(HSeparator.new())
+
+	# 行动选择区
+	var action_title = Label.new()
+	action_title.text = "选择行动："
+	action_title.add_theme_font_size_override("font_size", 13)
+	action_title.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	_vbox.add_child(action_title)
+
+	_action_vbox = VBoxContainer.new()
+	_action_vbox.add_theme_constant_override("separation", 3)
+	_vbox.add_child(_action_vbox)
+
+	_vbox.add_child(HSeparator.new())
+
+	# 目标选择区
+	_target_label = Label.new()
+	_target_label.text = "选择目标："
+	_target_label.add_theme_font_size_override("font_size", 13)
+	_target_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	_vbox.add_child(_target_label)
+
+	_target_grid = GridContainer.new()
+	_target_grid.columns = 2
+	_target_grid.add_theme_constant_override("h_separation", 4)
+	_target_grid.add_theme_constant_override("v_separation", 4)
+	_vbox.add_child(_target_grid)
+
+	_vbox.add_child(HSeparator.new())
+
+	# 状态提示
+	_status_label = Label.new()
+	_status_label.text = ""
+	_status_label.add_theme_font_size_override("font_size", 11)
+	_status_label.add_theme_color_override("font_color", Color(1.0, 0.5, 0.3))
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_vbox.add_child(_status_label)
+
+	# 执行按钮
+	_execute_btn = Button.new()
+	_execute_btn.text = "⚔ 执行进攻"
+	_execute_btn.custom_minimum_size = Vector2(0, 36)
+	_execute_btn.add_theme_font_size_override("font_size", 14)
+	_execute_btn.pressed.connect(_on_execute_pressed)
+	_vbox.add_child(_execute_btn)
+
+	_root.visible = false
+
+# ───────────────────────────────────────────────────────────────
 
 func show_panel(tile_idx: int) -> void:
 	_tile_idx = tile_idx
 	_selected_target_idx = -1
+	_selected_action_id = ""
+	_root.visible = true
 	_visible = true
-	root.visible = true
 	_refresh()
 
 func hide_panel() -> void:
+	_root.visible = false
 	_visible = false
-	root.visible = false
 
 func _refresh() -> void:
-	for c in actions_vbox.get_children(): c.queue_free()
-	for c in target_grid.get_children(): c.queue_free()
-	
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
+
 	var tile = GameManager.tiles[_tile_idx]
-	header_label.text = "进攻 - %s" % tile.get("name", "据点")
-	
-	# ── 显示可用行动 ──
+	_header_label.text = "⚔ 进攻 — %s" % tile.get("name", "据点")
+	_status_label.text = ""
+
+	_rebuild_actions()
+	_rebuild_targets()
+	_update_execute_button()
+
+func _rebuild_actions() -> void:
+	# 清空旧按钮
+	for c in _action_vbox.get_children():
+		c.queue_free()
+	_action_buttons.clear()
+
+	if not GameManager.offensive_system:
+		return
+
 	var actions = GameManager.offensive_system.get_available_actions(_tile_idx)
 	for action in actions:
-		var action_row = _make_action_row(action)
-		actions_vbox.add_child(action_row)
-	
-	# ── 显示可攻击的目标 ──
-	_refresh_targets()
+		var row = _build_action_row(action)
+		_action_vbox.add_child(row)
 
-func _make_action_row(action: Dictionary) -> PanelContainer:
-	var pc = PanelContainer.new()
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(1, 1, 1, 0.05)
-	style.set_content_margin_all(6)
-	pc.add_theme_stylebox_override("panel", style)
-	
-	var hb = HBoxContainer.new()
-	pc.add_child(hb)
-	
-	var vb = VBoxContainer.new()
-	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hb.add_child(vb)
-	
-	var name_lbl = Label.new()
-	name_lbl.text = "%s (冷却: %d)" % [action["name"], action["cooldown"]]
-	name_lbl.add_theme_font_size_override("font_size", 12)
-	vb.add_child(name_lbl)
-	
-	var desc_lbl = Label.new()
-	desc_lbl.text = action["desc"]
-	desc_lbl.add_theme_font_size_override("font_size", 10)
-	desc_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	desc_lbl.custom_minimum_size = Vector2(250, 0)
-	desc_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	vb.add_child(desc_lbl)
-	
-	return pc
+func _build_action_row(action: Dictionary) -> Control:
+	var btn = Button.new()
+	btn.toggle_mode = true
+	btn.custom_minimum_size = Vector2(0, 44)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-func _refresh_targets() -> void:
-	# 获取所有相邻的敌方据点
-	var tile_idx = _tile_idx
-	var tile = GameManager.tiles[tile_idx]
-	var owner_id = tile.get("owner_id", -1)
-	
-	if GameManager.adjacency.has(tile_idx):
-		for adj_idx in GameManager.adjacency[tile_idx]:
-			var adj_tile = GameManager.tiles[adj_idx]
-			if adj_tile == null:
-				continue
-			var adj_owner = adj_tile.get("owner_id", -1)
-			if adj_owner != owner_id and adj_owner >= 0:
-				var btn = Button.new()
-				btn.text = adj_tile.get("name", "据点 #%d" % adj_idx)
-				btn.custom_minimum_size = Vector2(80, 30)
-				btn.toggle_mode = true
-				btn.pressed.connect(func(): _on_target_selected(adj_idx))
-				target_grid.add_child(btn)
+	var cooldown: int = action.get("cooldown", 0)
+	var range_val: int = action.get("range", 1)
+
+	if cooldown > 0:
+		btn.text = "⏳ %s  [冷却 %d 回合]" % [action["name"], cooldown]
+		btn.disabled = true
+		btn.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	else:
+		btn.text = "%s  [范围 %d]" % [action["name"], range_val]
+		btn.tooltip_text = action.get("desc", "")
+		btn.pressed.connect(func(): _on_action_selected(action["id"]))
+
+	_action_buttons[action["id"]] = btn
+	return btn
+
+func _rebuild_targets() -> void:
+	# 清空旧按钮
+	for c in _target_grid.get_children():
+		c.queue_free()
+	_target_buttons.clear()
+
+	if _tile_idx < 0 or not GameManager.adjacency.has(_tile_idx):
+		_target_label.text = "无可攻击目标"
+		return
+
+	var tile = GameManager.tiles[_tile_idx]
+	var owner_id: int = tile.get("owner_id", -1)
+	var found: bool = false
+
+	# 根据当前选中行动的范围决定可选目标
+	var max_range: int = 1
+	if _selected_action_id != "" and GameManager.offensive_system:
+		var action_def = GameManager.offensive_system.OFFENSIVE_ACTIONS.get(_selected_action_id, {})
+		max_range = action_def.get("range", 1)
+
+	# BFS 找到范围内的所有敌方据点
+	var reachable = _bfs_tiles(_tile_idx, max_range)
+
+	for adj_idx in reachable:
+		if adj_idx == _tile_idx:
+			continue
+		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
+			continue
+		var adj_tile = GameManager.tiles[adj_idx]
+		if adj_tile == null:
+			continue
+		var adj_owner: int = adj_tile.get("owner_id", -1)
+		if adj_owner != owner_id and adj_owner >= 0:
+			var btn = Button.new()
+			btn.toggle_mode = true
+			btn.text = adj_tile.get("name", "#%d" % adj_idx)
+			btn.custom_minimum_size = Vector2(100, 30)
+			btn.tooltip_text = "所有者: 玩家 %d" % adj_owner
+			btn.pressed.connect(func(): _on_target_selected(adj_idx))
+			_target_grid.add_child(btn)
+			_target_buttons[adj_idx] = btn
+			found = true
+
+	if found:
+		_target_label.text = "选择目标（范围 %d）：" % max_range
+	else:
+		_target_label.text = "范围内无敌方据点"
+
+func _bfs_tiles(start: int, max_range: int) -> Array:
+	var visited: Dictionary = {start: 0}
+	var queue: Array = [start]
+	while queue.size() > 0:
+		var cur: int = queue.pop_front()
+		if visited[cur] >= max_range:
+			continue
+		if GameManager.adjacency.has(cur):
+			for nb in GameManager.adjacency[cur]:
+				if not visited.has(nb):
+					visited[nb] = visited[cur] + 1
+					queue.append(nb)
+	return visited.keys()
+
+func _on_action_selected(action_id: String) -> void:
+	_selected_action_id = action_id
+	# 更新行动按钮高亮
+	for aid in _action_buttons:
+		var btn: Button = _action_buttons[aid]
+		if not btn.disabled:
+			btn.button_pressed = (aid == action_id)
+	# 重建目标（范围可能变化）
+	_rebuild_targets()
+	# 如果之前选的目标不在新范围内，清除
+	if _selected_target_idx >= 0 and not _target_buttons.has(_selected_target_idx):
+		_selected_target_idx = -1
+	_update_execute_button()
 
 func _on_target_selected(target_idx: int) -> void:
 	_selected_target_idx = target_idx
-	# 更新按钮状态
-	for btn in target_grid.get_children():
-		if btn is Button:
-			btn.button_pressed = false
-	target_grid.get_child(target_grid.get_child_count() - 1).button_pressed = true
+	# 更新目标按钮高亮（修复：按 key 精确匹配，不再取最后一个子节点）
+	for tidx in _target_buttons:
+		var btn: Button = _target_buttons[tidx]
+		btn.button_pressed = (tidx == target_idx)
+	_update_execute_button()
+
+func _update_execute_button() -> void:
+	var ready: bool = (_selected_action_id != "" and _selected_target_idx >= 0)
+	_execute_btn.disabled = not ready
+	if ready:
+		var action_name: String = ""
+		if GameManager.offensive_system:
+			action_name = GameManager.offensive_system.OFFENSIVE_ACTIONS.get(
+				_selected_action_id, {}).get("name", _selected_action_id)
+		var target_name: String = ""
+		if _selected_target_idx >= 0 and _selected_target_idx < GameManager.tiles.size():
+			target_name = GameManager.tiles[_selected_target_idx].get("name", "#%d" % _selected_target_idx)
+		_execute_btn.text = "⚔ 执行：%s → %s" % [action_name, target_name]
+	else:
+		_execute_btn.text = "⚔ 执行进攻"
 
 func _on_execute_pressed() -> void:
+	if _selected_action_id == "":
+		_status_label.text = "请先选择一个行动！"
+		return
 	if _selected_target_idx < 0:
-		EventBus.message_log.emit("[color=red]请选择目标![/color]")
+		_status_label.text = "请先选择一个目标！"
 		return
-	
-	# 这里应该显示行动选择对话框
-	# 暂时使用第一个可用的行动
-	var actions = GameManager.offensive_system.get_available_actions(_tile_idx)
-	if actions.is_empty():
-		EventBus.message_log.emit("[color=red]没有可用的行动![/color]")
+	if not GameManager.offensive_system:
+		_status_label.text = "进攻系统未初始化！"
 		return
-	
-	var action_id = actions[0]["id"]
-	var result = GameManager.offensive_system.perform_action(_tile_idx, action_id, _selected_target_idx)
-	
-	if result["success"]:
+
+	var result = GameManager.offensive_system.perform_action(
+		_tile_idx, _selected_action_id, _selected_target_idx)
+
+	if result.get("success", false):
+		_status_label.add_theme_color_override("font_color", Color(0.3, 1.0, 0.3))
+		_status_label.text = "✓ 行动成功！"
+		# 重置选择
+		_selected_action_id = ""
+		_selected_target_idx = -1
 		_refresh()
 	else:
-		EventBus.message_log.emit("[color=red]%s[/color]" % result.get("reason", "行动失败"))
+		_status_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.3))
+		_status_label.text = "✗ 失败：%s" % result.get("reason", "未知原因")

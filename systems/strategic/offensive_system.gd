@@ -154,7 +154,7 @@ func perform_action(tile_idx: int, action_id: String, target_tile_idx: int) -> D
 	
 	if cost.has("ap"):
 		GameManager.current_ap -= cost["ap"]
-		EventBus.ap_changed.emit(GameManager.current_ap)
+		EventBus.ap_changed.emit(pid, GameManager.current_ap)
 	
 	# 执行行动
 	var result = _execute_action(tile_idx, action_id, target_tile_idx)
@@ -166,6 +166,10 @@ func perform_action(tile_idx: int, action_id: String, target_tile_idx: int) -> D
 	
 	# 记录历史
 	_record_attack(tile_idx, target_tile_idx, action_id, result["success"])
+	
+	# 发射 EventBus 信号
+	if EventBus.has_signal("offensive_action_performed"):
+		EventBus.offensive_action_performed.emit(tile_idx, action_id, target_tile_idx, result)
 	
 	return result
 

@@ -67,13 +67,34 @@ func get_corruption(tile_idx: int) -> float:
 
 func change_morale(tile_idx: int, delta: float) -> void:
 	var data = get_morale_data(tile_idx)
-	data["morale"] = clampf(data["morale"] + delta, 0.0, 100.0)
-	EventBus.message_log.emit("[color=cyan]据点 #%d 民心变化: %.0f[/color]" % [tile_idx, data["morale"]])
+	var old_morale: float = data["morale"]
+	data["morale"] = clampf(old_morale + delta, 0.0, 100.0)
+	var new_morale: float = data["morale"]
+	EventBus.message_log.emit("[color=cyan]据点 #%d 民心变化: %.0f[/color]" % [tile_idx, new_morale])
+	# 发射 EventBus 信号
+	if EventBus.has_signal("morale_changed"):
+		EventBus.morale_changed.emit(tile_idx, old_morale, new_morale)
+	# 检查叛乱风险
+	_check_rebellion_risk(tile_idx, new_morale)
 
 func change_corruption(tile_idx: int, delta: float) -> void:
 	var data = get_morale_data(tile_idx)
-	data["corruption"] = clampf(data["corruption"] + delta, 0.0, 100.0)
-	EventBus.message_log.emit("[color=orange]据点 #%d 腐败变化: %.0f[/color]" % [tile_idx, data["corruption"]])
+	var old_corruption: float = data["corruption"]
+	data["corruption"] = clampf(old_corruption + delta, 0.0, 100.0)
+	var new_corruption: float = data["corruption"]
+	EventBus.message_log.emit("[color=orange]据点 #%d 腐败变化: %.0f[/color]" % [tile_idx, new_corruption])
+	# 发射 EventBus 信号
+	if EventBus.has_signal("corruption_changed"):
+		EventBus.corruption_changed.emit(tile_idx, old_corruption, new_corruption)
+
+func _check_rebellion_risk(tile_idx: int, morale: float) -> void:
+	var risk_level: String = "low"
+	if morale < 20:
+		risk_level = "high"
+	elif morale < 35:
+		risk_level = "medium"
+	if EventBus.has_signal("rebellion_risk_changed"):
+		EventBus.rebellion_risk_changed.emit(tile_idx, risk_level)
 
 func get_production_multiplier(tile_idx: int) -> float:
 	var morale = get_morale(tile_idx)
@@ -115,8 +136,10 @@ func process_turn() -> void:
 	# 每回合自然变化
 	for tile_idx in _morale_data:
 		var data = _morale_data[tile_idx]
+		var old_morale: float = data["morale"]
+		var old_corruption: float = data["corruption"]
 		
-		# 民心自然恢复（向50靠拢）
+		# 民心自然恢复（向 50 靠拢）
 		if data["morale"] < 50:
 			data["morale"] = minf(data["morale"] + 1.0, 50.0)
 		elif data["morale"] > 50:
@@ -124,6 +147,15 @@ func process_turn() -> void:
 		
 		# 腐败自然增加（除非有反腐措施）
 		data["corruption"] = minf(data["corruption"] + 0.5, 100.0)
+		
+		# 发射变化信号（只在有明显变化时）
+		if abs(data["morale"] - old_morale) >= 1.0:
+			if EventBus.has_signal("morale_changed"):
+				EventBus.morale_changed.emit(tile_idx, old_morale, data["morale"])
+			_check_rebellion_risk(tile_idx, data["morale"])
+		if abs(data["corruption"] - old_corruption) >= 1.0:
+			if EventBus.has_signal("corruption_changed"):
+				EventBus.corruption_changed.emit(tile_idx, old_corruption, data["corruption"])
 
 func apply_morale_event(tile_idx: int, event_type: String) -> void:
 	# 根据事件类型改变民心

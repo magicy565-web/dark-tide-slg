@@ -2374,6 +2374,13 @@ func end_turn() -> void:
 	
 	if governance_system:
 		governance_system.process_turn()
+	# v1.2.0: 据点系统回合处理
+	if offensive_system:
+		offensive_system.process_turn()
+	if morale_corruption_system:
+		morale_corruption_system.process_turn()
+	if development_path_system:
+		development_path_system.process_turn()
 	# BUG FIX: bounds check before accessing players array
 	if players.is_empty() or current_player_index < 0 or current_player_index >= players.size():
 		return
