@@ -562,6 +562,40 @@ func get_player_by_id(player_id: int) -> Dictionary:
 	return {}
 
 
+## ── AP 统一管理接口 (FIX: 防止 UI 层直接修改 player["ap"]) ──
+
+## 检查指定玩家是否有足够的行动力。
+func check_ap(player_id: int, amount: int = 1) -> bool:
+	var p: Dictionary = get_player_by_id(player_id)
+	if p.is_empty():
+		return false
+	return p.get("ap", 0) >= amount
+
+
+## 消耗指定玩家的行动力，并发射 ap_changed 信号。
+## 返回 true 表示成功扣除，false 表示行动力不足。
+func spend_ap(player_id: int, amount: int = 1) -> bool:
+	var p: Dictionary = get_player_by_id(player_id)
+	if p.is_empty():
+		return false
+	var current: int = p.get("ap", 0)
+	if current < amount:
+		EventBus.message_log.emit("[color=red]行动力不足！[/color]")
+		return false
+	p["ap"] = current - amount
+	EventBus.ap_changed.emit(player_id, p["ap"])
+	return true
+
+
+## 为指定玩家恢复行动力（如回合开始时），并发射 ap_changed 信号。
+func restore_ap(player_id: int, amount: int) -> void:
+	var p: Dictionary = get_player_by_id(player_id)
+	if p.is_empty():
+		return
+	p["ap"] = clampi(p.get("ap", 0) + amount, 0, MAX_AP)
+	EventBus.ap_changed.emit(player_id, p["ap"])
+
+
 func sync_player_army(player_id: int) -> void:
 	## Sync player dict army_count/combat_power from ResourceManager.
 	var p: Dictionary = get_player_by_id(player_id)

@@ -280,23 +280,18 @@ func execute_domestic_action(tile_idx: int, action_id: String) -> Dictionary:
 	if cooldown > 0:
 		return {"success": false, "reason": "行动冷却中（%d 回合）" % cooldown}
 
-	# 检查行动力
+	# FIX: 先检查 AP 和资源，再统一通过 GameManager.spend_ap 扣除 AP
 	var ap_cost: int = action["cost"].get("ap", 0)
-	if GameManager.current_ap < ap_cost:
-		return {"success": false, "reason": "行动力不足"}
-
-	# 检查资源费用
 	var res_cost: Dictionary = {}
 	for k in action["cost"]:
 		if k != "ap":
 			res_cost[k] = action["cost"][k]
+	if ap_cost > 0 and not GameManager.check_ap(pid, ap_cost):
+		return {"success": false, "reason": "行动力不足"}
 	if not res_cost.is_empty() and not ResourceManager.can_afford(pid, res_cost):
 		return {"success": false, "reason": "资源不足"}
-
-	# 扣除费用
 	if ap_cost > 0:
-		GameManager.current_ap -= ap_cost
-		EventBus.ap_changed.emit(pid, GameManager.current_ap)
+		GameManager.spend_ap(pid, ap_cost)
 	if not res_cost.is_empty():
 		ResourceManager.spend(pid, res_cost)
 
@@ -441,9 +436,6 @@ func to_save_data() -> Dictionary:
 	return {"village_data": _village_data.duplicate(true)}
 
 func from_save_data(data: Dictionary) -> void:
-	# FIX: JSON round-trip converts int keys to strings; normalize them back to int
-	var raw: Dictionary = data.get("village_data", {}).duplicate(true)
-	_village_data.clear()
-	for k in raw:
-		var int_key: int = int(k) if typeof(k) == TYPE_STRING else k
-		_village_data[int_key] = raw[k]
+	# FIX: 使用 SaveManager.normalize_int_keys 递归修复 JSON 序列化后 int 键变 String 的问题
+	_village_data = SaveManager.normalize_int_keys(
+			data.get("village_data", {}).duplicate(true))

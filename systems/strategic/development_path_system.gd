@@ -286,8 +286,7 @@ func process_turn() -> void:
 	# 每回合增加发展点数
 	for tile_idx in _development_data:
 		var data = _development_data[tile_idx]
-		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-			continue
+		# FIX: 移除重复的边界检查（原来有两个相同的 if 检查）
 		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 			continue
 		var tile = GameManager.tiles[tile_idx]
@@ -317,9 +316,6 @@ func to_save_data() -> Dictionary:
 	}
 
 func from_save_data(data: Dictionary) -> void:
-	# FIX: JSON round-trip converts int keys to strings; normalize them back to int
-	var raw: Dictionary = data.get("development_data", {}).duplicate(true)
-	_development_data.clear()
-	for k in raw:
-		var int_key: int = int(k) if typeof(k) == TYPE_STRING else k
-		_development_data[int_key] = raw[k]
+	# FIX: 使用 SaveManager.normalize_int_keys 递归修复 JSON 序列化后 int 键变 String 的问题
+	_development_data = SaveManager.normalize_int_keys(
+			data.get("development_data", {}).duplicate(true))

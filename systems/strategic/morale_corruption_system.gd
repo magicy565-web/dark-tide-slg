@@ -193,9 +193,6 @@ func to_save_data() -> Dictionary:
 	}
 
 func from_save_data(data: Dictionary) -> void:
-	# FIX: JSON round-trip converts int keys to strings; normalize them back to int
-	var raw: Dictionary = data.get("morale_data", {}).duplicate(true)
-	_morale_data.clear()
-	for k in raw:
-		var int_key: int = int(k) if typeof(k) == TYPE_STRING else k
-		_morale_data[int_key] = raw[k]
+	# FIX: 使用 SaveManager.normalize_int_keys 递归修复 JSON 序列化后 int 键变 String 的问题
+	_morale_data = SaveManager.normalize_int_keys(
+			data.get("morale_data", {}).duplicate(true))

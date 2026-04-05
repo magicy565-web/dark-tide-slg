@@ -493,23 +493,84 @@ func get_development_summary(player_id: int) -> Dictionary:
 	return summary
 
 
+# ── 里程碑定义（从旧 development_path_system 迁移并精简）──
+# 触发条件基于新系统的建筑数量和路线，不再依赖独立的 development_points 计数器。
+const MILESTONES: Dictionary = {
+	"military_stronghold": {
+		"name": "军事强国",
+		"desc": "拥有 3 个以上军事路线地块",
+		"condition": {"path": DevPath.MILITARY, "min_tiles": 3},
+		"reward": {"atk_bonus": 1},
+	},
+	"economic_prosperity": {
+		"name": "商业繁荣",
+		"desc": "拥有 3 个以上经济路线地块",
+		"condition": {"path": DevPath.ECONOMIC, "min_tiles": 3},
+		"reward": {"gold_mult": 1.10},
+	},
+	"cultural_center": {
+		"name": "文化圣地",
+		"desc": "拥有 3 个以上文化路线地块",
+		"condition": {"path": DevPath.CULTURAL, "min_tiles": 3},
+		"reward": {"exp_mult": 1.15},
+	},
+}
+
+# 已解锁里程碑存储：{ player_id: Array[String] }
+var _unlocked_milestones: Dictionary = {}
+
+
+func check_and_unlock_milestones(player_id: int) -> Array:
+	## 检查并解锁满足条件的里程碑，返回本次新解锁的里程碑 ID 列表。
+	if not _unlocked_milestones.has(player_id):
+		_unlocked_milestones[player_id] = []
+	var newly_unlocked: Array = []
+	var summary: Dictionary = get_development_summary(player_id)
+	for mid in MILESTONES:
+		if mid in _unlocked_milestones[player_id]:
+			continue
+		var cond: Dictionary = MILESTONES[mid]["condition"]
+		var path_key: String = ""
+		match cond["path"]:
+			DevPath.MILITARY: path_key = "military"
+			DevPath.ECONOMIC: path_key = "economic"
+			DevPath.CULTURAL: path_key = "cultural"
+		if summary.get(path_key, 0) >= cond["min_tiles"]:
+			_unlocked_milestones[player_id].append(mid)
+			newly_unlocked.append(mid)
+			EventBus.message_log.emit("[color=gold]里程碑解锁: %s[/color]" % MILESTONES[mid]["name"])
+			if EventBus.has_signal("milestone_unlocked"):
+				EventBus.milestone_unlocked.emit(player_id, mid)
+	return newly_unlocked
+
+
+func get_milestone_rewards(player_id: int) -> Dictionary:
+	## 汇总指定玩家所有已解锁里程碑的奖励加成。
+	var rewards: Dictionary = {}
+	for mid in _unlocked_milestones.get(player_id, []):
+		var r: Dictionary = MILESTONES[mid].get("reward", {})
+		for k in r:
+			if not rewards.has(k):
+				rewards[k] = r[k]
+			elif typeof(r[k]) == TYPE_FLOAT or typeof(r[k]) == TYPE_INT:
+				rewards[k] = rewards[k] + r[k] - (1.0 if typeof(r[k]) == TYPE_FLOAT else 0)
+	return rewards
+
+
 # Save/Load support
 func to_save_data() -> Dictionary:
-	return {"tile_dev": _tile_dev.duplicate(true), "rebuilding_tiles": _rebuilding_tiles.duplicate(true)}
+	return {
+		"tile_dev": _tile_dev.duplicate(true),
+		"rebuilding_tiles": _rebuilding_tiles.duplicate(true),
+		"unlocked_milestones": _unlocked_milestones.duplicate(true),
+	}
 
 
 func from_save_data(data: Dictionary) -> void:
-	_tile_dev = data.get("tile_dev", {}).duplicate(true)
-	_rebuilding_tiles = data.get("rebuilding_tiles", {}).duplicate(true)
-	# Fix int keys after JSON round-trip (keys become strings)
-	var keys_to_fix: Array = []
-	for k in _tile_dev:
-		if k is String and k.is_valid_int():
-			keys_to_fix.append(k)
-	for k in keys_to_fix:
-		_tile_dev[int(k)] = _tile_dev[k]
-		_tile_dev.erase(k)
-	# Fix inner dict values after JSON round-trip (floats that should be ints)
+	# FIX: 使用 SaveManager.normalize_int_keys 递归修复 JSON 序列化后 int 键变 String 的问题
+	_tile_dev = SaveManager.normalize_int_keys(
+			data.get("tile_dev", {}).duplicate(true))
+	# 修复内层字段类型（JSON 将整数解析为 float）
 	for tile_key in _tile_dev:
 		var dev: Dictionary = _tile_dev[tile_key]
 		if dev.has("path"):
@@ -523,16 +584,14 @@ func from_save_data(data: Dictionary) -> void:
 							b[bk] = int(b[bk])
 				fixed_buildings.append(b)
 			dev["buildings"] = fixed_buildings
-	var rb_keys_to_fix: Array = []
-	for k in _rebuilding_tiles:
-		if k is String and k.is_valid_int():
-			rb_keys_to_fix.append(k)
-	for k in rb_keys_to_fix:
-		_rebuilding_tiles[int(k)] = _rebuilding_tiles[k]
-		_rebuilding_tiles.erase(k)
+	_rebuilding_tiles = SaveManager.normalize_int_keys(
+			data.get("rebuilding_tiles", {}).duplicate(true))
 	# FIX R2-A5: Cast rebuilding timer values to int (JSON parses numbers as float)
 	for idx in _rebuilding_tiles:
 		_rebuilding_tiles[idx] = int(_rebuilding_tiles[idx])
+	# 恢复里程碑解锁状态（player_id 键也需要转回 int）
+	_unlocked_milestones = SaveManager.normalize_int_keys(
+			data.get("unlocked_milestones", {}).duplicate(true))
 
 
 func _get_tile_level(tile_idx: int) -> int:

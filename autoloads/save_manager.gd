@@ -510,13 +510,17 @@ func _apply_save_data(data: Dictionary) -> void:
 		PrestigeShop.from_save_data(data.get("prestige_shop", {}))
 	if data.has("ngplus_shop") and NGPlusShop != null:
 		NGPlusShop.from_save_data(data.get("ngplus_shop", {}))
-	# v1.2.0 据点系统存档恢复
-	if data.has("stronghold_governance") and GameManager.governance_system != null:
-		GameManager.governance_system.from_save_data(data.get("stronghold_governance", {}))
-	if data.has("stronghold_morale") and GameManager.morale_corruption_system != null:
-		GameManager.morale_corruption_system.from_save_data(data.get("stronghold_morale", {}))
-	if data.has("stronghold_development") and GameManager.development_path_system != null:
-		GameManager.development_path_system.from_save_data(data.get("stronghold_development", {}))
+		# v1.2.0 据点系统存档恢复
+		if data.has("stronghold_governance") and GameManager.governance_system != null:
+			GameManager.governance_system.from_save_data(data.get("stronghold_governance", {}))
+		if data.has("stronghold_morale") and GameManager.morale_corruption_system != null:
+			GameManager.morale_corruption_system.from_save_data(data.get("stronghold_morale", {}))
+		# FIX: stronghold_development (旧系统) 已废弃，仅保留向后兼容加载。
+		# 旧存档的 development_path_system 状态不再写入任何子系统，防止覆盖新系统的 tile_development 数据。
+		# 如需迁移旧存档数据，请在 _migrate_4_1_to_4_2 中处理。
+		if data.has("stronghold_development") and GameManager.development_path_system != null:
+			push_warning("SaveManager: stronghold_development 已废弃，跳过加载。请迁移到 tile_development。")
+			# 仅保留字段以防止旧存档崩溃，不写入任何子系统
 	# v1.3.0 洞穴/村庄/要塞系统存档恢复
 	if data.has("stronghold_cave") and GameManager.cave_system != null:
 		GameManager.cave_system.from_save_data(data.get("stronghold_cave", {}))
@@ -782,6 +786,24 @@ func _migrate_4_1_to_4_2(data: Dictionary) -> Dictionary:
 
 
 # ═══════════════ HELPERS ═══════════════
+
+## 将字典中所有可解析为整数的 String 键递归转换为 int 键。
+## 用于修复 JSON 序列化后 int 键变成 String 的问题（Godot 4 JSON 规范要求键必须为 String）。
+## depth_limit: 最大递归深度，防止意外的深层嵌套导致栈溢出；默认 3 层。
+static func normalize_int_keys(d: Dictionary, depth_limit: int = 3) -> Dictionary:
+	if depth_limit <= 0:
+		return d
+	var result: Dictionary = {}
+	for k in d:
+		var new_key = k
+		if k is String and k.is_valid_int():
+			new_key = int(k)
+		var val = d[k]
+		if val is Dictionary:
+			val = normalize_int_keys(val, depth_limit - 1)
+		result[new_key] = val
+	return result
+
 
 func _find_troop_training_panel():
 	## Locate the TroopTrainingPanel node in the scene tree.

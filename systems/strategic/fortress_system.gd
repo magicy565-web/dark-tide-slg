@@ -287,10 +287,11 @@ func issue_garrison_order(tile_idx: int, order_id: String) -> Dictionary:
 	# 一次性行动（有 cost 字段）
 	if order.has("cost"):
 		var cost = order["cost"]
+		# FIX: 先检查所有费用，再统一通过 GameManager.spend_ap 扣除 AP
 		var ap_cost: int = cost.get("ap", 0)
-		if GameManager.current_ap < ap_cost:
-			return {"success": false, "reason": "行动力不足"}
 		var garrison_cost: int = cost.get("garrison", 0)
+		if ap_cost > 0 and not GameManager.check_ap(pid, ap_cost):
+			return {"success": false, "reason": "行动力不足"}
 		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 			return
 		var tile = GameManager.tiles[tile_idx]
@@ -304,8 +305,7 @@ func issue_garrison_order(tile_idx: int, order_id: String) -> Dictionary:
 			return {"success": false, "reason": "资源不足"}
 
 		if ap_cost > 0:
-			GameManager.current_ap -= ap_cost
-			EventBus.ap_changed.emit(pid, GameManager.current_ap)
+			GameManager.spend_ap(pid, ap_cost)
 		if garrison_cost > 0:
 			tile["garrison"] -= garrison_cost
 		if not res_cost.is_empty():
@@ -437,9 +437,6 @@ func to_save_data() -> Dictionary:
 	return {"fortress_data": _fortress_data.duplicate(true)}
 
 func from_save_data(data: Dictionary) -> void:
-	# FIX: JSON round-trip converts int keys to strings; normalize them back to int
-	var raw: Dictionary = data.get("fortress_data", {}).duplicate(true)
-	_fortress_data.clear()
-	for k in raw:
-		var int_key: int = int(k) if typeof(k) == TYPE_STRING else k
-		_fortress_data[int_key] = raw[k]
+	# FIX: 使用 SaveManager.normalize_int_keys 递归修复 JSON 序列化后 int 键变 String 的问题
+	_fortress_data = SaveManager.normalize_int_keys(
+			data.get("fortress_data", {}).duplicate(true))

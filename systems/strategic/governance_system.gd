@@ -190,14 +190,10 @@ func _check_and_spend_cost(cost: Dictionary) -> bool:
 			return false
 		ResourceManager.remove_army(pid, garrison_cost)
 	
-	# AP cost
+	# AP cost — FIX: 统一使用 GameManager.spend_ap 封装扣除，避免直接操作 current_ap
 	if cost.has("ap") and cost["ap"] > 0:
-		if GameManager.current_ap < cost["ap"]:
-			EventBus.message_log.emit("[color=red]行动力不足！[/color]")
+		if not GameManager.spend_ap(pid, cost["ap"]):
 			return false
-		var pid_ap = GameManager.get_human_player_id()
-		GameManager.current_ap -= cost["ap"]
-		EventBus.ap_changed.emit(pid_ap, GameManager.current_ap)
 		
 	return true
 
@@ -282,12 +278,10 @@ func to_save_data() -> Dictionary:
 	}
 
 func from_save_data(data: Dictionary) -> void:
-	# FIX: JSON round-trip converts int keys to strings; normalize them back to int
-	var raw: Dictionary = data.get("tile_governance", {}).duplicate(true)
-	_tile_governance.clear()
-	for k in raw:
-		var int_key: int = int(k) if typeof(k) == TYPE_STRING else k
-		_tile_governance[int_key] = raw[k]
+	# FIX: 使用 SaveManager.normalize_int_keys 递归修复 JSON 序列化后 int 键变 String 的问题
+	# 包括 active_policies 字典内层的嵌套键也一并修复
+	_tile_governance = SaveManager.normalize_int_keys(
+			data.get("tile_governance", {}).duplicate(true))
 
 func reset() -> void:
 	_tile_governance.clear()

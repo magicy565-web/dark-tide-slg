@@ -220,77 +220,119 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 						income["food"] -= int(float(f) * sab_penalty)
 						income["iron"] -= int(float(ir) * sab_penalty)
 
-	# ── Tile synergy bonuses from TileDevelopment ──
+	# ── 全局加成阶段（将各子系统特殊逻辑提取为独立函数，主函数仅负责汇总调用）──
+	_apply_tile_synergy(income, player_id)
+	_apply_supply_depot_upkeep(income, player_id)
+	_cache_global_building_effects(player_id)
+	_apply_stronghold_prestige(income, player_id)
+	_apply_slave_income(income, player_id, faction_id, params)
+	_apply_npc_bonuses(income, player_id)
+	_apply_relic_multipliers(income, player_id)
+	_apply_crystal_efficiency(income, player_id)
+	_apply_buff_multipliers(income, player_id)
+	_apply_quest_recruit_bonuses(income, player_id)
+	_apply_weather_modifiers(income)
+	_apply_difficulty_scaling(income, player_id)
+
+	return income
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 全局加成段私有函数——每个函数只负责一个子系统的加成逻辑
+# ─────────────────────────────────────────────────────────────────────────────
+
+func _apply_tile_synergy(income: Dictionary, player_id: int) -> void:
+	## 全局地块路线协同加成（来自 TileDevelopment）
 	var synergy: Dictionary = TileDevelopment.get_global_synergy_bonuses(player_id)
 	if synergy.get("gold_mult", 1.0) != 1.0:
 		income["gold"] = int(float(income["gold"]) * synergy["gold_mult"])
+	# 里程碑奖励加成（如有）
+	var milestone_rewards: Dictionary = TileDevelopment.get_milestone_rewards(player_id)
+	if milestone_rewards.get("gold_mult", 1.0) != 1.0:
+		income["gold"] = int(float(income["gold"]) * milestone_rewards["gold_mult"])
 
-	# ── Supply depot upkeep ──
-	if Engine.get_main_loop() is SceneTree:
-		var _depot_root: Node = (Engine.get_main_loop() as SceneTree).root
-		if _depot_root.has_node("SupplySystem"):
-			var ss: Node = _depot_root.get_node("SupplySystem")
-			if ss.has_method("get_depot_count"):
-				var depot_count: int = ss.get_depot_count(player_id)
-				income["gold"] -= depot_count * BalanceConfig.SUPPLY_DEPOT_UPKEEP_GOLD
-			else:
-				# Fallback: count depots from internal dict if method not available
-				var depot_dict: Dictionary = ss.get("_supply_depots") if ss.get("_supply_depots") != null else {}
-				var depot_count: int = 0
-				for _tidx in depot_dict:
-					if depot_dict[_tidx] == player_id:
-						depot_count += 1
-				income["gold"] -= depot_count * BalanceConfig.SUPPLY_DEPOT_UPKEEP_GOLD
 
-	# ── Global building effects (recruit_discount, supply_penalty_reduction) ──
+func _apply_supply_depot_upkeep(income: Dictionary, player_id: int) -> void:
+	## 补给站维护费用扣除
+	if not (Engine.get_main_loop() is SceneTree):
+		return
+	var root: Node = (Engine.get_main_loop() as SceneTree).root
+	if not root.has_node("SupplySystem"):
+		return
+	var ss: Node = root.get_node("SupplySystem")
+	var depot_count: int = 0
+	if ss.has_method("get_depot_count"):
+		depot_count = ss.get_depot_count(player_id)
+	else:
+		# Fallback: count depots from internal dict if method not available
+		var depot_dict: Dictionary = ss.get("_supply_depots") if ss.get("_supply_depots") != null else {}
+		for _tidx in depot_dict:
+			if depot_dict[_tidx] == player_id:
+				depot_count += 1
+	income["gold"] -= depot_count * BalanceConfig.SUPPLY_DEPOT_UPKEEP_GOLD
+
+
+func _cache_global_building_effects(player_id: int) -> void:
+	## 更新全局建筑效果缓存（征兵折扣、补给惩罚减免）
 	var global_bld: Dictionary = BuildingRegistry.get_all_player_building_effects(player_id)
 	cached_recruit_discount = int(global_bld.get("recruit_discount", 0))
 	cached_supply_penalty_reduction = int(global_bld.get("supply_penalty_reduction", 0))
 
-	# ── Prestige from strongholds ──
+
+func _apply_stronghold_prestige(income: Dictionary, player_id: int) -> void:
+	## 据点威望收益
 	var strongholds_owned: int = GameManager.count_strongholds_owned(player_id)
 	income["prestige"] += strongholds_owned * FactionData.PRESTIGE_SOURCES["own_stronghold_per_turn"]
 
-	# ── Dark Elf slave allocation income ──
-	if faction_id == FactionData.FactionID.DARK_ELF:
-		var alloc: Dictionary = SlaveManager.get_allocation(player_id)
-		var efficiency: float = SlaveManager.get_efficiency_mult(player_id)
-		# BUG FIX R12: add missing gold income from slave miners (+0.5 gold per slave)
-		income["gold"] += int(float(alloc.get("mine", 0)) * 0.5 * efficiency)
-		income["iron"] += int(float(alloc.get("mine", 0)) * float(params["slave_mine_iron_per_turn"]) * efficiency)
-		income["food"] += int(float(alloc.get("farm", 0)) * float(params["slave_farm_food_per_turn"]) * efficiency)
-		# Altar: global atk bonus handled in SlaveManager tick
 
-	# ── NPC bonuses ──
+func _apply_slave_income(income: Dictionary, player_id: int, faction_id: int, params: Dictionary) -> void:
+	## 暗精灵奴隶分配收益（仅对暗精灵阵营生效）
+	if faction_id != FactionData.FactionID.DARK_ELF:
+		return
+	var alloc: Dictionary = SlaveManager.get_allocation(player_id)
+	var efficiency: float = SlaveManager.get_efficiency_mult(player_id)
+	# BUG FIX R12: add missing gold income from slave miners (+0.5 gold per slave)
+	income["gold"] += int(float(alloc.get("mine", 0)) * 0.5 * efficiency)
+	income["iron"] += int(float(alloc.get("mine", 0)) * float(params["slave_mine_iron_per_turn"]) * efficiency)
+	income["food"] += int(float(alloc.get("farm", 0)) * float(params["slave_farm_food_per_turn"]) * efficiency)
+	# Altar: global atk bonus handled in SlaveManager tick
+
+
+func _apply_npc_bonuses(income: Dictionary, player_id: int) -> void:
+	## NPC 技能收益加成
 	var npc_bonuses: Dictionary = NpcManager.get_active_skill_bonuses(player_id)
 	income["gold"] += npc_bonuses.get("gold_per_turn", 0)
 	income["food"] += npc_bonuses.get("food_per_turn", 0)
 	income["iron"] += npc_bonuses.get("iron_per_turn", 0)
 
-	# ── Relic multipliers ──
+
+func _apply_relic_multipliers(income: Dictionary, player_id: int) -> void:
+	## 遗物乘区加成（黄金、阵营属性资源）
 	var relic_gold_mult: float = RelicManager.get_gold_income_mult(player_id)
 	if relic_gold_mult != 1.0:
 		income["gold"] = int(float(income["gold"]) * relic_gold_mult)
-
-	# ── Faction resource relic bonus (ancient_totem: applies to faction-specific resources) ──
 	var faction_res_mult: float = RelicManager.get_faction_resource_mult(player_id)
 	if faction_res_mult != 1.0:
 		income["slaves"] = int(float(income["slaves"]) * faction_res_mult)
 		income["shadow_essence"] = int(float(income["shadow_essence"]) * faction_res_mult)
 		income["magic_crystal"] = int(float(income["magic_crystal"]) * faction_res_mult)
 
-	# ── Crystal efficiency bonus (Arcane Institute Lv2): multiply magic_crystal income ──
+
+func _apply_crystal_efficiency(income: Dictionary, player_id: int) -> void:
+	## 奥术研究所 Lv2 魔晶效率加成
+	var global_bld: Dictionary = BuildingRegistry.get_all_player_building_effects(player_id)
 	var crystal_eff: float = float(global_bld.get("crystal_efficiency", 1.0))
 	if crystal_eff > 1.0 and income["magic_crystal"] > 0:
 		income["magic_crystal"] = int(float(income["magic_crystal"]) * crystal_eff)
 
-	# ── Buff production multiplier ──
+
+func _apply_buff_multipliers(income: Dictionary, player_id: int) -> void:
+	## Buff 系统乘区加成（生产加成 buff 和收益百分比 debuff）
 	var buff_prod_mult: float = BuffManager.get_production_multiplier(player_id)
 	if buff_prod_mult != 1.0:
 		income["gold"] = int(float(income["gold"]) * buff_prod_mult)
 		income["food"] = int(float(income["food"]) * buff_prod_mult)
 		income["iron"] = int(float(income["iron"]) * buff_prod_mult)
-
 	# v0.8.7: income_pct debuff (e.g. elf_curse: -20% for 3 turns)
 	var _raw_income_pct = BuffManager.get_buff_value(player_id, "income_pct")
 	var income_pct_mod: float = float(_raw_income_pct) if _raw_income_pct != null else 0.0
@@ -300,7 +342,9 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		income["food"] = int(float(income["food"]) * mult)
 		income["iron"] = int(float(income["iron"]) * mult)
 
-	# ── Neutral faction recruitment bonuses ──
+
+func _apply_quest_recruit_bonuses(income: Dictionary, player_id: int) -> void:
+	## 中立阵营外交奖励加成
 	var recruit_bonuses: Dictionary = QuestManager.get_recruitment_bonuses(player_id)
 	if recruit_bonuses.get("gold_per_turn", 0) > 0:
 		income["gold"] += recruit_bonuses["gold_per_turn"]
@@ -312,18 +356,23 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 	if iron_bonus_pct > 0.0:
 		income["iron"] = int(float(income["iron"]) * (1.0 + iron_bonus_pct))
 
-	# ── Weather & Season production modifiers ──
-	if Engine.get_main_loop() is SceneTree:
-		var root: Node = (Engine.get_main_loop() as SceneTree).root
-		if root.has_node("WeatherSystem"):
-			var ws: Node = root.get_node("WeatherSystem")
-			var weather_mods: Dictionary = ws.get_production_modifiers()
-			income["gold"] = int(float(income["gold"]) * weather_mods.get("gold_mult", 1.0))
-			income["food"] = int(float(income["food"]) * weather_mods.get("food_mult", 1.0))
-			income["iron"] = int(float(income["iron"]) * weather_mods.get("iron_mult", 1.0))
 
-	# ── Difficulty scaling ──
-	# Human player gets player_income_mult; AI players get inverse scaling (higher on hard)
+func _apply_weather_modifiers(income: Dictionary) -> void:
+	## 天气/季节产出修正
+	if not (Engine.get_main_loop() is SceneTree):
+		return
+	var root: Node = (Engine.get_main_loop() as SceneTree).root
+	if not root.has_node("WeatherSystem"):
+		return
+	var ws: Node = root.get_node("WeatherSystem")
+	var weather_mods: Dictionary = ws.get_production_modifiers()
+	income["gold"] = int(float(income["gold"]) * weather_mods.get("gold_mult", 1.0))
+	income["food"] = int(float(income["food"]) * weather_mods.get("food_mult", 1.0))
+	income["iron"] = int(float(income["iron"]) * weather_mods.get("iron_mult", 1.0))
+
+
+func _apply_difficulty_scaling(income: Dictionary, player_id: int) -> void:
+	## 难度系数缩放（人类玩家和 AI 分别处理）
 	var is_human: bool = (player_id == GameManager.get_human_player_id())
 	if is_human:
 		var player_mult: float = BalanceManager.get_player_income_mult()
@@ -339,8 +388,6 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 			income["gold"] = int(float(income["gold"]) * ai_mult)
 			income["food"] = int(float(income["food"]) * ai_mult)
 			income["iron"] = int(float(income["iron"]) * ai_mult)
-
-	return income
 
 
 func get_tile_order_multiplier(order: float) -> float:

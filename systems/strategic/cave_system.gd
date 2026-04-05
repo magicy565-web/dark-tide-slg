@@ -152,13 +152,9 @@ func explore(tile_idx: int) -> Dictionary:
 	if data["explore_cooldown"] > 0:
 		return {"success": false, "reason": "探索冷却中（%d 回合）" % data["explore_cooldown"]}
 
-	# 检查行动力
-	if GameManager.current_ap < 1:
+	# FIX: 使用 GameManager.spend_ap 统一封装 AP 扣除
+	if not GameManager.spend_ap(pid, 1):
 		return {"success": false, "reason": "行动力不足"}
-
-	# 消耗行动力
-	GameManager.current_ap -= 1
-	EventBus.ap_changed.emit(pid, GameManager.current_ap)
 
 	# 触发随机事件
 	var event = _pick_explore_event(data["level"])
@@ -442,9 +438,6 @@ func to_save_data() -> Dictionary:
 	return {"cave_data": _cave_data.duplicate(true)}
 
 func from_save_data(data: Dictionary) -> void:
-	# FIX: JSON round-trip converts int keys to strings; normalize them back to int
-	var raw: Dictionary = data.get("cave_data", {}).duplicate(true)
-	_cave_data.clear()
-	for k in raw:
-		var int_key: int = int(k) if typeof(k) == TYPE_STRING else k
-		_cave_data[int_key] = raw[k]
+	# FIX: 使用 SaveManager.normalize_int_keys 递归修复 JSON 序列化后 int 键变 String 的问题
+	_cave_data = SaveManager.normalize_int_keys(
+			data.get("cave_data", {}).duplicate(true))

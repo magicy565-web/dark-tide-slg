@@ -391,17 +391,11 @@ func _on_path_selected(path: int) -> void:
 func _on_confirm_yes() -> void:
 	confirm_overlay.visible = false
 	if _pending_path >= 0 and _tile_idx >= 0:
-		# BUG FIX: Choosing a development path should cost 1 AP.
-		# Previously choose_path() was called without any AP check or deduction.
+		# FIX: 使用 GameManager.spend_ap 统一封装 AP 扣除，避免 UI 层直接修改 player["ap"]
 		var pid: int = GameManager.get_human_player_id()
-		var player: Dictionary = GameManager.get_player_by_id(pid)
-		if not player.is_empty() and player.get("ap", 0) >= 1:
+		if GameManager.spend_ap(pid, 1):
 			TileDevelopment.choose_path(_tile_idx, _pending_path)
-			player["ap"] -= 1
-			EventBus.ap_changed.emit(pid, player["ap"])
 			EventBus.message_log.emit("[color=cyan]已选择发展路线: %s (消耗 1 AP)[/color]" % TileDevelopment.get_path_name(_pending_path))
-		else:
-			EventBus.message_log.emit("[color=red]行动力不足，无法选择发展路线![/color]")
 	_pending_path = -1
 
 
@@ -417,19 +411,15 @@ func _on_build_pressed(building_id: String) -> void:
 	if not check["can"]:
 		return
 	var pid: int = GameManager.get_human_player_id()
-	# BUG FIX: Building a tile development building should cost 1 AP.
-	# Previously resources were spent but AP was never checked or deducted,
-	# allowing unlimited free builds per turn.
-	var player: Dictionary = GameManager.get_player_by_id(pid)
-	if player.is_empty() or player.get("ap", 0) < 1:
+	# FIX: 先检查 AP，再检查资源，最后统一通过 GameManager.spend_ap 扣除 AP
+	if not GameManager.check_ap(pid, 1):
 		EventBus.message_log.emit("[color=red]行动力不足，无法建造![/color]")
 		return
 	if not ResourceManager.can_afford(pid, {"gold": check["cost_gold"], "iron": check["cost_iron"]}):
 		EventBus.message_log.emit("[color=red]资源不足，无法建造![/color]")
 		return
 	ResourceManager.spend(pid, {"gold": check["cost_gold"], "iron": check["cost_iron"]})
-	player["ap"] -= 1
-	EventBus.ap_changed.emit(pid, player["ap"])
+	GameManager.spend_ap(pid, 1)
 	TileDevelopment.build(_tile_idx, building_id, true)  # skip_cost_check: 费用已在此处处理
 	EventBus.message_log.emit("[color=cyan]建造完成 (消耗 1 AP)[/color]")
 
