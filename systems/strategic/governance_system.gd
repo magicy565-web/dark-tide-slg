@@ -228,3 +228,14 @@ func get_policy_modifiers(tile_idx: int) -> Dictionary:
 		if effects.has("order_freeze"): mods["order_freeze"] = mods["order_freeze"] or effects["order_freeze"]
 		if effects.has("build_discount"): mods["build_discount"] = maxf(mods["build_discount"], effects["build_discount"])
 	return mods
+
+func to_save_data() -> Dictionary:
+	return {
+		"tile_governance": _tile_governance.duplicate(true),
+	}
+
+func from_save_data(data: Dictionary) -> void:
+	_tile_governance = data.get("tile_governance", {}).duplicate(true)
+
+func reset() -> void:
+	_tile_governance.clear()

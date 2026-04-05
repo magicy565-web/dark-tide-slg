@@ -256,6 +256,10 @@ func _collect_save_data() -> Dictionary:
 		# v4.7 新增系统
 		"prestige_shop": PrestigeShop.to_save_data() if PrestigeShop != null else {},
 		"ngplus_shop": NGPlusShop.to_save_data() if NGPlusShop != null else {},
+		# v1.2.0 据点系统
+		"stronghold_governance": GameManager.governance_system.to_save_data() if GameManager.governance_system != null else {},
+		"stronghold_morale": GameManager.morale_corruption_system.to_save_data() if GameManager.morale_corruption_system != null else {},
+		"stronghold_development": GameManager.development_path_system.to_save_data() if GameManager.development_path_system != null else {},
 	}
 
 
@@ -490,6 +494,13 @@ func _apply_save_data(data: Dictionary) -> void:
 		PrestigeShop.from_save_data(data.get("prestige_shop", {}))
 	if data.has("ngplus_shop") and NGPlusShop != null:
 		NGPlusShop.from_save_data(data.get("ngplus_shop", {}))
+	# v1.2.0 据点系统存档恢复
+	if data.has("stronghold_governance") and GameManager.governance_system != null:
+		GameManager.governance_system.from_save_data(data.get("stronghold_governance", {}))
+	if data.has("stronghold_morale") and GameManager.morale_corruption_system != null:
+		GameManager.morale_corruption_system.from_save_data(data.get("stronghold_morale", {}))
+	if data.has("stronghold_development") and GameManager.development_path_system != null:
+		GameManager.development_path_system.from_save_data(data.get("stronghold_development", {}))
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
 	EventBus.resources_changed.emit(pid)
