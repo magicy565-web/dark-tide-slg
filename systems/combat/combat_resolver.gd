@@ -640,9 +640,11 @@ func _assign_to_slots(raw_units: Array, player_id: int, side: String, tile: Dict
 	# Enforce slot limits: front max 3, back max 3
 	# Overflow front → back, overflow back → front
 	while front_units.size() > FRONT_SLOTS and back_units.size() < BACK_SLOTS:
-		back_units.append(front_units.pop_back())
+		if not front_units.is_empty():
+			back_units.append(front_units.pop_back())
 	while back_units.size() > BACK_SLOTS and front_units.size() < FRONT_SLOTS:
-		front_units.append(back_units.pop_back())
+		if not back_units.is_empty():
+			front_units.append(back_units.pop_back())
 	# BUG FIX R11: if both rows still exceed limits, truncate to prevent silent unit loss
 	if front_units.size() > FRONT_SLOTS:
 		push_warning("CombatResolver: truncating %d excess front units" % (front_units.size() - FRONT_SLOTS))

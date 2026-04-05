@@ -2231,7 +2231,7 @@ func _build_inter_tile_decorations() -> void:
 		if ti >= GameManager.tiles.size():
 			continue
 		if ti < 0 or ti >= GameManager.tiles.size():
-			return
+			continue
 		var ta: Dictionary = GameManager.tiles[ti]
 		for ni in GameManager.adjacency[ti]:
 			if ni <= ti or ni >= GameManager.tiles.size():
@@ -2242,7 +2242,7 @@ func _build_inter_tile_decorations() -> void:
 			if randf() > 0.30:
 				continue
 			if ni < 0 or ni >= GameManager.tiles.size():
-				return
+				continue
 			var tb: Dictionary = GameManager.tiles[ni]
 			var pa: Vector3 = ta["position_3d"]
 			var pb: Vector3 = tb["position_3d"]
@@ -3866,7 +3866,7 @@ func _take_turn_snapshot() -> void:
 	var visible_armies: Array = []
 	for aid in GameManager.armies:
 		if not GameManager.armies.has(aid):
-			return
+			continue
 		var a: Dictionary = GameManager.armies[aid]
 		if a["player_id"] != pid and GameManager.is_revealed_for(a["tile_index"], pid):
 			visible_armies.append({"id": aid, "tile": a["tile_index"], "name": a.get("name", "")})
@@ -3925,7 +3925,7 @@ func _show_turn_summary() -> void:
 	var current_vis: Array = []
 	for aid in GameManager.armies:
 		if not GameManager.armies.has(aid):
-			return
+			continue
 		var a: Dictionary = GameManager.armies[aid]
 		if a["player_id"] != pid and GameManager.is_revealed_for(a["tile_index"], pid):
 			current_vis.append({"id": aid, "tile": a["tile_index"], "name": a.get("name", "")})
@@ -4091,7 +4091,7 @@ class MinimapDrawControl:
 		# Draw player armies as white diamonds
 		for aid in GameManager.armies:
 			if not GameManager.armies.has(aid):
-				return
+				continue
 			var army: Dictionary = GameManager.armies[aid]
 			var ti: int = army["tile_index"]
 			if ti < 0 or ti >= GameManager.tiles.size():

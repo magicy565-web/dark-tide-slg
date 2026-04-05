@@ -260,9 +260,9 @@ func _enemy_army_on_tile(tile_idx: int, player_id: int) -> int:
 	## Returns the id of an enemy army at tile_idx, or -1.
 	for aid in GameManager.armies:
 		if not GameManager.armies.has(aid):
-			return
+			continue
 		if not GameManager.armies.has(aid):
-			return
+			continue
 		var a: Dictionary = GameManager.armies[aid]
 		if a.get("player_id", -1) == player_id:
 			continue
@@ -741,7 +741,7 @@ func _trigger_trade_route(player_id: int, depots: Array) -> void:
 		if d.get("connected_to", []).size() > 0:
 			connected_depots.append(d["tile_idx"])
 	if connected_depots.is_empty():
-		return
+		continue
 	var evt: Dictionary = {
 		"event_id": _next_event_id,
 		"type": "trade_route",
@@ -960,7 +960,7 @@ func _on_tile_lost(player_id: int, _tile_index: int) -> void:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[tidx]
 		if tile == null or tile.get("owner_id", -1) != _depots[tidx]["owner_id"]:
 			to_erase.append(tidx)

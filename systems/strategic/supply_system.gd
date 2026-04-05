@@ -406,7 +406,7 @@ func apply_isolation_penalties(player_id: int) -> void:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[tidx]
 		if tile == null:
 			continue

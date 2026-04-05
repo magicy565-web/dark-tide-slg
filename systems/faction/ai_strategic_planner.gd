@@ -211,7 +211,7 @@ func predict_player_next_target(faction_key: String) -> int:
 			if nb_idx >= GameManager.tiles.size():
 				continue
 			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-				return
+				continue
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] < 0 and AIScaling._tile_belongs_to_faction(nb, faction_key):
 				adj_candidates[nb_idx] = adj_candidates.get(nb_idx, 0) + 1
@@ -344,7 +344,7 @@ func select_raid_target(faction_key: String, source_tiles: Array) -> Dictionary:
 			if nb_idx >= GameManager.tiles.size():
 				continue
 			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-				return
+				continue
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] < 0:
 				continue
@@ -425,7 +425,7 @@ func select_weakest_adjacent_target(faction_key: String) -> Dictionary:
 			if nb_idx >= GameManager.tiles.size():
 				continue
 			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-				return
+				continue
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] < 0:
 				continue
@@ -579,7 +579,7 @@ func reinforce_threatened_border(faction_key: String) -> void:
 			if nb_idx >= GameManager.tiles.size():
 				continue
 			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-				return
+				continue
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] < 0 and AIScaling._tile_belongs_to_faction(nb, faction_key):
 				if nb_idx not in reinforce_targets:
@@ -1424,7 +1424,7 @@ func should_retreat(faction_key: String, tile_index: int) -> bool:
 		if nb_idx >= GameManager.tiles.size():
 			continue
 		if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-			return
+			continue
 		var nb: Dictionary = GameManager.tiles[nb_idx]
 		if nb["owner_id"] >= 0:
 			enemy_force += nb.get("garrison", 0) * 8
@@ -1457,7 +1457,7 @@ func find_retreat_tile(faction_key: String, tile_index: int) -> int:
 		if nb_idx >= GameManager.tiles.size():
 			continue
 		if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-			return
+			continue
 		var nb: Dictionary = GameManager.tiles[nb_idx]
 		if nb["owner_id"] >= 0:
 			continue

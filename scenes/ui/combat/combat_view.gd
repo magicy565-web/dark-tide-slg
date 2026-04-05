@@ -3073,7 +3073,7 @@ func _show_loot_results() -> void:
 		c.queue_free()
 	var loot: Array = _battle_state.get("loot", [])
 	if loot.is_empty():
-		return
+		continue
 	var title_lbl := Label.new()
 	title_lbl.text = "-- Loot --"
 	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -3666,7 +3666,7 @@ func _update_buff_stack_badges(side: String, slot_idx: int) -> void:
 			child.queue_free()
 
 	if not _buff_stacks.has(side) or not _buff_stacks[side].has(slot_idx):
-		return
+		continue
 	var stacks: Dictionary = _buff_stacks[side][slot_idx]
 	var badge_x := 4.0
 	for buff_key in stacks.keys():

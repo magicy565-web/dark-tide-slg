@@ -203,7 +203,7 @@ func _execute_formation_shift(state: Dictionary, slots: Variant, combat_log: Arr
 		if u["slot"] == slot_b and u["is_alive"]:
 			unit_b = u
 	if unit_a.is_empty() or unit_b.is_empty():
-		return
+		continue
 	if unit_a.get("immovable", false) or unit_b.get("immovable", false):
 		combat_log.append("[color=red]不可移动单位无法交换位置![/color]")
 		return

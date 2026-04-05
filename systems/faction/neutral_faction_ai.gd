@@ -53,7 +53,7 @@ func init_neutral_territories() -> void:
 				if nb_idx >= GameManager.tiles.size():
 					continue
 				if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-					return
+					continue
 				var nb: Dictionary = GameManager.tiles[nb_idx]
 				# Only claim unowned tiles that aren't other neutral bases or core fortresses
 				if nb.get("owner_id", -1) < 0 and nb.get("light_faction", -1) < 0 \
@@ -139,7 +139,7 @@ func _reinforce_garrisons(nf_id: int, state: Dictionary) -> void:
 		if t_idx < 0 or t_idx >= GameManager.tiles.size():
 			continue
 		if t_idx < 0 or t_idx >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[t_idx]
 		# Only reinforce tiles still belonging to this neutral faction
 		if tile.get("owner_id", -1) >= 0:
@@ -169,7 +169,7 @@ func _patrol_territory(nf_id: int, state: Dictionary) -> void:
 		if t_idx < 0 or t_idx >= GameManager.tiles.size():
 			continue
 		if t_idx < 0 or t_idx >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[t_idx]
 		if tile.get("owner_id", -1) >= 0 or tile.get("neutral_faction_id", -1) != nf_id:
 			continue
@@ -180,7 +180,7 @@ func _patrol_territory(nf_id: int, state: Dictionary) -> void:
 				if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
 					continue
 				if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-					return
+					continue
 				var nb: Dictionary = GameManager.tiles[nb_idx]
 				if nb.get("owner_id", -1) >= 0:
 					threat += 1
@@ -291,7 +291,7 @@ func get_vassal_production(player_id: int) -> Dictionary:
 			if t_idx < 0 or t_idx >= GameManager.tiles.size():
 				continue
 			if t_idx < 0 or t_idx >= GameManager.tiles.size():
-				return
+				continue
 			var tile: Dictionary = GameManager.tiles[t_idx]
 			if tile.get("owner_id", -1) >= 0:
 				continue  # tile captured by a player, skip
@@ -321,7 +321,7 @@ func get_vassal_production(player_id: int) -> Dictionary:
 			if t_idx < 0 or t_idx >= GameManager.tiles.size():
 				continue
 			if t_idx < 0 or t_idx >= GameManager.tiles.size():
-				return
+				continue
 			var tile: Dictionary = GameManager.tiles[t_idx]
 			if tile.get("owner_id", -1) >= 0:
 				continue

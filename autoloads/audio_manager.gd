@@ -436,8 +436,9 @@ func play_sfx(sfx_id: int) -> void:
 			return
 
 	# All busy, override oldest
-	_sfx_players[0].stream = stream
-	_sfx_players[0].play()
+	if not _sfx_players.is_empty():
+		_sfx_players[0].stream = stream
+		_sfx_players[0].play()
 
 
 # ═══════════════ UI AUDIO HELPERS ═══════════════

@@ -100,7 +100,7 @@ func _find_pirate_raid_target(attackable: Array) -> int:
 		if tile_idx >= GameManager.tiles.size():
 			continue
 		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[tile_idx]
 		var score: float = 0.0
 		

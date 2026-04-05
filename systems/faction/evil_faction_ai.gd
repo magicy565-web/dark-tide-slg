@@ -383,7 +383,7 @@ func _try_coordinated_attack(_player_id: int, faction_id: int, source_tiles: Arr
 				break
 
 	if adjacent_src.is_empty():
-		return
+		continue
 
 	# Boost garrison on the adjacent tile for the coordinated push
 	var ai_key: String = _faction_to_ai_key(faction_id)
@@ -623,7 +623,7 @@ func _pirate_faction_action(player_id: int, source_tiles: Array) -> void:
 			if nb_idx >= GameManager.tiles.size():
 				continue
 			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-				return
+				continue
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] != player_id:
 				continue
@@ -655,7 +655,7 @@ func _dark_elf_faction_action(player_id: int, source_tiles: Array) -> void:
 			if nb_idx >= GameManager.tiles.size():
 				continue
 			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-				return
+				continue
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] != player_id:
 				continue

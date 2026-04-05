@@ -154,7 +154,7 @@ func tick_rebellion(player_id: int) -> void:
 			if n_idx < 0 or n_idx >= GameManager.tiles.size():
 				continue
 			if n_idx < 0 or n_idx >= GameManager.tiles.size():
-				return
+				continue
 			var tile: Dictionary = GameManager.tiles[n_idx]
 			# BUG FIX R18: use .get() for owner_id
 			if tile.get("owner_id", -1) != player_id:

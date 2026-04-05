@@ -289,7 +289,7 @@ func _find_best_attack_target(attackable: Array, player_id: int) -> int:
 		if tile_idx >= GameManager.tiles.size():
 			continue
 		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[tile_idx]
 		var score: float = _score_attack_target(tile, player_id)
 		if score > best_score:

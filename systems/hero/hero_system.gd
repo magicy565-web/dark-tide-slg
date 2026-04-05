@@ -1755,7 +1755,7 @@ func _event_legendary_hero(_player_id: int) -> void:
 	if legendary.is_empty():
 		# Fallback: any unrecruited hero
 		if pool.is_empty():
-			return
+			continue
 		legendary = pool
 	legendary.shuffle()
 	var hero_id: String = legendary[0]

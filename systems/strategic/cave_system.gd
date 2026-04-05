@@ -417,7 +417,7 @@ func _try_raid_neighbors(tile_idx: int, data: Dictionary) -> void:
 		if adj_idx >= GameManager.tiles.size():
 			continue
 		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
-			return
+			continue
 		var adj_tile = GameManager.tiles[adj_idx]
 		if adj_tile == null:
 			continue

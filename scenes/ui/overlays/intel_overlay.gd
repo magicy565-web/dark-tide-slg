@@ -364,7 +364,7 @@ func _apply_heatmap() -> void:
 		if tiles[i].get("owner_id", -1) == _player_id:
 			player_tiles.append(i)
 	if player_tiles.is_empty():
-		return
+		continue
 	for i in tiles.size():
 		if tiles[i] == null:
 			continue

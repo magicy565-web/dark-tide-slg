@@ -379,7 +379,7 @@ func _mage_ai_cast() -> void:
 						var effect: Dictionary = apply_spell_effect("barrage", nb)
 						if effect.get("success", false):
 							if nb < 0 or nb >= GameManager.tiles.size():
-								return
+								continue
 							var target_tile: Dictionary = GameManager.tiles[nb]
 							var dmg: int = effect.get("damage", 0)
 							# v3.5: Scale barrage damage by difficulty aggression
@@ -500,7 +500,7 @@ func _try_light_faction_coordination() -> void:
 				if nb_idx >= GameManager.tiles.size():
 					continue
 				if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-					return
+					continue
 				var nb = GameManager.tiles[nb_idx]
 				# BUG FIX R16: null check + safe dict access
 				if nb == null:

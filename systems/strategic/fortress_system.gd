@@ -419,7 +419,7 @@ func process_turn() -> void:
 					if adj_idx >= GameManager.tiles.size():
 						continue
 					if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
-						return
+						continue
 					var adj_tile = GameManager.tiles[adj_idx]
 					if adj_tile.get("owner_id", -1) == pid:
 						GameManager.morale_corruption_system.change_morale(adj_idx, morale_bonus * 0.3)

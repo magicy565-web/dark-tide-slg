@@ -1996,7 +1996,7 @@ func _apply_plague_damage(tile_indices: Array) -> void:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[tidx]
 		var garrison: int = tile.get("garrison", 0)
 		if garrison > 0:
@@ -2013,7 +2013,7 @@ func _start_crisis_rebellion(pid: int, turn: int) -> void:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		var tile = GameManager.tiles[tidx]
 		if tile == null:
 			continue
@@ -2045,7 +2045,7 @@ func _start_crisis_rebellion(pid: int, turn: int) -> void:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		var tile = GameManager.tiles[tidx]
 		if tile == null:
 			continue
@@ -2077,7 +2077,7 @@ func _start_crisis_invasion(pid: int, turn: int) -> void:
 		for i in range(GameManager.tiles.size()):
 			# BUG FIX R15: null check on tile
 			if i < 0 or i >= GameManager.tiles.size():
-				return
+				continue
 			var _inv_tile = GameManager.tiles[i]
 			if _inv_tile == null:
 				continue

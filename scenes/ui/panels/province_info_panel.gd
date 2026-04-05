@@ -568,7 +568,7 @@ func _build_section_adjacency(tile: Dictionary) -> void:
 		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
 			continue
 		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
-			return
+			continue
 		var adj_tile: Dictionary = GameManager.tiles[adj_idx]
 		var adj_name: String = adj_tile.get("name", "???")
 		var adj_owner: int = adj_tile.get("owner", -1)
@@ -832,13 +832,13 @@ func _build_section_garrison_armies(tile: Dictionary) -> void:
 	var armies_here: Array = []
 	for army_id in GameManager.armies:
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		var army: Dictionary = GameManager.armies[army_id]
 		if army.get("tile_index", -1) == tile_idx:
 			armies_here.append(army)

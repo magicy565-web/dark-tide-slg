@@ -417,7 +417,8 @@ func _fill_positions(positions: Array, target_count: int) -> Array:
 		if not found_any:
 			# Remove exhausted point from active list.
 			active[active_idx] = active.back()
-			active.pop_back()
+			if not active.is_empty():
+				active.pop_back()
 
 	# Fallback: if Poisson didn't fill enough (rare on large maps), do random fill.
 	var fallback_attempts: int = 3000
@@ -1025,7 +1026,8 @@ func _find_articulation_points(edges: Dictionary, n: int) -> Dictionary:
 						low[u] = mini(low[u], disc[v])
 			else:
 				# Done with u — propagate low-link to parent and check AP condition.
-				stack.pop_back()
+				if not stack.is_empty():
+					stack.pop_back()
 				if stack.size() > 0:
 					var pu: int = parent[u]
 					low[pu] = mini(low[pu], low[u])

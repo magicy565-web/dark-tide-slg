@@ -1369,9 +1369,9 @@ func _on_attack_army_selected(army_id: int) -> void:
 
 	for tidx in attackable:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[tidx]
 		var label_text: String = "%s (Lv%d)" % [tile["name"], tile["level"]]
 		if tile["garrison"] > 0:
@@ -1433,9 +1433,9 @@ func _on_deploy_army_selected(army_id: int) -> void:
 
 	for tidx in deployable:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[tidx]
 		_add_target_button("%s (Lv%d)" % [tile["name"], tile["level"]], _on_deploy_target.bind(tidx))
 
@@ -1528,9 +1528,9 @@ func _show_march_targets(army_id: int) -> void:
 		if shown >= 30:
 			break
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		if tidx < 0 or tidx >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[tidx]
 		var path: Array = MarchSystem.find_path(from_tile, tidx) if MarchSystem != null else []
 		if path.is_empty():
@@ -1957,13 +1957,13 @@ func _on_garrison_pressed() -> void:
 	var player_armies: Array = []
 	for aid in GameManager.armies:
 		if not GameManager.armies.has(aid):
-			return
+			continue
 		if not GameManager.armies.has(aid):
-			return
+			continue
 		if not GameManager.armies.has(aid):
-			return
+			continue
 		if not GameManager.armies.has(aid):
-			return
+			continue
 		var a: Dictionary = GameManager.armies[aid]
 		if a.get("player_id", -1) == pid:
 			player_armies.append(a)
@@ -3352,13 +3352,13 @@ func _detect_victory_type(human_id: int) -> String:
 	var has_ultimate: bool = false
 	for army_id in GameManager.armies:
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		var army: Dictionary = GameManager.armies[army_id]
 		if army["player_id"] != human_id:
 			continue
@@ -3419,13 +3419,13 @@ func _get_victory_stats(player_id: int) -> Array:
 	var total_soldiers: int = 0
 	for army_id in GameManager.armies:
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		if not GameManager.armies.has(army_id):
-			return
+			continue
 		var army: Dictionary = GameManager.armies[army_id]
 		if army["player_id"] == player_id:
 			total_soldiers += GameManager.get_army_soldier_count(army_id)
@@ -3907,7 +3907,7 @@ func _update_items() -> void:
 	item_buttons.clear()
 
 	if GameManager.players.is_empty():
-		return
+		continue
 
 	var pid: int = GameManager.get_human_player_id()
 	var player: Dictionary = GameManager.get_player_by_id(pid)
@@ -4285,13 +4285,13 @@ func _update_tile_info_for(tile_index: int) -> void:
 	var enemy_total_power: int = 0
 	for army_id_key in GameManager.armies:
 		if not GameManager.armies.has(army_id_key):
-			return
+			continue
 		if not GameManager.armies.has(army_id_key):
-			return
+			continue
 		if not GameManager.armies.has(army_id_key):
-			return
+			continue
 		if not GameManager.armies.has(army_id_key):
-			return
+			continue
 		var a: Dictionary = GameManager.armies[army_id_key]
 		var a_power: int = GameManager.get_army_combat_power(army_id_key)
 		if a["player_id"] == pid2:

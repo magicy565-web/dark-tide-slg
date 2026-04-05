@@ -387,7 +387,7 @@ func check_interception(marching_army_id: int, tile_index: int) -> Dictionary:
 	# Check for enemy armies at the tile
 	for aid in GameManager.armies:
 		if not GameManager.armies.has(aid):
-			return
+			continue
 		var other_army: Dictionary = GameManager.armies[aid]
 		if other_army["player_id"] == marching_player:
 			continue

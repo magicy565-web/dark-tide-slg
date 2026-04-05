@@ -327,7 +327,7 @@ func _find_weakest_player_border_tile() -> int:
 			if nb_idx >= GameManager.tiles.size():
 				continue
 			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
-				return
+				continue
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb.get("light_faction", -1) == HUMAN_FACTION_ID and nb.get("owner_id", -1) < 0:
 				candidates.append(tile)

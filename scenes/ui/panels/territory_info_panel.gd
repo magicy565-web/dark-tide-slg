@@ -537,7 +537,7 @@ func _build_section_side_quests(_tile: Dictionary) -> void:
 		if not has_qj:
 			# Check if QuestJournal autoload exists as a global name
 			if not is_instance_valid(get_node_or_null("/root/QuestJournal")):
-				return
+				continue
 
 	content_container.add_child(_make_section_header("支线任務"))
 	var panel := _make_section_panel()
@@ -610,7 +610,7 @@ func _build_section_adjacency(tile: Dictionary) -> void:
 		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
 			continue
 		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
-			return
+			continue
 		var adj_tile: Dictionary = GameManager.tiles[adj_idx]
 		var adj_name: String = adj_tile.get("name", "???")
 		var adj_owner: int = adj_tile.get("owner_id", -1)
