@@ -360,6 +360,9 @@ var governance_system: Node = null
 var offensive_system: Node = null
 var morale_corruption_system: Node = null
 var development_path_system: Node = null
+var cave_system: Node = null
+var village_system: Node = null
+var fortress_system: Node = null
 
 # ── Conquest choice state ──
 var _pending_conquest_tile_index: int = -1
@@ -465,7 +468,25 @@ func _ready() -> void:
 	development_path_system = DevelopmentPathSystem.new()
 	development_path_system.name = "DevelopmentPathSystem"
 	add_child(development_path_system)
-	
+
+	# v1.3.0: Initialize CaveSystem
+	var CaveSystem = preload("res://systems/strategic/cave_system.gd")
+	cave_system = CaveSystem.new()
+	cave_system.name = "CaveSystem"
+	add_child(cave_system)
+
+	# v1.3.0: Initialize VillageSystem
+	var VillageSystem = preload("res://systems/strategic/village_system.gd")
+	village_system = VillageSystem.new()
+	village_system.name = "VillageSystem"
+	add_child(village_system)
+
+	# v1.3.0: Initialize FortressSystem
+	var FortressSystem = preload("res://systems/strategic/fortress_system.gd")
+	fortress_system = FortressSystem.new()
+	fortress_system.name = "FortressSystem"
+	add_child(fortress_system)
+
 	if not _event_choice_connected:
 		EventBus.event_choice_selected.connect(_on_random_event_choice)
 		EventBus.event_combat_requested.connect(_on_event_combat_requested)
@@ -2381,6 +2402,11 @@ func end_turn() -> void:
 		morale_corruption_system.process_turn()
 	if development_path_system:
 		development_path_system.process_turn()
+	# v1.3.0: 洞穴/村庄/要塞系统回合处理
+	if village_system:
+		village_system.process_turn()
+	if fortress_system:
+		fortress_system.process_turn()
 	# BUG FIX: bounds check before accessing players array
 	if players.is_empty() or current_player_index < 0 or current_player_index >= players.size():
 		return
@@ -6813,8 +6839,23 @@ func _on_action_requested(action: String, tile_index: int) -> void:
 			if has_method("open_recruit_panel"):
 				open_recruit_panel(tile_index)
 		"domestic":
-			if has_method("open_domestic_panel"):
-				open_domestic_panel(tile_index)
+			# v1.3.0: 根据地块类型路由到对应的专属面板
+			var _tile_for_panel = tiles[tile_index] if tile_index >= 0 and tile_index < tiles.size() else {}
+			var _prov_type_for_panel: int = -1
+			if TerritoryTypeSystem and TerritoryTypeSystem.has_method("get_prov_type_from_tile"):
+				_prov_type_for_panel = TerritoryTypeSystem.get_prov_type_from_tile(_tile_for_panel)
+			var _is_cave: bool = _prov_type_for_panel in [TerritoryTypeSystem.ProvType.RUINS, TerritoryTypeSystem.ProvType.BANDIT]
+			var _is_village: bool = _prov_type_for_panel == TerritoryTypeSystem.ProvType.TOWN
+			var _is_fortress: bool = _prov_type_for_panel in [TerritoryTypeSystem.ProvType.FORTRESS, TerritoryTypeSystem.ProvType.GATE]
+			if _is_cave and EventBus.has_signal("open_cave_panel_requested"):
+				EventBus.open_cave_panel_requested.emit(tile_index)
+			elif _is_village and EventBus.has_signal("open_village_panel_requested"):
+				EventBus.open_village_panel_requested.emit(tile_index)
+			elif _is_fortress and EventBus.has_signal("open_fortress_panel_requested"):
+				EventBus.open_fortress_panel_requested.emit(tile_index)
+			else:
+				if has_method("open_domestic_panel"):
+					open_domestic_panel(tile_index)
 		"explore":
 			action_explore(pid, tile_index)
 		"guard":

@@ -293,6 +293,41 @@ func _connect_signals() -> void:
 		EventBus.open_development_panel_requested.connect(_on_open_development_panel_requested)
 	if EventBus.has_signal("rebellion_risk_changed"):
 		EventBus.rebellion_risk_changed.connect(_on_rebellion_risk_changed)
+	# v1.3.0: 洞穴系统信号
+	if EventBus.has_signal("cave_explored"):
+		EventBus.cave_explored.connect(_on_cave_explored)
+	if EventBus.has_signal("cave_cleared"):
+		EventBus.cave_cleared.connect(_on_cave_cleared)
+	if EventBus.has_signal("cave_upgraded"):
+		EventBus.cave_upgraded.connect(_on_cave_upgraded)
+	if EventBus.has_signal("open_cave_panel_requested"):
+		EventBus.open_cave_panel_requested.connect(_on_open_cave_panel_requested)
+	# v1.3.0: 村庄系统信号
+	if EventBus.has_signal("village_building_built"):
+		EventBus.village_building_built.connect(_on_village_building_built)
+	if EventBus.has_signal("village_trade_started"):
+		EventBus.village_trade_started.connect(_on_village_trade_started)
+	if EventBus.has_signal("village_level_up"):
+		EventBus.village_level_up.connect(_on_village_level_up)
+	if EventBus.has_signal("village_hero_available"):
+		EventBus.village_hero_available.connect(_on_village_hero_available)
+	if EventBus.has_signal("open_village_panel_requested"):
+		EventBus.open_village_panel_requested.connect(_on_open_village_panel_requested)
+	# v1.3.0: 要塞系统信号
+	if EventBus.has_signal("fortress_wall_damaged"):
+		EventBus.fortress_wall_damaged.connect(_on_fortress_wall_damaged)
+	if EventBus.has_signal("fortress_wall_repaired"):
+		EventBus.fortress_wall_repaired.connect(_on_fortress_wall_repaired)
+	if EventBus.has_signal("fortress_building_built"):
+		EventBus.fortress_building_built.connect(_on_fortress_building_built)
+	if EventBus.has_signal("fortress_sortie_executed"):
+		EventBus.fortress_sortie_executed.connect(_on_fortress_sortie_executed)
+	if EventBus.has_signal("fortress_level_up"):
+		EventBus.fortress_level_up.connect(_on_fortress_level_up)
+	if EventBus.has_signal("fortress_defense_victory"):
+		EventBus.fortress_defense_victory.connect(_on_fortress_defense_victory)
+	if EventBus.has_signal("open_fortress_panel_requested"):
+		EventBus.open_fortress_panel_requested.connect(_on_open_fortress_panel_requested)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -4852,12 +4887,38 @@ func _inject_stronghold_buttons() -> void:
 	btn_off.pressed.connect(_on_offensive_btn_pressed)
 	vbox.add_child(btn_off)
 
-	# ── 发展路径按钮 ──
+	# ── 发展路径按鈕 ──
 	var btn_dev_path = _make_button("🏛 发展路径", null)
 	btn_dev_path.custom_minimum_size = Vector2(140, 30)
 	btn_dev_path.tooltip_text = "升级军事、商业、文化、科技、宗教路径"
 	btn_dev_path.pressed.connect(_on_dev_path_btn_pressed)
 	vbox.add_child(btn_dev_path)
+
+	# ── 分隔线 ──
+	var sep = HSeparator.new()
+	sep.custom_minimum_size = Vector2(0, 4)
+	vbox.add_child(sep)
+
+	# ── 洞穴管理按鈕 ──
+	var btn_cave = _make_button("🕷 洞穴管理", null)
+	btn_cave.custom_minimum_size = Vector2(140, 30)
+	btn_cave.tooltip_text = "探索洞穴、清剖怪物、黑市交易、洞穴改造"
+	btn_cave.pressed.connect(_on_cave_btn_pressed)
+	vbox.add_child(btn_cave)
+
+	# ── 村庄管理按鈕 ──
+	var btn_village = _make_button("🏘 村庄管理", null)
+	btn_village.custom_minimum_size = Vector2(140, 30)
+	btn_village.tooltip_text = "村庄建设、贸易协议、民政行动、村庄升级"
+	btn_village.pressed.connect(_on_village_btn_pressed)
+	vbox.add_child(btn_village)
+
+	# ── 要塞管理按鈕 ──
+	var btn_fortress = _make_button("🏰 要塞管理", null)
+	btn_fortress.custom_minimum_size = Vector2(140, 30)
+	btn_fortress.tooltip_text = "城防建造、驻军命令、防御工事、要塞升级"
+	btn_fortress.pressed.connect(_on_fortress_btn_pressed)
+	vbox.add_child(btn_fortress)
 
 # ───────────────────────────────────────────────────────────────
 # 据点按钮处理
@@ -4891,8 +4952,41 @@ func _on_dev_path_btn_pressed() -> void:
 	if tile_idx < 0:
 		EventBus.message_log.emit("[color=red]请先选择一个己方据点！[/color]")
 		return
-	# 通过 EventBus 请求打开发展路径面板（由 governance_panel 的"发展地块"按钮处理）
+	# 通过 EventBus 请求打开发展路径面板（由 governance_panel 的"发展地块"按鈕处理）
 	EventBus.open_development_panel_requested.emit(tile_idx)
+
+func _on_cave_btn_pressed() -> void:
+	domestic_panel.visible = false
+	var pid: int = GameManager.get_human_player_id()
+	var tile_idx: int = _get_selected_owned_tile(pid)
+	if tile_idx < 0:
+		EventBus.message_log.emit("[color=red]请先选择一个己方据点！[/color]")
+		return
+	_ensure_cave_panel()
+	if _cave_panel:
+		_cave_panel.show_panel(tile_idx)
+
+func _on_village_btn_pressed() -> void:
+	domestic_panel.visible = false
+	var pid: int = GameManager.get_human_player_id()
+	var tile_idx: int = _get_selected_owned_tile(pid)
+	if tile_idx < 0:
+		EventBus.message_log.emit("[color=red]请先选择一个己方据点！[/color]")
+		return
+	_ensure_village_panel()
+	if _village_panel:
+		_village_panel.show_panel(tile_idx)
+
+func _on_fortress_btn_pressed() -> void:
+	domestic_panel.visible = false
+	var pid: int = GameManager.get_human_player_id()
+	var tile_idx: int = _get_selected_owned_tile(pid)
+	if tile_idx < 0:
+		EventBus.message_log.emit("[color=red]请先选择一个己方据点！[/color]")
+		return
+	_ensure_fortress_panel()
+	if _fortress_panel:
+		_fortress_panel.show_panel(tile_idx)
 
 # ───────────────────────────────────────────────────────────────
 # EventBus 信号处理 — 据点系统
@@ -4993,3 +5087,194 @@ func _on_open_development_panel_requested(tile_idx: int) -> void:
 	_ensure_tile_dev_panel()
 	if _tile_dev_panel:
 		_tile_dev_panel.show_panel(tile_idx)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  v1.3.0 — 洞穴 / 村庄 / 要塞 面板集成
+# ═══════════════════════════════════════════════════════════════
+
+var _cave_panel: Node = null
+var _village_panel: Node = null
+var _fortress_panel: Node = null
+
+# ── 懒加载面板 ──────────────────────────────────────────────────
+
+func _ensure_cave_panel() -> void:
+	if _cave_panel == null:
+		var script = load("res://scenes/ui/panels/cave_panel.gd")
+		if script:
+			_cave_panel = script.new()
+			_cave_panel.name = "CavePanelRoot"
+			get_tree().root.add_child(_cave_panel)
+
+func _ensure_village_panel() -> void:
+	if _village_panel == null:
+		var script = load("res://scenes/ui/panels/village_panel.gd")
+		if script:
+			_village_panel = script.new()
+			_village_panel.name = "VillagePanelRoot"
+			get_tree().root.add_child(_village_panel)
+
+func _ensure_fortress_panel() -> void:
+	if _fortress_panel == null:
+		var script = load("res://scenes/ui/panels/fortress_panel.gd")
+		if script:
+			_fortress_panel = script.new()
+			_fortress_panel.name = "FortressPanelRoot"
+			get_tree().root.add_child(_fortress_panel)
+
+# ── 根据地块类型智能路由到对应面板 ──────────────────────────────
+
+## 根据地块类型自动打开对应的专属面板
+func open_tile_specialized_panel(tile_idx: int) -> void:
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
+	var tile = GameManager.tiles[tile_idx]
+	var tile_type: int = tile.get("type", -1)
+
+	match tile_type:
+		GameManager.TileType.RUINS, 11:  # RUINS 或 BANDIT 类型
+			_ensure_cave_panel()
+			if _cave_panel:
+				_cave_panel.show_panel(tile_idx)
+		GameManager.TileType.LIGHT_VILLAGE, GameManager.TileType.TRADING_POST:
+			_ensure_village_panel()
+			if _village_panel:
+				_village_panel.show_panel(tile_idx)
+		GameManager.TileType.CORE_FORTRESS, GameManager.TileType.LIGHT_STRONGHOLD, GameManager.TileType.CHOKEPOINT:
+			_ensure_fortress_panel()
+			if _fortress_panel:
+				_fortress_panel.show_panel(tile_idx)
+		_:
+			# 默认走原有的治理面板
+			_ensure_tile_dev_panel()
+			if _governance_panel:
+				_governance_panel.show_panel(tile_idx)
+
+# ── 面板打开请求信号处理 ─────────────────────────────────────────
+
+func _on_open_cave_panel_requested(tile_idx: int) -> void:
+	_ensure_cave_panel()
+	if _cave_panel:
+		_cave_panel.show_panel(tile_idx)
+
+func _on_open_village_panel_requested(tile_idx: int) -> void:
+	_ensure_village_panel()
+	if _village_panel:
+		_village_panel.show_panel(tile_idx)
+
+func _on_open_fortress_panel_requested(tile_idx: int) -> void:
+	_ensure_fortress_panel()
+	if _fortress_panel:
+		_fortress_panel.show_panel(tile_idx)
+
+# ── 洞穴事件信号处理 ─────────────────────────────────────────────
+
+func _on_cave_explored(tile_idx: int, event_id: String, reward: Dictionary) -> void:
+	_update_player_info()
+	var tile_name: String = _safe_tile_name(tile_idx)
+	var reward_text: String = _format_reward_dict(reward)
+	EventBus.message_log.emit("[color=cyan]【洞穴探索】%s 触发事件，获得: %s[/color]" % [tile_name, reward_text])
+
+func _on_cave_cleared(tile_idx: int, monster_id: String, reward: Dictionary) -> void:
+	_update_player_info()
+	var tile_name: String = _safe_tile_name(tile_idx)
+	var reward_text: String = _format_reward_dict(reward)
+	EventBus.message_log.emit("[color=lime]【洞穴清剿】%s 怪物已消灭！获得: %s[/color]" % [tile_name, reward_text])
+
+func _on_cave_upgraded(tile_idx: int, upgrade_id: String) -> void:
+	_update_player_info()
+	var tile_name: String = _safe_tile_name(tile_idx)
+	var upgrade_name: String = upgrade_id
+	if GameManager.cave_system and GameManager.cave_system.UPGRADE_PATHS.has(upgrade_id):
+		upgrade_name = GameManager.cave_system.UPGRADE_PATHS[upgrade_id].get("name", upgrade_id)
+	EventBus.message_log.emit("[color=gold]【洞穴改造】%s 完成改造：%s[/color]" % [tile_name, upgrade_name])
+
+# ── 村庄事件信号处理 ─────────────────────────────────────────────
+
+func _on_village_building_built(tile_idx: int, building_id: String, new_level: int) -> void:
+	_update_player_info()
+	var tile_name: String = _safe_tile_name(tile_idx)
+	var bld_name: String = building_id
+	if GameManager.village_system and GameManager.village_system.VILLAGE_BUILDINGS.has(building_id):
+		bld_name = GameManager.village_system.VILLAGE_BUILDINGS[building_id].get("name", building_id)
+	var action: String = "建造" if new_level == 1 else "升级至 Lv%d" % new_level
+	EventBus.message_log.emit("[color=lime]【村庄】%s %s %s[/color]" % [tile_name, action, bld_name])
+
+func _on_village_trade_started(tile_idx: int, trade_id: String) -> void:
+	_update_player_info()
+	var tile_name: String = _safe_tile_name(tile_idx)
+	var trade_name: String = trade_id
+	if GameManager.village_system:
+		var t = GameManager.village_system._find_trade(trade_id)
+		if not t.is_empty():
+			trade_name = t.get("name", trade_id)
+	EventBus.message_log.emit("[color=cyan]【村庄贸易】%s 签订 %s 协议[/color]" % [tile_name, trade_name])
+
+func _on_village_level_up(tile_idx: int, new_level: int) -> void:
+	_update_player_info()
+	var tile_name: String = _safe_tile_name(tile_idx)
+	var level_name: String = ""
+	if GameManager.village_system and GameManager.village_system.VILLAGE_LEVELS.has(new_level):
+		level_name = GameManager.village_system.VILLAGE_LEVELS[new_level].get("name", "Lv%d" % new_level)
+	EventBus.message_log.emit("[color=gold]🏘 【村庄升级】%s 升级为 %s！[/color]" % [tile_name, level_name])
+
+func _on_village_hero_available(tile_idx: int) -> void:
+	var tile_name: String = _safe_tile_name(tile_idx)
+	EventBus.message_log.emit("[color=gold]⭐ 【英雄招募】%s 的客栈有英雄等待招募！[/color]" % tile_name)
+
+# ── 要塞事件信号处理 ─────────────────────────────────────────────
+
+func _on_fortress_wall_damaged(tile_idx: int, damage: int, remaining_hp: int) -> void:
+	var tile_name: String = _safe_tile_name(tile_idx)
+	var color: String = "red" if remaining_hp < 30 else "orange"
+	EventBus.message_log.emit("[color=%s]【要塞】%s 城墙受到 %d 点伤害（剩余 %d）[/color]" % [color, tile_name, damage, remaining_hp])
+	if remaining_hp <= 0:
+		EventBus.message_log.emit("[color=red]⚠ 【要塞】%s 城墙已被摧毁！[/color]" % tile_name)
+
+func _on_fortress_wall_repaired(tile_idx: int, new_hp: int, max_hp: int) -> void:
+	_update_player_info()
+	var tile_name: String = _safe_tile_name(tile_idx)
+	EventBus.message_log.emit("[color=lime]【要塞修缮】%s 城墙修复至 %d/%d[/color]" % [tile_name, new_hp, max_hp])
+
+func _on_fortress_building_built(tile_idx: int, building_id: String, new_level: int) -> void:
+	_update_player_info()
+	var tile_name: String = _safe_tile_name(tile_idx)
+	var bld_name: String = building_id
+	if GameManager.fortress_system and GameManager.fortress_system.FORTIFICATION_BUILDINGS.has(building_id):
+		bld_name = GameManager.fortress_system.FORTIFICATION_BUILDINGS[building_id].get("name", building_id)
+	var action: String = "建造" if new_level == 1 else "升级至 Lv%d" % new_level
+	EventBus.message_log.emit("[color=lime]【要塞工事】%s %s %s[/color]" % [tile_name, action, bld_name])
+
+func _on_fortress_sortie_executed(tile_idx: int, damage_dealt: int) -> void:
+	var tile_name: String = _safe_tile_name(tile_idx)
+	EventBus.message_log.emit("[color=orange]⚡ 【要塞突袭】%s 出城突袭，造成 %d 点伤害！[/color]" % [tile_name, damage_dealt])
+
+func _on_fortress_level_up(tile_idx: int, new_level: int) -> void:
+	_update_player_info()
+	var tile_name: String = _safe_tile_name(tile_idx)
+	var level_name: String = ""
+	if GameManager.fortress_system and GameManager.fortress_system.FORTRESS_LEVELS.has(new_level):
+		level_name = GameManager.fortress_system.FORTRESS_LEVELS[new_level].get("name", "Lv%d" % new_level)
+	EventBus.message_log.emit("[color=gold]🏰 【要塞升级】%s 升级为 %s！[/color]" % [tile_name, level_name])
+
+func _on_fortress_defense_victory(tile_idx: int, prestige_gained: int) -> void:
+	var tile_name: String = _safe_tile_name(tile_idx)
+	EventBus.message_log.emit("[color=gold]🛡 【要塞防守】%s 成功抵御进攻！声望 +%d[/color]" % [tile_name, prestige_gained])
+
+# ── 辅助工具函数 ─────────────────────────────────────────────────
+
+func _safe_tile_name(tile_idx: int) -> String:
+	if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+		return GameManager.tiles[tile_idx].get("name", "#%d" % tile_idx)
+	return "#%d" % tile_idx
+
+func _format_reward_dict(reward: Dictionary) -> String:
+	var parts: Array = []
+	if reward.get("gold", 0) != 0:    parts.append("%+d金" % reward["gold"])
+	if reward.get("iron", 0) != 0:    parts.append("%+d铁" % reward["iron"])
+	if reward.get("food", 0) != 0:    parts.append("%+d粮" % reward["food"])
+	if reward.get("morale", 0) != 0:  parts.append("%+d民心" % reward["morale"])
+	if reward.get("garrison", 0) > 0: parts.append("+%d驻军" % reward["garrison"])
+	if reward.get("research", 0) > 0: parts.append("+%d研究" % reward["research"])
+	return ", ".join(parts) if not parts.is_empty() else "无"

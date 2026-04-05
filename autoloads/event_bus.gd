@@ -565,3 +565,51 @@ signal chain_event_flag_changed(flag_id: String, value: Variant)
 signal chain_event_sequence_completed(sequence_id: String)
 ## 当事件组合器处理了一个延迟事件时发射。
 signal chain_event_delayed_fired(event_id: String)
+
+# ── Cave System (v1.3.0) ──
+## 洞穴探索事件触发
+signal cave_explored(tile_idx: int, event_id: String, reward: Dictionary)
+## 洞穴怪物被清剖
+signal cave_cleared(tile_idx: int, monster_id: String, reward: Dictionary)
+## 洞穴黑市购买
+signal cave_black_market_purchased(tile_idx: int, item_id: String)
+## 洞穴改造完成
+signal cave_upgraded(tile_idx: int, upgrade_id: String)
+## 洞穴等级提升
+signal cave_level_up(tile_idx: int, new_level: int)
+## 请求打开洞穴面板
+signal open_cave_panel_requested(tile_idx: int)
+
+# ── Village System (v1.3.0) ──
+## 村庄建筑建造/升级
+signal village_building_built(tile_idx: int, building_id: String, new_level: int)
+## 村庄贸易协议签订
+signal village_trade_started(tile_idx: int, trade_id: String)
+## 村庄贸易协议到期
+signal village_trade_expired(tile_idx: int, trade_id: String)
+## 村庄民政行动执行
+signal village_action_executed(tile_idx: int, action_id: String)
+## 村庄等级提升
+signal village_level_up(tile_idx: int, new_level: int)
+## 村庄客栈招募到英雄
+signal village_hero_available(tile_idx: int)
+## 请求打开村庄面板
+signal open_village_panel_requested(tile_idx: int)
+
+# ── Fortress System (v1.3.0) ──
+## 要塞城墙受到伤害
+signal fortress_wall_damaged(tile_idx: int, damage: int, remaining_hp: int)
+## 要塞城墙修缮
+signal fortress_wall_repaired(tile_idx: int, new_hp: int, max_hp: int)
+## 要塞防御工事建造/升级
+signal fortress_building_built(tile_idx: int, building_id: String, new_level: int)
+## 要塞驻军命令发布
+signal fortress_order_issued(tile_idx: int, order_id: String)
+## 要塞出城突袭执行
+signal fortress_sortie_executed(tile_idx: int, damage_dealt: int)
+## 要塞等级提升
+signal fortress_level_up(tile_idx: int, new_level: int)
+## 要塞防守胜利
+signal fortress_defense_victory(tile_idx: int, prestige_gained: int)
+## 请求打开要塞面板
+signal open_fortress_panel_requested(tile_idx: int)

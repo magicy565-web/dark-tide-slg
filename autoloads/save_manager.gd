@@ -260,6 +260,10 @@ func _collect_save_data() -> Dictionary:
 		"stronghold_governance": GameManager.governance_system.to_save_data() if GameManager.governance_system != null else {},
 		"stronghold_morale": GameManager.morale_corruption_system.to_save_data() if GameManager.morale_corruption_system != null else {},
 		"stronghold_development": GameManager.development_path_system.to_save_data() if GameManager.development_path_system != null else {},
+		# v1.3.0 洞穴/村庄/要塞系统
+		"stronghold_cave": GameManager.cave_system.to_save_data() if GameManager.cave_system != null else {},
+		"stronghold_village": GameManager.village_system.to_save_data() if GameManager.village_system != null else {},
+		"stronghold_fortress": GameManager.fortress_system.to_save_data() if GameManager.fortress_system != null else {},
 	}
 
 
@@ -501,6 +505,13 @@ func _apply_save_data(data: Dictionary) -> void:
 		GameManager.morale_corruption_system.from_save_data(data.get("stronghold_morale", {}))
 	if data.has("stronghold_development") and GameManager.development_path_system != null:
 		GameManager.development_path_system.from_save_data(data.get("stronghold_development", {}))
+	# v1.3.0 洞穴/村庄/要塞系统存档恢复
+	if data.has("stronghold_cave") and GameManager.cave_system != null:
+		GameManager.cave_system.from_save_data(data.get("stronghold_cave", {}))
+	if data.has("stronghold_village") and GameManager.village_system != null:
+		GameManager.village_system.from_save_data(data.get("stronghold_village", {}))
+	if data.has("stronghold_fortress") and GameManager.fortress_system != null:
+		GameManager.fortress_system.from_save_data(data.get("stronghold_fortress", {}))
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
 	EventBus.resources_changed.emit(pid)
