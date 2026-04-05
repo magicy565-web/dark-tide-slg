@@ -110,7 +110,7 @@ func get_exp_to_next_level(hero_id: String) -> Dictionary:
 
 	var progress: float = 0.0
 	if exp_needed_in_level > 0:
-		progress = clampf(float(exp_in_level) / float(exp_needed_in_level) * 100.0, 0.0, 100.0)
+		progress = clampf(float(exp_in_level) / float(maxi(int(exp_needed_in_level), 1)) * 100.0, 0.0, 100.0)
 
 	return {
 		"current": current_exp,

@@ -642,7 +642,7 @@ func _draw_bezier_line(canvas: Control, from: Vector2, to: Vector2, color: Color
 	var points: PackedVector2Array = []
 	var segments: int = 16
 	for i in range(segments + 1):
-		var t: float = float(i) / float(segments)
+		var t: float = float(i) / float(maxi(int(segments), 1))
 		var p: Vector2 = _cubic_bezier(from, cp1, cp2, to, t)
 		points.append(p)
 	if points.size() >= 2:
@@ -655,7 +655,7 @@ func _draw_dashed_line(canvas: Control, from: Vector2, to: Vector2, color: Color
 	var segments: int = 16
 	var dash_len: int = 2
 	for i in range(0, segments, dash_len * 2):
-		var t0: float = float(i) / float(segments)
+		var t0: float = float(i) / float(maxi(int(segments), 1))
 		var t1: float = float(mini(i + dash_len, segments)) / float(segments)
 		var p0: Vector2 = _cubic_bezier(from, cp1, cp2, to, t0)
 		var p1: Vector2 = _cubic_bezier(from, cp1, cp2, to, t1)
@@ -667,7 +667,7 @@ func _draw_flow_dots(canvas: Control, from: Vector2, to: Vector2, color: Color) 
 	var cp2 := Vector2(mid_x, to.y)
 	var dot_count: int = 3
 	for d in range(dot_count):
-		var phase: float = fmod(_anim_time * 0.8 + float(d) / float(dot_count), 1.0)
+		var phase: float = fmod(_anim_time * 0.8 + float(d) / float(maxi(int(dot_count), 1)), 1.0)
 		var p: Vector2 = _cubic_bezier(from, cp1, cp2, to, phase)
 		var alpha: float = 0.5 + 0.5 * sin(phase * TAU)
 		canvas.draw_circle(p, 3.0, Color(color.r, color.g, color.b, alpha * 0.9))

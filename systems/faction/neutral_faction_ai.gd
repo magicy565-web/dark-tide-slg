@@ -186,7 +186,7 @@ func _patrol_territory(nf_id: int, state: Dictionary) -> void:
 					threat += 1
 				# Check for armies adjacent
 				for army_id in GameManager.armies:
-					if GameManager.armies[army_id]["tile_index"] == nb_idx:
+					if GameManager.armies.has(army_id) and GameManager.armies[army_id]["tile_index"] == nb_idx:
 						threat += 2
 		threat_scores[t_idx] = threat
 

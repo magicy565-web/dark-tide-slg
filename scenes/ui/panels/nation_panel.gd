@@ -184,6 +184,8 @@ func _build_nation_card(nation_id: String, ns, pid: int) -> void:
 		ctrl_lbl.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
 	elif controller >= 0:
 		var p = GameManager.get_player_by_id(controller)
+		if p.is_empty():
+			return
 		ctrl_lbl.text = "控制者: %s" % p.get("name", "AI")
 		ctrl_lbl.add_theme_color_override("font_color", Color(0.9, 0.4, 0.3))
 	else:

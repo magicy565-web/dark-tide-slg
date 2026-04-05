@@ -123,7 +123,7 @@ func should_spawn_boss() -> bool:
 # ═══════════════ DOMINANCE CHECK (03_战略设定: 控制50%+节点+5/回合) ═══════════════
 
 func check_dominance(player_owned_nodes: int, total_nodes: int) -> void:
-	if total_nodes > 0 and float(player_owned_nodes) / float(total_nodes) >= 0.5:
+	if total_nodes > 0 and float(player_owned_nodes) / float(maxi(int(total_nodes), 1)) >= 0.5:
 		change_threat(BalanceConfig.THREAT_DOMINANCE_BONUS)
 
 

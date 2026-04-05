@@ -170,7 +170,7 @@ static func _unit_hp_ratio(unit: Dictionary) -> float:
 	var mx: int = unit.get("max_soldiers", 1)
 	if mx <= 0:
 		return 1.0
-	return float(cur) / float(mx)
+	return float(cur) / float(maxi(mx, 1))
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PUBLIC API — detect_formations

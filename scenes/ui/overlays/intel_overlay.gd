@@ -628,7 +628,7 @@ func _populate_tooltip(tile_idx: int) -> void:
 	var wall_hp: int = tile_data.get("wall_hp", 0)
 	var wall_max: int = tile_data.get("wall_max_hp", 0)
 	if wall_max > 0:
-		_add_dynamic_label(_tt_special_section, "🏰 城墙: %d/%d" % [wall_hp, wall_max], ColorTheme.hp_color(float(wall_hp) / float(wall_max)))
+		_add_dynamic_label(_tt_special_section, "🏰 城墙: %d/%d" % [wall_hp, wall_max], ColorTheme.hp_color(float(wall_hp) / float(maxi(int(wall_max), 1))))
 		has_special = true
 	var region_name: String = tile_data.get("region", "")
 	if region_name != "":

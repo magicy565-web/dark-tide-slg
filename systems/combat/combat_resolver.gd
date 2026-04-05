@@ -1670,7 +1670,7 @@ func _start_of_round(state: Dictionary, combat_log: Array) -> void:
 			var ra_lowest_pct: float = 2.0
 			for ra_ally in ra_allies:
 				if ra_ally["is_alive"] and ra_ally["soldiers"] < ra_ally["max_soldiers"]:
-					var ra_pct: float = float(ra_ally["soldiers"]) / float(ra_ally["max_soldiers"])
+					var ra_pct: float = float(ra_ally["soldiers"]) / float(maxi(ra_ally.get("max_soldiers", 1), 1))
 					if ra_pct < ra_lowest_pct:
 						ra_lowest_pct = ra_pct
 						ra_lowest = ra_ally
@@ -1725,7 +1725,7 @@ func _start_of_round(state: Dictionary, combat_log: Array) -> void:
 			var lowest_pct: float = 2.0
 			for ally in allies:
 				if ally["is_alive"] and ally["soldiers"] < ally["max_soldiers"]:
-					var pct: float = float(ally["soldiers"]) / float(ally["max_soldiers"])
+					var pct: float = float(ally["soldiers"]) / float(maxi(ally.get("max_soldiers", 1), 1))
 					if pct < lowest_pct:
 						lowest_pct = pct
 						lowest = ally

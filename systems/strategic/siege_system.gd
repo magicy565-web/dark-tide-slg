@@ -53,6 +53,10 @@ func is_tile_fortified(tile_index: int) -> bool:
 func start_siege(attacker_army_id: int, tile_index: int) -> Dictionary:
 	if not GameManager.armies.has(attacker_army_id):
 		return {}
+	if not GameManager.armies.has(attacker_army_id):
+		return
+	if not GameManager.armies.has(attacker_army_id):
+		return
 	var army: Dictionary = GameManager.armies[attacker_army_id]
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
@@ -113,6 +117,10 @@ func process_sieges(player_id: int) -> Array:
 			events.append({"type": "lifted", "siege_id": siege_id, "reason": "army_lost"})
 			continue
 
+		if not GameManager.armies.has(siege["attacker_army_id"]):
+			return
+		if not GameManager.armies.has(siege["attacker_army_id"]):
+			return
 		var army: Dictionary = GameManager.armies[siege["attacker_army_id"]]
 		var tile_index: int = siege["tile_index"]
 		if tile_index < 0 or tile_index >= GameManager.tiles.size():
@@ -251,6 +259,10 @@ func try_relief(army_id: int, siege_id: String) -> bool:
 	if not GameManager.armies.has(army_id):
 		return false
 	var siege: Dictionary = _active_sieges[siege_id]
+	if not GameManager.armies.has(army_id):
+		return
+	if not GameManager.armies.has(army_id):
+		return
 	var relief_army: Dictionary = GameManager.armies[army_id]
 	var tile_index: int = siege["tile_index"]
 
@@ -328,6 +340,10 @@ func _get_army_total_atk(army_id: int) -> int:
 	if not GameManager.armies.has(army_id):
 		return 0
 	var total: int = 0
+	if not GameManager.armies.has(army_id):
+		return
+	if not GameManager.armies.has(army_id):
+		return
 	for troop in GameManager.armies[army_id]["troops"]:
 		var troop_id: String = troop.get("troop_id", "")
 		var base_atk: int = GameData.get_troop_def(troop_id).get("base_atk", 5)
@@ -339,6 +355,10 @@ func _apply_attrition(army_id: int, rate: float) -> int:
 	if not GameManager.armies.has(army_id):
 		return 0
 	var total_lost: int = 0
+	if not GameManager.armies.has(army_id):
+		return
+	if not GameManager.armies.has(army_id):
+		return
 	for troop in GameManager.armies[army_id]["troops"]:
 		var soldiers: int = troop.get("soldiers", 0)
 		var lost: int = maxi(1, int(float(soldiers) * rate))
@@ -374,6 +394,10 @@ func _resolve_sortie(siege: Dictionary) -> bool:
 func _capture_tile_from_siege(siege: Dictionary) -> void:
 	## Capture a tile through siege surrender (no battle).
 	var army_id: int = siege["attacker_army_id"]
+	if not GameManager.armies.has(army_id):
+		return
+	if not GameManager.armies.has(army_id):
+		return
 	if not GameManager.armies.has(army_id):
 		return
 	var army: Dictionary = GameManager.armies[army_id]

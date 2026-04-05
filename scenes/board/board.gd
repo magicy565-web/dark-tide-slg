@@ -843,7 +843,7 @@ func _build_terrain_decor(parent: Node3D, tile: Dictionary) -> void:
 
 func _add_trees(parent: Node3D, y: float, count: int) -> void:
 	for i in range(count):
-		var a: float = float(i) / float(count) * TAU + 0.3
+		var a: float = float(i) / float(maxi(int(count), 1)) * TAU + 0.3
 		var d: float = 0.7 + randf() * 0.5
 		var tx := cos(a) * d; var tz := sin(a) * d
 		var trunk := _make_cyl_mesh(0.03, 0.06, 0.5, Color(0.3, 0.22, 0.12))
@@ -2880,7 +2880,7 @@ func _get_army_supply_pct(army: Dictionary) -> float:
 		max_total += troop.get("max_soldiers", troop.get("soldiers", 1))
 	if max_total <= 0:
 		return 100.0
-	return clampf(float(current_total) / float(max_total) * 100.0, 0.0, 100.0)
+	return clampf(float(current_total) / float(maxi(int(max_total), 1)) * 100.0, 0.0, 100.0)
 
 func _update_all_army_supply_bars() -> void:
 	for idx in tile_visuals:
@@ -3852,6 +3852,10 @@ func _take_turn_snapshot() -> void:
 			owned.append(tile["index"])
 	var visible_armies: Array = []
 	for aid in GameManager.armies:
+		if not GameManager.armies.has(aid):
+			return
+		if not GameManager.armies.has(aid):
+			return
 		var a: Dictionary = GameManager.armies[aid]
 		if a["player_id"] != pid and GameManager.is_revealed_for(a["tile_index"], pid):
 			visible_armies.append({"id": aid, "tile": a["tile_index"], "name": a.get("name", "")})
@@ -3909,6 +3913,10 @@ func _show_turn_summary() -> void:
 	var prev_armies: Array = _last_turn_snapshot.get("visible_armies", [])
 	var current_vis: Array = []
 	for aid in GameManager.armies:
+		if not GameManager.armies.has(aid):
+			return
+		if not GameManager.armies.has(aid):
+			return
 		var a: Dictionary = GameManager.armies[aid]
 		if a["player_id"] != pid and GameManager.is_revealed_for(a["tile_index"], pid):
 			current_vis.append({"id": aid, "tile": a["tile_index"], "name": a.get("name", "")})
@@ -4073,6 +4081,10 @@ class MinimapDrawControl:
 			draw_circle(draw_pos, 3.5, col)
 		# Draw player armies as white diamonds
 		for aid in GameManager.armies:
+			if not GameManager.armies.has(aid):
+				return
+			if not GameManager.armies.has(aid):
+				return
 			var army: Dictionary = GameManager.armies[aid]
 			var ti: int = army["tile_index"]
 			if ti < 0 or ti >= GameManager.tiles.size():

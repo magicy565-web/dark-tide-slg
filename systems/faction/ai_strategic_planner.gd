@@ -1648,7 +1648,7 @@ func get_active_commitments(faction_key: String) -> Dictionary:
 
 	# Overcommitted if >50% armies in sieges
 	if result["total_armies"] > 0:
-		result["overcommitted"] = float(result["sieging_armies"]) / float(result["total_armies"]) > 0.5
+		result["overcommitted"] = float(result["sieging_armies"]) / float(maxi(int(result["total_armies"]), 1)) > 0.5
 
 	return result
 

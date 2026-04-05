@@ -613,7 +613,7 @@ func _ai_threat_score(ai_id: int) -> float:
 			max_enemy_tiles = t
 	if max_enemy_tiles <= ai_tiles:
 		return 0.1
-	var ratio: float = float(max_enemy_tiles) / float(ai_tiles)
+	var ratio: float = float(max_enemy_tiles) / float(maxi(int(ai_tiles), 1))
 	return clampf((ratio - 1.0) / 2.0, 0.0, 1.0)
 
 func _ai_strength_ratio(ai_id: int, other_id: int) -> float:
@@ -622,7 +622,7 @@ func _ai_strength_ratio(ai_id: int, other_id: int) -> float:
 	var other_tiles: int = _get_player_tile_count(other_id)
 	if other_tiles <= 0:
 		return 10.0
-	return float(ai_tiles) / float(other_tiles)
+	return float(ai_tiles) / float(maxi(int(other_tiles), 1))
 
 func _share_common_enemy(player_a: int, player_b: int) -> bool:
 	## Heuristic: do both players have negative reputation with a third faction?

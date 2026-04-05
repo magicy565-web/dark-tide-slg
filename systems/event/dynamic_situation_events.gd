@@ -274,7 +274,7 @@ func _get_tile_pct() -> float:
 	for t in GameManager.tiles:
 		if t.get("owner", -1) == pid:
 			owned += 1
-	return float(owned) / float(total)
+	return float(owned) / float(maxi(int(total), 1))
 
 func _get_player_tiles() -> Array:
 	var pid: int = _get_pid()

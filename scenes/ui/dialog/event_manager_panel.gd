@@ -353,8 +353,8 @@ func _build_event_card(w: Dictionary, display_status: String, _db_status: String
 	var bar_fill := ColorRect.new()
 	var max_turn: int = maxi(turn_max, 60)
 	var bar_width: float = 200.0
-	var fill_start: float = (float(turn_min) / float(max_turn)) * bar_width
-	var fill_end: float = (float(turn_max) / float(max_turn)) * bar_width
+	var fill_start: float = (float(turn_min) / float(maxi(int(max_turn), 1))) * bar_width
+	var fill_end: float = (float(turn_max) / float(maxi(int(max_turn), 1))) * bar_width
 	bar_fill.position = Vector2(fill_start, 0)
 	bar_fill.custom_minimum_size = Vector2(fill_end - fill_start, 12)
 	bar_fill.color = border_col * Color(1, 1, 1, 0.6)
@@ -363,7 +363,7 @@ func _build_event_card(w: Dictionary, display_status: String, _db_status: String
 	# Current turn marker
 	if turn <= max_turn:
 		var marker := ColorRect.new()
-		var marker_x: float = (float(turn) / float(max_turn)) * bar_width
+		var marker_x: float = (float(turn) / float(maxi(int(max_turn), 1))) * bar_width
 		marker.position = Vector2(marker_x - 1, 0)
 		marker.custom_minimum_size = Vector2(2, 12)
 		marker.color = Color.WHITE
@@ -457,8 +457,8 @@ func _refresh_timeline(windows: Array, statuses: Dictionary, turn: int) -> void:
 				else:
 					col = PENDING_COLOR * Color(1, 1, 1, 0.3)
 
-		var x_start: float = (float(turn_min) / float(max_turn)) * bar_w
-		var x_end: float = (float(turn_max) / float(max_turn)) * bar_w
+		var x_start: float = (float(turn_min) / float(maxi(int(max_turn), 1))) * bar_w
+		var x_end: float = (float(turn_max) / float(maxi(int(max_turn), 1))) * bar_w
 		var seg := ColorRect.new()
 		seg.position = Vector2(x_start, row * 5)
 		seg.size = Vector2(x_end - x_start, 4)
@@ -468,7 +468,7 @@ func _refresh_timeline(windows: Array, statuses: Dictionary, turn: int) -> void:
 
 	# Current turn marker
 	var marker := ColorRect.new()
-	var mx: float = (float(turn) / float(max_turn)) * bar_w
+	var mx: float = (float(turn) / float(maxi(int(max_turn), 1))) * bar_w
 	marker.position = Vector2(mx - 1, 0)
 	marker.size = Vector2(2, bar_h)
 	marker.color = Color.WHITE
@@ -480,7 +480,7 @@ func _refresh_timeline(windows: Array, statuses: Dictionary, turn: int) -> void:
 		lbl.text = str(t)
 		lbl.add_theme_font_size_override("font_size", 9)
 		lbl.add_theme_color_override("font_color", DIM_TEXT)
-		lbl.position = Vector2((float(t) / float(max_turn)) * bar_w - 5, bar_h - 14)
+		lbl.position = Vector2((float(t) / float(maxi(int(max_turn), 1))) * bar_w - 5, bar_h - 14)
 		bg.add_child(lbl)
 
 

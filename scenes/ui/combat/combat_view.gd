@@ -2522,7 +2522,7 @@ func _apply_log_entry(entry: Dictionary) -> void:
 		if is_instance_valid(round_counter_label):
 			round_counter_label.text = "Round %d/%d" % [round_num, MAX_ROUNDS]
 			# Color shifts toward red as rounds progress
-			var t: float = float(round_num) / float(MAX_ROUNDS)
+			var t: float = float(round_num) / float(maxi(int(MAX_ROUNDS), 1))
 			var rc_color := Color(0.9, 0.82, 0.6).lerp(Color(1.0, 0.5, 0.3), t)
 			round_counter_label.add_theme_color_override("font_color", rc_color)
 		if is_instance_valid(round_counter_panel):
@@ -3154,12 +3154,12 @@ func _compute_battle_rating(winner: String, atk_survivors: int, def_survivors: i
 
 	# Survivor efficiency: percentage of attacker units that survived
 	if total_atk > 0:
-		var survival_pct := float(atk_survivors) / float(total_atk)
+		var survival_pct := float(atk_survivors) / float(maxi(int(total_atk), 1))
 		score += int(survival_pct * 25)  # up to 25 pts
 
 	# Kills efficiency: how many enemies were eliminated
 	if total_def > 0:
-		var kill_pct := float(_kills_def) / float(total_def)
+		var kill_pct := float(_kills_def) / float(maxi(int(total_def), 1))
 		score += int(kill_pct * 20)  # up to 20 pts
 
 	# Speed bonus: fewer rounds = better
@@ -4493,7 +4493,7 @@ func play_awakening_vfx(hero_id: String, side: String, slot_idx: int) -> void:
 			anim_layer.add_child(p)
 		else:
 			root.add_child(p)
-		var angle := TAU * float(i) / float(particle_count)
+		var angle := TAU * float(i) / float(maxi(int(particle_count), 1))
 		var dist := randf_range(40.0, 90.0)
 		var target_pos := card_center + Vector2(cos(angle), sin(angle)) * dist
 		var tw_p := create_tween()

@@ -222,7 +222,7 @@ func _build_overview() -> void:
 	grid.add_theme_constant_override("v_separation", 5)
 	_content_vbox.add_child(grid)
 
-	var wall_pct: float = float(data["wall_hp"]) / float(data["wall_hp_max"]) * 100.0
+	var wall_pct: float = float(data["wall_hp"]) / float(maxi(int(data["wall_hp_max"]), 1)) * 100.0
 	_add_info_row(grid, "城墙", "%d/%d (%.0f%%)" % [data["wall_hp"], data["wall_hp_max"], wall_pct],
 		CLR_GREEN if wall_pct > 60 else (CLR_ORANGE if wall_pct > 30 else CLR_RED))
 	_add_info_row(grid, "防御加成", "+%d" % (level_data["def_bonus"] + bld_effects.get("def_bonus", 0)), CLR_CYAN)

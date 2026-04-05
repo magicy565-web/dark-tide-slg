@@ -329,7 +329,8 @@ func resolve_binghua_last_stand(player_id: int, choice: String, data: Dictionary
 			EventBus.message_log.emit("[color=gray][围困] 切断了银冠要塞的补给线。守军每回合 -3，3回合后陷落……[/color]")
 			if fortress_tile >= 0 and fortress_tile < GameManager.tiles.size():
 				GameManager.tiles[fortress_tile]["siege_countdown"] = 3
-				GameManager.tiles[fortress_tile]["siege_drain"] = 3
+				if fortress_tile >= 0 and fortress_tile < GameManager.tiles.size():
+					GameManager.tiles[fortress_tile]["siege_drain"] = 3
 
 # ═══════════════════════════════════════════════════════════
 # 事件 F：雪乃追随（凛被俘后自动触发）

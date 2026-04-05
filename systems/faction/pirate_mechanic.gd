@@ -745,6 +745,8 @@ func _apply_market_effect(player_id: int, item: Dictionary) -> void:
 	match effect:
 		"atk_boost":
 			var player: Dictionary = GameManager.get_player_by_id(player_id)
+			if player.is_empty():
+				return
 			player["atk_bonus"] = player.get("atk_bonus", 0) + value
 		"prestige":
 			ResourceManager.apply_delta(player_id, {"prestige": value})
@@ -764,6 +766,8 @@ func _apply_market_effect(player_id: int, item: Dictionary) -> void:
 			_generate_treasure_map(player_id)
 		"scout_range":
 			var player: Dictionary = GameManager.get_player_by_id(player_id)
+			if player.is_empty():
+				return
 			player["scout_bonus_turns"] = player.get("scout_bonus_turns", 0) + value
 		"smuggle_boost":
 			# 本回合走私收入临时加成
@@ -777,15 +781,21 @@ func _apply_market_effect(player_id: int, item: Dictionary) -> void:
 			ResourceManager.apply_delta(player_id, {"shadow_essence": value})
 		"escape_bonus":
 			var player: Dictionary = GameManager.get_player_by_id(player_id)
+			if player.is_empty():
+				return
 			player["escape_bonus"] = player.get("escape_bonus", 0) + value
 		"heal":
 			var player: Dictionary = GameManager.get_player_by_id(player_id)
+			if player.is_empty():
+				return
 			player["post_combat_heal"] = player.get("post_combat_heal", 0) + value
 		"slave_train_all":
 			# 全体性奴隶调教 +value
 			_train_all_slaves_bonus(player_id, value)
 		"slave_capture_bonus":
 			var player: Dictionary = GameManager.get_player_by_id(player_id)
+			if player.is_empty():
+				return
 			player["slave_capture_bonus"] = player.get("slave_capture_bonus", 0) + value
 			EventBus.message_log.emit("[color=pink]魅惑香生效! 下次捕获性奴隶 +%d[/color]" % value)
 

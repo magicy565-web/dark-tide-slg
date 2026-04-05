@@ -1592,14 +1592,16 @@ func _apply_reveal(player_id: int, count: int) -> void:
 		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 			continue
 		if not GameManager.tiles[tile_idx].has("revealed"):
-			GameManager.tiles[tile_idx]["revealed"] = {}
+			if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+				GameManager.tiles[tile_idx]["revealed"] = {}
 		GameManager.tiles[tile_idx]["revealed"][player_id] = true
 		# Also reveal neighbors
 		var neighbors: Array = GameManager.adjacency.get(tile_idx, [])
 		for n_idx in neighbors:
 			if n_idx >= 0 and n_idx < GameManager.tiles.size():
 				if not GameManager.tiles[n_idx].has("revealed"):
-					GameManager.tiles[n_idx]["revealed"] = {}
+					if n_idx >= 0 and n_idx < GameManager.tiles.size():
+						GameManager.tiles[n_idx]["revealed"] = {}
 				GameManager.tiles[n_idx]["revealed"][player_id] = true
 		revealed_count += 1
 	if revealed_count > 0:

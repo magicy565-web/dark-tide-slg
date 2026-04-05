@@ -303,7 +303,7 @@ func _on_ai_turn_progress(_faction_key: String, phase: int, total_phases: int) -
 	if not _is_visible:
 		return
 	if total_phases > 0:
-		_progress_bar.value = float(phase) / float(total_phases)
+		_progress_bar.value = float(phase) / float(maxi(int(total_phases), 1))
 	else:
 		_progress_bar.value = 0.0
 	_progress_label.text = "阶段 %d/%d" % [phase, total_phases]

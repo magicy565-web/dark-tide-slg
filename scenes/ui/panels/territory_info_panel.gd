@@ -660,7 +660,7 @@ func _build_section_adjacency(tile: Dictionary) -> void:
 
 	# Situation assessment
 	if enemy_power > 0:
-		var ratio: float = float(player_power) / float(enemy_power) if enemy_power > 0 else 99.0
+		var ratio: float = float(player_power) / float(maxi(int(enemy_power), 1)) if enemy_power > 0 else 99.0
 		var sit_text: String = ""
 		var sit_color: Color = CLR_TEXT
 		if ratio >= 2.0:

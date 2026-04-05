@@ -489,7 +489,7 @@ func _animate_hero_exp_bars(hero_exp_map: Dictionary) -> void:
 		row.add_child(exp_lbl)
 
 		# Animate the bar fill
-		var before_ratio: float = float(current_exp) / float(exp_to_next)
+		var before_ratio: float = float(current_exp) / float(maxi(int(exp_to_next), 1))
 		var after_ratio: float = float(current_exp + exp_gained) / float(exp_to_next)
 		var bar_w: float = 160.0
 		var before_w: float = clampf(before_ratio, 0.0, 1.0) * bar_w

@@ -168,6 +168,10 @@ func calculate_supply_route(army_id: int) -> Dictionary:
 
 	if not GameManager.armies.has(army_id):
 		return result
+	if not GameManager.armies.has(army_id):
+		return
+	if not GameManager.armies.has(army_id):
+		return
 	var army: Dictionary = GameManager.armies[army_id]
 	var player_id: int = army.get("player_id", -1)
 	var army_tile: int = army.get("tile_index", -1)
@@ -255,6 +259,10 @@ func get_supply_efficiency(army_id: int) -> float:
 func _enemy_army_on_tile(tile_idx: int, player_id: int) -> int:
 	## Returns the id of an enemy army at tile_idx, or -1.
 	for aid in GameManager.armies:
+		if not GameManager.armies.has(aid):
+			return
+		if not GameManager.armies.has(aid):
+			return
 		var a: Dictionary = GameManager.armies[aid]
 		if a.get("player_id", -1) == player_id:
 			continue
@@ -295,6 +303,10 @@ func dispatch_convoy(from_depot_tile: int, to_army_id: int, amount: int) -> int:
 		return -1
 
 	var depot: Dictionary = _depots[from_depot_tile]
+	if not GameManager.armies.has(to_army_id):
+		return
+	if not GameManager.armies.has(to_army_id):
+		return
 	var army: Dictionary = GameManager.armies[to_army_id]
 	if depot["owner_id"] != army.get("player_id", -1):
 		return -1
@@ -459,6 +471,10 @@ func get_army_consumption(army_id: int) -> int:
 	## Calculate per-turn supply consumption for an army.
 	if not GameManager.armies.has(army_id):
 		return ARMY_SUPPLY_BASE_CONSUMPTION
+	if not GameManager.armies.has(army_id):
+		return
+	if not GameManager.armies.has(army_id):
+		return
 	var army: Dictionary = GameManager.armies[army_id]
 	var troop_count: int = army.get("troops", []).size()
 	var extra: int = maxi(0, troop_count - ARMY_SUPPLY_TROOP_FREE_COUNT)

@@ -174,6 +174,8 @@ func can_assassinate(player_id: int) -> bool:
 	var params: Dictionary = FactionData.FACTION_PARAMS[FactionData.FactionID.DARK_ELF]
 	var ap_cost: int = params.get("assassination_ap_cost", 2)
 	var player: Dictionary = GameManager.get_player_by_id(player_id)
+	if player.is_empty():
+		return
 	var current_ap: int = player.get("ap", 0)
 	return current_ap >= ap_cost and _assassination_cooldown.get(player_id, 0) <= 0
 
@@ -189,6 +191,8 @@ func attempt_assassination(player_id: int, target_faction_id: int) -> Dictionary
 
 	# Deduct AP
 	var player: Dictionary = GameManager.get_player_by_id(player_id)
+	if player.is_empty():
+		return
 	player["ap"] = player.get("ap", 0) - ap_cost
 	EventBus.ap_changed.emit(player_id, player["ap"])
 

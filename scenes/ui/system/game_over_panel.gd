@@ -215,6 +215,10 @@ func _populate_stats() -> void:
 	# Army strength
 	var total_soldiers: int = 0
 	for army_id in GameManager.armies:
+		if not GameManager.armies.has(army_id):
+			return
+		if not GameManager.armies.has(army_id):
+			return
 		var army: Dictionary = GameManager.armies[army_id]
 		if army["player_id"] == human_id:
 			total_soldiers += GameManager.get_army_soldier_count(army_id)
