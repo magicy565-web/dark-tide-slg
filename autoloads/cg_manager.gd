@@ -185,11 +185,18 @@ func build_catalog_from_story_data() -> void:
 				var h_cg_id: String = h_event.get("cg", "")
 				if h_cg_id != "":
 					register_cg(hero_id, h_cg_id, h_event.get("title", ""))
-				# 检查对话内联 CG
+				# 检查对话内联 CG（主线对话）
 				for d in event.get("dialogues", []):
 					var d_cg: String = d.get("cg", "")
 					if d_cg != "":
 						register_cg(hero_id, d_cg, event.get("name", ""))
+				# BUG FIX D2: 检查 h_event.dialogues 中的内联 CG
+				# StoryDialog._unlock_event_cgs 会解锁这些 CG，但 build_catalog 之前未扫描它们，
+				# 导致已解锁的 CG 在图鉴中找不到对应条目，缩略图和预览均无法显示。
+				for d in h_event.get("dialogues", []):
+					var hd_cg: String = d.get("cg", "")
+					if hd_cg != "":
+						register_cg(hero_id, hd_cg, h_event.get("title", event.get("name", "")))
 
 
 # ═══════════════════════════════════════════════════════════════

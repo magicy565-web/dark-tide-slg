@@ -1,6 +1,45 @@
 # 《暗潮 Dark Tide》更新日志
 ---
 
+## v4.5.1 — 2026-04-05 (CG/任务联通深度检查修复)
+
+### 高优先级修复 (High)
+- **D1: VnDirector 层级硬编码为 7，低于 StoryDialog（11）** — `vn_director.gd` 中 `_canvas.layer = 7` 的注释写着「Above StoryDialog (layer 6)」，但 `UILayerRegistry.LAYER_STORY_DIALOG = 11`，导致 VN 演出覆盖层（人物立绘、特效、晕染）渲染在对话框**下方**，被完全遮挡。已改为 `UILayerRegistry.LAYER_STORY_DIALOG + 1`（= 12），确保始终跟随 StoryDialog 层级。
+- **D2: CGManager.build_catalog_from_story_data 未扫描 h_event.dialogues 中的内联 CG** — `StoryDialog._unlock_event_cgs` 会解锁 `h_event.dialogues[*].cg`，但 `build_catalog` 之前未扫描这一层级，导致已解锁的 CG 在图鉴中找不到对应条目，缩略图和预览均无法显示。已在 `cg_manager.gd` 的 `build_catalog_from_story_data` 中补充扫描。
+- **D3: cg_gallery_panel 已打开时不订阅 cg_unlocked 信号，图鉴不自动刷新** — 玩家在图鉴打开期间触发事件解锁新 CG，图鉴不会自动更新，需关闭再重开才能看到。已在 `_ready()` 中订阅 `EventBus.cg_unlocked`，新增 `_on_cg_unlocked` 回调，触发时刷新英雄列表和 CG 网格。
+- **D6: cg_gallery_panel 图鉴加载跨英雄 CG 时路径错误** — `_populate_cg_grid`、`_open_preview`、`_navigate_preview` 均通过 `_selected_hero` 构造路径，对于注册在某英雄名下但 CG ID 不含该英雄前缀的跨英雄 CG（如 `endgame_dark_tide`），路径会指向错误文件夹导致加载失败。已在 `_current_hero_cgs` 条目中新增 `source_hero` 字段（从 catalog 路径中提取），所有纹理加载改用 `source_hero`。
+
+### 文件变更清单
+| 文件 | 变更类型 |
+|------|----------|
+| `systems/story/vn_director.gd` | Bug 修复 (层级硬编码修正) |
+| `autoloads/cg_manager.gd` | Bug 修复 (h_event.dialogues CG 扫描补全) |
+| `scenes/ui/system/cg_gallery_panel.gd` | Bug 修复 (cg_unlocked 订阅 / source_hero 路径修复) |
+| `CHANGELOG.md` | 新增条目 |
+
+---
+
+## v4.5.0 — 2026-04-05 (CG/任务联通 BUG 修复)
+
+### 关键修复 (Critical)
+- **P0: StoryDialog 节点从未被实例化到场景树** — v4.1.0 将 `StoryDialog` 从 Autoload 移除后，`main.gd` 也未动态实例化它，导致 `EventBus.story_event_triggered` 信号发射后无任何监听者，CG 和对话框完全无法显示。现在 `main.gd` 中动态实例化 `StoryDialog` 并注册到 `PanelManager`。
+- **P1: manually_trigger_event 对非选择事件提前调用 complete_current_event 导致双重推进** — `story_event_system.gd` 的 `manually_trigger_event` 函数在发射 `story_event_triggered` 信号之前就调用了 `complete_current_event()`，导致 `StoryDialog._finish_event()` 再次调用时跳过一个事件。已移除提前调用，由 `StoryDialog` 在玩家阅读完对话后负责完成事件。
+- **P1: try_trigger_next 存在相同的双重推进问题** — 同上，`try_trigger_next` 中的非选择事件同样提前调用 `complete_current_event()`，已修复。
+
+### 高优先级修复 (High)
+- **P1: 对话进行中可重复触发新事件** — `story_event_system.gd` 新增 `_dialog_active` 标志，在 `story_event_triggered` 发射时设为 `true`，在 `story_event_completed` 接收时清除，防止 `try_trigger_next` 在对话进行中重复触发。
+- **P2: story_dialog._on_skip 直接访问私有变量 _pending_choices** — 改用公开 API `StoryEventSystem.clear_pending_choice()` 替代直接访问 `StoryEventSystem._pending_choices`，并在 `story_event_system.gd` 中新增该公开函数。
+
+### 文件变更清单
+| 文件 | 变更类型 |
+|------|----------|
+| `scenes/main.gd` | Bug 修复 (StoryDialog 实例化 + PanelManager 注册) |
+| `systems/story/story_event_system.gd` | Bug 修复 (双重推进 / _dialog_active 防护 / clear_pending_choice API) |
+| `scenes/ui/dialog/story_dialog.gd` | Bug 修复 (_on_skip 改用公开 API) |
+| `CHANGELOG.md` | 新增条目 |
+
+---
+
 ## v4.4.0 — 2026-04-04 (战略资源全面接入 + 停战通用化 + 战斗鲁棒性加固)
 
 ### 关键修复 (Critical)

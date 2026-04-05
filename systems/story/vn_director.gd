@@ -106,7 +106,7 @@ func _build_overlay_ui() -> void:
 
 	_canvas = CanvasLayer.new()
 	_canvas.name = "VnDirectorCanvas"
-	_canvas.layer = 7  # Above StoryDialog (layer 6)
+	_canvas.layer = UILayerRegistry.LAYER_STORY_DIALOG + 1  # BUG FIX D1: Must be above StoryDialog (layer 11)
 	add_child(_canvas)
 
 	# ── Effect overlay (flash / tint) ──

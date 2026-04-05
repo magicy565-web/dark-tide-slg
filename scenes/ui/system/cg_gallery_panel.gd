@@ -55,6 +55,10 @@ func _ready() -> void:
 	_build_ui()
 	_build_preview_ui()
 	hide_gallery()
+	# BUG FIX D3: Subscribe to cg_unlocked so the gallery auto-refreshes
+	# when a new CG is unlocked while the gallery is already open.
+	if EventBus.has_signal("cg_unlocked"):
+		EventBus.cg_unlocked.connect(_on_cg_unlocked)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -286,6 +290,16 @@ func hide_gallery() -> void:
 	_tween.tween_callback(func(): root.visible = false)
 
 
+## BUG FIX D3: Called when a new CG is unlocked while the gallery may be open.
+## Refreshes the hero list count and current hero's CG grid so the player
+## immediately sees the newly unlocked CG without having to close and reopen.
+func _on_cg_unlocked(_cg_id: String, _hero_id: String) -> void:
+	if not _visible:
+		return
+	_populate_hero_list()
+	_populate_cg_grid()
+
+
 # ═══════════════════════════════════════════════════════════════
 #                    HERO LIST (Left Panel)
 # ═══════════════════════════════════════════════════════════════
@@ -357,14 +371,26 @@ func _populate_cg_grid() -> void:
 		return
 
 	# Build display list from catalog
+	# BUG FIX D6: Store "source_hero" so load_cg_texture uses the correct folder
+	# for cross-hero CGs (e.g. endgame_dark_tide registered under a specific hero).
 	_current_hero_cgs = []
 	for entry in catalog:
 		var cg_id: String = entry["cg_id"]
 		var is_unlocked: bool = CGManager.is_cg_unlocked(cg_id)
+		# Determine the owning hero folder: prefer explicit catalog path prefix,
+		# otherwise fall back to _selected_hero.
+		var source_hero: String = _selected_hero
+		var cat_path: String = entry.get("path", "")
+		if cat_path != "":
+			# Path format: res://assets/cg/{hero_id}/{cg_id}.png
+			var parts: Array = cat_path.split("/")
+			if parts.size() >= 2:
+				source_hero = parts[parts.size() - 2]
 		_current_hero_cgs.append({
 			"cg_id": cg_id,
 			"title": entry.get("title", cg_id),
 			"unlocked": is_unlocked,
+			"source_hero": source_hero,
 		})
 
 	# Add any unlocked CGs not in catalog
@@ -379,6 +405,7 @@ func _populate_cg_grid() -> void:
 				"cg_id": cg_id,
 				"title": cg_id,
 				"unlocked": true,
+				"source_hero": _selected_hero,
 			})
 
 	# Create thumbnail buttons
@@ -394,7 +421,8 @@ func _populate_cg_grid() -> void:
 
 		if is_unlocked:
 			# Try to load thumbnail texture
-			var tex: Texture2D = CGManager.load_cg_texture(_selected_hero, entry["cg_id"])
+			# BUG FIX D6: Use source_hero (the folder owner) instead of _selected_hero
+			var tex: Texture2D = CGManager.load_cg_texture(entry.get("source_hero", _selected_hero), entry["cg_id"])
 			if tex != null:
 				# Create a TextureRect inside the button
 				var tex_rect := TextureRect.new()
@@ -433,7 +461,8 @@ func _open_preview(index: int) -> void:
 	_current_preview_index = index
 	_viewing_cg = true
 
-	var tex: Texture2D = CGManager.load_cg_texture(_selected_hero, entry["cg_id"])
+	# BUG FIX D6: Use source_hero so cross-hero CGs load from the correct folder
+	var tex: Texture2D = CGManager.load_cg_texture(entry.get("source_hero", _selected_hero), entry["cg_id"])
 	preview_image.texture = tex
 	preview_title.text = entry.get("title", entry["cg_id"])
 	_update_preview_nav()
@@ -471,7 +500,8 @@ func _navigate_preview(delta: int) -> void:
 
 	_current_preview_index = new_index
 	var entry: Dictionary = _current_hero_cgs[new_index]
-	var tex: Texture2D = CGManager.load_cg_texture(_selected_hero, entry["cg_id"])
+	# BUG FIX D6: Use source_hero for cross-hero CG path resolution
+	var tex: Texture2D = CGManager.load_cg_texture(entry.get("source_hero", _selected_hero), entry["cg_id"])
 
 	# Crossfade
 	if _tween:
