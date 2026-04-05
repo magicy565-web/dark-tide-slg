@@ -75,17 +75,10 @@ var login_screen = null
 func _ready() -> void:
 	# Start with HUD hidden, menu visible (board stays visible - camera needs it)
 	hud.visible = false
-	# Hide main menu until login completes
-	main_menu.visible = false
-
-	# ── 创建登录界面 ──
-	var LoginScreenScript = preload("res://scenes/ui/system/login_screen.gd")
-	login_screen = CanvasLayer.new()
-	login_screen.set_script(LoginScreenScript)
-	login_screen.name = "LoginScreen"
-	add_child(login_screen)
-	if login_screen.has_signal("login_completed"):
-		login_screen.login_completed.connect(_on_login_completed)
+	# 直接显示主菜单，跳过登录界面
+	main_menu.visible = true
+	if main_menu.has_method("show_menu"):
+		main_menu.show_menu()
 
 	# Connect main menu signals
 	main_menu.game_started.connect(_on_game_started)
