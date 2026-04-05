@@ -61,6 +61,8 @@ func tick_all(player_id: int, turn: int) -> void:
 	## 1. Tick quest journal (main/side/challenge/character)
 	if QuestJournal:
 		QuestJournal.tick(player_id)
+		# BUG FIX: tick chain quests so they auto-complete when objectives are met
+		QuestJournal.tick_chain_quests(player_id)
 
 	## 2. Neutral faction quests (QuestManager already ticks via game_manager,
 	##    but we sync its state here)

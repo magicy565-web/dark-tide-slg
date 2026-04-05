@@ -39,6 +39,8 @@ var _pending_branch_request: Dictionary = {}
 var _active_chain_ids: Array = []
 ## 已完成的链 ID 列表
 var _completed_chain_ids: Array = []
+## BUG FIX: 节点激活回合记录: chain_id -> { node_id -> activated_turn }
+var _node_activated_turns: Dictionary = {}
 
 # ═══════════════ 生命周期 ═══════════════
 func _ready() -> void:
@@ -57,6 +59,7 @@ func _init_all_chains() -> void:
 		}
 		_node_states[chain_id] = {}
 		_branch_choices[chain_id] = {}
+		_node_activated_turns[chain_id] = {}  # BUG FIX: init time-limit tracking
 		var chain: Dictionary = QuestChainData.CHAINS[chain_id]
 		for node_id in chain.get("nodes", {}):
 			_node_states[chain_id][node_id] = NodeStatus.LOCKED
@@ -108,13 +111,15 @@ func _tick_chain(chain_id: String, player_id: int) -> void:
 	for node_id in nodes:
 		var status: int = _node_states[chain_id].get(node_id, NodeStatus.LOCKED)
 		if status == NodeStatus.ACTIVE:
-			_check_node_completion(chain_id, node_id, player_id)
+			# BUG FIX: 先检查时限，再检查完成
+			_check_node_time_limit(chain_id, node_id, player_id)
+			if _node_states[chain_id].get(node_id, NodeStatus.LOCKED) == NodeStatus.ACTIVE:
+				_check_node_completion(chain_id, node_id, player_id)
 		elif status == NodeStatus.AVAILABLE:
 			# 自动激活非 branch_choice 节点
 			var node: Dictionary = nodes[node_id]
 			if not node.get("branch_choice", false):
 				_activate_node(chain_id, node_id, player_id)
-
 	# 检查链是否全部完成
 	_check_chain_completion(chain_id)
 
@@ -139,6 +144,12 @@ func _activate_node(chain_id: String, node_id: String, player_id: int) -> void:
 	if _node_states[chain_id].get(node_id, NodeStatus.LOCKED) != NodeStatus.AVAILABLE:
 		return
 	_node_states[chain_id][node_id] = NodeStatus.ACTIVE
+	# BUG FIX: record activation turn for time-limit tracking
+	if not _node_activated_turns.has(chain_id):
+		_node_activated_turns[chain_id] = {}
+	_node_activated_turns[chain_id][node_id] = GameManager.turn_number if GameManager else 0
+	# BUG FIX: emit node_activated signal for UI tracking
+	EventBus.quest_chain_node_activated.emit(chain_id, node_id)
 	var chain: Dictionary = QuestChainData.CHAINS[chain_id]
 	var node: Dictionary = chain.get("nodes", {}).get(node_id, {})
 	var node_type: String = node.get("type", "quest")
@@ -225,9 +236,15 @@ func _check_node_completion(chain_id: String, node_id: String, player_id: int) -
 			# 事件节点：等待玩家选择（通过 _on_branch_chosen 触发）
 			pass
 		"gate":
-			# 检查 gate 条件
-			var condition: Dictionary = node.get("condition", {})
-			if _check_gate_condition(condition, chain_id, player_id):
+			# BUG FIX: 处理 gate_type = parallel_join
+			var gate_type: String = node.get("gate_type", "condition")
+			var gate_passed: bool = false
+			if gate_type == "parallel_join":
+				gate_passed = _check_parallel_join(chain_id, node_id)
+			else:
+				var condition: Dictionary = node.get("condition", {})
+				gate_passed = _check_gate_condition(condition, chain_id, player_id)
+			if gate_passed:
 				_complete_node(chain_id, node_id, player_id)
 		"reward":
 			# Reward 节点在 _activate_node 中立即完成
@@ -256,6 +273,37 @@ func _check_gate_condition(condition: Dictionary, chain_id: String, player_id: i
 						break
 				if not any_set:
 					return false
+			"turn_min":
+				if GameManager and GameManager.turn_number < condition[key]:
+					return false
+			"tiles_min":
+				if GameManager and GameManager.count_tiles_owned(player_id) < condition[key]:
+					return false
+			"gold_min":
+				if ResourceManager and ResourceManager.get_resource(player_id, "gold") < condition[key]:
+					return false
+	return true
+
+
+func _check_parallel_join(chain_id: String, node_id: String) -> bool:
+	## BUG FIX: 检查 parallel_join gate 节点的并行组是否全部完成
+	var chain: Dictionary = QuestChainData.CHAINS[chain_id]
+	var node: Dictionary = chain.get("nodes", {}).get(node_id, {})
+	var group_id: String = node.get("parallel_group", "")
+	if group_id == "":
+		# 没有并行组标记，回退到普通 requires 检查
+		return _can_unlock_node(chain_id, node_id)
+	# 找到属于该并行组的所有节点
+	var group_nodes: Array = []
+	var all_nodes: Dictionary = chain.get("nodes", {})
+	for nid in all_nodes:
+		if all_nodes[nid].get("parallel_group", "") == group_id and nid != node_id:
+			group_nodes.append(nid)
+	# 检查并行组内所有非门节点是否均已完成
+	for nid in group_nodes:
+		var st: int = _node_states[chain_id].get(nid, NodeStatus.LOCKED)
+		if st not in [NodeStatus.COMPLETED, NodeStatus.SKIPPED]:
+			return false
 	return true
 
 func _check_chain_trigger(trigger: Dictionary, player_id: int) -> bool:
@@ -470,6 +518,36 @@ func _check_chain_completion(chain_id: String) -> void:
 	EventBus.quest_chain_completed.emit(chain_id)
 	EventBus.message_log.emit("[color=gold][b][任务链完成] %s[/b][/color]" % chain.get("name", chain_id))
 
+# ═══════════════ 节点时限检查 ═══════════════
+func _check_node_time_limit(chain_id: String, node_id: String, player_id: int) -> void:
+	## BUG FIX: 检查 ACTIVE 节点是否超过 time_limit_turns，超时则触发 fail_node
+	var chain: Dictionary = QuestChainData.CHAINS[chain_id]
+	var node: Dictionary = chain.get("nodes", {}).get(node_id, {})
+	var time_limit: int = node.get("time_limit_turns", -1)
+	if time_limit <= 0:
+		return  # 该节点没有时限
+	var activated_turn: int = _node_activated_turns.get(chain_id, {}).get(node_id, -1)
+	if activated_turn < 0:
+		return  # 未记录激活回合，跳过
+	var current_turn: int = GameManager.turn_number if GameManager else 0
+	var elapsed: int = current_turn - activated_turn
+	if elapsed < time_limit:
+		return  # 还在时限内
+	# 超时处理
+	var fail_node_id: String = node.get("fail_node", "")
+	EventBus.message_log.emit("[color=red][任务链超时] %s — 节点 %s 超时（已用 %d 回合，限 %d）[/color]" % [
+		chain.get("name", chain_id), node.get("name", node_id), elapsed, time_limit])
+	_fail_node(chain_id, node_id)
+	# 如果有 fail_node，解锁失败跳转节点
+	if fail_node_id != "" and chain.get("nodes", {}).has(fail_node_id):
+		_unlock_node(chain_id, fail_node_id, player_id)
+		_activate_node(chain_id, fail_node_id, player_id)
+		EventBus.message_log.emit("[color=orange][任务链] 进入失败分支: %s[/color]" % 
+			chain.get("nodes", {}).get(fail_node_id, {}).get("name", fail_node_id))
+	# 发射 chain_failed 信号
+	EventBus.quest_chain_failed.emit(chain_id, "节点 %s 超时" % node.get("name", node_id))
+
+
 # ═══════════════ 公开 API ═══════════════
 func get_chain_state(chain_id: String) -> Dictionary:
 	return _chain_states.get(chain_id, {})
@@ -561,6 +639,8 @@ func to_save_data() -> Dictionary:
 		"branch_choices": _branch_choices.duplicate(true),
 		"active_chain_ids": _active_chain_ids.duplicate(),
 		"completed_chain_ids": _completed_chain_ids.duplicate(),
+		# BUG FIX: 保存节点激活回合，用于时限恢复
+		"node_activated_turns": _node_activated_turns.duplicate(true),
 	}
 
 func from_save_data(data: Dictionary) -> void:
@@ -570,7 +650,13 @@ func from_save_data(data: Dictionary) -> void:
 	_branch_choices = data.get("branch_choices", {}).duplicate(true)
 	_active_chain_ids = data.get("active_chain_ids", []).duplicate()
 	_completed_chain_ids = data.get("completed_chain_ids", []).duplicate()
+	# BUG FIX: 恢复节点激活回合
+	_node_activated_turns = data.get("node_activated_turns", {}).duplicate(true)
 	# 修复 JSON 读档后 int 值变为 float 的问题
 	for chain_id in _node_states:
 		for node_id in _node_states[chain_id]:
 			_node_states[chain_id][node_id] = int(_node_states[chain_id][node_id])
+	# 修复激活回合的 int 类型
+	for chain_id in _node_activated_turns:
+		for node_id in _node_activated_turns[chain_id]:
+			_node_activated_turns[chain_id][node_id] = int(_node_activated_turns[chain_id][node_id])

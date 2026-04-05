@@ -586,6 +586,20 @@ func _apply_reward(reward: Dictionary, player_id: int) -> void:
 		_unlocked_titles.append(reward["title"])
 		_active_title = reward["title"]
 		EventBus.message_log.emit("[color=gold]获得称号: %s[/color]" % reward["title"])
+	# BUG FIX: 补充链任务奖励字段（order_delta / threat_delta / flag_set / unlock_endgame / message）
+	if reward.has("order_delta") and OrderManager:
+		OrderManager.change_order(int(reward["order_delta"]))
+	if reward.has("threat_delta") and ThreatManager:
+		ThreatManager.change_threat(int(reward["threat_delta"]))
+	if reward.has("flag_set"):
+		if ChainEventComposer:
+			ChainEventComposer.set_flag(reward["flag_set"], true)
+		EventBus.quest_chain_flag_set.emit(reward["flag_set"])
+	if reward.get("unlock_endgame", false):
+		EventBus.quest_chain_endgame_unlocked.emit("quest_journal_reward")
+	var reward_msg: String = reward.get("message", "")
+	if reward_msg != "":
+		EventBus.message_log.emit("[color=gold][任务奖励] %s[/color]" % reward_msg)
 
 
 func _apply_challenge_reward(reward: Dictionary, player_id: int) -> void:
@@ -1215,133 +1229,141 @@ func from_save_data(data: Dictionary) -> void:
 ## 链任务注册表: quest_id -> { "def": Dictionary, "chain_id": String, "node_id": String, "status": int }
 var _chain_quest_registry: Dictionary = {}
 
+
 func register_chain_quest(quest_id: String, quest_def: Dictionary, player_id: int, chain_id: String, node_id: String) -> void:
-## 注册一个由任务链动态创建的任务
-if _chain_quest_registry.has(quest_id):
-return  # 已注册，跳过
-_chain_quest_registry[quest_id] = {
-"def": quest_def.duplicate(true),
-"chain_id": chain_id,
-"node_id": node_id,
-"status": QuestDefs.QuestStatus.ACTIVE,
-"registered_turn": GameManager.turn_number if GameManager else 0,
-}
-EventBus.message_log.emit("[color=yellow][任务链任务] 新任务注册: %s[/color]" % quest_def.get("name", quest_id))
-EventBus.quest_journal_updated.emit()
+	## 注册一个由任务链动态创建的任务
+	if _chain_quest_registry.has(quest_id):
+		return  # 已注册，跳过
+	_chain_quest_registry[quest_id] = {
+		"def": quest_def.duplicate(true),
+		"chain_id": chain_id,
+		"node_id": node_id,
+		"status": QuestDefs.QuestStatus.ACTIVE,
+		"registered_turn": GameManager.turn_number if GameManager else 0,
+	}
+	EventBus.message_log.emit("[color=yellow][任务链任务] 新任务注册: %s[/color]" % quest_def.get("name", quest_id))
+	EventBus.quest_journal_updated.emit()
+
 
 func is_chain_quest_completed(quest_id: String) -> bool:
-## 检查一个链任务是否已完成
-var entry: Dictionary = _chain_quest_registry.get(quest_id, {})
-if entry.is_empty():
-return false
-return entry.get("status", -1) == QuestDefs.QuestStatus.COMPLETED
+	## 检查一个链任务是否已完成
+	var entry: Dictionary = _chain_quest_registry.get(quest_id, {})
+	if entry.is_empty():
+		return false
+	return entry.get("status", -1) == QuestDefs.QuestStatus.COMPLETED
+
 
 func complete_chain_quest(quest_id: String, player_id: int) -> void:
-## 手动完成一个链任务（通常由 QuestChainManager 调用）
-if not _chain_quest_registry.has(quest_id):
-return
-var entry: Dictionary = _chain_quest_registry[quest_id]
-if entry.get("status", -1) == QuestDefs.QuestStatus.COMPLETED:
-return
-entry["status"] = QuestDefs.QuestStatus.COMPLETED
-entry["completed_turn"] = GameManager.turn_number if GameManager else 0
-# 发放奖励
-var reward: Dictionary = entry["def"].get("reward", {})
-if not reward.is_empty():
-_apply_reward(reward, player_id)
-EventBus.message_log.emit("[color=green][任务链任务] 任务完成: %s[/color]" % entry["def"].get("name", quest_id))
-EventBus.quest_journal_updated.emit()
+	## 手动完成一个链任务（通常由 QuestChainManager 调用）
+	if not _chain_quest_registry.has(quest_id):
+		return
+	var entry: Dictionary = _chain_quest_registry[quest_id]
+	if entry.get("status", -1) == QuestDefs.QuestStatus.COMPLETED:
+		return
+	entry["status"] = QuestDefs.QuestStatus.COMPLETED
+	entry["completed_turn"] = GameManager.turn_number if GameManager else 0
+	# 发放奖励
+	var reward: Dictionary = entry["def"].get("reward", {})
+	if not reward.is_empty():
+		_apply_reward(reward, player_id)
+	EventBus.message_log.emit("[color=green][任务链任务] 任务完成: %s[/color]" % entry["def"].get("name", quest_id))
+	EventBus.quest_journal_updated.emit()
+
 
 func get_chain_quest_status(quest_id: String) -> int:
-## 获取链任务的状态
-var entry: Dictionary = _chain_quest_registry.get(quest_id, {})
-return entry.get("status", QuestDefs.QuestStatus.LOCKED)
+	## 获取链任务的状态
+	var entry: Dictionary = _chain_quest_registry.get(quest_id, {})
+	return entry.get("status", QuestDefs.QuestStatus.LOCKED)
+
 
 func get_chain_quest_objectives_status(quest_id: String, player_id: int) -> Array:
-## 获取链任务的目标完成状态
-var entry: Dictionary = _chain_quest_registry.get(quest_id, {})
-if entry.is_empty():
-return []
-var result: Array = []
-for obj in entry["def"].get("objectives", []):
-result.append({
-"label": obj.get("label", ""),
-"done": _evaluate_objective(obj, player_id),
-})
-return result
+	## 获取链任务的目标完成状态
+	var entry: Dictionary = _chain_quest_registry.get(quest_id, {})
+	if entry.is_empty():
+		return []
+	var result: Array = []
+	for obj in entry["def"].get("objectives", []):
+		result.append({
+			"label": obj.get("label", ""),
+			"done": _evaluate_objective(obj, player_id),
+		})
+	return result
+
 
 func tick_chain_quests(player_id: int) -> void:
-## 每回合检查链任务的完成状态
-for quest_id in _chain_quest_registry:
-var entry: Dictionary = _chain_quest_registry[quest_id]
-if entry.get("status", -1) != QuestDefs.QuestStatus.ACTIVE:
-continue
-# 检查所有目标是否完成
-var all_done: bool = true
-for obj in entry["def"].get("objectives", []):
-if not _evaluate_objective(obj, player_id):
-all_done = false
-break
-if all_done:
-complete_chain_quest(quest_id, player_id)
+	## 每回合检查链任务的完成状态
+	for quest_id in _chain_quest_registry:
+		var entry: Dictionary = _chain_quest_registry[quest_id]
+		if entry.get("status", -1) != QuestDefs.QuestStatus.ACTIVE:
+			continue
+		# 检查所有目标是否完成
+		var all_done: bool = true
+		for obj in entry["def"].get("objectives", []):
+			if not _evaluate_objective(obj, player_id):
+				all_done = false
+				break
+		if all_done:
+			complete_chain_quest(quest_id, player_id)
+
 
 func get_all_chain_quests(player_id: int) -> Array:
-## 获取所有链任务的格式化列表（用于 UI 显示）
-var result: Array = []
-for quest_id in _chain_quest_registry:
-var entry: Dictionary = _chain_quest_registry[quest_id]
-var q_def: Dictionary = entry["def"]
-var objectives_status: Array = get_chain_quest_objectives_status(quest_id, player_id)
-result.append({
-"id": quest_id,
-"name": q_def.get("name", quest_id),
-"desc": q_def.get("desc", ""),
-"category": "chain",
-"chain_id": entry.get("chain_id", ""),
-"node_id": entry.get("node_id", ""),
-"status": entry.get("status", QuestDefs.QuestStatus.LOCKED),
-"objectives": objectives_status,
-"reward_preview": _preview_reward(q_def.get("reward", {})),
-})
-return result
+	## 获取所有链任务的格式化列表（用于 UI 显示）
+	var result: Array = []
+	for quest_id in _chain_quest_registry:
+		var entry: Dictionary = _chain_quest_registry[quest_id]
+		var q_def: Dictionary = entry["def"]
+		var objectives_status: Array = get_chain_quest_objectives_status(quest_id, player_id)
+		result.append({
+			"id": quest_id,
+			"name": q_def.get("name", quest_id),
+			"desc": q_def.get("desc", ""),
+			"category": "chain",
+			"chain_id": entry.get("chain_id", ""),
+			"node_id": entry.get("node_id", ""),
+			"status": entry.get("status", QuestDefs.QuestStatus.LOCKED),
+			"objectives": objectives_status,
+			"reward_preview": _preview_reward(q_def.get("reward", {})),
+		})
+	return result
+
 
 func get_quest_by_id(quest_id: String) -> Dictionary:
-## 通过 ID 查找任务（支持链任务）
-# 先查链任务注册表
-if _chain_quest_registry.has(quest_id):
-var entry: Dictionary = _chain_quest_registry[quest_id]
-return {
-"id": quest_id,
-"name": entry["def"].get("name", quest_id),
-"status": entry.get("status", QuestDefs.QuestStatus.LOCKED),
-}
-# 再查主线任务
-var QuestDefs_ref = preload("res://systems/quest/quest_definitions.gd")
-for q in QuestDefs_ref.MAIN_QUESTS:
-if q.get("id", "") == quest_id:
-var state: Dictionary = _main_progress.get(quest_id, {})
-return {"id": quest_id, "name": q.get("name", quest_id), "status": state.get("status", QuestDefs.QuestStatus.LOCKED)}
-# 再查支线任务
-var SideQuestData_ref = preload("res://systems/quest/side_quest_data.gd")
-for q in SideQuestData_ref.SIDE_QUESTS:
-if q.get("id", "") == quest_id:
-var state: Dictionary = _side_progress.get(quest_id, {})
-return {"id": quest_id, "name": q.get("name", quest_id), "status": state.get("status", QuestDefs.QuestStatus.LOCKED)}
-return {}
+	## 通过 ID 查找任务（支持链任务）
+	# 先查链任务注册表
+	if _chain_quest_registry.has(quest_id):
+		var entry: Dictionary = _chain_quest_registry[quest_id]
+		return {
+			"id": quest_id,
+			"name": entry["def"].get("name", quest_id),
+			"status": entry.get("status", QuestDefs.QuestStatus.LOCKED),
+		}
+	# 再查主线任务
+	for q in QuestDefs.MAIN_QUESTS:
+		if q.get("id", "") == quest_id:
+			var state: Dictionary = _main_progress.get(quest_id, {})
+			return {"id": quest_id, "name": q.get("name", quest_id), "status": state.get("status", QuestDefs.QuestStatus.LOCKED)}
+	# 再查支线任务
+	for q in SideQuestData.SIDE_QUESTS:
+		if q.get("id", "") == quest_id:
+			var state: Dictionary = _side_progress.get(quest_id, {})
+			return {"id": quest_id, "name": q.get("name", quest_id), "status": state.get("status", QuestDefs.QuestStatus.LOCKED)}
+	return {}
+
 
 func chain_quest_save_data() -> Dictionary:
-## 链任务的存档数据
-return _chain_quest_registry.duplicate(true)
+	## 链任务的存档数据
+	return _chain_quest_registry.duplicate(true)
+
 
 func chain_quest_load_data(data: Dictionary) -> void:
-## 链任务的读档
-_chain_quest_registry = data.duplicate(true)
-# 修复 JSON 读档后 int 变 float 的问题
-for quest_id in _chain_quest_registry:
-var entry: Dictionary = _chain_quest_registry[quest_id]
-if entry.has("status"):
-entry["status"] = int(entry["status"])
-if entry.has("registered_turn"):
-entry["registered_turn"] = int(entry["registered_turn"])
-if entry.has("completed_turn"):
-entry["completed_turn"] = int(entry["completed_turn"])
+	## 链任务的读档
+	_chain_quest_registry = data.duplicate(true)
+	# 修复 JSON 读档后 int 变 float 的问题
+	for quest_id in _chain_quest_registry:
+		var entry: Dictionary = _chain_quest_registry[quest_id]
+		if entry.has("status"):
+			entry["status"] = int(entry["status"])
+		if entry.has("registered_turn"):
+			entry["registered_turn"] = int(entry["registered_turn"])
+		if entry.has("completed_turn"):
+			entry["completed_turn"] = int(entry["completed_turn"])

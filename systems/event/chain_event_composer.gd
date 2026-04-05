@@ -70,7 +70,23 @@ func _fire_delayed_event(entry: Dictionary) -> void:
 		var player_id: int = GameManager.get_human_player_id() if GameManager else 0
 		if not evaluate_condition(condition, player_id):
 			return
-	# 通过 EventScheduler 提交
+	# BUG FIX: 处理序列延迟续接事件（__seq_*_continue）
+	# 这类事件不应被提交到 EventScheduler，而是直接推进序列步骤
+	if event_id.begins_with("__seq_") and event_id.ends_with("_continue"):
+		# 从 data 中取 sequence_id，如果没有则从 event_id 提取
+		var sequence_id: String = data.get("sequence_id", "")
+		if sequence_id == "":
+			# event_id 格式: __seq_{sequence_id}_continue
+			var prefix: String = "__seq_"
+			var suffix: String = "_continue"
+			sequence_id = event_id.substr(prefix.length(), event_id.length() - prefix.length() - suffix.length())
+		if sequence_id != "" and _sequence_states.has(sequence_id):
+			_on_sequence_step_done(sequence_id)
+			EventBus.message_log.emit("[color=cyan][事件组合器] 序列延迟续接: %s[/color]" % sequence_id)
+		else:
+			push_warning("ChainEventComposer: 序列续接失败，未找到序列: %s" % sequence_id)
+		return
+	# 通过 EventScheduler 提交普通延迟事件
 	if EventScheduler:
 		EventScheduler.submit_candidate(
 			event_id,

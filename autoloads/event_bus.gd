@@ -533,8 +533,12 @@ signal human_event_choice_requested(event_id: String, player_id: int, event_data
 # ── Quest Chain System (v1.0) ──
 ## 当一条任务链被激活时发射（首次满足触发条件）。
 signal quest_chain_started(chain_id: String)
+## 当整条任务链因超时或关键失败而失败时发射。
+signal quest_chain_failed(chain_id: String, reason: String)
 ## 当链内某个节点从 LOCKED 变为 AVAILABLE 时发射。
 signal quest_chain_node_unlocked(chain_id: String, node_id: String)
+## 当链内某个节点从 AVAILABLE 变为 ACTIVE 时发射。
+signal quest_chain_node_activated(chain_id: String, node_id: String)
 ## 当链内某个节点完成时发射。
 signal quest_chain_node_completed(chain_id: String, node_id: String)
 ## 当链内某个节点失败时发射。

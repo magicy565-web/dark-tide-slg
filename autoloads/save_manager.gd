@@ -219,6 +219,9 @@ func _collect_save_data() -> Dictionary:
 		"tutorial": TutorialManager.to_save_data(),
 		"pirate_onboarding": PirateOnboarding.to_save_data() if PirateOnboarding != null else {},
 		"quest_journal": QuestJournal.to_save_data(),
+		# BUG FIX: 保存任务链系统状态（QuestChainManager + 链任务注册表）
+		"quest_chain_manager": QuestChainManager.to_save_data() if QuestChainManager != null else {},
+		"quest_chain_registry": QuestJournal.chain_quest_save_data() if QuestJournal != null else {},
 		"balance_manager": BalanceManager.serialize(),
 		"story": StoryEventSystem.to_save_data(),
 		# NOTE: hero_leveling is serialized inside HeroSystem.to_save_data()["hero_leveling"]
@@ -393,6 +396,11 @@ func _apply_save_data(data: Dictionary) -> void:
 	# 4b. Restore quest journal (v2.4+)
 	if data.has("quest_journal"):
 		QuestJournal.from_save_data(data.get("quest_journal", {}))
+	# BUG FIX: Restore quest chain system state (v5.2+)
+	if data.has("quest_chain_manager") and QuestChainManager != null:
+		QuestChainManager.from_save_data(data.get("quest_chain_manager", {}))
+	if data.has("quest_chain_registry") and QuestJournal != null:
+		QuestJournal.chain_quest_load_data(data.get("quest_chain_registry", {}))
 	if data.has("balance_manager"):
 		BalanceManager.deserialize(data.get("balance_manager", {}))
 
