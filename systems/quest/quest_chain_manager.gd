@@ -437,7 +437,7 @@ func _apply_node_reward(chain_id: String, node_id: String, node: Dictionary, pla
 	# 资源奖励（扩展支持全部资源键）
 	var res_delta: Dictionary = {}
 	for key in ["gold", "food", "iron", "prestige", "shadow_essence",
-				"magic_crystal", "gunpowder", "war_horse", "slaves", "mana"]:
+			"magic_crystal", "gunpowder", "war_horse", "slaves", "mana"]:
 		if reward.has(key):
 			res_delta[key] = reward[key]
 	if not res_delta.is_empty() and ResourceManager:
@@ -469,7 +469,7 @@ func _apply_node_reward(chain_id: String, node_id: String, node: Dictionary, pla
 	if reward.has("hero_recruit") and HeroSystem:
 		var recruit_id: String = str(reward["hero_recruit"])
 		if recruit_id != "" and HeroSystem.has_method("recruit_hero"):
-			HeroSystem.recruit_hero(recruit_id, player_id)
+			HeroSystem.recruit_hero(recruit_id)
 			EventBus.message_log.emit("[color=gold][任务链奖励] 英雄加入: %s[/color]" % recruit_id)
 	# 技能解锁奖励
 	if reward.has("unlock_skill"):
@@ -496,9 +496,9 @@ func _apply_node_reward(chain_id: String, node_id: String, node: Dictionary, pla
 			# 尝试推断 hero_id：若 unlock_id 含下划线且前缀匹配已知英雄，则提取
 			var inferred_hero: String = ""
 			for hero_key in ["rin", "yukino", "momiji", "hyouka", "suirei",
-							"gekka", "hakagure", "sou", "shion", "homura",
-							"shion_pirate", "youya", "hibiki", "sara",
-							"mei", "kaede", "akane", "hanabi"]:
+					"gekka", "hakagure", "sou", "shion", "homura",
+					"shion_pirate", "youya", "hibiki", "sara",
+					"mei", "kaede", "akane", "hanabi"]:
 				if unlock_id.begins_with(hero_key + "_"):
 					inferred_hero = hero_key
 					break

@@ -326,7 +326,7 @@ func from_save_data(data: Dictionary) -> void:
 	for siege_id in _active_sieges:
 		var s: Dictionary = _active_sieges[siege_id]
 		for key in ["attacker_army_id", "attacker_player_id", "defender_player_id",
-					"tile_index", "turns_remaining", "total_turns"]:
+				"tile_index", "turns_remaining", "total_turns"]:
 			if s.has(key):
 				s[key] = int(s[key])
 		for key in ["wall_hp", "wall_max_hp", "defender_morale", "attrition_rate", "sortie_chance"]:

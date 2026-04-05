@@ -433,7 +433,7 @@ func execute_ultimate(hero_id: String, battle_state: Dictionary) -> Dictionary:
 		"heal_all":
 			var ally_units: Array = _get_ally_units(side, battle_state)
 			# v13.0: 治疗型技能使用 int_stat 而非 atk 作为基础，治疗英雄数值正确
-			var hero_unit: Dictionary = _find_hero_unit(hero_id, battle_state)
+			# 注意：hero_unit 已在外层作用域声明，此处直接使用
 			var base_int: float = hero_unit.get("int_stat", hero_unit.get("int", base_atk))
 			var heal_base: float = maxf(base_int, base_atk)  # 取较高者保证向后兼容
 			for unit in ally_units:

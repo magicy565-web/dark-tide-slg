@@ -214,7 +214,7 @@ func _dur(base: float) -> float:
 # ═══════════════════════════════════════════════════════════════
 
 func _create_floating_text(pos: Vector2, text: String, color: Color,
-		duration: float = DUR_FLOATING_TEXT, font_size: int = 22) -> Label:
+			duration: float = DUR_FLOATING_TEXT, font_size: int = 22) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_font_size_override("font_size", font_size)
@@ -240,7 +240,7 @@ func _create_floating_text(pos: Vector2, text: String, color: Color,
 # ═══════════════════════════════════════════════════════════════
 
 func _create_line_effect(from_pos: Vector2, to_pos: Vector2, color: Color,
-		duration: float = 0.8, width: float = 3.0, dashed: bool = false) -> Line2D:
+			duration: float = 0.8, width: float = 3.0, dashed: bool = false) -> Line2D:
 	var line := Line2D.new()
 	line.width = width
 	line.default_color = color

@@ -144,15 +144,15 @@ func activate_strategy(tile_idx: int, strategy_id: String) -> bool:
 	# 立即生效的效果
 	var effects = strategy["effects"]
 	if effects.has("wall_repair"):
-			# v13.0: 安全访问
-			if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
-				var tile = GameManager.tiles[tile_idx]
-				tile["wall_hp"] = min(tile.get("wall_hp", 0) + effects["wall_repair"], tile.get("max_wall_hp", 50))
-		if effects.has("garrison_bonus"):
-			# v13.0: 安全访问
-			if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
-				var tile = GameManager.tiles[tile_idx]
-				tile["garrison"] = tile.get("garrison", 0) + effects["garrison_bonus"]
+		# v13.0: 安全访问
+		if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+			var tile = GameManager.tiles[tile_idx]
+			tile["wall_hp"] = min(tile.get("wall_hp", 0) + effects["wall_repair"], tile.get("max_wall_hp", 50))
+	if effects.has("garrison_bonus"):
+		# v13.0: 安全访问
+		if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+			var tile = GameManager.tiles[tile_idx]
+			tile["garrison"] = tile.get("garrison", 0) + effects["garrison_bonus"]
 	if effects.has("order_change"):
 		change_order(tile_idx, effects["order_change"])
 		

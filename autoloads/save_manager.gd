@@ -723,9 +723,9 @@ func _migrate_save_data(data: Dictionary, from_version: String) -> Dictionary:
 func _migrate_2_to_3(data: Dictionary) -> Dictionary:
 	## v13.0: v2.x -> v3.x 基础字段补充
 	for key in ["story", "tile_development", "supply_system", "siege",
-				"march_system", "enchantment", "hero_skills_advanced", "environment",
-				"treaty_system", "equipment_forge", "supply_logistics", "weather",
-				"espionage", "cg_gallery", "quest_journal", "balance_manager"]:
+			"march_system", "enchantment", "hero_skills_advanced", "environment",
+			"treaty_system", "equipment_forge", "supply_logistics", "weather",
+			"espionage", "cg_gallery", "quest_journal", "balance_manager"]:
 		if not data.has(key):
 			data[key] = {}
 	return data

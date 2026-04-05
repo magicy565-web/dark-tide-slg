@@ -144,7 +144,7 @@ func _build_tooltip() -> void:
 	lines.append("[color=#%s]── 季节修正 ──[/color]" % GOLD_BRIGHT.to_html(false))
 	var s := _season_data
 	for key in ["food_mult", "gold_mult", "iron_mult", "cavalry_atk_mod", "cavalry_spd_mod",
-			"heavy_armor_def_mod", "supply_attrition_mult", "morale_recovery", "movement_ap_extra"]:
+				"heavy_armor_def_mod", "supply_attrition_mult", "morale_recovery", "movement_ap_extra"]:
 		var val = s.get(key, 0)
 		if (val is float and val != 1.0) or (val is int and val != 0):
 			lines.append("  %s: %s" % [key, str(val)])
@@ -152,8 +152,8 @@ func _build_tooltip() -> void:
 	lines.append("[color=#%s]── 天气修正 ──[/color]" % GOLD_BRIGHT.to_html(false))
 	var w := _weather_data
 	for key in ["atk_mod", "def_mod", "spd_mod", "ranged_atk_mod", "movement_ap_extra",
-			"cavalry_charge_disabled", "fire_attacks_nullified", "naval_blocked",
-			"ambush_bonus", "attrition_exposed", "food_mult", "supply_convoy_loss_chance"]:
+				"cavalry_charge_disabled", "fire_attacks_nullified", "naval_blocked",
+				"ambush_bonus", "attrition_exposed", "food_mult", "supply_convoy_loss_chance"]:
 		var val = w.get(key, 0)
 		var dominated: bool = (val is float and val != 1.0 and val != 0.0) or (val is int and val != 0) or (val is bool and val)
 		if dominated:

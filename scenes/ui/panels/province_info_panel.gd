@@ -632,7 +632,7 @@ func _make_label(text: String, color: Color = CLR_TEXT, size: int = 14) -> Label
 	return lbl
 
 func _make_hbox_pair(label_text: String, value_text: String,
-		label_color: Color = CLR_LABEL, value_color: Color = CLR_TEXT) -> HBoxContainer:
+			label_color: Color = CLR_LABEL, value_color: Color = CLR_TEXT) -> HBoxContainer:
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 6)
 	hbox.add_child(_make_label(label_text, label_color))

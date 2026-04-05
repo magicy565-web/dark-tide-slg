@@ -364,12 +364,12 @@ func _show_grand_event_popup(ge: Dictionary) -> void:
 # ═══════════════ CHOICE HANDLING ═══════════════
 
 func _on_event_choice_selected(choice_index: int, source_type: String = "") -> void:
-		# v12.0 FIX: 严格过滤 source_type
-		# 空字符串不再作为通配符，必须明确为 "grand_event" 才处理
-		if source_type != "grand_event":
-			return
-		if _current_grand_event.is_empty():
-			return
+	# v12.0 FIX: 严格过滤 source_type
+	# 空字符串不再作为通配符，必须明确为 "grand_event" 才处理
+	if source_type != "grand_event":
+		return
+	if _current_grand_event.is_empty():
+		return
 
 	var choices: Array = _current_grand_event.get("choices", [])
 	if choice_index >= 0 and choice_index < choices.size():

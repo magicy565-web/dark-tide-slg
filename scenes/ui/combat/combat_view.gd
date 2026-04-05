@@ -3009,7 +3009,7 @@ func _finish_playback() -> void:
 	var total_atk_units: int = atk_final_arr.size()
 	var crit_rate_pct: int = 0
 	if _kills_def + _crit_count > 0:
-		var total_attacks := _kills_def + max(1, _kills_def)
+		var total_attacks: int = _kills_def + max(1, _kills_def)
 		crit_rate_pct = int(float(_crit_count) / max(1, total_attacks) * 100)
 	result_stats.text = (
 		"[color=#ffd700]战斗评级: %s[/color]  |  回合: %d/%d  |  最高伤害: %d\n" +
@@ -3169,7 +3169,7 @@ func _compute_battle_rating(winner: String, atk_survivors: int, def_survivors: i
 		score += int(kill_pct * 20)  # up to 20 pts
 
 	# Speed bonus: fewer rounds = better
-	var round_score := max(0, MAX_ROUNDS - _current_round)
+	var round_score: int = max(0, MAX_ROUNDS - _current_round)
 	score += round_score  # up to 8 pts
 
 	# Crit bonus: crits show skill mastery
