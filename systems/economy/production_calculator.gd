@@ -82,6 +82,10 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		var bld_level: int = tile.get("building_level", 1)
 		_apply_building_income(bld, bld_level, income, faction_id, player_id)
 
+		# BUG FIX: tile_idx must be declared at for-loop scope so Espionage block
+		# (outside the station_type if-block) can reference it.
+		var tile_idx: int = tile.get("index", -1)
+
 		# ── Resource station income (strategic resources only) ──
 		var station_type: String = tile.get("resource_station_type", "")
 		if station_type != "":
@@ -90,7 +94,6 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 				income[station_type] += station_output
 
 			# ── Governance & Policy modifiers (v1.2.0) ──
-			var tile_idx: int = tile.get("index", -1)
 			if tile_idx >= 0 and GameManager.governance_system:
 				var gov_mods: Dictionary = GameManager.governance_system.get_policy_modifiers(tile_idx)
 				if gov_mods.get("production_zero", false):

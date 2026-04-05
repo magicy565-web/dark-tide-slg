@@ -132,7 +132,7 @@ func _test_login_manager() -> void:
 	_check("登录后 is_guest == false", not lm.is_guest)
 
 	# 1.7 get_user_info 返回正确数据
-	var info := lm.get_user_info()
+	var info: Dictionary = lm.get_user_info()
 	_check("get_user_info 返回 username", info.get("username", "") == _test_username)
 	_check("get_user_info 返回 is_guest=false", not info.get("is_guest", true))
 
