@@ -1961,7 +1961,12 @@ func begin_turn() -> void:
 			SaveManager.auto_save()
 
 	player["ap"] = calculate_action_points(pid)
-	player["atk_bonus"] = 0
+	# BUG FIX: Apply permanent ATK bonuses from StrategicResourceManager (arcane_enhance +5)
+	# and faction-specific bonuses (DarkElf altar, Orc blood tribute, etc.) at turn start.
+	# These were previously reset to 0 and never re-applied, making arcane_enhance ineffective
+	# in the legacy combat path (game_manager._build_attacker_data).
+	player["atk_bonus"] = StrategicResourceManager.get_permanent_atk_bonus(pid)
+	player["atk_bonus"] += FactionManager.get_combat_atk_bonus(pid, faction_id)
 	player["def_bonus"] = 0
 	_ap_purchases_this_turn = 0
 	# v4.7: Clear hero fatigue at start of each turn
@@ -2170,6 +2175,13 @@ func begin_turn() -> void:
 		# never decrement and military training EXP to never be granted.
 		TileDevelopment.tick_rebuilding()
 		TileDevelopment.process_military_training(pid)
+		# ── Phase 4a4: TileDevelopment milestone check ──
+		# BUG FIX: check_and_unlock_milestones() was defined in TileDevelopment but
+		# never called each turn, so tile path milestones were never unlocked.
+		var _new_milestones: Array = TileDevelopment.check_and_unlock_milestones(pid)
+		if not _new_milestones.is_empty():
+			for _mid in _new_milestones:
+				EventBus.message_log.emit("[color=gold]里程碑解锁: %s[/color]" % TileDevelopment.MILESTONES.get(_mid, {}).get("name", _mid))
 
 	# ── Phase 4b: Troop per-turn passive effects (regen, self_destruct, etc.) ──
 	_tick_troop_passives(pid)
@@ -4266,6 +4278,15 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 		for key in att_losses:
 			att_losses[key] = maxi(0, att_losses[key] - int(float(att_losses[key]) * 0.3))
 		EventBus.message_log.emit("[color=purple]暗影斗篷: 进攻方损失减少30%![/color]")
+	# soul_resurrection: 50% of attacker losses are revived after battle
+	if StrategicResourceManager.has_soul_resurrection(pid):
+		var _revived_total: int = 0
+		for key in att_losses:
+			var revived: int = int(float(att_losses[key]) * 0.5)
+			att_losses[key] = maxi(0, att_losses[key] - revived)
+			_revived_total += revived
+		if _revived_total > 0:
+			EventBus.message_log.emit("[color=cyan]灵魂复活: %d 名阵亡士兵复活![/color]" % _revived_total)
 
 	# Apply losses to attacker army troops
 	# BUG FIX: match by slot index instead of troop_id to handle duplicate troop types
@@ -5336,6 +5357,13 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	for detail in result.get("details", []):
 		EventBus.message_log.emit("  %s" % detail)
 
+	# soul_resurrection: 50% of attacker losses are revived (legacy combat path)
+	if StrategicResourceManager.has_soul_resurrection(pid) and attacker_losses > 0:
+		var _legacy_revived: int = int(float(attacker_losses) * 0.5)
+		attacker_losses = maxi(0, attacker_losses - _legacy_revived)
+		if _legacy_revived > 0:
+			EventBus.message_log.emit("[color=cyan]灵魂复活: %d 名阵亡士兵复活![/color]" % _legacy_revived)
+
 	if attacker_wins:
 		ResourceManager.remove_army(pid, maxi(attacker_losses, 1))
 		sync_player_army(pid)
@@ -6150,12 +6178,6 @@ func build_on_tile(building_id: String) -> void:
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
-	if current_player_index < 0 or current_player_index >= players.size():
-		return
-	if current_player_index < 0 or current_player_index >= players.size():
-		return
-	if current_player_index < 0 or current_player_index >= players.size():
-		return
 	var player: Dictionary = players[current_player_index]
 	if player["is_ai"] or player["ap"] < 1:
 		return
@@ -6179,7 +6201,6 @@ func build_on_tile(building_id: String) -> void:
 	player["ap"] -= 1
 	tile["building_id"] = building_id
 	tile["building_level"] = target_level
-
 	var bname: String = BuildingRegistry.get_building_name(building_id, target_level)
 	BuildingRegistry.apply_building_effects(player["id"], building_id, tile)
 	EventBus.building_constructed.emit(player["id"], tile["index"], building_id)
@@ -6188,6 +6209,13 @@ func build_on_tile(building_id: String) -> void:
 		EventBus.message_log.emit("%s 升级了 %s 至 Lv%d" % [player["name"], bname, target_level])
 	else:
 		EventBus.message_log.emit("%s 在 %s 建造了 %s" % [player["name"], tile["name"], bname])
+	# quick_build (instant_build buff): consume the buff and apply building effects immediately
+	if BuffManager.get_buff_value(player["id"], "instant_build"):
+		BuffManager.consume_buff(player["id"], "instant_build")
+		# Immediately grant the building's per-turn income effects for this turn
+		var _ib_income: Dictionary = ProductionCalculator.calculate_turn_income(player["id"])
+		ResourceManager.apply_delta(player["id"], _ib_income)
+		EventBus.message_log.emit("[color=cyan]快速建造生效! 建筑立即产出收益[/color]")
 
 
 func can_build_any() -> bool:

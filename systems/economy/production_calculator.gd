@@ -230,6 +230,7 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 	_apply_relic_multipliers(income, player_id)
 	_apply_crystal_efficiency(income, player_id)
 	_apply_buff_multipliers(income, player_id)
+	_apply_trade_monopoly_bonus(income, player_id)
 	_apply_quest_recruit_bonuses(income, player_id)
 	_apply_weather_modifiers(income)
 	_apply_difficulty_scaling(income, player_id)
@@ -333,6 +334,11 @@ func _apply_buff_multipliers(income: Dictionary, player_id: int) -> void:
 		income["gold"] = int(float(income["gold"]) * buff_prod_mult)
 		income["food"] = int(float(income["food"]) * buff_prod_mult)
 		income["iron"] = int(float(income["iron"]) * buff_prod_mult)
+	# trade_caravan deferred gold income (+60 gold next turn)
+	var _raw_gold_per_turn = BuffManager.get_buff_value(player_id, "gold_per_turn")
+	var gold_per_turn_bonus: int = int(_raw_gold_per_turn) if _raw_gold_per_turn != null else 0
+	if gold_per_turn_bonus != 0:
+		income["gold"] += gold_per_turn_bonus
 	# v0.8.7: income_pct debuff (e.g. elf_curse: -20% for 3 turns)
 	var _raw_income_pct = BuffManager.get_buff_value(player_id, "income_pct")
 	var income_pct_mod: float = float(_raw_income_pct) if _raw_income_pct != null else 0.0
@@ -341,6 +347,13 @@ func _apply_buff_multipliers(income: Dictionary, player_id: int) -> void:
 		income["gold"] = int(float(income["gold"]) * mult)
 		income["food"] = int(float(income["food"]) * mult)
 		income["iron"] = int(float(income["iron"]) * mult)
+
+
+func _apply_trade_monopoly_bonus(income: Dictionary, player_id: int) -> void:
+	## 贸易垄断永久升级：金币收入+20%
+	var trade_mult: float = StrategicResourceManager.get_trade_monopoly_gold_mult(player_id)
+	if trade_mult != 1.0:
+		income["gold"] = int(float(income["gold"]) * trade_mult)
 
 
 func _apply_quest_recruit_bonuses(income: Dictionary, player_id: int) -> void:

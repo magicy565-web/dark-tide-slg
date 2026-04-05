@@ -319,6 +319,11 @@ func update_research_speed(player_id: int) -> void:
 			speed += _war_college_speed_bonus(bld_level)
 		elif bld == "arcane_institute":
 			speed += _arcane_institute_speed_bonus(bld_level)
+	# research_boost buff: +50% research speed for 5 turns (from arcane_dust action)
+	var _raw_rs_buff = BuffManager.get_buff_value(player_id, "research_speed")
+	var rs_buff_mult: float = float(_raw_rs_buff) if _raw_rs_buff != null else 1.0
+	if rs_buff_mult > 1.0:
+		speed *= rs_buff_mult
 	_speed_cache[player_id] = speed
 
 

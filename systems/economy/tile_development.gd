@@ -546,14 +546,21 @@ func check_and_unlock_milestones(player_id: int) -> Array:
 
 func get_milestone_rewards(player_id: int) -> Dictionary:
 	## 汇总指定玩家所有已解锁里程碑的奖励加成。
+	## BUG FIX: 乘数类键（gold_mult 等）应相乘叠加，而非用 +r[k]-1.0 的错误公式。
+	## 例：两个 gold_mult=1.2 应得 1.44，而非 1.2+1.2-1=1.4。
 	var rewards: Dictionary = {}
 	for mid in _unlocked_milestones.get(player_id, []):
 		var r: Dictionary = MILESTONES[mid].get("reward", {})
 		for k in r:
 			if not rewards.has(k):
 				rewards[k] = r[k]
-			elif typeof(r[k]) == TYPE_FLOAT or typeof(r[k]) == TYPE_INT:
-				rewards[k] = rewards[k] + r[k] - (1.0 if typeof(r[k]) == TYPE_FLOAT else 0)
+			else:
+				# Multiplicative stacking for float multipliers (e.g. gold_mult, iron_mult)
+				# Additive stacking for integer flat bonuses (e.g. order_bonus)
+				if typeof(r[k]) == TYPE_FLOAT:
+					rewards[k] = float(rewards[k]) * float(r[k])
+				else:
+					rewards[k] = rewards[k] + r[k]
 	return rewards
 
 

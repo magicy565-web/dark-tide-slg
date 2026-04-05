@@ -175,7 +175,7 @@ func can_assassinate(player_id: int) -> bool:
 	var ap_cost: int = params.get("assassination_ap_cost", 2)
 	var player: Dictionary = GameManager.get_player_by_id(player_id)
 	if player.is_empty():
-		return
+		return false
 	var current_ap: int = player.get("ap", 0)
 	return current_ap >= ap_cost and _assassination_cooldown.get(player_id, 0) <= 0
 
@@ -192,7 +192,7 @@ func attempt_assassination(player_id: int, target_faction_id: int) -> Dictionary
 	# Deduct AP
 	var player: Dictionary = GameManager.get_player_by_id(player_id)
 	if player.is_empty():
-		return
+		return {"success": false, "target_faction": target_faction_id}
 	player["ap"] = player.get("ap", 0) - ap_cost
 	EventBus.ap_changed.emit(player_id, player["ap"])
 
@@ -230,8 +230,6 @@ func start_corruption(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		EventBus.message_log.emit("[color=red]无效的地块索引![/color]")
 		return false
-	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	if tile.get("owner_id", -1) != -1:
 		EventBus.message_log.emit("[color=red]该地块已有所属, 无法腐蚀![/color]")

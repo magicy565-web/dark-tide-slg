@@ -31,7 +31,11 @@ func get_available_actions(player_id: int) -> Array:
 			var cost_amount: int = action["cost"]
 			var already: bool = has_upgrade(player_id, action_id)
 			# Skip one-time upgrades that are already done
-			var is_permanent: bool = action_id in ["arcane_enhance", "iron_charge", "gun_enhance", "gunpowder_assault", "altar_boost", "ultimate_unlock"]
+			var is_permanent: bool = action_id in [
+				"arcane_enhance", "iron_charge", "gun_enhance", "gunpowder_assault",
+				"altar_boost", "ultimate_unlock",
+				"trade_monopoly", "soul_resurrection", "arcane_mastery",
+			]
 			result.append({
 				"id": action_id,
 				"resource": res_key,
@@ -62,8 +66,13 @@ func execute_action(player_id: int, action_id: String) -> bool:
 		EventBus.message_log.emit("[color=red]%s 不足![/color]" % res_key)
 		return false
 
-	# Check if permanent and already done
-	if has_upgrade(player_id, action_id):
+	# Check if permanent and already done (only block re-purchase for permanent upgrades)
+	var _is_permanent_action: bool = action_id in [
+		"arcane_enhance", "iron_charge", "gun_enhance", "gunpowder_assault",
+		"altar_boost", "ultimate_unlock",
+		"trade_monopoly", "soul_resurrection", "arcane_mastery",
+	]
+	if _is_permanent_action and has_upgrade(player_id, action_id):
 		EventBus.message_log.emit("该升级已完成!")
 		return false
 
@@ -80,6 +89,12 @@ func execute_action(player_id: int, action_id: String) -> bool:
 	# Apply effect
 	match action_id:
 		# ── Magic Crystal ──
+		"unit_upgrade_lv3":
+			# Consumed as an extra cost when upgrading a unit to Lv3 (handled by RecruitManager).
+			# execute_action here only deducts the resource; the caller is responsible for
+			# the actual unit upgrade logic.
+			EventBus.message_log.emit("[color=cyan]消耗魔晶升级兵种Lv3[/color]")
+
 		"mana_jammer":
 			# Craft item: add to inventory
 			ItemManager.add_item(player_id, "mana_jammer_crafted")
@@ -92,6 +107,12 @@ func execute_action(player_id: int, action_id: String) -> bool:
 			EventBus.message_log.emit("[color=purple]奥术强化! 全军攻击永久+5[/color]")
 
 		# ── War Horse ──
+		"cavalry_recruit":
+			# Consumed as an extra cost when recruiting cavalry units (handled by RecruitManager).
+			# execute_action here only deducts the resource; the caller is responsible for
+			# the actual recruitment logic.
+			EventBus.message_log.emit("[color=cyan]消耗战马招募骑兵[/color]")
+
 		"forced_march":
 			BuffManager.add_buff(player_id, "forced_march", "dice_bonus", 3, 1, "strategic")
 			EventBus.message_log.emit("[color=green]强行军! 本回合骰子+3[/color]")
@@ -144,6 +165,56 @@ func execute_action(player_id: int, action_id: String) -> bool:
 			NpcManager.boost_all_obedience(player_id, 30)
 			EventBus.message_log.emit("[color=purple]暗影统御! 所有奴隶NPC服从度+30[/color]")
 
+		# ── Trade Goods ──
+		"trade_caravan":
+			# Deferred income: +60 gold next turn via buff
+			BuffManager.add_buff(player_id, "trade_caravan", "gold_per_turn", 60, 1, "strategic")
+			EventBus.message_log.emit("[color=green]商队出发! 下回合获得+60金[/color]")
+
+		"buy_mercenaries":
+			# Hire elite mercenaries (+5 army)
+			ResourceManager.add_army(player_id, 5)
+			EventBus.message_log.emit("[color=green]雇佣精锐佣兵! +5兵力[/color]")
+
+		"trade_monopoly":
+			_permanent_upgrades[player_id]["trade_monopoly"] = true
+			EventBus.message_log.emit("[color=purple]贸易垄断! 金币收入永久+20%[/color]")
+
+		# ── Soul Crystals ──
+		"hero_empower":
+			# Permanently boost a random hero's stats by +2
+			if HeroSystem != null and HeroSystem.has_method("empower_random_hero"):
+				HeroSystem.empower_random_hero(player_id, 2)
+				EventBus.message_log.emit("[color=cyan]英雄强化! 随机英雄永久属性+2[/color]")
+			else:
+				# Fallback: apply as global atk buff
+				BuffManager.add_buff(player_id, "hero_empower", "atk_mult", 1.1, -1, "strategic")
+				EventBus.message_log.emit("[color=cyan]英雄强化! 全军攻击+10%(永久)[/color]")
+
+		"soul_shield":
+			# Soul shield: absorb first 30% damage for 3 turns
+			BuffManager.add_buff(player_id, "soul_shield", "def_mult", 1.3, 3, "strategic")
+			EventBus.message_log.emit("[color=cyan]灵魂护盾! 全军防御+30%(3回合)[/color]")
+
+		"soul_resurrection":
+			_permanent_upgrades[player_id]["soul_resurrection"] = true
+			EventBus.message_log.emit("[color=purple]灵魂复活! 战斗阵亡士兵50%复活(永久)[/color]")
+
+		# ── Arcane Dust ──
+		"quick_build":
+			# Next building completes instantly — apply as buff flag
+			BuffManager.add_buff(player_id, "quick_build", "instant_build", true, 1, "strategic")
+			EventBus.message_log.emit("[color=cyan]快速建造! 下一个建筑立即完工[/color]")
+
+		"research_boost":
+			# +50% research speed for 5 turns
+			BuffManager.add_buff(player_id, "research_boost", "research_speed", 1.5, 5, "strategic")
+			EventBus.message_log.emit("[color=cyan]研究加速! 研究速度+50%(5回合)[/color]")
+
+		"arcane_mastery":
+			_permanent_upgrades[player_id]["arcane_mastery"] = true
+			EventBus.message_log.emit("[color=purple]奥术精通! 全军法术伤害永久+30%[/color]")
+
 	# FIX R2-A3: Emit consumption signal only after action confirmed successful
 	if _signal_deferred:
 		EventBus.strategic_resource_consumed.emit(player_id, res_key, cost)
@@ -178,6 +249,22 @@ func get_altar_multiplier(player_id: int) -> float:
 	## Returns altar effect multiplier (1.0 or 2.0).
 	if has_upgrade(player_id, "altar_boost"):
 		return 2.0
+	return 1.0
+
+func get_trade_monopoly_gold_mult(player_id: int) -> float:
+	## Returns +20% gold income multiplier if trade_monopoly is active.
+	if has_upgrade(player_id, "trade_monopoly"):
+		return 1.2
+	return 1.0
+
+func has_soul_resurrection(player_id: int) -> bool:
+	## Returns true if soul_resurrection is active (50% troop revival after battle).
+	return has_upgrade(player_id, "soul_resurrection")
+
+func get_arcane_mastery_spell_mult(player_id: int) -> float:
+	## Returns +30% spell damage multiplier if arcane_mastery is active.
+	if has_upgrade(player_id, "arcane_mastery"):
+		return 1.3
 	return 1.0
 
 

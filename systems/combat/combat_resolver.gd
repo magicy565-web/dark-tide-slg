@@ -1119,10 +1119,12 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 			base_atk += float(bld.get("atk_bonus", 0))
 		else:
 			base_def += float(bld.get("def_bonus", 0))
-		# Mage building ATK bonus (arcane_institute)
+		# Mage building ATK bonus (arcane_institute) — applies to both attacker and defender
 		var troop_base2: String = _get_troop_base_type(unit_type)
 		if troop_base2 in ["mage_unit", "priest"]:
 			base_atk += float(bld.get("mage_atk_bonus", 0))
+			# arcane_mastery permanent upgrade: +30% spell damage for mage/priest units
+			base_atk *= StrategicResourceManager.get_arcane_mastery_spell_mult(player_id)
 		# Elite training (War College Lv3): +1 ATK and +1 DEF to all units
 		if bld.get("elite_training", false):
 			base_atk += 1.0

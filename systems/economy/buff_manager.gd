@@ -196,13 +196,21 @@ func get_buff_value(player_id: int, buff_type: String, default_value = null) -> 
 					continue
 				total += float(b["value"])
 			return total
-		"dice_bonus", "temp_army", "wall_damage", "army_per_turn":
+		"dice_bonus", "temp_army", "wall_damage", "army_per_turn", "gold_per_turn":
 			var total := 0
 			for b in buffs:
 				total += int(b["value"])
 			return total
-		"no_move", "guaranteed_slave", "first_hit_immune", "mage_weaken":
+		"no_move", "guaranteed_slave", "first_hit_immune", "mage_weaken", "instant_build":
 			return buffs.size() > 0
+		"research_speed":
+			# Multiplicative stacking for research speed multiplier
+			if buffs.is_empty():
+				return 1.0
+			var rs_product := 1.0
+			for b in buffs:
+				rs_product *= float(b["value"])
+			return clampf(rs_product, 1.0, 5.0)
 
 	# Unknown type -- for single-entry key-value lookups (research buffs),
 	# return the raw value of the last matching buff, or the caller's default.
