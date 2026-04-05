@@ -1,5 +1,17 @@
 # Godot
-.godot/
+# Track .godot/ selectively: only font imports (fontdata) are tracked via Git LFS
+# All other .godot/ content is excluded (large ctex, shader cache, editor state, md5 checksums)
+.godot/editor/
+.godot/shader_cache/
+.godot/imported/*.ctex
+.godot/imported/*.stex
+.godot/imported/*.oggvorbisstr
+.godot/imported/*.oggvorbis
+.godot/imported/*.sample
+.godot/imported/*.res
+.godot/imported/*.scn
+.godot/imported/*.translation
+.godot/imported/*.md5
 # *.import  # Re-enabled: import files needed for Godot to load resources without editor
 export/
 
