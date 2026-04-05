@@ -200,9 +200,12 @@ func _check_grand_events() -> void:
 func _evaluate_condition(condition: String) -> bool:
 	match condition:
 		"turn_1":
-			# FIX A4: GameManager uses turn_number, not current_turn
-			var turn: int = GameManager.turn_number if "turn_number" in GameManager else 0
-			return turn <= 1
+				# v12.0 FIX: turn_number 在第一回合开始前可能为 0，使用 <= 1 确保序章事件在第1回合开始时触发
+				var turn: int = GameManager.turn_number if "turn_number" in GameManager else 0
+				# 如果已经触发过序章，不再重复触发
+				if _triggered_events.has("ge_dark_tide_rising"):
+					return false
+				return turn >= 1 and turn <= 2
 
 		"first_faction_destroyed":
 			return _count_destroyed_factions() >= 1
@@ -341,25 +344,32 @@ func _show_grand_event_popup(ge: Dictionary) -> void:
 		ge_choices = [{"text": "继续", "effects": {}}]
 
 	if EventScheduler:
+		# v12.0: 使用 show_event_popup_full 信号路径，确保 source_type 正确传递
 		EventScheduler.submit_candidate(
 			ge["id"],
 			"grand_event",
 			EventScheduler.PRIORITY_HIGH,
 			2.0,
-			{"name": ge["name"], "description": full_desc, "choices": ge_choices, "source_type": "grand_event"}
+			{"name": ge["name"], "description": full_desc, "choices": ge_choices,
+			 "source_type": "grand_event", "event_id": ge["id"]}
 		)
 	else:
-		EventBus.show_event_popup.emit(ge["name"], full_desc, ge_choices)
+		# 直接弹窗时使用带 source_type 的信号
+		if EventBus.has_signal("show_event_popup_full"):
+			EventBus.show_event_popup_full.emit(ge["name"], full_desc, ge_choices, ge["id"], "grand_event")
+		else:
+			EventBus.show_event_popup.emit(ge["name"], full_desc, ge_choices)
 
 
 # ═══════════════ CHOICE HANDLING ═══════════════
 
 func _on_event_choice_selected(choice_index: int, source_type: String = "") -> void:
-	# FIX A6: only handle choices originating from grand_event to prevent race condition
-	if source_type != "" and source_type != "grand_event":
-		return
-	if _current_grand_event.is_empty():
-		return
+		# v12.0 FIX: 严格过滤 source_type
+		# 空字符串不再作为通配符，必须明确为 "grand_event" 才处理
+		if source_type != "grand_event":
+			return
+		if _current_grand_event.is_empty():
+			return
 
 	var choices: Array = _current_grand_event.get("choices", [])
 	if choice_index >= 0 and choice_index < choices.size():

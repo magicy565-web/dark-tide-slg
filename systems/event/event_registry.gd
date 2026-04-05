@@ -325,6 +325,11 @@ func begin_turn() -> void:
 		_cooldowns.erase(eid)
 
 
+## v12.0: 返回当前回合剩余可用插槽数（与 EventScheduler 接口对齐）
+func get_remaining_slots() -> int:
+	return maxi(0, MAX_EVENTS_PER_TURN - _fired_this_turn.size())
+
+
 ## Cross-system coordination: request permission to fire an event.
 ## Returns true if allowed (and automatically marks it as fired).
 ## Returns false if blocked (max per turn reached, cooldown, etc.)

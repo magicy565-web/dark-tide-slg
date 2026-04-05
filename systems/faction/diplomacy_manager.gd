@@ -1067,14 +1067,27 @@ func get_light_actions(_player_id: int) -> Array:
 
 func process_diplomatic_events(player_id: int) -> void:
 	## Called each turn. Rolls for random diplomatic events per eligible faction.
-	## Events are queued via EventBus.diplomatic_event_triggered for the HUD to display.
+	## v12.0: 集成 EventScheduler 调度器，防止外交事件绕过全局每回合事件上限
 	_tick_event_cooldowns()
+
+	# v12.0: 检查 EventRegistry 是否还有剩余插槽，如果已满则跳过外交事件
+	# 防止外交事件与全局事件展示冲突
+	var registry_has_slots: bool = true
+	if EventRegistry and EventRegistry.has_method("get_remaining_slots"):
+		registry_has_slots = EventRegistry.get_remaining_slots() > 0
+	elif EventScheduler and EventScheduler.has_method("get_remaining_slots"):
+		registry_has_slots = EventScheduler.get_remaining_slots() > 0
 
 	var faction_keys: Array = ["orc_ai", "pirate_ai", "dark_elf_ai"]
 	var faction_ids: Array = [FactionData.FactionID.ORC, FactionData.FactionID.PIRATE, FactionData.FactionID.DARK_ELF]
 
 	# Per-faction events
+	var events_fired_this_call: int = 0
+	const MAX_DIPLO_EVENTS_PER_TURN: int = 2  # v12.0: 外交事件每回合最多触发2个
+
 	for i in range(faction_keys.size()):
+		if events_fired_this_call >= MAX_DIPLO_EVENTS_PER_TURN:
+			break
 		var fkey: String = faction_keys[i]
 		var fid: int = faction_ids[i]
 		# Skip player's own faction
@@ -1090,30 +1103,36 @@ func process_diplomatic_events(player_id: int) -> void:
 		if rep < -30 and not _is_event_on_cooldown(DIPLO_EVT_BETRAYAL):
 			if _roll_event_chance() and _has_any_treaty(player_id, fid):
 				event_betrayal(player_id, fid)
+				events_fired_this_call += 1
 				continue  # Max one event per faction per turn
 
 		# --- Border Incident: always eligible ---
+		# v12.0: 背叛事件优先级高于边境冲突，不同时触发
 		if not _is_event_on_cooldown(DIPLO_EVT_BORDER_INCIDENT):
 			if _roll_event_chance():
 				event_border_incident(player_id, fid)
+				events_fired_this_call += 1
 				continue
 
 		# --- Trade Opportunity: rep > 20 ---
 		if rep > 20 and not _is_event_on_cooldown(DIPLO_EVT_TRADE_OPPORTUNITY):
 			if _roll_event_chance():
 				event_trade_opportunity(player_id, fid)
+				events_fired_this_call += 1
 				continue
 
 		# --- Alliance Proposal: rep > 50, no existing alliance ---
 		if rep > 50 and not _is_event_on_cooldown(DIPLO_EVT_ALLIANCE_PROPOSAL):
 			if not has_treaty(player_id, "alliance", fid) and _roll_event_chance():
 				event_alliance_proposal(player_id, fid)
+				events_fired_this_call += 1
 				continue
 
 	# Global events (not per-faction)
-	if not _is_event_on_cooldown(DIPLO_EVT_REFUGEE_CRISIS):
-		if _roll_event_chance():
-			event_refugee_crisis(player_id)
+	if events_fired_this_call < MAX_DIPLO_EVENTS_PER_TURN:
+		if not _is_event_on_cooldown(DIPLO_EVT_REFUGEE_CRISIS):
+			if _roll_event_chance():
+				event_refugee_crisis(player_id)
 
 
 func _roll_event_chance() -> bool:

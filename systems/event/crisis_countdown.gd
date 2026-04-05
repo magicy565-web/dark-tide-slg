@@ -104,8 +104,8 @@ func _on_turn_started(player_id: int) -> void:
 		return
 	_current_turn = GameManager.turn_number if GameManager else _current_turn + 1
 
-	# Initialize on first real turn
-	if not _initialized and _current_turn >= 3:
+	# v12.0 FIX: 将初始化回合从 3 降低到 1，确保危机倒计时在第1回合就开始计数
+	if not _initialized and _current_turn >= 1:
 		initialize_crises()
 
 	# Process each active crisis
@@ -133,19 +133,22 @@ func _on_turn_started(player_id: int) -> void:
 			crisis_warning.emit(crisis_id, remaining)
 			var warn_text: String = crisis_data.get("warning_desc", "危机倒计时: %d") % remaining
 			EventBus.message_log.emit("[color=yellow]⚠ %s[/color]" % warn_text)
-			# Show dramatic warning popup for imminent crises via EventScheduler
+			# v12.0: 紧迫危机警告通过 EventScheduler 展示，并向 EventRegistry 记录
 			if remaining <= 3:
 				var choices: Array = [{"text": "了解 (准备防御)", "effects": {}}, {"text": "忽视 (继续进攻)", "effects": {}}]
 				var choice_texts: Array = []
 				for c in choices:
 					choice_texts.append(c["text"])
+				var warn_event_id: String = "crisis_warn_%s_%d" % [crisis_id, remaining]
 				if EventScheduler:
 					EventScheduler.submit_candidate(
-						"crisis_warn_%s_%d" % [crisis_id, remaining],
+						warn_event_id,
 						"crisis_countdown",
 						EventScheduler.PRIORITY_CRITICAL,
 						3.0,
-						{"name": "⚠ " + crisis_data.get("name", ""), "description": warn_text, "choices": choice_texts, "source_type": "crisis_warning"}
+						{"name": "⚠ " + crisis_data.get("name", ""), "description": warn_text,
+						 "choices": choice_texts, "source_type": "crisis_warning",
+						 "event_id": warn_event_id}
 					)
 				else:
 					EventBus.show_event_popup.emit("⚠ " + crisis_data.get("name", ""), warn_text, choices)

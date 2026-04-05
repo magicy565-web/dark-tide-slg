@@ -48,6 +48,9 @@ func _ready() -> void:
 	if EventBus:
 		EventBus.turn_started.connect(_on_turn_started)
 		EventBus.quest_chain_branch_chosen.connect(_on_branch_chosen)
+		# v12.0: 连接 event_choice_made 信号，将 event_popup 的选择结果路由回任务链
+		if EventBus.has_signal("event_choice_made"):
+			EventBus.event_choice_made.connect(_on_event_choice_made)
 
 func _init_all_chains() -> void:
 	## 初始化所有链的状态（所有节点从 LOCKED 开始）
@@ -347,7 +350,15 @@ func _check_chain_trigger(trigger: Dictionary, player_id: int) -> bool:
 					if not FactionManager.is_faction_alive(preload("res://systems/faction/faction_data.gd").FactionID.PIRATE):
 						return false
 			"event_triggered":
-				if EventSystem and not EventSystem._triggered_ids.has(trigger[key]):
+				# v12.0 FIX: 使用公开 API has_triggered() 代替直接访问私有变量 _triggered_ids
+				var _et_id: String = trigger[key]
+				var _et_fired: bool = false
+				if EventSystem:
+					if EventSystem.has_method("has_triggered"):
+						_et_fired = EventSystem.has_triggered(_et_id)
+					elif "_triggered_ids" in EventSystem:
+						_et_fired = EventSystem._triggered_ids.has(_et_id)
+				if not _et_fired:
 					return false
 			"flag_set":
 				if not _global_flags.get(trigger[key], false):
@@ -370,8 +381,10 @@ func _trigger_node_event(chain_id: String, node_id: String, node: Dictionary, _p
 				"desc": next_node.get("desc", ""),
 				"node_id": next_id,
 			})
-	# BUG FIX B2: 通过 show_event_with_source 信号传递 source_type="quest_chain"
-	# 这样 event_popup.gd 的 _current_source_type 才能正确设置，防止 race condition
+	# v12.0 FIX: 通过 show_event_popup_with_source 传递完整的 event_id + source_type
+	# event_id 格式为 "chain_id::node_id"，使 event_popup 能正确发射 event_choice_made
+	# 从而让 _on_event_choice_made 路由回 _on_branch_chosen
+	var composite_event_id: String = "%s::%s" % [chain_id, node_id]
 	var popup_data: Dictionary = {
 		"title": node.get("name", ""),
 		"desc": node.get("desc", ""),
@@ -379,9 +392,18 @@ func _trigger_node_event(chain_id: String, node_id: String, node: Dictionary, _p
 		"source_type": "quest_chain",
 		"chain_id": chain_id,
 		"node_id": node_id,
+		"event_id": composite_event_id,
 	}
-	# 优先使用带 source_type 的信号（若已声明），否则回退到旧信号
-	if EventBus.has_signal("show_event_popup_with_source"):
+	# 优先使用带 source_type + event_id 的信号路径
+	if EventBus.has_signal("show_event_popup_full"):
+		EventBus.show_event_popup_full.emit(
+			popup_data["title"],
+			popup_data["desc"],
+			choices,
+			composite_event_id,
+			"quest_chain"
+		)
+	elif EventBus.has_signal("show_event_popup_with_source"):
 		EventBus.show_event_popup_with_source.emit(
 			popup_data["title"],
 			popup_data["desc"],
@@ -408,17 +430,52 @@ func _register_node_quest(chain_id: String, node_id: String, node: Dictionary, p
 	EventBus.message_log.emit("[color=yellow][任务链] 新任务: %s[/color]" % node.get("name", quest_id))
 
 func _apply_node_reward(chain_id: String, node_id: String, node: Dictionary, player_id: int) -> void:
-	## 发放节点奖励
+	## 发放节点奖励 (v12.0 扩展: soldiers/buff/hero_exp/hero_recruit/unlock_skill)
 	var reward: Dictionary = node.get("reward", {})
 	if reward.is_empty():
 		return
-	# 资源奖励
+	# 资源奖励（扩展支持全部资源键）
 	var res_delta: Dictionary = {}
-	for key in ["gold", "food", "iron", "prestige", "shadow_essence"]:
+	for key in ["gold", "food", "iron", "prestige", "shadow_essence",
+				"magic_crystal", "gunpowder", "war_horse", "slaves", "mana"]:
 		if reward.has(key):
 			res_delta[key] = reward[key]
 	if not res_delta.is_empty() and ResourceManager:
 		ResourceManager.apply_delta(player_id, res_delta)
+	# 兵力奖励
+	if reward.has("soldiers") and ResourceManager:
+		var sol_val: int = int(reward["soldiers"])
+		if sol_val > 0:
+			ResourceManager.add_army(player_id, sol_val)
+			EventBus.message_log.emit("[color=#88ff88][任务链奖励] 兵力 +%d[/color]" % sol_val)
+		elif sol_val < 0:
+			ResourceManager.remove_army(player_id, -sol_val)
+	# Buff 奖励
+	if reward.has("buff") and BuffManager:
+		var buff: Dictionary = reward["buff"]
+		var buff_id: String = "chain_%s_%s" % [chain_id, buff.get("type", "bonus")]
+		BuffManager.add_buff(player_id, buff_id, buff.get("type", "atk_pct"),
+			buff.get("value", 0), buff.get("duration", 3), "quest_chain")
+		EventBus.message_log.emit("[color=#aaffcc][任务链奖励] Buff: %s +%d (%d回合)[/color]" % [
+			buff.get("type", ""), buff.get("value", 0), buff.get("duration", 3)])
+	# 英雄经验奖励
+	if reward.has("hero_exp") and HeroSystem:
+		var exp_map: Dictionary = reward["hero_exp"]  # {hero_id: exp_amount}
+		for hid in exp_map:
+			if HeroSystem.has_method("add_hero_exp"):
+				HeroSystem.add_hero_exp(hid, int(exp_map[hid]))
+				EventBus.message_log.emit("[color=#ffcc44][任务链奖励] %s 获得经验 +%d[/color]" % [hid, int(exp_map[hid])])
+	# 英雄招募奖励
+	if reward.has("hero_recruit") and HeroSystem:
+		var recruit_id: String = str(reward["hero_recruit"])
+		if recruit_id != "" and HeroSystem.has_method("recruit_hero"):
+			HeroSystem.recruit_hero(recruit_id, player_id)
+			EventBus.message_log.emit("[color=gold][任务链奖励] 英雄加入: %s[/color]" % recruit_id)
+	# 技能解锁奖励
+	if reward.has("unlock_skill"):
+		var skill_id: String = str(reward["unlock_skill"])
+		set_global_flag("skill_unlocked_%s" % skill_id, true)
+		EventBus.message_log.emit("[color=#44ffcc][任务链奖励] 解锁技能: %s[/color]" % skill_id)
 	# 秩序/威胁变化
 	if reward.has("order_delta") and OrderManager:
 		OrderManager.change_order(reward["order_delta"])
@@ -481,6 +538,58 @@ func _request_branch_choice(chain_id: String, node_id: String, _player_id: int) 
 				"node_id": next_id,
 			})
 		EventBus.quest_chain_branch_requested.emit(chain_id, node_id, choices)
+
+func _on_event_choice_made(event_id: String, choice_index: int) -> void:
+	## v12.0: 处理来自 event_popup 的选择结果
+	## event_id 格式为 "chain_id::node_id"，解析后路由到对应的分支选择
+	if "::" not in event_id:
+		return
+	var parts: Array = event_id.split("::", false, 1)
+	if parts.size() != 2:
+		return
+	var chain_id: String = parts[0]
+	var node_id: String = parts[1]
+	if not _chain_states.has(chain_id):
+		return
+	var chain: Dictionary = QuestChainData.CHAINS.get(chain_id, {})
+	var node: Dictionary = chain.get("nodes", {}).get(node_id, {})
+	if node.is_empty():
+		return
+	# 如果是 branch_choice 节点，将 choice_index 转换为对应的 next_node_id
+	if node.get("branch_choice", false):
+		var next_nodes: Array = node.get("next", [])
+		if choice_index >= 0 and choice_index < next_nodes.size():
+			var chosen_id: String = next_nodes[choice_index]
+			_on_branch_chosen(chain_id, node_id, chosen_id)
+			return
+	# 非分支节点：应用对应选项的效果并完成节点
+	var choices: Array = node.get("choices", [])
+	if choice_index >= 0 and choice_index < choices.size():
+		var choice_effects: Dictionary = choices[choice_index].get("effects", {})
+		if not choice_effects.is_empty():
+			var pid: int = GameManager.get_human_player_id() if GameManager else 0
+			if EffectResolver:
+				EffectResolver.resolve(choice_effects, {"player_id": pid, "source": "quest_chain", "event_id": event_id})
+			else:
+				_apply_choice_effects_fallback(choice_effects, pid)
+	var player_id: int = GameManager.get_human_player_id() if GameManager else 0
+	if _node_states.get(chain_id, {}).get(node_id, NodeStatus.LOCKED) == NodeStatus.ACTIVE:
+		_complete_node(chain_id, node_id, player_id)
+
+
+func _apply_choice_effects_fallback(effects: Dictionary, player_id: int) -> void:
+	## 无 EffectResolver 时的效果回退处理
+	var res_delta: Dictionary = {}
+	for key in ["gold", "food", "iron", "prestige", "shadow_essence"]:
+		if effects.has(key):
+			res_delta[key] = effects[key]
+	if not res_delta.is_empty() and ResourceManager:
+		ResourceManager.apply_delta(player_id, res_delta)
+	if effects.has("order") and OrderManager:
+		OrderManager.change_order(effects["order"])
+	if effects.has("threat") and ThreatManager:
+		ThreatManager.change_threat(effects["threat"])
+
 
 func _on_branch_chosen(chain_id: String, parent_node_id: String, chosen_node_id: String) -> void:
 	## 玩家选择了分支

@@ -588,6 +588,9 @@ func _on_hero_recruited(hero_id: String) -> void:
 
 
 func _on_affection_changed(hero_id: String, _new_value: int) -> void:
+	# v12.0 FIX: 在 _processing_effects 期间不检查触发，防止重入
+	if _processing_effects:
+		return
 	# Check if affection threshold triggers next event
 	var route: String = story_progress.get(hero_id, {}).get("route", "")
 	if route in MANUAL_TRIGGER_ROUTES:
@@ -801,7 +804,7 @@ func get_completion_percent(hero_id: String) -> float:
 	return float(prog.get("current_event", 0)) / float(events.size()) * 100.0
 
 
-# ═══════════════ MISSING METHOD STUBS (v5.3 audit) ═══════════════
+# ═══════════════════════════════════════════════════════════ MISSING METHOD STUBS (v5.3 audit) ═══════════════════════════════════════════════════════════
 
 ## Called by grand_event_director — records a global event in the story log.
 func record_event(event_id: String, event_name: String) -> void:
@@ -809,3 +812,22 @@ func record_event(event_id: String, event_name: String) -> void:
 		story_progress["_global_events"] = []
 	# BUG FIX B3: current_turn 不存在，应为 turn_number
 	story_progress["_global_events"].append({"id": event_id, "name": event_name, "turn": GameManager.turn_number if GameManager != null else 0})
+
+
+# v12.0: 公开 API — 检查一个全局事件是否已经被记录过
+## 供 QuestChainManager._check_chain_trigger 等外部系统安全调用，代替直接访问私有变量
+func has_global_event_recorded(event_id: String) -> bool:
+	var global_events: Array = story_progress.get("_global_events", [])
+	for entry in global_events:
+		if entry.get("id", "") == event_id:
+			return true
+	return false
+
+
+# v12.0: 增强 process_story_turn — 添加连续触发防护和详细日志
+func process_story_turn_safe() -> void:
+	## 带重入保护的安全版 process_story_turn
+	## 由 QuestProgressTracker 或 GameManager 每回合调用一次
+	if _processing_effects:
+		return
+	process_story_turn()

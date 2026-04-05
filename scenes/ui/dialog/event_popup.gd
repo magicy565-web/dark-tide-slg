@@ -44,9 +44,13 @@ func _ready() -> void:
 func _connect_signals() -> void:
 	EventBus.show_event_popup.connect(_on_show_event_popup)
 	EventBus.hide_event_popup.connect(_on_hide_event_popup)
-	# BUG FIX B2: 连接带 source_type 的信号，使任务链事件弹窗正确设置 source
+	# BUG FIX B2: 连接带 source_type 的信号
 	if EventBus.has_signal("show_event_popup_with_source"):
 		EventBus.show_event_popup_with_source.connect(_on_show_event_popup_with_source)
+	# v12.0: 连接带完整 event_id + source_type 的信号路径
+	# 使任务链事件弹窗能正确发射 event_choice_made，实现选择结果路由
+	if EventBus.has_signal("show_event_popup_full"):
+		EventBus.show_event_popup_full.connect(_on_show_event_popup_full)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -229,6 +233,12 @@ func _on_show_event_popup(title: String, description: String, choices: Array) ->
 # BUG FIX B2: 带 source_type 的弹窗处理函数
 func _on_show_event_popup_with_source(title: String, description: String, choices: Array, source_type: String) -> void:
 	show_event(title, description, choices, "", source_type)
+
+
+# v12.0: 带完整 event_id + source_type 的弹窗处理函数
+# 修复了旧路径中 event_id 始终为空导致 event_choice_made 不发射的问题
+func _on_show_event_popup_full(title: String, description: String, choices: Array, event_id: String, source_type: String) -> void:
+	show_event(title, description, choices, event_id, source_type)
 
 
 func _on_hide_event_popup() -> void:

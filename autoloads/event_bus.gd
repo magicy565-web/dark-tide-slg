@@ -102,6 +102,8 @@ signal item_used(player_id: int, item_name: String)
 signal message_log(text: String)
 signal show_event_popup(title: String, description: String, choices: Array)
 signal show_event_popup_with_source(title: String, description: String, choices: Array, source_type: String)  # BUG FIX B2
+# v12.0: 完整弹窗信号，同时传递 event_id + source_type，修复任务链选择结果无法路由的问题
+signal show_event_popup_full(title: String, description: String, choices: Array, event_id: String, source_type: String)
 signal event_choice_selected(choice_index: int, source_type: String)  # FIX A6: source_type prevents race condition between subsystems
 # LEGACY: connected in event_popup.gd — emitted to force-close popup from game logic
 signal hide_event_popup()

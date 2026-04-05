@@ -68,8 +68,12 @@ func tick_all(player_id: int, turn: int) -> void:
 	##    but we sync its state here)
 
 	## 3. Story event progression
+	## v12.0: 使用带重入保护的安全版本，防止 affection_changed 信号在处理期间再次触发
 	if StoryEventSystem:
-		StoryEventSystem.process_story_turn()
+		if StoryEventSystem.has_method("process_story_turn_safe"):
+			StoryEventSystem.process_story_turn_safe()
+		else:
+			StoryEventSystem.process_story_turn()
 
 	## 4. Sync all quest states into unified _quest_status
 	_sync_quest_states(player_id)

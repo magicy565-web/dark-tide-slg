@@ -2239,6 +2239,12 @@ func get_active_crisis() -> Dictionary:
 	return _active_crisis.duplicate(true)
 
 
+## v12.0: 公开 API — 检查一个事件是否已经被触发过
+## 供 QuestChainManager 等外部系统安全调用，代替直接访问私有变量 _triggered_ids
+func has_triggered(event_id: String) -> bool:
+	return _triggered_ids.has(event_id) or _world_event_triggered_ids.has(event_id)
+
+
 
 
 func to_save_data() -> Dictionary:
