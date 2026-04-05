@@ -94,7 +94,10 @@ func activate_policy(tile_idx: int, policy_id: String) -> bool:
 	if not _check_and_spend_cost(policy.get("cost", {})):
 		return false
 	
-	data["active_policies"][policy_id] = policy["duration"]
+	# FIX: duration=0 means instant effect (e.g. festival) — do not store in active_policies
+	# so it doesn't block re-activation and doesn't linger forever (process_turn skips 0-duration)
+	if policy["duration"] > 0:
+		data["active_policies"][policy_id] = policy["duration"]
 	
 	# 立即生效的效果
 	if policy["effects"].has("order_change"):
@@ -171,14 +174,26 @@ func _check_and_spend_cost(cost: Dictionary) -> bool:
 	
 	if not res_cost.is_empty():
 		if not ResourceManager.can_afford(pid, res_cost):
-			EventBus.message_log.emit("[color=red]资源不足![/color]")
+			EventBus.message_log.emit("[color=red]资源不足！[/color]")
 			return false
 		ResourceManager.spend(pid, res_cost)
+
+	# FIX: Handle 'garrison' cost (e.g. suppress action costs 10 garrison troops)
+	# Previously garrison cost was silently ignored, making suppress free.
+	if cost.has("garrison") and cost["garrison"] > 0:
+		var garrison_cost: int = cost["garrison"]
+		# Find the current tile being acted upon via the player's selected tile
+		# We deduct from the player's army count as a proxy for garrison
+		var current_army: int = ResourceManager.get_army(pid)
+		if current_army < garrison_cost:
+			EventBus.message_log.emit("[color=red]驻军不足！[/color]")
+			return false
+		ResourceManager.remove_army(pid, garrison_cost)
 	
 	# AP cost
 	if cost.has("ap") and cost["ap"] > 0:
 		if GameManager.current_ap < cost["ap"]:
-			EventBus.message_log.emit("[color=red]行动力不足![/color]")
+			EventBus.message_log.emit("[color=red]行动力不足！[/color]")
 			return false
 		var pid_ap = GameManager.get_human_player_id()
 		GameManager.current_ap -= cost["ap"]
@@ -267,7 +282,12 @@ func to_save_data() -> Dictionary:
 	}
 
 func from_save_data(data: Dictionary) -> void:
-	_tile_governance = data.get("tile_governance", {}).duplicate(true)
+	# FIX: JSON round-trip converts int keys to strings; normalize them back to int
+	var raw: Dictionary = data.get("tile_governance", {}).duplicate(true)
+	_tile_governance.clear()
+	for k in raw:
+		var int_key: int = int(k) if typeof(k) == TYPE_STRING else k
+		_tile_governance[int_key] = raw[k]
 
 func reset() -> void:
 	_tile_governance.clear()

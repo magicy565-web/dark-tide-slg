@@ -280,6 +280,19 @@ const ITEM_POOL: Array = [
 # MAX_ITEMS removed – now managed by ItemManager.MAX_ITEMS
 
 # ── Game state ──
+# FIX: current_ap is a computed property that reads/writes the current human player's AP.
+# It is used by governance, fortress, cave, village, and offensive subsystems.
+var current_ap: int:
+	get:
+		var _pid: int = get_human_player_id()
+		var _p: Dictionary = get_player_by_id(_pid)
+		return _p.get("ap", 0) if not _p.is_empty() else 0
+	set(value):
+		var _pid: int = get_human_player_id()
+		var _p: Dictionary = get_player_by_id(_pid)
+		if not _p.is_empty():
+			_p["ap"] = value
+
 var players: Array = []
 var tiles: Array = []
 var adjacency: Dictionary = {}

@@ -123,76 +123,88 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 			if income.has(station_type):
 				income[station_type] += station_output
 
-			# ── Governance & Policy modifiers (v1.2.0) ──
-			if tile_idx >= 0 and GameManager.governance_system:
-				var gov_mods: Dictionary = GameManager.governance_system.get_policy_modifiers(tile_idx)
-				if gov_mods.get("production_zero", false):
-					income["gold"] -= g
-					income["food"] -= f
-					income["iron"] -= ir
-					g = 0; f = 0; ir = 0
-				elif gov_mods.get("gold_mult", 1.0) != 1.0:
-					var g_before: int = g
-					g = int(float(g) * gov_mods["gold_mult"])
-					income["gold"] += (g - g_before)
-			
-			# ── Morale & Corruption modifiers (v1.2.0) ──
-			if tile_idx >= 0 and GameManager.morale_corruption_system:
-				var morale_mult: float = GameManager.morale_corruption_system.get_production_multiplier(tile_idx)
-				if morale_mult != 1.0:
-					var g_before: int = g
-					var f_before: int = f
-					var ir_before: int = ir
-					g = int(float(g) * morale_mult)
-					f = int(float(f) * morale_mult)
-					ir = int(float(ir) * morale_mult)
-					income["gold"] += (g - g_before)
-					income["food"] += (f - f_before)
-					income["iron"] += (ir - ir_before)
+		# FIX: Governance, Morale, TileDev, Adjacency, and Seasonal blocks moved OUTSIDE
+		# the station_type check so they apply to ALL owned tiles, not just station tiles.
 
-			# ── Tile Development Path modifiers ──
-			if tile_idx >= 0:
-				var tile_dev_effects: Dictionary = TileDevelopment.get_tile_path_effects(tile_idx)
-				income["gold"] += int(tile_dev_effects.get("gold_per_turn", 0))
-				income["gold"] += int(tile_dev_effects.get("gold_bonus", 0))
-				if tile_dev_effects.has("gold_mult"):
-					# BUG FIX R11: use current g (which includes supply_mod) as baseline,
-					# not the raw pre-supply value, to correctly adjust income
-					var g_before: int = g
-					g = int(float(g) * tile_dev_effects["gold_mult"])
-					income["gold"] -= g_before - g
-				income["iron"] += int(tile_dev_effects.get("iron_per_turn", 0))
-				income["iron"] += int(tile_dev_effects.get("iron_bonus", 0))
-				if tile_dev_effects.has("iron_mult"):
-					var ir_before: int = ir
-					var ir_adj: int = int(float(ir) * tile_dev_effects["iron_mult"])
-					income["iron"] -= ir_before - ir_adj
-					ir = ir_adj
-				income["food"] += int(tile_dev_effects.get("food_per_turn", 0))
-				if tile_dev_effects.has("food_mult"):
-					var f_before: int = f
-					var f_adj: int = int(float(f) * tile_dev_effects["food_mult"])
-					income["food"] -= f_before - f_adj
-					f = f_adj
-				income["prestige"] += int(tile_dev_effects.get("prestige_per_turn", 0))
+		# ── Governance & Policy modifiers (v1.2.0) ──
+		if tile_idx >= 0 and GameManager.governance_system:
+			var gov_mods: Dictionary = GameManager.governance_system.get_policy_modifiers(tile_idx)
+			if gov_mods.get("production_zero", false):
+				income["gold"] -= g
+				income["food"] -= f
+				income["iron"] -= ir
+				g = 0; f = 0; ir = 0
+			elif gov_mods.get("gold_mult", 1.0) != 1.0:
+				# FIX: apply gold_mult to all three resources (gold, food, iron)
+				# Previously only gold was multiplied; tax_hike desc says “产出+50%” (all production)
+				var mult: float = gov_mods["gold_mult"]
+				var g_before: int = g
+				var f_before: int = f
+				var ir_before: int = ir
+				g = int(float(g) * mult)
+				f = int(float(f) * mult)
+				ir = int(float(ir) * mult)
+				income["gold"] += (g - g_before)
+				income["food"] += (f - f_before)
+				income["iron"] += (ir - ir_before)
+		
+		# ── Morale & Corruption modifiers (v1.2.0) ──
+		if tile_idx >= 0 and GameManager.morale_corruption_system:
+			var morale_mult: float = GameManager.morale_corruption_system.get_production_multiplier(tile_idx)
+			if morale_mult != 1.0:
+				var g_before: int = g
+				var f_before: int = f
+				var ir_before: int = ir
+				g = int(float(g) * morale_mult)
+				f = int(float(f) * morale_mult)
+				ir = int(float(ir) * morale_mult)
+				income["gold"] += (g - g_before)
+				income["food"] += (f - f_before)
+				income["iron"] += (ir - ir_before)
 
-			# Adjacent tile spillover effects from neighboring tiles
-			var adj_tiles: Array = GameManager.adjacency.get(tile_idx, [])
-			for adj_idx in adj_tiles:
-				var adj_effects: Dictionary = TileDevelopment.get_adjacent_effects(adj_idx)
-				if adj_effects.has("gold_mult_adjacent"):
-					# BUG FIX: only multiply this tile's gold, not cumulative total
-					var adj_gold_bonus: int = int(float(g) * (adj_effects["gold_mult_adjacent"] - 1.0))
-					income["gold"] += adj_gold_bonus
-				if adj_effects.has("order_per_turn_adjacent"):
-					# NOTE: Do NOT mutate tile["public_order"] here — calculate_income must
-					# be read-only. Order bonuses are applied in begin_turn Phase 4a instead.
-					pass
+		# ── Tile Development Path modifiers ──
+		if tile_idx >= 0:
+			var tile_dev_effects: Dictionary = TileDevelopment.get_tile_path_effects(tile_idx)
+			income["gold"] += int(tile_dev_effects.get("gold_per_turn", 0))
+			income["gold"] += int(tile_dev_effects.get("gold_bonus", 0))
+			if tile_dev_effects.has("gold_mult"):
+				# BUG FIX R11: use current g (which includes supply_mod) as baseline,
+				# not the raw pre-supply value, to correctly adjust income
+				var g_before: int = g
+				g = int(float(g) * tile_dev_effects["gold_mult"])
+				income["gold"] -= g_before - g
+			income["iron"] += int(tile_dev_effects.get("iron_per_turn", 0))
+			income["iron"] += int(tile_dev_effects.get("iron_bonus", 0))
+			if tile_dev_effects.has("iron_mult"):
+				var ir_before: int = ir
+				var ir_adj: int = int(float(ir) * tile_dev_effects["iron_mult"])
+				income["iron"] -= ir_before - ir_adj
+				ir = ir_adj
+			income["food"] += int(tile_dev_effects.get("food_per_turn", 0))
+			if tile_dev_effects.has("food_mult"):
+				var f_before: int = f
+				var f_adj: int = int(float(f) * tile_dev_effects["food_mult"])
+				income["food"] -= f_before - f_adj
+				f = f_adj
+			income["prestige"] += int(tile_dev_effects.get("prestige_per_turn", 0))
 
-			# ── Seasonal tile development bonuses ──
-			var seasonal: Dictionary = TileDevelopment.get_seasonal_tile_bonus(tile_idx)
-			income["prestige"] += seasonal.get("prestige_bonus", 0)
-			# garrison_regen is applied by garrison system, not income
+		# Adjacent tile spillover effects from neighboring tiles
+		var adj_tiles: Array = GameManager.adjacency.get(tile_idx, [])
+		for adj_idx in adj_tiles:
+			var adj_effects: Dictionary = TileDevelopment.get_adjacent_effects(adj_idx)
+			if adj_effects.has("gold_mult_adjacent"):
+				# BUG FIX: only multiply this tile's gold, not cumulative total
+				var adj_gold_bonus: int = int(float(g) * (adj_effects["gold_mult_adjacent"] - 1.0))
+				income["gold"] += adj_gold_bonus
+			if adj_effects.has("order_per_turn_adjacent"):
+				# NOTE: Do NOT mutate tile["public_order"] here — calculate_income must
+				# be read-only. Order bonuses are applied in begin_turn Phase 4a instead.
+				pass
+
+		# ── Seasonal tile development bonuses ──
+		var seasonal: Dictionary = TileDevelopment.get_seasonal_tile_bonus(tile_idx)
+		income["prestige"] += seasonal.get("prestige_bonus", 0)
+		# garrison_regen is applied by garrison system, not income
 
 		# ── Espionage sabotage penalty ──
 		if Engine.get_main_loop() is SceneTree:

@@ -92,11 +92,9 @@ func hide_panel() -> void:
 
 func _refresh() -> void:
 	for c in content_vbox.get_children(): c.queue_free()
-	
+	# FIX: 'continue' is invalid outside a loop; replaced with 'return'
 	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
-		continue
-	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
-		continue
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	header_label.text = "治理 — %s" % tile.get("name", "据点")
 	

@@ -317,4 +317,9 @@ func to_save_data() -> Dictionary:
 	}
 
 func from_save_data(data: Dictionary) -> void:
-	_development_data = data.get("development_data", {}).duplicate(true)
+	# FIX: JSON round-trip converts int keys to strings; normalize them back to int
+	var raw: Dictionary = data.get("development_data", {}).duplicate(true)
+	_development_data.clear()
+	for k in raw:
+		var int_key: int = int(k) if typeof(k) == TYPE_STRING else k
+		_development_data[int_key] = raw[k]

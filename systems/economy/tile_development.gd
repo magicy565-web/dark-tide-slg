@@ -530,10 +530,9 @@ func from_save_data(data: Dictionary) -> void:
 
 
 func _get_tile_level(tile_idx: int) -> int:
+	# FIX: removed redundant inner bounds check that returned void (null) from an int function,
+	# which would crash callers that use the return value in arithmetic.
 	if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
-		# BUG FIX R12: null check on tile before calling .get()
-		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-			return
 		var tile = GameManager.tiles[tile_idx]
 		if tile != null:
 			return tile.get("level", 1)

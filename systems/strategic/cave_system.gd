@@ -439,4 +439,9 @@ func to_save_data() -> Dictionary:
 	return {"cave_data": _cave_data.duplicate(true)}
 
 func from_save_data(data: Dictionary) -> void:
-	_cave_data = data.get("cave_data", {}).duplicate(true)
+	# FIX: JSON round-trip converts int keys to strings; normalize them back to int
+	var raw: Dictionary = data.get("cave_data", {}).duplicate(true)
+	_cave_data.clear()
+	for k in raw:
+		var int_key: int = int(k) if typeof(k) == TYPE_STRING else k
+		_cave_data[int_key] = raw[k]
