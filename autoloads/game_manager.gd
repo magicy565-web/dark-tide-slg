@@ -838,14 +838,14 @@ func _build_mst(sorted_edges: Array, node_count: int) -> Array:
 	return mst_edges
 
 
-func _find_root(parent: Array, x: int) -> int:
+func _find_root(parent: Array, x: int) -> Variant:
 	while parent[x] != x:
 		parent[x] = parent[parent[x]]
 		x = parent[x]
 	return x
 
 
-func _find_troop_training_panel():
+func _find_troop_training_panel() -> Variant:
 	## Locate the TroopTrainingPanel node in the scene tree.
 	var scene = get_tree().current_scene
 	if scene and "troop_training_panel" in scene and scene.troop_training_panel:

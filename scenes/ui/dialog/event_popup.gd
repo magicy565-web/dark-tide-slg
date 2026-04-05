@@ -324,7 +324,7 @@ func _set_event_icon(event_id: String) -> void:
 		icon_label.add_theme_color_override("font_color", Color(1.0, 0.7, 0.2))
 
 
-func _is_conquest_popup() -> bool:
+func _is_conquest_popup() -> Variant:
 	return title_label.text.begins_with("Conquest")
 
 

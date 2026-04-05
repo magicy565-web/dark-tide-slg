@@ -187,7 +187,6 @@ class UnionFind:
 
 ## Generate a full map and return {"nodes": {id: node_data}, "edges": {id: [connected_ids]}}.
 func generate(player_faction: int) -> Dictionary:
-	randomize()
 
 	var target_count: int = randi_range(NODE_COUNT_MIN, NODE_COUNT_MAX)
 
