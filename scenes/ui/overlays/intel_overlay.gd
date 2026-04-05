@@ -364,7 +364,7 @@ func _apply_heatmap() -> void:
 		if tiles[i].get("owner_id", -1) == _player_id:
 			player_tiles.append(i)
 	if player_tiles.is_empty():
-		continue
+		return
 	for i in tiles.size():
 		if tiles[i] == null:
 			continue
@@ -1124,7 +1124,7 @@ func _get_tile_data(tile_idx: int) -> Dictionary:
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return {}
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {}
 	var tile = GameManager.tiles[tile_idx]
 	if tile == null:
 		return {}

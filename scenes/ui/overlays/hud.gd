@@ -2486,7 +2486,7 @@ func _get_selected_owned_tile(pid: int) -> int:
 			return sel
 	var player: Dictionary = GameManager.get_player_by_id(pid)
 	if player.is_empty():
-		return
+		return 0
 	var pos: int = player.get("position", 0)
 	if pos >= 0 and pos < GameManager.tiles.size() and GameManager.tiles[pos]["owner_id"] == pid:
 		return pos
@@ -3907,7 +3907,7 @@ func _update_items() -> void:
 	item_buttons.clear()
 
 	if GameManager.players.is_empty():
-		continue
+		return
 
 	var pid: int = GameManager.get_human_player_id()
 	var player: Dictionary = GameManager.get_player_by_id(pid)

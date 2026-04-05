@@ -293,7 +293,7 @@ func issue_garrison_order(tile_idx: int, order_id: String) -> Dictionary:
 		if ap_cost > 0 and not GameManager.check_ap(pid, ap_cost):
 			return {"success": false, "reason": "行动力不足"}
 		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-			return
+			return {}
 		var tile = GameManager.tiles[tile_idx]
 		if tile.get("garrison", 0) < garrison_cost:
 			return {"success": false, "reason": "驻军不足"}
@@ -361,7 +361,7 @@ func upgrade_fortress(tile_idx: int) -> Dictionary:
 
 	# 更新地块数据
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {}
 	var tile = GameManager.tiles[tile_idx]
 	tile["wall_hp"] = new_level_data["wall_hp"]
 	tile["def_bonus"] = tile.get("def_bonus", 0) + (new_level_data["def_bonus"] - FORTRESS_LEVELS[current_level]["def_bonus"])

@@ -383,7 +383,7 @@ func _try_coordinated_attack(_player_id: int, faction_id: int, source_tiles: Arr
 				break
 
 	if adjacent_src.is_empty():
-		continue
+		return
 
 	# Boost garrison on the adjacent tile for the coordinated push
 	var ai_key: String = _faction_to_ai_key(faction_id)

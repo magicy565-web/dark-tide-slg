@@ -316,8 +316,8 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 
 		# Commander Intervention Phase
 		if player_controlled and _has_autoload("CommanderIntervention"):
-			var ci := _get_autoload("CommanderIntervention")
-			if ci:
+			var ci: Variant = _get_autoload("CommanderIntervention")
+			if ci != null:
 				ci.check_cp_regen(state.round_number)
 				ci.tick_cooldowns()
 				if ci.get_current_cp() > 0:
@@ -1415,8 +1415,8 @@ func _apply_intervention_results(state: BattleState, istate: Dictionary) -> void
 
 func _tick_intervention_durations(state: BattleState) -> void:
 	if _has_autoload("CommanderIntervention"):
-		var ci := _get_autoload("CommanderIntervention")
-		if ci and ci.has_method("tick_durations"): ci.tick_durations()
+		var ci: Variant = _get_autoload("CommanderIntervention")
+		if ci != null and ci.has_method("tick_durations"): ci.tick_durations()
 
 # ---------------------------------------------------------------------------
 # Utility

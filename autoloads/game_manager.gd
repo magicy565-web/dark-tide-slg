@@ -1676,7 +1676,7 @@ func _give_starting_army(player_id: int, faction_id: int) -> void:
 			elif td.get("tier", 1) == 2:
 				t2_ids.append(tid)
 	if t1_ids.is_empty():
-		continue
+		return
 	# Give 1st T1 squad at full strength
 	var inst1: Dictionary = GameData.create_troop_instance(t1_ids[0])
 	RecruitManager._get_army_ref(player_id).append(inst1)
@@ -2853,7 +2853,7 @@ func _spawn_expedition() -> void:
 		if tile.get("owner_id", -1) == human_id and tile.get("type", -1) != TileType.DARK_BASE:
 			owned.append(tile)
 	if owned.is_empty():
-		continue
+		return
 	var target: Dictionary = owned[randi() % owned.size()]
 	var strength: int = randi_range(30, 60)
 	EventBus.message_log.emit("[color=orange]光明联盟远征军(战力%d)进攻 %s![/color]" % [strength, target["name"]])
@@ -2973,7 +2973,7 @@ func create_army(player_id: int, tile_index: int, army_name: String = "") -> int
 	if army_name.is_empty():
 		var player: Dictionary = get_player_by_id(player_id)
 		if player.is_empty():
-			return
+			return 0
 		army_name = "%s 第%d军团" % [player.get("name", ""), current_armies.size() + 1]
 
 	armies[army_id] = {
@@ -2990,7 +2990,7 @@ func create_army(player_id: int, tile_index: int, army_name: String = "") -> int
 	# Pull up to 2 default infantry squads from the tile's garrison count so the
 	# army is immediately combat-ready without requiring a separate recruit step.
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return 0
 	var tile_data: Dictionary = tiles[tile_index]
 	var garrison_pool: int = tile_data.get("garrison", 0)
 	if garrison_pool > 0 and GameData != null and GameData.has_method("create_troop_instance"):
@@ -3019,9 +3019,9 @@ func disband_army(army_id: int) -> bool:
 	if not armies.has(army_id):
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	var tile_index: int = army["tile_index"]
 	var player_id: int = army["player_id"]
@@ -3056,9 +3056,9 @@ func get_army_combat_power(army_id: int) -> int:
 	if not armies.has(army_id):
 		return 0
 	if not armies.has(army_id):
-		return
+		return 0
 	if not armies.has(army_id):
-		return
+		return 0
 	var army: Dictionary = armies[army_id]
 	var power: int = 0
 	for troop in army["troops"]:
@@ -3079,9 +3079,9 @@ func get_army_soldier_count(army_id: int) -> int:
 		return 0
 	var total: int = 0
 	if not armies.has(army_id):
-		return
+		return 0
 	if not armies.has(army_id):
-		return
+		return 0
 	for troop in armies[army_id]["troops"]:
 		total += troop.get("soldiers", 0)
 	return total
@@ -3093,14 +3093,14 @@ func action_merge_armies(source_id: int, target_id: int) -> bool:
 		EventBus.message_log.emit("Invalid army!")
 		return false
 	if not armies.has(source_id):
-		return
+		return false
 	if not armies.has(source_id):
-		return
+		return false
 	var source: Dictionary = armies[source_id]
 	if not armies.has(target_id):
-		return
+		return false
 	if not armies.has(target_id):
-		return
+		return false
 	var target: Dictionary = armies[target_id]
 	if source["tile_index"] != target["tile_index"]:
 		EventBus.message_log.emit("军队必须在同一领地才能合并!")
@@ -3145,9 +3145,9 @@ func action_split_army(army_id: int) -> bool:
 	if not armies.has(army_id):
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	var pid: int = army["player_id"]
 	var troops: Array = army.get("troops", [])
@@ -3174,9 +3174,9 @@ func action_split_army(army_id: int) -> bool:
 	@warning_ignore("integer_division")
 	var split_count: int = troops.size() / 2
 	if not armies.has(new_id):
-		return
+		return false
 	if not armies.has(new_id):
-		return
+		return false
 	var new_army: Dictionary = armies[new_id]
 	new_army["troops"] = []
 	for i in range(split_count):
@@ -3196,9 +3196,9 @@ func action_assign_hero_to_army(player_id: int, hero_id: String, army_id: int) -
 		EventBus.message_log.emit("[color=red]军队不存在![/color]")
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	if army["player_id"] != player_id:
 		EventBus.message_log.emit("[color=red]不能操作他人军队![/color]")
@@ -3246,9 +3246,9 @@ func action_remove_hero_from_army(player_id: int, hero_id: String, army_id: int)
 		EventBus.message_log.emit("[color=red]军队不存在![/color]")
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	if army["player_id"] != player_id:
 		EventBus.message_log.emit("[color=red]不能操作他人军队![/color]")
@@ -3273,14 +3273,14 @@ func action_reinforce_army(player_id: int, army_id: int) -> bool:
 		return false
 	var player: Dictionary = get_player_by_id(player_id)
 	if player.is_empty():
-		return
+		return false
 	if player.get("ap", 0) < 1:
 		EventBus.message_log.emit("行動力不足!")
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	if army["player_id"] != player_id:
 		return false
@@ -3323,14 +3323,14 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 		return false
 	var player: Dictionary = get_player_by_id(player_id)
 	if player.is_empty():
-		return
+		return false
 	if player.get("ap", 0) < 1:
 		EventBus.message_log.emit("行動力不足!")
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	var troops: Array = army.get("troops", [])
 	if troop_index < 0 or troop_index >= troops.size():
@@ -3414,9 +3414,9 @@ func get_army_deployable_tiles(army_id: int) -> Array:
 	if not armies.has(army_id):
 		return []
 	if not armies.has(army_id):
-		return
+		return []
 	if not armies.has(army_id):
-		return
+		return []
 	var army: Dictionary = armies[army_id]
 	var player_id: int = army["player_id"]
 	var from_tile: int = army["tile_index"]
@@ -3438,9 +3438,9 @@ func get_army_attackable_tiles(army_id: int) -> Array:
 	if not armies.has(army_id):
 		return []
 	if not armies.has(army_id):
-		return
+		return []
 	if not armies.has(army_id):
-		return
+		return []
 	var army: Dictionary = armies[army_id]
 	var player_id: int = army["player_id"]
 	var from_tile: int = army["tile_index"]
@@ -3461,14 +3461,14 @@ func action_deploy_army(army_id: int, target_tile: int) -> bool:
 	if not armies.has(army_id):
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	var player_id: int = army["player_id"]
 	var player: Dictionary = get_player_by_id(player_id)
 	if player.is_empty():
-		return
+		return false
 	if target_tile < 0 or target_tile >= tiles.size():
 		return false
 	var required_ap: int = tiles[target_tile].get("terrain_move_cost", 1)
@@ -3553,7 +3553,7 @@ func action_guard_territory(pid: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != pid:
 		EventBus.message_log.emit("只能防守自己的领地!")
@@ -3572,9 +3572,9 @@ func action_garrison_army(army_id: int) -> bool:
 	if not armies.has(army_id):
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	var pid: int = army.get("player_id", -1)
 	var player: Dictionary = get_player_by_id(pid)
@@ -3608,9 +3608,9 @@ func action_cancel_garrison(army_id: int) -> bool:
 	if not armies.has(army_id):
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	if MarchSystem == null or not MarchSystem.is_army_garrisoned(army_id):
 		EventBus.message_log.emit("该军团并未处于驻守状态")
@@ -3719,9 +3719,9 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 	if not armies.has(army_id):
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	var total_soldiers: int = 0
 	for troop in army.get("troops", []):
@@ -3738,7 +3738,7 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 		return false
 
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[target_tile_index]
 	# BUG FIX R15: null check on tile
 	if tile == null:
@@ -3833,9 +3833,9 @@ func action_storm_walls(army_id: int, tile_index: int) -> bool:
 	if not armies.has(army_id):
 		return false
 	if not armies.has(army_id):
-		return
+		return false
 	if not armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = armies[army_id]
 	var player_id: int = army["player_id"]
 	var player: Dictionary = get_player_by_id(player_id)
@@ -3877,7 +3877,7 @@ func action_multi_route_attack(army_ids: Array, target_tile_index: int) -> bool:
 		return false
 
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[target_tile_index]
 	if tile.get("owner_id", -1) == armies[army_ids[0]]["player_id"]:
 		EventBus.message_log.emit("不能对自己的领地发动合战!")
@@ -3920,7 +3920,7 @@ func action_multi_route_attack(army_ids: Array, target_tile_index: int) -> bool:
 		if not owners_charged.has(pid):
 			var p: Dictionary = get_player_by_id(pid)
 			if p.is_empty():
-				return
+				return false
 			if p.get("ap", 0) < 1:
 				EventBus.message_log.emit("[color=red]%s 行动力不足, 无法参加合战[/color]" % p.get("name", ""))
 				return false
@@ -3971,7 +3971,7 @@ func action_multi_route_attack(army_ids: Array, target_tile_index: int) -> bool:
 			var army: Dictionary = armies[aid]
 			var player: Dictionary = get_player_by_id(army["player_id"])
 			if player.is_empty():
-				return
+				return false
 			_capture_tile(player, tile)
 			army["tile_index"] = target_tile_index
 			_reveal_around(target_tile_index, army["player_id"])
@@ -4011,7 +4011,7 @@ func _resolve_army_combat(army: Dictionary, tile: Dictionary, defender_desc: Str
 	## Returns true if army wins.
 	var player: Dictionary = get_player_by_id(army["player_id"])
 	if player.is_empty():
-		return
+		return false
 	var pid: int = army["player_id"]
 
 	# Auto-save before combat
@@ -4937,7 +4937,7 @@ func get_chokepoint_strategic_value(tile_idx: int) -> float:
 	if tile_idx < 0 or tile_idx >= tiles.size():
 		return 0.0
 	if tile_idx < 0 or tile_idx >= tiles.size():
-		return
+		return 0.0
 	var tile: Dictionary = tiles[tile_idx]
 	if not tile.get("is_chokepoint", false):
 		return 0.0
@@ -5273,7 +5273,7 @@ func _resolve_combat(player: Dictionary, tile: Dictionary, defender_desc: String
 	if def_player_id >= 0 and def_player_id != pid:
 		var defender_player: Dictionary = get_player_by_id(def_player_id)
 		if defender_player.is_empty():
-			return
+			return false
 		var def_army: int = int(float(defender_player.get("army_count", 0)) * BalanceConfig.DEFENDER_ARMY_CONTRIBUTION)
 		if def_army > 0:
 			def_units.append({"type": "human_ashigaru", "atk": COMBAT_POWER_PER_UNIT, "def": 5, "spd": 4, "count": def_army, "special": ""})
@@ -6068,13 +6068,13 @@ func can_recruit() -> bool:
 	if not game_active:
 		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	var player: Dictionary = players[current_player_index]
 	if player["ap"] < 1:
 		return false
@@ -6088,7 +6088,7 @@ func can_recruit() -> bool:
 	if pos < 0 or pos >= tiles.size():
 		return false
 	if pos < 0 or pos >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[pos]
 	if tile.get("building_id", "") == "training_ground":
 		var bld_level: int = tile.get("building_level", 1)
@@ -6149,13 +6149,13 @@ func can_upgrade() -> bool:
 	if not game_active:
 		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	var player: Dictionary = players[current_player_index]
 	if player["ap"] < 1:
 		return false
@@ -6222,13 +6222,13 @@ func can_build_any() -> bool:
 	if not game_active:
 		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	var player: Dictionary = players[current_player_index]
 	if player["ap"] < 1:
 		return false
@@ -6285,13 +6285,13 @@ func can_interact() -> bool:
 	if not game_active:
 		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	if current_player_index < 0 or current_player_index >= players.size():
-		return
+		return false
 	var player: Dictionary = players[current_player_index]
 	if player["ap"] < 1:
 		return false
@@ -6320,7 +6320,7 @@ func _trigger_event(player: Dictionary, _tile: Dictionary) -> void:
 			continue
 		valid_events.append(evt)
 	if valid_events.is_empty():
-		continue
+		return
 	var event: Dictionary = valid_events[randi() % valid_events.size()]
 	EventBus.event_triggered.emit(player["id"], event["name"], event["desc"])
 	EventBus.message_log.emit("[事件] %s: %s" % [event["name"], event["desc"]])
@@ -6578,7 +6578,7 @@ func is_revealed_for(tile_index: int, player_id: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var _rv_tile = tiles[tile_index]
 	if _rv_tile == null:
 		return false
@@ -6685,7 +6685,7 @@ func action_attack(player_id: int, target_tile_index: int) -> bool:
 		return false
 
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[target_tile_index]
 	# BUG FIX R15: null check on tile
 	if tile == null:
@@ -6722,7 +6722,7 @@ func action_attack(player_id: int, target_tile_index: int) -> bool:
 			if tile["owner_id"] >= 0:
 				var _p3 = get_player_by_id(tile["owner_id"])
 				if _p3.is_empty():
-					return
+					return false
 				defender_desc = (_p3.get("name", "敌军") if _p3 else "敌军") + "据点"
 
 	# Apply threat garrison bonus for light faction tiles
@@ -6766,7 +6766,7 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
 		return false
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[target_tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能在自己的领地进行内政!")
@@ -7098,7 +7098,7 @@ func action_interrogate_hero(hero_id: String) -> bool:
 	var pid: int = get_human_player_id()
 	var player: Dictionary = get_player_by_id(pid)
 	if player.is_empty():
-		return
+		return false
 	if player.get("ap", 0) < 1:
 		EventBus.message_log.emit("行動力不足!")
 		return false
@@ -7152,7 +7152,7 @@ func action_explore(player_id: int, target_tile_index: int) -> bool:
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
 		return false
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[target_tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能探索自己的领地!")
@@ -7265,7 +7265,7 @@ func action_ritual(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能在自己的领地举行仪式!")
@@ -7296,7 +7296,7 @@ func action_excavate(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能在自己的领地发掘!")
@@ -7333,7 +7333,7 @@ func action_block_supply(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能封锁自己领地的补给线!")
@@ -7377,7 +7377,7 @@ func action_fortify(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能加固自己的领地!")
@@ -7401,7 +7401,7 @@ func action_exploit(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能开采自己的领地!")
@@ -7443,7 +7443,7 @@ func action_train_elite(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能训练自己领地的部队!")
@@ -7474,7 +7474,7 @@ func action_upgrade_outpost(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能升级自己的前哨!")
@@ -7504,7 +7504,7 @@ func action_upgrade_facility(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能升级自己的设施!")
@@ -7533,7 +7533,7 @@ func action_upgrade_walls(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能升级自己的城墙!")
@@ -7563,7 +7563,7 @@ func action_build_market(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
-		return
+		return false
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能在自己的领地建造市场!")
@@ -8256,9 +8256,9 @@ func _get_army_health_pct(army_id: int) -> float:
 	if not armies.has(army_id):
 		return 0.0
 	if not armies.has(army_id):
-		return
+		return 0.0
 	if not armies.has(army_id):
-		return
+		return 0.0
 	var army: Dictionary = armies[army_id]
 	var total_soldiers: int = 0
 	var total_max: int = 0
@@ -9268,14 +9268,14 @@ func get_current_turn() -> int:
 func get_espionage_level(player_id: int) -> int:
 	var p: Dictionary = get_player_by_id(player_id)
 	if p.is_empty():
-		return
+		return 0
 	return p.get("espionage_level", 0)
 
 ## Called by intel_overlay — returns faction display name.
 func get_faction_name(faction_id: int) -> String:
 	var p: Dictionary = get_player_by_id(faction_id)
 	if p.is_empty():
-		return
+		return ""
 	return p.get("name", "未知势力")
 
 ## Called by faction_destruction_events — returns tiles owned by a player.

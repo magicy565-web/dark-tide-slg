@@ -154,7 +154,7 @@ func issue_march_order(army_id: int, target_tile: int) -> Dictionary:
 	if not GameManager.armies.has(army_id):
 		return {}
 	if not GameManager.armies.has(army_id):
-		return
+		return {}
 	var army: Dictionary = GameManager.armies[army_id]
 	var from_tile: int = army["tile_index"]
 
@@ -266,7 +266,7 @@ func process_marches(player_id: int) -> Array:
 			continue
 
 		if not GameManager.armies.has(army_id):
-			return
+			return []
 		var army: Dictionary = GameManager.armies[army_id]
 		order["turns_marching"] += 1
 
@@ -380,7 +380,7 @@ func check_interception(marching_army_id: int, tile_index: int) -> Dictionary:
 		return {"intercepted": false, "interceptor_army_id": -1}
 
 	if not GameManager.armies.has(marching_army_id):
-		return
+		return {}
 	var marching_army: Dictionary = GameManager.armies[marching_army_id]
 	var marching_player: int = marching_army["player_id"]
 
@@ -419,7 +419,7 @@ func _get_army_march_speed(army_id: int) -> float:
 	if not GameManager.armies.has(army_id):
 		return base_speed
 	if not GameManager.armies.has(army_id):
-		return
+		return 0.0
 	var army: Dictionary = GameManager.armies[army_id]
 	# Hero march_speed passive bonus
 	for hero_id in army.get("heroes", []):
@@ -548,7 +548,7 @@ func issue_garrison_order(army_id: int) -> bool:
 	if not GameManager.armies.has(army_id):
 		return false
 	if not GameManager.armies.has(army_id):
-		return
+		return false
 	var army: Dictionary = GameManager.armies[army_id]
 	var tile_index: int = army.get("tile_index", -1)
 	if tile_index < 0:

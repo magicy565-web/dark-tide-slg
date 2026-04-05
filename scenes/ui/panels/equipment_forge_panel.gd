@@ -249,10 +249,10 @@ func _refresh_header() -> void:
 	if not forge:
 		forge_level_label.text = "锻造炉 Lv.?"
 		return
-	var pid := _get_player_id()
+	var pid: int = _get_player_id()
 	var level: int = forge.get_forge_level(pid)
 	var unclaimed: int = forge.get_unclaimed_count(pid)
-	var text := "锻造炉 Lv.%d" % level
+	var text: String = "锻造炉 Lv.%d" % level
 	if unclaimed > 0:
 		text += "  |  未领取: %d" % unclaimed
 	forge_level_label.text = text
@@ -272,7 +272,7 @@ func _refresh_recipe_list() -> void:
 		left_container.add_child(err_lbl)
 		return
 
-	var pid := _get_player_id()
+	var pid: int = _get_player_id()
 	var all_displays: Array = forge.get_all_recipe_displays(pid)
 	var crafted_items: Array = forge.get_crafted_items(pid) if forge.has_method("get_crafted_items") else []
 
@@ -357,7 +357,7 @@ func _refresh_detail() -> void:
 	_pulse_bars.clear()
 
 	var forge = get_node_or_null("/root/EquipmentForge")
-	var pid := _get_player_id()
+	var pid: int = _get_player_id()
 
 	# If no recipe selected, show hint + queue + upgrade section
 	if _selected_recipe_id == "" or forge == null:

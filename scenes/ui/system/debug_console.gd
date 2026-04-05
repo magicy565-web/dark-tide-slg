@@ -1150,7 +1150,7 @@ func _add_balance_bar(label: String, value: float, max_val: float) -> void:
 	bar_bg.add_child(bar_fill)
 
 	var val_lbl := Label.new()
-	val_lbl.text = str(int(value) if (value is int or value is float) else 0)
+	val_lbl.text = str(int(value))
 	val_lbl.add_theme_color_override("font_color", TEXT_DIM)
 	val_lbl.add_theme_font_size_override("font_size", 12)
 	hbox.add_child(val_lbl)

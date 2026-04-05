@@ -271,7 +271,7 @@ func _try_surge_reinforce() -> void:
 			frontline.append(tile)
 
 	if frontline.is_empty():
-		continue
+		return
 
 	# Sort by garrison (reinforce weakest first)
 	frontline.sort_custom(func(a, b): return a.get("garrison", 0) < b.get("garrison", 0))

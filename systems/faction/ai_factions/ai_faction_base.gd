@@ -352,7 +352,7 @@ func _is_important_tile(tile_index: int) -> bool:
 	if tile_index >= GameManager.tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
+		return false
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	return tile.get("type", -1) in [
 		GameManager.TileType.CORE_FORTRESS,

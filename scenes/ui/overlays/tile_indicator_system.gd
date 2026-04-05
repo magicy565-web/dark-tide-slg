@@ -230,7 +230,7 @@ func rebuild_indicators() -> void:
 	_indicator_nodes.clear()
 
 	if GameManager.tiles.is_empty():
-		continue
+		return
 
 	_refresh_intel_caches()
 	_refresh_supply_cache()

@@ -1181,7 +1181,7 @@ func _update_card_soldiers(side: String, slot_idx: int, soldiers: int, max_soldi
 	var count_lbl: Label = vbox.get_node("SoldierCount")
 	var bar_container: Control = vbox.get_node("BarContainer")
 	if not is_instance_valid(bar_container):
-		continue
+		return
 	var bar_ghost: ColorRect = bar_container.get_node("BarGhost")
 	var bar_fill: ColorRect = bar_container.get_node("BarFill")
 
@@ -2439,7 +2439,7 @@ func _update_card_soldiers_instant(side: String, slot_idx: int, soldiers: int, m
 	var count_lbl: Label = vbox.get_node("SoldierCount")
 	var bar_container: Control = vbox.get_node("BarContainer")
 	if not is_instance_valid(bar_container):
-		continue
+		return
 	var bar_ghost: ColorRect = bar_container.get_node("BarGhost")
 	var bar_fill: ColorRect = bar_container.get_node("BarFill")
 
@@ -3073,7 +3073,7 @@ func _show_loot_results() -> void:
 		c.queue_free()
 	var loot: Array = _battle_state.get("loot", [])
 	if loot.is_empty():
-		continue
+		return
 	var title_lbl := Label.new()
 	title_lbl.text = "-- Loot --"
 	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -3666,7 +3666,7 @@ func _update_buff_stack_badges(side: String, slot_idx: int) -> void:
 			child.queue_free()
 
 	if not _buff_stacks.has(side) or not _buff_stacks[side].has(slot_idx):
-		continue
+		return
 	var stacks: Dictionary = _buff_stacks[side][slot_idx]
 	var badge_x := 4.0
 	for buff_key in stacks.keys():

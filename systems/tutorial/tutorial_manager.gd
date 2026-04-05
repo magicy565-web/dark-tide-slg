@@ -835,7 +835,7 @@ func _find_control_by_name(node: Node, node_name: String) -> Variant:
 	if node.name == node_name and node is Control:
 		return node as Control
 	for child in node.get_children():
-		var result := _find_control_by_name(child, node_name)
+		var result: Variant = _find_control_by_name(child, node_name)
 		if result != null:
 			return result
 	return null

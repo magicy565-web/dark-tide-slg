@@ -430,7 +430,7 @@ func _audit_cost_efficiency() -> void:
 		efficiencies.append({"id": id, "name": troop.get("name", id), "ce": ce, "tier": troop.get("tier", 0)})
 
 	if efficiencies.is_empty():
-		continue
+		return
 
 	# Sort and find median
 	efficiencies.sort_custom(func(a, b): return a["ce"] < b["ce"])

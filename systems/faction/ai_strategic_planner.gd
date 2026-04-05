@@ -896,7 +896,7 @@ func score_supply_cut_attack(_faction_key: String, tile_index: int) -> float:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return 0.0
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
+		return 0.0
 	var tile = GameManager.tiles[tile_index]
 	if tile == null:
 		return 0.0
@@ -954,7 +954,7 @@ func evaluate_siege_cost(tile_index: int) -> Dictionary:
 
 	result["is_fortified"] = true
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
+		return {}
 	var tile: Dictionary = GameManager.tiles[tile_index]
 
 	# Determine wall HP and siege turns based on tile type
@@ -1095,7 +1095,7 @@ func find_undefended_enemy_rear(faction_key: String, enemy_player_id: int) -> Ar
 			continue
 
 		if rt_idx < 0 or rt_idx >= GameManager.tiles.size():
-			return
+			return []
 		var tile: Dictionary = GameManager.tiles[rt_idx]
 		var garrison: int = tile.get("garrison", 0)
 		var level: int = tile.get("level", 1)
@@ -1404,7 +1404,7 @@ func should_retreat(faction_key: String, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return false
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
+		return false
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var garrison: int = tile.get("garrison", 0)
 	if garrison <= 0:

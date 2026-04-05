@@ -1869,10 +1869,8 @@ func _draw_march_route(army_id: int, path: Array) -> void:
 		if fi < 0 or fi >= GameManager.tiles.size() or ti < 0 or ti >= GameManager.tiles.size(): continue
 		var fp: Vector3 = GameManager.tiles[fi]["position_3d"]
 		var tp: Vector3 = GameManager.tiles[ti]["position_3d"]
-		if fi >= 0 and fi < GameManager.tiles.size():
-			var fe: float = TERRAIN_ELEVATION.get(GameManager.tiles[fi].get("terrain", 0), 0.0)
-		if ti >= 0 and ti < GameManager.tiles.size():
-			var te: float = TERRAIN_ELEVATION.get(GameManager.tiles[ti].get("terrain", 0), 0.0)
+		var fe: float = TERRAIN_ELEVATION.get(GameManager.tiles[fi].get("terrain", 0), 0.0)
+		var te: float = TERRAIN_ELEVATION.get(GameManager.tiles[ti].get("terrain", 0), 0.0)
 		var dist: float = fp.distance_to(tp)
 		var dot_count: int = maxi(int(dist / 0.6), 2)
 		for d in range(dot_count):

@@ -298,7 +298,7 @@ func execute_domestic_action(tile_idx: int, action_id: String) -> Dictionary:
 	# 应用效果
 	var effects = action["effects"]
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {}
 	var tile = GameManager.tiles[tile_idx]
 	if effects.get("gold", 0) != 0:
 		if effects["gold"] > 0:

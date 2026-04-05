@@ -119,7 +119,7 @@ func _refresh() -> void:
 		return
 
 	if not GameManager.game_active:
-		continue
+		return
 
 	var pid: int = GameManager.get_human_player_id()
 	var quests: Array = QuestJournal.get_tracked_quests(pid)

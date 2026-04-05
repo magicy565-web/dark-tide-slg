@@ -603,7 +603,7 @@ func start_terrain_transform(tile_idx: int, target_terrain: int) -> Dictionary:
 		return {"success": false, "reason": "无效地块"}
 
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {}
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 	var pid: int = GameManager.get_human_player_id()
 
@@ -629,7 +629,7 @@ func start_terrain_transform(tile_idx: int, target_terrain: int) -> Dictionary:
 	# 检查行动点
 	var player: Dictionary = GameManager.get_player_by_id(pid)
 	if player.is_empty():
-		return
+		return {}
 	if player.get("ap", 0) < recipe.get("ap_cost", 1):
 		return {"success": false, "reason": "行动点不足"}
 
@@ -672,7 +672,7 @@ func start_road_construction(tile_idx: int) -> Dictionary:
 		return {"success": false, "reason": "无效地块"}
 
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {}
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 	if tile.get("has_road", false):
 		return {"success": false, "reason": "该地块已有道路"}
@@ -680,7 +680,7 @@ func start_road_construction(tile_idx: int) -> Dictionary:
 	var pid: int = GameManager.get_human_player_id()
 	var player: Dictionary = GameManager.get_player_by_id(pid)
 	if player.is_empty():
-		return
+		return {}
 
 	if player.get("ap", 0) < ROAD_BUILD_COST["ap"]:
 		return {"success": false, "reason": "行动点不足"}

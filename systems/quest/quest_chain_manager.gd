@@ -639,7 +639,7 @@ func _check_chain_completion(chain_id: String) -> void:
 		if nodes[node_id].get("next", []).is_empty():
 			terminal_nodes.append(node_id)
 	if terminal_nodes.is_empty():
-		continue
+		return
 	# 检查所有终端节点是否均已完成或跳过
 	for node_id in terminal_nodes:
 		var status: int = _node_states[chain_id].get(node_id, NodeStatus.LOCKED)

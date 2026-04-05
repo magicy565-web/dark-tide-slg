@@ -731,7 +731,7 @@ func _trigger_trade_route(player_id: int, depots: Array) -> void:
 		if d.get("connected_to", []).size() > 0:
 			connected_depots.append(d["tile_idx"])
 	if connected_depots.is_empty():
-		continue
+		return
 	var evt: Dictionary = {
 		"event_id": _next_event_id,
 		"type": "trade_route",

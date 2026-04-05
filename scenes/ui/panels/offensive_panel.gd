@@ -157,7 +157,7 @@ func _rebuild_actions() -> void:
 	_action_buttons.clear()
 
 	if not GameManager.offensive_system:
-		continue
+		return
 
 	var actions = GameManager.offensive_system.get_available_actions(_tile_idx)
 	for action in actions:
@@ -196,7 +196,7 @@ func _rebuild_targets() -> void:
 		return
 
 	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
-		continue
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	var owner_id: int = tile.get("owner_id", -1)
 	var found: bool = false
