@@ -16,6 +16,8 @@ var _waiting_for_choice: bool = false
 var _showing_h_event: bool = false
 var _text_revealing: bool = false       # True while text is being revealed char-by-char
 var _is_branch_choice: bool = false     # True when showing a story branch choice (vs inline dialogue choice)
+# BUG FIX B5: 事件队列，防止对话正在进行时被新事件覆盖
+var _pending_event_queue: Array = []   # Queued events waiting for current dialog to finish
 
 # ── CG / Portrait state ──
 var _current_cg_id: String = ""        # Currently displayed CG ID (empty = no CG)
@@ -313,6 +315,18 @@ func _build_ui() -> void:
 
 ## Start displaying a story event.
 func show_story_event(hero_id: String, event: Dictionary) -> void:
+	# BUG FIX B5: 防止对话框已打开时被新事件覆盖
+	# 如果当前对话正在进行且是同一英雄，则忽略重复触发
+	if _visible and not _current_event.is_empty():
+		# 如果是同一个英雄的同一事件，直接跳过（防止重复触发）
+		var new_id: String = event.get("id", "")
+		var cur_id: String = _current_event.get("id", "")
+		if new_id != "" and new_id == cur_id:
+			return  # 完全相同的事件，已在播放中
+		# 不同事件：加入队列而非直接覆盖
+		if not _pending_event_queue.has({"hero_id": hero_id, "event": event}):
+			_pending_event_queue.append({"hero_id": hero_id, "event": event})
+		return
 	_current_hero_id = hero_id
 	_current_event = event
 	_showing_h_event = false
@@ -382,6 +396,7 @@ func hide_dialog() -> void:
 	root.visible = false
 	_text_revealing = false
 	_dialogue_queue.clear()
+	_current_event = {}
 	# Reset CG/portrait state
 	_hide_cg()
 	_hide_portrait()
@@ -392,6 +407,10 @@ func hide_dialog() -> void:
 	# Cleanup VnDirector state
 	if is_instance_valid(VnDirector):
 		VnDirector.cleanup()
+	# BUG FIX B5: 对话关闭后，如果队列中有等待的事件，延迟触发
+	if not _pending_event_queue.is_empty():
+		var next_entry: Dictionary = _pending_event_queue.pop_front()
+		call_deferred("show_story_event", next_entry["hero_id"], next_entry["event"])
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -374,18 +374,21 @@ func _on_execute_mission(hero_id: String) -> void:
 	var current_ap: int = player.get("ap", 0)
 
 	if current_ap < AP_COST:
-		EventBus.message_log.emit("[color=red]行动点不足! 任務需要%dAP。[/color]" % AP_COST)
+		EventBus.message_log.emit("[color=red]行动点不足! 任务需要%dAP。[/color]" % AP_COST)
 		return
 
-	# Deduct AP
+	# BUG FIX B4: 先触发事件，成功后才扭除 AP，防止触发失败却消耗行动点
+	var triggered_event: Dictionary = StoryEventSystem.manually_trigger_event(hero_id)
+	if triggered_event.is_empty():
+		EventBus.message_log.emit("[color=orange]当前没有可触发的任务事件。[/color]")
+		return
+
+	# 事件触发成功，现在才扭除 AP
 	player["ap"] -= AP_COST
 	EventBus.ap_changed.emit(pid, player["ap"])
 
 	# Emit signal for external listeners
 	EventBus.mission_execute_requested.emit(hero_id)
-
-	# Trigger story event
-	StoryEventSystem.manually_trigger_event(hero_id)
 
 	# Hide panel while dialog plays
 	hide_panel()

@@ -370,7 +370,8 @@ func _trigger_node_event(chain_id: String, node_id: String, node: Dictionary, _p
 				"desc": next_node.get("desc", ""),
 				"node_id": next_id,
 			})
-	# 通过 EventBus 发送事件弹窗
+	# BUG FIX B2: 通过 show_event_with_source 信号传递 source_type="quest_chain"
+	# 这样 event_popup.gd 的 _current_source_type 才能正确设置，防止 race condition
 	var popup_data: Dictionary = {
 		"title": node.get("name", ""),
 		"desc": node.get("desc", ""),
@@ -379,11 +380,20 @@ func _trigger_node_event(chain_id: String, node_id: String, node: Dictionary, _p
 		"chain_id": chain_id,
 		"node_id": node_id,
 	}
-	EventBus.show_event_popup.emit(
-		popup_data["title"],
-		popup_data["desc"],
-		choices
-	)
+	# 优先使用带 source_type 的信号（若已声明），否则回退到旧信号
+	if EventBus.has_signal("show_event_popup_with_source"):
+		EventBus.show_event_popup_with_source.emit(
+			popup_data["title"],
+			popup_data["desc"],
+			choices,
+			"quest_chain"
+		)
+	else:
+		EventBus.show_event_popup.emit(
+			popup_data["title"],
+			popup_data["desc"],
+			choices
+		)
 	EventBus.quest_chain_event_triggered.emit(chain_id, node_id, popup_data)
 
 func _register_node_quest(chain_id: String, node_id: String, node: Dictionary, player_id: int) -> void:
@@ -421,6 +431,22 @@ func _apply_node_reward(chain_id: String, node_id: String, node: Dictionary, pla
 	# 终局解锁
 	if reward.get("unlock_endgame", false):
 		EventBus.quest_chain_endgame_unlocked.emit(chain_id)
+	# BUG FIX B1: unlock_content → CGManager.unlock_cg
+	# 任务链奖励节点中的 unlock_content 字段用于解锁 CG 或特殊内容
+	var unlock_id: String = reward.get("unlock_content", "")
+	if unlock_id != "":
+		if CGManager != null:
+			# 尝试推断 hero_id：若 unlock_id 含下划线且前缀匹配已知英雄，则提取
+			var inferred_hero: String = ""
+			for hero_key in ["rin", "yukino", "momiji", "hyouka", "suirei",
+							"gekka", "hakagure", "sou", "shion", "homura",
+							"shion_pirate", "youya", "hibiki", "sara",
+							"mei", "kaede", "akane", "hanabi"]:
+				if unlock_id.begins_with(hero_key + "_"):
+					inferred_hero = hero_key
+					break
+			CGManager.unlock_cg(unlock_id, inferred_hero)
+			EventBus.message_log.emit("[color=#ffaaff][任务链] 解锁内容: %s[/color]" % unlock_id)
 	# 奖励消息
 	var msg: String = reward.get("message", "")
 	if msg != "":

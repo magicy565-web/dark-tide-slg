@@ -506,6 +506,11 @@ func _apply_event_effects(hero_id: String, event: Dictionary) -> void:
 				set_flag(hero_id, "affection_cap", effects[key])
 			# Fix #11: Handle "unlock" field — switches hero to the specified route
 			# Used by exclusive_ending trigger events across all heroines
+			# BUG FIX B8: 处理 unlock_cg 效果键，将 CG 解锁逻辑从 UI 层下沉到数据层
+			"unlock_cg":
+				var cg_to_unlock: String = effects[key]
+				if cg_to_unlock != "" and CGManager != null:
+					CGManager.unlock_cg(cg_to_unlock, hero_id)
 			"unlock":
 				var unlock_target: String = effects[key]
 				var prog: Dictionary = story_progress.get(hero_id, {})
@@ -802,4 +807,5 @@ func get_completion_percent(hero_id: String) -> float:
 func record_event(event_id: String, event_name: String) -> void:
 	if not story_progress.has("_global_events"):
 		story_progress["_global_events"] = []
-	story_progress["_global_events"].append({"id": event_id, "name": event_name, "turn": GameManager.current_turn if "current_turn" in GameManager else 0})
+	# BUG FIX B3: current_turn 不存在，应为 turn_number
+	story_progress["_global_events"].append({"id": event_id, "name": event_name, "turn": GameManager.turn_number if GameManager != null else 0})

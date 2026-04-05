@@ -44,6 +44,9 @@ func _ready() -> void:
 func _connect_signals() -> void:
 	EventBus.show_event_popup.connect(_on_show_event_popup)
 	EventBus.hide_event_popup.connect(_on_hide_event_popup)
+	# BUG FIX B2: 连接带 source_type 的信号，使任务链事件弹窗正确设置 source
+	if EventBus.has_signal("show_event_popup_with_source"):
+		EventBus.show_event_popup_with_source.connect(_on_show_event_popup_with_source)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -222,6 +225,10 @@ func hide_popup() -> void:
 
 func _on_show_event_popup(title: String, description: String, choices: Array) -> void:
 	show_event(title, description, choices)
+
+# BUG FIX B2: 带 source_type 的弹窗处理函数
+func _on_show_event_popup_with_source(title: String, description: String, choices: Array, source_type: String) -> void:
+	show_event(title, description, choices, "", source_type)
 
 
 func _on_hide_event_popup() -> void:

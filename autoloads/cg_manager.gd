@@ -116,10 +116,19 @@ func get_unlocked_cgs() -> Array:
 
 
 ## Get unlocked CGs filtered by hero.
+## BUG FIX B7: 也包含在 catalog 中注册为该英雄的非标准前缀 CG（如 endgame_dark_tide）
 func get_unlocked_cgs_for_hero(hero_id: String) -> Array:
 	var result: Array = []
+	# 收集该英雄 catalog 中所有已注册的 CG ID
+	var catalog_ids: Array = []
+	for entry in _cg_catalog.get(hero_id, []):
+		catalog_ids.append(entry["cg_id"])
 	for cg_id in unlocked_cgs:
+		# 标准前缀匹配（rin_cg_01 等）
 		if cg_id.begins_with(hero_id + "_"):
+			result.append(cg_id)
+		# catalog 中注册为该英雄的非标准前缀 CG（如 endgame_dark_tide）
+		elif cg_id in catalog_ids and cg_id not in result:
 			result.append(cg_id)
 	return result
 
@@ -157,23 +166,26 @@ func get_full_catalog() -> Dictionary:
 ## Call this once at game start or when gallery is opened.
 func build_catalog_from_story_data() -> void:
 	_cg_catalog.clear()
+	# BUG FIX B6: 改用公开接口 get_route_events 替代私有函数 _get_story_data
 	for hero_id in StoryEventSystem.STORY_DATA_FILES:
 		if hero_id == "epilogue":
 			continue
-		var data: Dictionary = StoryEventSystem._get_story_data(hero_id)
-		for route_key in data:
-			var events: Array = data[route_key]
+		# 遍历该英雄所有路线的事件
+		var all_routes: Array = ["training", "pure_love", "friendly", "neutral",
+								"hostile", "exclusive_ending", "conquest", "puppet"]
+		for route_key in all_routes:
+			var events: Array = StoryEventSystem.get_route_events(hero_id, route_key)
 			for event in events:
-				# Check for CG references in event
+				# 检查事件级 CG
 				var cg_id: String = event.get("cg", "")
 				if cg_id != "":
 					register_cg(hero_id, cg_id, event.get("name", ""))
-				# Check h_event for CG
+				# 检查 h_event CG
 				var h_event: Dictionary = event.get("h_event", {})
 				var h_cg_id: String = h_event.get("cg", "")
 				if h_cg_id != "":
 					register_cg(hero_id, h_cg_id, h_event.get("title", ""))
-				# Check individual dialogues for inline CG switches
+				# 检查对话内联 CG
 				for d in event.get("dialogues", []):
 					var d_cg: String = d.get("cg", "")
 					if d_cg != "":
