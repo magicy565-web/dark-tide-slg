@@ -101,7 +101,7 @@ signal item_used(player_id: int, item_name: String)
 # ── UI ──
 signal message_log(text: String)
 signal show_event_popup(title: String, description: String, choices: Array)
-signal event_choice_selected(choice_index: int)
+signal event_choice_selected(choice_index: int, source_type: String)  # FIX A6: source_type prevents race condition between subsystems
 # LEGACY: connected in event_popup.gd — emitted to force-close popup from game logic
 signal hide_event_popup()
 

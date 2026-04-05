@@ -5,6 +5,7 @@ extends CanvasLayer
 var _visible: bool = false
 var _choices: Array = []
 var _current_event_id: String = ""
+var _current_source_type: String = ""  # FIX A6: track source to prevent race condition
 
 # ── Content image textures (P0-FIX: 事件内容图片资源) ──
 var _content_tex_default: Texture2D
@@ -174,8 +175,9 @@ func _build_ui() -> void:
 #                       PUBLIC API
 # ═══════════════════════════════════════════════════════════════
 
-func show_event(title: String, description: String, choices: Array = [], event_id: String = "") -> void:
+func show_event(title: String, description: String, choices: Array = [], event_id: String = "", source_type: String = "") -> void:
 	_current_event_id = event_id
+	_current_source_type = source_type  # FIX A6: store source for signal dispatch
 	_choices = choices
 	title_label.text = title
 	desc_label.text = description
@@ -227,14 +229,16 @@ func _on_hide_event_popup() -> void:
 
 
 func _on_dismiss() -> void:
-	EventBus.event_choice_selected.emit(-1)
+	# FIX A6: pass source_type so subsystems can filter by their own events
+	EventBus.event_choice_selected.emit(-1, _current_source_type)
 	if _is_conquest_popup():
 		EventBus.conquest_choice_selected.emit(-1)  # BUG FIX: emit -1 (no choice), not 0 (first option)
 	_hide_animated()
 
 
 func _on_choice(index: int) -> void:
-	EventBus.event_choice_selected.emit(index)
+	# FIX A6: pass source_type so subsystems can filter by their own events
+	EventBus.event_choice_selected.emit(index, _current_source_type)
 	if _is_conquest_popup():
 		EventBus.conquest_choice_selected.emit(index)
 	if _current_event_id != "":

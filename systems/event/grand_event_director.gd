@@ -200,7 +200,8 @@ func _check_grand_events() -> void:
 func _evaluate_condition(condition: String) -> bool:
 	match condition:
 		"turn_1":
-			var turn: int = GameManager.current_turn if "current_turn" in GameManager else 0
+			# FIX A4: GameManager uses turn_number, not current_turn
+			var turn: int = GameManager.turn_number if "turn_number" in GameManager else 0
 			return turn <= 1
 
 		"first_faction_destroyed":
@@ -268,14 +269,16 @@ func _get_player_tile_pct() -> float:
 	if total == 0:
 		return 0.0
 	var owned: int = 0
+	# FIX: tile field is owner_id, not owner
 	for t in GameManager.tiles:
-		if t.get("owner", -1) == pid:
+		if t.get("owner_id", -1) == pid:
 			owned += 1
 	return float(owned) / float(total)
 
 
 func _get_current_turn() -> int:
-	return GameManager.current_turn if "current_turn" in GameManager else 0
+	# FIX A4: GameManager uses turn_number, not current_turn
+	return GameManager.turn_number if "turn_number" in GameManager else 0
 
 
 # ═══════════════ GRAND EVENT TRIGGERING ═══════════════
@@ -332,12 +335,10 @@ func _show_grand_event_popup(ge: Dictionary) -> void:
 		else:
 			full_desc += "%s\n" % line["text"]
 
-	var choice_texts: Array = []
-	for c in ge.get("choices", []):
-		choice_texts.append(c["text"])
-
-	if choice_texts.is_empty():
-		choice_texts.append("继续")
+	# FIX A6: pass full choices dict (with effects) so EventPopup can apply them
+	var ge_choices: Array = ge.get("choices", [])
+	if ge_choices.is_empty():
+		ge_choices = [{"text": "继续", "effects": {}}]
 
 	if EventScheduler:
 		EventScheduler.submit_candidate(
@@ -345,15 +346,18 @@ func _show_grand_event_popup(ge: Dictionary) -> void:
 			"grand_event",
 			EventScheduler.PRIORITY_HIGH,
 			2.0,
-			{"name": ge["name"], "description": full_desc, "choices": choice_texts, "source_type": "grand_event"}
+			{"name": ge["name"], "description": full_desc, "choices": ge_choices, "source_type": "grand_event"}
 		)
 	else:
-		EventBus.show_event_popup.emit(ge["name"], full_desc, choice_texts)
+		EventBus.show_event_popup.emit(ge["name"], full_desc, ge_choices)
 
 
 # ═══════════════ CHOICE HANDLING ═══════════════
 
-func _on_event_choice_selected(choice_index: int) -> void:
+func _on_event_choice_selected(choice_index: int, source_type: String = "") -> void:
+	# FIX A6: only handle choices originating from grand_event to prevent race condition
+	if source_type != "" and source_type != "grand_event":
+		return
 	if _current_grand_event.is_empty():
 		return
 

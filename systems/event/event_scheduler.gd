@@ -74,11 +74,13 @@ func resolve_turn() -> Array:
 	# Sort by priority descending (critical events first)
 	_candidates.sort_custom(func(a, b): return a["priority"] > b["priority"])
 
-	# Critical events always fire (bypass the limit)
+	# Critical events always fire (bypass the per-turn cap, but still count toward total)
+	# FIX A10: critical events must increment _events_fired_this_turn so legacy
+	# request_fire() gate correctly reflects total events fired this turn.
 	for c in _candidates:
 		if c["priority"] >= PRIORITY_CRITICAL:
 			_scheduled.append(c)
-			_event_history[c["id"]] = _current_turn  # history only; don't inflate _events_fired_this_turn
+			_record_fired(c["id"])
 
 	# Weighted random selection for remaining slots
 	var remaining_slots: int = MAX_EVENTS_PER_TURN - _scheduled.size()

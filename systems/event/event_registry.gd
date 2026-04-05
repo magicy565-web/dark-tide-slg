@@ -337,10 +337,10 @@ func request_fire(id: String, _source: String = "") -> bool:
 	if not can_fire(id):
 		return false
 
-	# Get current turn
+	# FIX A7: GameManager uses turn_number, not current_turn
 	var turn: int = 0
-	if GameManager and "current_turn" in GameManager:
-		turn = GameManager.current_turn
+	if GameManager and "turn_number" in GameManager:
+		turn = GameManager.turn_number
 
 	mark_fired(id, turn)
 	return true

@@ -470,22 +470,26 @@ func _fire_dynamic_event(event: Dictionary) -> void:
 	for c in event.get("choices", []):
 		choice_texts.append(c["text"])
 
+	# FIX A6: pass full choices dict (with effects) so EventPopup can apply them
 	if EventScheduler:
 		EventScheduler.submit_candidate(
 			eid,
 			"dynamic_situation",
 			EventScheduler.PRIORITY_LOW,
 			1.0,
-			{"name": event["name"], "description": event["desc"], "choices": choice_texts, "source_type": "dynamic_situation"}
+			{"name": event["name"], "description": event["desc"], "choices": event.get("choices", []), "source_type": "dynamic_situation"}
 		)
 	else:
-		EventBus.show_event_popup.emit(event["name"], event["desc"], choice_texts)
+		EventBus.show_event_popup.emit(event["name"], event["desc"], event.get("choices", []))
 	EventBus.message_log.emit("[color=yellow][动态事件] %s[/color]" % event["name"])
 
 
 # ═══════════════ CHOICE HANDLING ═══════════════
 
-func _on_event_choice_selected(choice_index: int) -> void:
+func _on_event_choice_selected(choice_index: int, source_type: String = "") -> void:
+	# FIX A6: only handle choices originating from dynamic_situation to prevent race condition
+	if source_type != "" and source_type != "dynamic_situation":
+		return
 	if _current_event.is_empty():
 		return
 

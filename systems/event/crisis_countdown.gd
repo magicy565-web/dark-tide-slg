@@ -167,19 +167,23 @@ func _check_avert_condition(crisis_id: String) -> bool:
 			return ThreatManager.get_threat() < 30 if ThreatManager else false
 		"own_ruins_tiles_3":
 			# Check if player owns 3+ ruins tiles
+			# FIX A1: GameManager uses .tiles (not .map_tiles) and .owner_id (not .owner)
 			var human_id: int = GameManager.get_human_player_id() if GameManager else 0
 			var count: int = 0
 			if GameManager:
-				for tile in GameManager.map_tiles:
-					if tile.get("owner", -1) == human_id and tile.get("terrain", -1) == 7:  # RUINS
+				for tile in GameManager.tiles:
+					if tile.get("owner_id", -1) == human_id and tile.get("terrain", -1) == 7:  # RUINS
 						count += 1
 			return count >= 3
 		"destroy_2_factions":
 			# Check if player has destroyed 2+ factions
-			if FactionManager:
+			# FIX A2/A3: is_faction_dead does not exist; use !is_faction_alive().
+			# get_all_factions() is on GameManager, not FactionManager.
+			if GameManager and FactionManager:
 				var dead_count: int = 0
-				for f in FactionManager.get_all_factions():
-					if FactionManager.is_faction_dead(f):
+				for f in GameManager.get_all_factions():
+					var fid = f.get("faction_id", -1) if f is Dictionary else int(f)
+					if fid >= 0 and not FactionManager.is_faction_alive(fid):
 						dead_count += 1
 				return dead_count >= 2
 			return false
@@ -207,13 +211,14 @@ func _execute_crisis(crisis_id: String) -> void:
 			var _choice_texts: Array = []
 			for _c in _choices:
 				_choice_texts.append(_c["text"])
+			# FIX A11: pass full choices dict (with effects) so EventPopup can apply them
 			if EventScheduler:
 				EventScheduler.submit_candidate(
 					"crisis_demon_invasion",
 					"crisis_countdown",
 					EventScheduler.PRIORITY_CRITICAL,
 					3.0,
-					{"name": "魔族入侵!", "description": desc, "choices": _choice_texts, "source_type": "crisis_execution"}
+					{"name": "魔族入侵!", "description": desc, "choices": _choices, "source_type": "crisis_execution"}
 				)
 			else:
 				EventBus.show_event_popup.emit("魔族入侵!", desc, _choices)
@@ -221,8 +226,9 @@ func _execute_crisis(crisis_id: String) -> void:
 			# All tiles lose 2 order, 3 random tiles lose garrison
 			if OrderManager:
 				var human_id: int = GameManager.get_human_player_id() if GameManager else 0
-				for tile in GameManager.map_tiles:
-					if tile.get("owner", -1) == human_id:
+				# FIX A1: use .tiles and .owner_id
+				for tile in GameManager.tiles:
+					if tile.get("owner_id", -1) == human_id:
 						OrderManager.change_order(-2)
 			var _eq_choices: Array = [
 				{"text": "紧急修复 (-50金, +3秩序)", "effects": {"gold": -50, "order": 3}},
@@ -231,13 +237,14 @@ func _execute_crisis(crisis_id: String) -> void:
 			var _eq_choice_texts: Array = []
 			for _c in _eq_choices:
 				_eq_choice_texts.append(_c["text"])
+			# FIX A11: pass full choices dict
 			if EventScheduler:
 				EventScheduler.submit_candidate(
 					"crisis_ancient_awakening",
 					"crisis_countdown",
 					EventScheduler.PRIORITY_CRITICAL,
 					3.0,
-					{"name": "远古觉醒!", "description": "大地震动,所有领地秩序-2! 部分城墙受损!", "choices": _eq_choice_texts, "source_type": "crisis_execution"}
+					{"name": "远古觉醒!", "description": "大地震动,所有领地秩序-2! 部分城墙受损!", "choices": _eq_choices, "source_type": "crisis_execution"}
 				)
 			else:
 				EventBus.show_event_popup.emit("远古觉醒!", "大地震动,所有领地秩序-2! 部分城墙受损!", _eq_choices)
@@ -250,13 +257,14 @@ func _execute_crisis(crisis_id: String) -> void:
 			var _bm_choice_texts: Array = []
 			for _c in _bm_choices:
 				_bm_choice_texts.append(_c["text"])
+			# FIX A11: pass full choices dict
 			if EventScheduler:
 				EventScheduler.submit_candidate(
 					"crisis_blood_moon",
 					"crisis_countdown",
 					EventScheduler.PRIORITY_CRITICAL,
 					3.0,
-					{"name": "血月升起!", "description": "血红的月亮悬挂天际,所有敌方势力ATK+20%持续5回合!", "choices": _bm_choice_texts, "source_type": "crisis_execution"}
+					{"name": "血月升起!", "description": "血红的月亮悬挂天际,所有敌方势力ATK+20%持续5回合!", "choices": _bm_choices, "source_type": "crisis_execution"}
 				)
 			else:
 				EventBus.show_event_popup.emit("血月升起!", "血红的月亮悬挂天际,所有敌方势力ATK+20%持续5回合!", _bm_choices)
@@ -269,13 +277,14 @@ func _execute_crisis(crisis_id: String) -> void:
 			var _ca_choice_texts: Array = []
 			for _c in _ca_choices:
 				_ca_choice_texts.append(_c["text"])
+			# FIX A11: pass full choices dict
 			if EventScheduler:
 				EventScheduler.submit_candidate(
 					"crisis_coalition_war",
 					"crisis_countdown",
 					EventScheduler.PRIORITY_CRITICAL,
 					3.0,
-					{"name": "联盟总攻!", "description": "所有存活敌方势力组成联盟向你发动总攻! 所有边境受到压力!", "choices": _ca_choice_texts, "source_type": "crisis_execution"}
+					{"name": "联盟总攻!", "description": "所有存活敌方势力组成联盟向你发动总攻! 所有边境受到压力!", "choices": _ca_choices, "source_type": "crisis_execution"}
 				)
 			else:
 				EventBus.show_event_popup.emit("联盟总攻!", "所有存活敌方势力组成联盟向你发动总攻! 所有边境受到压力!", _ca_choices)

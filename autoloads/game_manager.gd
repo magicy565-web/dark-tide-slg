@@ -1813,6 +1813,9 @@ func begin_turn() -> void:
 	# ── EventScheduler: reset candidate pool for new turn ──
 	if EventScheduler:
 		EventScheduler.begin_turn()
+	# FIX A8: EventRegistry.begin_turn() must be called each turn to tick cooldowns
+	if EventRegistry:
+		EventRegistry.begin_turn()
 
 	var player: Dictionary = players[current_player_index]
 	var pid: int = player["id"]
@@ -2159,8 +2162,11 @@ func begin_turn() -> void:
 	NpcManager.tick_all(pid, turn_number)
 
 	# ── Phase 5c2: Story event progression check ──
-	if pid == get_human_player_id():
-		StoryEventSystem.process_story_turn()
+	# FIX A9: StoryEventSystem.process_story_turn() is now called inside
+	# QuestProgressTracker.tick_all() which is triggered by turn_started signal.
+	# Calling it here again would cause double execution every turn.
+	# if pid == get_human_player_id():
+	# 	StoryEventSystem.process_story_turn()
 
 	# ── Phase 5c2b: Event cooldown tick & event processing ──
 	if pid == get_human_player_id():

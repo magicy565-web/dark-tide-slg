@@ -220,9 +220,10 @@ func _on_turn_started(player_id: int) -> void:
 # ═══════════════ EVENT ROLLING ═══════════════
 
 func _roll_seasonal_events() -> void:
+	# FIX A5: GameManager uses turn_number, not current_turn
 	var current_turn: int = 0
-	if "current_turn" in GameManager:
-		current_turn = GameManager.current_turn
+	if "turn_number" in GameManager:
+		current_turn = GameManager.turn_number
 
 	if current_turn - _last_seasonal_event_turn < SEASONAL_COOLDOWN:
 		return
@@ -268,22 +269,26 @@ func _fire_seasonal_event(event: Dictionary) -> void:
 	for c in event.get("choices", []):
 		choice_texts.append(c["text"])
 
+	# FIX A6: pass full choices dict (with effects) so EventPopup can apply them
 	if EventScheduler:
 		EventScheduler.submit_candidate(
 			event["id"],
 			"seasonal_event",
 			EventScheduler.PRIORITY_LOW,
 			1.0,
-			{"name": event["name"], "description": event["desc"], "choices": choice_texts, "source_type": "seasonal_event"}
+			{"name": event["name"], "description": event["desc"], "choices": event.get("choices", []), "source_type": "seasonal_event"}
 		)
 	else:
-		EventBus.show_event_popup.emit(event["name"], event["desc"], choice_texts)
+		EventBus.show_event_popup.emit(event["name"], event["desc"], event.get("choices", []))
 	EventBus.message_log.emit("[color=cyan][季节事件] %s[/color]" % event["name"])
 
 
 # ═══════════════ CHOICE HANDLING ═══════════════
 
-func _on_event_choice_selected(choice_index: int) -> void:
+func _on_event_choice_selected(choice_index: int, source_type: String = "") -> void:
+	# FIX A6: only handle choices originating from seasonal_event to prevent race condition
+	if source_type != "" and source_type != "seasonal_event":
+		return
 	if _current_event.is_empty():
 		return
 
