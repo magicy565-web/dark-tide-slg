@@ -183,12 +183,15 @@ func build(tile_idx: int, building_id: String, skip_cost_check: bool = false) ->
 			if tile != null and tile.get("index", -1) == tile_idx:
 				owner_id = tile.get("owner_id", -1)
 				break
-		if owner_id >= 0:
-			var cost: Dictionary = {"gold": check.get("cost_gold", 0), "iron": check.get("cost_iron", 0)}
-			if not ResourceManager.can_afford(owner_id, cost):
-				EventBus.message_log.emit("[color=red]资源不足，无法建造![/color]")
-				return false
-			ResourceManager.spend(owner_id, cost)
+		# FIX R2-A4: Unowned tiles (owner_id < 0) must not build for free
+		if owner_id < 0:
+			push_warning("TileDevelopment.build: tile %d has no owner, cannot build" % tile_idx)
+			return false
+		var cost: Dictionary = {"gold": check.get("cost_gold", 0), "iron": check.get("cost_iron", 0)}
+		if not ResourceManager.can_afford(owner_id, cost):
+			EventBus.message_log.emit("[color=red]资源不足，无法建造![/color]")
+			return false
+		ResourceManager.spend(owner_id, cost)
 	var dev: Dictionary = get_tile_development(tile_idx)
 	dev["buildings"].append(building_id)
 	_tile_dev[tile_idx] = dev
@@ -527,6 +530,9 @@ func from_save_data(data: Dictionary) -> void:
 	for k in rb_keys_to_fix:
 		_rebuilding_tiles[int(k)] = _rebuilding_tiles[k]
 		_rebuilding_tiles.erase(k)
+	# FIX R2-A5: Cast rebuilding timer values to int (JSON parses numbers as float)
+	for idx in _rebuilding_tiles:
+		_rebuilding_tiles[idx] = int(_rebuilding_tiles[idx])
 
 
 func _get_tile_level(tile_idx: int) -> int:

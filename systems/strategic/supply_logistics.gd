@@ -166,12 +166,9 @@ func calculate_supply_route(army_id: int) -> Dictionary:
 		"distance": 999,
 	}
 
+	# FIX R2-B8: removed duplicate guards with bare return
 	if not GameManager.armies.has(army_id):
 		return result
-	if not GameManager.armies.has(army_id):
-		return
-	if not GameManager.armies.has(army_id):
-		return
 	var army: Dictionary = GameManager.armies[army_id]
 	var player_id: int = army.get("player_id", -1)
 	var army_tile: int = army.get("tile_index", -1)
@@ -272,10 +269,9 @@ func _enemy_army_on_tile(tile_idx: int, player_id: int) -> int:
 
 
 func _is_coastal_tile(tile_idx: int) -> bool:
+	# FIX R2-B8: removed duplicate guard with bare return
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return false
-	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 	if tile == null:
 		return false
@@ -303,10 +299,7 @@ func dispatch_convoy(from_depot_tile: int, to_army_id: int, amount: int) -> int:
 		return -1
 
 	var depot: Dictionary = _depots[from_depot_tile]
-	if not GameManager.armies.has(to_army_id):
-		return
-	if not GameManager.armies.has(to_army_id):
-		return
+	# FIX R2-B8: removed duplicate guards with bare return
 	var army: Dictionary = GameManager.armies[to_army_id]
 	if depot["owner_id"] != army.get("player_id", -1):
 		return -1
@@ -469,12 +462,9 @@ func unregister_army_supply(army_id: int) -> void:
 
 func get_army_consumption(army_id: int) -> int:
 	## Calculate per-turn supply consumption for an army.
+	# FIX R2-B8: removed duplicate guards with bare return
 	if not GameManager.armies.has(army_id):
 		return ARMY_SUPPLY_BASE_CONSUMPTION
-	if not GameManager.armies.has(army_id):
-		return
-	if not GameManager.armies.has(army_id):
-		return
 	var army: Dictionary = GameManager.armies[army_id]
 	var troop_count: int = army.get("troops", []).size()
 	var extra: int = maxi(0, troop_count - ARMY_SUPPLY_TROOP_FREE_COUNT)

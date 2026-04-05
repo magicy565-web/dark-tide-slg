@@ -187,6 +187,8 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 				income["food"] -= f_before - f_adj
 				f = f_adj
 			income["prestige"] += int(tile_dev_effects.get("prestige_per_turn", 0))
+			# FIX R2-A2: Cultural path per_building bonus uses key "prestige_bonus"
+			income["prestige"] += int(tile_dev_effects.get("prestige_bonus", 0))
 
 		# Adjacent tile spillover effects from neighboring tiles
 		var adj_tiles: Array = GameManager.adjacency.get(tile_idx, [])

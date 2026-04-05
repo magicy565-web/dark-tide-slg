@@ -88,11 +88,12 @@ func can_perform_action(tile_idx: int, action_id: String, target_tile_idx: int) 
 		return {"can": false, "reason": "未知行动"}
 	
 	var action = OFFENSIVE_ACTIONS[action_id]
+	# FIX R2-B9: bare return in typed Dictionary function
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {"can": false, "reason": "invalid tile"}
 	var tile = GameManager.tiles[tile_idx]
 	if target_tile_idx < 0 or target_tile_idx >= GameManager.tiles.size():
-		return
+		return {"can": false, "reason": "invalid target tile"}
 	var target_tile = GameManager.tiles[target_tile_idx]
 	
 	# 检查距离
@@ -139,11 +140,12 @@ func perform_action(tile_idx: int, action_id: String, target_tile_idx: int) -> D
 		return {"success": false, "reason": check["reason"]}
 	
 	var action = OFFENSIVE_ACTIONS[action_id]
+	# FIX R2-B9: bare return in typed Dictionary function
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {"success": false, "reason": "invalid tile"}
 	var tile = GameManager.tiles[tile_idx]
 	if target_tile_idx < 0 or target_tile_idx >= GameManager.tiles.size():
-		return
+		return {"success": false, "reason": "invalid target tile"}
 	var target_tile = GameManager.tiles[target_tile_idx]
 	var pid = tile.get("owner_id", -1)
 	
@@ -184,11 +186,12 @@ func perform_action(tile_idx: int, action_id: String, target_tile_idx: int) -> D
 func _execute_action(tile_idx: int, action_id: String, target_tile_idx: int) -> Dictionary:
 	var action = OFFENSIVE_ACTIONS[action_id]
 	var success = randf() < action["success_rate"]
+	# FIX R2-B9: bare return in typed Dictionary function
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {"success": false, "reason": "invalid tile"}
 	var tile = GameManager.tiles[tile_idx]
 	if target_tile_idx < 0 or target_tile_idx >= GameManager.tiles.size():
-		return
+		return {"success": false, "reason": "invalid target tile"}
 	var target_tile = GameManager.tiles[target_tile_idx]
 	var pid = tile.get("owner_id", -1)
 	var target_pid = target_tile.get("owner_id", -1)
@@ -231,9 +234,10 @@ func _execute_action(tile_idx: int, action_id: String, target_tile_idx: int) -> 
 			ResourceManager.gain(pid, {"gold": gold, "food": food, "slaves": slaves})
 			result["log"] = "[color=yellow]掠夺成功! 获得 %d 金币, %d 粮食, %d 奴隶[/color]" % [gold, food, slaves]
 			
+			# FIX R2-B10: interception must also reduce stolen slaves
 			if randf() < action["effects"]["interception_chance"]:
 				result["log"] += "\n[color=red]掠夺队伍被拦截, 损失 50%% 收获![/color]"
-				ResourceManager.spend(pid, {"gold": gold/2, "food": food/2})
+				ResourceManager.spend(pid, {"gold": gold/2, "food": food/2, "slaves": slaves/2})
 		
 		"sabotage":
 			var wall_dmg = action["effects"]["wall_damage"]
@@ -247,12 +251,20 @@ func _execute_action(tile_idx: int, action_id: String, target_tile_idx: int) -> 
 					result["log"] += "\n[color=red]建筑被摧毁![/color]"
 		
 		"propaganda":
+			# FIX R2-B11: Apply order change once now, then store a timed debuff
+			# for the remaining turns (instead of applying all turns instantly)
 			var order_change = action["effects"]["target_order_change"]
 			var turns = action["effects"]["target_order_turns"]
 			if GameManager.governance_system:
-				for i in range(turns):
-					GameManager.governance_system.change_order(target_tile_idx, order_change)
-			result["log"] = "[color=cyan]宣传成功! 目标秩序下降[/color]"
+				GameManager.governance_system.change_order(target_tile_idx, order_change)
+			# Store remaining turns as a debuff so process_turn applies it each turn
+			if turns > 1:
+				if target_tile_idx >= 0 and target_tile_idx < GameManager.tiles.size():
+					var t_tile = GameManager.tiles[target_tile_idx]
+					if not t_tile.has("debuffs"):
+						t_tile["debuffs"] = {}
+					t_tile["debuffs"]["propaganda"] = {"order_change": order_change, "turns_remaining": turns - 1}
+			result["log"] = "[color=cyan]宣传成功! 目标秩序下降 (%d回合)[/color]" % turns
 	
 	EventBus.message_log.emit(result["log"])
 	return result
@@ -308,12 +320,24 @@ func process_turn() -> void:
 	for tile in GameManager.tiles:
 		if tile == null:
 			continue
-		if tile.has("debuffs") and tile["debuffs"].has("production_mult"):
+		if not tile.has("debuffs"):
+			continue
+		if tile["debuffs"].has("production_mult"):
 			var debuff = tile["debuffs"]["production_mult"]
 			if debuff["turns_remaining"] > 0:
 				debuff["turns_remaining"] -= 1
 			else:
 				tile["debuffs"].erase("production_mult")
+		# FIX R2-B11: Process propaganda debuff — apply order_change each turn
+		if tile["debuffs"].has("propaganda"):
+			var prop_debuff = tile["debuffs"]["propaganda"]
+			if prop_debuff["turns_remaining"] > 0:
+				if GameManager.governance_system:
+					var tidx: int = tile.get("index", -1)
+					GameManager.governance_system.change_order(tidx, prop_debuff["order_change"])
+				prop_debuff["turns_remaining"] -= 1
+			else:
+				tile["debuffs"].erase("propaganda")
 
 func get_available_actions(tile_idx: int) -> Array:
 	var result = []

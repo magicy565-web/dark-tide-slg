@@ -37,10 +37,9 @@ func reset() -> void:
 
 ## Check whether a tile qualifies as fortified (requires siege to capture).
 func is_tile_fortified(tile_index: int) -> bool:
+	# FIX R2-B1: removed duplicate guard with bare return
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return false
-	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	if tile.get("type", -1) == GameManager.TileType.CORE_FORTRESS:
 		return true
@@ -51,15 +50,12 @@ func is_tile_fortified(tile_index: int) -> bool:
 
 ## Start a siege on a fortified tile.
 func start_siege(attacker_army_id: int, tile_index: int) -> Dictionary:
+	# FIX R2-B1: removed duplicate guards with bare return
 	if not GameManager.armies.has(attacker_army_id):
 		return {}
-	if not GameManager.armies.has(attacker_army_id):
-		return
-	if not GameManager.armies.has(attacker_army_id):
-		return
 	var army: Dictionary = GameManager.armies[attacker_army_id]
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
+		return {}
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var attacker_pid: int = army["player_id"]
 	var defender_pid: int = tile.get("owner_id", -1)
@@ -117,14 +113,11 @@ func process_sieges(player_id: int) -> Array:
 			events.append({"type": "lifted", "siege_id": siege_id, "reason": "army_lost"})
 			continue
 
-		if not GameManager.armies.has(siege["attacker_army_id"]):
-			return
-		if not GameManager.armies.has(siege["attacker_army_id"]):
-			return
+		# FIX R2-B1: removed duplicate guards with bare return; use typed defaults
 		var army: Dictionary = GameManager.armies[siege["attacker_army_id"]]
 		var tile_index: int = siege["tile_index"]
 		if tile_index < 0 or tile_index >= GameManager.tiles.size():
-			return
+			continue
 		var tile: Dictionary = GameManager.tiles[tile_index]
 
 		# 1. Attacker deals wall damage
@@ -254,15 +247,12 @@ func get_player_sieges(player_id: int) -> Array:
 
 ## Allied army attempts to break a siege.
 func try_relief(army_id: int, siege_id: String) -> bool:
+	# FIX R2-B1: removed duplicate guards with bare return
 	if not _active_sieges.has(siege_id):
 		return false
 	if not GameManager.armies.has(army_id):
 		return false
 	var siege: Dictionary = _active_sieges[siege_id]
-	if not GameManager.armies.has(army_id):
-		return
-	if not GameManager.armies.has(army_id):
-		return
 	var relief_army: Dictionary = GameManager.armies[army_id]
 	var tile_index: int = siege["tile_index"]
 
@@ -337,13 +327,10 @@ func from_save_data(data: Dictionary) -> void:
 # ═══════════════ INTERNALS ═══════════════
 
 func _get_army_total_atk(army_id: int) -> int:
+	# FIX R2-B1: removed duplicate guards with bare return
 	if not GameManager.armies.has(army_id):
 		return 0
 	var total: int = 0
-	if not GameManager.armies.has(army_id):
-		return
-	if not GameManager.armies.has(army_id):
-		return
 	for troop in GameManager.armies[army_id]["troops"]:
 		var troop_id: String = troop.get("troop_id", "")
 		var base_atk: int = GameData.get_troop_def(troop_id).get("base_atk", 5)
@@ -352,13 +339,10 @@ func _get_army_total_atk(army_id: int) -> int:
 
 
 func _apply_attrition(army_id: int, rate: float) -> int:
+	# FIX R2-B1: removed duplicate guards with bare return
 	if not GameManager.armies.has(army_id):
 		return 0
 	var total_lost: int = 0
-	if not GameManager.armies.has(army_id):
-		return
-	if not GameManager.armies.has(army_id):
-		return
 	for troop in GameManager.armies[army_id]["troops"]:
 		var soldiers: int = troop.get("soldiers", 0)
 		var lost: int = maxi(1, int(float(soldiers) * rate))
@@ -393,11 +377,8 @@ func _resolve_sortie(siege: Dictionary) -> bool:
 
 func _capture_tile_from_siege(siege: Dictionary) -> void:
 	## Capture a tile through siege surrender (no battle).
+	# FIX R2-B1: removed duplicate guards with bare return
 	var army_id: int = siege["attacker_army_id"]
-	if not GameManager.armies.has(army_id):
-		return
-	if not GameManager.armies.has(army_id):
-		return
 	if not GameManager.armies.has(army_id):
 		return
 	var army: Dictionary = GameManager.armies[army_id]

@@ -236,8 +236,9 @@ func _apply_rewards(pid: int, tile_idx: int, rewards: Dictionary) -> void:
 func clear_monsters(tile_idx: int) -> Dictionary:
 	var data = get_cave_data(tile_idx)
 	var pid: int = GameManager.get_human_player_id()
+	# FIX R2-B3: bare return in typed Dictionary function
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {"success": false, "reason": "invalid tile"}
 	var tile = GameManager.tiles[tile_idx]
 
 	if data["cleared"]:
@@ -335,8 +336,9 @@ func upgrade_cave(tile_idx: int, upgrade_id: String) -> Dictionary:
 	data["upgrades"].append(upgrade_id)
 
 	# 应用效果
+	# FIX R2-B3: bare return in typed Dictionary function
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {"success": false, "reason": "invalid tile"}
 	var tile = GameManager.tiles[tile_idx]
 	var effects = upgrade["effects"]
 	if effects.get("garrison", 0) > 0:
@@ -370,8 +372,9 @@ func try_level_up(tile_idx: int) -> bool:
 	return false
 
 func _handle_monster_combat(tile_idx: int, monster_power: int, pid: int) -> Dictionary:
+	# FIX R2-B3: bare return in typed Dictionary function
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
+		return {"victory": false, "reason": "invalid tile"}
 	var tile = GameManager.tiles[tile_idx]
 	var garrison: int = tile.get("garrison", 0)
 	if garrison * 2 >= monster_power:

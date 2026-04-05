@@ -74,7 +74,8 @@ func execute_action(player_id: int, action_id: String) -> bool:
 		return false
 
 	ResourceManager.apply_delta(player_id, {res_key: -cost})
-	EventBus.strategic_resource_consumed.emit(player_id, res_key, cost)
+	# FIX R2-A3: Defer signal until after action succeeds (relic_upgrade may refund)
+	var _signal_deferred: bool = true
 
 	# Apply effect
 	match action_id:
@@ -131,6 +132,7 @@ func execute_action(player_id: int, action_id: String) -> bool:
 			else:
 				# Refund if upgrade failed
 				ResourceManager.apply_delta(player_id, {res_key: cost})
+				_signal_deferred = false
 				return false
 
 		"ultimate_unlock":
@@ -142,6 +144,9 @@ func execute_action(player_id: int, action_id: String) -> bool:
 			NpcManager.boost_all_obedience(player_id, 30)
 			EventBus.message_log.emit("[color=purple]暗影统御! 所有奴隶NPC服从度+30[/color]")
 
+	# FIX R2-A3: Emit consumption signal only after action confirmed successful
+	if _signal_deferred:
+		EventBus.strategic_resource_consumed.emit(player_id, res_key, cost)
 	return true
 
 # ── Convenience getters for combat/production integration ──

@@ -16,13 +16,15 @@ var _tile_class: Dictionary = {}
 # ── Isolation penalty constants ──
 const ISOLATION_PROD_PENALTY: float = 0.5      # -50% gold/food/iron
 const ISOLATION_GARRISON_LOSS: float = 0.05     # 5% garrison attrition per turn
-const ISOLATION_ORDER_LOSS: float = 3.0         # -3 public_order per turn
+# FIX R2-B6: public_order uses 0.0-1.0 scale (default 0.50); was 3.0 which instantly zeroed order
+const ISOLATION_ORDER_LOSS: float = 0.03        # -0.03 public_order per turn (≈3% of full scale)
 
 # ── Classification bonus constants ──
 const FRONT_DEF_BONUS: float = 0.2              # +20% garrison DEF
 const FRONT_ATK_BONUS: float = 0.1              # +10% ATK for stationed armies
 const REAR_PROD_BONUS: float = 0.3              # +30% production
-const REAR_ORDER_RECOVERY: float = 5.0          # +5 public_order per turn
+# FIX R2-B7: public_order uses 0.0-1.0 scale; was 5.0 which instantly maxed order
+const REAR_ORDER_RECOVERY: float = 0.05         # +0.05 public_order per turn (≈5% of full scale)
 const CAPITAL_PROD_BONUS: float = 0.5           # +50% production
 const CAPITAL_DEF_BONUS: float = 0.3            # +30% garrison DEF
 
@@ -300,8 +302,7 @@ func is_army_supplied(army: Dictionary) -> bool:
 	if tile_index >= GameManager.tiles.size():
 		return false
 
-	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
+	# FIX R2-B5: bare return in bool function; also removed duplicate guard
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	if tile == null:
 		return false
@@ -612,7 +613,7 @@ func apply_rear_order_recovery(player_id: int) -> void:
 		var cls: String = get_tile_classification(player_id, tile["index"])
 		if cls == "rear":
 			var order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
-			tile["public_order"] = minf(order + REAR_ORDER_RECOVERY, 100.0)
+			tile["public_order"] = minf(order + REAR_ORDER_RECOVERY, 1.0)
 
 
 # ═══════════════ COMBINED MODIFIERS ═══════════════

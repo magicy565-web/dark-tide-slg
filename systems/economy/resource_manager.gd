@@ -184,6 +184,16 @@ func from_save_data(data: Dictionary) -> void:
 		for k in keys_to_fix:
 			dict_ref[int(k)] = dict_ref[k]
 			dict_ref.erase(k)
+	# FIX R2-A1: JSON parses all numbers as floats; maxi() requires int args.
+	# Cast all numeric values back to int to prevent runtime crashes.
+	for pid in _ledgers:
+		if _ledgers[pid] is Dictionary:
+			for rk in _ledgers[pid]:
+				_ledgers[pid][rk] = int(_ledgers[pid][rk])
+	for pid in _army:
+		_army[pid] = int(_army[pid])
+	for pid in _slave_capacity:
+		_slave_capacity[pid] = int(_slave_capacity[pid])
 	# BUG FIX: Ensure all new strategic resource keys exist in old saves
 	var new_res_keys: Array = ["trade_goods", "soul_crystals", "arcane_dust"]
 	for pid in _ledgers:
