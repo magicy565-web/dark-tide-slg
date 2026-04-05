@@ -1,5 +1,5 @@
 ## combat_system.gd — Battle Engine v10.3 (Full Merge)
-## Restores all da07334 logic + adds v10.2 Buff system, damage protection, morale resilience.
+## v11.0 DEEP OPTIMIZATION: Crit system, hit/dodge, buff stack cap, data-driven skills, combo tracking.
 class_name CombatSystem
 extends RefCounted
 
@@ -21,6 +21,44 @@ const SupplySystem = preload("res://systems/combat/supply_system.gd")
 const MAX_ROUNDS := 8
 const MAX_FRONT_SLOTS := 3
 const MAX_BACK_SLOTS := 3
+
+# ── v11.0: Combat Tuning Constants ──
+## Base critical hit chance (5%). Modified by passives and morale.
+const BASE_CRIT_CHANCE := 0.05
+## Critical hit damage multiplier.
+const CRIT_DAMAGE_MULT := 1.8
+## Base hit chance (90%). High-DEF units can reduce this.
+const BASE_HIT_CHANCE := 0.90
+## Maximum number of same-id buff stacks per unit (prevents infinite stacking).
+const MAX_BUFF_STACKS := 3
+## Combo tracking: minimum kills in one round to trigger combo bonus.
+const COMBO_KILL_THRESHOLD := 2
+## Combo ATK bonus per kill above threshold.
+const COMBO_ATK_BONUS_PER_KILL := 0.05
+
+# ── v11.0: Data-driven skill definitions ──
+## Centralised skill registry — keyed by skill name string.
+## Fields: type, mana_cost, cooldown, damage_mult, heal_pct, buff_type, buff_value, buff_dur, aoe_mult
+const SKILL_DATA: Dictionary = {
+	"圣光斩":    {"type": "damage",  "mana_cost": 0, "cooldown": 2, "damage_mult": 1.6},
+	"治愈之光":  {"type": "heal",    "mana_cost": 0, "cooldown": 2, "heal_pct": 0.25},
+	"突击号令":  {"type": "buff",    "mana_cost": 0, "cooldown": 3, "buff_type": "atk", "buff_value": 0.25, "buff_dur": 2},
+	"不动如山":  {"type": "buff",    "mana_cost": 0, "cooldown": 3, "buff_type": "def", "buff_value": 0.30, "buff_dur": 2},
+	"箭雨":      {"type": "aoe",     "mana_cost": 0, "cooldown": 3, "damage_mult": 1.2, "aoe_mult": 0.65},
+	"月光护盾":  {"type": "buff",    "mana_cost": 3, "cooldown": 3, "buff_type": "def", "buff_value": 0.40, "buff_dur": 3},
+	"影步":      {"type": "damage",  "mana_cost": 0, "cooldown": 2, "damage_mult": 1.7, "ignore_def": true},
+	"流星火雨":  {"type": "aoe",     "mana_cost": 8, "cooldown": 4, "damage_mult": 2.0, "aoe_mult": 0.80},
+	"时间减速":  {"type": "debuff",  "mana_cost": 3, "cooldown": 3, "buff_type": "spd", "buff_value": -0.30, "buff_dur": 2},
+	"爆裂火球":  {"type": "damage",  "mana_cost": 3, "cooldown": 2, "damage_mult": 1.9},
+	"连射":      {"type": "multi",   "mana_cost": 0, "cooldown": 2, "hit_count": 3, "damage_mult": 0.7},
+	"致命一击":  {"type": "damage",  "mana_cost": 0, "cooldown": 2, "damage_mult": 2.0, "guaranteed_crit": true},
+	"铁壁":      {"type": "buff",    "mana_cost": 0, "cooldown": 2, "buff_type": "def", "buff_value": 0.35, "buff_dur": 2},
+	"沙暴":      {"type": "debuff",  "mana_cost": 0, "cooldown": 3, "buff_type": "atk", "buff_value": -0.25, "buff_dur": 2},
+	"亡灵召唤":  {"type": "summon",  "mana_cost": 3, "cooldown": 4, "summon_pct": 0.15},
+	"分身":      {"type": "buff",    "mana_cost": 0, "cooldown": 3, "buff_type": "def", "buff_value": 0.20, "buff_dur": 3},
+	"净化":      {"type": "cleanse", "mana_cost": 0, "cooldown": 2, "heal_pct": 0.15},
+	"集中轰炸":  {"type": "aoe",     "mana_cost": 0, "cooldown": 3, "damage_mult": 1.5, "aoe_mult": 0.70},
+}
 
 enum Terrain { PLAINS, FOREST, MOUNTAIN, WASTELAND, COASTAL, CITY }
 enum UnitCommand { AUTO, GUARD, CHARGE, RETREAT }
@@ -96,6 +134,13 @@ class BattleUnit:
 				mult += b.get("value", 0.0)
 		return mult
 
+	## v11.0: Count active stacks of a buff by id.
+	func count_buff_stacks(buff_id: String) -> int:
+		var count := 0
+		for b in active_buffs:
+			if b.get("id", "") == buff_id: count += 1
+		return count
+
 class BattleState:
 	var attacker_units: Array[BattleUnit] = []
 	var defender_units: Array[BattleUnit] = []
@@ -148,8 +193,21 @@ class BattleState:
 
 var player_controlled: bool = false
 
+# ── v11.0: Per-battle statistics tracking ──
+var _battle_stats: Dictionary = {
+	"total_crits": 0,
+	"total_misses": 0,
+	"max_single_hit": 0,
+	"combo_kills": 0,
+	"round_kill_counts": {},  # round -> kill count
+	"skill_uses": {},         # skill_name -> use count
+}
+
 func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_data: Dictionary) -> Dictionary:
 	var state := BattleState.new()
+
+	# v11.0: Reset per-battle stats
+	_battle_stats = {"total_crits": 0, "total_misses": 0, "max_single_hit": 0, "combo_kills": 0, "round_kill_counts": {}, "skill_uses": {}}
 
 	# v6.0: Reset hero skill systems for this battle
 	HeroSkillsAdvanced.reset_battle()
@@ -339,6 +397,8 @@ func resolve_battle(attacker_army: Dictionary, defender_army: Dictionary, node_d
 		"player_controlled": player_controlled,
 		"enemy_troops_killed": _att_killed,
 		"defender_troops_killed": _def_killed,
+		# v11.0: Extended battle statistics for settlement rating
+		"battle_stats": _battle_stats.duplicate(),
 	}
 
 # ---------------------------------------------------------------------------
@@ -500,6 +560,10 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		var side_mana: int = state.get_mana(unit.is_attacker)
 		if side_mana >= skill.get("mana_cost", 0):
 			state.set_mana(unit.is_attacker, side_mana - skill.get("mana_cost", 0))
+			# v11.0: Track skill usage stats
+			var sk_name: String = skill.get("name", "")
+			if sk_name != "":
+				_battle_stats["skill_uses"][sk_name] = _battle_stats["skill_uses"].get(sk_name, 0) + 1
 			return _execute_skill(unit, skill, state)
 
 	# 2) Basic Attack
@@ -558,8 +622,18 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 	if state.round_number <= bonuses.get("ranged_double_attack_rounds", []).size():
 		if FormationSystem._is_ranged({"troop_id": unit.troop_id}): is_double_shot = true
 
-	var dmg := _calculate_damage(unit, target, state)
+	# v11.0: Use extended damage calc with crit/miss
+	var dmg_ex := _calculate_damage_ex(unit, target, state)
 	var was_alive := target.is_alive()
+	var dmg: int = dmg_ex["soldiers"]
+	var is_crit: bool = dmg_ex["is_crit"]
+	var is_miss: bool = dmg_ex["is_miss"]
+
+	# Miss: log and return early
+	if is_miss:
+		state.action_log.append({"action": "miss", "unit": unit.id, "side": "attacker" if unit.is_attacker else "defender", "slot": unit.slot, "target": target.id, "target_side": "attacker" if target.is_attacker else "defender", "target_slot": target.slot, "desc": "%s 攻击 %s 未命中!" % [unit.troop_id, target.troop_id]})
+		return {"action": "_already_logged"}
+
 	var hp_dmg: int = dmg * target.hp_per_soldier
 
 	if target._ghost_shield_active:
@@ -578,12 +652,20 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		target.hp = target.hp_per_soldier
 		state.action_log.append({"action": "passive", "event": "death_resist", "unit": target.id, "side": "attacker" if target.is_attacker else "defender", "slot": target.slot, "desc": "%s 触发不屈，保留1兵力" % target.troop_id})
 
+	# v11.0: Track round kill count for combo detection
+	if was_alive and not target.is_alive():
+		var rk: int = state.round_number
+		_battle_stats["round_kill_counts"][rk] = _battle_stats["round_kill_counts"].get(rk, 0) + 1
+		if _battle_stats["round_kill_counts"][rk] >= COMBO_KILL_THRESHOLD:
+			_battle_stats["combo_kills"] += 1
+
 	var entry := {
 		"action": "attack", "unit": unit.id,
 		"side": "attacker" if unit.is_attacker else "defender", "slot": unit.slot,
 		"target": target.id, "target_side": "attacker" if target.is_attacker else "defender",
 		"target_slot": target.slot, "damage": actual_lost, "remaining_soldiers": target.soldiers,
-		"desc": "%s 攻击 %s，造成 %d 伤害" % [unit.troop_id, target.troop_id, actual_lost],
+		"is_crit": is_crit,
+		"desc": "%s %s攻击 %s，造成 %d 伤害" % [unit.troop_id, "暴击! " if is_crit else "", target.troop_id, actual_lost],
 	}
 
 	if was_alive and not target.is_alive():
@@ -630,7 +712,13 @@ func _execute_skill(unit: BattleUnit, skill: Dictionary, state: BattleState) -> 
 			var targets := _get_enemies(unit, state)
 			if targets.is_empty(): return {"action": "idle", "unit": unit.id}
 			var target := targets[randi() % targets.size()]
-			var dmg := _calculate_damage(unit, target, state, skill_mult)
+			# v11.0: Use extended damage with crit/miss
+			var sk_dmg_ex := _calculate_damage_ex(unit, target, state, skill.get("damage_mult", 1.5), skill.get("guaranteed_crit", false))
+			if sk_dmg_ex["is_miss"]:
+				state.action_log.append({"action": "miss", "unit": unit.id, "side": side_str, "slot": unit.slot, "target": target.id, "target_side": "attacker" if target.is_attacker else "defender", "target_slot": target.slot, "desc": "%s 技能 %s 未命中!" % [unit.troop_id, skill.get("name", "技能")]})
+				return {"action": "_already_logged"}
+			var dmg: int = sk_dmg_ex["soldiers"]
+			var is_crit_sk: bool = sk_dmg_ex["is_crit"]
 			var was_alive_sk := target.is_alive()
 			var old_soldiers := target.soldiers
 			target.hp = maxi(0, target.hp - dmg * target.hp_per_soldier)
@@ -641,7 +729,7 @@ func _execute_skill(unit: BattleUnit, skill: Dictionary, state: BattleState) -> 
 				state.action_log.append({"action": "death", "unit": target.id, "side": "attacker" if target.is_attacker else "defender", "slot": target.slot, "round": state.round_number, "desc": "%s 被技能击杀!" % target.troop_id})
 				_apply_ally_death_morale(target, state)
 				_revalidate_formations_for_side(target, state)
-			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "target": target.id, "damage": actual_lost, "remaining_soldiers": target.soldiers, "desc": "%s 发动 %s，造成 %d 伤害" % [unit.troop_id, skill.get("name", "技能"), actual_lost]}
+			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "target": target.id, "damage": actual_lost, "remaining_soldiers": target.soldiers, "is_crit": is_crit_sk, "desc": "%s 发动 %s%s，造成 %d 伤害" % [unit.troop_id, skill.get("name", "技能"), " (暴击!" + ")" if is_crit_sk else "", actual_lost]}
 		"heal":
 			var allies := state.attacker_units if unit.is_attacker else state.defender_units
 			var heal_target: BattleUnit = null
@@ -674,25 +762,71 @@ func _execute_skill(unit: BattleUnit, skill: Dictionary, state: BattleState) -> 
 					_revalidate_formations_for_side(aoe_t, state)
 			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "damage": total_aoe_dmg, "is_aoe": true, "desc": "%s 发动 %s (范围)，共造成 %d 伤害" % [unit.troop_id, skill.get("name", "技能"), total_aoe_dmg]}
 		"buff":
-			# Buff: apply ATK boost to all living allies for 2 rounds
+			# v11.0: Data-driven buff — reads type/value/dur from skill definition
 			var buff_allies := state.attacker_units if unit.is_attacker else state.defender_units
 			var buff_count := 0
+			var b_type: String = skill.get("buff_type", "atk")
+			var b_val: float  = skill.get("buff_value", 0.20)
+			var b_dur: int    = skill.get("buff_dur", 2)
+			var b_label: String = "+%.0f%% %s" % [b_val * 100.0, b_type.to_upper()]
 			for ba in buff_allies:
 				if ba.is_alive():
-					ba.active_buffs.append({"id": skill.get("name", "buff"), "duration": 2, "type": "atk", "value": 0.20})
-					buff_count += 1
-					state.action_log.append({"action": "buff", "unit": ba.id, "side": side_str, "slot": ba.slot, "buff_type": "atk_up", "desc": "%s 获得 %s 增益 (+20%% ATK, 2回合)" % [ba.troop_id, skill.get("name", "技能")]})
+					var applied := _apply_buff_capped(ba, {"id": skill.get("name", "buff"), "duration": b_dur, "type": b_type, "value": b_val}, state)
+					if applied:
+						buff_count += 1
+						state.action_log.append({"action": "buff", "unit": ba.id, "side": side_str, "slot": ba.slot, "buff_type": "%s_up" % b_type, "desc": "%s 获得 %s 增益 (%s, %d回合)" % [ba.troop_id, skill.get("name", "技能"), b_label, b_dur]})
 			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "buffed_count": buff_count, "desc": "%s 发动 %s，为 %d 友军施加增益" % [unit.troop_id, skill.get("name", "技能"), buff_count]}
 		"debuff":
-			# Debuff: apply DEF reduction to all living enemies for 2 rounds
+			# v11.0: Data-driven debuff — reads type/value/dur from skill definition
 			var debuff_targets := _get_enemies(unit, state)
 			var debuff_count := 0
+			var db_type: String = skill.get("buff_type", "def")
+			var db_val: float   = skill.get("buff_value", -0.20)
+			var db_dur: int     = skill.get("buff_dur", 2)
+			var db_label: String = "%.0f%% %s" % [db_val * 100.0, db_type.to_upper()]
 			for dt in debuff_targets:
 				if dt.is_alive():
-					dt.active_buffs.append({"id": skill.get("name", "debuff"), "duration": 2, "type": "def", "value": -0.20})
-					debuff_count += 1
-					state.action_log.append({"action": "debuff", "unit": dt.id, "side": "attacker" if dt.is_attacker else "defender", "slot": dt.slot, "debuff_type": "def_down", "desc": "%s 被 %s 削弱 (-20%% DEF, 2回合)" % [dt.troop_id, skill.get("name", "技能")]})
+					var applied := _apply_buff_capped(dt, {"id": skill.get("name", "debuff"), "duration": db_dur, "type": db_type, "value": db_val}, state)
+					if applied:
+						debuff_count += 1
+						state.action_log.append({"action": "debuff", "unit": dt.id, "side": "attacker" if dt.is_attacker else "defender", "slot": dt.slot, "debuff_type": "%s_down" % db_type, "desc": "%s 被 %s 削弱 (%s, %d回合)" % [dt.troop_id, skill.get("name", "技能"), db_label, db_dur]})
 			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "debuffed_count": debuff_count, "desc": "%s 发动 %s，为 %d 敌军施加减益" % [unit.troop_id, skill.get("name", "技能"), debuff_count]}
+		"cleanse":
+			# v11.0: Cleanse — remove all debuffs from allies and heal a small amount
+			var cleanse_allies := state.attacker_units if unit.is_attacker else state.defender_units
+			var cleansed_count := 0
+			var heal_pct: float = skill.get("heal_pct", 0.10)
+			for ca in cleanse_allies:
+				if not ca.is_alive(): continue
+				var before_count := ca.active_buffs.size()
+				ca.active_buffs = ca.active_buffs.filter(func(b): return b.get("value", 0.0) >= 0.0)
+				if ca.active_buffs.size() < before_count: cleansed_count += 1
+				var heal_amt := int(float(ca.max_soldiers) * heal_pct)
+				ca.hp = mini(ca.max_hp, ca.hp + heal_amt * ca.hp_per_soldier)
+				_recalc_soldiers(ca)
+				state.action_log.append({"action": "heal", "unit": ca.id, "side": side_str, "slot": ca.slot, "healed": heal_amt, "remaining_soldiers": ca.soldiers, "max_soldiers": ca.max_soldiers, "desc": "%s 被净化并回复 %d 兵" % [ca.troop_id, heal_amt]})
+			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "desc": "%s 发动 %s，净化 %d 友军" % [unit.troop_id, skill.get("name", "技能"), cleansed_count]}
+		"multi":
+			# v11.0: Multi-hit — attacks a single target N times for reduced damage each
+			var multi_targets := _get_enemies(unit, state)
+			if multi_targets.is_empty(): return {"action": "idle", "unit": unit.id}
+			var multi_target := multi_targets[randi() % multi_targets.size()]
+			var hit_count: int = skill.get("hit_count", 3)
+			var total_multi_dmg := 0
+			for _h in range(hit_count):
+				if not multi_target.is_alive(): break
+				var h_dmg_ex := _calculate_damage_ex(unit, multi_target, state, skill.get("damage_mult", 0.7))
+				var h_dmg: int = h_dmg_ex["soldiers"]
+				var h_old := multi_target.soldiers
+				multi_target.hp = maxi(0, multi_target.hp - h_dmg * multi_target.hp_per_soldier)
+				_recalc_soldiers(multi_target)
+				total_multi_dmg += h_old - multi_target.soldiers
+				state.action_log.append({"action": "skill_hit", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "target": multi_target.id, "damage": h_old - multi_target.soldiers, "remaining_soldiers": multi_target.soldiers, "is_crit": h_dmg_ex["is_crit"], "desc": "%s 连击命中 %s" % [unit.troop_id, multi_target.troop_id]})
+			if not multi_target.is_alive():
+				state.action_log.append({"action": "death", "unit": multi_target.id, "side": "attacker" if multi_target.is_attacker else "defender", "slot": multi_target.slot, "round": state.round_number, "desc": "%s 被连击歼灭!" % multi_target.troop_id})
+				_apply_ally_death_morale(multi_target, state)
+				_revalidate_formations_for_side(multi_target, state)
+			return {"action": "skill", "unit": unit.id, "side": side_str, "slot": unit.slot, "skill_name": skill.get("name", "技能"), "damage": total_multi_dmg, "hit_count": hit_count, "desc": "%s 发动 %s，%d连击共造成 %d 伤害" % [unit.troop_id, skill.get("name", "技能"), hit_count, total_multi_dmg]}
 		"summon":
 			# Summon: restore 10% max soldiers to the most injured ally
 			var summon_allies := state.attacker_units if unit.is_attacker else state.defender_units
@@ -856,6 +990,15 @@ func _tick_buff_durations(state: BattleState) -> void:
 			else:
 				state.action_log.append({"action": "buff_expire", "unit": u.id, "buff_id": b.get("id", "buff"), "desc": "%s 的 %s 效果消失" % [u.troop_id, b.get("id", "buff")]})
 		u.active_buffs = remaining
+
+## v11.0: Apply a buff with stack-cap enforcement.
+## Prevents more than MAX_BUFF_STACKS of the same buff_id on a single unit.
+func _apply_buff_capped(unit: BattleUnit, buff: Dictionary, state: BattleState) -> bool:
+	var bid: String = buff.get("id", "")
+	if bid != "" and unit.count_buff_stacks(bid) >= MAX_BUFF_STACKS:
+		return false  # Stack cap reached
+	unit.active_buffs.append(buff)
+	return true
 # v10.6: Tick burn/slow debuffs from CombatAbilities on BattleUnit.active_buffs
 func _tick_combat_abilities_debuffs(state: BattleState) -> void:
 	for u in state.attacker_units + state.defender_units:
@@ -1060,6 +1203,28 @@ func _apply_ultimate_damage(state: BattleState, ult_result: Dictionary, caster_s
 # Damage Calculation
 # ---------------------------------------------------------------------------
 
+## v11.0: Extended damage calculation with crit, hit/dodge, and combo bonus.
+## Returns a Dictionary: {"soldiers": int, "is_crit": bool, "is_miss": bool}
+func _calculate_damage_ex(attacker: BattleUnit, defender: BattleUnit, state: BattleState, skill_mult: float = 1.0, guaranteed_crit: bool = false) -> Dictionary:
+	var base := _calculate_damage(attacker, defender, state, skill_mult)
+	# ── Hit/Dodge check ──
+	var hit_chance := BASE_HIT_CHANCE
+	if attacker.has_passive("precision"): hit_chance = minf(hit_chance + 0.10, 1.0)
+	if defender.has_passive("evasion"):   hit_chance = maxf(hit_chance - 0.12, 0.30)
+	if randf() > hit_chance:
+		_battle_stats["total_misses"] += 1
+		return {"soldiers": 0, "is_crit": false, "is_miss": true}
+	# ── Critical hit check ──
+	var crit_chance := BASE_CRIT_CHANCE
+	if attacker.has_passive("crit_boost"): crit_chance += 0.10
+	if attacker.morale >= 80: crit_chance += 0.05
+	var is_crit := guaranteed_crit or (randf() < crit_chance)
+	if is_crit:
+		base = int(float(base) * CRIT_DAMAGE_MULT)
+		_battle_stats["total_crits"] += 1
+	if base > _battle_stats["max_single_hit"]: _battle_stats["max_single_hit"] = base
+	return {"soldiers": base, "is_crit": is_crit, "is_miss": false}
+
 func _calculate_damage(attacker: BattleUnit, defender: BattleUnit, state: BattleState, skill_mult: float = 1.0) -> int:
 	# v10.2: Apply Buff Multipliers to ATK and DEF
 	var atk_val: int = int(float(attacker.atk) * attacker.get_stat_mult("atk"))
@@ -1257,31 +1422,19 @@ func _tick_intervention_durations(state: BattleState) -> void:
 # Utility
 # ---------------------------------------------------------------------------
 
+## v11.0: Data-driven skill lookup — reads from SKILL_DATA registry.
+## Falls back to generic damage skill for unknown names.
 func _get_active_skill(unit: BattleUnit) -> Dictionary:
 	var hdata: Dictionary = FactionData.HEROES.get(unit.hero_id, {})
 	if hdata.is_empty(): return {}
 	var skill_name: String = hdata.get("active", "")
 	if skill_name == "": return {}
-	match skill_name:
-		"圣光斩": return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 2}
-		"治愈之光": return {"name": skill_name, "type": "heal", "mana_cost": 0, "cooldown": 2}
-		"突击号令": return {"name": skill_name, "type": "buff", "mana_cost": 0, "cooldown": 3}
-		"不动如山": return {"name": skill_name, "type": "buff", "mana_cost": 0, "cooldown": 3}
-		"箭雨": return {"name": skill_name, "type": "aoe", "mana_cost": 0, "cooldown": 3}
-		"月光护盾": return {"name": skill_name, "type": "buff", "mana_cost": 3, "cooldown": 3}
-		"影步": return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 2}
-		"流星火雨": return {"name": skill_name, "type": "aoe", "mana_cost": 8, "cooldown": 4}
-		"时间减速": return {"name": skill_name, "type": "debuff", "mana_cost": 3, "cooldown": 3}
-		"爆裂火球": return {"name": skill_name, "type": "damage", "mana_cost": 3, "cooldown": 2}
-		"连射": return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 2}
-		"致命一击": return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 2}
-		"铁壁": return {"name": skill_name, "type": "buff", "mana_cost": 0, "cooldown": 2}
-		"沙暴": return {"name": skill_name, "type": "debuff", "mana_cost": 0, "cooldown": 3}
-		"亡灵召唤": return {"name": skill_name, "type": "summon", "mana_cost": 3, "cooldown": 4}
-		"分身": return {"name": skill_name, "type": "buff", "mana_cost": 0, "cooldown": 3}
-		"净化": return {"name": skill_name, "type": "heal", "mana_cost": 0, "cooldown": 2}
-		"集中轰炸": return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 3}
-	return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 3}
+	if SKILL_DATA.has(skill_name):
+		var entry: Dictionary = SKILL_DATA[skill_name].duplicate()
+		entry["name"] = skill_name
+		return entry
+	# Fallback for unregistered skills
+	return {"name": skill_name, "type": "damage", "mana_cost": 0, "cooldown": 3, "damage_mult": 1.5}
 
 func _get_enemies(unit: BattleUnit, state: BattleState) -> Array[BattleUnit]:
 	return state.living_defenders() if unit.is_attacker else state.living_attackers()

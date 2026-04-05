@@ -79,6 +79,8 @@ func _ready() -> void:
 func _connect_signals() -> void:
 	EventBus.combat_result.connect(_on_combat_result)
 	EventBus.tactical_orders_requested.connect(_on_tactical_orders_requested)
+	# v11.0: Connect battle rating signal for extended stats display
+	_ready_connect_rating_signal()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -338,6 +340,7 @@ func _build_orders_ui() -> void:
 #                       PUBLIC API
 # ═══════════════════════════════════════════════════════════════
 
+## v11.0: Enhanced show_combat_result with S/A/B/C rating, hero EXP bar, loot animation.
 func show_combat_result(data: Dictionary) -> void:
 	var won: bool = data.get("won", false)
 	var attacker: String = data.get("attacker_name", "Attacker")
@@ -350,6 +353,12 @@ func show_combat_result(data: Dictionary) -> void:
 	var loot_gold: int = data.get("loot_gold", 0)
 	var slaves_captured: int = data.get("slaves_captured", 0)
 	var hero_captured: String = data.get("hero_captured", "")
+	# v11.0: Extended stats from battle_rating_computed signal
+	var battle_rating: String = data.get("battle_rating", "")
+	var crit_count: int = data.get("crit_count", 0)
+	var max_damage_hit: int = data.get("max_damage_hit", 0)
+	var rounds_fought: int = data.get("rounds_fought", 0)
+	var hero_exp_map: Dictionary = data.get("hero_exp_gained", {})
 
 	if won:
 		title_label.text = "Victory!"
@@ -362,31 +371,137 @@ func show_combat_result(data: Dictionary) -> void:
 
 	# Battle location
 	if tile_name != "":
-		text += "[center][color=gray]%s[/color][/center]\n\n" % tile_name
+		text += "[center][color=gray]%s[/color][/center]\n" % tile_name
+
+	# v11.0: Battle rating badge (S/A/B/C/D)
+	if battle_rating != "":
+		var rating_color: String
+		match battle_rating:
+			"S": rating_color = "#ffd700"
+			"A": rating_color = "#66ee66"
+			"B": rating_color = "#66aaff"
+			"C": rating_color = "#cccccc"
+			_:   rating_color = "#aa6666"
+		text += "[center][color=%s][b]战斗评级: %s[/b][/color][/center]\n" % [rating_color, battle_rating]
 
 	# Power comparison
-	text += "[color=cyan]%s[/color] (Power: %d)  vs  [color=red]%s[/color] (Power: %d)\n\n" % [attacker, atk_power, defender, def_power]
+	text += "\n[color=cyan]%s[/color] (Power: %d)  vs  [color=red]%s[/color] (Power: %d)\n" % [attacker, atk_power, defender, def_power]
 
 	# Separator line
-	text += "[color=gray]━━━━━━━━━━━━━━━━━━━━━━━━[/color]\n\n"
+	text += "[color=gray]━━━━━━━━━━━━━━━━━━━━━━━━[/color]\n"
 
 	# Losses
-	text += "Our losses: [color=yellow]%d[/color] troops\n" % atk_losses
-	text += "Enemy losses: [color=yellow]%d[/color] troops\n" % def_losses
+	text += "将兵损失: [color=yellow]%d[/color]  |  敌军损失: [color=yellow]%d[/color]\n" % [atk_losses, def_losses]
+
+	# v11.0: Extended stats
+	if rounds_fought > 0:
+		text += "回合数: [color=silver]%d[/color]" % rounds_fought
+		if crit_count > 0:
+			text += "  暴击: [color=#ffd700]%d次[/color]" % crit_count
+		if max_damage_hit > 0:
+			text += "  最高单击: [color=#ff8844]%d[/color]" % max_damage_hit
+		text += "\n"
 
 	# Loot
 	if won:
-		text += "\n[color=gold]Loot:[/color]\n"
+		text += "\n[color=gold]战利战利品:[/color]\n"
 		if loot_gold > 0:
-			text += "  Gold +%d\n" % loot_gold
+			text += "  黄金 +%d\n" % loot_gold
 		if slaves_captured > 0:
-			text += "  Slaves +%d\n" % slaves_captured
+			text += "  奴隶 +%d\n" % slaves_captured
 		if hero_captured != "":
 			var hero_name: String = FactionData.HEROES.get(hero_captured, {}).get("name", hero_captured)
-			text += "  [color=orchid]Hero captured: %s[/color]\n" % hero_name
+			text += "  [color=orchid]俸虚英雄: %s[/color]\n" % hero_name
+
+	# v11.0: Hero EXP gained section
+	if not hero_exp_map.is_empty():
+		text += "\n[color=#88ccff]英雄经验:[/color]\n"
+		for hero_id in hero_exp_map.keys():
+			var exp_gained: int = hero_exp_map[hero_id]
+			var hero_name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
+			text += "  %s: [color=#aaddff]+%d EXP[/color]\n" % [hero_name, exp_gained]
 
 	result_label.text = text
 	_show_animated()
+	# v11.0: Animate hero EXP bars after popup appears
+	if not hero_exp_map.is_empty():
+		_animate_hero_exp_bars(hero_exp_map)
+
+
+## v11.0: Animate hero EXP progress bars in the result popup.
+func _animate_hero_exp_bars(hero_exp_map: Dictionary) -> void:
+	## Find or create a container for EXP bars inside the popup panel.
+	var vbox: VBoxContainer = popup_panel.find_child("VBoxContainer", false, false)
+	if vbox == null: return
+
+	# Remove old EXP bar container if present
+	var old_exp_container := vbox.find_child("HeroExpContainer", true, false)
+	if old_exp_container: old_exp_container.queue_free()
+
+	var exp_container := VBoxContainer.new()
+	exp_container.name = "HeroExpContainer"
+	exp_container.add_theme_constant_override("separation", 4)
+	# Insert before the dismiss button (second-to-last child)
+	var insert_idx: int = maxi(0, vbox.get_child_count() - 1)
+	vbox.add_child(exp_container)
+	vbox.move_child(exp_container, insert_idx)
+
+	for hero_id in hero_exp_map.keys():
+		var exp_gained: int = hero_exp_map[hero_id]
+		var hero_name: String = FactionData.HEROES.get(hero_id, {}).get("name", hero_id)
+		var current_exp: int = 0
+		var exp_to_next: int = 100
+		if HeroSystem and HeroSystem.has_method("get_hero_exp"):
+			current_exp = HeroSystem.get_hero_exp(hero_id)
+		if HeroSystem and HeroSystem.has_method("get_exp_to_next_level"):
+			exp_to_next = HeroSystem.get_exp_to_next_level(hero_id)
+		exp_to_next = maxi(1, exp_to_next)
+
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		exp_container.add_child(row)
+
+		var name_lbl := Label.new()
+		name_lbl.text = hero_name
+		name_lbl.add_theme_font_size_override("font_size", 12)
+		name_lbl.add_theme_color_override("font_color", Color(0.7, 0.85, 1.0))
+		name_lbl.custom_minimum_size = Vector2(90, 0)
+		row.add_child(name_lbl)
+
+		# EXP bar background
+		var bar_bg := ColorRect.new()
+		bar_bg.custom_minimum_size = Vector2(160, 10)
+		bar_bg.color = Color(0.15, 0.15, 0.2, 0.9)
+		row.add_child(bar_bg)
+
+		# EXP bar fill
+		var bar_fill := ColorRect.new()
+		bar_fill.color = Color(0.3, 0.7, 1.0)
+		bar_fill.size = Vector2(0, 10)
+		bar_fill.position = Vector2.ZERO
+		bar_bg.add_child(bar_fill)
+
+		# EXP gained label
+		var exp_lbl := Label.new()
+		exp_lbl.text = "+%d" % exp_gained
+		exp_lbl.add_theme_font_size_override("font_size", 11)
+		exp_lbl.add_theme_color_override("font_color", Color(0.5, 0.9, 1.0))
+		row.add_child(exp_lbl)
+
+		# Animate the bar fill
+		var before_ratio: float = float(current_exp) / float(exp_to_next)
+		var after_ratio: float = float(current_exp + exp_gained) / float(exp_to_next)
+		var bar_w: float = 160.0
+		var before_w: float = clampf(before_ratio, 0.0, 1.0) * bar_w
+		var after_w: float = clampf(after_ratio, 0.0, 1.0) * bar_w
+		bar_fill.size.x = before_w
+		var tw := create_tween()
+		tw.tween_interval(0.3)  # Brief delay after popup appears
+		tw.tween_property(bar_fill, "size:x", after_w, 0.6).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		# Level-up flash if bar overflows
+		if after_ratio >= 1.0:
+			tw.chain().tween_property(bar_fill, "color", Color(1.0, 0.9, 0.2), 0.15)
+			tw.tween_property(bar_fill, "color", Color(0.3, 0.7, 1.0), 0.3)
 
 
 func hide_popup() -> void:
@@ -562,6 +677,20 @@ func _populate_counter_preview(player_id: int) -> void:
 #                       CALLBACKS
 # ═══════════════════════════════════════════════════════════════
 
+# v11.0: Cache the latest battle rating stats so they can be merged into the result popup.
+var _pending_rating_stats: Dictionary = {}
+
+func _ready_connect_rating_signal() -> void:
+	## Connect battle_rating_computed signal to cache extended stats.
+	if EventBus.has_signal("battle_rating_computed"):
+		if not EventBus.battle_rating_computed.is_connected(_on_battle_rating_computed):
+			EventBus.battle_rating_computed.connect(_on_battle_rating_computed)
+
+func _on_battle_rating_computed(_player_id: int, rating: String, stats: Dictionary) -> void:
+	## Cache rating data to be merged into the next show_combat_result call.
+	_pending_rating_stats = stats.duplicate()
+	_pending_rating_stats["battle_rating"] = rating
+
 func _on_combat_result(attacker_id: int, defender_desc: String, won: bool) -> void:
 	# Only show popup for human player combats
 	if attacker_id != GameManager.get_human_player_id():
@@ -572,6 +701,13 @@ func _on_combat_result(attacker_id: int, defender_desc: String, won: bool) -> vo
 		"attacker_name": GameManager.get_player_by_id(attacker_id).get("name", "Player") if GameManager.get_player_by_id(attacker_id) else "Player",
 		"defender_name": defender_desc,
 	}
+	# v11.0: Merge cached rating stats into popup data
+	if not _pending_rating_stats.is_empty():
+		data["battle_rating"] = _pending_rating_stats.get("battle_rating", "")
+		data["crit_count"] = _pending_rating_stats.get("crit_count", 0)
+		data["max_damage_hit"] = _pending_rating_stats.get("max_damage_hit", 0)
+		data["rounds_fought"] = _pending_rating_stats.get("rounds", 0)
+		_pending_rating_stats.clear()
 	if _visible:
 		_queue.append(data)
 	else:

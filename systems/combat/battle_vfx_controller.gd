@@ -1,14 +1,23 @@
 ## battle_vfx_controller.gd — Central visual feedback controller for battle animations
+## v11.0 DEEP OPTIMIZATION:
+##   - Label/particle object pools (eliminates per-hit GC pressure)
+##   - Miss/dodge visual feedback ("MISS" floating label + dodge arc)
+##   - Enhanced crit: gold ring burst + screen-edge vignette flash
+##   - Adaptive playback pacing: speed_mult scales all timings uniformly
+##   - Combo kill streak banner (3+ kills/round triggers COMBO KILL!)
+##   - Buff/debuff icon symbols expanded with new spd/cleanse types
 ## Listens to EventBus signals (screen_shake, camera_zoom, combo_chain, skill_vfx,
 ## formation_detected) and drives all missing VFX systems:
 ##   1. Screen Shake (sine wave + decay)
 ##   2. Camera Zoom (smooth tween)
-##   3. Damage Numbers (color-coded floating labels)
+##   3. Damage Numbers (color-coded floating labels) [POOLED]
 ##   4. Combo Chain Playback (sequential hit visualization)
 ##   5. Round Transition Banner (slide-in "ROUND X")
 ##   6. Buff/Debuff Visual Indicators (icon overlays + pulse)
-##   7. Critical Hit Indicator (gold sparkle burst + hit-freeze)
+##   7. Critical Hit Indicator (gold sparkle burst + hit-freeze) [ENHANCED]
 ##   8. Formation Banner (formation name slide-in)
+##   9. Miss/Dodge Indicator [NEW]
+##  10. Combo Kill Streak Banner [NEW]
 class_name BattleVfxController
 extends Node
 
@@ -53,6 +62,24 @@ var _round_banner_label: Label = null
 # ── Buff/Debuff overlay tracking: side -> slot -> Array[Control] ──
 var _buff_overlays: Dictionary = {"attacker": {}, "defender": {}}
 
+# ── v11.0: Label Object Pool ──
+## Pre-allocated pool of Label nodes to avoid per-hit GC allocations.
+const LABEL_POOL_SIZE := 32
+var _label_pool: Array[Label] = []
+var _label_pool_idx: int = 0
+
+# ── v11.0: Particle pool ──
+const PARTICLE_POOL_SIZE := 64
+var _particle_pool: Array[ColorRect] = []
+var _particle_pool_idx: int = 0
+
+# ── v11.0: Combo kill streak tracking ──
+var _kill_streak_count: int = 0
+var _kill_streak_banner: Label = null
+
+# ── v11.0: Vignette flash overlay (reused) ──
+var _vignette_overlay: ColorRect = null
+
 # ── Card position callback (set by combat_view) ──
 var _get_card_center_fn: Callable = Callable()
 
@@ -74,6 +101,104 @@ func _ready() -> void:
 	_build_formation_banner()
 	_build_round_banner()
 	_build_combo_counter()
+	_build_kill_streak_banner()
+	_init_label_pool()
+	_init_particle_pool()
+	_build_vignette_overlay()
+
+
+# ── v11.0: Object Pool Initializers ──
+
+func _init_label_pool() -> void:
+	_label_pool.clear()
+	for _i in range(LABEL_POOL_SIZE):
+		var lbl := Label.new()
+		lbl.visible = false
+		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lbl.z_index = 100
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_label_pool.append(lbl)
+
+
+func _init_particle_pool() -> void:
+	_particle_pool.clear()
+	for _i in range(PARTICLE_POOL_SIZE):
+		var p := ColorRect.new()
+		p.visible = false
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		p.z_index = 80
+		_particle_pool.append(p)
+
+
+## Acquire a Label from the pool. Attaches to overlay_parent on first use.
+func _acquire_label() -> Label:
+	if overlay_parent == null:
+		return Label.new()  # Fallback: unmanaged
+	# Find next available (invisible) label in ring buffer
+	for _i in range(LABEL_POOL_SIZE):
+		_label_pool_idx = (_label_pool_idx + 1) % LABEL_POOL_SIZE
+		var lbl: Label = _label_pool[_label_pool_idx]
+		if not lbl.visible:
+			if lbl.get_parent() == null:
+				overlay_parent.add_child(lbl)
+			return lbl
+	# Pool exhausted: allocate a temporary one
+	var fallback := Label.new()
+	fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fallback.z_index = 100
+	fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	overlay_parent.add_child(fallback)
+	return fallback
+
+
+## Acquire a ColorRect particle from the pool.
+func _acquire_particle() -> ColorRect:
+	if overlay_parent == null:
+		return ColorRect.new()
+	for _i in range(PARTICLE_POOL_SIZE):
+		_particle_pool_idx = (_particle_pool_idx + 1) % PARTICLE_POOL_SIZE
+		var p: ColorRect = _particle_pool[_particle_pool_idx]
+		if not p.visible:
+			if p.get_parent() == null:
+				overlay_parent.add_child(p)
+			return p
+	# Fallback
+	var fallback := ColorRect.new()
+	fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fallback.z_index = 80
+	overlay_parent.add_child(fallback)
+	return fallback
+
+
+## Return a pooled label to the pool (hide it, reset transforms).
+func _release_label(lbl: Label) -> void:
+	if not is_instance_valid(lbl): return
+	lbl.visible = false
+	lbl.modulate = Color.WHITE
+	lbl.scale = Vector2.ONE
+	lbl.position = Vector2.ZERO
+
+
+## Return a pooled particle to the pool.
+func _release_particle(p: ColorRect) -> void:
+	if not is_instance_valid(p): return
+	p.visible = false
+	p.modulate = Color.WHITE
+	p.scale = Vector2.ONE
+	p.position = Vector2.ZERO
+
+
+func _build_vignette_overlay() -> void:
+	## Reusable full-screen vignette flash for crits.
+	_vignette_overlay = ColorRect.new()
+	_vignette_overlay.name = "VfxVignetteOverlay"
+	_vignette_overlay.anchor_right = 1.0
+	_vignette_overlay.anchor_bottom = 1.0
+	_vignette_overlay.color = Color(1.0, 0.8, 0.1, 0.0)
+	_vignette_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_vignette_overlay.z_index = 70
+	_vignette_overlay.visible = false
+	add_child(_vignette_overlay)
 
 
 func _process(delta: float) -> void:
@@ -93,6 +218,11 @@ func _connect_signals() -> void:
 	EventBus.sfx_round_start.connect(_on_round_start)
 	EventBus.sfx_buff_applied.connect(_on_buff_applied)
 	EventBus.sfx_debuff_applied.connect(_on_debuff_applied)
+	# v11.0: New signals
+	if EventBus.has_signal("sfx_attack_miss"):
+		EventBus.sfx_attack_miss.connect(_on_attack_miss)
+	if EventBus.has_signal("sfx_combo_kill_streak"):
+		EventBus.sfx_combo_kill_streak.connect(_on_combo_kill_streak)
 
 # ═══════════════════════════════════════════════════════════
 #                    1. SCREEN SHAKE SYSTEM
@@ -182,17 +312,20 @@ func start_camera_zoom(zoom_level: float, duration: float, focal_pos: Vector2 = 
 #                    3. DAMAGE NUMBER SYSTEM
 # ═══════════════════════════════════════════════════════════
 
-## Spawn a floating damage number at a screen position.
-## damage_type: "normal", "crit", "heal", "heavy", "block"
+## v11.0: Spawn a floating damage number using the Label object pool.
+## damage_type: "normal", "crit", "heal", "heavy", "block", "miss"
 func spawn_damage_number(pos: Vector2, amount: int, damage_type: String = "normal") -> void:
 	if overlay_parent == null:
 		return
 
-	var lbl := Label.new()
+	var lbl := _acquire_label()
 	var is_heal := damage_type == "heal"
 	var prefix := "+" if is_heal else "-"
-	var suffix := "!" if damage_type == "crit" else ""
-	lbl.text = "%s%d%s" % [prefix, amount, suffix]
+	var suffix := "!!" if damage_type == "crit" else ""
+	if damage_type == "miss":
+		lbl.text = "MISS"
+	else:
+		lbl.text = "%s%d%s" % [prefix, amount, suffix]
 
 	# Color coding
 	var color: Color
@@ -220,33 +353,39 @@ func spawn_damage_number(pos: Vector2, amount: int, damage_type: String = "norma
 	lbl.add_theme_constant_override("outline_size", 3)
 	lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	lbl.position = pos + Vector2(randf_range(-20, 20), -30)
-	lbl.z_index = 100
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.pivot_offset = Vector2(40, 12)
-	overlay_parent.add_child(lbl)
+	lbl.modulate.a = 1.0
+	lbl.scale = Vector2.ONE
+	lbl.visible = true
 
 	var spd := maxf(speed_mult, 0.1)
-	var rise := -55.0 if damage_type == "crit" else -40.0
+	var rise := -60.0 if damage_type == "crit" else (-20.0 if damage_type == "miss" else -40.0)
 	var life := 0.9 / spd
 
 	var tw := create_tween()
 	if damage_type == "crit":
-		# Crit: scale pulse 1.5x then settle
-		tw.tween_property(lbl, "scale", Vector2(1.5, 1.5), 0.06 / spd)
-		tw.tween_property(lbl, "scale", Vector2.ONE, 0.12 / spd) \
+		# Crit: scale pulse 1.8x then settle, gold vignette flash
+		tw.tween_property(lbl, "scale", Vector2(1.8, 1.8), 0.07 / spd)
+		tw.tween_property(lbl, "scale", Vector2.ONE, 0.14 / spd) \
 			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 		tw.set_parallel(true)
 		tw.tween_property(lbl, "position:y", lbl.position.y + rise, life) \
 			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 		tw.tween_property(lbl, "modulate:a", 0.0, life * 0.9).set_delay(0.15 / spd)
+		_flash_vignette(Color(1.0, 0.85, 0.1, 0.18), 0.12 / spd)
+	elif damage_type == "miss":
+		# Miss: drift sideways and fade quickly
+		tw.set_parallel(true)
+		tw.tween_property(lbl, "position", lbl.position + Vector2(randf_range(30, 60), -15), life * 0.7) \
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tw.tween_property(lbl, "modulate:a", 0.0, life * 0.6).set_delay(0.05 / spd)
 	else:
 		tw.set_parallel(true)
 		tw.tween_property(lbl, "position:y", lbl.position.y + rise, life) \
 			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 		tw.tween_property(lbl, "modulate:a", 0.0, life * 0.85).set_delay(0.1 / spd)
 	tw.chain().tween_callback(func():
-		if is_instance_valid(lbl): lbl.queue_free()
+		_release_label(lbl)
 	)
 
 # ═══════════════════════════════════════════════════════════
@@ -386,34 +525,46 @@ func _spawn_hit_flash(color: Color) -> void:
 	)
 
 
+## v11.0: Reusable vignette flash for crits (no node allocation).
+func _flash_vignette(color: Color, duration: float) -> void:
+	if _vignette_overlay == null: return
+	_vignette_overlay.color = Color(color.r, color.g, color.b, 0.0)
+	_vignette_overlay.visible = true
+	var tw := create_tween()
+	tw.tween_property(_vignette_overlay, "color:a", color.a, duration * 0.3)
+	tw.tween_property(_vignette_overlay, "color:a", 0.0, duration * 0.7)
+	tw.tween_callback(func(): if is_instance_valid(_vignette_overlay): _vignette_overlay.visible = false)
+
+
+## v11.0: Pooled combo particles.
 func _spawn_combo_particles(color: Color, count: int) -> void:
 	if overlay_parent == null:
 		return
 	var origin := Vector2(CENTER_X, SCREEN_H * 0.4)
-	for i in range(count):
-		var p := ColorRect.new()
+	for _i in range(count):
+		var p := _acquire_particle()
 		var sz := randf_range(3.0, 6.0)
 		p.size = Vector2(sz, sz)
 		p.color = color
 		p.pivot_offset = Vector2(sz / 2.0, sz / 2.0)
-		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		p.z_index = 80
 		p.position = origin + Vector2(randf_range(-30, 30), randf_range(-20, 20))
-		overlay_parent.add_child(p)
+		p.modulate.a = 1.0
+		p.scale = Vector2.ONE
+		p.visible = true
 
 		var angle := randf() * TAU
 		var dist := randf_range(40.0, 100.0)
-		var target := p.position + Vector2(cos(angle), sin(angle)) * dist
+		var dest := p.position + Vector2(cos(angle), sin(angle)) * dist
 		var life := randf_range(0.3, 0.6) / maxf(speed_mult, 0.1)
 
 		var ptw := create_tween()
 		ptw.set_parallel(true)
-		ptw.tween_property(p, "position", target, life) \
+		ptw.tween_property(p, "position", dest, life) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		ptw.tween_property(p, "modulate:a", 0.0, life * 0.8).set_delay(life * 0.2)
 		ptw.tween_property(p, "scale", Vector2.ZERO, life)
 		ptw.chain().tween_callback(func():
-			if is_instance_valid(p): p.queue_free()
+			_release_particle(p)
 		)
 
 # ═══════════════════════════════════════════════════════════
@@ -530,15 +681,18 @@ func _show_buff_indicator(side: String, slot: int, effect_type: String, is_buff:
 
 func _get_buff_symbol(effect_type: String) -> String:
 	match effect_type:
-		"atk_up", "attack": return "A"
-		"def_up", "defense": return "D"
+		"atk_up", "attack", "atk": return "A"
+		"def_up", "defense", "def": return "D"
 		"morale_up", "morale": return "M"
 		"heal", "regen": return "H"
 		"poison": return "P"
 		"burn": return "F"
 		"stun": return "S"
-		"slow": return "W"
-		"shield": return "D"
+		"slow", "spd_down", "spd": return "W"
+		"shield", "barrier": return "G"
+		"cleanse": return "C"
+		"atk_down": return "a"
+		"def_down": return "d"
 		_: return "+"
 
 # ═══════════════════════════════════════════════════════════
@@ -550,7 +704,7 @@ func show_crit_indicator(pos: Vector2) -> void:
 	if overlay_parent == null:
 		return
 
-	# Gold sparkle burst
+	# v11.0: Gold sparkle burst using particle pool + gold ring expansion
 	var sparkle_colors := [
 		Color(1.0, 0.9, 0.2),
 		Color(1.0, 1.0, 0.5),
@@ -558,35 +712,57 @@ func show_crit_indicator(pos: Vector2) -> void:
 		Color(1.0, 0.95, 0.7),
 	]
 
-	for i in range(10):
-		var p := ColorRect.new()
+	for i in range(12):
+		var p := _acquire_particle()
 		var sz := randf_range(2.0, 5.0)
 		p.size = Vector2(sz, sz)
 		p.color = sparkle_colors[i % sparkle_colors.size()]
 		p.pivot_offset = Vector2(sz / 2.0, sz / 2.0)
-		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		p.z_index = 95
 		p.position = pos + Vector2(randf_range(-10, 10), randf_range(-10, 10))
-		overlay_parent.add_child(p)
+		p.modulate.a = 1.0
+		p.scale = Vector2.ONE
+		p.visible = true
 
 		var angle := randf() * TAU
-		var dist := randf_range(25.0, 65.0)
-		var target := p.position + Vector2(cos(angle), sin(angle)) * dist
+		var dist := randf_range(25.0, 75.0)
+		var dest := p.position + Vector2(cos(angle), sin(angle)) * dist
 		var life := randf_range(0.25, 0.5) / maxf(speed_mult, 0.1)
 
 		var ptw := create_tween()
 		ptw.set_parallel(true)
-		ptw.tween_property(p, "position", target, life) \
+		ptw.tween_property(p, "position", dest, life) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		ptw.tween_property(p, "modulate:a", 0.0, life * 0.7).set_delay(life * 0.3)
 		ptw.tween_property(p, "scale", Vector2(0.2, 0.2), life)
 		ptw.chain().tween_callback(func():
-			if is_instance_valid(p): p.queue_free()
+			_release_particle(p)
 		)
 
+	# v11.0: Gold ring expansion (reuses a particle as a ring outline)
+	_spawn_crit_ring(pos)
+
 	# Hit-freeze: brief 0.05s engine pause effect via tween delay
-	# We simulate this by briefly pausing the tree process
 	_do_hit_freeze(0.05)
+
+
+## v11.0: Expanding gold ring for crit impact.
+func _spawn_crit_ring(pos: Vector2) -> void:
+	if overlay_parent == null: return
+	var ring := ColorRect.new()
+	ring.size = Vector2(8, 8)
+	ring.color = Color(1.0, 0.9, 0.2, 0.9)
+	ring.pivot_offset = Vector2(4, 4)
+	ring.position = pos - Vector2(4, 4)
+	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ring.z_index = 96
+	overlay_parent.add_child(ring)
+	var spd := maxf(speed_mult, 0.1)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(ring, "scale", Vector2(8, 8), 0.35 / spd).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(ring, "modulate:a", 0.0, 0.35 / spd).set_delay(0.05 / spd)
+	tw.chain().tween_callback(func(): if is_instance_valid(ring): ring.queue_free())
 
 
 ## Brief hit-freeze (pause) to emphasize impact. Resumes automatically.
@@ -651,6 +827,7 @@ func show_formation_banner(side: String, formation_name: String) -> void:
 
 
 ## Handler for skill_vfx_requested — spawn particles at target with skill color.
+## v11.0: Pooled skill VFX particles.
 func _on_skill_vfx_requested(skill_id: String, _vfx_type: String, _source_pos: Vector2, target_pos: Vector2) -> void:
 	if overlay_parent == null:
 		return
@@ -658,31 +835,32 @@ func _on_skill_vfx_requested(skill_id: String, _vfx_type: String, _source_pos: V
 	var cfg: Dictionary = SkillAnimationData.get_skill_vfx(skill_id)
 	var particle_count: int = cfg.get("particle_count", 6)
 
-	# Spawn particles at target position
-	for i in range(particle_count):
-		var p := ColorRect.new()
+	# Spawn pooled particles at target position
+	for _i in range(particle_count):
+		var p := _acquire_particle()
 		var sz := randf_range(2.0, 6.0)
 		p.size = Vector2(sz, sz)
 		p.color = color
 		p.pivot_offset = Vector2(sz / 2.0, sz / 2.0)
-		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		p.z_index = 80
 		p.position = target_pos + Vector2(randf_range(-20, 20), randf_range(-15, 15))
-		overlay_parent.add_child(p)
+		p.modulate.a = 1.0
+		p.scale = Vector2.ONE
+		p.visible = true
 
 		var angle := randf() * TAU
 		var dist := randf_range(30.0, 80.0)
-		var target := p.position + Vector2(cos(angle), sin(angle)) * dist
+		var dest := p.position + Vector2(cos(angle), sin(angle)) * dist
 		var life := randf_range(0.3, 0.6) / maxf(speed_mult, 0.1)
 
 		var ptw := create_tween()
 		ptw.set_parallel(true)
-		ptw.tween_property(p, "position", target, life) \
+		ptw.tween_property(p, "position", dest, life) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		ptw.tween_property(p, "modulate:a", 0.0, life * 0.7).set_delay(life * 0.3)
 		ptw.tween_property(p, "scale", Vector2.ZERO, life)
 		ptw.chain().tween_callback(func():
-			if is_instance_valid(p): p.queue_free()
+			_release_particle(p)
 		)
 
 	# Color flash for AoE skills
@@ -780,6 +958,7 @@ func cleanup() -> void:
 	_shake_time_remaining = 0.0
 	_shake_intensity = 0.0
 	_combo_chain_active = false
+	_kill_streak_count = 0
 	if _zoom_tween and _zoom_tween.is_valid():
 		_zoom_tween.kill()
 	_is_zooming = false
@@ -790,3 +969,70 @@ func cleanup() -> void:
 				if is_instance_valid(ctrl):
 					ctrl.queue_free()
 		_buff_overlays[side] = {}
+	# v11.0: Return all pooled nodes to hidden state
+	for lbl in _label_pool:
+		if is_instance_valid(lbl): _release_label(lbl)
+	for p in _particle_pool:
+		if is_instance_valid(p): _release_particle(p)
+
+
+# ═══════════════════════════════════════════════════════════
+#              9. MISS / DODGE INDICATOR (v11.0)
+# ═══════════════════════════════════════════════════════════
+
+## Show a "MISS" floating label at the target's screen position.
+func _on_attack_miss(side: String, slot: int) -> void:
+	if not _get_card_center_fn.is_valid(): return
+	var pos: Vector2 = _get_card_center_fn.call(side, slot)
+	if pos == Vector2.ZERO: return
+	spawn_damage_number(pos, 0, "miss")
+
+
+# ═══════════════════════════════════════════════════════════
+#             10. COMBO KILL STREAK BANNER (v11.0)
+# ═══════════════════════════════════════════════════════════
+
+func _build_kill_streak_banner() -> void:
+	_kill_streak_banner = Label.new()
+	_kill_streak_banner.name = "VfxKillStreakBanner"
+	_kill_streak_banner.text = "COMBO KILL!"
+	_kill_streak_banner.position = Vector2(CENTER_X - 100, SCREEN_H * 0.15)
+	_kill_streak_banner.size = Vector2(200, 44)
+	_kill_streak_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_kill_streak_banner.add_theme_font_size_override("font_size", 30)
+	_kill_streak_banner.add_theme_color_override("font_color", Color(1.0, 0.4, 0.1))
+	_kill_streak_banner.add_theme_constant_override("outline_size", 4)
+	_kill_streak_banner.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	_kill_streak_banner.z_index = 93
+	_kill_streak_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_kill_streak_banner.visible = false
+	_kill_streak_banner.pivot_offset = Vector2(100, 22)
+	add_child(_kill_streak_banner)
+
+
+## Triggered when attacker kills >= COMBO_KILL_THRESHOLD units in one round.
+func _on_combo_kill_streak(kill_count: int) -> void:
+	_kill_streak_count = kill_count
+	_show_kill_streak_banner(kill_count)
+
+
+func _show_kill_streak_banner(kill_count: int) -> void:
+	if _kill_streak_banner == null: return
+	_kill_streak_banner.text = "%d COMBO KILL!" % kill_count if kill_count > 2 else "COMBO KILL!"
+	_kill_streak_banner.visible = true
+	_kill_streak_banner.modulate.a = 0.0
+	_kill_streak_banner.scale = Vector2(0.5, 0.5)
+
+	var spd := maxf(speed_mult, 0.1)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(_kill_streak_banner, "modulate:a", 1.0, 0.1 / spd)
+	tw.tween_property(_kill_streak_banner, "scale", Vector2(1.2, 1.2), 0.12 / spd) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.chain().tween_property(_kill_streak_banner, "scale", Vector2.ONE, 0.08 / spd)
+	tw.tween_interval(1.0 / spd)
+	tw.tween_property(_kill_streak_banner, "modulate:a", 0.0, 0.3 / spd)
+	tw.tween_callback(func():
+		if is_instance_valid(_kill_streak_banner): _kill_streak_banner.visible = false
+	)
+	start_screen_shake(SHAKE_MEDIUM, 0.25)

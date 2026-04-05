@@ -358,6 +358,14 @@ signal screen_shake_requested(intensity: float, duration: float)
 signal camera_zoom_requested(zoom_level: float, duration: float, target_pos: Vector2)
 signal combo_chain_anim_requested(combo_id: String, hit_sequence: Array)
 
+# ── v11.0: Extended Combat VFX Signals ──
+## Emitted when an attack misses; triggers MISS floating label on target.
+signal sfx_attack_miss(side: String, slot: int)
+## Emitted when attacker kills >= 2 units in one round (combo kill streak).
+signal sfx_combo_kill_streak(kill_count: int)
+## Emitted after battle resolution with S/A/B/C rating and detailed stats.
+signal battle_rating_computed(player_id: int, rating: String, stats: Dictionary)
+
 # ── Reputation & Diplomacy Depth (v4.3) ──
 signal reputation_threshold_crossed(faction_key: String, old_level: String, new_level: String)
 signal treaty_break_cascade(total_breaks: int)

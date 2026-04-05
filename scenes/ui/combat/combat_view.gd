@@ -131,6 +131,12 @@ var _total_def_damage: int = 0
 var _kills_atk: int = 0
 var _kills_def: int = 0
 var _is_finishing: bool = false
+# v11.0: Extended battle statistics for rating system
+var _crit_count: int = 0          ## Total critical hits landed by attacker
+var _max_damage_hit: int = 0      ## Highest single-hit damage in battle
+var _miss_count: int = 0          ## Total misses by attacker
+var _round_kills: Dictionary = {} ## round_num -> kill count (for combo kill detection)
+var _hero_exp_gained: Dictionary = {} ## hero_id -> exp gained this battle
 var _playback_generation: int = 0
 var _is_player_battle: bool = false
 var _waiting_for_command: bool = false
@@ -906,6 +912,12 @@ func show_battle(battle_result: Dictionary) -> void:
 	_kills_atk = 0
 	_kills_def = 0
 	_is_finishing = false
+	# v11.0: Reset extended stats
+	_crit_count = 0
+	_max_damage_hit = 0
+	_miss_count = 0
+	_round_kills.clear()
+	_hero_exp_gained.clear()
 	_is_player_battle = battle_result.get("player_controlled", false)
 	_waiting_for_command = false
 	if _is_player_battle:
@@ -1269,6 +1281,15 @@ func _apply_death_overlay(side: String, slot_idx: int) -> void:
 		_kills_def += 1
 	else:
 		_kills_atk += 1
+
+	# v11.0: Track per-round kills for combo kill streak detection
+	var rk_round := _current_round
+	if not _round_kills.has(rk_round):
+		_round_kills[rk_round] = 0
+	_round_kills[rk_round] += 1
+	var rk_count: int = _round_kills[rk_round]
+	if rk_count >= 2 and EventBus.has_signal("sfx_combo_kill_streak"):
+		EventBus.sfx_combo_kill_streak.emit(rk_count)
 
 func _get_card_center(side: String, slot_idx: int) -> Vector2:
 	var cards: Dictionary = attacker_cards if side == "attacker" else defender_cards
@@ -2517,11 +2538,16 @@ func _apply_log_entry(entry: Dictionary) -> void:
 			_show_round_splash(round_num)
 
 		"attack":
-			var is_crit := damage > max_s * 0.4
+			# v11.0: Read is_crit from log entry (set by CombatSystem._calculate_damage_ex)
+			var is_crit: bool = entry.get("is_crit", false)
+			# Fallback: infer crit from damage ratio if not explicitly set
+			if not entry.has("is_crit"):
+				is_crit = damage > max_s * 0.4
 			var is_flanking: bool = entry.get("flanking", false)
-			var dmg_color := "#fa4" if is_crit else "#f88"
+			var dmg_color := "#ffd700" if is_crit else "#f88"
+			var crit_tag := " [color=#ffd700][暴击!][/color]" if is_crit else ""
 			var flank_tag := " [color=#ffa040][侧击][/color]" if is_flanking else ""
-			log_line = "[color=#dda]%s[/color]%s → %s [color=%s](-%d troops)[/color]" % [desc, flank_tag, target_name, dmg_color, damage]
+			log_line = "[color=#dda]%s[/color]%s%s → %s [color=%s](-%d troops)[/color]" % [desc, crit_tag, flank_tag, target_name, dmg_color, damage]
 			if target_slot >= 0:
 				_update_card_soldiers(target_side, target_slot, remaining, max_s)
 				var entry_morale: int = entry.get("target_morale", -1)
@@ -2535,9 +2561,17 @@ func _apply_log_entry(entry: Dictionary) -> void:
 				# Chibi: attacker shows attack pose, target shows hurt pose
 				_set_chibi_state(side, slot_idx, "attack", 0.6)
 				_set_chibi_state(target_side, target_slot, "hurt", 0.5)
-				# Task 2: Camera zoom on critical hits
+				# v11.0: Track extended stats
+				if side == "attacker":
+					if damage > _max_damage_hit:
+						_max_damage_hit = damage
+					if is_crit:
+						_crit_count += 1
+				# v11.0: Camera zoom on critical hits (enhanced)
 				if is_crit:
 					_camera_zoom_crit(target_side, target_slot)
+					# Emit crit SFX for audio manager
+					EventBus.sfx_attack.emit(entry.get("unit", ""), true)
 				# Task 6: Track debuff stacks from damage-over-time attacks
 				var dot_type: String = entry.get("dot_type", "")
 				if dot_type != "":
@@ -2832,6 +2866,20 @@ func _apply_log_entry(entry: Dictionary) -> void:
 						if regen_remaining >= 0:
 							_update_card_soldiers(side, slot_idx, regen_remaining, regen_max)
 
+		# v11.0: Miss/dodge action — show MISS floating label and dodge arc
+		"miss":
+			var miss_target_side: String = entry.get("target_side", "")
+			var miss_target_slot: int = entry.get("target_slot", -1)
+			log_line = "[color=#aaa][Miss][/color] %s" % desc
+			if miss_target_slot >= 0 and miss_target_side != "" and not _is_finishing:
+				if _vfx_controller and _vfx_controller.has_method("_on_attack_miss"):
+					_vfx_controller._on_attack_miss(miss_target_side, miss_target_slot)
+				# Chibi: target shows dodge/idle (not hurt)
+				_set_chibi_state(miss_target_side, miss_target_slot, "idle", 0.0)
+				# v11.0: Track miss count for attacker side
+				if side == "attacker":
+					_miss_count += 1
+
 		_:
 			log_line = desc if desc != "" else str(entry)
 
@@ -2934,7 +2982,7 @@ func _finish_playback() -> void:
 		result_label.text = "BATTLE END"
 		result_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
 
-	# Stats summary with kill/survivor counts
+	# v11.0: Extended stats summary with S/A/B/C rating
 	var atk_survivors := 0
 	var def_survivors := 0
 	var atk_final_arr: Array = _battle_state.get("attacker_units_final", [])
@@ -2945,11 +2993,48 @@ func _finish_playback() -> void:
 	for u in def_final_arr:
 		if u != null and u.get("soldiers", 0) > 0:
 			def_survivors += 1
-	result_stats.text = "ATK Damage: %d  |  DEF Damage: %d  |  Rounds: %d\nKills: ATK %d / DEF %d  |  Alive: ATK %d / DEF %d" % [
-		_total_atk_damage, _total_def_damage, _current_round,
-		_kills_atk, _kills_def, atk_survivors, def_survivors
+
+	# Compute battle rating
+	var rating_data := _compute_battle_rating(winner, atk_survivors, def_survivors)
+	var rating: String = rating_data["rating"]
+	var rating_color: Color = rating_data["color"]
+
+	# Build rich stats text
+	var total_atk_units: int = atk_final_arr.size()
+	var crit_rate_pct: int = 0
+	if _kills_def + _crit_count > 0:
+		var total_attacks := _kills_def + max(1, _kills_def)
+		crit_rate_pct = int(float(_crit_count) / max(1, total_attacks) * 100)
+	result_stats.text = (
+		"[color=#ffd700]战斗评级: %s[/color]  |  回合: %d/%d  |  最高伤害: %d\n" +
+		"ATK 伤害: %d  |  DEF 伤害: %d  |  暴击: %d次\n" +
+		"死亡: ATK %d / DEF %d  |  存活: ATK %d/%d  DEF %d/%d"
+	) % [
+		rating, _current_round, MAX_ROUNDS, _max_damage_hit,
+		_total_atk_damage, _total_def_damage, _crit_count,
+		_kills_atk, _kills_def, atk_survivors, total_atk_units, def_survivors, def_final_arr.size()
 	]
+
+	# Emit battle_rating_computed for external systems (e.g., achievement tracking)
+	if EventBus.has_signal("battle_rating_computed"):
+		var attacker_id: int = _battle_state.get("attacker_id", 0)
+		var stats_dict := {
+			"rating": rating,
+			"total_atk_damage": _total_atk_damage,
+			"total_def_damage": _total_def_damage,
+			"kills_atk": _kills_atk,
+			"kills_def": _kills_def,
+			"crit_count": _crit_count,
+			"max_damage_hit": _max_damage_hit,
+			"rounds": _current_round,
+			"atk_survivors": atk_survivors,
+			"def_survivors": def_survivors,
+			"winner": winner,
+		}
+		EventBus.battle_rating_computed.emit(attacker_id, rating, stats_dict)
+
 	_show_loot_results()
+	_show_rating_badge(rating, rating_color)
 
 	# Animated reveal
 	var tw := create_tween()
@@ -3048,6 +3133,104 @@ func _build_loot_item(item: Dictionary) -> HBoxContainer:
 			lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.7))
 	hb.add_child(lbl)
 	return hb
+
+# ═══════════════════════════════════════════════════════════
+#        v11.0: BATTLE RATING & STATISTICS HELPERS
+# ═══════════════════════════════════════════════════════════
+
+## Compute S/A/B/C/D battle rating based on outcome, survivors, crits, and rounds.
+## Returns {rating: String, color: Color, score: int}
+func _compute_battle_rating(winner: String, atk_survivors: int, def_survivors: int) -> Dictionary:
+	var score := 0
+	var total_atk: int = _battle_state.get("attacker_units_final", []).size()
+	var total_def: int = _battle_state.get("defender_units_final", []).size()
+
+	# Win/loss base score
+	if winner == "attacker":
+		score += 40
+	elif winner == "draw":
+		score += 15
+	# else loss: 0
+
+	# Survivor efficiency: percentage of attacker units that survived
+	if total_atk > 0:
+		var survival_pct := float(atk_survivors) / float(total_atk)
+		score += int(survival_pct * 25)  # up to 25 pts
+
+	# Kills efficiency: how many enemies were eliminated
+	if total_def > 0:
+		var kill_pct := float(_kills_def) / float(total_def)
+		score += int(kill_pct * 20)  # up to 20 pts
+
+	# Speed bonus: fewer rounds = better
+	var round_score := max(0, MAX_ROUNDS - _current_round)
+	score += round_score  # up to 8 pts
+
+	# Crit bonus: crits show skill mastery
+	score += mini(_crit_count * 2, 10)  # up to 10 pts
+
+	# Determine rating tier
+	var rating: String
+	var color: Color
+	if score >= 80:
+		rating = "S"
+		color = Color(1.0, 0.9, 0.1)  # Gold
+	elif score >= 60:
+		rating = "A"
+		color = Color(0.4, 0.9, 0.4)  # Green
+	elif score >= 40:
+		rating = "B"
+		color = Color(0.4, 0.7, 1.0)  # Blue
+	elif score >= 20:
+		rating = "C"
+		color = Color(0.8, 0.8, 0.8)  # Silver
+	else:
+		rating = "D"
+		color = Color(0.7, 0.4, 0.4)  # Red-grey
+
+	return {"rating": rating, "color": color, "score": score}
+
+
+## Display an animated S/A/B/C rating badge on the result panel.
+func _show_rating_badge(rating: String, color: Color) -> void:
+	if not is_instance_valid(result_panel):
+		return
+	# Remove any existing badge
+	var old_badge := result_panel.find_child("RatingBadge", true, false)
+	if old_badge:
+		old_badge.queue_free()
+
+	var badge := Label.new()
+	badge.name = "RatingBadge"
+	badge.text = rating
+	badge.add_theme_font_size_override("font_size", 64)
+	badge.add_theme_color_override("font_color", color)
+	badge.add_theme_constant_override("outline_size", 6)
+	badge.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	badge.z_index = 90
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Position top-right of result panel
+	badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	badge.offset_left = -90
+	badge.offset_right = -10
+	badge.offset_top = 8
+	badge.offset_bottom = 80
+	badge.pivot_offset = Vector2(40, 36)
+	badge.modulate.a = 0.0
+	badge.scale = Vector2(2.0, 2.0)
+	result_panel.add_child(badge)
+
+	# Animate: zoom-in + fade-in
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(badge, "scale", Vector2(1.0, 1.0), 0.4).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tw.tween_property(badge, "modulate:a", 1.0, 0.3)
+	# Subtle pulse after landing
+	tw.chain().tween_property(badge, "scale", Vector2(1.1, 1.1), 0.1)
+	tw.tween_property(badge, "scale", Vector2(1.0, 1.0), 0.15).set_ease(Tween.EASE_OUT)
+
 
 # ═══════════════════════════════════════════════════════════
 #                   CHIBI VIDEO HELPERS
