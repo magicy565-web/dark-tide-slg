@@ -158,6 +158,8 @@ func hide_panel() -> void:
 func _refresh() -> void:
 	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
 		return
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	var data = GameManager.cave_system.get_cave_data(_tile_idx)
 	var level_data = GameManager.cave_system.CAVE_LEVELS.get(data["level"], GameManager.cave_system.CAVE_LEVELS[1])
@@ -184,6 +186,8 @@ func _build_overview() -> void:
 	if _tile_idx < 0:
 		return
 	var data = GameManager.cave_system.get_cave_data(_tile_idx)
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	var level_data = GameManager.cave_system.CAVE_LEVELS.get(data["level"], GameManager.cave_system.CAVE_LEVELS[1])
 
@@ -257,6 +261,8 @@ func _build_explore() -> void:
 # ═══════════════════════════════════════════════════════════════
 func _build_combat() -> void:
 	var data = GameManager.cave_system.get_cave_data(_tile_idx)
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	_content_vbox.add_child(_make_section_title("清剿怪物"))
 

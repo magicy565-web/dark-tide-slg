@@ -71,7 +71,7 @@ func _ready() -> void:
 	_connect_signals()
 	hide_panel()
 
-func _get_treaty_system() -> Node:
+func _get_treaty_system() -> Variant:
 	if Engine.has_singleton("TreatySystem"):
 		return Engine.get_singleton("TreatySystem")
 	var ts = get_node_or_null("/root/TreatySystem")

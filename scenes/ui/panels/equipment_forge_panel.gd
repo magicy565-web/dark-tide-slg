@@ -734,7 +734,7 @@ func _build_upgrade_section(forge: Node, pid: int) -> void:
 #                        HELPERS
 # ═══════════════════════════════════════════════════════════════
 
-func _get_player_id() -> int:
+func _get_player_id() -> Variant:
 	var gm = get_node_or_null("/root/GameManager")
 	if gm and gm.has_method("get_human_player_id"):
 		return gm.get_human_player_id()

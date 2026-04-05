@@ -1447,7 +1447,7 @@ func _has_autoload(aname: String) -> bool:
 	var tree := Engine.get_main_loop()
 	return tree is SceneTree and (tree as SceneTree).root.has_node(aname)
 
-func _get_autoload(aname: String) -> Node:
+func _get_autoload(aname: String) -> Variant:
 	var tree := Engine.get_main_loop()
 	if tree is SceneTree and (tree as SceneTree).root.has_node(aname):
 		return (tree as SceneTree).root.get_node(aname)

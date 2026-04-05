@@ -95,6 +95,8 @@ func _refresh() -> void:
 	
 	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
 		return
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	header_label.text = "治理 — %s" % tile.get("name", "据点")
 	

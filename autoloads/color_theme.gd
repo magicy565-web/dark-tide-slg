@@ -163,7 +163,7 @@ func _load_btn_textures() -> void:
 	_loaded = true
 
 
-func _safe_tex(path: String) -> Texture2D:
+func _safe_tex(path: String) -> Variant:
 	if ResourceLoader.exists(path):
 		return load(path)
 	return null

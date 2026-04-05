@@ -105,7 +105,7 @@ func _resolve_espionage_system() -> void:
 	if Engine.has_singleton("EspionageSystem"):
 		_espionage_system = Engine.get_singleton("EspionageSystem")
 	elif has_node("/root/EspionageSystem"):
-		_espionage_system = get_node("/root/EspionageSystem")
+		_espionage_system = get_node_or_null("/root/EspionageSystem")
 	elif has_node("/root/GameManager"):
 		var _gm := get_node_or_null("/root/GameManager")
 		if _gm and _gm.has_node("EspionageSystem"):
@@ -1123,6 +1123,8 @@ func _get_tile_data(tile_idx: int) -> Dictionary:
 		return {}
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return {}
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
 	if tile == null:
 		return {}

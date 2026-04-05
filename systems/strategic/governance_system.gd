@@ -187,6 +187,8 @@ func _check_and_spend_cost(cost: Dictionary) -> bool:
 	return true
 
 func change_order(tile_idx: int, amount: float) -> void:
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
 	var current_order = tile.get("public_order", 0.8)
 	var new_order = clampf(current_order + (amount / 100.0), 0.0, 1.0)

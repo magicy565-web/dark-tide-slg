@@ -323,6 +323,8 @@ func _get_tile(tile_index: int) -> Dictionary:
 		return {}
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return {}
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return {}
 	return GameManager.tiles[tile_index]
 
 # ═══════════════════════════════════════════════════════════════

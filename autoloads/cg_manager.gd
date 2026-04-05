@@ -71,7 +71,7 @@ func get_head_path(hero_id: String, expression: String = "") -> String:
 
 
 ## Try to load a head texture, falling back to base head if expression variant doesn't exist.
-func load_head_texture(hero_id: String, expression: String = "") -> Texture2D:
+func load_head_texture(hero_id: String, expression: String = "") -> Variant:
 	var path: String = get_head_path(hero_id, expression)
 	if ResourceLoader.exists(path):
 		return load(path) as Texture2D
@@ -84,7 +84,7 @@ func load_head_texture(hero_id: String, expression: String = "") -> Texture2D:
 
 
 ## Try to load an event CG texture. Returns null if not found.
-func load_cg_texture(hero_id: String, cg_id: String) -> Texture2D:
+func load_cg_texture(hero_id: String, cg_id: String) -> Variant:
 	var path: String = get_cg_path(hero_id, cg_id)
 	if ResourceLoader.exists(path):
 		return load(path) as Texture2D

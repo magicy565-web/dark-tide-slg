@@ -288,6 +288,8 @@ func _find_best_attack_target(attackable: Array, player_id: int) -> int:
 	for tile_idx in attackable:
 		if tile_idx >= GameManager.tiles.size():
 			continue
+		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[tile_idx]
 		var score: float = _score_attack_target(tile, player_id)
 		if score > best_score:
@@ -349,6 +351,8 @@ func _advance_army(player_id: int, army: Dictionary) -> void:
 func _is_important_tile(tile_index: int) -> bool:
 	if tile_index >= GameManager.tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	return tile.get("type", -1) in [
 		GameManager.TileType.CORE_FORTRESS,

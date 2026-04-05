@@ -957,7 +957,7 @@ func _on_dim_bg_input(event: InputEvent) -> void:
 #                       HELPERS
 # ═══════════════════════════════════════════════════════════════
 
-func _get_player_id() -> int:
+func _get_player_id() -> Variant:
 	var gm = _get_node_safe("/root/GameManager")
 	if gm and gm.has_method("get_human_player_id"):
 		return gm.get_human_player_id()

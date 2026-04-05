@@ -326,6 +326,8 @@ func _find_weakest_player_border_tile() -> int:
 		for nb_idx in GameManager.adjacency[tile_idx]:
 			if nb_idx >= GameManager.tiles.size():
 				continue
+			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+				return
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb.get("light_faction", -1) == HUMAN_FACTION_ID and nb.get("owner_id", -1) < 0:
 				candidates.append(tile)
@@ -341,12 +343,16 @@ func _launch_assault(target_tile_idx: int, power: int) -> void:
 	var source_idx: int = _find_nearest_human_tile_to(target_tile_idx)
 	if source_idx < 0:
 		return
+	if source_idx < 0 or source_idx >= GameManager.tiles.size():
+		return
 	var source: Dictionary = GameManager.tiles[source_idx]
 	var available: int = maxi(0, source.get("garrison", 0) - 5)
 	var actual_power: int = mini(power, available)
 	if actual_power <= 0:
 		return
 	source["garrison"] -= actual_power
+	if target_tile_idx < 0 or target_tile_idx >= GameManager.tiles.size():
+		return
 	var target: Dictionary = GameManager.tiles[target_tile_idx]
 	# 削减玩家守军（模拟进攻伤害，1:1 交换）
 	var damage: int = actual_power

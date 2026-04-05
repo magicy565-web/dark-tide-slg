@@ -39,6 +39,8 @@ func reset() -> void:
 func is_tile_fortified(tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	if tile.get("type", -1) == GameManager.TileType.CORE_FORTRESS:
 		return true
@@ -52,6 +54,8 @@ func start_siege(attacker_army_id: int, tile_index: int) -> Dictionary:
 	if not GameManager.armies.has(attacker_army_id):
 		return {}
 	var army: Dictionary = GameManager.armies[attacker_army_id]
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var attacker_pid: int = army["player_id"]
 	var defender_pid: int = tile.get("owner_id", -1)
@@ -111,6 +115,8 @@ func process_sieges(player_id: int) -> Array:
 
 		var army: Dictionary = GameManager.armies[siege["attacker_army_id"]]
 		var tile_index: int = siege["tile_index"]
+		if tile_index < 0 or tile_index >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[tile_index]
 
 		# 1. Attacker deals wall damage

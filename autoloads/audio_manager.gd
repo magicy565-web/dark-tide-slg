@@ -455,7 +455,7 @@ func play_ui_cancel() -> void:
 
 
 ## Get a procedural fallback sound for common SFX when .ogg files are missing.
-func _get_procedural_fallback(sfx_id: int) -> AudioStream:
+func _get_procedural_fallback(sfx_id: int) -> Variant:
 	match sfx_id:
 		SFX.UI_CLICK, SFX.UI_HOVER:
 			return _procedural_click

@@ -149,6 +149,8 @@ func hide_panel() -> void:
 func _refresh() -> void:
 	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
 		return
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	var data = GameManager.village_system.get_village_data(_tile_idx)
 	var level_data = GameManager.village_system.VILLAGE_LEVELS.get(data["level"], GameManager.village_system.VILLAGE_LEVELS[1])
@@ -172,6 +174,8 @@ func _refresh_content() -> void:
 # ─── 概览 ───
 func _build_overview() -> void:
 	var data = GameManager.village_system.get_village_data(_tile_idx)
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	var level_data = GameManager.village_system.VILLAGE_LEVELS.get(data["level"], GameManager.village_system.VILLAGE_LEVELS[1])
 	var bld_effects = GameManager.village_system.get_building_effects(_tile_idx)

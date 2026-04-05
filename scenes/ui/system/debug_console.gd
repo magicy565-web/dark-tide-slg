@@ -1392,7 +1392,7 @@ func _human_pid() -> int:
 	return 0
 
 
-func _safe_get_turn() -> int:
+func _safe_get_turn() -> Variant:
 	var gm := _get_autoload("GameManager")
 	if gm and "turn_number" in gm:
 		return gm.turn_number

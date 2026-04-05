@@ -831,7 +831,7 @@ func _remove_highlight() -> void:
 	_highlight_node = null
 
 
-func _find_control_by_name(node: Node, node_name: String) -> Control:
+func _find_control_by_name(node: Node, node_name: String) -> Variant:
 	if node.name == node_name and node is Control:
 		return node as Control
 	for child in node.get_children():

@@ -510,7 +510,7 @@ func _make_styled_button(text: String, accent: Color) -> Button:
 	btn.add_theme_font_size_override("font_size", 15)
 	return btn
 
-func _safe_load(path: String) -> Resource:
+func _safe_load(path: String) -> Variant:
 	if ResourceLoader.exists(path):
 		return load(path)
 	return null

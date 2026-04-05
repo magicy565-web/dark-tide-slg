@@ -460,7 +460,8 @@ func _try_spawn_boss(faction_key: String) -> void:
 
 	if target_tile_idx < GameManager.tiles.size():
 		GameManager.tiles[target_tile_idx]["garrison"] += boss_garrison
-		GameManager.tiles[target_tile_idx]["has_boss"] = true
+		if target_tile_idx >= 0 and target_tile_idx < GameManager.tiles.size():
+			GameManager.tiles[target_tile_idx]["has_boss"] = true
 		EventBus.message_log.emit("[color=red][%s] Boss级单位出现! +%d 兵力 → 据点#%d[/color]" % [faction_key, boss_garrison, target_tile_idx])
 		boss_spawned.emit(faction_key, target_tile_idx)
 

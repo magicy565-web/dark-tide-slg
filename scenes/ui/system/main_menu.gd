@@ -103,7 +103,7 @@ func _ready() -> void:
 	_show_title()
 
 
-func _safe_load(path: String) -> Resource:
+func _safe_load(path: String) -> Variant:
 	if ResourceLoader.exists(path):
 		return load(path)
 	return null

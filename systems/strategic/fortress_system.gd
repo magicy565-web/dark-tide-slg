@@ -291,6 +291,8 @@ func issue_garrison_order(tile_idx: int, order_id: String) -> Dictionary:
 		if GameManager.current_ap < ap_cost:
 			return {"success": false, "reason": "行动力不足"}
 		var garrison_cost: int = cost.get("garrison", 0)
+		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+			return
 		var tile = GameManager.tiles[tile_idx]
 		if tile.get("garrison", 0) < garrison_cost:
 			return {"success": false, "reason": "驻军不足"}
@@ -358,6 +360,8 @@ func upgrade_fortress(tile_idx: int) -> Dictionary:
 	data["wall_hp"] = new_level_data["wall_hp"]
 
 	# 更新地块数据
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
 	tile["wall_hp"] = new_level_data["wall_hp"]
 	tile["def_bonus"] = tile.get("def_bonus", 0) + (new_level_data["def_bonus"] - FORTRESS_LEVELS[current_level]["def_bonus"])
@@ -414,6 +418,8 @@ func process_turn() -> void:
 				for adj_idx in GameManager.adjacency[tile_idx]:
 					if adj_idx >= GameManager.tiles.size():
 						continue
+					if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
+						return
 					var adj_tile = GameManager.tiles[adj_idx]
 					if adj_tile.get("owner_id", -1) == pid:
 						GameManager.morale_corruption_system.change_morale(adj_idx, morale_bonus * 0.3)

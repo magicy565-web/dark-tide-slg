@@ -503,7 +503,7 @@ func _add_section_header(parent: Control, title: String, span: int = 1) -> void:
 	parent.add_child(header)
 
 
-func _get_ttb() -> Node:
+func _get_ttb() -> Variant:
 	# 优先从 GameManager 下查找（它是 autoload，挂在 root 下）
 	if Engine.get_main_loop() is SceneTree:
 		var root: Node = (Engine.get_main_loop() as SceneTree).root

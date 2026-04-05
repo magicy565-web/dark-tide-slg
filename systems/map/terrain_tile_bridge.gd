@@ -602,6 +602,8 @@ func start_terrain_transform(tile_idx: int, target_terrain: int) -> Dictionary:
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return {"success": false, "reason": "无效地块"}
 
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 	var pid: int = GameManager.get_human_player_id()
 
@@ -667,6 +669,8 @@ func start_road_construction(tile_idx: int) -> Dictionary:
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return {"success": false, "reason": "无效地块"}
 
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 	if tile.get("has_road", false):
 		return {"success": false, "reason": "该地块已有道路"}
@@ -721,6 +725,8 @@ func process_turn() -> void:
 
 ## 完成地形改造
 func _complete_transform(tile_idx: int, task: Dictionary) -> void:
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 
 	if task.get("is_road", false):

@@ -178,7 +178,7 @@ func recalculate_supply_lines(player_id: int) -> void:
 				continue
 			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
-			if GameManager.tiles[nb] == null:
+			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
 			if GameManager.tiles[nb].get("owner_id", -1) != player_id:
 				continue
@@ -266,7 +266,7 @@ func get_supply_path(player_id: int, tile_index: int) -> Array:
 				continue
 			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
-			if GameManager.tiles[nb] == null:
+			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
 			if GameManager.tiles[nb].get("owner_id", -1) != player_id:
 				continue
@@ -300,6 +300,8 @@ func is_army_supplied(army: Dictionary) -> bool:
 	if tile_index >= GameManager.tiles.size():
 		return false
 
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	if tile == null:
 		return false
@@ -313,7 +315,7 @@ func is_army_supplied(army: Dictionary) -> bool:
 	for nb in neighbors:
 		if nb < 0 or nb >= GameManager.tiles.size():
 			continue
-		if GameManager.tiles[nb] == null:
+		if nb < 0 or nb >= GameManager.tiles.size():
 			continue
 		if GameManager.tiles[nb].get("owner_id", -1) == player_id:
 			if is_tile_supplied(player_id, nb):
@@ -362,7 +364,7 @@ func get_army_supply_status(army: Dictionary) -> Dictionary:
 		for nb in neighbors:
 			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
-			if GameManager.tiles[nb] == null:
+			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
 			if GameManager.tiles[nb].get("owner_id", -1) != player_id:
 				continue
@@ -403,6 +405,8 @@ func apply_isolation_penalties(player_id: int) -> void:
 	for tidx in isolated:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[tidx]
 		if tile == null:
 			continue
@@ -505,7 +509,7 @@ func classify_territories(player_id: int) -> void:
 		for nb in neighbors:
 			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
-			if GameManager.tiles[nb] == null:
+			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
 			if GameManager.tiles[nb].get("owner_id", -1) != player_id:
 				is_front = true

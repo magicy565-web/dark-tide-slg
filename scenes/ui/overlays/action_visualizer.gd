@@ -867,7 +867,7 @@ func _cleanup_effect(node: Node) -> void:
 		node.queue_free()
 
 
-func _safe_load_texture(path: String) -> Texture2D:
+func _safe_load_texture(path: String) -> Variant:
 	if ResourceLoader.exists(path):
 		return load(path)
 	return null

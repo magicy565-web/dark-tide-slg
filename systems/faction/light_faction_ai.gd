@@ -315,13 +315,15 @@ func apply_spell_effect(spell_name: String, target_tile_index: int) -> Dictionar
 			# Teleport defenders to a tile
 			result["success"] = true
 			result["garrison_add"] = randi_range(BalanceConfig.SPELL_TELEPORT_GARRISON_MIN, BalanceConfig.SPELL_TELEPORT_GARRISON_MAX)
-			GameManager.tiles[target_tile_index]["garrison"] += result["garrison_add"]
+			if target_tile_index >= 0 and target_tile_index < GameManager.tiles.size():
+				GameManager.tiles[target_tile_index]["garrison"] += result["garrison_add"]
 			EventBus.message_log.emit("传送增援 +%d 守军" % result["garrison_add"])
 		"barrier":
 			# Add temporary defense
 			result["success"] = true
 			result["defense_bonus"] = BalanceConfig.SPELL_BARRIER_DEFENSE_BONUS
-			GameManager.tiles[target_tile_index]["garrison"] += result["defense_bonus"]
+			if target_tile_index >= 0 and target_tile_index < GameManager.tiles.size():
+				GameManager.tiles[target_tile_index]["garrison"] += result["defense_bonus"]
 			EventBus.message_log.emit("魔法屏障: +%d 防御" % result["defense_bonus"])
 		"barrage":
 			# Damage attacking army
@@ -376,6 +378,8 @@ func _mage_ai_cast() -> void:
 						cast_spell("barrage")
 						var effect: Dictionary = apply_spell_effect("barrage", nb)
 						if effect.get("success", false):
+							if nb < 0 or nb >= GameManager.tiles.size():
+								return
 							var target_tile: Dictionary = GameManager.tiles[nb]
 							var dmg: int = effect.get("damage", 0)
 							# v3.5: Scale barrage damage by difficulty aggression
@@ -440,7 +444,7 @@ func disable_teleport() -> void:
 
 # ═══════════════ WEATHER / SEASON AWARENESS ═══════════════
 
-func _get_weather_system() -> Node:
+func _get_weather_system() -> Variant:
 	## Safe autoload access to WeatherSystem node.
 	var root: Node = (Engine.get_main_loop() as SceneTree).root
 	if root and root.has_node("WeatherSystem"):
@@ -495,6 +499,8 @@ func _try_light_faction_coordination() -> void:
 			for nb_idx in GameManager.adjacency[tile["index"]]:
 				if nb_idx >= GameManager.tiles.size():
 					continue
+				if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+					return
 				var nb = GameManager.tiles[nb_idx]
 				# BUG FIX R16: null check + safe dict access
 				if nb == null:

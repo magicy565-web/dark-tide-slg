@@ -180,6 +180,8 @@ func hide_panel() -> void:
 func _refresh() -> void:
 	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
 		return
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	var data = GameManager.fortress_system.get_fortress_data(_tile_idx)
 	var level_data = GameManager.fortress_system.FORTRESS_LEVELS.get(data["level"], GameManager.fortress_system.FORTRESS_LEVELS[1])
@@ -207,6 +209,8 @@ func _refresh_content() -> void:
 # ─── 概览 ───
 func _build_overview() -> void:
 	var data = GameManager.fortress_system.get_fortress_data(_tile_idx)
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	var level_data = GameManager.fortress_system.FORTRESS_LEVELS.get(data["level"], GameManager.fortress_system.FORTRESS_LEVELS[1])
 	var bld_effects = GameManager.fortress_system.get_fortification_effects(_tile_idx)
@@ -258,6 +262,8 @@ func _build_overview() -> void:
 # ─── 驻军 ───
 func _build_garrison() -> void:
 	var data = GameManager.fortress_system.get_fortress_data(_tile_idx)
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	var level_data = GameManager.fortress_system.FORTRESS_LEVELS.get(data["level"], GameManager.fortress_system.FORTRESS_LEVELS[1])
 	var bld_effects = GameManager.fortress_system.get_fortification_effects(_tile_idx)
@@ -334,6 +340,8 @@ func _build_fortify() -> void:
 # ─── 驻军命令 ───
 func _build_orders() -> void:
 	var data = GameManager.fortress_system.get_fortress_data(_tile_idx)
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	var pid = GameManager.get_human_player_id()
 

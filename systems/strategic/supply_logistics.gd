@@ -105,7 +105,7 @@ func _build_depot_connections(player_id: int) -> void:
 					continue
 				if nb < 0 or nb >= GameManager.tiles.size():
 					continue
-				if GameManager.tiles[nb] == null:
+				if nb < 0 or nb >= GameManager.tiles.size():
 					continue
 				if GameManager.tiles[nb].get("owner_id", -1) != player_id:
 					continue
@@ -200,7 +200,7 @@ func calculate_supply_route(army_id: int) -> Dictionary:
 				continue
 			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
-			if GameManager.tiles[nb] == null:
+			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
 			# Allow BFS through own territory AND neutral/unowned tiles
 			# (supply routes can cross non-enemy territory)
@@ -266,6 +266,8 @@ func _enemy_army_on_tile(tile_idx: int, player_id: int) -> int:
 func _is_coastal_tile(tile_idx: int) -> bool:
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return false
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 	if tile == null:
 		return false
@@ -407,7 +409,7 @@ func _bfs_path(from_tile: int, to_tile: int, player_id: int) -> Array:
 				continue
 			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
-			if GameManager.tiles[nb] == null:
+			if nb < 0 or nb >= GameManager.tiles.size():
 				continue
 			var nb_owner: int = GameManager.tiles[nb].get("owner_id", -1)
 			if nb_owner >= 0 and nb_owner != player_id:
@@ -941,6 +943,8 @@ func _on_tile_lost(player_id: int, _tile_index: int) -> void:
 	for tidx in _depots:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[tidx]
 		if tile == null or tile.get("owner_id", -1) != _depots[tidx]["owner_id"]:
 			to_erase.append(tidx)

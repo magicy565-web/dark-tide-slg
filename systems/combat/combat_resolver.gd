@@ -126,7 +126,9 @@ func calculate_army_power(units: Array, player_id: int) -> float:
 		var atk: float = float(unit.get("atk", 0))
 		var soldiers: int = unit.get("count", unit.get("soldiers", 1))
 		total += atk * soldiers * 10.0
-	var buff_mult: float = BuffManager.get_atk_multiplier(player_id)
+	var buff_mult: float = 1.0
+	if is_instance_valid(BuffManager):
+		buff_mult = BuffManager.get_atk_multiplier(player_id)
 	total *= buff_mult
 	return total
 
@@ -147,8 +149,10 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	var state: Dictionary = _build_battle_state(attacker, defender, tile)
 
 	# -- v6.0: Reset advanced systems for this battle --
-	HeroSkillsAdvanced.reset_battle()
-	EnchantmentSystem.reset_combat_state()
+	if is_instance_valid(HeroSkillsAdvanced):
+		HeroSkillsAdvanced.reset_battle()
+	if is_instance_valid(EnchantmentSystem):
+		EnchantmentSystem.reset_combat_state()
 
 	# -- Formation Bonuses (SR07-style row placement) --
 	var atk_formation: Dictionary = _calculate_formation_bonuses(state["atk_units"])
@@ -159,11 +163,15 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 	PreBattleSetup.apply(state, combat_log)
 
 	# -- v6.0: Apply environment modifiers (day/night, fatigue) --
-	var _env_time_mods: Dictionary = EnvironmentSystem.get_time_combat_modifiers()
+	var _env_time_mods: Dictionary = {}
 	var _atk_army_id: int = attacker.get("army_id", atk_pid)
 	var _def_army_id: int = defender.get("army_id", def_pid)
-	var _atk_fatigue_mods: Dictionary = EnvironmentSystem.get_fatigue_combat_modifiers(_atk_army_id)
-	var _def_fatigue_mods: Dictionary = EnvironmentSystem.get_fatigue_combat_modifiers(_def_army_id)
+	var _atk_fatigue_mods: Dictionary = {}
+	var _def_fatigue_mods: Dictionary = {}
+	if is_instance_valid(EnvironmentSystem):
+		_env_time_mods = EnvironmentSystem.get_time_combat_modifiers()
+		_atk_fatigue_mods = EnvironmentSystem.get_fatigue_combat_modifiers(_atk_army_id)
+		_def_fatigue_mods = EnvironmentSystem.get_fatigue_combat_modifiers(_def_army_id)
 
 	for _env_u in state["atk_units"]:
 		# Day/night: assassin ATK bonus
@@ -180,14 +188,16 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 		_env_u["spd"] += float(_atk_fatigue_mods.get("spd_mod", 0))
 		# Enchantment stat bonuses
 		var _env_hero_id: String = _env_u.get("hero_id", "")
-		if not _env_hero_id.is_empty():
+		if not _env_hero_id.is_empty() and is_instance_valid(EnchantmentSystem):
 			var _ench_bonuses: Dictionary = EnchantmentSystem.get_enchantment_bonuses(_env_hero_id)
 			_env_u["atk"] += float(_ench_bonuses.get("atk_bonus", 0))
 			_env_u["def"] += float(_ench_bonuses.get("def_bonus", 0))
 			_env_u["spd"] += float(_ench_bonuses.get("spd_bonus", 0))
 		# Veterancy bonuses
 		var _env_unit_id: String = _env_u.get("unit_type", "")
-		var _vet_bonuses: Dictionary = EnvironmentSystem.get_veterancy_bonuses(_env_unit_id)
+		var _vet_bonuses: Dictionary = {}
+		if is_instance_valid(EnvironmentSystem):
+			_vet_bonuses = EnvironmentSystem.get_veterancy_bonuses(_env_unit_id)
 		_env_u["atk"] += float(_vet_bonuses.get("atk", 0))
 		_env_u["def"] += float(_vet_bonuses.get("def", 0))
 		_env_u["spd"] += float(_vet_bonuses.get("spd", 0))
@@ -204,23 +214,26 @@ func resolve_combat(attacker: Dictionary, defender: Dictionary, tile: Dictionary
 			_env_d["def"] = _env_d["def"] * (1.0 + float(_def_fatigue_mods["def_pct"]) / 100.0)
 		_env_d["spd"] += float(_def_fatigue_mods.get("spd_mod", 0))
 		var _env_hero_id_d: String = _env_d.get("hero_id", "")
-		if not _env_hero_id_d.is_empty():
+		if not _env_hero_id_d.is_empty() and is_instance_valid(EnchantmentSystem):
 			var _ench_bonuses_d: Dictionary = EnchantmentSystem.get_enchantment_bonuses(_env_hero_id_d)
 			_env_d["atk"] += float(_ench_bonuses_d.get("atk_bonus", 0))
 			_env_d["def"] += float(_ench_bonuses_d.get("def_bonus", 0))
 			_env_d["spd"] += float(_ench_bonuses_d.get("spd_bonus", 0))
 		var _env_unit_id_d: String = _env_d.get("unit_type", "")
-		var _vet_bonuses_d: Dictionary = EnvironmentSystem.get_veterancy_bonuses(_env_unit_id_d)
+		var _vet_bonuses_d: Dictionary = {}
+		if is_instance_valid(EnvironmentSystem):
+			_vet_bonuses_d = EnvironmentSystem.get_veterancy_bonuses(_env_unit_id_d)
 		_env_d["atk"] += float(_vet_bonuses_d.get("atk", 0))
 		_env_d["def"] += float(_vet_bonuses_d.get("def", 0))
 		_env_d["spd"] += float(_vet_bonuses_d.get("spd", 0))
 		_env_d["morale"] = _env_d.get("morale", MORALE_START) + _vet_bonuses_d.get("morale", 0) + _env_time_mods.get("morale_bonus", 0)
 
 	if _atk_fatigue_mods.get("atk_pct", 0) != 0 or _env_time_mods.get("assassin_atk_bonus", 0) != 0:
-		combat_log.append("[环境] %s | 攻方疲劳: %s | 守方疲劳: %s" % [
-			EnvironmentSystem.TIME_NAMES.get(EnvironmentSystem.current_time, ""),
-			EnvironmentSystem.get_fatigue_tier(_atk_army_id).get("label", "良好"),
-			EnvironmentSystem.get_fatigue_tier(_def_army_id).get("label", "良好")])
+		if is_instance_valid(EnvironmentSystem):
+			combat_log.append("[环境] %s | 攻方疲劳: %s | 守方疲劳: %s" % [
+				EnvironmentSystem.TIME_NAMES.get(EnvironmentSystem.current_time, ""),
+				EnvironmentSystem.get_fatigue_tier(_atk_army_id).get("label", "良好"),
+				EnvironmentSystem.get_fatigue_tier(_def_army_id).get("label", "良好")])
 	# v4.6: time_slow — if any unit on one side has time_slow, enemy SPD-3 first round
 	var _ts_atk_on_def: bool = false
 	for _ts_u in state["atk_units"]:
@@ -1978,7 +1991,7 @@ func _execute_action(state: Dictionary, unit: Dictionary, combat_log: Array) -> 
 
 	# -- v6.1: Process enchantment passive effects (burn, lifesteal, chain lightning, etc.) --
 	var _ench_hero: String = unit.get("hero_id", "")
-	if not _ench_hero.is_empty():
+	if not _ench_hero.is_empty() and is_instance_valid(EnchantmentSystem):
 		var _ench_result: Dictionary = {"damage": damage, "damage_taken": 0, "target_type": target.get("unit_type", "")}
 		_ench_result = EnchantmentSystem.apply_enchantment_in_combat(_ench_hero, _ench_result)
 		for _eff in _ench_result.get("enchantment_effects", []):
@@ -3118,17 +3131,18 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, c
 	}
 
 	# -- v6.0: Record battle veterancy for surviving units --
-	for _vet_u in state["atk_units"] + state["def_units"]:
-		if _vet_u.get("is_alive", false):
-			var _vet_uid: String = _vet_u.get("unit_type", "")
-			if not _vet_uid.is_empty():
-				EnvironmentSystem.record_battle(_vet_uid)
-
+	if is_instance_valid(EnvironmentSystem):
+		for _vet_u in state["atk_units"] + state["def_units"]:
+			if _vet_u.get("is_alive", false):
+				var _vet_uid: String = _vet_u.get("unit_type", "")
+				if not _vet_uid.is_empty():
+					EnvironmentSystem.record_battle(_vet_uid)
 	# -- v6.0: Fatigue from battle --
 	var _atk_army_id_f: int = state.get("atk_army_id", state.get("atk_pid", -1))
 	var _def_army_id_f: int = state.get("def_army_id", state.get("def_pid", -1))
-	EnvironmentSystem.on_battle(_atk_army_id_f)
-	EnvironmentSystem.on_battle(_def_army_id_f)
+	if is_instance_valid(EnvironmentSystem):
+		EnvironmentSystem.on_battle(_atk_army_id_f)
+		EnvironmentSystem.on_battle(_def_army_id_f)
 
 	# -- v6.0: Generate war loot on victory --
 	if winner_pid >= 0 and winner_pid == GameManager.get_human_player_id():
@@ -3142,8 +3156,10 @@ func _finalize_result(state: Dictionary, winner: String, wall_destroyed: bool, c
 			_max_tier = maxi(_max_tier, int(_lu.get("tier", 1)))
 		if _max_tier >= 4:
 			_battle_type = "boss"
-		var _loot: Array = EnvironmentSystem.generate_loot(_battle_type, _max_tier)
-		if not _loot.is_empty():
+		var _loot: Array = []
+		if is_instance_valid(EnvironmentSystem):
+			_loot = EnvironmentSystem.generate_loot(_battle_type, _max_tier)
+		if not _loot.is_empty() and is_instance_valid(EnvironmentSystem):
 			EnvironmentSystem.apply_loot(_loot)
 			combat_result["loot"] = _loot
 			combat_log.append("[战利品] 获得 %d 种战利品" % _loot.size())

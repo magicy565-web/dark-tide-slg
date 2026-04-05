@@ -288,6 +288,8 @@ func process_turn() -> void:
 		var data = _development_data[tile_idx]
 		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 			continue
+		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+			return
 		var tile = GameManager.tiles[tile_idx]
 		if tile == null:
 			continue

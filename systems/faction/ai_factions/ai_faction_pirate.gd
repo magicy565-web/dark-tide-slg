@@ -28,7 +28,7 @@ func _decide_strategy(player_id: int) -> void:
 		_current_strategy = "balanced"
 
 # ═══════════════════════════════════════════════════════════
-func _get_pirate_mechanic() -> Node:
+func _get_pirate_mechanic() -> Variant:
 	if Engine.get_main_loop() is SceneTree:
 		var root: Node = (Engine.get_main_loop() as SceneTree).root
 		if root.has_node("PirateMechanic"):
@@ -99,6 +99,8 @@ func _find_pirate_raid_target(attackable: Array) -> int:
 	for tile_idx in attackable:
 		if tile_idx >= GameManager.tiles.size():
 			continue
+		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[tile_idx]
 		var score: float = 0.0
 		

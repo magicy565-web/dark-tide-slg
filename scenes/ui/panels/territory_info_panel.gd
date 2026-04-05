@@ -187,6 +187,8 @@ func _refresh() -> void:
 		_add_empty_notice("No territory selected")
 		return
 
+	if _selected_tile < 0 or _selected_tile >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[_selected_tile]
 	var tile_name: String = tile.get("name", "???")
 	var tile_level: int = tile.get("level", 0)
@@ -607,6 +609,8 @@ func _build_section_adjacency(tile: Dictionary) -> void:
 	for adj_idx in adj_indices:
 		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
 			continue
+		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
+			return
 		var adj_tile: Dictionary = GameManager.tiles[adj_idx]
 		var adj_name: String = adj_tile.get("name", "???")
 		var adj_owner: int = adj_tile.get("owner_id", -1)

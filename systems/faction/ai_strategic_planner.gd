@@ -210,6 +210,8 @@ func predict_player_next_target(faction_key: String) -> int:
 		for nb_idx in GameManager.adjacency[attacked_idx]:
 			if nb_idx >= GameManager.tiles.size():
 				continue
+			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+				return
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] < 0 and AIScaling._tile_belongs_to_faction(nb, faction_key):
 				adj_candidates[nb_idx] = adj_candidates.get(nb_idx, 0) + 1
@@ -341,6 +343,8 @@ func select_raid_target(faction_key: String, source_tiles: Array) -> Dictionary:
 		for nb_idx in GameManager.adjacency[src["index"]]:
 			if nb_idx >= GameManager.tiles.size():
 				continue
+			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+				return
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] < 0:
 				continue
@@ -420,6 +424,8 @@ func select_weakest_adjacent_target(faction_key: String) -> Dictionary:
 		for nb_idx in GameManager.adjacency[tile["index"]]:
 			if nb_idx >= GameManager.tiles.size():
 				continue
+			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+				return
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] < 0:
 				continue
@@ -572,6 +578,8 @@ func reinforce_threatened_border(faction_key: String) -> void:
 		for nb_idx in GameManager.adjacency[player_tile_idx]:
 			if nb_idx >= GameManager.tiles.size():
 				continue
+			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+				return
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] < 0 and AIScaling._tile_belongs_to_faction(nb, faction_key):
 				if nb_idx not in reinforce_targets:
@@ -619,7 +627,7 @@ func try_coordinate_attack(faction_keys: Array) -> void:
 			for nb_idx in GameManager.adjacency[tile["index"]]:
 				if nb_idx >= GameManager.tiles.size():
 					continue
-				if GameManager.tiles[nb_idx]["owner_id"] >= 0:
+				if nb_idx >= 0 and nb_idx < GameManager.tiles.size() and GameManager.tiles[nb_idx]["owner_id"] >= 0:
 					shared_targets[nb_idx] = shared_targets.get(nb_idx, 0) + 1
 
 	# Pick target with most factions adjacent
@@ -711,7 +719,7 @@ func _count_border_pressure(faction_key: String) -> int:
 
 # ═══════════════ WEATHER AWARENESS ═══════════════
 
-func _get_weather_system() -> Node:
+func _get_weather_system() -> Variant:
 	## Safe autoload access to WeatherSystem node.
 	var root: Node = (Engine.get_main_loop() as SceneTree).root
 	if root and root.has_node("WeatherSystem"):
@@ -887,6 +895,8 @@ func score_supply_cut_attack(_faction_key: String, tile_index: int) -> float:
 	# BUG FIX R15: bounds check before tiles[] access
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return 0.0
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_index]
 	if tile == null:
 		return 0.0
@@ -943,6 +953,8 @@ func evaluate_siege_cost(tile_index: int) -> Dictionary:
 		return result
 
 	result["is_fortified"] = true
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 
 	# Determine wall HP and siege turns based on tile type
@@ -1082,6 +1094,8 @@ func find_undefended_enemy_rear(faction_key: String, enemy_player_id: int) -> Ar
 		if not directly_adjacent and not two_hop_reachable:
 			continue
 
+		if rt_idx < 0 or rt_idx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[rt_idx]
 		var garrison: int = tile.get("garrison", 0)
 		var level: int = tile.get("level", 1)
@@ -1375,7 +1389,8 @@ func execute_concentration(faction_key: String) -> void:
 						GameManager.tiles[rt["tile_index"]]["garrison"] -= donate
 						transferred += donate
 			if transferred > 0:
-				GameManager.tiles[best_rally]["garrison"] += transferred
+				if best_rally >= 0 and best_rally < GameManager.tiles.size():
+					GameManager.tiles[best_rally]["garrison"] += transferred
 				EventBus.message_log.emit("[%s] 兵力集结完毕! 据点#%d获得+%d援军" % [faction_key, best_rally, transferred])
 		_concentration_plans.erase(faction_key)
 	else:
@@ -1388,6 +1403,8 @@ func should_retreat(faction_key: String, tile_index: int) -> bool:
 	## Returns true if the garrison at tile_index should consider retreating.
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var garrison: int = tile.get("garrison", 0)
 	if garrison <= 0:
@@ -1406,6 +1423,8 @@ func should_retreat(faction_key: String, tile_index: int) -> bool:
 	for nb_idx in GameManager.adjacency[tile_index]:
 		if nb_idx >= GameManager.tiles.size():
 			continue
+		if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+			return
 		var nb: Dictionary = GameManager.tiles[nb_idx]
 		if nb["owner_id"] >= 0:
 			enemy_force += nb.get("garrison", 0) * 8
@@ -1437,6 +1456,8 @@ func find_retreat_tile(faction_key: String, tile_index: int) -> int:
 	for nb_idx in GameManager.adjacency[tile_index]:
 		if nb_idx >= GameManager.tiles.size():
 			continue
+		if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+			return
 		var nb: Dictionary = GameManager.tiles[nb_idx]
 		if nb["owner_id"] >= 0:
 			continue
@@ -1479,8 +1500,10 @@ func execute_retreat(faction_key: String, from_tile: int) -> bool:
 	if transfer <= 0:
 		return false
 
-	GameManager.tiles[from_tile]["garrison"] -= transfer
-	GameManager.tiles[retreat_to]["garrison"] += transfer
+	if from_tile >= 0 and from_tile < GameManager.tiles.size():
+		GameManager.tiles[from_tile]["garrison"] -= transfer
+	if retreat_to >= 0 and retreat_to < GameManager.tiles.size():
+		GameManager.tiles[retreat_to]["garrison"] += transfer
 	EventBus.ai_strategic_retreat.emit(0, from_tile, retreat_to)
 	EventBus.message_log.emit("[%s] 战略转进: 据点#%d → 据点#%d (%d兵力)" % [faction_key, from_tile, retreat_to, transfer])
 	return true

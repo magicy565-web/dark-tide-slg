@@ -140,6 +140,8 @@ func _refresh() -> void:
 	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
 		return
 
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	_header_label.text = "⚔ 进攻 — %s" % tile.get("name", "据点")
 	_status_label.text = ""
@@ -193,6 +195,8 @@ func _rebuild_targets() -> void:
 		_target_label.text = "无可攻击目标"
 		return
 
+	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[_tile_idx]
 	var owner_id: int = tile.get("owner_id", -1)
 	var found: bool = false
@@ -211,6 +215,8 @@ func _rebuild_targets() -> void:
 			continue
 		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
 			continue
+		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
+			return
 		var adj_tile = GameManager.tiles[adj_idx]
 		if adj_tile == null:
 			continue

@@ -2040,6 +2040,8 @@ func begin_turn() -> void:
 			var td_effects: Dictionary = TileDevelopment.get_tile_path_effects(tidx)
 			var td_order: int = int(td_effects.get("order_bonus", 0))
 			if td_order > 0:
+				if tidx < 0 or tidx >= tiles.size():
+					return
 				var t: Dictionary = tiles[tidx]
 				var cur_po: float = t.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
 				t["public_order"] = minf(cur_po + float(td_order) * 0.01, 1.0)
@@ -2048,6 +2050,8 @@ func begin_turn() -> void:
 		# BUG FIX: undead_foundry's undead_soldiers_per_turn and order_per_turn effects
 		# were defined in building_registry but never processed each turn.
 		for tidx in get_cached_owned_tiles(pid):
+			if tidx < 0 or tidx >= tiles.size():
+				return
 			var t: Dictionary = tiles[tidx]
 			var bld: String = t.get("building_id", "")
 			if bld == "":
@@ -2104,6 +2108,8 @@ func begin_turn() -> void:
 	# ── Phase 4b2: Building-based wall repair (fortification) ──
 	# Only buildings that can repair walls: fortification, watchtower, etc.
 	for tidx in get_cached_owned_tiles(pid):
+		if tidx < 0 or tidx >= tiles.size():
+			return
 		var tile: Dictionary = tiles[tidx]
 		if tile == null:
 			continue
@@ -2482,6 +2488,8 @@ func action_grand_festival() -> bool:
 	var order_bonus: float = float(BalanceConfig.GRAND_FESTIVAL_ORDER_BONUS) / 100.0
 	var owned_tiles: Array = get_cached_owned_tiles(pid)
 	for tidx in owned_tiles:
+		if tidx < 0 or tidx >= tiles.size():
+			return
 		var tile: Dictionary = tiles[tidx]
 		var cur_po: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
 		tile["public_order"] = minf(cur_po + order_bonus, 1.0)
@@ -2884,6 +2892,8 @@ func create_army(player_id: int, tile_index: int, army_name: String = "") -> int
 	# ── Seed initial troops from tile garrison pool ──
 	# Pull up to 2 default infantry squads from the tile's garrison count so the
 	# army is immediately combat-ready without requiring a separate recruit step.
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile_data: Dictionary = tiles[tile_index]
 	var garrison_pool: int = tile_data.get("garrison", 0)
 	if garrison_pool > 0 and GameData != null and GameData.has_method("create_troop_instance"):
@@ -3378,6 +3388,8 @@ func action_guard_territory(pid: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != pid:
 		EventBus.message_log.emit("只能防守自己的领地!")
@@ -3549,6 +3561,8 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
 		return false
 
+	if target_tile_index < 0 or target_tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[target_tile_index]
 	# BUG FIX R15: null check on tile
 	if tile == null:
@@ -3682,6 +3696,8 @@ func action_multi_route_attack(army_ids: Array, target_tile_index: int) -> bool:
 		EventBus.message_log.emit("[color=red]合战失败: %s[/color]" % validation["reason"])
 		return false
 
+	if target_tile_index < 0 or target_tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[target_tile_index]
 	if tile.get("owner_id", -1) == armies[army_ids[0]]["player_id"]:
 		EventBus.message_log.emit("不能对自己的领地发动合战!")
@@ -4632,6 +4648,8 @@ func calculate_attack_route(from: int, to: int) -> Array:
 				continue
 			if closed.has(neighbor):
 				continue
+			if neighbor < 0 or neighbor >= tiles.size():
+				return
 			var n_tile: Dictionary = tiles[neighbor]
 			var terrain_type: int = n_tile.get("terrain", FactionData.TerrainType.PLAINS)
 			var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
@@ -4691,6 +4709,8 @@ func get_chokepoint_strategic_value(tile_idx: int) -> float:
 	## Score how strategically important a chokepoint is.
 	if tile_idx < 0 or tile_idx >= tiles.size():
 		return 0.0
+	if tile_idx < 0 or tile_idx >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_idx]
 	if not tile.get("is_chokepoint", false):
 		return 0.0
@@ -5527,6 +5547,8 @@ func _on_conquest_choice(choice_index: int) -> void:
 	var tile_idx: int = _pending_conquest_tile_index
 	_pending_conquest_tile_index = -1
 
+	if tile_idx < 0 or tile_idx >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_idx]
 	match choice_index:
 		0:
@@ -5612,6 +5634,8 @@ func _calculate_conquest_loot(tile: Dictionary, pid: int) -> Dictionary:
 
 ## Check and trigger conquest events when capturing a tile
 func _check_conquest_events(pid: int, tile_index: int) -> void:
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	if tile_index < 0 or tile_index >= tiles.size():
 		return
 	var tile: Dictionary = tiles[tile_index]
@@ -5761,6 +5785,8 @@ func recruit_army() -> void:
 	if pos < 0 or pos >= tiles.size():
 		EventBus.message_log.emit("无效位置, 无法招募!")
 		return
+	if pos < 0 or pos >= tiles.size():
+		return
 	var tile: Dictionary = tiles[pos]
 	if tile.get("building_id", "") == "training_ground":
 		var bld_level: int = tile.get("building_level", 1)
@@ -5805,6 +5831,8 @@ func can_recruit() -> bool:
 	var pos: int = player.get("position", -1)
 	if pos < 0 or pos >= tiles.size():
 		return false
+	if pos < 0 or pos >= tiles.size():
+		return
 	var tile: Dictionary = tiles[pos]
 	if tile.get("building_id", "") == "training_ground":
 		var bld_level: int = tile.get("building_level", 1)
@@ -6237,6 +6265,8 @@ func is_revealed_for(tile_index: int, player_id: int) -> bool:
 	# BUG FIX R15: null check + safe "revealed" access
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var _rv_tile = tiles[tile_index]
 	if _rv_tile == null:
 		return false
@@ -6342,6 +6372,8 @@ func action_attack(player_id: int, target_tile_index: int) -> bool:
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
 		return false
 
+	if target_tile_index < 0 or target_tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[target_tile_index]
 	# BUG FIX R15: null check on tile
 	if tile == null:
@@ -6419,6 +6451,8 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 		return false
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
 		return false
+	if target_tile_index < 0 or target_tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[target_tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能在自己的领地进行内政!")
@@ -6801,6 +6835,8 @@ func action_explore(player_id: int, target_tile_index: int) -> bool:
 		return false
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
 		return false
+	if target_tile_index < 0 or target_tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[target_tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能探索自己的领地!")
@@ -6912,6 +6948,8 @@ func action_ritual(player_id: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能在自己的领地举行仪式!")
@@ -6941,6 +6979,8 @@ func action_excavate(player_id: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能在自己的领地发掘!")
@@ -6976,6 +7016,8 @@ func action_block_supply(player_id: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能封锁自己领地的补给线!")
@@ -7018,6 +7060,8 @@ func action_fortify(player_id: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能加固自己的领地!")
@@ -7040,6 +7084,8 @@ func action_exploit(player_id: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能开采自己的领地!")
@@ -7080,6 +7126,8 @@ func action_train_elite(player_id: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能训练自己领地的部队!")
@@ -7109,6 +7157,8 @@ func action_upgrade_outpost(player_id: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能升级自己的前哨!")
@@ -7137,6 +7187,8 @@ func action_upgrade_facility(player_id: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能升级自己的设施!")
@@ -7164,6 +7216,8 @@ func action_upgrade_walls(player_id: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能升级自己的城墙!")
@@ -7192,6 +7246,8 @@ func action_build_market(player_id: int, tile_index: int) -> bool:
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
+	if tile_index < 0 or tile_index >= tiles.size():
+		return
 	var tile: Dictionary = tiles[tile_index]
 	if tile["owner_id"] != player_id:
 		EventBus.message_log.emit("只能在自己的领地建造市场!")

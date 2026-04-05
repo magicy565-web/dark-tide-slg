@@ -108,7 +108,7 @@ func _orc_standard_attack(player_id: int, armies: Array) -> void:
 		_advance_army(player_id, army)
 
 # ═══════════════════════════════════════════════════════════
-func _get_orc_mechanic() -> Node:
+func _get_orc_mechanic() -> Variant:
 	if Engine.get_main_loop() is SceneTree:
 		var root: Node = (Engine.get_main_loop() as SceneTree).root
 		if root.has_node("OrcMechanic"):

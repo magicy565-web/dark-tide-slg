@@ -839,6 +839,8 @@ func _reveal_extended(tile_index: int, player_id: int, depth: int) -> void:
 		# BUG FIX R15: bounds & null check, ensure "revealed" dict exists
 		if current < 0 or current >= GameManager.tiles.size():
 			continue
+		if current < 0 or current >= GameManager.tiles.size():
+			return
 		var _rv_tile = GameManager.tiles[current]
 		if _rv_tile == null:
 			continue

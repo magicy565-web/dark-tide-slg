@@ -89,6 +89,8 @@ func _connect_system_callbacks() -> void:
 ## 治理系统回调
 
 func _on_governance_policy_activated(tile_idx: int, policy_id: String) -> void:
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
 	var policy_name = GameManager.governance_system.POLICIES.get(policy_id, {}).get("name", policy_id)
 	
@@ -103,6 +105,8 @@ func _on_governance_policy_activated(tile_idx: int, policy_id: String) -> void:
 	governance_policy_activated.emit(tile_idx, policy_id)
 
 func _on_governance_action_executed(tile_idx: int, action_id: String) -> void:
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
 	var action_name = GameManager.governance_system.GOVERNANCE_ACTIONS.get(action_id, {}).get("name", action_id)
 	
@@ -112,6 +116,8 @@ func _on_governance_action_executed(tile_idx: int, action_id: String) -> void:
 	_refresh_tile_info(tile_idx)
 
 func _on_governance_strategy_deployed(tile_idx: int, strategy_id: String) -> void:
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
 	var strategy_name = GameManager.governance_system.DEFENSE_STRATEGIES.get(strategy_id, {}).get("name", strategy_id)
 	
@@ -125,7 +131,11 @@ func _on_governance_strategy_deployed(tile_idx: int, strategy_id: String) -> voi
 ## 进攻系统回调
 
 func _on_offensive_action_performed(attacker_idx: int, action_id: String, target_idx: int, result: Dictionary) -> void:
+	if attacker_idx < 0 or attacker_idx >= GameManager.tiles.size():
+		return
 	var attacker = GameManager.tiles[attacker_idx]
+	if target_idx < 0 or target_idx >= GameManager.tiles.size():
+		return
 	var target = GameManager.tiles[target_idx]
 	var action = GameManager.offensive_system.OFFENSIVE_ACTIONS.get(action_id, {})
 	

@@ -256,6 +256,8 @@ func _refresh() -> void:
 		_add_empty_notice("未选择据点")
 		return
 
+	if _selected_tile < 0 or _selected_tile >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[_selected_tile]
 	_current_prov_type = TerritoryTypeSystem.get_prov_type_from_tile(tile)
 	var type_data: Dictionary = TerritoryTypeSystem.get_type_data(_current_prov_type)
@@ -565,6 +567,8 @@ func _build_section_adjacency(tile: Dictionary) -> void:
 	for adj_idx in adj:
 		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
 			continue
+		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
+			return
 		var adj_tile: Dictionary = GameManager.tiles[adj_idx]
 		var adj_name: String = adj_tile.get("name", "???")
 		var adj_owner: int = adj_tile.get("owner", -1)

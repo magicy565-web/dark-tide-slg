@@ -105,6 +105,8 @@ func _find_isolated_target(attackable: Array, player_id: int) -> int:
 	for tile_idx in attackable:
 		if tile_idx >= GameManager.tiles.size():
 			continue
+		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[tile_idx]
 		var score: float = 0.0
 		

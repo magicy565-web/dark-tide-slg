@@ -226,6 +226,8 @@ func _execute_diversion_raid(_player_id: int, source_tiles: Array, faction_id: i
 	if _raid_cooldowns.get(faction_id, 0) > 0:
 		return
 
+	if target_tile < 0 or target_tile >= GameManager.tiles.size():
+		return
 	var target: Dictionary = GameManager.tiles[target_tile]
 	if target.get("owner_id", -1) < 0:
 		return  # Not a player tile
@@ -435,7 +437,7 @@ func _faction_to_ai_key(faction_id: int) -> String:
 
 # ═══════════════ WEATHER-TACTICAL AWARENESS ═══════════════
 
-func _get_weather_system() -> Node:
+func _get_weather_system() -> Variant:
 	## Safe autoload access to WeatherSystem node.
 	var root: Node = (Engine.get_main_loop() as SceneTree).root
 	if root and root.has_node("WeatherSystem"):
@@ -536,7 +538,7 @@ func _pick_raid_composition(faction_id: int, base_strength: int) -> Array:
 
 # ═══════════════ COUNTER-ESPIONAGE ═══════════════
 
-func _get_espionage_system() -> Node:
+func _get_espionage_system() -> Variant:
 	## Safe autoload access to EspionageSystem node.
 	var root: Node = (Engine.get_main_loop() as SceneTree).root
 	if root and root.has_node("EspionageSystem"):
@@ -620,6 +622,8 @@ func _pirate_faction_action(player_id: int, source_tiles: Array) -> void:
 		for nb_idx in GameManager.adjacency[src["index"]]:
 			if nb_idx >= GameManager.tiles.size():
 				continue
+			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+				return
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] != player_id:
 				continue
@@ -650,6 +654,8 @@ func _dark_elf_faction_action(player_id: int, source_tiles: Array) -> void:
 		for nb_idx in GameManager.adjacency[src["index"]]:
 			if nb_idx >= GameManager.tiles.size():
 				continue
+			if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+				return
 			var nb: Dictionary = GameManager.tiles[nb_idx]
 			if nb["owner_id"] != player_id:
 				continue

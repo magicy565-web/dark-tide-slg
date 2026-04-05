@@ -139,6 +139,8 @@ func _on_tile_captured(pid: int, tile_index: int) -> void:
 		return
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	show_notification("【占领据点】%s" % tile.get("name", "???"), Color(0.4, 1.0, 0.4))
 
@@ -148,6 +150,8 @@ func _on_expedition(_tile_index: int) -> void:
 
 
 func _on_rebellion(tile_index: int) -> void:
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
 	var tile: Dictionary = GameManager.tiles[tile_index]

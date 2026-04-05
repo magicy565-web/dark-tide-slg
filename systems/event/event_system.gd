@@ -1588,14 +1588,16 @@ func _apply_reveal(player_id: int, count: int) -> void:
 	var revealed_count: int = 0
 	for i in range(mini(count, unrevealed.size())):
 		var tile_idx: int = unrevealed[i]
-		# BUG FIX: ensure "revealed" dict exists before writing
+		# BUG FIX: ensure tile_idx is valid and "revealed" dict exists before writing
+		if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+			continue
 		if not GameManager.tiles[tile_idx].has("revealed"):
 			GameManager.tiles[tile_idx]["revealed"] = {}
 		GameManager.tiles[tile_idx]["revealed"][player_id] = true
 		# Also reveal neighbors
 		var neighbors: Array = GameManager.adjacency.get(tile_idx, [])
 		for n_idx in neighbors:
-			if n_idx < GameManager.tiles.size():
+			if n_idx >= 0 and n_idx < GameManager.tiles.size():
 				if not GameManager.tiles[n_idx].has("revealed"):
 					GameManager.tiles[n_idx]["revealed"] = {}
 				GameManager.tiles[n_idx]["revealed"][player_id] = true
@@ -1991,6 +1993,8 @@ func _apply_plague_damage(tile_indices: Array) -> void:
 	for tidx in tile_indices:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[tidx]
 		var garrison: int = tile.get("garrison", 0)
 		if garrison > 0:
@@ -2006,6 +2010,8 @@ func _start_crisis_rebellion(pid: int, turn: int) -> void:
 		# BUG FIX R14: bounds & null check on tile access
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
 		var tile = GameManager.tiles[tidx]
 		if tile == null:
 			continue
@@ -2036,6 +2042,8 @@ func _start_crisis_rebellion(pid: int, turn: int) -> void:
 		# BUG FIX R14: bounds & null check
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
 		var tile = GameManager.tiles[tidx]
 		if tile == null:
 			continue
@@ -2066,6 +2074,8 @@ func _start_crisis_invasion(pid: int, turn: int) -> void:
 		# Fallback: pick first unowned tile
 		for i in range(GameManager.tiles.size()):
 			# BUG FIX R15: null check on tile
+			if i < 0 or i >= GameManager.tiles.size():
+				return
 			var _inv_tile = GameManager.tiles[i]
 			if _inv_tile == null:
 				continue
@@ -2075,6 +2085,8 @@ func _start_crisis_invasion(pid: int, turn: int) -> void:
 	if best_tile < 0:
 		return  # Player owns everything, skip
 
+	if best_tile < 0 or best_tile >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[best_tile]
 	tile["owner_id"] = -1
 	tile["garrison"] = BalanceConfig.CRISIS_INVASION_ARMY_STRENGTH

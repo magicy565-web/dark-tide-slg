@@ -63,7 +63,7 @@ func _select_faction_background() -> void:
 	# 不再根据阵营切换不同风格的背景图
 	_map_bg_texture = _map_bg_variants[0]
 
-func _safe_tex_load(path: String) -> Texture2D:
+func _safe_tex_load(path: String) -> Variant:
 	if ResourceLoader.exists(path):
 		return load(path)
 	return null
@@ -1041,6 +1041,8 @@ func _update_all_territories() -> void:
 func _update_territory_visual(idx: int) -> void:
 	if not tile_visuals.has(idx): return
 	var vis: Dictionary = tile_visuals[idx]
+	if idx < 0 or idx >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[idx]
 	var fk: String = _get_tile_faction_key(tile)
 	var bc: Color = FACTION_COLORS.get(fk, FACTION_COLORS["none"])
@@ -1412,6 +1414,8 @@ func _on_tile_clicked(tile_index: int) -> void:
 		return
 	var old_sel: int = selected_tile
 	var pid: int = GameManager.get_human_player_id()
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	if GameManager.selected_army_id >= 0:
 		var army: Dictionary = GameManager.get_army(GameManager.selected_army_id)
@@ -1522,6 +1526,8 @@ func show_attack_route(from_idx: int, to_idx: int) -> void:
 		var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
 		total_cost += float(terrain_data.get("move_cost", 1))
 	# Summary label at start
+	if from_idx < 0 or from_idx >= GameManager.tiles.size():
+		return
 	var start_tile: Dictionary = GameManager.tiles[from_idx]
 	var sp: Vector3 = start_tile["position_3d"]; var se: float = _get_elev(start_tile)
 	var summary_text: String = "路线: %d步 | AP%.0f" % [route.size(), total_cost]
@@ -1645,6 +1651,8 @@ func _flash_tile_capture(idx: int) -> void:
 	var vis: Dictionary = tile_visuals[idx]
 	var base_mi: MeshInstance3D = vis["base"]
 	if not is_instance_valid(base_mi): return
+	if idx < 0 or idx >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[idx]
 	var fk: String = _get_tile_faction_key(tile)
 	var fc: Color = FLAG_COLORS.get(fk, FLAG_COLORS["none"])
@@ -2209,6 +2217,8 @@ func _build_inter_tile_decorations() -> void:
 			break
 		if ti >= GameManager.tiles.size():
 			continue
+		if ti < 0 or ti >= GameManager.tiles.size():
+			return
 		var ta: Dictionary = GameManager.tiles[ti]
 		for ni in GameManager.adjacency[ti]:
 			if ni <= ti or ni >= GameManager.tiles.size():
@@ -2218,6 +2228,8 @@ func _build_inter_tile_decorations() -> void:
 			# Only place decorations along ~30% of edges for natural feel
 			if randf() > 0.30:
 				continue
+			if ni < 0 or ni >= GameManager.tiles.size():
+				return
 			var tb: Dictionary = GameManager.tiles[ni]
 			var pa: Vector3 = ta["position_3d"]
 			var pb: Vector3 = tb["position_3d"]
@@ -3033,6 +3045,8 @@ func _show_context_menu(tile_index: int) -> void:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
 	var pid: int = GameManager.get_human_player_id()
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var owner_id: int = tile.get("owner_id", -1)
 	var army: Dictionary = GameManager.get_army_at_tile_for_player(tile_index, pid)
@@ -3382,6 +3396,8 @@ func _request_attack_confirm(army_id: int, target_tile: int) -> void:
 	var army: Dictionary = GameManager.get_army(army_id)
 	if army.is_empty():
 		return
+	if target_tile < 0 or target_tile >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[target_tile]
 	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
 	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
@@ -3615,6 +3631,8 @@ func _show_hover_info(tile_index: int) -> void:
 	var pid: int = GameManager.get_human_player_id()
 	if not GameManager.is_revealed_for(tile_index, pid):
 		_hide_hover_info(); return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
 	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
@@ -4144,6 +4162,8 @@ func _spawn_conquest_ripple(tile_index: int) -> void:
 	## 占领地块后生成向外扩散的涟漪环效果。
 	if tile_index < 0 or tile_index >= GameManager.tiles.size(): return
 	if not tile_visuals.has(tile_index): return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var pos: Vector3 = tile["position_3d"]
 	var el: float = tile_visuals[tile_index].get("elevation", 0.0)

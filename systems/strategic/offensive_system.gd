@@ -88,7 +88,11 @@ func can_perform_action(tile_idx: int, action_id: String, target_tile_idx: int) 
 		return {"can": false, "reason": "未知行动"}
 	
 	var action = OFFENSIVE_ACTIONS[action_id]
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
+	if target_tile_idx < 0 or target_tile_idx >= GameManager.tiles.size():
+		return
 	var target_tile = GameManager.tiles[target_tile_idx]
 	
 	# 检查距离
@@ -135,7 +139,11 @@ func perform_action(tile_idx: int, action_id: String, target_tile_idx: int) -> D
 		return {"success": false, "reason": check["reason"]}
 	
 	var action = OFFENSIVE_ACTIONS[action_id]
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
+	if target_tile_idx < 0 or target_tile_idx >= GameManager.tiles.size():
+		return
 	var target_tile = GameManager.tiles[target_tile_idx]
 	var pid = tile.get("owner_id", -1)
 	
@@ -176,7 +184,11 @@ func perform_action(tile_idx: int, action_id: String, target_tile_idx: int) -> D
 func _execute_action(tile_idx: int, action_id: String, target_tile_idx: int) -> Dictionary:
 	var action = OFFENSIVE_ACTIONS[action_id]
 	var success = randf() < action["success_rate"]
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
+	if target_tile_idx < 0 or target_tile_idx >= GameManager.tiles.size():
+		return
 	var target_tile = GameManager.tiles[target_tile_idx]
 	var pid = tile.get("owner_id", -1)
 	var target_pid = target_tile.get("owner_id", -1)
@@ -269,6 +281,8 @@ func _calculate_distance(from_idx: int, to_idx: int) -> int:
 
 func _apply_target_debuff(tile_idx: int, mult: float, turns: int) -> void:
 	# 标记目标地块在指定回合内产出降低
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
 	if not tile.has("debuffs"):
 		tile["debuffs"] = {}

@@ -52,6 +52,8 @@ func init_neutral_territories() -> void:
 			for nb_idx in GameManager.adjacency[base_idx]:
 				if nb_idx >= GameManager.tiles.size():
 					continue
+				if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+					return
 				var nb: Dictionary = GameManager.tiles[nb_idx]
 				# Only claim unowned tiles that aren't other neutral bases or core fortresses
 				if nb.get("owner_id", -1) < 0 and nb.get("light_faction", -1) < 0 \
@@ -66,17 +68,20 @@ func init_neutral_territories() -> void:
 				var t_idx: int = candidates[c_idx]
 				territory.append(t_idx)
 				# Mark this tile as belonging to this neutral faction
-				GameManager.tiles[t_idx]["neutral_faction_id"] = nf_id
+				if t_idx >= 0 and t_idx < GameManager.tiles.size():
+					GameManager.tiles[t_idx]["neutral_faction_id"] = nf_id
 				# Set garrison for territory nodes
 				var gar: int = randi_range(
 					BalanceConfig.NEUTRAL_TERRITORY_GARRISON_MIN,
 					BalanceConfig.NEUTRAL_TERRITORY_GARRISON_MAX
 				)
-				GameManager.tiles[t_idx]["garrison"] = gar
+				if t_idx >= 0 and t_idx < GameManager.tiles.size():
+					GameManager.tiles[t_idx]["garrison"] = gar
 				initial_garrisons[t_idx] = gar
 				# Update tile name
 				var faction_name: String = FactionData.NEUTRAL_FACTION_NAMES.get(nf_id, "中立")
-				GameManager.tiles[t_idx]["name"] = faction_name + "领地 #" + str(t_idx)
+				if t_idx >= 0 and t_idx < GameManager.tiles.size():
+					GameManager.tiles[t_idx]["name"] = faction_name + "领地 #" + str(t_idx)
 
 		_faction_state[nf_id] = {
 			"base_tile": base_idx,
@@ -133,6 +138,8 @@ func _reinforce_garrisons(nf_id: int, state: Dictionary) -> void:
 	for t_idx in all_tiles:
 		if t_idx < 0 or t_idx >= GameManager.tiles.size():
 			continue
+		if t_idx < 0 or t_idx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[t_idx]
 		# Only reinforce tiles still belonging to this neutral faction
 		if tile.get("owner_id", -1) >= 0:
@@ -161,6 +168,8 @@ func _patrol_territory(nf_id: int, state: Dictionary) -> void:
 	for t_idx in all_tiles:
 		if t_idx < 0 or t_idx >= GameManager.tiles.size():
 			continue
+		if t_idx < 0 or t_idx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[t_idx]
 		if tile.get("owner_id", -1) >= 0 or tile.get("neutral_faction_id", -1) != nf_id:
 			continue
@@ -170,6 +179,8 @@ func _patrol_territory(nf_id: int, state: Dictionary) -> void:
 			for nb_idx in GameManager.adjacency[t_idx]:
 				if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
 					continue
+				if nb_idx < 0 or nb_idx >= GameManager.tiles.size():
+					return
 				var nb: Dictionary = GameManager.tiles[nb_idx]
 				if nb.get("owner_id", -1) >= 0:
 					threat += 1
@@ -195,7 +206,11 @@ func _patrol_territory(nf_id: int, state: Dictionary) -> void:
 
 	# Transfer garrison from least threatened to most threatened
 	if max_tile >= 0 and min_tile >= 0 and max_tile != min_tile and max_threat > 0:
+		if min_tile < 0 or min_tile >= GameManager.tiles.size():
+			return
 		var donor: Dictionary = GameManager.tiles[min_tile]
+		if max_tile < 0 or max_tile >= GameManager.tiles.size():
+			return
 		var receiver: Dictionary = GameManager.tiles[max_tile]
 		var transfer: int = mini(3, donor["garrison"] - BalanceConfig.NEUTRAL_TERRITORY_GARRISON_MIN)
 		if transfer > 0:
@@ -275,6 +290,8 @@ func get_vassal_production(player_id: int) -> Dictionary:
 		for t_idx in all_tiles:
 			if t_idx < 0 or t_idx >= GameManager.tiles.size():
 				continue
+			if t_idx < 0 or t_idx >= GameManager.tiles.size():
+				return
 			var tile: Dictionary = GameManager.tiles[t_idx]
 			if tile.get("owner_id", -1) >= 0:
 				continue  # tile captured by a player, skip
@@ -303,6 +320,8 @@ func get_vassal_production(player_id: int) -> Dictionary:
 		for t_idx in all_tiles:
 			if t_idx < 0 or t_idx >= GameManager.tiles.size():
 				continue
+			if t_idx < 0 or t_idx >= GameManager.tiles.size():
+				return
 			var tile: Dictionary = GameManager.tiles[t_idx]
 			if tile.get("owner_id", -1) >= 0:
 				continue
@@ -356,9 +375,11 @@ func on_tile_captured(tile_index: int, _new_owner_id: int) -> void:
 			for t_idx in state["territory"]:
 				if t_idx < GameManager.tiles.size():
 					if GameManager.tiles[t_idx].get("owner_id", -1) < 0:
-						GameManager.tiles[t_idx]["neutral_faction_id"] = -1
+						if t_idx >= 0 and t_idx < GameManager.tiles.size():
+							GameManager.tiles[t_idx]["neutral_faction_id"] = -1
 						@warning_ignore("integer_division")
-						GameManager.tiles[t_idx]["garrison"] = maxi(1, GameManager.tiles[t_idx]["garrison"] / 2)
+						if t_idx >= 0 and t_idx < GameManager.tiles.size():
+							GameManager.tiles[t_idx]["garrison"] = maxi(1, GameManager.tiles[t_idx]["garrison"] / 2)
 			state["territory"].clear()
 			break
 		elif tile_index in state["territory"]:
@@ -398,6 +419,8 @@ func reinforce_on_attack(tile_index: int) -> void:
 
 	var state: Dictionary = _faction_state[nf_id]
 	var all_tiles: Array = [state["base_tile"]] + state["territory"]
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var target_tile: Dictionary = GameManager.tiles[tile_index]
 
 	for t_idx in all_tiles:
@@ -409,6 +432,8 @@ func reinforce_on_attack(tile_index: int) -> void:
 		if tile_index not in GameManager.adjacency[t_idx]:
 			continue
 
+		if t_idx < 0 or t_idx >= GameManager.tiles.size():
+			return
 		var donor: Dictionary = GameManager.tiles[t_idx]
 		if donor.get("owner_id", -1) >= 0 or donor.get("neutral_faction_id", -1) != nf_id:
 			continue

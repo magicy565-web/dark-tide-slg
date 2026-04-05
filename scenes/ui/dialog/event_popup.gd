@@ -329,7 +329,7 @@ func _is_conquest_popup() -> Variant:
 
 
 # P0-FIX: 加载图片资源的安全函数
-func _safe_load_tex(path: String) -> Texture2D:
+func _safe_load_tex(path: String) -> Variant:
 	if ResourceLoader.exists(path):
 		return load(path)
 	return null

@@ -29,7 +29,7 @@ func _ready() -> void:
 
 # ═══════════════ SYNCHRONOUS API ═══════════════
 
-func get_texture(path: String, fallback: Texture2D = null) -> Texture2D:
+func get_texture(path: String, fallback: Texture2D = null) -> Variant:
 	## Load and cache a texture. Returns fallback if load fails.
 	if _cache.has(path):
 		_cache_hits += 1

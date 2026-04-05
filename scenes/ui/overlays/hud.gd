@@ -42,7 +42,7 @@ var _frame_parchment: Texture2D
 var _frame_action_bar: Texture2D
 var _frame_dialog: Texture2D
 
-func _safe_load(path: String) -> Resource:
+func _safe_load(path: String) -> Variant:
 	if ResourceLoader.exists(path):
 		return load(path)
 	return null
@@ -1368,6 +1368,10 @@ func _on_attack_army_selected(army_id: int) -> void:
 		return
 
 	for tidx in attackable:
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[tidx]
 		var label_text: String = "%s (Lv%d)" % [tile["name"], tile["level"]]
 		if tile["garrison"] > 0:
@@ -1426,6 +1430,10 @@ func _on_deploy_army_selected(army_id: int) -> void:
 		return
 
 	for tidx in deployable:
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[tidx]
 		_add_target_button("%s (Lv%d)" % [tile["name"], tile["level"]], _on_deploy_target.bind(tidx))
 
@@ -1517,6 +1525,10 @@ func _show_march_targets(army_id: int) -> void:
 	for tidx in candidates:
 		if shown >= 30:
 			break
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
 		var tile: Dictionary = GameManager.tiles[tidx]
 		var path: Array = MarchSystem.find_path(from_tile, tidx) if MarchSystem != null else []
 		if path.is_empty():
@@ -1803,6 +1815,10 @@ func _find_battle_prep():
 
 ## v5.0: Show siege options sub-menu for fortified tiles.
 func _show_siege_options(tile_index: int, army_id: int, siege_in_progress: bool) -> void:
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
@@ -2236,6 +2252,10 @@ func _on_domestic_recruit() -> void:
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		_show_target_panel("Recruit - Select Troop")
 		_add_target_label("(No valid tile selected)")
+		return
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 
@@ -2742,6 +2762,10 @@ func _on_domestic_build_tile(tile_index: int) -> void:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
 	var pid: int = GameManager.get_human_player_id()
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var available: Array = BuildingRegistry.get_available_buildings_for(pid, tile)
 
@@ -3769,6 +3793,10 @@ func _update_tile_info() -> void:
 			if GameManager.tiles[i]["owner_id"] == pid:
 				tile_idx = i
 				break
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 	var type_name: String = GameManager.TILE_NAMES.get(tile["type"], "Unknown")
 
@@ -4056,6 +4084,10 @@ func _on_territory_selected(tile_index: int) -> void:
 
 func _update_tile_info_for(tile_index: int) -> void:
 	if GameManager.tiles.is_empty():
+		return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
@@ -5151,6 +5183,10 @@ func _ensure_fortress_panel() -> void:
 func open_tile_specialized_panel(tile_idx: int) -> void:
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile = GameManager.tiles[tile_idx]
 	var tile_type: int = tile.get("type", -1)
 
@@ -5308,7 +5344,7 @@ func _format_reward_dict(reward: Dictionary) -> String:
 
 var _terrain_info_panel: Control = null
 
-func _ensure_terrain_info_panel() -> Control:
+func _ensure_terrain_info_panel() -> Variant:
 	if _terrain_info_panel == null or not is_instance_valid(_terrain_info_panel):
 		var script = load("res://scenes/ui/panels/terrain_info_panel.gd")
 		if script == null:

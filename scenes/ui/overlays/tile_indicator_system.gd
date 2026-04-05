@@ -257,6 +257,8 @@ func _update_tile_indicators(tile_idx: int) -> void:
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return
 
+	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
+		return
 	var tile_data: Dictionary = GameManager.tiles[tile_idx]
 	if tile_data == null or tile_data.is_empty():
 		return
@@ -939,7 +941,7 @@ func _resolve_board() -> void:
 	_board = _find_board_recursive(get_tree().root)
 
 
-func _find_board_recursive(node: Node) -> Node:
+func _find_board_recursive(node: Node) -> Variant:
 	if node.get("tile_visuals") is Dictionary:
 		return node
 	for child in node.get_children():

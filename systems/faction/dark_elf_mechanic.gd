@@ -226,6 +226,8 @@ func start_corruption(player_id: int, tile_index: int) -> bool:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		EventBus.message_log.emit("[color=red]无效的地块索引![/color]")
 		return false
+	if tile_index < 0 or tile_index >= GameManager.tiles.size():
+		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	if tile.get("owner_id", -1) != -1:
 		EventBus.message_log.emit("[color=red]该地块已有所属, 无法腐蚀![/color]")

@@ -153,6 +153,8 @@ func tick_rebellion(player_id: int) -> void:
 		for n_idx in range(GameManager.tiles.size()):
 			if n_idx < 0 or n_idx >= GameManager.tiles.size():
 				continue
+			if n_idx < 0 or n_idx >= GameManager.tiles.size():
+				return
 			var tile: Dictionary = GameManager.tiles[n_idx]
 			# BUG FIX R18: use .get() for owner_id
 			if tile.get("owner_id", -1) != player_id:
@@ -390,7 +392,7 @@ func _has_autoload(aname: String) -> bool:
 	return false
 
 
-func _get_autoload(aname: String) -> Node:
+func _get_autoload(aname: String) -> Variant:
 	var tree := Engine.get_main_loop()
 	if tree is SceneTree:
 		var root: Node = (tree as SceneTree).root
