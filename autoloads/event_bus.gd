@@ -529,3 +529,39 @@ signal human_hero_deployed(hero_id: String, tile_index: int)
 signal human_noble_defected(noble_name: String)
 ## Emitted when a human kingdom event requires player choice.
 signal human_event_choice_requested(event_id: String, player_id: int, event_data: Dictionary)
+
+# ── Quest Chain System (v1.0) ──
+## 当一条任务链被激活时发射（首次满足触发条件）。
+signal quest_chain_started(chain_id: String)
+## 当链内某个节点从 LOCKED 变为 AVAILABLE 时发射。
+signal quest_chain_node_unlocked(chain_id: String, node_id: String)
+## 当链内某个节点完成时发射。
+signal quest_chain_node_completed(chain_id: String, node_id: String)
+## 当链内某个节点失败时发射。
+signal quest_chain_node_failed(chain_id: String, node_id: String)
+## 当玩家在分支节点做出选择后发射。
+signal quest_chain_branched(chain_id: String, parent_node_id: String, chosen_branch: String)
+## 当整条任务链完成时发射。
+signal quest_chain_completed(chain_id: String)
+## 当任务链中的事件节点被触发时发射（附带弹窗数据）。
+signal quest_chain_event_triggered(chain_id: String, node_id: String, popup_data: Dictionary)
+## 当任务链需要玩家主动选择分支时发射（UI 应显示选择对话框）。
+signal quest_chain_branch_requested(chain_id: String, node_id: String, options: Array)
+## 当玩家通过 UI 选择了分支时发射（由 UI 层发射，QuestChainManager 监听）。
+signal quest_chain_branch_chosen(chain_id: String, node_id: String, chosen_node_id: String)
+## 当任务链奖励被发放时发射。
+signal quest_chain_reward_applied(chain_id: String, node_id: String, reward: Dictionary)
+## 当任务链设置了一个全局标记时发射。
+signal quest_chain_flag_set(flag_id: String)
+## 当任务链解锁了终局内容时发射。
+signal quest_chain_endgame_unlocked(chain_id: String)
+## 当任务链 UI 面板需要刷新时发射。
+signal quest_chain_ui_refresh_requested()
+
+# ── Chain Event Composer (v1.0) ──
+## 当事件组合器的全局标记发生变化时发射。
+signal chain_event_flag_changed(flag_id: String, value: Variant)
+## 当一个事件序列完成时发射。
+signal chain_event_sequence_completed(sequence_id: String)
+## 当事件组合器处理了一个延迟事件时发射。
+signal chain_event_delayed_fired(event_id: String)

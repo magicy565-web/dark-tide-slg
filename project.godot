@@ -102,6 +102,10 @@ ExtraEventsV5="*res://systems/event/extra_events_v5.gd"
 QuestProgressTracker="*res://systems/quest/quest_progress_tracker.gd"
 EventScheduler="*res://systems/event/event_scheduler.gd"
 AssetLoader="*res://autoloads/asset_loader.gd"
+QuestChainManager="*res://systems/quest/quest_chain_manager.gd"
+ChainEventComposer="*res://systems/event/chain_event_composer.gd"
+QuestChainBranchDialog="*res://scenes/ui/dialog/quest_chain_branch_dialog.gd"
+ChainEventLogPanel="*res://scenes/ui/panels/chain_event_log_panel.gd"
 
 [debug]
 
