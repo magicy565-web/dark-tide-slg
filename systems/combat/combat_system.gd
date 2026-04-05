@@ -6,12 +6,13 @@ extends RefCounted
 const FactionData = preload("res://systems/faction/faction_data.gd")
 const CounterMatrix = preload("res://systems/combat/counter_matrix.gd")
 const FormationSystem = preload("res://systems/combat/formation_system.gd")
-const BalanceConfig = preload("res://systems/combat/balance_config.gd")
+const BalanceConfig = preload("res://systems/balance/balance_config.gd")
 # v10.6: Integration with previously disconnected subsystems
 const CombatAbilities = preload("res://systems/combat/combat_abilities.gd")
 const EnvironmentSystem = preload("res://systems/combat/environment_system.gd")
 const SupplySystem = preload("res://systems/combat/supply_system.gd")
-const EnchantmentSystem = preload("res://systems/hero/enchantment_system.gd")
+# EnchantmentSystem is an autoload singleton — accessed via Engine.get_singleton at runtime
+# const EnchantmentSystem = preload("res://systems/hero/enchantment_system.gd")  # removed: non-static call
 
 # ---------------------------------------------------------------------------
 # Constants & Enums
@@ -602,7 +603,8 @@ func _execute_action(unit: BattleUnit, state: BattleState) -> Dictionary:
 		_apply_poison(unit, target, state)
 	# v10.6: EnchantmentSystem — apply hero enchantment passive after each attack
 	if not unit.hero_id.is_empty():
-		var ench_result: Dictionary = EnchantmentSystem.apply_enchantment_in_combat(unit.hero_id, entry)
+		var _ench_sys = Engine.get_singleton("EnchantmentSystem") if Engine.has_singleton("EnchantmentSystem") else null
+		var ench_result: Dictionary = _ench_sys.apply_enchantment_in_combat(unit.hero_id, entry) if _ench_sys else {}
 		var ench_effects: Array = ench_result.get("enchantment_effects", [])
 		for eff in ench_effects:
 			var eff_type: String = eff.get("type", "")

@@ -1,5 +1,5 @@
 ## main.gd - Root scene controller for 暗潮 SLG (v3.5)
-## Manages game flow: MainMenu -> FactionSelect -> GameStart -> Gameplay
+## Manages game flow: LoginScreen -> MainMenu -> FactionSelect -> GameStart -> Gameplay
 extends Node3D
 
 # ── Scene refs ──
@@ -69,9 +69,23 @@ var nation_panel = null
 var multi_route_panel = null
 
 
+# ── Login screen (created at runtime) ──
+var login_screen = null
+
 func _ready() -> void:
 	# Start with HUD hidden, menu visible (board stays visible - camera needs it)
 	hud.visible = false
+	# Hide main menu until login completes
+	main_menu.visible = false
+
+	# ── 创建登录界面 ──
+	var LoginScreenScript = preload("res://scenes/ui/system/login_screen.gd")
+	login_screen = CanvasLayer.new()
+	login_screen.set_script(LoginScreenScript)
+	login_screen.name = "LoginScreen"
+	add_child(login_screen)
+	if login_screen.has_signal("login_completed"):
+		login_screen.login_completed.connect(_on_login_completed)
 
 	# Connect main menu signals
 	main_menu.game_started.connect(_on_game_started)
@@ -268,6 +282,22 @@ func _ready() -> void:
 	# ── Register panels with PanelManager ──
 	_register_panels()
 
+
+## 登录完成回调 — 隐藏登录界面，显示主菜单
+func _on_login_completed(username: String, is_guest: bool) -> void:
+	print("[Main] 登录完成: %s (guest=%s)" % [username, str(is_guest)])
+	# 隐藏登录界面
+	if login_screen and login_screen.has_method("hide"):
+		login_screen.visible = false
+	# 显示主菜单
+	main_menu.visible = true
+	if main_menu.has_method("show_menu"):
+		main_menu.show_menu()
+	# 在 HUD 显示欢迎信息
+	var welcome_msg := "欢迎回来，%s！" % username
+	if is_guest:
+		welcome_msg = "游客模式: %s" % username
+	EventBus.message_log.emit("[color=cyan]%s[/color]" % welcome_msg)
 
 func _on_game_started(faction_id: int, fixed_map: bool = false) -> void:
 	# Show the HUD

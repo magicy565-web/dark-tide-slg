@@ -780,10 +780,9 @@ func _build_section_building(tile: Dictionary) -> void:
 	var tile_idx: int = tile.get("index", -1)
 	if tile_idx >= 0:
 		var strat_val: int = 1
-		# TerritoryEffects is a class (not autoload), call via static method
-		if TerritoryEffects.has_method("get_strategic_value"):
-			strat_val = TerritoryEffects.get_strategic_value(tile_idx)
-		elif GameManager.has_method("get_chokepoint_strategic_value"):
+		# TerritoryEffects has static methods — call directly without has_method check
+		strat_val = TerritoryEffects.get_strategic_value(tile_idx)
+		if strat_val <= 0 and GameManager.has_method("get_chokepoint_strategic_value"):
 			strat_val = int(GameManager.get_chokepoint_strategic_value(tile_idx))
 		var star_str: String = ""
 		for _si in range(mini(strat_val, 10)):
