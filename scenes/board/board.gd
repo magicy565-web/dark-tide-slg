@@ -599,80 +599,57 @@ func _build_settlement(parent: Node3D, tile: Dictionary) -> void:
 	var icon_key: String = _get_settlement_icon_key(tile)
 	var tex: Texture2D = _settlement_textures.get(icon_key, null)
 	if tex != null:
-		# Use AI-generated sprite instead of procedural geometry
-		var sprite := Sprite3D.new()
-		sprite.texture = tex
-		sprite.pixel_size = 0.012
-		sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
-		sprite.axis = Vector3.AXIS_Y
-		# Flat on top of hex, facing up
-		sprite.rotation_degrees = Vector3(-90, 0, 0)
-		var sscale: float = 0.8 + level * 0.2
-		if tt == GameManager.TileType.CORE_FORTRESS:
-			sscale = 1.4
-		# Level 3: slightly larger icon for progression feel
-		if effective_level >= 3:
-			sscale *= 1.1
-		sprite.scale = Vector3(sscale, sscale, sscale)
-		sprite.position = Vector3(0, y + 0.02, 0)
-		sprite.modulate = Color(1, 1, 1, 0.9)
-		# Level-based tinting on flat sprite
-		if effective_level >= 3:
-			sprite.modulate = Color(1.15, 1.05, 0.85, 0.95)
-		elif effective_level >= 2:
-			sprite.modulate = Color(1.05, 1.0, 0.88, 0.92)
-		parent.add_child(sprite)
-		# Also add a small upright billboard version for visibility from camera angle
+		# ── 单一 Billboard Sprite3D（已移除冗余的平铺层和独立发光层）──
+		# 设计说明：
+		#   - 原有三层（平铺层 + billboard层 + 发光层）从俯视角看完全叠加，造成视觉堆叠
+		#   - 现改为仅保留一个 billboard Sprite3D，通过 modulate 颜色表达等级发光效果
+		#   - billboard 会自动朝向摄像机，斜视角和俯视角下均可正常显示
 		var billboard := Sprite3D.new()
 		billboard.texture = tex
-		billboard.pixel_size = 0.008
+		billboard.pixel_size = 0.010
 		billboard.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		billboard.no_depth_test = true
 		billboard.name = "SettlementBillboard"
-		var bscale: float = 0.6 + level * 0.15
+		var bscale: float = 0.7 + level * 0.18
 		if tt == GameManager.TileType.CORE_FORTRESS:
-			bscale = 1.0
+			bscale = 1.1
 		if effective_level >= 3:
 			bscale *= 1.12
 		billboard.scale = Vector3(bscale, bscale, bscale)
-		billboard.position = Vector3(0, y + 0.6 + level * 0.1, 0)
-		billboard.modulate = Color(1, 1, 1, 0.85)
-		# Level-based tinting on billboard
+		billboard.position = Vector3(0, y + 0.55 + level * 0.08, 0)
+		# ── 等级颜色调制（替代独立发光层）──
+		# level 1: 正常白色；level 2: 轻微金色；level 3: 明显金色发光
 		if effective_level >= 3:
-			billboard.modulate = Color(1.15, 1.05, 0.85, 0.9)
+			billboard.modulate = Color(1.18, 1.08, 0.82, 0.95)  # 金色发光
 		elif effective_level >= 2:
-			billboard.modulate = Color(1.05, 1.0, 0.88, 0.88)
+			billboard.modulate = Color(1.08, 1.02, 0.90, 0.92)  # 轻微金色
+		else:
+			billboard.modulate = Color(1.0, 1.0, 1.0, 0.90)     # 正常
 		parent.add_child(billboard)
-		# ── Level-based golden glow outline (levels 2+) ──
+		# ── 等级发光：用 OmniLight3D 替代第三个 Sprite3D ──
+		# level 2+ 在据点下方添加一个微弱点光源，产生发光氛围感
 		if effective_level >= 2:
-			var glow := Sprite3D.new()
-			glow.texture = tex
-			glow.pixel_size = billboard.pixel_size * 1.15
-			glow.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-			glow.no_depth_test = true
-			glow.name = "LevelGlow"
-			var glow_scale: float = bscale * 1.18
+			var glow_light := OmniLight3D.new()
+			glow_light.name = "LevelGlow"
+			glow_light.omni_range = 0.8 + effective_level * 0.3
+			glow_light.light_energy = 0.4 + (effective_level - 2) * 0.25
 			if effective_level >= 3:
-				glow_scale = bscale * 1.25
-			glow.scale = Vector3(glow_scale, glow_scale, glow_scale)
-			glow.position = billboard.position
-			# Golden glow: brighter for level 3
-			if effective_level >= 3:
-				glow.modulate = Color(1.0, 0.85, 0.3, 0.35)
+				glow_light.light_color = Color(1.0, 0.85, 0.3)  # 金色
 			else:
-				glow.modulate = Color(1.0, 0.88, 0.4, 0.2)
-			parent.add_child(glow)
-			# Pulsing glow animation
+				glow_light.light_color = Color(0.9, 0.85, 0.5)  # 暖黄
+			glow_light.position = Vector3(0, y + 0.3, 0)
+			parent.add_child(glow_light)
+			# 脉冲动画（光源能量）
 			var glow_tw := create_tween()
 			glow_tw.set_loops()
-			var glow_bright: float = glow.modulate.a + 0.12
-			var glow_dim: float = glow.modulate.a - 0.05
-			glow_tw.tween_property(glow, "modulate:a", glow_bright, 1.2).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-			glow_tw.tween_property(glow, "modulate:a", glow_dim, 1.2).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-		# ── Star/pip level indicators below billboard ──
+			var energy_bright: float = glow_light.light_energy + 0.15
+			var energy_dim: float   = glow_light.light_energy - 0.08
+			glow_tw.tween_property(glow_light, "light_energy", energy_bright, 1.2).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+			glow_tw.tween_property(glow_light, "light_energy", energy_dim,   1.2).set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
+		# ── Star/pip level indicators ──
 		if effective_level >= 1:
 			_add_level_stars(parent, billboard.position, effective_level)
-		# Subtle breathing animation for settlement icon
+		# ── 核心要塞呼吸动画 ──
 		if tt == GameManager.TileType.CORE_FORTRESS:
 			var tw := create_tween()
 			tw.set_loops()
@@ -811,14 +788,14 @@ func _play_upgrade_flash(idx: int) -> void:
 	# Return to new appearance
 	tw.tween_property(billboard, "modulate", original_mod, 0.3).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 	tw.tween_callback(func(): _upgrade_flash_tiles.erase(idx))
-	# Also flash the glow layer if present
+	# Also flash the glow light if present (LevelGlow is now OmniLight3D)
 	var glow_node = sett_node.get_node_or_null("LevelGlow")
-	if glow_node and is_instance_valid(glow_node):
-		var glow_orig: Color = glow_node.modulate
+	if glow_node and is_instance_valid(glow_node) and glow_node is OmniLight3D:
+		var glow_orig_energy: float = glow_node.light_energy
 		var gtw := create_tween()
-		gtw.tween_property(glow_node, "modulate", Color(1.5, 1.3, 0.6, 0.7), 0.12).set_ease(Tween.EASE_OUT)
+		gtw.tween_property(glow_node, "light_energy", glow_orig_energy * 3.0, 0.12).set_ease(Tween.EASE_OUT)
 		gtw.tween_interval(0.08)
-		gtw.tween_property(glow_node, "modulate", glow_orig, 0.35).set_ease(Tween.EASE_IN)
+		gtw.tween_property(glow_node, "light_energy", glow_orig_energy, 0.35).set_ease(Tween.EASE_IN)
 
 func _add_house(p: Node3D, y: float, o: Vector3) -> void:
 	var h := _make_box_mesh(Vector3(0.18, 0.15, 0.18), Color(0.6, 0.5, 0.38))
