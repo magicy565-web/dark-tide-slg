@@ -1008,17 +1008,33 @@ func _build_battle_unit(raw: Dictionary, player_id: int, side: String, tile: Dic
 		elif story_flags.get("shion_slow_rebuild", false):
 			int_stat += 3; base_def += 1
 
-	# ── Terrain modifiers (data-driven from TERRAIN_DATA) ──
+	# ── Terrain modifiers (v1.4.0: 通过 TerrainTileBridge 获取完整地形+天气交叉修正) ──
 	var terrain_type: int = tile.get("terrain", FactionData.TerrainType.PLAINS)
 	var terrain_data: Dictionary = FactionData.TERRAIN_DATA.get(terrain_type, {})
 	var is_attacker: bool = (side == "attacker")
 
+	# 获取地形+天气完整战斗修正
+	var terrain_combat_mods: Dictionary = {}
+	if Engine.get_main_loop() is SceneTree:
+		var _ttb_root2: Node = (Engine.get_main_loop() as SceneTree).root
+		var _ttb2: Node = null
+		if _ttb_root2.has_node("GameManager/TerrainTileBridge"):
+			_ttb2 = _ttb_root2.get_node("GameManager/TerrainTileBridge")
+		elif _ttb_root2.has_node("TerrainTileBridge"):
+			_ttb2 = _ttb_root2.get_node("TerrainTileBridge")
+		else:
+			_ttb2 = _ttb_root2.find_child("TerrainTileBridge", true, false)
+		if _ttb2 != null:
+			terrain_combat_mods = _ttb2.get_tile_combat_mods(tile)
+	var effective_atk_mult: float = terrain_combat_mods.get("atk_mult", terrain_data.get("atk_mult", 1.0))
+	var effective_def_mult: float = terrain_combat_mods.get("def_mult", terrain_data.get("def_mult", 1.0))
+
 	var has_ignore_terrain: bool = "ignore_terrain" in passives or "shadow_flight" in passives
 	if not has_ignore_terrain:
 		if is_attacker:
-			base_atk *= terrain_data.get("atk_mult", 1.0)
+			base_atk *= effective_atk_mult
 		else:
-			base_def *= terrain_data.get("def_mult", 1.0)
+			base_def *= effective_def_mult
 		var troop_base: String = _get_troop_base_type(unit_type)
 		var um: Dictionary = terrain_data.get("unit_mods", {}).get(troop_base, {})
 		if um.get("ban", false):

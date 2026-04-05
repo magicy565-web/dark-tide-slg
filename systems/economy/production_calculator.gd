@@ -54,6 +54,19 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		# Building level production bonus
 		var building_prod_bonus: float = _get_building_level_bonus(tile)
 
+		# v1.4.0: 地形差异化生产修正（通过 TerrainTileBridge 获取完整修正）
+		var terrain_prod_mods: Dictionary = {}
+		if Engine.get_main_loop() is SceneTree:
+			var _ttb_root: Node = (Engine.get_main_loop() as SceneTree).root
+			var _ttb_prod: Node = null
+			if _ttb_root.has_node("GameManager/TerrainTileBridge"):
+				_ttb_prod = _ttb_root.get_node("GameManager/TerrainTileBridge")
+			elif _ttb_root.has_node("TerrainTileBridge"):
+				_ttb_prod = _ttb_root.get_node("TerrainTileBridge")
+			else:
+				_ttb_prod = _ttb_root.find_child("TerrainTileBridge", true, false)
+			if _ttb_prod != null:
+				terrain_prod_mods = _ttb_prod.get_tile_production_mods(tile)
 		var terrain_prod_mult: float = FactionData.TERRAIN_DATA.get(tile.get("terrain", FactionData.TerrainType.PLAINS), {}).get("production_mult", 1.0)
 
 		var tile_mult: float = level_mult * (1.0 + building_prod_bonus) * terrain_prod_mult
@@ -62,9 +75,15 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		var tile_order: float = tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT)
 		var tile_order_mult: float = get_tile_order_multiplier(tile_order)
 
-		var g: int = int(roundf(float(base.get("gold", 0)) * tile_mult * gold_base_mult * tile_order_mult))
-		var f: int = int(roundf(float(base.get("food", 0)) * tile_mult * food_base_mult * tile_order_mult))
-		var ir: int = int(roundf(float(base.get("iron", 0)) * tile_mult * iron_base_mult * tile_order_mult))
+		# v1.4.0: 应用地形差异化修正（金币/簮食/铁矿各自独立修正）
+		var terrain_gold_mult: float = terrain_prod_mods.get("gold_mult", 1.0)
+		var terrain_food_mult: float = terrain_prod_mods.get("food_mult", 1.0)
+		var terrain_iron_mult: float = terrain_prod_mods.get("iron_mult", 1.0)
+		var terrain_wood_bonus: int = terrain_prod_mods.get("wood_bonus", 0)
+		var terrain_crystal_mult: float = terrain_prod_mods.get("magic_crystal_mult", 1.0)
+		var g: int = int(roundf(float(base.get("gold", 0)) * tile_mult * gold_base_mult * tile_order_mult * terrain_gold_mult))
+		var f: int = int(roundf(float(base.get("food", 0)) * tile_mult * food_base_mult * tile_order_mult * terrain_food_mult))
+		var ir: int = int(roundf(float(base.get("iron", 0)) * tile_mult * iron_base_mult * tile_order_mult * terrain_iron_mult))
 
 		# ── Supply line & classification production modifier ──
 		var _supply_mod: float = SupplySystem.get_tile_production_modifier(player_id, tile.get("index", -1))
@@ -76,6 +95,17 @@ func calculate_turn_income(player_id: int) -> Dictionary:
 		income["gold"] += g
 		income["food"] += f
 		income["iron"] += ir
+
+		# v1.4.0: 地形木材和魔晶加成
+		if terrain_wood_bonus > 0:
+			# 木材当前用 iron 字段代替（如有专用资源字段可扩展）
+			if income.has("wood"):
+				income["wood"] += terrain_wood_bonus
+			else:
+				income["iron"] += terrain_wood_bonus  # 暂时映射到铁矿
+		if terrain_crystal_mult != 1.0 and income.has("magic_crystal"):
+			var crystal_before: int = income["magic_crystal"]
+			income["magic_crystal"] = int(float(income["magic_crystal"]) * terrain_crystal_mult)
 
 		# ── Building bonuses ──
 		var bld: String = tile.get("building_id", "")

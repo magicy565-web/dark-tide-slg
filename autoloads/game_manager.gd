@@ -363,6 +363,7 @@ var development_path_system: Node = null
 var cave_system: Node = null
 var village_system: Node = null
 var fortress_system: Node = null
+var terrain_tile_bridge: Node = null
 
 # ── Conquest choice state ──
 var _pending_conquest_tile_index: int = -1
@@ -486,6 +487,12 @@ func _ready() -> void:
 	fortress_system = FortressSystem.new()
 	fortress_system.name = "FortressSystem"
 	add_child(fortress_system)
+
+	# v1.4.0: 地形-地块深度连接系统
+	var TerrainTileBridgeClass = preload("res://systems/map/terrain_tile_bridge.gd")
+	terrain_tile_bridge = TerrainTileBridgeClass.new()
+	terrain_tile_bridge.name = "TerrainTileBridge"
+	add_child(terrain_tile_bridge)
 
 	if not _event_choice_connected:
 		EventBus.event_choice_selected.connect(_on_random_event_choice)
@@ -2413,6 +2420,9 @@ func end_turn() -> void:
 		village_system.process_turn()
 	if fortress_system:
 		fortress_system.process_turn()
+	# v1.4.0: 地形改造进度推进和地形减员
+	if terrain_tile_bridge:
+		terrain_tile_bridge.process_turn()
 	# BUG FIX: bounds check before accessing players array
 	if players.is_empty() or current_player_index < 0 or current_player_index >= players.size():
 		return

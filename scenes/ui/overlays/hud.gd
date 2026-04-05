@@ -328,6 +328,15 @@ func _connect_signals() -> void:
 		EventBus.fortress_defense_victory.connect(_on_fortress_defense_victory)
 	if EventBus.has_signal("open_fortress_panel_requested"):
 		EventBus.open_fortress_panel_requested.connect(_on_open_fortress_panel_requested)
+	# v1.4.0: 地形信息面板信号
+	if EventBus.has_signal("open_terrain_info_panel_requested"):
+		EventBus.open_terrain_info_panel_requested.connect(_on_open_terrain_info_panel_requested)
+	if EventBus.has_signal("terrain_transform_completed"):
+		EventBus.terrain_transform_completed.connect(_on_terrain_transform_completed)
+	if EventBus.has_signal("road_construction_completed"):
+		EventBus.road_construction_completed.connect(_on_road_construction_completed)
+	if EventBus.has_signal("terrain_attrition_applied"):
+		EventBus.terrain_attrition_applied.connect(_on_terrain_attrition_applied)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -5278,3 +5287,65 @@ func _format_reward_dict(reward: Dictionary) -> String:
 	if reward.get("garrison", 0) > 0: parts.append("+%d驻军" % reward["garrison"])
 	if reward.get("research", 0) > 0: parts.append("+%d研究" % reward["research"])
 	return ", ".join(parts) if not parts.is_empty() else "无"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# v1.4.0 — 地形信息面板集成
+# ══════════════════════════════════════════════════════════════════════════════
+
+var _terrain_info_panel: Control = null
+
+func _ensure_terrain_info_panel() -> Control:
+	if _terrain_info_panel == null or not is_instance_valid(_terrain_info_panel):
+		var script = load("res://scenes/ui/panels/terrain_info_panel.gd")
+		if script == null:
+			return null
+		_terrain_info_panel = script.new()
+		_terrain_info_panel.name = "TerrainInfoPanel"
+		_terrain_info_panel.z_index = 20
+		add_child(_terrain_info_panel)
+		# 居中显示
+		_terrain_info_panel.set_anchors_preset(Control.PRESET_CENTER)
+	return _terrain_info_panel
+
+
+func _on_open_terrain_info_panel_requested(tile_idx: int) -> void:
+	var panel: Control = _ensure_terrain_info_panel()
+	if panel and panel.has_method("show_terrain_info"):
+		panel.show_terrain_info(tile_idx)
+
+
+func _on_terrain_transform_completed(tile_idx: int, old_terrain: int, new_terrain: int) -> void:
+	# 如果地形面板正在显示该地块，刷新它
+	if _terrain_info_panel != null and is_instance_valid(_terrain_info_panel) and _terrain_info_panel.visible:
+		if _terrain_info_panel.get("_current_tile_idx") == tile_idx:
+			_terrain_info_panel.call("_refresh")
+	# 刷新地图显示
+	var tile_name: String = _safe_tile_name(tile_idx)
+	EventBus.message_log.emit("[color=gold]🗺 【地形改造完成】%s 地形已改变！[/color]" % tile_name)
+
+
+func _on_road_construction_completed(tile_idx: int) -> void:
+	if _terrain_info_panel != null and is_instance_valid(_terrain_info_panel) and _terrain_info_panel.visible:
+		if _terrain_info_panel.get("_current_tile_idx") == tile_idx:
+			_terrain_info_panel.call("_refresh")
+	var tile_name: String = _safe_tile_name(tile_idx)
+	EventBus.message_log.emit("[color=lime]🛤 【筑路完成】%s 道路建设完成，移动消耗降低！[/color]" % tile_name)
+
+
+func _on_terrain_attrition_applied(tile_idx: int, terrain_name: String, soldiers_lost: int) -> void:
+	var tile_name: String = _safe_tile_name(tile_idx)
+	EventBus.message_log.emit("[color=orange]💀 【地形减员】%s（%s）：驻军减少 %d 人[/color]" % [tile_name, terrain_name, soldiers_lost])
+
+
+# ── 地形信息按钮注入（在省份信息面板中追加"地形详情"按钮）──
+func _inject_terrain_info_button(tile_idx: int, parent_container: Control) -> void:
+	if not is_instance_valid(parent_container):
+		return
+	var terrain_btn := Button.new()
+	terrain_btn.text = "🗺 地形详情"
+	terrain_btn.tooltip_text = "查看地形详情、天气效果、改造选项"
+	terrain_btn.pressed.connect(func():
+		EventBus.open_terrain_info_panel_requested.emit(tile_idx)
+	)
+	parent_container.add_child(terrain_btn)

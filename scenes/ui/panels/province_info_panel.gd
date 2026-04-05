@@ -335,6 +335,26 @@ func _build_quick_action_bar(tile: Dictionary, prov_type: int) -> void:
 		btn.pressed.connect(func(): _on_quick_action_pressed(action_copy, tile))
 		quick_action_bar.add_child(btn)
 
+	# v1.4.0: 地形详情按鈕（所有地块类型均显示）
+	var terrain_btn := Button.new()
+	terrain_btn.text = "🗺 地形"
+	terrain_btn.tooltip_text = "查看地形详情、天气交叉效果、改造选项"
+	terrain_btn.custom_minimum_size = Vector2(80, 32)
+	terrain_btn.add_theme_font_size_override("font_size", 13)
+	var terrain_style := StyleBoxFlat.new()
+	terrain_style.bg_color = Color(0.1, 0.2, 0.3, 0.9)
+	terrain_style.border_color = Color(0.4, 0.7, 1.0)
+	terrain_style.set_border_width_all(1)
+	terrain_style.set_corner_radius_all(4)
+	terrain_btn.add_theme_stylebox_override("normal", terrain_style)
+	terrain_btn.add_theme_color_override("font_color", Color(0.6, 0.9, 1.0))
+	var tile_idx_copy: int = tile.get("index", -1)
+	terrain_btn.pressed.connect(func():
+		if EventBus.has_signal("open_terrain_info_panel_requested"):
+			EventBus.open_terrain_info_panel_requested.emit(tile_idx_copy)
+	)
+	quick_action_bar.add_child(terrain_btn)
+
 # ═══════════════════════════════════════════════════════════════
 #                    内容区块构建函数
 # ═══════════════════════════════════════════════════════════════

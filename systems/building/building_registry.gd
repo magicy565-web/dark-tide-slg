@@ -748,6 +748,55 @@ func get_available_buildings_for(player_id: int, tile: Dictionary) -> Array:
 			"category": "resource_station",
 		})
 
+	# v1.4.0: TerrainTileBridge 地形解锁特殊建筑
+	var _ttb_bld: Node = null
+	if Engine.get_main_loop() is SceneTree:
+		var _bld_root: Node = (Engine.get_main_loop() as SceneTree).root
+		if _bld_root.has_node("GameManager/TerrainTileBridge"):
+			_ttb_bld = _bld_root.get_node("GameManager/TerrainTileBridge")
+		elif _bld_root.has_node("TerrainTileBridge"):
+			_ttb_bld = _bld_root.get_node("TerrainTileBridge")
+		else:
+			_ttb_bld = _bld_root.find_child("TerrainTileBridge", true, false)
+	if _ttb_bld != null:
+		var special_blds: Array = _ttb_bld.get_terrain_special_buildings(tile)
+		for sbid in special_blds:
+			# 避免重复添加
+			var already_in: bool = false
+			for entry in result:
+				if entry.get("id", "") == sbid:
+					already_in = true
+					break
+			if already_in:
+				continue
+			# 使用通用建筑数据或占位符
+			var sbdata: Dictionary = COMMON_BUILDINGS.get(sbid, {})
+			if sbdata.is_empty():
+				sbdata = {"name": sbid, "desc": "地形解锁特殊建筑"}
+			var slvl1: Dictionary = _get_level_data(sbdata, 1)
+			var scost: Dictionary = slvl1.get("cost", {})
+			result.append({
+				"id": sbid,
+				"name": sbdata.get("name", sbid) + " [地形解锁]",
+				"desc": slvl1.get("desc", sbdata.get("desc", "")),
+				"cost": scost,
+				"can_build": ResourceManager.can_afford(player_id, scost),
+				"level": 1,
+				"is_upgrade": false,
+				"category": "terrain_special",
+			})
+		# 过滤地形禁止建筑
+		var filtered_result: Array = []
+		for entry in result:
+			var check: Dictionary = _ttb_bld.is_building_allowed_by_terrain(tile, entry.get("id", ""))
+			if check.get("allowed", true):
+				filtered_result.append(entry)
+			else:
+				# 如果建筑已存在则不过滤（历史建筑保留）
+				if tile.get("building_id", "") == entry.get("id", ""):
+					filtered_result.append(entry)
+		result = filtered_result
+
 	return result
 
 

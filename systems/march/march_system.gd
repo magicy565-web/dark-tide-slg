@@ -430,11 +430,27 @@ func _calculate_effective_speed(army_id: int, order: Dictionary) -> float:
 	var next_tile_idx: int = path[next_step]
 	var tiles: Array = GameManager.tiles
 
-	# Terrain speed modifier
+	# Terrain speed modifier (v1.4.0: 集成 TerrainTileBridge 道路/天气修正)
 	var terrain: int = FactionData.TerrainType.PLAINS
 	if next_tile_idx >= 0 and next_tile_idx < tiles.size():
 		terrain = tiles[next_tile_idx].get("terrain", FactionData.TerrainType.PLAINS)
 	var terrain_mult: float = TERRAIN_SPEED_MULT.get(terrain, 1.0)
+	# 如果 TerrainTileBridge 存在，使用它的综合移动消耗计算
+	if next_tile_idx >= 0 and next_tile_idx < tiles.size():
+		var _next_tile: Dictionary = tiles[next_tile_idx]
+		if Engine.get_main_loop() is SceneTree:
+			var _ttb_root3: Node = (Engine.get_main_loop() as SceneTree).root
+			var _ttb3: Node = null
+			if _ttb_root3.has_node("GameManager/TerrainTileBridge"):
+				_ttb3 = _ttb_root3.get_node("GameManager/TerrainTileBridge")
+			elif _ttb_root3.has_node("TerrainTileBridge"):
+				_ttb3 = _ttb_root3.get_node("TerrainTileBridge")
+			else:
+				_ttb3 = _ttb_root3.find_child("TerrainTileBridge", true, false)
+			if _ttb3 != null:
+				var _actual_cost: int = _ttb3.get_tile_move_cost(_next_tile)
+				# 将实际移动消耗转换为速度倍率（基准消耗=1）
+				terrain_mult = 1.0 / float(max(1, _actual_cost))
 
 	# Fatigue penalty
 	var fatigue_penalty: float = 0.0

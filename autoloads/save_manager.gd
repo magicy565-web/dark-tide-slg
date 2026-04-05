@@ -267,6 +267,8 @@ func _collect_save_data() -> Dictionary:
 		"stronghold_cave": GameManager.cave_system.to_save_data() if GameManager.cave_system != null else {},
 		"stronghold_village": GameManager.village_system.to_save_data() if GameManager.village_system != null else {},
 		"stronghold_fortress": GameManager.fortress_system.to_save_data() if GameManager.fortress_system != null else {},
+		# v1.4.0: 地形改造任务和筑路状态
+		"terrain_bridge": GameManager.terrain_tile_bridge.to_save_data() if GameManager.terrain_tile_bridge != null else {},
 	}
 
 
@@ -520,6 +522,9 @@ func _apply_save_data(data: Dictionary) -> void:
 		GameManager.village_system.from_save_data(data.get("stronghold_village", {}))
 	if data.has("stronghold_fortress") and GameManager.fortress_system != null:
 		GameManager.fortress_system.from_save_data(data.get("stronghold_fortress", {}))
+	# v1.4.0: 地形改造任务和筑路状态
+	if data.has("terrain_bridge") and GameManager.terrain_tile_bridge != null:
+		GameManager.terrain_tile_bridge.from_save_data(data.get("terrain_bridge", {}))
 	# 5. Emit signals to refresh UI
 	var pid: int = GameManager.get_human_player_id()
 	EventBus.resources_changed.emit(pid)

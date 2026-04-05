@@ -617,3 +617,27 @@ signal fortress_level_up(tile_idx: int, new_level: int)
 signal fortress_defense_victory(tile_idx: int, prestige_gained: int)
 ## 请求打开要塞面板
 signal open_fortress_panel_requested(tile_idx: int)
+
+# ── Terrain-Tile Bridge System (v1.4.0) ──
+## 地形改造开始
+signal terrain_transform_started(tile_idx: int, from_terrain: int, to_terrain: int)
+## 地形改造完成
+signal terrain_transform_completed(tile_idx: int, old_terrain: int, new_terrain: int)
+## 地形改造失败
+signal terrain_transform_failed(tile_idx: int, reason: String)
+## 筑路开始
+signal road_construction_started(tile_idx: int)
+## 筑路完成
+signal road_construction_completed(tile_idx: int)
+## 地形减员发生
+signal terrain_attrition_applied(tile_idx: int, terrain_name: String, soldiers_lost: int)
+## 地形+天气交叉效果触发
+signal terrain_weather_cross_effect(tile_idx: int, cross_key: String, desc: String)
+## 请求打开地形信息面板
+signal open_terrain_info_panel_requested(tile_idx: int)
+## 地形视野变化
+signal terrain_visibility_changed(tile_idx: int, new_range: int)
+## 地形伏击触发
+signal terrain_ambush_triggered(tile_idx: int, ambush_bonus: float)
+## 地块数据变化（地形改变后刷新显示）
+signal tile_data_changed(tile_idx: int)
