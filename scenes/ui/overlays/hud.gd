@@ -1960,6 +1960,10 @@ func _on_garrison_pressed() -> void:
 			return
 		if not GameManager.armies.has(aid):
 			return
+		if not GameManager.armies.has(aid):
+			return
+		if not GameManager.armies.has(aid):
+			return
 		var a: Dictionary = GameManager.armies[aid]
 		if a.get("player_id", -1) == pid:
 			player_armies.append(a)
@@ -3351,6 +3355,10 @@ func _detect_victory_type(human_id: int) -> String:
 			return
 		if not GameManager.armies.has(army_id):
 			return
+		if not GameManager.armies.has(army_id):
+			return
+		if not GameManager.armies.has(army_id):
+			return
 		var army: Dictionary = GameManager.armies[army_id]
 		if army["player_id"] != human_id:
 			continue
@@ -3410,6 +3418,10 @@ func _get_victory_stats(player_id: int) -> Array:
 
 	var total_soldiers: int = 0
 	for army_id in GameManager.armies:
+		if not GameManager.armies.has(army_id):
+			return
+		if not GameManager.armies.has(army_id):
+			return
 		if not GameManager.armies.has(army_id):
 			return
 		if not GameManager.armies.has(army_id):
@@ -4272,6 +4284,10 @@ func _update_tile_info_for(tile_index: int) -> void:
 	var player_total_power: int = 0
 	var enemy_total_power: int = 0
 	for army_id_key in GameManager.armies:
+		if not GameManager.armies.has(army_id_key):
+			return
+		if not GameManager.armies.has(army_id_key):
+			return
 		if not GameManager.armies.has(army_id_key):
 			return
 		if not GameManager.armies.has(army_id_key):

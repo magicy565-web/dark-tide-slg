@@ -913,6 +913,8 @@ func _on_army_selected_vfx(army_id: int) -> void:
 	## Show a brief selection ring pulse at the army's current tile.
 	if not GameManager.armies.has(army_id):
 		return
+	if not GameManager.armies.has(army_id):
+		return
 	var tile_idx: int = GameManager.armies[army_id].get("tile_index", -1)
 	if tile_idx < 0:
 		return
@@ -936,6 +938,8 @@ func _on_army_selected_vfx(army_id: int) -> void:
 
 func _on_army_troops_assigned_vfx(army_id: int, _troop_id: String, _soldiers: int) -> void:
 	## Show a green recruit pulse at the army's tile when troops are assigned.
+	if not GameManager.armies.has(army_id):
+		return
 	if not GameManager.armies.has(army_id):
 		return
 	var tile_idx: int = GameManager.armies[army_id].get("tile_index", -1)

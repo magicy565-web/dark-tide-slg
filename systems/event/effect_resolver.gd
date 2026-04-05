@@ -358,7 +358,7 @@ func _apply_debuff(value, context) -> String:
 
 func _apply_reveal(value, context) -> String:
 	var pid: int = context.get("player_id", 0)
-	var count: int = int(value)
+	var count: int = int(value) if (value is int or value is float) else 0
 	# Prefer EventSystem helper; fall back to direct tile manipulation
 	if EventSystem != null and EventSystem.has_method("_apply_reveal"):
 		EventSystem._apply_reveal(pid, count)
@@ -390,7 +390,7 @@ func _apply_lose_node(value, context) -> String:
 
 func _apply_lose_nodes(value, context) -> String:
 	var pid: int = context.get("player_id", 0)
-	var count: int = int(value)
+	var count: int = int(value) if (value is int or value is float) else 0
 	if EventSystem != null and EventSystem.has_method("_apply_lose_nodes"):
 		EventSystem._apply_lose_nodes(pid, count)
 	return "lose_nodes: -%d" % count
@@ -400,7 +400,7 @@ func _apply_lose_nodes(value, context) -> String:
 
 func _apply_wall_boost(value, context) -> String:
 	var pid: int = context.get("player_id", 0)
-	var boost_amount: int = int(value)
+	var boost_amount: int = int(value) if (value is int or value is float) else 0
 	if LightFactionAI != null and "tiles" in GameManager:
 		for tile in GameManager.tiles:
 			if tile.get("owner_id", -1) == pid and LightFactionAI.has_method("has_wall") and LightFactionAI.has_wall(tile["index"]):
@@ -541,7 +541,7 @@ func _apply_hero_stat_boost(value, context) -> String:
 # ── Hero affection all ──
 
 func _apply_hero_affection_all(value, context) -> String:
-	var aff_val: int = int(value)
+	var aff_val: int = int(value) if (value is int or value is float) else 0
 	var _pid_aff: int = context.get("player_id", 0)
 	if HeroSystem != null and HeroSystem.has_method("get_recruited_heroes"):
 		var heroes: Array = HeroSystem.get_recruited_heroes(_pid_aff)
@@ -573,7 +573,7 @@ func _apply_hero_stat_bonus(value, _context) -> String:
 
 func _apply_affection_boost(value, context) -> String:
 	var pid: int = context.get("player_id", 0)
-	var aff_val: int = int(value)
+	var aff_val: int = int(value) if (value is int or value is float) else 0
 	if HeroSystem != null and HeroSystem.has_method("get_recruited_heroes"):
 		var recruited: Array = HeroSystem.get_recruited_heroes(pid)
 		if not recruited.is_empty():
@@ -593,7 +593,7 @@ func _apply_affection_boost(value, context) -> String:
 # ── Corruption boost ──
 
 func _apply_corruption_boost(value, _context) -> String:
-	var boost_val: int = int(value)
+	var boost_val: int = int(value) if (value is int or value is float) else 0
 	if HeroSystem != null and "captured_heroes" in HeroSystem and "hero_corruption" in HeroSystem:
 		for hid in HeroSystem.captured_heroes:
 			var cur: int = HeroSystem.hero_corruption.get(hid, 0)
@@ -604,7 +604,7 @@ func _apply_corruption_boost(value, _context) -> String:
 # ── Lowest stat bonus (character interaction) ──
 
 func _apply_lowest_stat_bonus(value, context) -> String:
-	var val: int = int(value)
+	var val: int = int(value) if (value is int or value is float) else 0
 	var recruited: Array = context.get("recruited", [])
 	var affections: Dictionary = context.get("affections", {})
 	var qualifying: Array = []
@@ -622,7 +622,7 @@ func _apply_lowest_stat_bonus(value, context) -> String:
 # ── All stats bonus (character interaction) ──
 
 func _apply_all_stats_bonus(value, context) -> String:
-	var val: int = int(value)
+	var val: int = int(value) if (value is int or value is float) else 0
 	var recruited: Array = context.get("recruited", [])
 	var affections: Dictionary = context.get("affections", {})
 	for h in recruited:
@@ -638,7 +638,7 @@ func _apply_all_stats_bonus(value, context) -> String:
 # ── Delayed gold ──
 
 func _apply_gold_delayed(value, _context) -> String:
-	var amount: int = int(value)
+	var amount: int = int(value) if (value is int or value is float) else 0
 	_pending_gold += amount
 	# Also notify EventSystem if it tracks pending gold
 	if EventSystem != null and "_pending_gold" in EventSystem:
@@ -650,7 +650,7 @@ func _apply_gold_delayed(value, _context) -> String:
 
 func _apply_temp_soldiers(value, context) -> String:
 	var pid: int = context.get("player_id", 0)
-	var count: int = int(value)
+	var count: int = int(value) if (value is int or value is float) else 0
 	if ResourceManager != null:
 		ResourceManager.add_army(pid, count)
 	# Register with EventSystem for expiry tracking
@@ -662,7 +662,7 @@ func _apply_temp_soldiers(value, context) -> String:
 # ── Reputation all ──
 
 func _apply_reputation_all(value, _context) -> String:
-	var rep_val: int = int(value)
+	var rep_val: int = int(value) if (value is int or value is float) else 0
 	if DiplomacyManager != null and DiplomacyManager.has_method("get_all_reputations"):
 		var reps: Dictionary = DiplomacyManager.get_all_reputations()
 		for faction_key in reps:
@@ -684,14 +684,14 @@ func _apply_immobile(value, _context) -> String:
 # ── AP (action points) ──
 
 func _apply_ap(value, _context) -> String:
-	EventBus.message_log.emit("[color=yellow]行动点变化: %+d[/color]" % int(value))
-	return "ap %+d" % int(value)
+	EventBus.message_log.emit("[color=yellow]行动点变化: %+d[/color]" % int(value) if (value is int or value is float) else 0)
+	return "ap %+d" % int(value) if (value is int or value is float) else 0
 
 
 # ── Tech point ──
 
 func _apply_tech_point(value, _context) -> String:
-	var amount: int = int(value)
+	var amount: int = int(value) if (value is int or value is float) else 0
 	EventBus.message_log.emit("[color=cyan]获得 %d 科技点[/color]" % amount)
 	return "tech_point +%d" % amount
 
@@ -706,7 +706,7 @@ func _apply_combo_passive(value, _context) -> String:
 # ── Heal per turn ──
 
 func _apply_heal_per_turn(value, context) -> String:
-	var heal: int = int(value)
+	var heal: int = int(value) if (value is int or value is float) else 0
 	var dur: int = context.get("duration", 3)
 	# Also check the effects dict for duration (passed as sibling key)
 	EventBus.message_log.emit("[color=green]全军每回合治愈 +%d兵力 (持续%d回合)[/color]" % [heal, dur])
@@ -716,7 +716,7 @@ func _apply_heal_per_turn(value, context) -> String:
 # ── Espionage bonus ──
 
 func _apply_espionage_bonus(value, context) -> String:
-	var bonus: int = int(value)
+	var bonus: int = int(value) if (value is int or value is float) else 0
 	var dur: int = context.get("duration", 5)
 	EventBus.message_log.emit("[color=cyan]谍报成功率 +%d%% (持续%d回合)[/color]" % [bonus, dur])
 	return "espionage_bonus +%d%% (%d turns)" % [bonus, dur]

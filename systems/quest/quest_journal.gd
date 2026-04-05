@@ -1108,7 +1108,7 @@ func _get_fog_revealed_pct(player_id: int) -> float:
 	for t in GameManager.tiles:
 		if t.get("revealed", {}).get(player_id, false):
 			revealed += 1
-	return (float(revealed) / float(total)) * 100.0
+	return (float(revealed) / float(maxi(int(total), 1))) * 100.0
 
 
 func _count_tiles_with_building(player_id: int, building_id: String) -> int:

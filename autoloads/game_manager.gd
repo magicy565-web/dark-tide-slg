@@ -569,6 +569,10 @@ func get_current_player() -> Dictionary:
 		return {}
 	if current_player_index < 0 or current_player_index >= players.size():
 		return {}
+	if current_player_index < 0 or current_player_index >= players.size():
+		return {}
+	if current_player_index < 0 or current_player_index >= players.size():
+		return {}
 	return players[current_player_index]
 
 
@@ -1837,6 +1841,10 @@ func begin_turn() -> void:
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
 	var player: Dictionary = players[current_player_index]
 	var pid: int = player["id"]
 	var faction_id: int = get_player_faction(pid)
@@ -2446,6 +2454,10 @@ func end_turn() -> void:
 		terrain_tile_bridge.process_turn()
 	# BUG FIX: bounds check before accessing players array
 	if players.is_empty() or current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
@@ -4656,6 +4668,10 @@ func roll_dice() -> void:
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
 	var player: Dictionary = players[current_player_index]
 	if player["is_ai"] or player["ap"] < 1:
 		return
@@ -4703,6 +4719,10 @@ func select_move_target(target_index: int) -> void:
 	if not reachable_tiles.has(target_index):
 		return
 
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
@@ -5916,6 +5936,10 @@ func recruit_army() -> void:
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
 	var player: Dictionary = players[current_player_index]
 	if player["is_ai"] or player["ap"] < 1:
 		return
@@ -5970,6 +5994,10 @@ func can_recruit() -> bool:
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
 	var player: Dictionary = players[current_player_index]
 	if player["ap"] < 1:
 		return false
@@ -6003,6 +6031,10 @@ func can_recruit() -> bool:
 # Legacy action (pre-v0.8)
 func upgrade_tile() -> void:
 	if not game_active:
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
@@ -6043,6 +6075,10 @@ func can_upgrade() -> bool:
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
 	var player: Dictionary = players[current_player_index]
 	if player["ap"] < 1:
 		return false
@@ -6062,6 +6098,10 @@ func can_upgrade() -> bool:
 # Legacy action (pre-v0.8)
 func build_on_tile(building_id: String) -> void:
 	if not game_active:
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
@@ -6108,6 +6148,10 @@ func can_build_any() -> bool:
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
 	var player: Dictionary = players[current_player_index]
 	if player["ap"] < 1:
 		return false
@@ -6124,6 +6168,10 @@ func can_build_any() -> bool:
 # Legacy action (pre-v0.8)
 func interact_with_tile() -> void:
 	if not game_active:
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
@@ -6159,6 +6207,10 @@ func interact_with_tile() -> void:
 func can_interact() -> bool:
 	if not game_active:
 		return false
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
@@ -6316,7 +6368,7 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 				else:
 					EventBus.message_log.emit("没有可失去的前哨")
 			"combat_enemy":
-				var enemy_strength: int = int(value)
+				var enemy_strength: int = int(value) if (value is int or value is float) else 0
 				if player["position"] < 0 or player["position"] >= tiles.size():
 					EventBus.message_log.emit("无效位置，跳过战斗")
 				else:
@@ -6356,7 +6408,7 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 						tiles[tile_idx]["deferred_effects"] = {}
 					tiles[tile_idx]["deferred_effects"]["gold_next_visit"] = {
 						"player_id": player["id"],
-						"value": int(value),
+						"value": int(value) if (value is int or value is float) else 0 if (value is int or value is float) else 0,
 						"turns_remaining": effects.get("duration", -1),
 					}
 					EventBus.message_log.emit("下次访问此据点时获得 %d 金币" % int(value))
@@ -6397,6 +6449,10 @@ func _give_random_item(player: Dictionary) -> void:
 func use_item(item_id: String) -> void:
 	## Delegate to ItemManager for item usage.
 	if not game_active:
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
 		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
@@ -7805,6 +7861,10 @@ func _evaluate_territory_effects(pid: int) -> Dictionary:
 # ═══════════════ AI ═══════════════
 
 func run_ai_turn() -> void:
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
+	if current_player_index < 0 or current_player_index >= players.size():
+		return
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
 	if current_player_index < 0 or current_player_index >= players.size():

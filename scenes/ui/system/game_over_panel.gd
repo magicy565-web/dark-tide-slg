@@ -219,6 +219,10 @@ func _populate_stats() -> void:
 			return
 		if not GameManager.armies.has(army_id):
 			return
+		if not GameManager.armies.has(army_id):
+			return
+		if not GameManager.armies.has(army_id):
+			return
 		var army: Dictionary = GameManager.armies[army_id]
 		if army["player_id"] == human_id:
 			total_soldiers += GameManager.get_army_soldier_count(army_id)
@@ -260,7 +264,7 @@ func _animate_stat_label(label: Label, prefix: String, target_value: int, delay:
 	if delay > 0:
 		tw.tween_interval(delay)
 	tw.tween_method(func(v: float):
-		counter["val"] = int(v)
+		counter["val"] = int(v) if (v is int or v is float) else 0 if (v is int or v is float) else 0
 		label.text = "%s: %d%s" % [prefix, counter["val"], suffix]
 	, 0.0, float(target_value), 0.8).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 

@@ -942,7 +942,7 @@ func show_battle(battle_result: Dictionary) -> void:
 	# Load terrain-specific battle background (v2 with fallback)
 	var terrain_id = battle_result.get("terrain", 0)
 	if typeof(terrain_id) == TYPE_STRING:
-		terrain_id = int(terrain_id)
+		terrain_id = int(terrain_id) if (terrain_id is int or terrain_id is float) else 0
 	var bg_path: String = BATTLE_BG_PATHS.get(terrain_id, BATTLE_BG_PATHS[0])
 	if not ResourceLoader.exists(bg_path):
 		bg_path = BATTLE_BG_FALLBACKS.get(terrain_id, BATTLE_BG_FALLBACKS[0])
@@ -1011,6 +1011,8 @@ func _populate_cards(cards: Dictionary, units: Array, side: String) -> void:
 		var name_lbl: Label = vbox.get_node("TroopName")
 		var count_lbl: Label = vbox.get_node("SoldierCount")
 		var bar_container: Control = vbox.get_node("BarContainer")
+		if not is_instance_valid(bar_container):
+			continue
 		var bar_ghost: ColorRect = bar_container.get_node("BarGhost")
 		var bar_fill: ColorRect = bar_container.get_node("BarFill")
 		var stats_lbl: Label = vbox.get_node("Stats")
@@ -1178,6 +1180,8 @@ func _update_card_soldiers(side: String, slot_idx: int, soldiers: int, max_soldi
 	var vbox: VBoxContainer = card.get_child(0).get_child(0)
 	var count_lbl: Label = vbox.get_node("SoldierCount")
 	var bar_container: Control = vbox.get_node("BarContainer")
+	if not is_instance_valid(bar_container):
+		continue
 	var bar_ghost: ColorRect = bar_container.get_node("BarGhost")
 	var bar_fill: ColorRect = bar_container.get_node("BarFill")
 
@@ -2434,6 +2438,8 @@ func _update_card_soldiers_instant(side: String, slot_idx: int, soldiers: int, m
 	var vbox: VBoxContainer = card.get_child(0).get_child(0)
 	var count_lbl: Label = vbox.get_node("SoldierCount")
 	var bar_container: Control = vbox.get_node("BarContainer")
+	if not is_instance_valid(bar_container):
+		continue
 	var bar_ghost: ColorRect = bar_container.get_node("BarGhost")
 	var bar_fill: ColorRect = bar_container.get_node("BarFill")
 

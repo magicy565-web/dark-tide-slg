@@ -835,6 +835,10 @@ func _build_section_garrison_armies(tile: Dictionary) -> void:
 			return
 		if not GameManager.armies.has(army_id):
 			return
+		if not GameManager.armies.has(army_id):
+			return
+		if not GameManager.armies.has(army_id):
+			return
 		var army: Dictionary = GameManager.armies[army_id]
 		if army.get("tile_index", -1) == tile_idx:
 			armies_here.append(army)

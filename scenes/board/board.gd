@@ -1235,6 +1235,8 @@ func show_mixed_highlights(friendly: Array, enemy: Array, neutral: Array) -> voi
 
 func _add_highlight_fill(idx: int, color: Color) -> void:
 	if not tile_visuals.has(idx): return
+	if idx < 0 or idx >= GameManager.tiles.size():
+		return
 	var pos: Vector3 = GameManager.tiles[idx]["position_3d"]
 	var el: float = tile_visuals[idx].get("elevation", 0.0)
 	var fill := MeshInstance3D.new(); var fm := CylinderMesh.new()
@@ -1249,6 +1251,8 @@ func _add_highlight_fill(idx: int, color: Color) -> void:
 
 func _add_highlight_ring(idx: int, color: Color) -> void:
 	if not tile_visuals.has(idx): return
+	if idx < 0 or idx >= GameManager.tiles.size():
+		return
 	var pos: Vector3 = GameManager.tiles[idx]["position_3d"]
 	var el: float = tile_visuals[idx].get("elevation", 0.0)
 	var ring := MeshInstance3D.new(); var tc := CylinderMesh.new()
@@ -1271,6 +1275,8 @@ func _clear_highlights() -> void:
 func _start_pulse_ring(idx: int) -> void:
 	_clear_pulse_ring()
 	if not tile_visuals.has(idx): return
+	if idx < 0 or idx >= GameManager.tiles.size():
+		return
 	var pos: Vector3 = GameManager.tiles[idx]["position_3d"]
 	var el: float = tile_visuals[idx].get("elevation", 0.0)
 	_pulse_ring = MeshInstance3D.new(); var tc := CylinderMesh.new()
@@ -1311,6 +1317,8 @@ func _draw_path_preview(fi: int, ti: int) -> void:
 	if fi < 0 or ti < 0 or fi >= GameManager.tiles.size() or ti >= GameManager.tiles.size(): return
 	var fp: Vector3 = GameManager.tiles[fi]["position_3d"]
 	var tp: Vector3 = GameManager.tiles[ti]["position_3d"]
+	if not (fi >= 0 and fi < GameManager.tiles.size() and ti >= 0 and ti < GameManager.tiles.size()):
+		return
 	var fe: float = _get_elev(GameManager.tiles[fi]); var te: float = _get_elev(GameManager.tiles[ti])
 	var dist := Vector3(tp.x - fp.x, 0, tp.z - fp.z).length()
 	if dist < 0.1: return
@@ -1378,6 +1386,8 @@ func _animate_tile_hover(idx: int, entering: bool) -> void:
 
 func _show_hover_glow(idx: int) -> void:
 	if not tile_visuals.has(idx): return
+	if idx < 0 or idx >= GameManager.tiles.size():
+		return
 	var pos: Vector3 = GameManager.tiles[idx]["position_3d"]
 	var el: float = tile_visuals[idx].get("elevation", 0.0)
 	if not is_instance_valid(_hover_glow):
@@ -1573,7 +1583,8 @@ func _update_fog() -> void:
 			if fog_mi.visible:
 				_tween_fog_out(idx, fog_mi)
 			vis["label"].visible = true; vis["garrison_label"].visible = true
-			vis["flag_root"].visible = GameManager.tiles[idx].get("owner_id", -1) >= 0
+			if idx >= 0 and idx < GameManager.tiles.size():
+				vis["flag_root"].visible = GameManager.tiles[idx].get("owner_id", -1) >= 0
 		else:
 			# Tile is fogged -> compute distance-based density
 			var dist: int = _fog_distance_to_revealed(idx, pid)
@@ -1858,8 +1869,10 @@ func _draw_march_route(army_id: int, path: Array) -> void:
 		if fi < 0 or fi >= GameManager.tiles.size() or ti < 0 or ti >= GameManager.tiles.size(): continue
 		var fp: Vector3 = GameManager.tiles[fi]["position_3d"]
 		var tp: Vector3 = GameManager.tiles[ti]["position_3d"]
-		var fe: float = TERRAIN_ELEVATION.get(GameManager.tiles[fi].get("terrain", 0), 0.0)
-		var te: float = TERRAIN_ELEVATION.get(GameManager.tiles[ti].get("terrain", 0), 0.0)
+		if fi >= 0 and fi < GameManager.tiles.size():
+			var fe: float = TERRAIN_ELEVATION.get(GameManager.tiles[fi].get("terrain", 0), 0.0)
+		if ti >= 0 and ti < GameManager.tiles.size():
+			var te: float = TERRAIN_ELEVATION.get(GameManager.tiles[ti].get("terrain", 0), 0.0)
 		var dist: float = fp.distance_to(tp)
 		var dot_count: int = maxi(int(dist / 0.6), 2)
 		for d in range(dot_count):
@@ -3854,8 +3867,6 @@ func _take_turn_snapshot() -> void:
 	for aid in GameManager.armies:
 		if not GameManager.armies.has(aid):
 			return
-		if not GameManager.armies.has(aid):
-			return
 		var a: Dictionary = GameManager.armies[aid]
 		if a["player_id"] != pid and GameManager.is_revealed_for(a["tile_index"], pid):
 			visible_armies.append({"id": aid, "tile": a["tile_index"], "name": a.get("name", "")})
@@ -3913,8 +3924,6 @@ func _show_turn_summary() -> void:
 	var prev_armies: Array = _last_turn_snapshot.get("visible_armies", [])
 	var current_vis: Array = []
 	for aid in GameManager.armies:
-		if not GameManager.armies.has(aid):
-			return
 		if not GameManager.armies.has(aid):
 			return
 		var a: Dictionary = GameManager.armies[aid]
@@ -4083,8 +4092,6 @@ class MinimapDrawControl:
 		for aid in GameManager.armies:
 			if not GameManager.armies.has(aid):
 				return
-			if not GameManager.armies.has(aid):
-				return
 			var army: Dictionary = GameManager.armies[aid]
 			var ti: int = army["tile_index"]
 			if ti < 0 or ti >= GameManager.tiles.size():
@@ -4092,6 +4099,8 @@ class MinimapDrawControl:
 			if army["player_id"] != pid:
 				if not GameManager.is_revealed_for(ti, pid):
 					continue
+			if ti < 0 or ti >= GameManager.tiles.size():
+				return
 			var tpos: Vector3 = GameManager.tiles[ti]["position_3d"]
 			var nx: float = (tpos.x - map_min.x) / map_size.x
 			var ny: float = (tpos.z - map_min.y) / map_size.y
@@ -4275,6 +4284,8 @@ func _enter_march_planning_mode(army_id: int) -> void:
 				green_col = Color(0.2, 0.6, 0.25)
 				alpha = 0.10
 		if not tile_visuals.has(tidx): continue
+		if tidx < 0 or tidx >= GameManager.tiles.size():
+			return
 		var pos: Vector3 = GameManager.tiles[tidx]["position_3d"]
 		var el: float = tile_visuals[tidx].get("elevation", 0.0)
 		var fill := MeshInstance3D.new()

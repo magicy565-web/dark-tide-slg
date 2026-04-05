@@ -304,6 +304,8 @@ func _save_game_state() -> Dictionary:
 	# Serialize armies (JSON keys must be strings)
 	var armies_data: Dictionary = {}
 	for army_id in GameManager.armies:
+		if not GameManager.armies.has(army_id):
+			continue
 		armies_data[str(army_id)] = GameManager.armies[army_id].duplicate(true)
 
 	# Serialize _guard_timers (int keys -> string keys for JSON)
