@@ -51,8 +51,7 @@ func _ready() -> void:
 	# EventSystem loads after us in autoload order, defer its discovery
 	# so it runs after all autoloads have completed _ready().
 	call_deferred("_deferred_discover_event_system")
-	print("[EventRegistry] Indexed %d events from %d sources across %d categories." % [
-		_registry.size(), _by_source.size(), _by_category.size()])
+	GameLogger.info("[EventRegistry] Indexed %d events from %d sources across %d categories." % [ _registry.size(), _by_source.size(), _by_category.size()])
 
 
 # ═══════════════ AUTO-DISCOVERY ═══════════════
@@ -75,7 +74,7 @@ func _auto_discover_all() -> void:
 func _deferred_discover_event_system() -> void:
 	if EventSystem and EventSystem._events.size() > 0:
 		_register_source("event_system", EventSystem._events, "base")
-		print("[EventRegistry] Deferred: discovered %d events from EventSystem." % EventSystem._events.size())
+		GameLogger.debug("[EventRegistry] Deferred: discovered %d events from EventSystem." % EventSystem._events.size())
 		return
 	# EventSystem may still be initializing — retry for up to 10 frames.
 	var retries: int = 10
@@ -83,7 +82,7 @@ func _deferred_discover_event_system() -> void:
 		await get_tree().process_frame
 		if EventSystem and EventSystem._events.size() > 0:
 			_register_source("event_system", EventSystem._events, "base")
-			print("[EventRegistry] Deferred: discovered %d events from EventSystem after retry." % EventSystem._events.size())
+			GameLogger.debug("[EventRegistry] Deferred: discovered %d events from EventSystem after retry." % EventSystem._events.size())
 			return
 		retries -= 1
 	push_warning("[EventRegistry] Failed to discover EventSystem events after retries.")
@@ -178,7 +177,7 @@ func register_event(id: String, source: String, category: String, data: Dictiona
 		while _registry.has(final_id + "_" + str(suffix)):
 			suffix += 1
 		final_id = final_id + "_" + str(suffix)
-		print("[EventRegistry] WARNING: Duplicate id '%s' from source '%s'. Renamed to '%s'." % [id, source, final_id])
+		GameLogger.debug("[EventRegistry] WARNING: Duplicate id '%s' from source '%s'. Renamed to '%s'." % [id, source, final_id])
 
 	_registry[final_id] = {
 		"source": source,

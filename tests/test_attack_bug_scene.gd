@@ -12,7 +12,7 @@ var _errors: Array = []
 
 func _ready() -> void:
 	print("=" .repeat(64))
-	print("  暗潮 SLG — Attack Bug Test (Runtime)")
+	GameLogger.debug("  暗潮 SLG — Attack Bug Test (Runtime)")
 	print("=" .repeat(64))
 	await _run_all()
 	_print_results()
@@ -20,12 +20,12 @@ func _ready() -> void:
 
 func _ok(name: String) -> void:
 	_pass += 1
-	print("  [PASS] %s" % name)
+	GameLogger.debug("  [PASS] %s" % name)
 
 func _fail_test(name: String, reason: String) -> void:
 	_fail += 1
 	_errors.append("%s — %s" % [name, reason])
-	print("  [FAIL] %s\n         → %s" % [name, reason])
+	GameLogger.debug("  [FAIL] %s\n         → %s" % [name, reason])
 
 func _make_army(soldiers: int, atk: int, def_val: int, spd: int = 5,
 				troop_id: String = "human_ashigaru", passive: String = "") -> Dictionary:
@@ -59,7 +59,7 @@ func _new_combat() -> CombatSystem:
 # 运行所有测试
 # ══════════════════════════════════════════════════════════════════════════════
 func _run_all() -> void:
-	print("\n--- SECTION 1: 基础战斗结果合法性 ---")
+	GameLogger.debug("\n--- SECTION 1: 基础战斗结果合法性 ---")
 	await _test_strong_attacker_wins()
 	await _test_weak_attacker_loses()
 	await _test_equal_forces_timeout_defender_wins()
@@ -68,34 +68,34 @@ func _run_all() -> void:
 	await _test_rounds_within_max()
 	await _test_winner_is_valid_string()
 
-	print("\n--- SECTION 2: 边界条件 Bug 测试 ---")
+	GameLogger.debug("\n--- SECTION 2: 边界条件 Bug 测试 ---")
 	await _test_empty_defender_attacker_wins()
 	await _test_empty_attacker_returns_false()
 	await _test_single_soldier_attacker()
 	await _test_zero_atk_unit_no_crash()
 	await _test_max_soldiers_no_crash()
 
-	print("\n--- SECTION 3: 地形 Bug 测试 ---")
+	GameLogger.debug("\n--- SECTION 3: 地形 Bug 测试 ---")
 	await _test_all_terrains_no_crash()
 	await _test_siege_no_crash()
 	await _test_fortress_terrain_defender_bonus()
 
-	print("\n--- SECTION 4: 海盗阵营特有 Bug 测试 ---")
+	GameLogger.debug("\n--- SECTION 4: 海盗阵营特有 Bug 测试 ---")
 	await _test_rum_atk_bonus_improves_result()
 	await _test_pirate_passive_no_crash()
 
-	print("\n--- SECTION 5: 多兵种 Bug 测试 ---")
+	GameLogger.debug("\n--- SECTION 5: 多兵种 Bug 测试 ---")
 	await _test_multi_unit_army_no_crash()
 	await _test_front_back_row_no_crash()
 	await _test_losses_applied_correctly()
 
-	print("\n--- SECTION 6: PirateQuestGuide 运行时数据 ---")
+	GameLogger.debug("\n--- SECTION 6: PirateQuestGuide 运行时数据 ---")
 	_test_guide_quest_count()
 	_test_guide_quest_chain_integrity()
 	_test_guide_quest_objectives_valid()
 	_test_guide_quest_rewards_positive()
 
-	print("\n--- SECTION 7: Autoload 运行时可用性 ---")
+	GameLogger.debug("\n--- SECTION 7: Autoload 运行时可用性 ---")
 	_test_autoloads_available()
 	_test_eventbus_signals_exist()
 	_test_quest_journal_methods()
@@ -484,14 +484,14 @@ func _test_pirate_onboarding_methods() -> void:
 # 打印最终结果
 # ══════════════════════════════════════════════════════════════════════════════
 func _print_results() -> void:
-	print("")
+	GameLogger.debug("")
 	print("=" .repeat(64))
-	print("  测试结果: %d 通过 / %d 失败 / %d 总计" % [_pass, _fail, _pass + _fail])
+	GameLogger.debug("  测试结果: %d 通过 / %d 失败 / %d 总计" % [_pass, _fail, _pass + _fail])
 	print("=" .repeat(64))
 	if _fail > 0:
-		print("\n  失败项目:")
+		GameLogger.debug("\n  失败项目:")
 		for e in _errors:
-			print("    [FAIL] %s" % e)
+			GameLogger.debug("    [FAIL] %s" % e)
 	else:
-		print("  ✓ 所有攻击流程测试通过，未发现 Bug")
-	print("")
+		GameLogger.debug("  ✓ 所有攻击流程测试通过，未发现 Bug")
+	GameLogger.debug("")

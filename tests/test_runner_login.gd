@@ -4,7 +4,7 @@
 extends Node
 
 func _ready() -> void:
-	print("[TestRunner] 启动登录+运行测试套件...")
+	GameLogger.info("[TestRunner] 启动登录+运行测试套件...")
 	var test_script = load("res://tests/test_login_and_run.gd")
 	if test_script == null:
 		push_error("[TestRunner] 无法加载测试脚本")
@@ -16,5 +16,5 @@ func _ready() -> void:
 	add_child(test_node)
 	# 等待测试完成后退出
 	await get_tree().create_timer(30.0).timeout
-	print("[TestRunner] 测试超时，强制退出")
+	GameLogger.debug("[TestRunner] 测试超时，强制退出")
 	get_tree().quit(0)

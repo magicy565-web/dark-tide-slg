@@ -8,7 +8,7 @@ var _errors: Array = []
 
 func _ready() -> void:
 	print("=" .repeat(60))
-	print("  暗潮 SLG — Test Suite")
+	GameLogger.debug("  暗潮 SLG — Test Suite")
 	print("=" .repeat(60))
 
 	_run_test_file("res://tests/test_balance_config.gd")
@@ -26,15 +26,15 @@ func _ready() -> void:
 	_run_test_file("res://tests/test_realworld.gd")
 	_run_test_file("res://tests/test_attack_bugs.gd")
 
-	print("")
+	GameLogger.debug("")
 	print("=" .repeat(60))
-	print("  RESULTS: %d/%d passed" % [_pass, _pass + _fail])
+	GameLogger.debug("  RESULTS: %d/%d passed" % [_pass, _pass + _fail])
 	if _fail > 0:
-		print("  FAILURES:")
+		GameLogger.debug("  FAILURES:")
 		for e in _errors:
-			print("    - %s" % e)
+			GameLogger.debug("    - %s" % e)
 	else:
-		print("  ALL TESTS PASSED")
+		GameLogger.debug("  ALL TESTS PASSED")
 	print("=" .repeat(60))
 	get_tree().quit(0 if _fail == 0 else 1)
 
@@ -42,10 +42,10 @@ func _ready() -> void:
 func _run_test_file(path: String) -> void:
 	var script = load(path)
 	if script == null:
-		print("SKIP: %s (not found)" % path)
+		GameLogger.debug("SKIP: %s (not found)" % path)
 		return
 	var test_obj = script.new()
-	print("\n--- %s ---" % path.get_file())
+	GameLogger.debug("\n--- %s ---" % path.get_file())
 	for method in test_obj.get_method_list():
 		var mname: String = method["name"]
 		if not mname.begins_with("test_"):
@@ -56,11 +56,11 @@ func _run_test_file(path: String) -> void:
 		var result: String = test_obj.call(mname)
 		if result == "PASS":
 			_pass += 1
-			print("  PASS: %s" % mname)
+			GameLogger.debug("  PASS: %s" % mname)
 		else:
 			_fail += 1
 			_errors.append("%s::%s — %s" % [path.get_file(), mname, result])
-			print("  FAIL: %s — %s" % [mname, result])
+			GameLogger.debug("  FAIL: %s — %s" % [mname, result])
 	if test_obj is RefCounted:
 		pass  # Will be freed automatically
 	elif test_obj is Node:

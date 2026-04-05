@@ -4541,7 +4541,7 @@ func _find_owned_path(from: int, to: int, player_id: int, max_hops: int) -> Arra
 	var queue: Array = [from]
 	while queue.size() > 0:
 		var current: int = queue.pop_front()
-		var depth: int = depth_map[current]
+		var depth: int = depth_map.get(current, 0)
 		if current == to:
 			break
 		if depth >= max_hops:
@@ -6435,7 +6435,7 @@ func _apply_choice_event(player: Dictionary, event: Dictionary, choice: String) 
 				BuffManager.add_buff(player["id"], "army_per_turn", "army_per_turn", value, effects.get("duration", 3), "event")
 				EventBus.message_log.emit("每回合军队变化 %d, 持续 %d 回合" % [value, effects.get("duration", 3)])
 			_:
-				print("[WARNING] Unknown event effect key: %s = %s" % [key, str(value)])
+				GameLogger.warn("[WARNING] Unknown event effect key: %s = %s" % [key, str(value)])
 
 
 # ═══════════════ ITEMS ═══════════════

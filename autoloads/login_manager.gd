@@ -43,7 +43,7 @@ var _accounts: Dictionary = {}   # { username: { password_hash, created_at, last
 func _ready() -> void:
 	_load_accounts()
 	_try_restore_session()
-	print("[LoginManager] 初始化完成，已注册账号数: %d" % _accounts.size())
+	GameLogger.info("[LoginManager] 初始化完成，已注册账号数: %d" % _accounts.size())
 
 # ═══════════════════════════════════════════════════════════════
 #  公共 API
@@ -70,7 +70,7 @@ func register(username: String, password: String) -> void:
 		"play_time": 0,
 	}
 	_save_accounts()
-	print("[LoginManager] 注册成功: %s" % username)
+	GameLogger.info("[LoginManager] 注册成功: %s" % username)
 	register_success.emit(username)
 
 ## 登录
@@ -101,7 +101,7 @@ func logout() -> void:
 	current_token = ""
 	is_guest = false
 	_clear_session()
-	print("[LoginManager] 已登出: %s" % old_user)
+	GameLogger.info("[LoginManager] 已登出: %s" % old_user)
 	logout_done.emit()
 
 ## 获取当前用户信息
@@ -141,7 +141,7 @@ func _do_login(username: String, guest: bool) -> void:
 		_accounts[username]["last_login"] = now
 		_save_accounts()
 	_save_session()
-	print("[LoginManager] 登录成功: %s (guest=%s)" % [username, str(guest)])
+	GameLogger.info("[LoginManager] 登录成功: %s (guest=%s)" % [username, str(guest)])
 	login_success.emit(username, guest)
 
 func _validate_username(username: String) -> String:
@@ -256,4 +256,4 @@ func _try_restore_session() -> void:
 	current_user = username
 	current_token = token
 	is_guest = guest
-	print("[LoginManager] 会话恢复: %s (guest=%s)" % [username, str(guest)])
+	GameLogger.debug("[LoginManager] 会话恢复: %s (guest=%s)" % [username, str(guest)])

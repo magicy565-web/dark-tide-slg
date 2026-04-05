@@ -448,10 +448,10 @@ func _check(name: String, condition: bool) -> void:
 	_checks.append({"name": name, "pass": condition})
 	if condition:
 		_pass += 1
-		print("  [PASS] %s" % name)
+		GameLogger.debug("  [PASS] %s" % name)
 	else:
 		_fail += 1
-		print("  [FAIL] %s" % name)
+		GameLogger.debug("  [FAIL] %s" % name)
 
 func _log(msg: String) -> void:
 	print(msg)

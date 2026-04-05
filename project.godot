@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.2")
 UILayerRegistry="*res://autoloads/ui_layer_registry.gd"
 PanelManager="*res://autoloads/panel_manager.gd"
 EventBus="*res://autoloads/event_bus.gd"
+GameLogger="*res://autoloads/game_logger.gd"
 GameData="*res://autoloads/game_data.gd"
 BalanceConfig="*res://systems/balance/balance_config.gd"
 ResourceManager="*res://systems/economy/resource_manager.gd"

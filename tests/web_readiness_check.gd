@@ -8,12 +8,12 @@ func _init() -> void:
 	var warnings: Array = []
 	var info: Array = []
 
-	print("╔══════════════════════════════════════════════════╗")
-	print("║       Dark Tide SLG — Web Readiness Check       ║")
-	print("╚══════════════════════════════════════════════════╝\n")
+	GameLogger.debug("╔══════════════════════════════════════════════════╗")
+	GameLogger.debug("║       Dark Tide SLG — Web Readiness Check       ║")
+	GameLogger.debug("╚══════════════════════════════════════════════════╝\n")
 
 	# ═══════════════ 1. RESOURCE PATH VALIDATION ═══════════════
-	print("▶ [1/7] Validating resource paths...")
+	GameLogger.debug("▶ [1/7] Validating resource paths...")
 	var broken_paths: Array = _check_resource_paths()
 	if broken_paths.is_empty():
 		info.append("  ✓ All resource paths valid")
@@ -22,7 +22,7 @@ func _init() -> void:
 			errors.append("  ✗ Missing resource: %s (referenced in %s)" % [bp[0], bp[1]])
 
 	# ═══════════════ 2. AUTOLOAD VERIFICATION ═══════════════
-	print("▶ [2/7] Verifying autoloads...")
+	GameLogger.debug("▶ [2/7] Verifying autoloads...")
 	var autoload_issues: Array = _check_autoloads()
 	if autoload_issues.is_empty():
 		info.append("  ✓ All autoload scripts exist")
@@ -31,7 +31,7 @@ func _init() -> void:
 			errors.append("  ✗ Autoload script missing: %s" % issue)
 
 	# ═══════════════ 3. SCENE FILE VALIDATION ═══════════════
-	print("▶ [3/7] Validating scene files...")
+	GameLogger.debug("▶ [3/7] Validating scene files...")
 	var scene_issues: Array = _check_scenes()
 	if scene_issues.is_empty():
 		info.append("  ✓ All .tscn files valid")
@@ -40,7 +40,7 @@ func _init() -> void:
 			errors.append("  ✗ Scene issue: %s" % issue)
 
 	# ═══════════════ 4. ASSET SIZE CHECK ═══════════════
-	print("▶ [4/7] Checking asset sizes...")
+	GameLogger.debug("▶ [4/7] Checking asset sizes...")
 	var size_info: Dictionary = _check_asset_sizes()
 	info.append("  ℹ Total assets: %d files" % size_info.get("count", 0))
 	info.append("  ℹ WebP images: %d files" % size_info.get("webp_count", 0))
@@ -50,7 +50,7 @@ func _init() -> void:
 			warnings.append("  ⚠ Large file (>5MB): %s" % lf)
 
 	# ═══════════════ 5. WEB COMPATIBILITY CHECK ═══════════════
-	print("▶ [5/7] Checking Web compatibility...")
+	GameLogger.debug("▶ [5/7] Checking Web compatibility...")
 	var compat_issues: Array = _check_web_compatibility()
 	if compat_issues.is_empty():
 		info.append("  ✓ No Web incompatibilities detected")
@@ -59,7 +59,7 @@ func _init() -> void:
 			warnings.append("  ⚠ %s" % issue)
 
 	# ═══════════════ 6. SAVE SYSTEM INTEGRITY ═══════════════
-	print("▶ [6/7] Checking save system integrity...")
+	GameLogger.debug("▶ [6/7] Checking save system integrity...")
 	var save_issues: Array = _check_save_system()
 	if save_issues.is_empty():
 		info.append("  ✓ Save system looks complete")
@@ -68,7 +68,7 @@ func _init() -> void:
 			warnings.append("  ⚠ Save system: %s" % issue)
 
 	# ═══════════════ 7. EXPORT PRESET CHECK ═══════════════
-	print("▶ [7/7] Checking export presets...")
+	GameLogger.debug("▶ [7/7] Checking export presets...")
 	if FileAccess.file_exists("res://export_presets.cfg"):
 		info.append("  ✓ export_presets.cfg exists")
 	else:
@@ -76,33 +76,33 @@ func _init() -> void:
 
 	# ═══════════════ REPORT ═══════════════
 	print("\n" + "═".repeat(52))
-	print("RESULTS\n")
+	GameLogger.debug("RESULTS\n")
 
 	if not info.is_empty():
-		print("INFO:")
+		GameLogger.debug("INFO:")
 		for i in info:
 			print(i)
-		print("")
+		GameLogger.debug("")
 
 	if not warnings.is_empty():
-		print("WARNINGS (%d):" % warnings.size())
+		GameLogger.warn("WARNINGS (%d):" % warnings.size())
 		for w in warnings:
 			print(w)
-		print("")
+		GameLogger.debug("")
 
 	if not errors.is_empty():
-		print("ERRORS (%d):" % errors.size())
+		GameLogger.error("ERRORS (%d):" % errors.size())
 		for e in errors:
 			print(e)
-		print("")
+		GameLogger.debug("")
 
 	if errors.is_empty():
 		print("═".repeat(52))
-		print("✓ WEB EXPORT READY — No blocking issues found")
+		GameLogger.debug("✓ WEB EXPORT READY — No blocking issues found")
 		print("═".repeat(52))
 	else:
 		print("═".repeat(52))
-		print("✗ WEB EXPORT BLOCKED — %d error(s) must be fixed" % errors.size())
+		GameLogger.error("✗ WEB EXPORT BLOCKED — %d error(s) must be fixed" % errors.size())
 		print("═".repeat(52))
 
 	quit()

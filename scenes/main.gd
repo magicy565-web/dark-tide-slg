@@ -278,7 +278,7 @@ func _ready() -> void:
 
 ## 登录完成回调 — 隐藏登录界面，显示主菜单
 func _on_login_completed(username: String, is_guest: bool) -> void:
-	print("[Main] 登录完成: %s (guest=%s)" % [username, str(is_guest)])
+	GameLogger.info("[Main] 登录完成: %s (guest=%s)" % [username, str(is_guest)])
 	# 隐藏登录界面
 	if login_screen and login_screen.has_method("hide"):
 		login_screen.visible = false

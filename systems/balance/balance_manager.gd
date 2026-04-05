@@ -226,9 +226,7 @@ func apply_difficulty(level: String) -> bool:
 		return false
 	set_difficulty(level)
 	var d: Dictionary = DIFFICULTY_PRESETS[level]
-	print("[BalanceManager] Difficulty set to '%s' (%s): player_atk=×%.2f, ai_atk=×%.2f, income=×%.2f, threat=×%.2f, reinforce=×%.2f" % [
-		level, d["label"], d.get("player_atk_mult", 1.0), d["ai_atk_mult"],
-		d["player_income_mult"], d["ai_threat_gain_mult"], d.get("ai_reinforce_mult", 1.0)])
+	GameLogger.info("[BalanceManager] Difficulty set to '%s' (%s): player_atk=×%.2f, ai_atk=×%.2f, income=×%.2f, threat=×%.2f, reinforce=×%.2f" % [ level, d["label"], d.get("player_atk_mult", 1.0), d["ai_atk_mult"], d["player_income_mult"], d["ai_threat_gain_mult"], d.get("ai_reinforce_mult", 1.0)])
 	return true
 
 # ═══════════════ POWER BUDGET CALCULATOR ═══════════════
@@ -386,8 +384,7 @@ func run_full_audit() -> Array:
 			errors += 1
 		elif entry["severity"] == "WARN":
 			warnings += 1
-	print("[BalanceManager] Audit complete: %d errors, %d warnings, %d info" % [
-		errors, warnings, _audit_log.size() - errors - warnings])
+	GameLogger.info("[BalanceManager] Audit complete: %d errors, %d warnings, %d info" % [ errors, warnings, _audit_log.size() - errors - warnings])
 	return _audit_log
 
 func _log(severity: String, category: String, msg: String) -> void:
