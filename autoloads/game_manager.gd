@@ -813,7 +813,7 @@ func generate_fixed_map() -> void:
 			"owner": faction_owner_map.get(t["faction"], -1),
 			"owner_id": faction_owner_map.get(t["faction"], -1),
 			"position": t["position"],
-			"position_3d": Vector3(t["position"].x * 0.02, 0.0, -t["position"].y * 0.02),
+			"position_3d": Vector3(t["position"].x * 0.025, 0.0, -t["position"].y * 0.025),
 			"level": t["level"],
 			"garrison": t["garrison_base"],
 			"city_def": t.get("city_def", 0),
