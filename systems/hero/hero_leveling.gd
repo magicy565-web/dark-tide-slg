@@ -38,6 +38,7 @@ func reset() -> void:
 	hero_unlocked_passives.clear()
 	hero_current_hp.clear()
 	hero_current_mp.clear()
+	_stat_bonuses.clear()
 
 
 ## 初始化英雄——设置为1级、0经验值。若已存在则跳过。
@@ -211,6 +212,7 @@ func serialize() -> Dictionary:
 		"hero_exp": hero_exp.duplicate(true),
 		"hero_level": hero_level.duplicate(true),
 		"hero_unlocked_passives": hero_unlocked_passives.duplicate(true),
+		"stat_bonuses": _stat_bonuses.duplicate(true),
 	}
 
 ## 加载持久化状态，并校验等级与经验值的一致性。
@@ -237,6 +239,14 @@ func deserialize(data: Dictionary) -> void:
 				% [hero_id, exp_val, expected_level, hero_level.get(hero_id, 1)]
 			)
 			hero_level[hero_id] = expected_level
+
+	# 恢复属性加成
+	var sb: Dictionary = data.get("stat_bonuses", {})
+	_stat_bonuses = sb.duplicate(true)
+	for hid in _stat_bonuses:
+		if _stat_bonuses[hid] is Dictionary:
+			for sk in _stat_bonuses[hid]:
+				_stat_bonuses[hid][sk] = int(_stat_bonuses[hid][sk])
 
 	# 清空战斗状态
 	hero_current_hp.clear()
@@ -297,6 +307,47 @@ func _unlock_passives_for_level(hero_id: String, level: int) -> Array:
 		EventBus.hero_passive_unlocked.emit(hero_id, passive_id)
 
 	return newly_unlocked
+
+# =========================================================================== #
+# 兼容 API（供 hero_system.gd 内部调用，避免方法不存在崩溃）
+# =========================================================================== #
+
+## add_xp — grant_hero_exp 的别名，供 grant_xp_all 等旧调用路径使用。
+func add_xp(hero_id: String, amount: int) -> Dictionary:
+	return grant_hero_exp(hero_id, amount)
+
+
+## set_level — 直接设置英雄等级（调试/事件用）。
+## 同时将经验值调整为该等级的最低累计经验，并重新解锁所有被动。
+func set_level(hero_id: String, level: int) -> void:
+	var clamped: int = clampi(level, 1, MAX_LEVEL)
+	if not hero_exp.has(hero_id):
+		init_hero(hero_id)
+	hero_level[hero_id] = clamped
+	hero_exp[hero_id] = HeroLevelData.get_cumulative_exp_for_level(clamped)
+	# 重新解锁所有该等级及以下的被动
+	hero_unlocked_passives[hero_id] = [] as Array[String]
+	for lv in range(1, clamped + 1):
+		_unlock_passives_for_level(hero_id, lv)
+	EventBus.hero_leveled_up.emit(hero_id, clamped)
+
+
+## get_stat_bonus — 获取通过事件/任务链施加的永久属性加成。
+## 当前实现将加成存储在 hero_exp 旁边的独立字典中。
+var _stat_bonuses: Dictionary = {}  # hero_id -> {stat_key: int}
+
+func get_stat_bonus(hero_id: String, stat_key: String) -> int:
+	if not _stat_bonuses.has(hero_id):
+		return 0
+	return _stat_bonuses[hero_id].get(stat_key, 0)
+
+
+## set_stat_bonus — 设置永久属性加成（覆盖，非累加）。
+func set_stat_bonus(hero_id: String, stat_key: String, value: int) -> void:
+	if not _stat_bonuses.has(hero_id):
+		_stat_bonuses[hero_id] = {}
+	_stat_bonuses[hero_id][stat_key] = value
+
 
 ## 根据累计经验值计算应有的等级。
 func _calculate_level_from_exp(exp_val: int) -> int:

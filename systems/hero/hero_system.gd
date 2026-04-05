@@ -1379,6 +1379,8 @@ func to_save_data() -> Dictionary:
 		"exiled_heroes": _exiled_heroes.duplicate(),
 		"hero_stat_bonuses": _hero_stat_bonuses.duplicate(true),
 		"hidden_hero_notifications": _hidden_hero_notifications.duplicate(),
+		# v13.0: 指挥官疲劳状态应序列化，避免存档后疲劳状态丢失
+		"hero_fatigue": _hero_fatigue.duplicate(),
 	}
 	data["hero_leveling"] = HeroLeveling.serialize()
 	return data
@@ -1433,6 +1435,8 @@ func from_save_data(data: Dictionary) -> void:
 		if _hero_stat_bonuses[hid] is Dictionary:
 			for stat_key in _hero_stat_bonuses[hid]:
 				_hero_stat_bonuses[hid][stat_key] = int(_hero_stat_bonuses[hid][stat_key])
+	# v13.0: 恢复指挥官疲劳状态
+	_hero_fatigue = data.get("hero_fatigue", {}).duplicate()
 	# Re-register discovered hidden hero templates into runtime registry
 	_hidden_hero_data.clear()
 	for entry in BalanceConfig.HIDDEN_HEROES:
@@ -1607,11 +1611,18 @@ func _next_recruit_event_id() -> String:
 	return "recruit_%d" % _recruitment_event_counter
 
 
-## Get all hero_ids that are not captured, not recruited, not exiled — available for recruitment events.
+## Get all hero_ids that are not captured, not recruited, not exiled, not hidden — available for recruitment events.
 func _get_unrecruited_hero_ids() -> Array:
 	var result: Array = []
+	# 收集所有隐藏英雄的 ID，避免将尚未解锁的隐藏英雄加入普通招募池
+	var hidden_ids: Array = []
+	for entry in BalanceConfig.HIDDEN_HEROES:
+		hidden_ids.append(entry["id"])
 	for hid in FactionData.HEROES.keys():
 		if hid in recruited_heroes or hid in captured_heroes or hid in _exiled_heroes:
+			continue
+		# 隐藏英雄必须通过隐藏条件解锁，不应出现在普通招募池
+		if hid in hidden_ids and hid not in _discovered_hidden_heroes:
 			continue
 		result.append(hid)
 	return result
@@ -1838,7 +1849,10 @@ func _resolve_legendary(player_id: int, hero_id: String, event_data: Dictionary,
 		var ap_cost: int = event_data.get("ap_cost", 2)
 		var gold_cost: int = event_data.get("gold_cost", 100)
 		var gold: int = ResourceManager.get_resource(player_id, "gold")
-		var player: Dictionary = GameManager.players[player_id] if player_id < GameManager.players.size() else {}
+		var player: Dictionary = GameManager.get_player_by_id(player_id)
+		if player.is_empty():
+			EventBus.message_log.emit("[color=red]无效玩家，无法接受传说挑战。[/color]")
+			return
 		var ap: int = player.get("ap", 0)
 		if gold < gold_cost:
 			EventBus.message_log.emit("[color=red]金币不足，无法挑战传说武将。[/color]")
@@ -1898,18 +1912,15 @@ func force_recruit_hero(_player_id: int, hero_id: String) -> void:
 ## Called by event_system — grants XP to all recruited heroes.
 func grant_xp_all(_player_id: int, amount: int) -> void:
 	for hero_id in recruited_heroes:
-		if HeroLeveling and HeroLeveling.has_method("add_xp"):
-			HeroLeveling.add_xp(hero_id, amount)
+		if HeroLeveling:
+			HeroLeveling.grant_hero_exp(hero_id, amount)
 	EventBus.message_log.emit("[color=aqua]所有英雄获得 %d 经验值[/color]" % amount)
 
 
 ## Called by debug_console — sets hero level directly.
 func set_hero_level(hero_id: String, level: int) -> void:
-	if HeroLeveling and HeroLeveling.has_method("set_level"):
+	if HeroLeveling:
 		HeroLeveling.set_level(hero_id, level)
-	else:
-		var hdata: Dictionary = _get_hero_data(hero_id)
-		hdata["level"] = level
 	EventBus.message_log.emit("[DEBUG] %s 等级设为 %d" % [_get_hero_name(hero_id), level])
 
 

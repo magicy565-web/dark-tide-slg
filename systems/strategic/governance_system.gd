@@ -100,8 +100,10 @@ func activate_policy(tile_idx: int, policy_id: String) -> bool:
 	if policy["effects"].has("order_change"):
 		change_order(tile_idx, policy["effects"]["order_change"])
 	if policy["effects"].has("garrison_bonus"):
-		var tile = GameManager.tiles[tile_idx]
-		tile["garrison"] = tile.get("garrison", 0) + policy["effects"]["garrison_bonus"]
+			# v13.0: 安全访问——边界检查防止越界
+			if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+				var tile = GameManager.tiles[tile_idx]
+				tile["garrison"] = tile.get("garrison", 0) + policy["effects"]["garrison_bonus"]
 		
 	EventBus.message_log.emit("[color=cyan]据点 #%d 激活政策: %s[/color]" % [tile_idx, policy["name"]])
 	if EventBus.has_signal("governance_policy_activated"):
@@ -142,11 +144,15 @@ func activate_strategy(tile_idx: int, strategy_id: String) -> bool:
 	# 立即生效的效果
 	var effects = strategy["effects"]
 	if effects.has("wall_repair"):
-		var tile = GameManager.tiles[tile_idx]
-		tile["wall_hp"] = min(tile.get("wall_hp", 0) + effects["wall_repair"], tile.get("max_wall_hp", 50))
-	if effects.has("garrison_bonus"):
-		var tile = GameManager.tiles[tile_idx]
-		tile["garrison"] = tile.get("garrison", 0) + effects["garrison_bonus"]
+			# v13.0: 安全访问
+			if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+				var tile = GameManager.tiles[tile_idx]
+				tile["wall_hp"] = min(tile.get("wall_hp", 0) + effects["wall_repair"], tile.get("max_wall_hp", 50))
+		if effects.has("garrison_bonus"):
+			# v13.0: 安全访问
+			if tile_idx >= 0 and tile_idx < GameManager.tiles.size():
+				var tile = GameManager.tiles[tile_idx]
+				tile["garrison"] = tile.get("garrison", 0) + effects["garrison_bonus"]
 	if effects.has("order_change"):
 		change_order(tile_idx, effects["order_change"])
 		
@@ -219,14 +225,38 @@ func process_turn() -> void:
 			EventBus.message_log.emit("[color=gray]据点 #%d 政策过期: %s[/color]" % [tile_idx, expired_name])
 
 func get_policy_modifiers(tile_idx: int) -> Dictionary:
-	var mods = {"gold_mult": 1.0, "def_bonus": 0, "order_freeze": false, "build_discount": 0.0}
-	var data = get_governance_data(tile_idx)
+	## v13.0: 修复崩溃——防御策略 ID 也写入 active_policies，必须同时查 POLICIES 和 DEFENSE_STRATEGIES
+	## 同时添加 production_zero / siege_attrition / def_bonus 效果读取
+	var mods: Dictionary = {
+		"gold_mult": 1.0,
+		"def_bonus": 0,
+		"order_freeze": false,
+		"build_discount": 0.0,
+		"production_zero": false,
+		"siege_attrition": 0.0,
+	}
+	var data: Dictionary = get_governance_data(tile_idx)
 	for p_id in data["active_policies"]:
-		var effects = POLICIES[p_id]["effects"]
-		if effects.has("gold_mult"): mods["gold_mult"] *= effects["gold_mult"]
-		if effects.has("def_bonus"): mods["def_bonus"] += effects["def_bonus"]
-		if effects.has("order_freeze"): mods["order_freeze"] = mods["order_freeze"] or effects["order_freeze"]
-		if effects.has("build_discount"): mods["build_discount"] = maxf(mods["build_discount"], effects["build_discount"])
+		# 先在 POLICIES 中查，再在 DEFENSE_STRATEGIES 中查，避免 KeyError
+		var effects: Dictionary = {}
+		if POLICIES.has(p_id):
+			effects = POLICIES[p_id].get("effects", {})
+		elif DEFENSE_STRATEGIES.has(p_id):
+			effects = DEFENSE_STRATEGIES[p_id].get("effects", {})
+		else:
+			continue
+		if effects.has("gold_mult"):
+			mods["gold_mult"] *= float(effects["gold_mult"])
+		if effects.has("def_bonus"):
+			mods["def_bonus"] += int(effects["def_bonus"])
+		if effects.has("order_freeze"):
+			mods["order_freeze"] = mods["order_freeze"] or bool(effects["order_freeze"])
+		if effects.has("build_discount"):
+			mods["build_discount"] = maxf(mods["build_discount"], float(effects["build_discount"]))
+		if effects.has("production_zero"):
+			mods["production_zero"] = mods["production_zero"] or bool(effects["production_zero"])
+		if effects.has("siege_attrition"):
+			mods["siege_attrition"] += float(effects["siege_attrition"])
 	return mods
 
 func to_save_data() -> Dictionary:

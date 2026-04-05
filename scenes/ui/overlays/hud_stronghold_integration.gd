@@ -197,12 +197,10 @@ func _on_milestone_unlocked(tile_idx: int, milestone_id: String) -> void:
 
 ## 秩序系统回调
 
-func _on_order_changed(player_id: int, old_order: float, new_order: float) -> void:
-	var delta = new_order - old_order
-	var color = "lime" if delta > 0 else "red"
-	
-	EventBus.message_log.emit("[color=%s]秩序变化: %.2f → %.2f[/color]" % [
-		color, old_order, new_order])
+## v13.0: 修复信号签名——EventBus.order_changed 发射单参数 (new_value: int)
+## 原三参数版本与信号定义不匹配会导致连接失败
+func _on_order_changed(new_value: int) -> void:
+	EventBus.message_log.emit("[color=cyan]全局秩序更新: %d[/color]" % new_value)
 
 # ═════════════════════════════════════════════════════════════════
 

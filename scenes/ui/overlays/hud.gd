@@ -337,6 +337,19 @@ func _connect_signals() -> void:
 		EventBus.road_construction_completed.connect(_on_road_construction_completed)
 	if EventBus.has_signal("terrain_attrition_applied"):
 		EventBus.terrain_attrition_applied.connect(_on_terrain_attrition_applied)
+	# v11.0-v13.0: 战斗演出/围城/战略资源新信号
+	if EventBus.has_signal("siege_started"):
+		EventBus.siege_started.connect(_on_siege_started)
+	if EventBus.has_signal("siege_ended"):
+		EventBus.siege_ended.connect(_on_siege_ended)
+	if EventBus.has_signal("sortie_triggered"):
+		EventBus.sortie_triggered.connect(_on_sortie_triggered)
+	if EventBus.has_signal("strategic_buff_changed"):
+		EventBus.strategic_buff_changed.connect(_on_strategic_buff_changed)
+	if EventBus.has_signal("battle_rating_computed"):
+		EventBus.battle_rating_computed.connect(_on_battle_rating_computed)
+	if EventBus.has_signal("sfx_combo_kill_streak"):
+		EventBus.sfx_combo_kill_streak.connect(_on_sfx_combo_kill_streak)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -5336,6 +5349,65 @@ func _on_road_construction_completed(tile_idx: int) -> void:
 func _on_terrain_attrition_applied(tile_idx: int, terrain_name: String, soldiers_lost: int) -> void:
 	var tile_name: String = _safe_tile_name(tile_idx)
 	EventBus.message_log.emit("[color=orange]💀 【地形减员】%s（%s）：驻军减少 %d 人[/color]" % [tile_name, terrain_name, soldiers_lost])
+
+
+# ── v11.0-v13.0 新信号处理函数 ──
+
+func _on_siege_started(attacker_army_id: int, tile_index: int, turns: int) -> void:
+	var tile_name: String = _safe_tile_name(tile_index)
+	EventBus.message_log.emit("[color=orange]⚔ 【围攻开始】正在围攻 %s，预计 %d 回合[/color]" % [tile_name, turns])
+	_update_tile_info_if_visible(tile_index)
+
+
+func _on_siege_ended(tile_index: int, result: String) -> void:
+	var tile_name: String = _safe_tile_name(tile_index)
+	var result_text: String = {"assault": "总攻", "surrender": "投降", "lifted": "撤退", "relief": "援军解围"}.get(result, result)
+	EventBus.message_log.emit("[color=yellow]🏰 【围攻结束】%s — %s[/color]" % [tile_name, result_text])
+	_update_tile_info_if_visible(tile_index)
+
+
+func _on_sortie_triggered(tile_index: int, defender_won: bool) -> void:
+	var tile_name: String = _safe_tile_name(tile_index)
+	if defender_won:
+		EventBus.message_log.emit("[color=lime]⚡ 【突围成功】%s 守军突围，攻方受损！[/color]" % tile_name)
+	else:
+		EventBus.message_log.emit("[color=red]⚡ 【突围失败】%s 守军突围被击退！[/color]" % tile_name)
+
+
+func _on_strategic_buff_changed(player_id: int, buffs: Dictionary) -> void:
+	## 战略资源加成变化时刷新顶栏显示
+	var human_pid: int = GameManager.get_human_player_id()
+	if player_id != human_pid:
+		return
+	# 刷新资源显示
+	_on_resources_changed(player_id)
+
+
+func _on_battle_rating_computed(player_id: int, rating: String, stats: Dictionary) -> void:
+	## 战斗评级计算完成 — 在消息日志中显示
+	var human_pid: int = GameManager.get_human_player_id()
+	if player_id != human_pid:
+		return
+	var rating_color: String = {"S": "gold", "A": "lime", "B": "cyan", "C": "white", "D": "gray"}.get(rating, "white")
+	EventBus.message_log.emit("[color=%s]★ 战斗评级: %s 级 | 最高伤害:%d 暴击率:%.0f%%[/color]" % [
+		rating_color, rating,
+		stats.get("max_single_damage", 0),
+		stats.get("crit_rate", 0.0) * 100.0
+	])
+
+
+func _on_sfx_combo_kill_streak(kill_count: int) -> void:
+	## 连击击杀特效 — 在消息日志中显示连击横幅
+	if kill_count >= 3:
+		EventBus.message_log.emit("[color=orange][shake]⚡ %d 连击！[/shake][/color]" % kill_count)
+
+
+func _update_tile_info_if_visible(tile_index: int) -> void:
+	## 如果领地信息面板正在显示该地块，则刷新
+	if _tile_dev_panel != null and is_instance_valid(_tile_dev_panel) and _tile_dev_panel.visible:
+		if _tile_dev_panel.get("_tile_idx") == tile_index:
+			if _tile_dev_panel.has_method("_refresh"):
+				_tile_dev_panel.call("_refresh")
 
 
 # ── 地形信息按钮注入（在省份信息面板中追加"地形详情"按钮）──

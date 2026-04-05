@@ -432,9 +432,13 @@ func execute_ultimate(hero_id: String, battle_state: Dictionary) -> Dictionary:
 
 		"heal_all":
 			var ally_units: Array = _get_ally_units(side, battle_state)
+			# v13.0: 治疗型技能使用 int_stat 而非 atk 作为基础，治疗英雄数值正确
+			var hero_unit: Dictionary = _find_hero_unit(hero_id, battle_state)
+			var base_int: float = hero_unit.get("int_stat", hero_unit.get("int", base_atk))
+			var heal_base: float = maxf(base_int, base_atk)  # 取较高者保证向后兼容
 			for unit in ally_units:
 				if unit.get("is_alive", false):
-					var heal: int = int(base_atk * damage_mult)
+					var heal: int = int(heal_base * damage_mult)
 					unit["soldiers"] = mini(unit["soldiers"] + heal, unit.get("max_soldiers", unit["soldiers"] + heal))
 					result["targets_hit"].append({"unit": unit.get("unit_type", ""), "healed": heal})
 
@@ -579,7 +583,8 @@ func execute_combo(combo_id: int, battle_state: Dictionary) -> Dictionary:
 			if not alive.is_empty():
 				alive.sort_custom(func(a, b): return a["soldiers"] > b["soldiers"])
 				var target: Dictionary = alive[0]
-				var dmg: int = maxi(1, total_damage)
+				# v13.0: 修复 focus_damage 缺少防御减免的问题
+				var dmg: int = maxi(1, total_damage - int(target.get("def", 0)))
 				target["soldiers"] = maxi(0, target["soldiers"] - dmg)
 				if target["soldiers"] <= 0:
 					target["is_alive"] = false

@@ -2,7 +2,7 @@
 ## Autoload singleton. Serializes full game state to JSON files.
 extends Node
 
-const SAVE_VERSION: String = "4.1.0"
+const SAVE_VERSION: String = "4.2.0"  # v13.0 全面优化升版
 const SAVE_DIR: String = "user://saves/"
 const MAX_MANUAL_SLOTS: int = 5
 const AUTO_SLOT: int = 99
@@ -676,15 +676,15 @@ func _load_game_state(gs: Dictionary) -> void:
 # ═══════════════ VERSION COMPAT ═══════════════
 
 func _is_version_compatible(saved_ver: String) -> bool:
-	## Accepts saves from v3.x+ (migratable) and v4.x (current major).
+	## v13.0: 扩展兼容范围——接受 v2.x 以上的存档（应用迁移路径）
 	var saved_parts: Array = saved_ver.split(".")
 	var current_parts: Array = SAVE_VERSION.split(".")
 	if saved_parts.size() < 2 or current_parts.size() < 2:
 		return false
 	var saved_major: int = int(saved_parts[0])
 	var current_major: int = int(current_parts[0])
-	# Accept current major and one major version back (for migration)
-	return saved_major >= current_major - 1 and saved_major <= current_major
+	# 接受 v2.x 以上（包含 v3.x/v4.x），拒绝未来版本
+	return saved_major >= 2 and saved_major <= current_major
 
 
 func _migrate_save_data(data: Dictionary, from_version: String) -> Dictionary:
@@ -693,6 +693,14 @@ func _migrate_save_data(data: Dictionary, from_version: String) -> Dictionary:
 	var major: int = int(parts[0]) if parts.size() > 0 else 0
 	var minor: int = int(parts[1]) if parts.size() > 1 else 0
 	var _patch: int = int(parts[2]) if parts.size() > 2 else 0
+
+	# v2.x -> v3.x: 添加所有 v3 必要字段
+	if major <= 2:
+		data = _migrate_2_to_3(data)
+		data = _migrate_3_to_4(data)
+		data = _migrate_4_0_to_4_1(data)
+		data = _migrate_4_1_to_4_2(data)
+		return data
 
 	# v3.7 -> v3.8: No structural changes needed
 	# v3.8 -> v4.0: event subsystems added save data
@@ -703,6 +711,21 @@ func _migrate_save_data(data: Dictionary, from_version: String) -> Dictionary:
 	if major <= 4 and minor < 1:
 		data = _migrate_4_0_to_4_1(data)
 
+	# v4.1 -> v4.2: stronghold_governance, terrain_bridge, quest_chain_manager 等新键
+	if major <= 4 and minor < 2:
+		data = _migrate_4_1_to_4_2(data)
+
+	return data
+
+
+func _migrate_2_to_3(data: Dictionary) -> Dictionary:
+	## v13.0: v2.x -> v3.x 基础字段补充
+	for key in ["story", "tile_development", "supply_system", "siege",
+				"march_system", "enchantment", "hero_skills_advanced", "environment",
+				"treaty_system", "equipment_forge", "supply_logistics", "weather",
+				"espionage", "cg_gallery", "quest_journal", "balance_manager"]:
+		if not data.has(key):
+			data[key] = {}
 	return data
 
 
@@ -735,6 +758,24 @@ func _migrate_4_0_to_4_1(data: Dictionary) -> Dictionary:
 		data["quest_progress_tracker"] = {}
 	if not data.has("event_scheduler"):
 		data["event_scheduler"] = {}
+	return data
+
+
+func _migrate_4_1_to_4_2(data: Dictionary) -> Dictionary:
+	## v13.0: Migrate v4.1 saves to v4.2 format.
+	## 补充 v13.0 新增系统的默认空字典
+	var new_keys_v42: Array = [
+		"quest_chain_manager", "quest_chain_registry",
+		"stronghold_governance", "stronghold_morale", "stronghold_development",
+		"stronghold_cave", "stronghold_village", "stronghold_fortress",
+		"terrain_bridge", "general_system", "prestige_shop", "ngplus_shop",
+		"grand_event_director", "dynamic_situation_events", "crisis_countdown",
+		"faction_destruction_events", "seasonal_events", "character_interaction_events",
+		"nation_system", "pirate_onboarding",
+	]
+	for key in new_keys_v42:
+		if not data.has(key):
+			data[key] = {}
 	return data
 
 

@@ -274,6 +274,15 @@ func evaluate_strategy(faction_key: String) -> int:
 	if border_pressure >= 4:
 		weights[Strategy.DEFEND] += 0.20
 
+	# v13.0: 外交策略触发条件——当势力较弱且声望尚可时，优先选择外交
+	if DiplomacyManager:
+		var rep: int = DiplomacyManager.get_reputation(faction_key)
+		if rep >= 40 and own_tiles <= 4:
+			weights[Strategy.DIPLOMATIZE] += 0.25
+			weights[Strategy.EXPAND] -= 0.10
+		elif rep >= 60:
+			weights[Strategy.DIPLOMATIZE] += 0.15
+
 	# Commitment awareness: if overcommitted in sieges, favor DEFEND/CONSOLIDATE
 	var commitments: Dictionary = get_active_commitments(faction_key)
 	if commitments.get("overcommitted", false):
@@ -639,6 +648,10 @@ func clear_coordinated_target() -> void:
 
 func process_turn(_player_id: int) -> void:
 	## Called each turn. Update memory, evaluate strategies, and run tactical intelligence.
+	# v13.0: 安全防护——如果 tiles 尚未初始化则跳过，避免空数组访问崩溃
+	if GameManager.tiles.is_empty():
+		return
+
 	var ai_factions: Array = AIScaling.get_all_ai_factions()
 
 	# Update memory for each faction
@@ -663,9 +676,11 @@ func process_turn(_player_id: int) -> void:
 		_evaluate_tactic_results(faction_key)
 
 	# Try coordinated attacks among warlike evil factions
+	# v13.0: 包含 elf_ai 和 human_kingdom_ai 中的侵略性势力
 	var evil_keys: Array = []
 	for key in ai_factions:
-		if key in ["orc_ai", "pirate_ai", "dark_elf_ai"]:
+		var personality: int = AIScaling.get_personality(key)
+		if personality == AIScaling.Personality.AGGRESSIVE:
 			evil_keys.append(key)
 	if evil_keys.size() >= 2:
 		try_coordinate_attack(evil_keys)
@@ -966,9 +981,9 @@ func plan_diversion(faction_key: String, threatened_tile: int) -> Dictionary:
 	if tier < 1:
 		return {"type": "direct_defense"}
 
-	# Check learning: if player ignores diversions 3+ times, stop trying
+	# Check learning: if player ignores diversions 4+ times (v13.0: 提高阈値避免过早放弃), stop trying
 	var div_res: Dictionary = _diversion_results.get(faction_key, {"successes": 0, "failures": 0})
-	if div_res.get("failures", 0) >= 3 and div_res.get("successes", 0) < div_res.get("failures", 0):
+	if div_res.get("failures", 0) >= 4 and div_res.get("successes", 0) < div_res.get("failures", 0):
 		return {"type": "direct_defense"}
 
 	# Find the enemy player(s) threatening this tile
@@ -1105,9 +1120,9 @@ func plan_feint(faction_key: String) -> Dictionary:
 	if tier < 2:
 		return {}
 
-	# Check learning: if player ignores feints 3+ times, stop feinting
+	# Check learning: if player ignores feints 4+ times (v13.0: 提高阈値), stop feinting
 	var feint_res: Dictionary = _feint_results.get(faction_key, {"successes": 0, "failures": 0})
-	if feint_res.get("failures", 0) >= 3 and feint_res.get("successes", 0) < feint_res.get("failures", 0):
+	if feint_res.get("failures", 0) >= 4 and feint_res.get("successes", 0) < feint_res.get("failures", 0):
 		return {}
 
 	# Need at least 2 available AI border tiles with garrison
