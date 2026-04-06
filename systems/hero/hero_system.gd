@@ -1286,7 +1286,11 @@ func _check_single_hidden_hero(player_id: int, entry: Dictionary) -> bool:
 			var tile_idx: int = params.get("tile_index", -1)
 			var intel_ok: bool = true
 			if min_intel > 0:
-				var espionage_node: Node = get_node_or_null("/root/EspionageSystem")
+				var espionage_node: Node = null
+				if Engine.has_singleton("EspionageSystem"):
+					espionage_node = Engine.get_singleton("EspionageSystem")
+				elif is_inside_tree() and get_tree() and get_tree().root:
+					espionage_node = get_tree().root.get_node_or_null("EspionageSystem")
 				if espionage_node and espionage_node.has_method("get_intel"):
 					intel_ok = espionage_node.get_intel(player_id) >= min_intel
 				else:

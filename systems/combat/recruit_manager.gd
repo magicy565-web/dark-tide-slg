@@ -20,6 +20,12 @@ var _wanderers: Dictionary = {}
 # ── Rebel armies: { tile_index: Array[Dictionary] } ──
 var _rebels: Dictionary = {}
 
+const _DEFAULT_FACTION_TROOP_MAP: Dictionary = {
+	FactionData.FactionID.ORC: "orc_ashigaru",
+	FactionData.FactionID.PIRATE: "pirate_ashigaru",
+	FactionData.FactionID.DARK_ELF: "de_samurai",
+}
+
 
 # ---------------------------------------------------------------------------
 # Lifecycle
@@ -72,6 +78,31 @@ func get_army_summary(player_id: int) -> Array:
 # ---------------------------------------------------------------------------
 # Recruitment
 # ---------------------------------------------------------------------------
+
+## Default fallback troop id used by legacy recruit flows.
+func get_default_troop_id_for_faction(faction_id: int) -> String:
+	return _DEFAULT_FACTION_TROOP_MAP.get(faction_id, "ashigaru")
+
+
+func get_remaining_pop_slots(player_id: int) -> int:
+	var pop_cap: int = _get_pop_cap(player_id)
+	var army_ref: Array = _get_army_ref(player_id)
+	return maxi(0, pop_cap - army_ref.size())
+
+
+## Recruit one default squad by faction, used by GameManager legacy/domestic recruit entry points.
+## Returns { "ok": bool, "troop_id": String, "soldiers": int }.
+func recruit_default_unit_for_faction(player_id: int, faction_id: int) -> Dictionary:
+	var troop_id: String = get_default_troop_id_for_faction(faction_id)
+	if get_remaining_pop_slots(player_id) <= 0:
+		return {"ok": false, "troop_id": troop_id, "soldiers": 0, "reason": "pop_cap"}
+	var instance: Dictionary = GameData.create_troop_instance(troop_id)
+	if instance.is_empty():
+		return {"ok": false, "troop_id": troop_id, "soldiers": 0, "reason": "invalid_troop_def"}
+	reinforce_army(player_id, [instance])
+	if EventBus.has_signal("army_troops_assigned"):
+		EventBus.army_troops_assigned.emit(player_id, troop_id, instance.get("soldiers", 0))
+	return {"ok": true, "troop_id": troop_id, "soldiers": instance.get("soldiers", 0)}
 
 ## Returns recruitable troops at a tile for a player.
 func get_available_units(player_id: int, tile: Dictionary) -> Array:
@@ -226,7 +257,15 @@ func apply_combat_losses(player_id: int, total_losses: int) -> int:
 ## Merge reinforcements into army.
 func reinforce_army(player_id: int, reinforcements: Array) -> void:
 	var army_ref: Array = _get_army_ref(player_id)
-	GameData.merge_into_army(army_ref, reinforcements)
+	var slots_left: int = get_remaining_pop_slots(player_id)
+	if slots_left <= 0:
+		return
+	var accepted: Array = reinforcements
+	if reinforcements.size() > slots_left:
+		accepted = reinforcements.slice(0, slots_left)
+		if EventBus != null:
+			EventBus.message_log.emit("[color=yellow]军团名额不足，仅接收%d/%d支增援[/color]" % [accepted.size(), reinforcements.size()])
+	GameData.merge_into_army(army_ref, accepted)
 	_sync_army_count(player_id)
 
 

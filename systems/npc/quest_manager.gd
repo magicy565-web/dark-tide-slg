@@ -25,6 +25,11 @@ var _caravan_item_timer: Dictionary = {}
 
 # Taming levels per player per neutral faction: { player_id: { faction_id_or_tag: int (0-10) } }
 var _taming_levels: Dictionary = {}
+# Last quest interaction turn per player/faction: { player_id: { faction_id: turn_number } }
+var _last_interaction_turn: Dictionary = {}
+
+const TAMING_DECAY_INTERVAL: int = 5
+const TAMING_DECAY_PER_TICK: int = 1
 
 # ═══════════════ NEUTRAL_FACTIONS LOOKUP ═══════════════
 # Maps string tags to FactionData.NEUTRAL_FACTION_DATA entries (bridging game_manager calls)
@@ -67,6 +72,7 @@ func reset() -> void:
 	_pending_quest_combat.clear()
 	_caravan_item_timer.clear()
 	_taming_levels.clear()
+	_last_interaction_turn.clear()
 
 
 func init_player(player_id: int) -> void:
@@ -76,6 +82,7 @@ func init_player(player_id: int) -> void:
 	_unlocked_units[player_id] = []
 	_caravan_item_timer[player_id] = 0
 	_taming_levels[player_id] = {}
+	_last_interaction_turn[player_id] = {}
 
 
 func _default_bonuses() -> Dictionary:
@@ -105,6 +112,7 @@ func start_quest(player_id: int, neutral_faction: int) -> bool:
 	if _quest_progress[player_id].has(neutral_faction):
 		return false  # Already started
 	_quest_progress[player_id][neutral_faction] = {"step": 1, "completed": false}
+	_touch_taming_interaction(player_id, neutral_faction)
 	var fname: String = FactionData.NEUTRAL_FACTION_NAMES.get(neutral_faction, "未知")
 	var leader: String = FactionData.NEUTRAL_FACTION_DATA.get(neutral_faction, {}).get("leader_name", "")
 	if leader != "":
@@ -126,6 +134,7 @@ func advance_quest(player_id: int, neutral_faction: int) -> bool:
 	if current_step >= max_steps:
 		return false
 	_quest_progress[player_id][neutral_faction]["step"] = current_step + 1
+	_touch_taming_interaction(player_id, neutral_faction)
 	# Increase taming by +3 per step advancement
 	var old_taming: int = get_taming_level(player_id, neutral_faction)
 	set_taming_level(player_id, neutral_faction, old_taming + 3)
@@ -145,6 +154,7 @@ func complete_quest(player_id: int, neutral_faction: int) -> bool:
 	if _quest_progress[player_id][neutral_faction]["step"] < max_steps:
 		return false
 	_quest_progress[player_id][neutral_faction]["completed"] = true
+	_touch_taming_interaction(player_id, neutral_faction)
 	if not _recruited_factions.has(player_id):
 		_recruited_factions[player_id] = []
 	# Guard against duplicate recruitment (e.g., race between auto-advance and manual advance)
@@ -649,12 +659,54 @@ func get_unlocked_neutral_troops(player_id: int, nf_id_or_tag) -> Array:
 	return result
 
 
+func _touch_taming_interaction(player_id: int, nf_id_or_tag) -> void:
+	var fid: int = _resolve_faction_id(nf_id_or_tag)
+	if fid < 0:
+		return
+	if not _last_interaction_turn.has(player_id):
+		_last_interaction_turn[player_id] = {}
+	var cur_turn: int = GameManager.turn_number if GameManager != null and "turn_number" in GameManager else 0
+	_last_interaction_turn[player_id][fid] = cur_turn
+
+
 func tick_turn(player_id: int) -> void:
 	## Called per turn from game_manager. Wraps process_turn + taming decay for neglected factions.
 	process_turn(player_id)
 	# Taming decay: factions with active (non-completed) quests that player hasn't interacted with
 	# lose 1 taming point every 5 turns (handled by checking quest step staleness)
-	# For now this is a no-op placeholder — can be expanded later.
+	if not _quest_progress.has(player_id):
+		return
+	if not _last_interaction_turn.has(player_id):
+		_last_interaction_turn[player_id] = {}
+
+	var cur_turn: int = GameManager.turn_number if GameManager != null and "turn_number" in GameManager else 0
+	for nf in _quest_progress[player_id]:
+		var qd: Dictionary = _quest_progress[player_id].get(nf, {})
+		if qd.get("completed", false):
+			continue
+		var step: int = qd.get("step", 0)
+		if step <= 0:
+			continue
+		if is_faction_recruited(player_id, nf):
+			continue
+
+		var last_turn: int = int(_last_interaction_turn[player_id].get(nf, cur_turn))
+		# First seen active quest initializes tracking at current turn.
+		if not _last_interaction_turn[player_id].has(nf):
+			_last_interaction_turn[player_id][nf] = cur_turn
+			continue
+		if cur_turn - last_turn < TAMING_DECAY_INTERVAL:
+			continue
+
+		var old_level: int = get_taming_level(player_id, nf)
+		if old_level <= 0:
+			_last_interaction_turn[player_id][nf] = cur_turn
+			continue
+		var new_level: int = maxi(0, old_level - TAMING_DECAY_PER_TICK)
+		set_taming_level(player_id, nf, new_level)
+		_last_interaction_turn[player_id][nf] = cur_turn
+		var fname: String = FactionData.NEUTRAL_FACTION_NAMES.get(nf, "未知")
+		EventBus.message_log.emit("[color=orange]%s 长期未互动，服从度下降至 %d[/color]" % [fname, new_level])
 
 
 func get_all_quest_status(player_id: int) -> Array:
@@ -693,6 +745,7 @@ func to_save_data() -> Dictionary:
 		"pending_quest_combat": _pending_quest_combat.duplicate(true),
 		"caravan_item_timer": _caravan_item_timer.duplicate(true),
 		"taming_levels": _taming_levels.duplicate(true),
+		"last_interaction_turn": _last_interaction_turn.duplicate(true),
 	}
 
 
@@ -743,3 +796,9 @@ func from_save_data(data: Dictionary) -> void:
 	for pid in _taming_levels:
 		if _taming_levels[pid] is Dictionary:
 			_fix_int_keys(_taming_levels[pid])
+
+	_last_interaction_turn = data.get("last_interaction_turn", {}).duplicate(true)
+	_fix_int_keys(_last_interaction_turn)
+	for pid in _last_interaction_turn:
+		if _last_interaction_turn[pid] is Dictionary:
+			_fix_int_keys(_last_interaction_turn[pid])

@@ -536,7 +536,10 @@ func _build_section_side_quests(_tile: Dictionary) -> void:
 				break
 		if not has_qj:
 			# Check if QuestJournal autoload exists as a global name
-			if not is_instance_valid(get_node_or_null("/root/QuestJournal")):
+			var qj_node: Node = null
+			if is_inside_tree() and get_tree() and get_tree().root:
+				qj_node = get_tree().root.get_node_or_null("QuestJournal")
+			if not is_instance_valid(qj_node):
 				return
 
 	content_container.add_child(_make_section_header("支线任務"))

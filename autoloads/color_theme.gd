@@ -150,13 +150,15 @@ func _ready() -> void:
 func _load_btn_textures() -> void:
 	if _loaded:
 		return
-	# v2 buttons with fallback to v1
-	btn_normal_tex = _safe_tex("res://assets/ui/buttons/btn_action_normal.png")
-	if not btn_normal_tex: btn_normal_tex = _safe_tex("res://assets/ui/btn_normal.png")
-	btn_hover_tex = _safe_tex("res://assets/ui/buttons/btn_action_hover.png")
-	if not btn_hover_tex: btn_hover_tex = _safe_tex("res://assets/ui/btn_hover.png")
-	btn_pressed_tex = _safe_tex("res://assets/ui/buttons/btn_action_pressed.png")
-	if not btn_pressed_tex: btn_pressed_tex = _safe_tex("res://assets/ui/btn_pressed.png")
+	# Prefer production button textures first.
+	# NOTE: btn_action_* may contain debug placeholder labels in some asset sets,
+	# so only use them as a final fallback to avoid UI artifacts in runtime.
+	btn_normal_tex = _safe_tex("res://assets/ui/btn_normal.png")
+	if not btn_normal_tex: btn_normal_tex = _safe_tex("res://assets/ui/buttons/btn_action_normal.png")
+	btn_hover_tex = _safe_tex("res://assets/ui/btn_hover.png")
+	if not btn_hover_tex: btn_hover_tex = _safe_tex("res://assets/ui/buttons/btn_action_hover.png")
+	btn_pressed_tex = _safe_tex("res://assets/ui/btn_pressed.png")
+	if not btn_pressed_tex: btn_pressed_tex = _safe_tex("res://assets/ui/buttons/btn_action_pressed.png")
 	# Specialized button textures
 	btn_danger_tex = _safe_tex("res://assets/ui/buttons/btn_danger_normal.png")
 	btn_confirm_tex = _safe_tex("res://assets/ui/buttons/btn_confirm_normal.png")

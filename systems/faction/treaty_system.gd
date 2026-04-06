@@ -736,31 +736,27 @@ func _count_broken_treaties(breaker_id: int) -> int:
 
 func _get_current_turn() -> int:
 	## Safely read the current turn number from GameManager.
-	if Engine.has_singleton("GameManager"):
-		var _gm_s = Engine.get_singleton("GameManager")
-		return _gm_s.current_turn if "current_turn" in _gm_s else 0
-	if is_instance_valid(get_node_or_null("/root/GameManager")):
-		var _gm_n: Node = get_node_or_null("/root/GameManager")
+	var _gm_n: Node = _get_autoload("GameManager")
+	if _gm_n:
 		return _gm_n.current_turn if "current_turn" in _gm_n else 0
 	return 0
 
 func _player_to_faction_key(player_id: int) -> String:
 	## Map a player ID to a faction key string for reputation lookups.
 	## Falls back to "faction_<id>" if GameManager is unavailable.
-	if is_instance_valid(get_node_or_null("/root/GameManager")):
-		var gm: Node = get_node_or_null("/root/GameManager")
-		if gm.has_method("get_player_faction"):
-			var fid: int = gm.get_player_faction(player_id)
-			match fid:
-				FactionData.FactionID.ORC: return "orc_ai"
-				FactionData.FactionID.PIRATE: return "pirate_ai"
-				FactionData.FactionID.DARK_ELF: return "dark_elf_ai"
+	var gm: Node = _get_autoload("GameManager")
+	if gm and gm.has_method("get_player_faction"):
+		var fid: int = gm.get_player_faction(player_id)
+		match fid:
+			FactionData.FactionID.ORC: return "orc_ai"
+			FactionData.FactionID.PIRATE: return "pirate_ai"
+			FactionData.FactionID.DARK_ELF: return "dark_elf_ai"
 	return "faction_%d" % player_id
 
 func _get_player_gold_income(player_id: int) -> int:
 	## Read the player's current gold income from ResourceManager.
-	if is_instance_valid(get_node_or_null("/root/ResourceManager")):
-		var rm: Node = get_node_or_null("/root/ResourceManager")
+	var rm: Node = _get_autoload("ResourceManager")
+	if rm:
 		if rm.has_method("get_income"):
 			return rm.get_income(player_id, "gold")
 		if rm.has_method("get_resource"):
@@ -769,16 +765,15 @@ func _get_player_gold_income(player_id: int) -> int:
 
 func _transfer_gold(from_id: int, to_id: int, amount: int) -> void:
 	## Transfer gold between two players via ResourceManager.
-	if is_instance_valid(get_node_or_null("/root/ResourceManager")):
-		var rm: Node = get_node_or_null("/root/ResourceManager")
-		if rm.has_method("spend") and rm.has_method("add"):
-			rm.spend(from_id, {"gold": amount})
-			rm.add(to_id, {"gold": amount})
+	var rm: Node = _get_autoload("ResourceManager")
+	if rm and rm.has_method("spend") and rm.has_method("add"):
+		rm.spend(from_id, {"gold": amount})
+		rm.add(to_id, {"gold": amount})
 
 func _get_player_tile_count(player_id: int) -> int:
 	## Count how many tiles a player owns (rough power estimate for AI).
-	if is_instance_valid(get_node_or_null("/root/GameManager")):
-		var gm: Node = get_node_or_null("/root/GameManager")
+	var gm: Node = _get_autoload("GameManager")
+	if gm:
 		var tiles: Array = gm.tiles if "tiles" in gm else []
 		var count: int = 0
 		for tile in tiles:
@@ -789,8 +784,8 @@ func _get_player_tile_count(player_id: int) -> int:
 
 func _get_other_player_ids(exclude_id: int) -> Array:
 	## Return all player IDs except the excluded one.
-	if is_instance_valid(get_node_or_null("/root/GameManager")):
-		var gm: Node = get_node_or_null("/root/GameManager")
+	var gm: Node = _get_autoload("GameManager")
+	if gm:
 		var all_ids: Array = gm.player_ids if "player_ids" in gm else []
 		var result: Array = []
 		for pid in all_ids:
@@ -798,6 +793,14 @@ func _get_other_player_ids(exclude_id: int) -> Array:
 				result.append(pid)
 		return result
 	return []
+
+
+func _get_autoload(name: String) -> Node:
+	if Engine.has_singleton(name):
+		return Engine.get_singleton(name)
+	if is_inside_tree() and get_tree() and get_tree().root:
+		return get_tree().root.get_node_or_null(name)
+	return null
 
 func _faction_display_name(treaty_type: int) -> String:
 	## Return the localized display name for a treaty type.
