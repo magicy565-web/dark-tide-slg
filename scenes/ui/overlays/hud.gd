@@ -976,7 +976,8 @@ func _build_tile_info(parent: Control) -> void:
 	tile_info_label.scroll_following = false
 	tile_info_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	tile_info_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	tile_info_label.text = "[b]Current Location[/b]\nWaiting for game to start..."
+	tile_info_label.clear()
+	tile_info_label.append_text("[b]Current Location[/b]\nWaiting for game to start...")
 	tile_info_label.add_theme_font_size_override("normal_font_size", ColorTheme.FONT_SMALL + 1)
 	panel.add_child(tile_info_label)
 
@@ -1370,8 +1371,6 @@ func _on_attack_army_selected(army_id: int) -> void:
 	for tidx in attackable:
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
-		if tidx < 0 or tidx >= GameManager.tiles.size():
-			continue
 		var tile: Dictionary = GameManager.tiles[tidx]
 		var label_text: String = "%s (Lv%d)" % [tile["name"], tile["level"]]
 		if tile["garrison"] > 0:
@@ -1379,7 +1378,7 @@ func _on_attack_army_selected(army_id: int) -> void:
 		if tile["owner_id"] >= 0:
 			var tile_owner: Dictionary = GameManager.get_player_by_id(tile["owner_id"])
 			if tile_owner.is_empty():
-				return
+				continue
 			label_text += " [%s]" % tile_owner.get("name", "???")
 		# v5.0: Show siege/fortification status
 		if SiegeSystem.is_tile_under_siege(tidx):
@@ -1432,8 +1431,6 @@ func _on_deploy_army_selected(army_id: int) -> void:
 		return
 
 	for tidx in deployable:
-		if tidx < 0 or tidx >= GameManager.tiles.size():
-			continue
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
 		var tile: Dictionary = GameManager.tiles[tidx]
@@ -1529,8 +1526,6 @@ func _show_march_targets(army_id: int) -> void:
 			break
 		if tidx < 0 or tidx >= GameManager.tiles.size():
 			continue
-		if tidx < 0 or tidx >= GameManager.tiles.size():
-			continue
 		var tile: Dictionary = GameManager.tiles[tidx]
 		var path: Array = MarchSystem.find_path(from_tile, tidx) if MarchSystem != null else []
 		if path.is_empty():
@@ -1543,7 +1538,7 @@ func _show_march_targets(army_id: int) -> void:
 		elif owner_id >= 0:
 			var op: Dictionary = GameManager.get_player_by_id(owner_id)
 			if op.is_empty():
-				return
+				continue
 			owner_tag = " [敢方:%s]" % op.get("name", "?")
 		else:
 			owner_tag = " [中立]"
@@ -1825,10 +1820,6 @@ func _find_battle_prep():
 func _show_siege_options(tile_index: int, army_id: int, siege_in_progress: bool) -> void:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
-	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
-	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var tile_name: String = tile.get("name", "据点")
 	var player: Dictionary = GameManager.get_player_by_id(GameManager.get_human_player_id())
@@ -1958,12 +1949,6 @@ func _on_garrison_pressed() -> void:
 	for aid in GameManager.armies:
 		if not GameManager.armies.has(aid):
 			continue
-		if not GameManager.armies.has(aid):
-			continue
-		if not GameManager.armies.has(aid):
-			continue
-		if not GameManager.armies.has(aid):
-			continue
 		var a: Dictionary = GameManager.armies[aid]
 		if a.get("player_id", -1) == pid:
 			player_armies.append(a)
@@ -2031,6 +2016,10 @@ func _on_cancel_garrison_army(army_id: int) -> void:
 
 
 func _on_guard_pressed() -> void:
+	if _current_mode == ActionMode.DOMESTIC_SUB and _domestic_sub_type == "guard":
+		_close_target_panel()
+		_current_mode = ActionMode.NONE
+		return
 	if _current_mode == ActionMode.DOMESTIC_SUB:
 		_close_target_panel()
 	_current_mode = ActionMode.DOMESTIC_SUB
@@ -2068,6 +2057,10 @@ func _on_guard_target(tile_index: int) -> void:
 
 func _on_commander_pressed() -> void:
 	## SR07: Open territory commander assignment panel.
+	if _current_mode == ActionMode.DOMESTIC_SUB and _domestic_sub_type == "commander":
+		_close_target_panel()
+		_current_mode = ActionMode.NONE
+		return
 	if _current_mode == ActionMode.DOMESTIC_SUB:
 		_close_target_panel()
 	_current_mode = ActionMode.DOMESTIC_SUB
@@ -2150,6 +2143,10 @@ func _on_commander_remove(tile_index: int) -> void:
 
 
 func _on_sat_event_pressed() -> void:
+	if _current_mode == ActionMode.DOMESTIC_SUB and _domestic_sub_type == "sat_event":
+		_close_target_panel()
+		_current_mode = ActionMode.NONE
+		return
 	if _current_mode == ActionMode.DOMESTIC_SUB:
 		_close_target_panel()
 	_current_mode = ActionMode.DOMESTIC_SUB
@@ -2184,6 +2181,12 @@ func _on_sat_event_target(hero_id: String) -> void:
 
 
 func _on_interrogate_pressed() -> void:
+	if _current_mode == ActionMode.DOMESTIC_SUB and _domestic_sub_type == "interrogate":
+		_close_target_panel()
+		_current_mode = ActionMode.NONE
+		return
+	if _current_mode == ActionMode.DOMESTIC_SUB:
+		_close_target_panel()
 	_current_mode = ActionMode.DOMESTIC_SUB
 	_domestic_sub_type = "interrogate"
 
@@ -2216,6 +2219,12 @@ func _on_interrogate_target(hero_id: String) -> void:
 
 
 func _on_reinforce_pressed() -> void:
+	if _current_mode == ActionMode.DOMESTIC_SUB and _domestic_sub_type == "reinforce":
+		_close_target_panel()
+		_current_mode = ActionMode.NONE
+		return
+	if _current_mode == ActionMode.DOMESTIC_SUB:
+		_close_target_panel()
 	_current_mode = ActionMode.DOMESTIC_SUB
 	_domestic_sub_type = "reinforce"
 
@@ -2270,14 +2279,9 @@ func _on_domestic_recruit() -> void:
 		var sel: int = board_node.get_selected_tile()
 		if sel >= 0 and sel < GameManager.tiles.size() and GameManager.tiles[sel]["owner_id"] == pid:
 			tile_idx = sel
-	# BUG FIX R11: bounds-check tile_idx before access
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		_show_target_panel("Recruit - Select Troop")
 		_add_target_label("(No valid tile selected)")
-		return
-	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
-	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 
@@ -2786,10 +2790,6 @@ func _on_domestic_build_tile(tile_index: int) -> void:
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
 	var pid: int = GameManager.get_human_player_id()
-	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
-	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var available: Array = BuildingRegistry.get_available_buildings_for(pid, tile)
 
@@ -3095,7 +3095,7 @@ func _on_armies_pressed_legacy() -> void:
 
 		bbtext += "\n"
 
-	rtl.text = bbtext
+	rtl.append_text(bbtext)
 	target_container.add_child(rtl)
 	target_buttons.append(rtl)
 
@@ -3224,7 +3224,7 @@ func _on_economy_pressed() -> void:
 	else:
 		bbtext += "  [color=green]Food: surplus of %d/turn[/color]\n" % net_food
 
-	rtl.text = bbtext
+	rtl.append_text(bbtext)
 	target_container.add_child(rtl)
 	target_buttons.append(rtl)
 
@@ -3279,7 +3279,7 @@ func _on_item_pressed(item_id: String) -> void:
 func _on_restart_pressed() -> void:
 	game_over_panel.visible = false
 	messages.clear()
-	message_log_label.text = ""
+	message_log_label.clear()
 	_reset_all_singletons()
 	get_tree().reload_current_scene()
 
@@ -3287,7 +3287,7 @@ func _on_restart_pressed() -> void:
 func _on_return_main_menu_pressed() -> void:
 	game_over_panel.visible = false
 	messages.clear()
-	message_log_label.text = ""
+	message_log_label.clear()
 	_reset_all_singletons()
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
@@ -3835,8 +3835,6 @@ func _update_tile_info() -> void:
 				break
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return
-	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
 	var tile: Dictionary = GameManager.tiles[tile_idx]
 	var type_name: String = GameManager.TILE_NAMES.get(tile["type"], "Unknown")
 
@@ -3866,9 +3864,7 @@ func _update_tile_info() -> void:
 			info += "[color=cyan]Resource output: %s[/color]\n" % stype
 	elif tile["owner_id"] >= 0:
 		var _owner = GameManager.get_player_by_id(tile["owner_id"])
-		if _owner.is_empty():
-			return
-		var oname: String = _owner.get("name", "Enemy") if _owner else "Enemy"
+		var oname: String = _owner.get("name", "Enemy") if not _owner.is_empty() else "Enemy"
 		info += "[color=red]%s Captured[/color]\n" % oname
 	else:
 		if tile["garrison"] > 0:
@@ -3897,7 +3893,8 @@ func _update_tile_info() -> void:
 	for p in GameManager.players:
 		info += "\n  %s: %s" % [p["name"], GameManager.get_stronghold_progress(p["id"])]
 
-	tile_info_label.text = info
+	tile_info_label.clear()
+	tile_info_label.append_text(info)
 
 
 func _update_items() -> void:
@@ -4131,10 +4128,6 @@ func _update_tile_info_for(tile_index: int) -> void:
 		return
 	if tile_index < 0 or tile_index >= GameManager.tiles.size():
 		return
-	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
-	if tile_index < 0 or tile_index >= GameManager.tiles.size():
-		return
 	var tile: Dictionary = GameManager.tiles[tile_index]
 	var pid: int = GameManager.get_human_player_id()
 	var type_name: String = GameManager.TILE_NAMES.get(tile["type"], "Unknown")
@@ -4178,9 +4171,7 @@ func _update_tile_info_for(tile_index: int) -> void:
 		info += own_label + "\n"
 	elif tile["owner_id"] >= 0:
 		var _owner = GameManager.get_player_by_id(tile["owner_id"])
-		if _owner.is_empty():
-			return
-		var oname: String = _owner.get("name", "Enemy") if _owner else "Enemy"
+		var oname: String = _owner.get("name", "Enemy") if not _owner.is_empty() else "Enemy"
 		info += "[color=red]Owner: %s[/color]\n" % oname
 	else:
 		info += "[color=gray]Unclaimed[/color]\n"
@@ -4256,10 +4247,8 @@ func _update_tile_info_for(tile_index: int) -> void:
 				info += "[color=gray]Capital: %s[/color]\n" % cap_name
 		else:
 			var army_owner = GameManager.get_player_by_id(army["player_id"])
-			if army_owner.is_empty():
-				return
-			var army_owner_name: String = army_owner.get("name", "Unknown") if army_owner else "Unknown"
-			info += "[color=red]Owner: %s[/color]\n"  % army_owner_name
+			var army_owner_name: String = army_owner.get("name", "Unknown") if not army_owner.is_empty() else "Unknown"
+			info += "[color=red]Owner: %s[/color]\n" % army_owner_name
 
 	# Neutral faction
 	if tile.get("neutral_faction_id", -1) >= 0:
@@ -4286,12 +4275,6 @@ func _update_tile_info_for(tile_index: int) -> void:
 	for army_id_key in GameManager.armies:
 		if not GameManager.armies.has(army_id_key):
 			continue
-		if not GameManager.armies.has(army_id_key):
-			continue
-		if not GameManager.armies.has(army_id_key):
-			continue
-		if not GameManager.armies.has(army_id_key):
-			continue
 		var a: Dictionary = GameManager.armies[army_id_key]
 		var a_power: int = GameManager.get_army_combat_power(army_id_key)
 		if a["player_id"] == pid2:
@@ -4308,7 +4291,8 @@ func _update_tile_info_for(tile_index: int) -> void:
 	else:
 		info += "[color=yellow]Contested: %.1fx[/color]\n" % ratio
 
-	tile_info_label.text = info
+	tile_info_label.clear()
+	tile_info_label.append_text(info)
 
 
 func _on_message_log(text: String) -> void:
@@ -4318,7 +4302,8 @@ func _on_message_log(text: String) -> void:
 	var display: String = ""
 	for msg in messages:
 		display += msg + "\n"
-	message_log_label.text = display
+	message_log_label.clear()
+	message_log_label.append_text(display)
 
 
 func _on_game_over(winner_id: int) -> void:
@@ -5243,9 +5228,7 @@ func _ensure_fortress_panel() -> void:
 func open_tile_specialized_panel(tile_idx: int) -> void:
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return
-	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return
-	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return
 	var tile = GameManager.tiles[tile_idx]
 	var tile_type: int = tile.get("type", -1)
