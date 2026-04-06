@@ -139,9 +139,6 @@ func hide_panel() -> void:
 func _refresh() -> void:
 	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
 		return
-
-	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
-		return
 	var tile = GameManager.tiles[_tile_idx]
 	_header_label.text = "⚔ 进攻 — %s" % tile.get("name", "据点")
 	_status_label.text = ""
@@ -212,8 +209,6 @@ func _rebuild_targets() -> void:
 
 	for adj_idx in reachable:
 		if adj_idx == _tile_idx:
-			continue
-		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
 			continue
 		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
 			continue

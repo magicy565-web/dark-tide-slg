@@ -256,9 +256,6 @@ func _update_tile_indicators(tile_idx: int) -> void:
 		return
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return
-
-	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return
 	var tile_data: Dictionary = GameManager.tiles[tile_idx]
 	if tile_data == null or tile_data.is_empty():
 		return

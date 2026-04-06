@@ -180,8 +180,6 @@ func hide_panel() -> void:
 func _refresh() -> void:
 	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
 		return
-	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
-		return
 	var tile = GameManager.tiles[_tile_idx]
 	var data = GameManager.fortress_system.get_fortress_data(_tile_idx)
 	var level_data = GameManager.fortress_system.FORTRESS_LEVELS.get(data["level"], GameManager.fortress_system.FORTRESS_LEVELS[1])

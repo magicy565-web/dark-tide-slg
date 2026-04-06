@@ -310,7 +310,7 @@ func _build_quick_action_bar(tile: Dictionary, prov_type: int) -> void:
 
 	# 检查是否是玩家控制的据点
 	var pid: int = GameManager.get_human_player_id()
-	var owner: int = tile.get("owner", -1)
+	var owner: int = tile.get("owner_id", -1)
 	var is_player_owned: bool = (owner == pid)
 
 	for action_key in quick_actions:
@@ -540,7 +540,7 @@ func _build_section_synergy(prov_type: int, tile: Dictionary) -> void:
 		if adj_idx >= 0 and adj_idx < GameManager.tiles.size():
 			var adj_tile: Dictionary = GameManager.tiles[adj_idx]
 			var adj_prov_type: int = TerritoryTypeSystem.get_prov_type_from_tile(adj_tile)
-			var adj_owner: int = adj_tile.get("owner", -1)
+			var adj_owner: int = adj_tile.get("owner_id", -1)
 			var pid: int = GameManager.get_human_player_id()
 			if adj_prov_type == prov_type and adj_owner == pid:
 				same_type_neighbors += 1
@@ -567,11 +567,9 @@ func _build_section_adjacency(tile: Dictionary) -> void:
 	for adj_idx in adj:
 		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
 			continue
-		if adj_idx < 0 or adj_idx >= GameManager.tiles.size():
-			continue
 		var adj_tile: Dictionary = GameManager.tiles[adj_idx]
 		var adj_name: String = adj_tile.get("name", "???")
-		var adj_owner: int = adj_tile.get("owner", -1)
+		var adj_owner: int = adj_tile.get("owner_id", -1)
 		var adj_prov_type: int = TerritoryTypeSystem.get_prov_type_from_tile(adj_tile)
 		var adj_icon: String = TerritoryTypeSystem.get_type_icon(adj_prov_type)
 		var adj_type_name: String = TerritoryTypeSystem.get_type_name(adj_prov_type)

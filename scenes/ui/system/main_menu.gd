@@ -386,7 +386,8 @@ func _build_faction_panel_content() -> void:
 	_apply_font_to_rtl(faction_desc_label)
 	faction_desc_label.add_theme_font_size_override("normal_font_size", 14)
 	faction_desc_label.add_theme_color_override("default_color", Color(0.85, 0.85, 0.88))
-	faction_desc_label.text = "[center][color=gray]Select a faction from the left[/color][/center]"
+	faction_desc_label.clear()
+	faction_desc_label.append_text("[center][color=gray]Select a faction from the left[/color][/center]")
 	faction_preview_panel.add_child(faction_desc_label)
 
 
@@ -674,7 +675,8 @@ func _update_faction_description() -> void:
 	# Update description text
 	var text: String = fdata["desc"]
 	text += "\n\n[color=lime]Starting Bonus: %s[/color]" % fdata["start_bonus"]
-	faction_desc_label.text = text
+	faction_desc_label.clear()
+	faction_desc_label.append_text(text)
 
 
 # ═══════════════════════════════════════════════════════════════

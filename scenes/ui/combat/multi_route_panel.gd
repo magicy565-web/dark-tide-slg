@@ -97,7 +97,7 @@ func _build_ui() -> void:
 	var instr := RichTextLabel.new()
 	instr.bbcode_enabled = true
 	instr.fit_content = true
-	instr.text = "[color=gray]选择 2-4 支军团，指定同一目标进攻。各路军依次战斗，防御方伤害累积。[/color]\n[color=orange]侧翼加成: +15% ATK/路 | 夹击(3路+): 防御方 DEF -25%[/color]"
+	instr.append_text("[color=gray]选择 2-4 支军团，指定同一目标进攻。各路军依次战斗，防御方伤害累积。[/color]\n[color=orange]侧翼加成: +15% ATK/路 | 夹击(3路+): 防御方 DEF -25%[/color]")
 	instr.add_theme_font_size_override("normal_font_size", 13)
 	instr.custom_minimum_size = Vector2(0, 50)
 	outer.add_child(instr)

@@ -1123,8 +1123,6 @@ func _get_tile_data(tile_idx: int) -> Dictionary:
 		return {}
 	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
 		return {}
-	if tile_idx < 0 or tile_idx >= GameManager.tiles.size():
-		return {}
 	var tile = GameManager.tiles[tile_idx]
 	if tile == null:
 		return {}

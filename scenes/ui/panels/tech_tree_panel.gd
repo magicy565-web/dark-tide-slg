@@ -519,7 +519,7 @@ func _create_card(tech_id: String, pos: Vector2, state: String) -> void:
 		"locked": name_color = Color(0.45, 0.45, 0.5)
 		_: name_color = Color(0.9, 0.88, 0.82)
 	var hex: String = name_color.to_html(false)
-	name_rtl.text = "[b][color=#%s]%s[/color][/b]" % [hex, data.get("name", tech_id)]
+	name_rtl.append_text("[b][color=#%s]%s[/color][/b]" % [hex, data.get("name", tech_id)])
 	vb.add_child(name_rtl)
 
 	# Cost summary (compact)
@@ -710,7 +710,7 @@ func _refresh_detail() -> void:
 	var tier_val: int = data.get("tier", 0)
 	var tier_name: String = ["Basic", "Advanced", "Ultimate"][clampi(tier_val, 0, 2)]
 	var bch: String = branch_color.to_html(false)
-	meta_rtl.text = "[color=#%s]%s[/color]  |  %s  |  %s" % [bch, _branch_name(data.get("branch", -1)), TIER_LABELS[clampi(tier_val, 0, 2)], tier_name]
+	meta_rtl.append_text("[color=#%s]%s[/color]  |  %s  |  %s" % [bch, _branch_name(data.get("branch", -1)), TIER_LABELS[clampi(tier_val, 0, 2)], tier_name])
 	detail_container.add_child(meta_rtl)
 
 	# Status badge
@@ -730,7 +730,7 @@ func _refresh_detail() -> void:
 	desc_rtl.bbcode_enabled = true; desc_rtl.fit_content = true
 	desc_rtl.scroll_active = false; desc_rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	desc_rtl.add_theme_font_size_override("normal_font_size", 13)
-	desc_rtl.text = data.get("desc", "No description")
+	desc_rtl.append_text(data.get("desc", "No description"))
 	detail_container.add_child(desc_rtl)
 
 	# Cost breakdown

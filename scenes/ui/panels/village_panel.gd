@@ -149,8 +149,6 @@ func hide_panel() -> void:
 func _refresh() -> void:
 	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
 		return
-	if _tile_idx < 0 or _tile_idx >= GameManager.tiles.size():
-		return
 	var tile = GameManager.tiles[_tile_idx]
 	var data = GameManager.village_system.get_village_data(_tile_idx)
 	var level_data = GameManager.village_system.VILLAGE_LEVELS.get(data["level"], GameManager.village_system.VILLAGE_LEVELS[1])
