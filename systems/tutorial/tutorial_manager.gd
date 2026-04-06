@@ -399,21 +399,21 @@ func _build_ui() -> void:
 	_overlay.anchor_bottom = 1.0
 	_overlay.color = Color(0, 0, 0, 0.3)
 	_overlay.visible = false
-	_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_overlay.mouse_filter = Control.MOUSE_FILTER_PASS
 	_overlay.z_index = 200
 
 	# 弹窗面板
 	_popup = PanelContainer.new()
 	_popup.name = "TutorialPopup"
-	_popup.custom_minimum_size = Vector2(500, 220)
+	_popup.custom_minimum_size = Vector2(500, 300)
 	_popup.anchor_left = 0.5
 	_popup.anchor_top = 0.5
 	_popup.anchor_right = 0.5
 	_popup.anchor_bottom = 0.5
 	_popup.offset_left = -250
-	_popup.offset_top = -120
+	_popup.offset_top = -180
 	_popup.offset_right = 250
-	_popup.offset_bottom = 120
+	_popup.offset_bottom = 180
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.06, 0.06, 0.12, 0.97)
@@ -456,8 +456,10 @@ func _build_ui() -> void:
 	# 正文
 	_text_label = RichTextLabel.new()
 	_text_label.bbcode_enabled = true
-	_text_label.fit_content = true
-	_text_label.custom_minimum_size = Vector2(460, 100)
+	_text_label.fit_content = false
+	_text_label.scroll_active = true
+	_text_label.custom_minimum_size = Vector2(460, 160)
+	_text_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_text_label.add_theme_font_size_override("normal_font_size", 15)
 	vbox.add_child(_text_label)
 

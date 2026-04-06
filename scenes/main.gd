@@ -296,16 +296,21 @@ func _on_game_started(faction_id: int, fixed_map: bool = false) -> void:
 	# Show the HUD
 	hud.visible = true
 
-	# Start the game with the chosen faction
-	GameManager.start_game(faction_id, fixed_map)
-
-	# Rebuild board with new game data
+	# FIX B: Rebuild board BEFORE start_game() so that board's AP overlay
+	# and turn_started signal listeners are connected before begin_turn() fires.
 	if board.has_method("rebuild"):
 		board.rebuild()
+
+	# Start the game with the chosen faction (internally calls begin_turn())
+	GameManager.start_game(faction_id, fixed_map)
+
 	EventBus.board_ready.emit()
 
-	# Start tutorial for new games (skipped if previously completed)
-	TutorialManager.start_tutorial()
+	# FIX C: Skip generic tutorial when PirateOnboarding is already active
+	# (海盗阵营由 PirateOnboarding 引导，避免双重弹窗叠加)
+	var is_pirate: bool = (faction_id == FactionData.FactionID.PIRATE)
+	if not is_pirate:
+		TutorialManager.start_tutorial()
 	# Add tutorial UI to the scene tree if tutorial is active
 	if TutorialManager.is_active():
 		var overlay := TutorialManager.get_overlay_control()
@@ -323,6 +328,10 @@ func _on_tutorial_game_requested() -> void:
 	# 重置教程状态，确保教程可以重新运行
 	TutorialManager.reset()
 
+	# FIX B: 先重建地图，确保 AP 显示监听器在 begin_turn() 触发前已连接
+	if board.has_method("rebuild"):
+		board.rebuild()
+
 	# 使用教程模式启动游戏（兵兽人阵营，小地图）
 	if GameManager.has_method("start_tutorial_game"):
 		GameManager.start_tutorial_game()
@@ -330,9 +339,6 @@ func _on_tutorial_game_requested() -> void:
 		# 备用：如果 start_tutorial_game 不存在，用普通方式启动
 		GameManager.start_game(0, false)
 
-	# 重建地图
-	if board.has_method("rebuild"):
-		board.rebuild()
 	EventBus.board_ready.emit()
 
 	# 启动教程关卡
