@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://YMkcQsRpXQIuq"
+uid="uid://cxxxpu6p8a18l"
 path="res://.godot/imported/rin_sacred_blade.webp-11c31beafe3f2864acfbb04e7203beb5.ctex"
 metadata={
 "vram_texture": false
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/icons/items/rin_sacred_blade.webp"
-dest_files=["res://.godot/imported/assets/icons/items/rin_sacred_blade.webp-11c31beafe3f2864acfbb04e7203beb5.ctex"]
+dest_files=["res://.godot/imported/rin_sacred_blade.webp-11c31beafe3f2864acfbb04e7203beb5.ctex"]
 
 [params]
 

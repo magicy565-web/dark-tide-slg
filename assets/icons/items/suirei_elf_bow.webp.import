@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://FbxWqSQCbGucG"
+uid="uid://b4luf37dyy32s"
 path="res://.godot/imported/suirei_elf_bow.webp-ba8788f28e3b943d6b306b96b5ec08e3.ctex"
 metadata={
 "vram_texture": false
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/icons/items/suirei_elf_bow.webp"
-dest_files=["res://.godot/imported/assets/icons/items/suirei_elf_bow.webp-ba8788f28e3b943d6b306b96b5ec08e3.ctex"]
+dest_files=["res://.godot/imported/suirei_elf_bow.webp-ba8788f28e3b943d6b306b96b5ec08e3.ctex"]
 
 [params]
 

@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://y16kATG83TcFY"
+uid="uid://dhodru4gpt54u"
 path="res://.godot/imported/mei_necronomicon.webp-22fc5f03ab0f857cd3de3758626c16ab.ctex"
 metadata={
 "vram_texture": false
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/icons/items/mei_necronomicon.webp"
-dest_files=["res://.godot/imported/assets/icons/items/mei_necronomicon.webp-22fc5f03ab0f857cd3de3758626c16ab.ctex"]
+dest_files=["res://.godot/imported/mei_necronomicon.webp-22fc5f03ab0f857cd3de3758626c16ab.ctex"]
 
 [params]
 

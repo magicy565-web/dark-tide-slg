@@ -2,7 +2,7 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://N1zA9pJy6z6jN"
+uid="uid://k1pt164ytnwy"
 path="res://.godot/imported/yukino_holy_staff.webp-da795cbe6f5a1c82de2ec2972617c5cc.ctex"
 metadata={
 "vram_texture": false
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/icons/items/yukino_holy_staff.webp"
-dest_files=["res://.godot/imported/assets/icons/items/yukino_holy_staff.webp-da795cbe6f5a1c82de2ec2972617c5cc.ctex"]
+dest_files=["res://.godot/imported/yukino_holy_staff.webp-da795cbe6f5a1c82de2ec2972617c5cc.ctex"]
 
 [params]
 
