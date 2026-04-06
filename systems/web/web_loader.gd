@@ -119,7 +119,7 @@ func ensure_category(category: String) -> void:
 ## Get a texture through the web-aware path, triggering a category load if needed.
 func get_texture_web(path: String, fallback: Texture2D = null) -> Texture2D:
 	# If already cached, return immediately
-	var cached := AssetLoader.get_texture(path, fallback)
+	var cached: Texture2D = AssetLoader.get_texture(path, fallback)
 	if cached != fallback or not _is_web:
 		return cached
 
