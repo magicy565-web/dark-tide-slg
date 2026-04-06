@@ -116,7 +116,7 @@ const _UNDO_MAX: int = 5
 # ── Camera state ──
 var camera: Camera3D
 var camera_pivot: Node3D
-var camera_target_pos: Vector3 = Vector3(22.0, 0.0, -14.0)
+var camera_target_pos: Vector3 = Vector3(21.0, 0.0, -21.0)
 var camera_zoom: float = 1.0
 var _camera_zoom_target: float = 1.0
 const ZOOM_MIN: float = 0.3
@@ -241,7 +241,7 @@ func _setup_lighting() -> void:
 
 func _setup_camera() -> void:
 	camera_pivot = Node3D.new(); camera_pivot.name = "CameraPivot"
-	camera_pivot.position = Vector3(22.0, 0.0, -14.0); add_child(camera_pivot)
+	camera_pivot.position = Vector3(21.0, 0.0, -21.0); add_child(camera_pivot)
 	camera = Camera3D.new(); camera.name = "Camera3D"
 	camera.position = Vector3(0.0, 25.0, 12.0)
 	camera.rotation_degrees = Vector3(-55.0, 0.0, 0.0)
@@ -263,8 +263,8 @@ func _setup_ground() -> void:
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; g.material_override = m
 	# P1-FIX: 增大地面平面尺寸以确保覆盖全部视口（修复顶部黑条）
 	var gm := g.mesh as PlaneMesh
-	if gm: gm.size = Vector2(100, 90)
-	g.position = Vector3(22.0, GROUND_Y - 0.15, -14.0); add_child(g)
+	if gm: gm.size = Vector2(110, 80)
+	g.position = Vector3(21.0, GROUND_Y - 0.15, -21.0); add_child(g)
 	# ── Ocean/void boundary ring around the playable area ──
 	_build_map_boundary()
 	_setup_ambient_particles()
@@ -373,8 +373,8 @@ func _apply_zoom() -> void:
 	camera.rotation_degrees.x = lerpf(-68.0, -48.0, t)
 
 func _clamp_camera() -> void:
-	camera_target_pos.x = clampf(camera_target_pos.x, -2.0, 45.0)
-	camera_target_pos.z = clampf(camera_target_pos.z, -28.0, 0.0)
+	camera_target_pos.x = clampf(camera_target_pos.x, -28.0, 70.0)
+	camera_target_pos.z = clampf(camera_target_pos.z, -52.0, 10.0)
 
 # ═══════════════ BOARD BUILDING ═══════════════
 func _clear_board() -> void:
@@ -2159,9 +2159,9 @@ func _make_box_mesh(s: Vector3, c: Color) -> MeshInstance3D:
 func _build_map_boundary() -> void:
 	## Create a dark ocean/void border around the playable map area.
 	## This frames the hex grid and prevents the ground plane edges from looking bare.
-	var center := Vector3(9.0, GROUND_Y - 0.12, -7.0)
-	var half_w: float = 28.0
-	var half_h: float = 22.0
+	var center := Vector3(21.0, GROUND_Y - 0.12, -21.0)
+	var half_w: float = 50.0
+	var half_h: float = 35.0
 	var border_w: float = 12.0
 	var border_mat := StandardMaterial3D.new()
 	border_mat.albedo_color = Color(0.05, 0.07, 0.15, 0.75)
@@ -2333,7 +2333,7 @@ func setup_minimap(parent_control: Control) -> void:
 	minimap_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	minimap_viewport.transparent_bg = false; minimap_viewport.world_3d = get_viewport().world_3d; minimap_container.add_child(minimap_viewport)
 	minimap_camera = Camera3D.new(); minimap_camera.name = "MinimapCamera"
-	minimap_camera.position = Vector3(13, 55, -12)
+	minimap_camera.position = Vector3(21, 55, -21)
 	minimap_camera.rotation_degrees = Vector3(-90, 0, 0)
 	minimap_camera.fov = 65; minimap_camera.current = true
 	minimap_viewport.add_child(minimap_camera)
@@ -2354,8 +2354,8 @@ func update_minimap_overlay() -> void:
 	if not cam or cam == minimap_camera:
 		return
 	# Map bounds (approximate from tile positions)
-	var map_min := Vector2(-2, -28)
-	var map_max := Vector2(45, 0)
+	var map_min := Vector2(-28, -52)
+	var map_max := Vector2(70, 10)
 	var map_size := map_max - map_min
 	# Camera position on the XZ plane — use pivot position, not camera global
 	# (camera is offset from pivot by its local transform)
@@ -2419,8 +2419,8 @@ func _on_minimap_input(event: InputEvent) -> void:
 	var norm_x: float = clampf(local_pos.x / msize.x, 0.0, 1.0)
 	var norm_y: float = clampf(local_pos.y / msize.y, 0.0, 1.0)
 	# Map bounds must match update_minimap_overlay
-	var map_min := Vector2(-2, -28)
-	var map_max := Vector2(45, 0)
+	var map_min := Vector2(-28, -52)
+	var map_max := Vector2(70, 10)
 	var map_size := map_max - map_min
 	camera_target_pos.x = map_min.x + norm_x * map_size.x
 	camera_target_pos.z = map_min.y + norm_y * map_size.y
@@ -3992,8 +3992,8 @@ var _minimap_bg: ColorRect
 const MINIMAP_W: float = 200.0
 const MINIMAP_H: float = 150.0
 const MINIMAP_MARGIN: float = 12.0
-const MINIMAP_MAP_MIN := Vector2(-2.0, -28.0)
-const MINIMAP_MAP_MAX := Vector2(45.0, 0.0)
+const MINIMAP_MAP_MIN := Vector2(-28.0, -52.0)
+const MINIMAP_MAP_MAX := Vector2(70.0, 10.0)
 
 # placeholder: minimap setup, draw, click
 
@@ -4115,7 +4115,7 @@ class MinimapDrawControl:
 			])
 			draw_colored_polygon(diamond, diamond_col)
 		# Draw camera viewport rectangle
-		var pivot_pos: Vector3 = board_ref.camera_pivot.global_position if is_instance_valid(board_ref.camera_pivot) else Vector3(22, 0, -14)
+		var pivot_pos: Vector3 = board_ref.camera_pivot.global_position if is_instance_valid(board_ref.camera_pivot) else Vector3(21, 0, -21)
 		var cam_nx: float = clampf((pivot_pos.x - map_min.x) / map_size.x, 0.0, 1.0)
 		var cam_ny: float = clampf((pivot_pos.z - map_min.y) / map_size.y, 0.0, 1.0)
 		var view_w: float = 0.2 * ctrl_size.x

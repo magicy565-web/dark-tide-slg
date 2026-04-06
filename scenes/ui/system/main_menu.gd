@@ -8,7 +8,7 @@ signal game_started(faction_id: int, fixed_map: bool)
 signal tutorial_game_requested()
 
 # ── Map mode ──
-var _use_fixed_map: bool = false
+var _use_fixed_map: bool = true
 
 # ── Font ──
 var _cjk_font: Font = null
@@ -343,7 +343,7 @@ func _build_faction_panel_content() -> void:
 	left_vbox.add_child(map_row)
 	var map_toggle := CheckBox.new()
 	map_toggle.text = "Fixed Map (55 territories, 7 nations)"
-	map_toggle.button_pressed = false
+	map_toggle.button_pressed = true
 	if _cjk_font:
 		map_toggle.add_theme_font_override("font", _cjk_font)
 	map_toggle.add_theme_font_size_override("font_size", 12)
