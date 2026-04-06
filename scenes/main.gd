@@ -133,9 +133,8 @@ func _ready() -> void:
 	territory_info_panel.set_script(TerritoryInfoPanelScript)
 	add_child(territory_info_panel)
 	# 禁用旧面板的 territory_selected 信号监听，由新的 ProvinceInfoPanel 独占响应
-	await get_tree().process_frame
-	if EventBus.territory_selected.is_connected(territory_info_panel._on_territory_selected):
-		EventBus.territory_selected.disconnect(territory_info_panel._on_territory_selected)
+	# FIX: 使用 call_deferred 替代 await，避免在 _ready() 中 await 后继续 add_child 导致 "Parent node is busy" 错误
+	call_deferred("_disconnect_old_territory_panel")
 	# Province Info Panel (差异化据点信息面板，战国兰斯式重构)
 	var ProvinceInfoPanelScript = preload("res://scenes/ui/panels/province_info_panel.gd")
 	province_info_panel = CanvasLayer.new()
@@ -275,6 +274,11 @@ func _ready() -> void:
 	# ── Register panels with PanelManager ──
 	_register_panels()
 
+
+## FIX: 延迟断开旧 territory_info_panel 的信号，避免 await 导致的 add_child 父节点忙碌错误
+func _disconnect_old_territory_panel() -> void:
+	if is_instance_valid(territory_info_panel) and EventBus.territory_selected.is_connected(territory_info_panel._on_territory_selected):
+		EventBus.territory_selected.disconnect(territory_info_panel._on_territory_selected)
 
 ## 登录完成回调 — 隐藏登录界面，显示主菜单
 func _on_login_completed(username: String, is_guest: bool) -> void:

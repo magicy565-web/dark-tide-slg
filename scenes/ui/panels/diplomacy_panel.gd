@@ -72,13 +72,11 @@ func _ready() -> void:
 	hide_panel()
 
 func _get_treaty_system() -> Variant:
+	# FIX: 直接通过 autoload 名称访问 TreatySystem，避免绝对路径 get_node 错误
+	if TreatySystem:
+		return TreatySystem
 	if Engine.has_singleton("TreatySystem"):
 		return Engine.get_singleton("TreatySystem")
-	var ts = get_node_or_null("/root/TreatySystem")
-	if ts: return ts
-	for child in get_tree().root.get_children():
-		if child is TreatySystem:
-			return child
 	return null
 
 func _connect_signals() -> void:

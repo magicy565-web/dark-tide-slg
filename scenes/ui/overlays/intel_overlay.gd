@@ -101,23 +101,13 @@ func _ready() -> void:
 
 
 func _resolve_espionage_system() -> void:
-	# Try common access patterns
+	# FIX: 直接通过 autoload 名称访问 EspionageSystem，避免在 _ready 中使用绝对路径 get_node 导致 "Can't use get_node() with absolute paths" 错误
+	if EspionageSystem:
+		_espionage_system = EspionageSystem
+		return
+	# Fallback: Engine singleton check
 	if Engine.has_singleton("EspionageSystem"):
 		_espionage_system = Engine.get_singleton("EspionageSystem")
-	elif has_node("/root/EspionageSystem"):
-		_espionage_system = get_node_or_null("/root/EspionageSystem")
-	elif has_node("/root/GameManager"):
-		var _gm := get_node_or_null("/root/GameManager")
-		if _gm and _gm.has_node("EspionageSystem"):
-			_espionage_system = _gm.get_node_or_null("EspionageSystem")
-	# Fallback: search parent tree
-	if _espionage_system == null:
-		var parent := get_parent()
-		while parent:
-			if parent.has_node("EspionageSystem"):
-				_espionage_system = parent.get_node("EspionageSystem")
-				break
-			parent = parent.get_parent()
 
 
 func _connect_signals() -> void:

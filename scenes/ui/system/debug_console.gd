@@ -378,7 +378,7 @@ func _build_event_log_tab() -> void:
 func _connect_event_bus() -> void:
 	if not _has_autoload("EventBus"):
 		return
-	var bus := Engine.get_singleton("EventBus") if Engine.has_singleton("EventBus") else get_node_or_null("/root/EventBus")
+	var bus := EventBus
 	if not bus:
 		return
 	# Connect to all signals on the EventBus for signal spy / event log
@@ -1378,11 +1378,21 @@ func _make_flat_btn_style(bg: Color) -> StyleBoxFlat:
 # ═══════════════════════════════════════════════════════════════
 
 func _has_autoload(name: String) -> bool:
-	return get_node_or_null("/root/%s" % name) != null
+	# FIX: 使用 Engine.has_singleton 替代绝对路径 get_node，避免在场景树外调用时报错
+	if Engine.has_singleton(name):
+		return true
+	if is_inside_tree():
+		return get_node_or_null("/root/%s" % name) != null
+	return false
 
 
 func _get_autoload(name: String) -> Node:
-	return get_node_or_null("/root/%s" % name)
+	# FIX: 使用 Engine.get_singleton 替代绝对路径 get_node，避免在场景树外调用时报错
+	if Engine.has_singleton(name):
+		return Engine.get_singleton(name)
+	if is_inside_tree():
+		return get_node_or_null("/root/%s" % name)
+	return null
 
 
 func _human_pid() -> int:

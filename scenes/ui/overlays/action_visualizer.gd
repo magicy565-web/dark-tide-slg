@@ -692,8 +692,8 @@ func _on_turn_started(player_id: int) -> void:
 	# Determine turn number from GameManager if available.
 	var turn_num: int = 1
 	var faction_name: String = ""
-	if Engine.has_singleton("GameManager") or get_node_or_null("/root/GameManager"):
-		var gm = get_node_or_null("/root/GameManager")
+	if Engine.has_singleton("GameManager") or GameManager:
+		var gm = GameManager
 		if gm:
 			if "current_turn" in gm:
 				turn_num = gm.current_turn
@@ -748,7 +748,7 @@ func _on_march_intercepted_vfx(army_id: int, _interceptor_id: int, tile_index: i
 
 
 func _on_supply_low_vfx(army_id: int, supply: float) -> void:
-	var gm = get_node_or_null("/root/GameManager")
+	var gm = GameManager
 	if not gm: return
 	var army: Dictionary = gm.get_army(army_id) if gm.has_method("get_army") else {}
 	if army.is_empty(): return
@@ -875,7 +875,7 @@ func _safe_load_texture(path: String) -> Variant:
 
 func _get_faction_color_for_player(player_id: int) -> Color:
 	# Try to resolve via GameManager → faction name → ColorTheme color.
-	var gm = get_node_or_null("/root/GameManager")
+	var gm = GameManager
 	if gm and gm.has_method("get_player_faction_name"):
 		var fname: String = gm.get_player_faction_name(player_id)
 		if fname != "":

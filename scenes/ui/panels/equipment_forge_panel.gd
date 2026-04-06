@@ -92,7 +92,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _is_game_active() -> bool:
-	var gm = get_node_or_null("/root/GameManager")
+	var gm = GameManager
 	if gm and "game_active" in gm:
 		return gm.game_active
 	return true
@@ -245,7 +245,7 @@ func _refresh_all() -> void:
 	_refresh_detail()
 
 func _refresh_header() -> void:
-	var forge = get_node_or_null("/root/EquipmentForge")
+	var forge = EquipmentForge
 	if not forge:
 		forge_level_label.text = "锻造炉 Lv.?"
 		return
@@ -263,7 +263,7 @@ func _refresh_header() -> void:
 
 func _refresh_recipe_list() -> void:
 	_clear_children(left_container)
-	var forge = get_node_or_null("/root/EquipmentForge")
+	var forge = EquipmentForge
 	if not forge:
 		var err_lbl := Label.new()
 		err_lbl.text = "锻造系统未加载"
@@ -356,7 +356,7 @@ func _refresh_detail() -> void:
 	_clear_children(right_container)
 	_pulse_bars.clear()
 
-	var forge = get_node_or_null("/root/EquipmentForge")
+	var forge = EquipmentForge
 	var pid: int = _get_player_id()
 
 	# If no recipe selected, show hint + queue + upgrade section
@@ -563,7 +563,7 @@ func _on_recipe_selected(recipe_id: String) -> void:
 	_refresh_all()
 
 func _on_start_crafting(recipe_id: String) -> void:
-	var forge = get_node_or_null("/root/EquipmentForge")
+	var forge = EquipmentForge
 	if not forge: return
 	if forge.start_crafting(_get_player_id(), recipe_id):
 		_play_sound("confirm")
@@ -571,7 +571,7 @@ func _on_start_crafting(recipe_id: String) -> void:
 	_refresh_all()
 
 func _on_cancel_crafting(queue_index: int) -> void:
-	var forge = get_node_or_null("/root/EquipmentForge")
+	var forge = EquipmentForge
 	if not forge: return
 	if forge.cancel_crafting(_get_player_id(), queue_index):
 		_play_sound("cancel")
@@ -579,7 +579,7 @@ func _on_cancel_crafting(queue_index: int) -> void:
 	_refresh_all()
 
 func _on_upgrade_forge() -> void:
-	var forge = get_node_or_null("/root/EquipmentForge")
+	var forge = EquipmentForge
 	if not forge: return
 	if forge.upgrade_forge(_get_player_id()):
 		_play_sound("confirm")
@@ -587,7 +587,7 @@ func _on_upgrade_forge() -> void:
 	_refresh_all()
 
 func _on_claim_unclaimed() -> void:
-	var forge = get_node_or_null("/root/EquipmentForge")
+	var forge = EquipmentForge
 	if not forge: return
 	var claimed: int = forge.claim_unclaimed_items(_get_player_id())
 	if claimed > 0:
@@ -705,7 +705,7 @@ func _build_upgrade_section(forge: Node, pid: int) -> void:
 		cost_row.add_theme_constant_override("separation", 10)
 		right_container.add_child(cost_row)
 		cost_row.add_child(_make_label("升级至Lv.%d:" % target_level, ColorTheme.FONT_SMALL, ColorTheme.TEXT_DIM))
-		var rm = get_node_or_null("/root/ResourceManager")
+		var rm = ResourceManager
 		for res_key in upgrade_cost:
 			var needed: int = upgrade_cost[res_key]
 			var have: int = rm.get_resource(pid, res_key) if rm and rm.has_method("get_resource") else 0
@@ -713,7 +713,7 @@ func _build_upgrade_section(forge: Node, pid: int) -> void:
 			cost_row.add_child(_make_label("%s%d" % [RES_ICONS.get(res_key, "?"), needed], ColorTheme.FONT_SMALL, col))
 
 	var can_upgrade: bool = false
-	var rm_check = get_node_or_null("/root/ResourceManager")
+	var rm_check = ResourceManager
 	if rm_check and rm_check.has_method("can_afford") and not upgrade_cost.is_empty():
 		can_upgrade = rm_check.can_afford(pid, upgrade_cost)
 
@@ -735,7 +735,7 @@ func _build_upgrade_section(forge: Node, pid: int) -> void:
 # ═══════════════════════════════════════════════════════════════
 
 func _get_player_id() -> Variant:
-	var gm = get_node_or_null("/root/GameManager")
+	var gm = GameManager
 	if gm and gm.has_method("get_human_player_id"):
 		return gm.get_human_player_id()
 	return 0
@@ -758,7 +758,7 @@ func _make_bordered_style(bg: Color, border: Color) -> StyleBoxFlat:
 	return sf
 
 func _play_sound(sound_type: String) -> void:
-	var am = get_node_or_null("/root/AudioManager")
+	var am = AudioManager
 	if not am:
 		return
 	match sound_type:
@@ -774,6 +774,6 @@ func _play_sound(sound_type: String) -> void:
 
 
 func _emit_debug(msg: String) -> void:
-	var eb = get_node_or_null("/root/EventBus")
+	var eb = EventBus
 	if eb and eb.has_signal("debug_log"):
 		eb.debug_log.emit("info", "EquipmentForgePanel: %s" % msg)

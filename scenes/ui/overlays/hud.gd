@@ -205,7 +205,8 @@ func _ready() -> void:
 	_build_ui()
 	_connect_signals()
 	# v1.2.0: 集成据点系统
-	_setup_stronghold_integration()
+	# FIX: 使用 call_deferred 延迟执行，避免在 _ready 中调用 get_tree().root.add_child 触发 "Parent node is busy" 错误
+	call_deferred("_setup_stronghold_integration")
 
 
 func _connect_signals() -> void:

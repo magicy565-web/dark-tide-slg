@@ -61,7 +61,7 @@ func _process(delta: float) -> void:
 		graph_canvas.queue_redraw()
 
 func _connect_signals() -> void:
-	var _rm = get_node_or_null("/root/ResearchManager")
+	var _rm = ResearchManager
 	if _rm:
 		_rm.research_started.connect(_on_research_changed)
 		_rm.research_completed.connect(_on_research_changed)
@@ -217,7 +217,7 @@ func show_panel() -> void:
 	_refresh()
 
 func hide_panel() -> void:
-	var _am = get_node_or_null("/root/AudioManager")
+	var _am = AudioManager
 	if _am: _am.play_ui_cancel()
 	_visible = false; root.visible = false
 
@@ -262,7 +262,7 @@ func _refresh() -> void:
 
 func _refresh_queue_bar() -> void:
 	for c in queue_bar.get_children(): c.queue_free()
-	var _rm = get_node_or_null("/root/ResearchManager")
+	var _rm = ResearchManager
 	if not _rm: return
 	var pid: int = GameManager.get_human_player_id()
 	var current: String = _rm.get_current_research(pid)
@@ -348,7 +348,7 @@ func _refresh_graph() -> void:
 	for c in card_container.get_children(): c.queue_free()
 	_card_positions.clear(); _card_controls.clear()
 
-	var _rm = get_node_or_null("/root/ResearchManager")
+	var _rm = ResearchManager
 	if not _rm: return
 	var pid: int = GameManager.get_human_player_id()
 	if _rm._active_tree.is_empty():
@@ -375,7 +375,7 @@ func _calc_graph_size() -> Vector2:
 	return Vector2(max_x, max_y)
 
 func _layout_cards() -> void:
-	var _rm = get_node_or_null("/root/ResearchManager")
+	var _rm = ResearchManager
 	if not _rm: return
 	var pid: int = GameManager.get_human_player_id()
 	var completed: Array = _rm.get_completed_techs(pid)
@@ -425,7 +425,7 @@ func _get_branch_color(branch_val) -> Color:
 	return Color(0.5, 0.5, 0.5)
 
 func _create_card(tech_id: String, pos: Vector2, state: String) -> void:
-	var _rm = get_node_or_null("/root/ResearchManager")
+	var _rm = ResearchManager
 	var data: Dictionary = _rm._active_tree.get(tech_id, {}) if _rm else {}
 	var branch_color: Color = _get_branch_color(data.get("branch", -1))
 	var card := PanelContainer.new()
@@ -578,7 +578,7 @@ func _update_card_entrance() -> void:
 
 func _draw_connections() -> void:
 	if not is_instance_valid(graph_canvas): return
-	var _rm = get_node_or_null("/root/ResearchManager")
+	var _rm = ResearchManager
 	if not _rm: return
 	var pid: int = GameManager.get_human_player_id()
 	var completed: Array = _rm.get_completed_techs(pid)
@@ -681,7 +681,7 @@ func _cubic_bezier(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: float)
 func _refresh_detail() -> void:
 	for c in detail_container.get_children(): c.queue_free()
 	if _selected_tech_id == "": return
-	var _rm = get_node_or_null("/root/ResearchManager")
+	var _rm = ResearchManager
 	if not _rm: return
 	var pid: int = GameManager.get_human_player_id()
 	var data: Dictionary = _rm.get_tech_data(_selected_tech_id)
@@ -887,7 +887,7 @@ func _on_tech_card_input(event: InputEvent, tech_id: String) -> void:
 		_on_select_tech(tech_id)
 
 func _on_select_tech(tech_id: String) -> void:
-	var _am = get_node_or_null("/root/AudioManager")
+	var _am = AudioManager
 	if _am: _am.play_ui_click()
 	_selected_tech_id = tech_id; detail_panel.visible = true; _refresh_detail()
 
@@ -898,7 +898,7 @@ func _on_card_hover_in(tech_id: String, card: Control) -> void:
 		tw.tween_property(card, "scale", Vector2(1.06, 1.06), 0.1).set_ease(Tween.EASE_OUT)
 		card.z_index = 10
 		# Tooltip via hint
-		var _rm = get_node_or_null("/root/ResearchManager")
+		var _rm = ResearchManager
 		var data: Dictionary = _rm.get_tech_data(tech_id) if _rm else {}
 		card.tooltip_text = data.get("desc", "")
 
@@ -910,16 +910,16 @@ func _on_card_hover_out(tech_id: String, card: Control) -> void:
 		card.z_index = 0
 
 func _on_start_research(tech_id: String) -> void:
-	var _am = get_node_or_null("/root/AudioManager")
+	var _am = AudioManager
 	if _am: _am.play_ui_confirm()
-	var _rm = get_node_or_null("/root/ResearchManager")
+	var _rm = ResearchManager
 	if _rm: _rm.start_research(GameManager.get_human_player_id(), tech_id)
 	_refresh()
 
 func _on_cancel_research() -> void:
-	var _am = get_node_or_null("/root/AudioManager")
+	var _am = AudioManager
 	if _am: _am.play_ui_click()
-	var _rm = get_node_or_null("/root/ResearchManager")
+	var _rm = ResearchManager
 	if _rm: _rm.cancel_research(GameManager.get_human_player_id())
 	_refresh()
 

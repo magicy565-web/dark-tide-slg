@@ -960,15 +960,9 @@ func _is_tile_fogged(tile_idx: int) -> bool:
 
 ## Query the strategic SupplySystem singleton (or scene node).
 func _get_supply_system():
-	# Check autoload first.
-	var ss = get_node_or_null("/root/SupplySystem")
-	if ss:
-		return ss
-	# Check common tree paths.
-	for path in ["/root/Main/SupplySystem", "/root/Game/Systems/SupplySystem"]:
-		ss = get_node_or_null(path)
-		if ss:
-			return ss
+	# FIX: 直接通过 autoload 名称访问，避免绝对路径 get_node 错误
+	if SupplySystem:
+		return SupplySystem
 	return null
 
 
@@ -983,13 +977,9 @@ func _is_tile_supplied(player_id: int, tile_idx: int) -> bool:
 
 ## Query the EspionageSystem singleton (or scene node).
 func _get_espionage_system():
-	var es = get_node_or_null("/root/EspionageSystem")
-	if es:
-		return es
-	for path in ["/root/Main/EspionageSystem", "/root/Game/Systems/EspionageSystem"]:
-		es = get_node_or_null(path)
-		if es:
-			return es
+	# FIX: 直接通过 autoload 名称访问，避免绝对路径 get_node 错误
+	if EspionageSystem:
+		return EspionageSystem
 	return null
 
 
