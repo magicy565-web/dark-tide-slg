@@ -42,8 +42,8 @@ const _TROOP_UPGRADE_PATHS: Dictionary = {
 	"archer": "ninja",
 	"militia": "knight",
 	# Human
-	"human_ashigaru": "human_samurai",
-	"human_samurai": "human_cavalry",
+	"human_ashigaru": "human_cavalry",
+	"human_cavalry": "human_samurai",
 	# High Elf
 	"elf_archer": "elf_mage",
 	"elf_mage": "elf_ashigaru",
@@ -66,6 +66,7 @@ const _DEFAULT_UPGRADE_RULES: Dictionary = {
 }
 
 var _upgrade_rules: Dictionary = _DEFAULT_UPGRADE_RULES.duplicate(true)
+var _upgrade_rebuild_retry_left: int = 3
 
 
 # ---------------------------------------------------------------------------
@@ -91,16 +92,24 @@ func _rebuild_upgrade_rules_from_game_data() -> void:
 	var defs: Dictionary = GameData.TROOP_TYPES
 	if defs.is_empty():
 		push_warning("RecruitManager: GameData.TROOP_TYPES empty, cannot build upgrade graph")
+		if _upgrade_rebuild_retry_left > 0:
+			_upgrade_rebuild_retry_left -= 1
+			call_deferred("_rebuild_upgrade_rules_from_game_data")
 		return
+	_upgrade_rebuild_retry_left = 3
 	var built_rules: Dictionary = {}
 	# Start from legacy map as strong overrides.
-	for from_id in _TROOP_UPGRADE_PATHS.keys():
+	var legacy_from_ids: Array = _TROOP_UPGRADE_PATHS.keys()
+	legacy_from_ids.sort()
+	for from_id in legacy_from_ids:
 		var to_id: String = _TROOP_UPGRADE_PATHS[from_id]
 		if defs.has(from_id) and defs.has(to_id):
 			built_rules[from_id] = {"to_troop_id": to_id}
 
 	# Auto-complete missing chains by faction/tier using existing troop archive.
-	for troop_id in defs.keys():
+	var troop_ids: Array = defs.keys()
+	troop_ids.sort()
+	for troop_id in troop_ids:
 		if built_rules.has(troop_id):
 			continue
 		var current_def: Dictionary = defs[troop_id]
