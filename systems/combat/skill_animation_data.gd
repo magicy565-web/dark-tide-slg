@@ -557,4 +557,4 @@ static func _get_event_bus() -> Node:
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	if tree == null:
 		return null
-	return tree.root.get_node_or_null("/root/EventBus")
+	return tree.root.get_node_or_null("EventBus")

@@ -20,10 +20,61 @@ var _wanderers: Dictionary = {}
 # ── Rebel armies: { tile_index: Array[Dictionary] } ──
 var _rebels: Dictionary = {}
 
+const _DEFAULT_FACTION_TROOP_MAP: Dictionary = {
+	FactionData.FactionID.ORC: "orc_ashigaru",
+	FactionData.FactionID.PIRATE: "pirate_ashigaru",
+	FactionData.FactionID.DARK_ELF: "de_samurai",
+}
+
+const _TROOP_UPGRADE_PATHS: Dictionary = {
+	# Orc
+	"orc_ashigaru": "orc_samurai",
+	"orc_samurai": "orc_cavalry",
+	# Pirate
+	"pirate_ashigaru": "pirate_archer",
+	"pirate_archer": "pirate_cannon",
+	# Dark Elf
+	"de_samurai": "de_ninja",
+	"de_ninja": "de_cavalry",
+	# Generic
+	"ashigaru": "samurai",
+	"samurai": "cavalry",
+	"archer": "ninja",
+	"militia": "knight",
+	# Human
+	"human_ashigaru": "human_cavalry",
+	"human_cavalry": "human_samurai",
+	# High Elf
+	"elf_archer": "elf_mage",
+	"elf_mage": "elf_ashigaru",
+	# Mage
+	"mage_apprentice": "mage_battle",
+	"mage_battle": "mage_grand",
+}
+
+const _DEFAULT_UPGRADE_RULES: Dictionary = {
+	"default": {
+		"tier_profiles": {
+			"0": {"min_exp_floor": 0, "min_exp_ratio": 0.0, "gold_base": 8, "gold_per_tier": 8, "iron_base": 2, "iron_per_tier": 2},
+			"1": {"min_exp_floor": 16, "min_exp_ratio": 0.55, "gold_base": 30, "gold_per_tier": 18, "iron_base": 10, "iron_per_tier": 7},
+			"2": {"min_exp_floor": 42, "min_exp_ratio": 0.62, "gold_base": 56, "gold_per_tier": 28, "iron_base": 22, "iron_per_tier": 10},
+			"3": {"min_exp_floor": 70, "min_exp_ratio": 0.70, "gold_base": 96, "gold_per_tier": 34, "iron_base": 36, "iron_per_tier": 14},
+			"4": {"min_exp_floor": 999, "min_exp_ratio": 1.0, "gold_base": 999, "gold_per_tier": 0, "iron_base": 999, "iron_per_tier": 0},
+		},
+	},
+	"rules": {}
+}
+
+var _upgrade_rules: Dictionary = _DEFAULT_UPGRADE_RULES.duplicate(true)
+var _upgrade_rebuild_retry_left: int = 3
+
 
 # ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
+
+func _ready() -> void:
+	_rebuild_upgrade_rules_from_game_data()
 
 func reset() -> void:
 	_armies.clear()
@@ -34,6 +85,77 @@ func reset() -> void:
 
 func init_player(player_id: int) -> void:
 	_armies[player_id] = []
+
+
+func _rebuild_upgrade_rules_from_game_data() -> void:
+	_upgrade_rules = _DEFAULT_UPGRADE_RULES.duplicate(true)
+	var defs: Dictionary = GameData.TROOP_TYPES
+	if defs.is_empty():
+		push_warning("RecruitManager: GameData.TROOP_TYPES empty, cannot build upgrade graph")
+		if _upgrade_rebuild_retry_left > 0:
+			_upgrade_rebuild_retry_left -= 1
+			call_deferred("_rebuild_upgrade_rules_from_game_data")
+		return
+	_upgrade_rebuild_retry_left = 3
+	var built_rules: Dictionary = {}
+	# Start from legacy map as strong overrides.
+	var legacy_from_ids: Array = _TROOP_UPGRADE_PATHS.keys()
+	legacy_from_ids.sort()
+	for from_id in legacy_from_ids:
+		var to_id: String = _TROOP_UPGRADE_PATHS[from_id]
+		if defs.has(from_id) and defs.has(to_id):
+			built_rules[from_id] = {"to_troop_id": to_id}
+
+	# Auto-complete missing chains by faction/tier using existing troop archive.
+	var troop_ids: Array = defs.keys()
+	troop_ids.sort()
+	for troop_id in troop_ids:
+		if built_rules.has(troop_id):
+			continue
+		var current_def: Dictionary = defs[troop_id]
+		var current_tier: int = int(current_def.get("tier", -1))
+		if current_tier < 0 or current_tier >= 4:
+			continue
+		var next_id: String = _find_next_tier_troop_id(troop_id, current_def, defs)
+		if next_id != "":
+			built_rules[troop_id] = {"to_troop_id": next_id}
+	_upgrade_rules["rules"] = built_rules
+
+
+func _find_next_tier_troop_id(current_id: String, current_def: Dictionary, defs: Dictionary) -> String:
+	var current_tier: int = int(current_def.get("tier", -1))
+	var faction: String = String(current_def.get("faction", ""))
+	var category: int = int(current_def.get("category", -1))
+	var troop_class: int = int(current_def.get("troop_class", -1))
+	if current_tier < 0:
+		return ""
+	var target_tier: int = current_tier + 1
+	var best_same_class: String = ""
+	var best_same_class_cost: int = -1
+	var best_any: String = ""
+	var best_any_cost: int = -1
+	for cand_id in defs.keys():
+		if cand_id == current_id:
+			continue
+		var cand: Dictionary = defs[cand_id]
+		if int(cand.get("tier", -1)) != target_tier:
+			continue
+		if String(cand.get("faction", "")) != faction:
+			continue
+		var cand_category: int = int(cand.get("category", -1))
+		# Allow faction T3 -> ultimate T4 promotion.
+		if cand_category != category and not (target_tier == 4 and cand_category == GameData.TroopCategory.ULTIMATE):
+			continue
+		var cand_cost: int = int(cand.get("recruit_cost", 0))
+		if int(cand.get("troop_class", -1)) == troop_class and cand_cost > best_same_class_cost:
+			best_same_class = cand_id
+			best_same_class_cost = cand_cost
+		if cand_cost > best_any_cost:
+			best_any = cand_id
+			best_any_cost = cand_cost
+	if best_same_class != "":
+		return best_same_class
+	return best_any
 
 
 # ---------------------------------------------------------------------------
@@ -72,6 +194,245 @@ func get_army_summary(player_id: int) -> Array:
 # ---------------------------------------------------------------------------
 # Recruitment
 # ---------------------------------------------------------------------------
+
+## Default fallback troop id used by legacy recruit flows.
+func get_default_troop_id_for_faction(faction_id: int) -> String:
+	return _DEFAULT_FACTION_TROOP_MAP.get(faction_id, "ashigaru")
+
+
+func get_remaining_pop_slots(player_id: int) -> int:
+	var pop_cap: int = _get_pop_cap(player_id)
+	var army_ref: Array = _get_army_ref(player_id)
+	return maxi(0, pop_cap - army_ref.size())
+
+
+## Recruit one default squad by faction, used by GameManager legacy/domestic recruit entry points.
+## Returns { "ok": bool, "troop_id": String, "soldiers": int }.
+func recruit_default_unit_for_faction(player_id: int, faction_id: int) -> Dictionary:
+	var troop_id: String = get_default_troop_id_for_faction(faction_id)
+	if get_remaining_pop_slots(player_id) <= 0:
+		return {"ok": false, "troop_id": troop_id, "soldiers": 0, "reason": "pop_cap"}
+	var instance: Dictionary = GameData.create_troop_instance(troop_id)
+	if instance.is_empty():
+		return {"ok": false, "troop_id": troop_id, "soldiers": 0, "reason": "invalid_troop_def"}
+	reinforce_army(player_id, [instance])
+	if EventBus.has_signal("army_troops_assigned"):
+		EventBus.army_troops_assigned.emit(player_id, troop_id, instance.get("soldiers", 0))
+	return {"ok": true, "troop_id": troop_id, "soldiers": instance.get("soldiers", 0)}
+
+
+func get_troop_upgrade_target(troop_id: String) -> String:
+	var rule: Dictionary = _get_upgrade_rule(troop_id)
+	if not rule.is_empty():
+		return String(rule.get("to_troop_id", ""))
+	return _TROOP_UPGRADE_PATHS.get(troop_id, "")
+
+
+## Returns upgrade requirements for a troop instance.
+## { can_upgrade, reason, upgrade_id, cost, min_exp, current_exp }
+func get_troop_upgrade_requirements(troop: Dictionary, player_id: int = -1) -> Dictionary:
+	var current_id: String = troop.get("troop_id", "")
+	var upgrade_id: String = get_troop_upgrade_target(current_id)
+	if upgrade_id == "":
+		return {"can_upgrade": false, "reason": "no_upgrade_path", "upgrade_id": ""}
+	var current_def: Dictionary = GameData.TROOP_TYPES.get(current_id, {})
+	var target_def: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
+	if current_def.is_empty() or target_def.is_empty():
+		return {"can_upgrade": false, "reason": "invalid_upgrade_def", "upgrade_id": upgrade_id}
+
+	var rule: Dictionary = _get_upgrade_rule(current_id)
+	var current_tier: int = int(current_def.get("tier", 1))
+	var min_exp: int = _compute_upgrade_min_exp(current_tier, rule)
+	var current_exp: int = int(troop.get("experience", 0))
+	var cost: Dictionary = _compute_upgrade_cost(current_tier, rule, current_def)
+	if current_exp < min_exp:
+		return {
+			"can_upgrade": false,
+			"reason": "insufficient_experience",
+			"upgrade_id": upgrade_id,
+			"cost": cost,
+			"min_exp": min_exp,
+			"current_exp": current_exp,
+		}
+	if player_id >= 0 and not can_afford_upgrade_cost(player_id, cost):
+		return {
+			"can_upgrade": false,
+			"reason": "insufficient_resources",
+			"upgrade_id": upgrade_id,
+			"cost": cost,
+			"min_exp": min_exp,
+			"current_exp": current_exp,
+		}
+	return {
+		"can_upgrade": true,
+		"reason": "",
+		"upgrade_id": upgrade_id,
+		"cost": cost,
+		"min_exp": min_exp,
+		"current_exp": current_exp,
+	}
+
+
+func get_upgrade_failure_reason_text(req: Dictionary) -> String:
+	var reason: String = req.get("reason", "")
+	match reason:
+		"no_upgrade_path":
+			return "无可用升级路线"
+		"invalid_upgrade_def":
+			return "目标兵种数据异常"
+		"insufficient_experience":
+			return "经验不足 %d/%d" % [int(req.get("current_exp", 0)), int(req.get("min_exp", 0))]
+		"insufficient_resources":
+			var cost: Dictionary = req.get("cost", {})
+			return "资源不足 (%s)" % _format_cost_text(cost)
+	return "暂不可升级"
+
+
+func can_afford_upgrade_cost(player_id: int, cost: Dictionary) -> bool:
+	var res_cost: Dictionary = {}
+	var waaagh_needed: int = 0
+	for k in cost.keys():
+		var amount: int = int(cost.get(k, 0))
+		if amount <= 0:
+			continue
+		if k == "waaagh":
+			waaagh_needed += amount
+		else:
+			res_cost[k] = amount
+	if not res_cost.is_empty() and not ResourceManager.can_afford(player_id, res_cost):
+		return false
+	if waaagh_needed > 0 and OrcMechanic.get_waaagh(player_id) < waaagh_needed:
+		return false
+	return true
+
+
+func plan_default_recruit_for_faction(player_id: int, faction_id: int) -> Dictionary:
+	var troop_id: String = get_default_troop_id_for_faction(faction_id)
+	var result: Dictionary = {
+		"ok": false,
+		"reason": "",
+		"troop_id": troop_id,
+		"cost": {},
+	}
+	if FactionData.FACTION_PARAMS.has(faction_id):
+		var fp: Dictionary = FactionData.FACTION_PARAMS[faction_id]
+		result["cost"] = {
+			"gold": int(fp.get("recruit_cost_gold", 0)),
+			"iron": int(fp.get("recruit_cost_iron", 0)),
+		}
+	if get_remaining_pop_slots(player_id) <= 0:
+		result["reason"] = "pop_cap"
+		return result
+	if not ResourceManager.can_afford(player_id, result["cost"]):
+		result["reason"] = "insufficient_resources"
+		return result
+	var instance: Dictionary = GameData.create_troop_instance(troop_id)
+	if instance.is_empty():
+		result["reason"] = "invalid_troop_def"
+		return result
+	result["ok"] = true
+	return result
+
+
+func _get_upgrade_rule(troop_id: String) -> Dictionary:
+	var rules: Dictionary = _upgrade_rules.get("rules", {})
+	if rules.has(troop_id) and rules[troop_id] is Dictionary:
+		return rules[troop_id]
+	return {}
+
+
+func _compute_upgrade_min_exp(current_tier: int, rule: Dictionary) -> int:
+	var tier_exp_cap: int = int(GameData.TIER_EXP_CAP.get(current_tier, 30))
+	var default_rule: Dictionary = _upgrade_rules.get("default", {})
+	var tier_profile: Dictionary = _get_tier_profile(current_tier)
+	var ratio: float = float(tier_profile.get("min_exp_ratio", default_rule.get("min_exp_ratio", 0.5)))
+	var floor_val: int = int(tier_profile.get("min_exp_floor", default_rule.get("min_exp_floor", 10)))
+	if rule.has("min_exp_ratio"):
+		ratio = float(rule.get("min_exp_ratio", ratio))
+	if rule.has("min_exp"):
+		return maxi(0, int(rule.get("min_exp", floor_val)))
+	return maxi(floor_val, int(round(float(tier_exp_cap) * ratio)))
+
+
+func _compute_upgrade_cost(current_tier: int, rule: Dictionary, current_def: Dictionary) -> Dictionary:
+	var default_rule: Dictionary = _upgrade_rules.get("default", {})
+	var tier_profile: Dictionary = _get_tier_profile(current_tier)
+	var faction: String = String(current_def.get("faction", ""))
+	var category: int = int(current_def.get("category", -1))
+	var cost: Dictionary = {}
+	# Orc faction/ultimate upgrades align with Orc recruit economy: food + WAAAGH!
+	if faction == "orc" and (category == GameData.TroopCategory.FACTION or category == GameData.TroopCategory.ULTIMATE):
+		var food_base: int = int(tier_profile.get("gold_base", 20))
+		var food_per_tier: int = int(tier_profile.get("gold_per_tier", 20))
+		cost["food"] = maxi(1, food_base + current_tier * food_per_tier)
+		var waaagh_base: int = maxi(0, int(round(float(food_base) * 0.3)))
+		var waaagh_per_tier: int = maxi(1, int(round(float(food_per_tier) * 0.5)))
+		cost["waaagh"] = maxi(0, waaagh_base + current_tier * waaagh_per_tier)
+	else:
+		var gold: int = int(tier_profile.get("gold_base", 20)) + current_tier * int(tier_profile.get("gold_per_tier", 20))
+		var iron: int = int(tier_profile.get("iron_base", 8)) + current_tier * int(tier_profile.get("iron_per_tier", 7))
+		cost["gold"] = maxi(0, gold)
+		cost["iron"] = maxi(0, iron)
+	if rule.has("cost") and rule["cost"] is Dictionary:
+		var override_cost: Dictionary = rule["cost"]
+		for key in override_cost.keys():
+			cost[key] = maxi(0, int(override_cost.get(key, cost.get(key, 0))))
+	return cost
+
+
+func _get_tier_profile(source_tier: int) -> Dictionary:
+	var default_rule: Dictionary = _upgrade_rules.get("default", {})
+	var tier_profiles: Dictionary = default_rule.get("tier_profiles", {})
+	var key: String = str(source_tier)
+	if tier_profiles.has(key) and tier_profiles[key] is Dictionary:
+		return tier_profiles[key]
+	return {}
+
+
+func _format_cost_text(cost: Dictionary) -> String:
+	var parts: Array[String] = []
+	var keys: Array = cost.keys()
+	keys.sort()
+	for k in keys:
+		var amount: int = int(cost.get(k, 0))
+		if amount <= 0:
+			continue
+		parts.append("%s%d" % [k, amount])
+	return " ".join(parts) if not parts.is_empty() else "无消耗"
+
+
+## Mutates troop dictionary in place and returns operation result.
+## Returns { "ok": bool, "old_name": String, "new_name": String }.
+func apply_troop_upgrade(troop: Dictionary, exp_cost: int = 0) -> Dictionary:
+	var current_id: String = troop.get("troop_id", "")
+	var upgrade_id: String = get_troop_upgrade_target(current_id)
+	if upgrade_id == "":
+		return {"ok": false, "reason": "no_upgrade_path"}
+	var new_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
+	if new_data.is_empty():
+		return {"ok": false, "reason": "invalid_upgrade_def"}
+
+	var old_name: String = troop.get("name", current_id)
+	troop["troop_id"] = upgrade_id
+	troop["name"] = new_data.get("name", upgrade_id)
+	troop["atk"] = new_data.get("atk", troop.get("atk", 0))
+	troop["def"] = new_data.get("def", troop.get("def", 0))
+	troop["spd"] = new_data.get("spd", troop.get("spd", 5))
+	var new_max: int = new_data.get("max_soldiers", troop.get("max_soldiers", troop.get("soldiers", 1)))
+	troop["max_soldiers"] = new_max
+	troop["soldiers"] = mini(troop.get("soldiers", new_max), new_max)
+	troop["hp_per_soldier"] = new_data.get("hp_per_soldier", troop.get("hp_per_soldier", 5))
+	troop["total_hp"] = troop["soldiers"] * troop["hp_per_soldier"]
+	if new_data.has("passive"):
+		troop["passive"] = new_data["passive"]
+	var spent: int = maxi(0, exp_cost)
+	var cur_exp: int = int(troop.get("experience", 0))
+	if spent > 0:
+		troop["experience"] = maxi(0, cur_exp - spent)
+	troop["upgrade_count"] = int(troop.get("upgrade_count", 0)) + 1
+	if GameManager != null:
+		troop["last_upgrade_turn"] = int(GameManager.turn_number)
+	return {"ok": true, "old_name": old_name, "new_name": troop["name"], "exp_spent": spent}
 
 ## Returns recruitable troops at a tile for a player.
 func get_available_units(player_id: int, tile: Dictionary) -> Array:
@@ -226,7 +587,17 @@ func apply_combat_losses(player_id: int, total_losses: int) -> int:
 ## Merge reinforcements into army.
 func reinforce_army(player_id: int, reinforcements: Array) -> void:
 	var army_ref: Array = _get_army_ref(player_id)
-	GameData.merge_into_army(army_ref, reinforcements)
+	var slots_left: int = get_remaining_pop_slots(player_id)
+	if slots_left <= 0:
+		if EventBus != null:
+			EventBus.message_log.emit("[color=yellow]军团名额已满，无法接收增援[/color]")
+		return
+	var accepted: Array = reinforcements
+	if reinforcements.size() > slots_left:
+		accepted = reinforcements.slice(0, slots_left)
+		if EventBus != null:
+			EventBus.message_log.emit("[color=yellow]军团名额不足，仅接收%d/%d支增援[/color]" % [accepted.size(), reinforcements.size()])
+	GameData.merge_into_army(army_ref, accepted)
 	_sync_army_count(player_id)
 
 

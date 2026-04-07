@@ -43,7 +43,29 @@ const MAP_NODE_COUNT: int = 100
 const BASE_AP: int = 2
 const AP_PER_TILES: int = 7  # v4.6: 5→7 so +1 AP requires real expansion
 const MAX_AP: int = 6
+const ORDER_AP_BONUS_THRESHOLD: float = 0.72
+const THREAT_AP_PENALTY_THRESHOLD: int = 70
+const OVEREXTEND_THREAT_THRESHOLD: int = 60
 const COMBAT_POWER_PER_UNIT: int = BalanceConfig.COMBAT_POWER_PER_UNIT
+
+const ACTION_PROFILES: Dictionary = {
+	"attack": {"base_ap": 1, "risk": 3, "reward": 3},
+	"storm": {"base_ap": 2, "risk": 4, "reward": 4},
+	"explore": {"base_ap": 1, "risk": 2, "reward": 2},
+	"excavate": {"base_ap": 1, "risk": 2, "reward": 2},
+	"guard": {"base_ap": 1, "risk": 1, "reward": 1},
+	"domestic": {"base_ap": 1, "risk": 1, "reward": 2},
+	"ritual": {"base_ap": 1, "risk": 1, "reward": 2},
+	"block_supply": {"base_ap": 1, "risk": 2, "reward": 2},
+	"fortify": {"base_ap": 1, "risk": 1, "reward": 1},
+	"exploit": {"base_ap": 1, "risk": 1, "reward": 2},
+	"train_elite": {"base_ap": 1, "risk": 1, "reward": 2},
+	"upgrade_outpost": {"base_ap": 1, "risk": 1, "reward": 2},
+	"upgrade_facility": {"base_ap": 1, "risk": 1, "reward": 2},
+	"upgrade_walls": {"base_ap": 1, "risk": 1, "reward": 2},
+	"build_market": {"base_ap": 1, "risk": 1, "reward": 2},
+	"diplomacy": {"base_ap": 1, "risk": 1, "reward": 2},
+}
 
 # ── Army system constants (v0.9.2 → v2.1 unified with BalanceConfig) ──
 # All values now delegate to BalanceConfig for single source of truth.
@@ -562,6 +584,28 @@ func get_player_by_id(player_id: int) -> Dictionary:
 	return {}
 
 
+func _get_default_faction_troop_id(faction_id: int) -> String:
+	if RecruitManager != null and RecruitManager.has_method("get_default_troop_id_for_faction"):
+		return RecruitManager.get_default_troop_id_for_faction(faction_id)
+	return "ashigaru"
+
+
+func _recruit_default_troop_instance(player_id: int, faction_id: int) -> Dictionary:
+	var default_troop_id: String = _get_default_faction_troop_id(faction_id)
+	if RecruitManager != null and RecruitManager.has_method("recruit_default_unit_for_faction"):
+		var recruit_result: Dictionary = RecruitManager.recruit_default_unit_for_faction(player_id, faction_id)
+		if recruit_result.get("ok", false):
+			sync_player_army(player_id)
+			return {"ok": true, "troop_id": recruit_result.get("troop_id", default_troop_id)}
+		# If RecruitManager handled the request but rejected it (e.g. pop cap / invalid troop),
+		# do NOT fallback to abstract army increment, to keep troop/pop state consistent.
+		return {"ok": false, "troop_id": default_troop_id}
+	# Fallback path only when RecruitManager API is unavailable.
+	ResourceManager.add_army(player_id, 1)
+	sync_player_army(player_id)
+	return {"ok": true, "troop_id": default_troop_id}
+
+
 ## ── AP 统一管理接口 (FIX: 防止 UI 层直接修改 player["ap"]) ──
 
 ## 检查指定玩家是否有足够的行动力。
@@ -570,6 +614,45 @@ func check_ap(player_id: int, amount: int = 1) -> bool:
 	if p.is_empty():
 		return false
 	return p.get("ap", 0) >= amount
+
+
+func _get_avg_public_order(player_id: int) -> float:
+	var total: float = 0.0
+	var count: int = 0
+	for tile in tiles:
+		if tile.get("owner_id", -1) == player_id:
+			total += float(tile.get("public_order", BalanceConfig.TILE_ORDER_DEFAULT))
+			count += 1
+	if count <= 0:
+		return BalanceConfig.TILE_ORDER_DEFAULT
+	return total / float(count)
+
+
+func _get_overextension_level(_player_id: int) -> int:
+	var level: int = 0
+	if ThreatManager != null and ThreatManager.get_threat() >= OVEREXTEND_THREAT_THRESHOLD:
+		level += 1
+	if _ap_purchases_this_turn > 0:
+		level += 1
+	return clampi(level, 0, 2)
+
+
+func get_action_ap_cost(player_id: int, action_type: String) -> int:
+	var profile: Dictionary = ACTION_PROFILES.get(action_type, {"base_ap": 1})
+	var cost: int = int(profile.get("base_ap", 1))
+	var overext: int = _get_overextension_level(player_id)
+	# High-risk actions become more expensive when overextending.
+	if overext > 0 and action_type in ["attack", "storm", "explore", "excavate", "block_supply"]:
+		cost += 1
+	# Stable governance can slightly ease defensive/admin actions.
+	if action_type in [
+		"guard", "domestic", "ritual", "fortify", "exploit", "train_elite",
+		"upgrade_outpost", "upgrade_facility", "upgrade_walls", "build_market"
+	]:
+		var avg_order: float = _get_avg_public_order(player_id)
+		if avg_order >= 0.85:
+			cost = maxi(0, cost - 1)
+	return maxi(cost, 0)
 
 
 ## 消耗指定玩家的行动力，并发射 ap_changed 信号。
@@ -594,6 +677,70 @@ func restore_ap(player_id: int, amount: int) -> void:
 		return
 	p["ap"] = clampi(p.get("ap", 0) + amount, 0, MAX_AP)
 	EventBus.ap_changed.emit(player_id, p["ap"])
+
+
+func _commit_operation_costs(player_id: int, ap_cost: int, resource_cost: Dictionary) -> Dictionary:
+	if ap_cost > 0 and not spend_ap(player_id, ap_cost):
+		return {"ok": false, "reason": "insufficient_ap"}
+	var regular_cost: Dictionary = {}
+	var waaagh_cost: int = 0
+	for key in resource_cost.keys():
+		var amount: int = int(resource_cost.get(key, 0))
+		if amount <= 0:
+			continue
+		if key == "waaagh":
+			waaagh_cost += amount
+		else:
+			regular_cost[key] = amount
+	if not regular_cost.is_empty():
+		if not ResourceManager.can_afford(player_id, regular_cost):
+			if ap_cost > 0:
+				restore_ap(player_id, ap_cost)
+			return {"ok": false, "reason": "insufficient_resources"}
+		var consume: Dictionary = {}
+		for k in regular_cost.keys():
+			consume[k] = -int(regular_cost.get(k, 0))
+		ResourceManager.apply_delta(player_id, consume)
+	if waaagh_cost > 0:
+		if OrcMechanic.get_waaagh(player_id) < waaagh_cost:
+			if not regular_cost.is_empty():
+				ResourceManager.apply_delta(player_id, regular_cost)
+			if ap_cost > 0:
+				restore_ap(player_id, ap_cost)
+			return {"ok": false, "reason": "insufficient_waaagh"}
+		OrcMechanic.add_waaagh(player_id, -waaagh_cost)
+	return {"ok": true, "reason": ""}
+
+
+func _rollback_operation_costs(player_id: int, ap_cost: int, resource_cost: Dictionary) -> void:
+	var regular_refund: Dictionary = {}
+	var waaagh_refund: int = 0
+	for key in resource_cost.keys():
+		var amount: int = int(resource_cost.get(key, 0))
+		if amount <= 0:
+			continue
+		if key == "waaagh":
+			waaagh_refund += amount
+		else:
+			regular_refund[key] = amount
+	if not regular_refund.is_empty():
+		ResourceManager.apply_delta(player_id, regular_refund)
+	if waaagh_refund > 0:
+		OrcMechanic.add_waaagh(player_id, waaagh_refund)
+	if ap_cost > 0:
+		restore_ap(player_id, ap_cost)
+
+
+func _format_cost_text(cost: Dictionary) -> String:
+	var keys: Array = cost.keys()
+	keys.sort()
+	var parts: Array[String] = []
+	for k in keys:
+		var amount: int = int(cost.get(k, 0))
+		if amount <= 0:
+			continue
+		parts.append("%s%d" % [k, amount])
+	return " ".join(parts)
 
 
 func sync_player_army(player_id: int) -> void:
@@ -666,10 +813,16 @@ func get_population_cap(player_id: int) -> int:
 func calculate_action_points(player_id: int) -> int:
 	var owned: int = count_tiles_owned(player_id)
 	var ap: int = BASE_AP + owned / AP_PER_TILES + NgPlusManager.get_bonus_ap()
+	# Core loop enhancement: AP now reacts to realm stability / strategic pressure.
+	var avg_order: float = _get_avg_public_order(player_id)
+	if avg_order >= ORDER_AP_BONUS_THRESHOLD:
+		ap += 1
+	if ThreatManager != null and ThreatManager.get_threat() >= THREAT_AP_PENALTY_THRESHOLD:
+		ap -= 1
 	# v4.7: Add PrestigeShop AP cap bonus and NGPlusShop starting AP bonus
 	var prestige_ap_bonus: int = PrestigeShop.get_ap_cap_bonus() if PrestigeShop != null else 0
 	var ngplus_ap_bonus: int = NGPlusShop.get_ap_bonus() if NGPlusShop != null else 0
-	return mini(ap, MAX_AP + prestige_ap_bonus + ngplus_ap_bonus)
+	return clampi(ap, 0, MAX_AP + prestige_ap_bonus + ngplus_ap_bonus)
 
 
 ## BUG FIX R11: get_army_count was referenced by production_calculator but never defined
@@ -1961,6 +2114,15 @@ func begin_turn() -> void:
 			SaveManager.auto_save()
 
 	player["ap"] = calculate_action_points(pid)
+	if pid == get_human_player_id():
+		var ap_notes: Array[String] = []
+		var avg_order: float = _get_avg_public_order(pid)
+		if avg_order >= ORDER_AP_BONUS_THRESHOLD:
+			ap_notes.append("高秩序 +1AP")
+		if ThreatManager != null and ThreatManager.get_threat() >= THREAT_AP_PENALTY_THRESHOLD:
+			ap_notes.append("高威胁 -1AP")
+		if not ap_notes.is_empty():
+			EventBus.message_log.emit("AP修正: %s" % ", ".join(ap_notes))
 	# BUG FIX: Apply permanent ATK bonuses from StrategicResourceManager (arcane_enhance +5)
 	# and faction-specific bonuses (DarkElf altar, Orc blood tribute, etc.) at turn start.
 	# These were previously reset to 0 and never re-applied, making arcane_enhance ineffective
@@ -3274,8 +3436,9 @@ func action_reinforce_army(player_id: int, army_id: int) -> bool:
 	var player: Dictionary = get_player_by_id(player_id)
 	if player.is_empty():
 		return false
-	if player.get("ap", 0) < 1:
-		EventBus.message_log.emit("行動力不足!")
+	var reinforce_ap_cost: int = get_action_ap_cost(player_id, "domestic")
+	if player.get("ap", 0) < reinforce_ap_cost:
+		EventBus.message_log.emit("行動力不足! 补充部队需要%dAP!" % reinforce_ap_cost)
 		return false
 	if not armies.has(army_id):
 		return false
@@ -3289,32 +3452,41 @@ func action_reinforce_army(player_id: int, army_id: int) -> bool:
 		EventBus.message_log.emit("军队必须在己方领地!")
 		return false
 
-	# Reinforce: restore each depleted troop by up to 2 soldiers
+	# Reinforce: restore each depleted troop by up to 2 soldiers.
+	# Use a two-phase flow so AP/resources are charged atomically once.
 	var total_restored: int = 0
+	var total_cost: Dictionary = {"gold": 0, "food": 0}
 	var troops: Array = army.get("troops", [])
 	for troop in troops:
 		var current: int = troop.get("soldiers", 0)
 		var max_sol: int = troop.get("max_soldiers", current)
 		if current < max_sol:
 			var restore: int = mini(2, max_sol - current)
-			# Cost: 5 gold + 2 food per soldier restored
-			var cost: Dictionary = {"gold": restore * 5, "food": restore * 2}
-			if ResourceManager.can_afford(player_id, cost):
-				ResourceManager.apply_delta(player_id, {"gold": -cost["gold"], "food": -cost["food"]})
-				troop["soldiers"] = current + restore
-				var hpp: int = troop.get("hp_per_soldier", 5)
-				troop["total_hp"] = troop["soldiers"] * hpp
-				total_restored += restore
+			total_restored += restore
+			total_cost["gold"] += restore * 5
+			total_cost["food"] += restore * 2
 
-	if total_restored > 0:
-		player["ap"] -= 1
-		EventBus.message_log.emit("军队补充: +%d兵 (消耗金%d 粮%d)" % [total_restored, total_restored * 5, total_restored * 2])
-		sync_player_army(player_id)
-		EventBus.ap_changed.emit(player_id, player["ap"])
-		return true
-	else:
-		EventBus.message_log.emit("所有部队已满编或资源不足!")
+	if total_restored <= 0:
+		EventBus.message_log.emit("所有部队已满编!")
 		return false
+
+	var pay_result: Dictionary = _commit_operation_costs(player_id, reinforce_ap_cost, total_cost)
+	if not pay_result.get("ok", false):
+		EventBus.message_log.emit("资源或行动力不足，无法补充部队!")
+		return false
+
+	for troop in troops:
+		var current: int = troop.get("soldiers", 0)
+		var max_sol: int = troop.get("max_soldiers", current)
+		if current < max_sol:
+			var restore: int = mini(2, max_sol - current)
+			troop["soldiers"] = current + restore
+			var hpp: int = troop.get("hp_per_soldier", 5)
+			troop["total_hp"] = troop["soldiers"] * hpp
+
+	EventBus.message_log.emit("军队补充: +%d兵 (消耗金%d 粮%d)" % [total_restored, total_cost["gold"], total_cost["food"]])
+	sync_player_army(player_id)
+	return true
 
 
 ## Upgrade a troop type in army (e.g., ashigaru -> samurai) — 1 AP + resources
@@ -3324,8 +3496,9 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 	var player: Dictionary = get_player_by_id(player_id)
 	if player.is_empty():
 		return false
-	if player.get("ap", 0) < 1:
-		EventBus.message_log.emit("行動力不足!")
+	var upgrade_ap_cost: int = get_action_ap_cost(player_id, "domestic")
+	if player.get("ap", 0) < upgrade_ap_cost:
+		EventBus.message_log.emit("行動力不足! 兵种升级需要%dAP!" % upgrade_ap_cost)
 		return false
 	if not armies.has(army_id):
 		return false
@@ -3338,75 +3511,42 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 
 	var troop: Dictionary = troops[troop_index]
 	var current_id: String = troop.get("troop_id", "")
-
-	# Get upgrade path
-	var upgrade_id: String = _get_troop_upgrade(current_id)
-	if upgrade_id == "":
-		EventBus.message_log.emit("该兵种无法升级!")
+	if RecruitManager == null or not RecruitManager.has_method("get_troop_upgrade_requirements"):
+		EventBus.message_log.emit("升级系统未就绪!")
+		return false
+	var req: Dictionary = RecruitManager.get_troop_upgrade_requirements(troop, player_id)
+	if not req.get("can_upgrade", false):
+		var reason: String = req.get("reason", "unknown")
+		if reason == "insufficient_experience":
+			EventBus.message_log.emit("经验不足! 兵种升级需要%d经验 (当前%d)" % [req.get("min_exp", 0), req.get("current_exp", 0)])
+		elif reason == "insufficient_resources":
+			var req_cost: Dictionary = req.get("cost", {})
+			EventBus.message_log.emit("资源不足! 需要%s" % _format_cost_text(req_cost))
+		else:
+			EventBus.message_log.emit("该兵种无法升级!")
+		return false
+	var upgrade_id: String = req.get("upgrade_id", "")
+	var cost: Dictionary = req.get("cost", {"gold": 40, "iron": 15})
+	var pay_result: Dictionary = _commit_operation_costs(player_id, upgrade_ap_cost, cost)
+	if not pay_result.get("ok", false):
+		EventBus.message_log.emit("资源或行动力不足! 升级失败")
 		return false
 
-	# Upgrade cost
-	var cost: Dictionary = {"gold": 40, "iron": 15}
-	if not ResourceManager.can_afford(player_id, cost):
-		EventBus.message_log.emit("资源不足! 需要金%d 铁%d" % [cost["gold"], cost["iron"]])
+	if RecruitManager == null or not RecruitManager.has_method("apply_troop_upgrade"):
+		_rollback_operation_costs(player_id, upgrade_ap_cost, cost)
+		EventBus.message_log.emit("升级系统未就绪!")
 		return false
-
-	# Apply upgrade
-	# BUG FIX: validate new_data BEFORE deducting resources to avoid losing gold/iron
-	# if the upgrade_id has no data in TROOP_TYPES.
-	var new_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
-	if new_data.is_empty():
+	var upgrade_result: Dictionary = RecruitManager.apply_troop_upgrade(troop, int(req.get("min_exp", 0)))
+	if not upgrade_result.get("ok", false):
+		_rollback_operation_costs(player_id, upgrade_ap_cost, cost)
+		EventBus.message_log.emit("兵种升级失败: %s" % upgrade_result.get("reason", "unknown"))
 		return false
-	ResourceManager.apply_delta(player_id, {"gold": -cost["gold"], "iron": -cost["iron"]})
-
-	var old_name: String = troop.get("name", current_id)
-	troop["troop_id"] = upgrade_id
-	troop["name"] = new_data.get("name", upgrade_id)
-	troop["atk"] = new_data.get("atk", troop["atk"])
-	troop["def"] = new_data.get("def", troop["def"])
-	troop["spd"] = new_data.get("spd", troop.get("spd", 5))
-	# BUG FIX: clamp current soldiers to new max_soldiers after upgrade
-	var new_max: int = new_data.get("max_soldiers", troop["max_soldiers"])
-	troop["max_soldiers"] = new_max
-	troop["soldiers"] = mini(troop.get("soldiers", new_max), new_max)
-	if new_data.has("passive"):
-		troop["passive"] = new_data["passive"]
-
-	player["ap"] -= 1
-	EventBus.message_log.emit("兵种升格: %s -> %s (金-%d 铁-%d)" % [old_name, troop["name"], cost["gold"], cost["iron"]])
-	EventBus.ap_changed.emit(player_id, player["ap"])
+	EventBus.message_log.emit("兵种升格: %s -> %s (消耗:%s, 经验-%d)" % [
+		upgrade_result.get("old_name", current_id),
+		upgrade_result.get("new_name", troop.get("name", upgrade_id)),
+		_format_cost_text(cost), upgrade_result.get("exp_spent", 0)
+	])
 	return true
-
-
-## Get the upgrade path for a troop type
-func _get_troop_upgrade(troop_id: String) -> String:
-	# Upgrade paths: T1 -> T2 -> T3
-	var upgrade_table: Dictionary = {
-		# Orc upgrades
-		"orc_ashigaru": "orc_samurai",
-		"orc_samurai": "orc_cavalry",
-		# Pirate upgrades
-		"pirate_ashigaru": "pirate_archer",
-		"pirate_archer": "pirate_cannon",
-		# Dark Elf upgrades
-		"de_samurai": "de_ninja",
-		"de_ninja": "de_cavalry",
-		# Generic upgrades
-		"ashigaru": "samurai",
-		"samurai": "cavalry",
-		"archer": "ninja",
-		"militia": "knight",
-		# Human upgrades (for conquered units)
-		"human_ashigaru": "human_samurai",
-		"human_samurai": "human_cavalry",
-		# DEEP: High Elf upgrades (elf_archer T1 -> elf_mage T2 -> elf_ashigaru T3)
-		"elf_archer": "elf_mage",
-		"elf_mage": "elf_ashigaru",
-		# DEEP: Mage upgrades (mage_apprentice T1 -> mage_battle T2 -> mage_grand T3)
-		"mage_apprentice": "mage_battle",
-		"mage_battle": "mage_grand",
-	}
-	return upgrade_table.get(troop_id, "")
 
 
 func get_army_deployable_tiles(army_id: int) -> Array:
@@ -3547,8 +3687,9 @@ func action_guard_territory(pid: int, tile_index: int) -> bool:
 	## Place a guard order on one of the player's own tiles. Costs 1 AP.
 	## Grants garrison +20% defense and +50% DEF during combat for 1 turn.
 	var player: Dictionary = get_player_by_id(pid)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var guard_ap_cost: int = get_action_ap_cost(pid, "guard")
+	if player.is_empty() or player["ap"] < guard_ap_cost:
+		EventBus.message_log.emit("行动点不足! 驻守需要%dAP。" % guard_ap_cost)
 		return false
 	if tile_index < 0 or tile_index >= tiles.size():
 		return false
@@ -3558,10 +3699,11 @@ func action_guard_territory(pid: int, tile_index: int) -> bool:
 	if tile["owner_id"] != pid:
 		EventBus.message_log.emit("只能防守自己的领地!")
 		return false
-	player["ap"] -= 1
+	player["ap"] -= guard_ap_cost
 	_guard_timers[tile_index] = {"player_id": pid, "turns_remaining": 1}
 	var tile_name: String = tile.get("name", TILE_NAMES.get(tile["type"], "领地"))
-	EventBus.message_log.emit("[color=cyan]%s 已部署防御! (驻军防御+20%%, 战斗DEF+50%%, 持续1回合)[/color]" % tile_name)
+	EventBus.message_log.emit("[color=cyan]%s 已部署防御! (驻军防御+20%%, 战斗DEF+50%%, 持续1回合, 消耗%dAP)[/color]" % [tile_name, guard_ap_cost])
+	EventBus.ap_changed.emit(pid, player["ap"])
 	return true
 
 
@@ -3731,8 +3873,9 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 		return false
 	var player_id: int = army["player_id"]
 	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var attack_ap_cost: int = get_action_ap_cost(player_id, "attack")
+	if player.is_empty() or player["ap"] < attack_ap_cost:
+		EventBus.message_log.emit("行动点不足! 进攻需要%dAP。" % attack_ap_cost)
 		return false
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
 		return false
@@ -3758,7 +3901,7 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 		var existing_siege: Dictionary = SiegeSystem.get_siege_at_tile(target_tile_index)
 		if existing_siege.is_empty():
 			# No active siege — start one instead of immediate combat
-			player["ap"] -= 1
+			player["ap"] -= attack_ap_cost
 			SiegeSystem.start_siege(army_id, target_tile_index)
 			EventBus.player_arrived.emit(player_id, target_tile_index)
 			EventBus.ap_changed.emit(player_id, player["ap"])
@@ -3776,7 +3919,7 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 				return false
 		# else: wall_hp <= 0 → proceed with final assault (attacker ATK bonus applied below)
 
-	player["ap"] -= 1
+	player["ap"] -= attack_ap_cost
 	_had_combat_this_turn = true
 	_combat_slot_prefs = get_army_slot_preferences(army_id)
 	_combat_unit_commands = get_army_unit_commands(army_id)
@@ -3823,8 +3966,20 @@ func action_attack_with_army(army_id: int, target_tile_index: int) -> bool:
 			_handle_neutral_quest(player, nf_id)
 		check_win_condition()
 		EventBus.army_deployed.emit(player_id, army_id, from_tile, target_tile_index)
+		var overext_win: int = _get_overextension_level(player_id)
+		if overext_win > 0:
+			var bonus_gold: int = 8 * overext_win
+			ResourceManager.apply_delta(player_id, {"gold": bonus_gold})
+			EventBus.message_log.emit("[color=gold]高压推进奖励: 掠夺金币+%d[/color]" % bonus_gold)
+	else:
+		var overext_loss: int = _get_overextension_level(player_id)
+		if overext_loss > 0:
+			OrderManager.change_order(-2 * overext_loss)
+			ThreatManager.change_threat(2 * overext_loss)
+			EventBus.message_log.emit("[color=orange]高压推进反噬: 秩序-%d, 威胁+%d[/color]" % [2 * overext_loss, 2 * overext_loss])
 
 	EventBus.player_arrived.emit(player_id, target_tile_index)
+	EventBus.ap_changed.emit(player_id, player["ap"])
 	return won
 
 
@@ -4752,7 +4907,9 @@ func roll_dice() -> void:
 		dice_value += bonus_moves
 
 	has_rolled = true
-	player["ap"] -= 1
+	if not spend_ap(player["id"], 1):
+		has_rolled = false
+		return
 	EventBus.dice_rolled.emit(player["id"], dice_value)
 	EventBus.message_log.emit("%s 掷出了 %d" % [player["name"], dice_value])
 
@@ -6018,10 +6175,11 @@ func recruit_army() -> void:
 	if current_player_index < 0 or current_player_index >= players.size():
 		return
 	var player: Dictionary = players[current_player_index]
-	if player["is_ai"] or player["ap"] < 1:
+	var pid: int = player["id"]
+	var recruit_ap_cost: int = get_action_ap_cost(pid, "domestic")
+	if player["is_ai"] or player["ap"] < recruit_ap_cost:
 		return
 
-	var pid: int = player["id"]
 	var faction_id: int = get_player_faction(pid)
 	var params: Dictionary = FactionData.FACTION_PARAMS[faction_id]
 	var gold_cost: int = params["recruit_cost_gold"]
@@ -6054,14 +6212,19 @@ func recruit_army() -> void:
 		EventBus.message_log.emit("已达人口上限 (%d)!" % pop_cap)
 		return
 
+	if not spend_ap(pid, recruit_ap_cost):
+		return
 	ResourceManager.spend(pid, {"gold": gold_cost, "iron": iron_cost})
-	ResourceManager.add_army(pid, 1)
-	player["army_count"] = ResourceManager.get_army(pid)
-	player["combat_power"] = player["army_count"] * COMBAT_POWER_PER_UNIT
-	player["ap"] -= 1
+	var recruit_result: Dictionary = _recruit_default_troop_instance(pid, faction_id)
+	if not recruit_result.get("ok", false):
+		ResourceManager.apply_delta(pid, {"gold": gold_cost, "iron": iron_cost})
+		restore_ap(pid, recruit_ap_cost)
+		EventBus.message_log.emit("[color=red]招募失败：兵种数据异常或军团名额不足。[/color]")
+		return
+	var recruited_troop_id: String = recruit_result.get("troop_id", "ashigaru")
 
-	EventBus.message_log.emit("%s 招募了1个步兵! (金-%d 铁-%d)" % [player["name"], gold_cost, iron_cost])
-	EventBus.action_visualize_recruit.emit(player["position"], "infantry", 1)
+	EventBus.message_log.emit("%s 招募了1个%s! (金-%d 铁-%d)" % [player["name"], params.get("default_troop", "步兵"), gold_cost, iron_cost])
+	EventBus.action_visualize_recruit.emit(player["position"], recruited_troop_id, 1)
 
 
 func can_recruit() -> bool:
@@ -6076,9 +6239,10 @@ func can_recruit() -> bool:
 	if current_player_index < 0 or current_player_index >= players.size():
 		return false
 	var player: Dictionary = players[current_player_index]
-	if player["ap"] < 1:
-		return false
 	var pid: int = player["id"]
+	var recruit_ap_cost: int = get_action_ap_cost(pid, "domestic")
+	if player["ap"] < recruit_ap_cost:
+		return false
 	var faction_id: int = get_player_faction(pid)
 	var params: Dictionary = FactionData.FACTION_PARAMS[faction_id]
 	var gold_cost: int = params["recruit_cost_gold"]
@@ -6137,7 +6301,8 @@ func upgrade_tile() -> void:
 		return
 
 	ResourceManager.spend(player["id"], {"gold": cost[0], "iron": cost[1]})
-	player["ap"] -= 1
+	if not spend_ap(player["id"], 1):
+		return
 	tile["level"] += 1
 
 	OrderManager.on_tile_upgraded()
@@ -6198,7 +6363,8 @@ func build_on_tile(building_id: String) -> void:
 		EventBus.message_log.emit("资源不足!")
 		return
 
-	player["ap"] -= 1
+	if not spend_ap(player["id"], 1):
+		return
 	tile["building_id"] = building_id
 	tile["building_level"] = target_level
 	var bname: String = BuildingRegistry.get_building_name(building_id, target_level)
@@ -6262,7 +6428,8 @@ func interact_with_tile() -> void:
 	# Building interaction
 	if tile["owner_id"] == player["id"] and tile.get("building_id", "") != "":
 		var bld: String = tile["building_id"]
-		player["ap"] -= 1
+		if not spend_ap(player["id"], 1):
+			return
 		match bld:
 			"war_pit":
 				OrcMechanic.convert_slave_to_army(player["id"])
@@ -6275,7 +6442,8 @@ func interact_with_tile() -> void:
 	# Tile type interaction
 	match tile["type"]:
 		TileType.EVENT_TILE:
-			player["ap"] -= 1
+			if not spend_ap(player["id"], 1):
+				return
 			_trigger_event(player, tile)
 		_:
 			EventBus.message_log.emit("此处没有可交互的对象")
@@ -6759,9 +6927,10 @@ func action_attack(player_id: int, target_tile_index: int) -> bool:
 func action_domestic(player_id: int, target_tile_index: int, domestic_type: String, building_id: String = "") -> bool:
 	## Execute a domestic action. domestic_type: "recruit", "upgrade", "build"
 	## Note: "exploit", "block_supply", "fortify", "train_elite" are handled by their own dedicated functions.
-	## Costs 1 AP.
+	## AP cost is dynamic via get_action_ap_cost(player_id, "domestic").
 	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
+	var domestic_ap_cost: int = get_action_ap_cost(player_id, "domestic")
+	if player.is_empty() or player["ap"] < domestic_ap_cost:
 		return false
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
 		return false
@@ -6778,40 +6947,33 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 	match domestic_type:
 		"recruit":
 			var params: Dictionary = FactionData.FACTION_PARAMS[faction_id]
-			var gold_cost: int = params["recruit_cost_gold"]
-			var iron_cost: int = params["recruit_cost_iron"]
+			var recruit_plan: Dictionary = {}
+			if RecruitManager != null and RecruitManager.has_method("plan_default_recruit_for_faction"):
+				recruit_plan = RecruitManager.plan_default_recruit_for_faction(pid, faction_id)
+			var recruit_cost: Dictionary = recruit_plan.get("cost", {
+				"gold": int(params.get("recruit_cost_gold", 0)),
+				"iron": int(params.get("recruit_cost_iron", 0)),
+			})
 			if tile.get("building_id", "") == "training_ground":
 				var bld_level: int = tile.get("building_level", 1)
 				var bld_effects: Dictionary = BuildingRegistry.get_building_effects("training_ground", bld_level)
-				gold_cost = maxi(0, gold_cost - bld_effects.get("recruit_discount", 10))
-			if not ResourceManager.can_afford(pid, {"gold": gold_cost, "iron": iron_cost}):
-				EventBus.message_log.emit("资源不足! 需要 %d金 %d铁" % [gold_cost, iron_cost])
+				recruit_cost["gold"] = maxi(0, int(recruit_cost.get("gold", 0)) - int(bld_effects.get("recruit_discount", 10)))
+			if not ResourceManager.can_afford(pid, recruit_cost):
+				EventBus.message_log.emit("资源不足! 需要 %d金 %d铁" % [int(recruit_cost.get("gold", 0)), int(recruit_cost.get("iron", 0))])
 				return false
 			if ResourceManager.get_army(pid) >= get_population_cap(pid):
 				EventBus.message_log.emit("已达人口上限!")
 				return false
-			ResourceManager.spend(pid, {"gold": gold_cost, "iron": iron_cost})
-			player["ap"] -= 1
-			# BUG FIX: Use RecruitManager to properly create a troop instance and add it
-			# to the player's army. Previously only ResourceManager.add_army(pid, 1) was
-			# called, which increments the abstract soldier count but never adds a troop
-			# instance to any army's 'troops' array, making recruited soldiers invisible
-			# in combat.
-			var _faction_troop_map: Dictionary = {
-				FactionData.FactionID.ORC: "orc_ashigaru",
-				FactionData.FactionID.PIRATE: "pirate_ashigaru",
-				FactionData.FactionID.DARK_ELF: "de_samurai",
-			}
-			var default_troop_id: String = _faction_troop_map.get(faction_id, "ashigaru")
-			var troop_inst: Dictionary = GameData.create_troop_instance(default_troop_id)
-			if not troop_inst.is_empty():
-				# BUG FIX: Only add to RecruitManager pool (which is the canonical army pool).
-				# Previously also appended to stationed_army['troops'], causing the same
-				# troop instance to be referenced in two places (double-count in combat).
-				RecruitManager.reinforce_army(pid, [troop_inst])
-			else:
-				ResourceManager.add_army(pid, 1)
-			sync_player_army(pid)
+			var pay_result: Dictionary = _commit_operation_costs(pid, domestic_ap_cost, recruit_cost)
+			if not pay_result.get("ok", false):
+				EventBus.message_log.emit("[color=red]招募失败：行动力或资源不足。[/color]")
+				return false
+			var recruit_result: Dictionary = _recruit_default_troop_instance(pid, faction_id)
+			if not recruit_result.get("ok", false):
+				_rollback_operation_costs(pid, domestic_ap_cost, recruit_cost)
+				EventBus.message_log.emit("[color=red]招募失败：兵种数据异常或军团名额不足。[/color]")
+				return false
+			var default_troop_id: String = recruit_result.get("troop_id", "ashigaru")
 			EventBus.message_log.emit("在 %s 招募了1个%s" % [tile["name"], params.get("default_troop", "步兵")])
 			EventBus.action_visualize_recruit.emit(target_tile_index, default_troop_id, 1)
 			# 通知教程系统：内政招募完成
@@ -6829,7 +6991,8 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 				EventBus.message_log.emit("资源不足!")
 				return false
 			ResourceManager.spend(pid, {"gold": cost[0], "iron": cost[1]})
-			player["ap"] -= 1
+			player["ap"] -= domestic_ap_cost
+			EventBus.ap_changed.emit(pid, player["ap"])
 			tile["level"] += 1
 			OrderManager.on_tile_upgraded()
 			EventBus.message_log.emit("%s 升级到Lv%d!" % [tile["name"], tile["level"]])
@@ -6852,7 +7015,8 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 			if not ResourceManager.spend(pid, bld_cost):
 				EventBus.message_log.emit("资源不足!")
 				return false
-			player["ap"] -= 1
+			player["ap"] -= domestic_ap_cost
+			EventBus.ap_changed.emit(pid, player["ap"])
 			tile["building_id"] = building_id
 			tile["building_level"] = target_level
 			BuildingRegistry.apply_building_effects(pid, building_id, tile)
@@ -6869,16 +7033,17 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 func action_diplomacy(player_id: int, target_faction_id: int, diplomacy_type: String = "neutral_quest") -> bool:
 	## Execute a diplomacy action. Supports neutral quest progression and Sengoku Rance-style
 	## negotiation options: alliance_proposal, tribute, trade_agreement, ceasefire, demand_surrender.
-	## Neutral quest costs 1 AP; other types cost 1 AP + resources.
+	## AP cost is dynamic via get_action_ap_cost(player_id, "diplomacy").
 	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行動力不足!")
+	var diplomacy_ap_cost: int = get_action_ap_cost(player_id, "diplomacy")
+	if player.is_empty() or player["ap"] < diplomacy_ap_cost:
+		EventBus.message_log.emit("行動力不足! 外交需要%dAP!" % diplomacy_ap_cost)
 		return false
 
 	match diplomacy_type:
 		"neutral_quest":
 			# Original behavior: advance neutral faction quest chain
-			player["ap"] -= 1
+			player["ap"] -= diplomacy_ap_cost
 			_handle_neutral_quest(player, target_faction_id)
 			EventBus.ap_changed.emit(player_id, player["ap"])
 			return true
@@ -6898,7 +7063,7 @@ func action_diplomacy(player_id: int, target_faction_id: int, diplomacy_type: St
 			if rel.get("hostile", false):
 				EventBus.message_log.emit("[color=red]敌对势力无法结盟! 先改善关系[/color]")
 				return false
-			player["ap"] -= 1
+			player["ap"] -= diplomacy_ap_cost
 			ResourceManager.spend(player_id, {"gold": 50})
 			# Success chance based on reputation: base 40% + 1% per reputation point
 			var faction_key: String = DiplomacyManager._faction_to_ai_key(target_faction_id) if DiplomacyManager.has_method("_faction_to_ai_key") else ""
@@ -6920,7 +7085,7 @@ func action_diplomacy(player_id: int, target_faction_id: int, diplomacy_type: St
 			if not ResourceManager.can_afford(player_id, {"gold": tribute_cost}):
 				EventBus.message_log.emit("[color=red]金币不足! 纳贡需要%d金[/color]" % tribute_cost)
 				return false
-			player["ap"] -= 1
+			player["ap"] -= diplomacy_ap_cost
 			ResourceManager.spend(player_id, {"gold": tribute_cost})
 			# Improve relations
 			DiplomacyManager.improve_relation(player_id, target_faction_id, 15)
@@ -6940,7 +7105,7 @@ func action_diplomacy(player_id: int, target_faction_id: int, diplomacy_type: St
 			if not ResourceManager.can_afford(player_id, {"gold": trade_gold_cost}):
 				EventBus.message_log.emit("[color=red]金币不足! 通商协定需要%d金[/color]" % trade_gold_cost)
 				return false
-			player["ap"] -= 1
+			player["ap"] -= diplomacy_ap_cost
 			ResourceManager.spend(player_id, {"gold": trade_gold_cost})
 			# Immediate resource exchange: gain food and iron
 			var food_gain: int = 40
@@ -6962,7 +7127,7 @@ func action_diplomacy(player_id: int, target_faction_id: int, diplomacy_type: St
 			if not ResourceManager.can_afford(player_id, {"gold": ceasefire_cost}):
 				EventBus.message_log.emit("[color=red]金币不足! 停战需要%d金[/color]" % ceasefire_cost)
 				return false
-			player["ap"] -= 1
+			player["ap"] -= diplomacy_ap_cost
 			ResourceManager.spend(player_id, {"gold": ceasefire_cost})
 			# BUG FIX: Use public API offer_ceasefire() with skip_cost=true to avoid double-charging.
 			DiplomacyManager.offer_ceasefire(player_id, target_faction_id, 3, true)
@@ -6983,7 +7148,7 @@ func action_diplomacy(player_id: int, target_faction_id: int, diplomacy_type: St
 			if rel.get("recruited", false):
 				EventBus.message_log.emit("该势力已被收编!")
 				return false
-			player["ap"] -= 1
+			player["ap"] -= diplomacy_ap_cost
 			# Success chance: 50% base + 1% per percentage point above 70%
 			var bonus_pct: float = (control_pct - 0.70) * 100.0
 			var surrender_chance: float = clampf(0.5 + bonus_pct * 0.01, 0.5, 0.95)
@@ -7147,7 +7312,9 @@ func action_interrogate_hero(hero_id: String) -> bool:
 func action_explore(player_id: int, target_tile_index: int) -> bool:
 	## Explore an owned tile. Can trigger events, find items, reveal fog. Costs 1 AP.
 	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
+	var explore_ap_cost: int = get_action_ap_cost(player_id, "explore")
+	if player.is_empty() or player["ap"] < explore_ap_cost:
+		EventBus.message_log.emit("行动点不足! 探索需要%dAP。" % explore_ap_cost)
 		return false
 	if target_tile_index < 0 or target_tile_index >= tiles.size():
 		return false
@@ -7158,8 +7325,11 @@ func action_explore(player_id: int, target_tile_index: int) -> bool:
 		EventBus.message_log.emit("只能探索自己的领地!")
 		return false
 
-	player["ap"] -= 1
+	player["ap"] -= explore_ap_cost
+	EventBus.ap_changed.emit(player_id, player["ap"])
 	_reveal_around(target_tile_index, player_id)
+	var overext: int = _get_overextension_level(player_id)
+	var reward_bonus: int = 3 * overext
 
 	# Random exploration outcomes (weighted)
 	var roll: float = randf()
@@ -7177,21 +7347,25 @@ func action_explore(player_id: int, target_tile_index: int) -> bool:
 			if NpcManager.capture_npc(player_id, npc_id):
 				EventBus.message_log.emit("探索中发现了特殊人物!")
 			else:
-				ResourceManager.apply_delta(player_id, {"gold": randi_range(10, 30)})
+				ResourceManager.apply_delta(player_id, {"gold": randi_range(10 + reward_bonus, 30 + reward_bonus)})
 				EventBus.message_log.emit("探索获得少量金币")
 		else:
-			ResourceManager.apply_delta(player_id, {"gold": randi_range(10, 30)})
+			ResourceManager.apply_delta(player_id, {"gold": randi_range(10 + reward_bonus, 30 + reward_bonus)})
 			EventBus.message_log.emit("探索获得少量金币")
 	elif roll < 0.85:
 		# Resource bonus
 		var bonus_type: Array = ["gold", "food", "iron"]
 		var chosen: String = bonus_type[randi() % bonus_type.size()]
-		var amount: int = randi_range(5, 20)
+		var amount: int = randi_range(5 + reward_bonus, 20 + reward_bonus)
 		ResourceManager.apply_delta(player_id, {chosen: amount})
 		EventBus.message_log.emit("探索发现资源: %s+%d" % [chosen, amount])
 	else:
 		# Nothing found
 		EventBus.message_log.emit("探索无果，但扩展了视野")
+		if overext > 0 and randf() < (0.25 * float(overext)):
+			OrderManager.change_order(-overext)
+			ThreatManager.change_threat(overext)
+			EventBus.message_log.emit("[color=orange]过度扩张反噬: 治安波动, 秩序-%d, 威胁+%d[/color]" % [overext, overext])
 
 	EventBus.player_arrived.emit(player_id, target_tile_index)
 	return true
@@ -7252,25 +7426,40 @@ func _on_action_requested(action: String, tile_index: int) -> void:
 				open_research_panel()
 		"diplomacy":
 			action_diplomacy(pid, -1)
-		_:
-			EventBus.message_log.emit("[color=yellow]未知行动: %s[/color]" % action)
+	_:
+		EventBus.message_log.emit("[color=yellow]未知行动: %s[/color]" % action)
+
+
+func _prepare_owned_tile_action(
+	player_id: int,
+	tile_index: int,
+	action_type: String,
+	action_name: String,
+	not_owner_message: String
+) -> Dictionary:
+	var player: Dictionary = get_player_by_id(player_id)
+	var ap_cost: int = get_action_ap_cost(player_id, action_type)
+	if player.is_empty() or player["ap"] < ap_cost:
+		EventBus.message_log.emit("行动点不足! %s需要%dAP。" % [action_name, ap_cost])
+		return {}
+	if tile_index < 0 or tile_index >= tiles.size():
+		return {}
+	var tile: Dictionary = tiles[tile_index]
+	if tile["owner_id"] != player_id:
+		EventBus.message_log.emit(not_owner_message)
+		return {}
+	if not spend_ap(player_id, ap_cost):
+		return {}
+	return {"player": player, "tile": tile, "ap_cost": ap_cost}
 
 
 ## 举行仪式：消耗魔晶获得暗影精华和秩序加成。适用于法术居点。消耗 1 AP。
 func action_ritual(player_id: int, tile_index: int) -> bool:
-	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var ctx: Dictionary = _prepare_owned_tile_action(player_id, tile_index, "ritual", "仪式", "只能在自己的领地举行仪式!")
+	if ctx.is_empty():
 		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	var tile: Dictionary = tiles[tile_index]
-	if tile["owner_id"] != player_id:
-		EventBus.message_log.emit("只能在自己的领地举行仪式!")
-		return false
-	player["ap"] -= 1
+	var player: Dictionary = ctx["player"]
+	var tile: Dictionary = ctx["tile"]
 	# 消耗魔晶换取暗影精华和秩序
 	var has_crystal: bool = ResourceManager.get_resource(player_id, "magic_crystal") >= 1
 	if has_crystal:
@@ -7289,19 +7478,11 @@ func action_ritual(player_id: int, tile_index: int) -> bool:
 
 ## 发掘运址：对古迹居点进行考古发掘，获得资源或遗物。消耗 1 AP。
 func action_excavate(player_id: int, tile_index: int) -> bool:
-	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var ctx: Dictionary = _prepare_owned_tile_action(player_id, tile_index, "excavate", "发掘", "只能在自己的领地发掘!")
+	if ctx.is_empty():
 		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	var tile: Dictionary = tiles[tile_index]
-	if tile["owner_id"] != player_id:
-		EventBus.message_log.emit("只能在自己的领地发掘!")
-		return false
-	player["ap"] -= 1
+	var player: Dictionary = ctx["player"]
+	var tile: Dictionary = ctx["tile"]
 	_reveal_around(tile_index, player_id)
 	var roll: float = randf()
 	if roll < 0.20:
@@ -7326,19 +7507,10 @@ func action_excavate(player_id: int, tile_index: int) -> bool:
 
 ## 封锁补给：封锁指定居点的补给线，降低敌方的簮食产出并提升威望。消耗 1 AP。
 func action_block_supply(player_id: int, tile_index: int) -> bool:
-	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var ctx: Dictionary = _prepare_owned_tile_action(player_id, tile_index, "block_supply", "封锁补给", "只能封锁自己领地的补给线!")
+	if ctx.is_empty():
 		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	var tile: Dictionary = tiles[tile_index]
-	if tile["owner_id"] != player_id:
-		EventBus.message_log.emit("只能封锁自己领地的补给线!")
-		return false
-	player["ap"] -= 1
+	var tile: Dictionary = ctx["tile"]
 	# 封锁补给：降低附近敌方簮食产出，提升威望
 	var nearby_enemies: int = 0
 	for neighbor_idx in adjacency.get(tile_index, []):
@@ -7370,19 +7542,10 @@ func action_block_supply(player_id: int, tile_index: int) -> bool:
 
 ## 加固防线：对前线居点进行工事加固，提升城防并降低威胁。消耗 1 AP。
 func action_fortify(player_id: int, tile_index: int) -> bool:
-	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var ctx: Dictionary = _prepare_owned_tile_action(player_id, tile_index, "fortify", "加固", "只能加固自己的领地!")
+	if ctx.is_empty():
 		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	var tile: Dictionary = tiles[tile_index]
-	if tile["owner_id"] != player_id:
-		EventBus.message_log.emit("只能加固自己的领地!")
-		return false
-	player["ap"] -= 1
+	var tile: Dictionary = ctx["tile"]
 	var wall_boost: int = 10
 	var current_wall: int = tile.get("wall_hp", 0)
 	tile["wall_hp"] = current_wall + wall_boost
@@ -7394,19 +7557,10 @@ func action_fortify(player_id: int, tile_index: int) -> bool:
 
 ## 开采资源：对资源居点加大开采力度，获得额外资源。消耗 1 AP。
 func action_exploit(player_id: int, tile_index: int) -> bool:
-	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var ctx: Dictionary = _prepare_owned_tile_action(player_id, tile_index, "exploit", "开采", "只能开采自己的领地!")
+	if ctx.is_empty():
 		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	var tile: Dictionary = tiles[tile_index]
-	if tile["owner_id"] != player_id:
-		EventBus.message_log.emit("只能开采自己的领地!")
-		return false
-	player["ap"] -= 1
+	var tile: Dictionary = ctx["tile"]
 	# 根据居点类型决定开采资源类型
 	var tile_type: int = tile.get("type", 0)
 	var resource_type: String = "gold"
@@ -7436,19 +7590,10 @@ func action_exploit(player_id: int, tile_index: int) -> bool:
 
 ## 训练精锐：对居点内的部队进行精锐训练，提升战斗力。消耗 1 AP。
 func action_train_elite(player_id: int, tile_index: int) -> bool:
-	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var ctx: Dictionary = _prepare_owned_tile_action(player_id, tile_index, "train_elite", "训练", "只能训练自己领地的部队!")
+	if ctx.is_empty():
 		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	var tile: Dictionary = tiles[tile_index]
-	if tile["owner_id"] != player_id:
-		EventBus.message_log.emit("只能训练自己领地的部队!")
-		return false
-	player["ap"] -= 1
+	var ap_cost: int = ctx["ap_cost"]
 	# 训练精锐：消耗簮食获得临时战斗加成
 	var food_cost: int = 10
 	var has_food: bool = ResourceManager.get_resource(player_id, "food") >= food_cost
@@ -7460,26 +7605,18 @@ func action_train_elite(player_id: int, tile_index: int) -> bool:
 		EventBus.message_log.emit("[color=lime][精锐训练] 消耗簮食%d，全军 ATK+15%% 持续 2 回合。[/color]" % food_cost)
 	else:
 		EventBus.message_log.emit("[精锐训练] 簮食不足，无法训练。")
-		player["ap"] += 1  # 退还 AP
+		restore_ap(player_id, ap_cost)  # 退还 AP
 		return false
 	return true
 
 
 ## 升级前哨：对前哨居点进行升级改造，提升偵查范围和防御。消耗 1 AP。
 func action_upgrade_outpost(player_id: int, tile_index: int) -> bool:
-	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var ctx: Dictionary = _prepare_owned_tile_action(player_id, tile_index, "upgrade_outpost", "升级前哨", "只能升级自己的前哨!")
+	if ctx.is_empty():
 		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	var tile: Dictionary = tiles[tile_index]
-	if tile["owner_id"] != player_id:
-		EventBus.message_log.emit("只能升级自己的前哨!")
-		return false
-	player["ap"] -= 1
+	var tile: Dictionary = ctx["tile"]
+	var ap_cost: int = ctx["ap_cost"]
 	var iron_cost: int = 20
 	var has_iron: bool = ResourceManager.get_resource(player_id, "iron") >= iron_cost
 	if has_iron:
@@ -7490,26 +7627,18 @@ func action_upgrade_outpost(player_id: int, tile_index: int) -> bool:
 		EventBus.message_log.emit("[color=cyan][升级前哨] 消耗铁矿%d，前哨升级至 Lv%d，视野扩大。[/color]" % [iron_cost, tile["outpost_level"]])
 	else:
 		EventBus.message_log.emit("[升级前哨] 铁矿不足（需要 %d）。" % iron_cost)
-		player["ap"] += 1
+		restore_ap(player_id, ap_cost)
 		return false
 	return true
 
 
 ## 升级设施：对工业/资源居点升级生产设施，提升资源产出。消耗 1 AP。
 func action_upgrade_facility(player_id: int, tile_index: int) -> bool:
-	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var ctx: Dictionary = _prepare_owned_tile_action(player_id, tile_index, "upgrade_facility", "升级设施", "只能升级自己的设施!")
+	if ctx.is_empty():
 		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	var tile: Dictionary = tiles[tile_index]
-	if tile["owner_id"] != player_id:
-		EventBus.message_log.emit("只能升级自己的设施!")
-		return false
-	player["ap"] -= 1
+	var tile: Dictionary = ctx["tile"]
+	var ap_cost: int = ctx["ap_cost"]
 	var gold_cost: int = 30
 	var has_gold: bool = ResourceManager.get_resource(player_id, "gold") >= gold_cost
 	if has_gold:
@@ -7519,26 +7648,18 @@ func action_upgrade_facility(player_id: int, tile_index: int) -> bool:
 		EventBus.message_log.emit("[color=yellow][升级设施] 消耗金币%d，设施升级至 Lv%d，资源产出提升。[/color]" % [gold_cost, tile["facility_level"]])
 	else:
 		EventBus.message_log.emit("[升级设施] 金币不足（需要 %d）。" % gold_cost)
-		player["ap"] += 1
+		restore_ap(player_id, ap_cost)
 		return false
 	return true
 
 
 ## 升级城墙：对城堡居点建造更堆实的防御工事。消耗 1 AP。
 func action_upgrade_walls(player_id: int, tile_index: int) -> bool:
-	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var ctx: Dictionary = _prepare_owned_tile_action(player_id, tile_index, "upgrade_walls", "升级城墙", "只能升级自己的城墙!")
+	if ctx.is_empty():
 		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	var tile: Dictionary = tiles[tile_index]
-	if tile["owner_id"] != player_id:
-		EventBus.message_log.emit("只能升级自己的城墙!")
-		return false
-	player["ap"] -= 1
+	var tile: Dictionary = ctx["tile"]
+	var ap_cost: int = ctx["ap_cost"]
 	var iron_cost: int = 25
 	var has_iron: bool = ResourceManager.get_resource(player_id, "iron") >= iron_cost
 	if has_iron:
@@ -7549,26 +7670,18 @@ func action_upgrade_walls(player_id: int, tile_index: int) -> bool:
 		EventBus.message_log.emit("[color=cyan][升级城墙] %s 城防+%d。[/color]" % [tile_name, wall_boost])
 	else:
 		EventBus.message_log.emit("[升级城墙] 铁矿不足（需要 %d）。" % iron_cost)
-		player["ap"] += 1
+		restore_ap(player_id, ap_cost)
 		return false
 	return true
 
 
 ## 建造市场：在城镇居点建造市场，提升金币收入。消耗 1 AP。
 func action_build_market(player_id: int, tile_index: int) -> bool:
-	var player: Dictionary = get_player_by_id(player_id)
-	if player.is_empty() or player["ap"] < 1:
-		EventBus.message_log.emit("行动点不足!")
+	var ctx: Dictionary = _prepare_owned_tile_action(player_id, tile_index, "build_market", "建造市场", "只能在自己的领地建造市场!")
+	if ctx.is_empty():
 		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	if tile_index < 0 or tile_index >= tiles.size():
-		return false
-	var tile: Dictionary = tiles[tile_index]
-	if tile["owner_id"] != player_id:
-		EventBus.message_log.emit("只能在自己的领地建造市场!")
-		return false
-	player["ap"] -= 1
+	var tile: Dictionary = ctx["tile"]
+	var ap_cost: int = ctx["ap_cost"]
 	var gold_cost: int = 40
 	var has_gold: bool = ResourceManager.get_resource(player_id, "gold") >= gold_cost
 	if has_gold:
@@ -7580,7 +7693,7 @@ func action_build_market(player_id: int, tile_index: int) -> bool:
 		EventBus.building_constructed.emit(player_id, tile_index, "market")
 	else:
 		EventBus.message_log.emit("[建造市场] 金币不足（需要 %d）。" % gold_cost)
-		player["ap"] += 1
+		restore_ap(player_id, ap_cost)
 		return false
 	return true
 

@@ -1378,20 +1378,17 @@ func _make_flat_btn_style(bg: Color) -> StyleBoxFlat:
 # ═══════════════════════════════════════════════════════════════
 
 func _has_autoload(name: String) -> bool:
-	# FIX: 使用 Engine.has_singleton 替代绝对路径 get_node，避免在场景树外调用时报错
-	if Engine.has_singleton(name):
-		return true
-	if is_inside_tree():
-		return get_node_or_null("/root/%s" % name) != null
-	return false
+	return _get_autoload(name) != null
 
 
 func _get_autoload(name: String) -> Node:
-	# FIX: 使用 Engine.get_singleton 替代绝对路径 get_node，避免在场景树外调用时报错
+	# Prefer Engine singletons when available.
 	if Engine.has_singleton(name):
 		return Engine.get_singleton(name)
-	if is_inside_tree():
-		return get_node_or_null("/root/%s" % name)
+	# Fallback to SceneTree root child lookup without absolute NodePath.
+	# This avoids calling get_node() with absolute paths from invalid tree contexts.
+	if is_inside_tree() and get_tree() and get_tree().root:
+		return get_tree().root.get_node_or_null(name)
 	return null
 
 

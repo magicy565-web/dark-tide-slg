@@ -2474,13 +2474,13 @@ func _ensure_tile_dev_panel() -> void:
 		var panel_script = load("res://scenes/ui/panels/tile_development_panel.gd")
 		if panel_script:
 			_tile_dev_panel = panel_script.new()
-			get_tree().root.add_child(_tile_dev_panel)
+			get_tree().root.call_deferred("add_child", _tile_dev_panel)
 	
 	if _governance_panel == null:
 		var gov_script = load("res://scenes/ui/panels/governance_panel.gd")
 		if gov_script:
 			_governance_panel = gov_script.new()
-			get_tree().root.add_child(_governance_panel)
+			get_tree().root.call_deferred("add_child", _governance_panel)
 
 
 func _get_selected_owned_tile(pid: int) -> int:
@@ -2608,17 +2608,30 @@ func _on_upgrade_troop() -> void:
 		for i in range(troops.size()):
 			var troop: Dictionary = troops[i]
 			var current_id: String = troop.get("troop_id", "")
-			var upgrade_id: String = GameManager._get_troop_upgrade(current_id)
-			if upgrade_id == "":
+			if RecruitManager == null or not RecruitManager.has_method("get_troop_upgrade_requirements"):
+				continue
+			var req: Dictionary = RecruitManager.get_troop_upgrade_requirements(troop)
+			var upgrade_id: String = req.get("upgrade_id", "")
+			if upgrade_id == "" or req.get("reason", "") == "no_upgrade_path":
 				continue
 			var upgrade_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
-			var label_text: String = "%s -> %s (40g 15iron)" % [
+			var cost: Dictionary = req.get("cost", {"gold": 0, "iron": 0})
+			var min_exp: int = int(req.get("min_exp", 0))
+			var cur_exp: int = int(req.get("current_exp", 0))
+			var label_text: String = "%s -> %s (%dg %diron, EXP %d/%d)" % [
 				troop.get("name", current_id),
-				upgrade_data.get("name", upgrade_id)
+				upgrade_data.get("name", upgrade_id),
+				int(cost.get("gold", 0)),
+				int(cost.get("iron", 0)),
+				cur_exp,
+				min_exp
 			]
 			label_text += " [%s]" % army["name"]
-			var can_afford: bool = ResourceManager.can_afford(pid, {"gold": 40, "iron": 15})
-			_add_target_button(label_text, _on_upgrade_troop_confirm.bind(army["id"], i), not can_afford)
+			var req_with_player: Dictionary = RecruitManager.get_troop_upgrade_requirements(troop, pid) if RecruitManager.has_method("get_troop_upgrade_requirements") else req
+			var can_upgrade: bool = req_with_player.get("can_upgrade", false)
+			if not can_upgrade and RecruitManager.has_method("get_upgrade_failure_reason_text"):
+				label_text += " | %s" % RecruitManager.get_upgrade_failure_reason_text(req_with_player)
+			_add_target_button(label_text, _on_upgrade_troop_confirm.bind(army["id"], i), not can_upgrade)
 			found = true
 
 	if not found:
@@ -3500,15 +3513,30 @@ func _update_buttons() -> void:
 		return
 
 	var current_ap: int = player.get("ap", 0)
+	var attack_ap_cost: int = GameManager.get_action_ap_cost(pid, "attack") if GameManager.has_method("get_action_ap_cost") else 1
+	var guard_ap_cost: int = GameManager.get_action_ap_cost(pid, "guard") if GameManager.has_method("get_action_ap_cost") else 1
+	var explore_ap_cost: int = GameManager.get_action_ap_cost(pid, "explore") if GameManager.has_method("get_action_ap_cost") else 1
+	var domestic_ap_cost: int = GameManager.get_action_ap_cost(pid, "domestic") if GameManager.has_method("get_action_ap_cost") else 1
+	var diplomacy_ap_cost: int = GameManager.get_action_ap_cost(pid, "diplomacy") if GameManager.has_method("get_action_ap_cost") else 1
 	var has_ap: bool = current_ap >= 1
+	var has_attack_ap: bool = current_ap >= attack_ap_cost
+	var has_guard_ap: bool = current_ap >= guard_ap_cost
+	var has_explore_ap: bool = current_ap >= explore_ap_cost
+	var has_domestic_ap: bool = current_ap >= domestic_ap_cost
+	var has_diplomacy_ap: bool = current_ap >= diplomacy_ap_cost
 	var no_ap_hint: String = "（行动点不足，无法执行）"
+	btn_attack.text = "攻击 [1] (%dAP)" % attack_ap_cost
+	btn_domestic.text = "内政 [3] (%dAP)" % domestic_ap_cost
+	btn_diplomacy.text = "外交 [4] (%dAP)" % diplomacy_ap_cost
+	btn_explore.text = "探索 [5] (%dAP)" % explore_ap_cost
+	btn_guard.text = "警戒 (%dAP)" % guard_ap_cost
 
 	# Main four action buttons -- all require at least 1 AP
-	btn_attack.disabled = not has_ap
-	if not has_ap:
+	btn_attack.disabled = not has_attack_ap
+	if not has_attack_ap:
 		btn_attack.tooltip_text = "攻击 — " + no_ap_hint
 	else:
-		btn_attack.tooltip_text = "选择一支军队，攻击相邻的敌方据点。消耗 1 行动点。"
+		btn_attack.tooltip_text = "选择一支军队，攻击相邻的敌方据点。消耗 %d 行动点。" % attack_ap_cost
 	btn_deploy.disabled = not has_ap
 	if not has_ap:
 		btn_deploy.tooltip_text = "部署 — " + no_ap_hint
@@ -3534,23 +3562,23 @@ func _update_buttons() -> void:
 			has_garrisonable_army = true
 			break
 	btn_garrison.disabled = not has_garrisonable_army
-	btn_domestic.disabled = not has_ap
-	if not has_ap:
+	btn_domestic.disabled = not has_domestic_ap
+	if not has_domestic_ap:
 		btn_domestic.tooltip_text = "内政 — " + no_ap_hint
 	else:
-		btn_domestic.tooltip_text = "征兵、升级据点、建造建筑、管理军队。消耗 1 行动点。"
-	btn_diplomacy.disabled = not has_ap
-	if not has_ap:
+		btn_domestic.tooltip_text = "征兵、升级据点、建造建筑、管理军队。消耗 %d 行动点。" % domestic_ap_cost
+	btn_diplomacy.disabled = not has_diplomacy_ap
+	if not has_diplomacy_ap:
 		btn_diplomacy.tooltip_text = "外交 — " + no_ap_hint
 	else:
-		btn_diplomacy.tooltip_text = "与其他势力谈判：停战、纳贡、结盟或招募。消耗 1 行动点。"
-	btn_explore.disabled = not has_ap
-	if not has_ap:
+		btn_diplomacy.tooltip_text = "与其他势力谈判：停战、纳贡、结盟或招募。消耗 %d 行动点。" % diplomacy_ap_cost
+	btn_explore.disabled = not has_explore_ap
+	if not has_explore_ap:
 		btn_explore.tooltip_text = "探索 — " + no_ap_hint
 	else:
-		btn_explore.tooltip_text = "探索未占领的据点，发现资源和事件。消耗 1 行动点。"
+		btn_explore.tooltip_text = "探索未占领的据点，发现资源和事件。消耗 %d 行动点。" % explore_ap_cost
 	# Operations buttons
-	btn_guard.disabled = not has_ap
+	btn_guard.disabled = not has_guard_ap
 	btn_reinforce.disabled = not has_ap
 	btn_commander.disabled = false
 	btn_interrogate.disabled = HeroSystem.captured_heroes.is_empty()
@@ -4963,7 +4991,7 @@ func _ensure_offensive_panel() -> void:
 		if script:
 			_offensive_panel = script.new()
 			_offensive_panel.name = "OffensivePanelRoot"
-			get_tree().root.add_child(_offensive_panel)
+			get_tree().root.call_deferred("add_child", _offensive_panel)
 
 ## 在内政子菜单注入据点系统按钮（治理 / 进攻 / 发展路径）
 func _inject_stronghold_buttons() -> void:
@@ -5205,7 +5233,7 @@ func _ensure_cave_panel() -> void:
 		if script:
 			_cave_panel = script.new()
 			_cave_panel.name = "CavePanelRoot"
-			get_tree().root.add_child(_cave_panel)
+			get_tree().root.call_deferred("add_child", _cave_panel)
 
 func _ensure_village_panel() -> void:
 	if _village_panel == null:
@@ -5213,7 +5241,7 @@ func _ensure_village_panel() -> void:
 		if script:
 			_village_panel = script.new()
 			_village_panel.name = "VillagePanelRoot"
-			get_tree().root.add_child(_village_panel)
+			get_tree().root.call_deferred("add_child", _village_panel)
 
 func _ensure_fortress_panel() -> void:
 	if _fortress_panel == null:
@@ -5221,7 +5249,7 @@ func _ensure_fortress_panel() -> void:
 		if script:
 			_fortress_panel = script.new()
 			_fortress_panel.name = "FortressPanelRoot"
-			get_tree().root.add_child(_fortress_panel)
+			get_tree().root.call_deferred("add_child", _fortress_panel)
 
 # ── 根据地块类型智能路由到对应面板 ──────────────────────────────
 
