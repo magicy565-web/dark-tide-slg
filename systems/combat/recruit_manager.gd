@@ -26,6 +26,32 @@ const _DEFAULT_FACTION_TROOP_MAP: Dictionary = {
 	FactionData.FactionID.DARK_ELF: "de_samurai",
 }
 
+const _TROOP_UPGRADE_PATHS: Dictionary = {
+	# Orc
+	"orc_ashigaru": "orc_samurai",
+	"orc_samurai": "orc_cavalry",
+	# Pirate
+	"pirate_ashigaru": "pirate_archer",
+	"pirate_archer": "pirate_cannon",
+	# Dark Elf
+	"de_samurai": "de_ninja",
+	"de_ninja": "de_cavalry",
+	# Generic
+	"ashigaru": "samurai",
+	"samurai": "cavalry",
+	"archer": "ninja",
+	"militia": "knight",
+	# Human
+	"human_ashigaru": "human_samurai",
+	"human_samurai": "human_cavalry",
+	# High Elf
+	"elf_archer": "elf_mage",
+	"elf_mage": "elf_ashigaru",
+	# Mage
+	"mage_apprentice": "mage_battle",
+	"mage_battle": "mage_grand",
+}
+
 
 # ---------------------------------------------------------------------------
 # Lifecycle
@@ -103,6 +129,35 @@ func recruit_default_unit_for_faction(player_id: int, faction_id: int) -> Dictio
 	if EventBus.has_signal("army_troops_assigned"):
 		EventBus.army_troops_assigned.emit(player_id, troop_id, instance.get("soldiers", 0))
 	return {"ok": true, "troop_id": troop_id, "soldiers": instance.get("soldiers", 0)}
+
+
+func get_troop_upgrade_target(troop_id: String) -> String:
+	return _TROOP_UPGRADE_PATHS.get(troop_id, "")
+
+
+## Mutates troop dictionary in place and returns operation result.
+## Returns { "ok": bool, "old_name": String, "new_name": String }.
+func apply_troop_upgrade(troop: Dictionary) -> Dictionary:
+	var current_id: String = troop.get("troop_id", "")
+	var upgrade_id: String = get_troop_upgrade_target(current_id)
+	if upgrade_id == "":
+		return {"ok": false, "reason": "no_upgrade_path"}
+	var new_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
+	if new_data.is_empty():
+		return {"ok": false, "reason": "invalid_upgrade_def"}
+
+	var old_name: String = troop.get("name", current_id)
+	troop["troop_id"] = upgrade_id
+	troop["name"] = new_data.get("name", upgrade_id)
+	troop["atk"] = new_data.get("atk", troop.get("atk", 0))
+	troop["def"] = new_data.get("def", troop.get("def", 0))
+	troop["spd"] = new_data.get("spd", troop.get("spd", 5))
+	var new_max: int = new_data.get("max_soldiers", troop.get("max_soldiers", troop.get("soldiers", 1)))
+	troop["max_soldiers"] = new_max
+	troop["soldiers"] = mini(troop.get("soldiers", new_max), new_max)
+	if new_data.has("passive"):
+		troop["passive"] = new_data["passive"]
+	return {"ok": true, "old_name": old_name, "new_name": troop["name"]}
 
 ## Returns recruitable troops at a tile for a player.
 func get_available_units(player_id: int, tile: Dictionary) -> Array:

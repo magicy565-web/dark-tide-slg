@@ -3438,75 +3438,45 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 
 	var troop: Dictionary = troops[troop_index]
 	var current_id: String = troop.get("troop_id", "")
-
-	# Get upgrade path
-	var upgrade_id: String = _get_troop_upgrade(current_id)
+	var upgrade_id: String = ""
+	if RecruitManager != null and RecruitManager.has_method("get_troop_upgrade_target"):
+		upgrade_id = RecruitManager.get_troop_upgrade_target(current_id)
 	if upgrade_id == "":
 		EventBus.message_log.emit("该兵种无法升级!")
 		return false
 
-	# Upgrade cost
+	# Validate target definition before spending AP/resources.
+	var new_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
+	if new_data.is_empty():
+		EventBus.message_log.emit("升级目标数据缺失!")
+		return false
+
 	var cost: Dictionary = {"gold": 40, "iron": 15}
 	if not ResourceManager.can_afford(player_id, cost):
 		EventBus.message_log.emit("资源不足! 需要金%d 铁%d" % [cost["gold"], cost["iron"]])
 		return false
 
-	# Apply upgrade
-	# BUG FIX: validate new_data BEFORE deducting resources to avoid losing gold/iron
-	# if the upgrade_id has no data in TROOP_TYPES.
-	var new_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
-	if new_data.is_empty():
+	if not spend_ap(player_id, upgrade_ap_cost):
 		return false
 	ResourceManager.apply_delta(player_id, {"gold": -cost["gold"], "iron": -cost["iron"]})
 
-	var old_name: String = troop.get("name", current_id)
-	troop["troop_id"] = upgrade_id
-	troop["name"] = new_data.get("name", upgrade_id)
-	troop["atk"] = new_data.get("atk", troop["atk"])
-	troop["def"] = new_data.get("def", troop["def"])
-	troop["spd"] = new_data.get("spd", troop.get("spd", 5))
-	# BUG FIX: clamp current soldiers to new max_soldiers after upgrade
-	var new_max: int = new_data.get("max_soldiers", troop["max_soldiers"])
-	troop["max_soldiers"] = new_max
-	troop["soldiers"] = mini(troop.get("soldiers", new_max), new_max)
-	if new_data.has("passive"):
-		troop["passive"] = new_data["passive"]
-
-	if not spend_ap(player_id, upgrade_ap_cost):
+	if RecruitManager == null or not RecruitManager.has_method("apply_troop_upgrade"):
+		ResourceManager.apply_delta(player_id, {"gold": cost["gold"], "iron": cost["iron"]})
+		restore_ap(player_id, upgrade_ap_cost)
+		EventBus.message_log.emit("升级系统未就绪!")
 		return false
-	EventBus.message_log.emit("兵种升格: %s -> %s (金-%d 铁-%d)" % [old_name, troop["name"], cost["gold"], cost["iron"]])
+	var upgrade_result: Dictionary = RecruitManager.apply_troop_upgrade(troop)
+	if not upgrade_result.get("ok", false):
+		ResourceManager.apply_delta(player_id, {"gold": cost["gold"], "iron": cost["iron"]})
+		restore_ap(player_id, upgrade_ap_cost)
+		EventBus.message_log.emit("兵种升级失败: %s" % upgrade_result.get("reason", "unknown"))
+		return false
+	EventBus.message_log.emit("兵种升格: %s -> %s (金-%d 铁-%d)" % [
+		upgrade_result.get("old_name", current_id),
+		upgrade_result.get("new_name", troop.get("name", upgrade_id)),
+		cost["gold"], cost["iron"]
+	])
 	return true
-
-
-## Get the upgrade path for a troop type
-func _get_troop_upgrade(troop_id: String) -> String:
-	# Upgrade paths: T1 -> T2 -> T3
-	var upgrade_table: Dictionary = {
-		# Orc upgrades
-		"orc_ashigaru": "orc_samurai",
-		"orc_samurai": "orc_cavalry",
-		# Pirate upgrades
-		"pirate_ashigaru": "pirate_archer",
-		"pirate_archer": "pirate_cannon",
-		# Dark Elf upgrades
-		"de_samurai": "de_ninja",
-		"de_ninja": "de_cavalry",
-		# Generic upgrades
-		"ashigaru": "samurai",
-		"samurai": "cavalry",
-		"archer": "ninja",
-		"militia": "knight",
-		# Human upgrades (for conquered units)
-		"human_ashigaru": "human_samurai",
-		"human_samurai": "human_cavalry",
-		# DEEP: High Elf upgrades (elf_archer T1 -> elf_mage T2 -> elf_ashigaru T3)
-		"elf_archer": "elf_mage",
-		"elf_mage": "elf_ashigaru",
-		# DEEP: Mage upgrades (mage_apprentice T1 -> mage_battle T2 -> mage_grand T3)
-		"mage_apprentice": "mage_battle",
-		"mage_battle": "mage_grand",
-	}
-	return upgrade_table.get(troop_id, "")
 
 
 func get_army_deployable_tiles(army_id: int) -> Array:
