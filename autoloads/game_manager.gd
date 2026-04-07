@@ -682,23 +682,65 @@ func restore_ap(player_id: int, amount: int) -> void:
 func _commit_operation_costs(player_id: int, ap_cost: int, resource_cost: Dictionary) -> Dictionary:
 	if ap_cost > 0 and not spend_ap(player_id, ap_cost):
 		return {"ok": false, "reason": "insufficient_ap"}
-	if not resource_cost.is_empty():
-		if not ResourceManager.can_afford(player_id, resource_cost):
+	var regular_cost: Dictionary = {}
+	var waaagh_cost: int = 0
+	for key in resource_cost.keys():
+		var amount: int = int(resource_cost.get(key, 0))
+		if amount <= 0:
+			continue
+		if key == "waaagh":
+			waaagh_cost += amount
+		else:
+			regular_cost[key] = amount
+	if not regular_cost.is_empty():
+		if not ResourceManager.can_afford(player_id, regular_cost):
 			if ap_cost > 0:
 				restore_ap(player_id, ap_cost)
 			return {"ok": false, "reason": "insufficient_resources"}
 		var consume: Dictionary = {}
-		for k in resource_cost.keys():
-			consume[k] = -int(resource_cost.get(k, 0))
+		for k in regular_cost.keys():
+			consume[k] = -int(regular_cost.get(k, 0))
 		ResourceManager.apply_delta(player_id, consume)
+	if waaagh_cost > 0:
+		if OrcMechanic.get_waaagh(player_id) < waaagh_cost:
+			if not regular_cost.is_empty():
+				ResourceManager.apply_delta(player_id, regular_cost)
+			if ap_cost > 0:
+				restore_ap(player_id, ap_cost)
+			return {"ok": false, "reason": "insufficient_waaagh"}
+		OrcMechanic.add_waaagh(player_id, -waaagh_cost)
 	return {"ok": true, "reason": ""}
 
 
 func _rollback_operation_costs(player_id: int, ap_cost: int, resource_cost: Dictionary) -> void:
-	if not resource_cost.is_empty():
-		ResourceManager.apply_delta(player_id, resource_cost)
+	var regular_refund: Dictionary = {}
+	var waaagh_refund: int = 0
+	for key in resource_cost.keys():
+		var amount: int = int(resource_cost.get(key, 0))
+		if amount <= 0:
+			continue
+		if key == "waaagh":
+			waaagh_refund += amount
+		else:
+			regular_refund[key] = amount
+	if not regular_refund.is_empty():
+		ResourceManager.apply_delta(player_id, regular_refund)
+	if waaagh_refund > 0:
+		OrcMechanic.add_waaagh(player_id, waaagh_refund)
 	if ap_cost > 0:
 		restore_ap(player_id, ap_cost)
+
+
+func _format_cost_text(cost: Dictionary) -> String:
+	var keys: Array = cost.keys()
+	keys.sort()
+	var parts: Array[String] = []
+	for k in keys:
+		var amount: int = int(cost.get(k, 0))
+		if amount <= 0:
+			continue
+		parts.append("%s%d" % [k, amount])
+	return " ".join(parts)
 
 
 func sync_player_army(player_id: int) -> void:
@@ -3479,7 +3521,7 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 			EventBus.message_log.emit("经验不足! 兵种升级需要%d经验 (当前%d)" % [req.get("min_exp", 0), req.get("current_exp", 0)])
 		elif reason == "insufficient_resources":
 			var req_cost: Dictionary = req.get("cost", {})
-			EventBus.message_log.emit("资源不足! 需要金%d 铁%d" % [int(req_cost.get("gold", 0)), int(req_cost.get("iron", 0))])
+			EventBus.message_log.emit("资源不足! 需要%s" % _format_cost_text(req_cost))
 		else:
 			EventBus.message_log.emit("该兵种无法升级!")
 		return false
@@ -3499,10 +3541,10 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 		_rollback_operation_costs(player_id, upgrade_ap_cost, cost)
 		EventBus.message_log.emit("兵种升级失败: %s" % upgrade_result.get("reason", "unknown"))
 		return false
-	EventBus.message_log.emit("兵种升格: %s -> %s (金-%d 铁-%d, 经验-%d)" % [
+	EventBus.message_log.emit("兵种升格: %s -> %s (消耗:%s, 经验-%d)" % [
 		upgrade_result.get("old_name", current_id),
 		upgrade_result.get("new_name", troop.get("name", upgrade_id)),
-		cost["gold"], cost["iron"], upgrade_result.get("exp_spent", 0)
+		_format_cost_text(cost), upgrade_result.get("exp_spent", 0)
 	])
 	return true
 

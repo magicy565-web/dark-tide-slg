@@ -46,6 +46,13 @@ def test_no_external_upgrade_json_dependency() -> None:
     assert "_load_troop_upgrade_rules" not in text
 
 
+def test_orc_upgrade_cost_uses_orc_economy_channels() -> None:
+    text = _read(RECRUIT_MANAGER)
+    assert 'if faction == "orc"' in text
+    assert 'cost["food"]' in text
+    assert 'cost["waaagh"]' in text
+
+
 if __name__ == "__main__":
     # Minimal direct-run support (without pytest).
     funcs = [v for k, v in globals().items() if re.match(r"^test_", k) and callable(v)]

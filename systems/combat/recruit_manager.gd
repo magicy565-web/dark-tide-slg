@@ -244,7 +244,7 @@ func get_troop_upgrade_requirements(troop: Dictionary, player_id: int = -1) -> D
 	var current_tier: int = int(current_def.get("tier", 1))
 	var min_exp: int = _compute_upgrade_min_exp(current_tier, rule)
 	var current_exp: int = int(troop.get("experience", 0))
-	var cost: Dictionary = _compute_upgrade_cost(current_tier, rule)
+	var cost: Dictionary = _compute_upgrade_cost(current_tier, rule, current_def)
 	if current_exp < min_exp:
 		return {
 			"can_upgrade": false,
@@ -254,7 +254,7 @@ func get_troop_upgrade_requirements(troop: Dictionary, player_id: int = -1) -> D
 			"min_exp": min_exp,
 			"current_exp": current_exp,
 		}
-	if player_id >= 0 and not ResourceManager.can_afford(player_id, cost):
+	if player_id >= 0 and not can_afford_upgrade_cost(player_id, cost):
 		return {
 			"can_upgrade": false,
 			"reason": "insufficient_resources",
@@ -284,8 +284,26 @@ func get_upgrade_failure_reason_text(req: Dictionary) -> String:
 			return "经验不足 %d/%d" % [int(req.get("current_exp", 0)), int(req.get("min_exp", 0))]
 		"insufficient_resources":
 			var cost: Dictionary = req.get("cost", {})
-			return "资源不足 (金%d 铁%d)" % [int(cost.get("gold", 0)), int(cost.get("iron", 0))]
+			return "资源不足 (%s)" % _format_cost_text(cost)
 	return "暂不可升级"
+
+
+func can_afford_upgrade_cost(player_id: int, cost: Dictionary) -> bool:
+	var res_cost: Dictionary = {}
+	var waaagh_needed: int = 0
+	for k in cost.keys():
+		var amount: int = int(cost.get(k, 0))
+		if amount <= 0:
+			continue
+		if k == "waaagh":
+			waaagh_needed += amount
+		else:
+			res_cost[k] = amount
+	if not res_cost.is_empty() and not ResourceManager.can_afford(player_id, res_cost):
+		return false
+	if waaagh_needed > 0 and OrcMechanic.get_waaagh(player_id) < waaagh_needed:
+		return false
+	return true
 
 
 func plan_default_recruit_for_faction(player_id: int, faction_id: int) -> Dictionary:
@@ -336,20 +354,30 @@ func _compute_upgrade_min_exp(current_tier: int, rule: Dictionary) -> int:
 	return maxi(floor_val, int(round(float(tier_exp_cap) * ratio)))
 
 
-func _compute_upgrade_cost(current_tier: int, rule: Dictionary) -> Dictionary:
+func _compute_upgrade_cost(current_tier: int, rule: Dictionary, current_def: Dictionary) -> Dictionary:
 	var default_rule: Dictionary = _upgrade_rules.get("default", {})
 	var tier_profile: Dictionary = _get_tier_profile(current_tier)
-	var cost_rule: Dictionary = default_rule.get("cost", {})
-	var gold: int = int(cost_rule.get("gold_base", 20)) + current_tier * int(cost_rule.get("gold_per_tier", 20))
-	var iron: int = int(cost_rule.get("iron_base", 8)) + current_tier * int(cost_rule.get("iron_per_tier", 7))
-	if not tier_profile.is_empty():
-		gold = int(tier_profile.get("gold_base", gold)) + current_tier * int(tier_profile.get("gold_per_tier", 0))
-		iron = int(tier_profile.get("iron_base", iron)) + current_tier * int(tier_profile.get("iron_per_tier", 0))
+	var faction: String = String(current_def.get("faction", ""))
+	var category: int = int(current_def.get("category", -1))
+	var cost: Dictionary = {}
+	# Orc faction/ultimate upgrades align with Orc recruit economy: food + WAAAGH!
+	if faction == "orc" and (category == GameData.TroopCategory.FACTION or category == GameData.TroopCategory.ULTIMATE):
+		var food_base: int = int(tier_profile.get("gold_base", 20))
+		var food_per_tier: int = int(tier_profile.get("gold_per_tier", 20))
+		cost["food"] = maxi(1, food_base + current_tier * food_per_tier)
+		var waaagh_base: int = maxi(0, int(round(float(food_base) * 0.3)))
+		var waaagh_per_tier: int = maxi(1, int(round(float(food_per_tier) * 0.5)))
+		cost["waaagh"] = maxi(0, waaagh_base + current_tier * waaagh_per_tier)
+	else:
+		var gold: int = int(tier_profile.get("gold_base", 20)) + current_tier * int(tier_profile.get("gold_per_tier", 20))
+		var iron: int = int(tier_profile.get("iron_base", 8)) + current_tier * int(tier_profile.get("iron_per_tier", 7))
+		cost["gold"] = maxi(0, gold)
+		cost["iron"] = maxi(0, iron)
 	if rule.has("cost") and rule["cost"] is Dictionary:
 		var override_cost: Dictionary = rule["cost"]
-		gold = int(override_cost.get("gold", gold))
-		iron = int(override_cost.get("iron", iron))
-	return {"gold": maxi(0, gold), "iron": maxi(0, iron)}
+		for key in override_cost.keys():
+			cost[key] = maxi(0, int(override_cost.get(key, cost.get(key, 0))))
+	return cost
 
 
 func _get_tier_profile(source_tier: int) -> Dictionary:
@@ -359,6 +387,18 @@ func _get_tier_profile(source_tier: int) -> Dictionary:
 	if tier_profiles.has(key) and tier_profiles[key] is Dictionary:
 		return tier_profiles[key]
 	return {}
+
+
+func _format_cost_text(cost: Dictionary) -> String:
+	var parts: Array[String] = []
+	var keys: Array = cost.keys()
+	keys.sort()
+	for k in keys:
+		var amount: int = int(cost.get(k, 0))
+		if amount <= 0:
+			continue
+		parts.append("%s%d" % [k, amount])
+	return " ".join(parts) if not parts.is_empty() else "无消耗"
 
 
 ## Mutates troop dictionary in place and returns operation result.
