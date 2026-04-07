@@ -135,6 +135,45 @@ func get_troop_upgrade_target(troop_id: String) -> String:
 	return _TROOP_UPGRADE_PATHS.get(troop_id, "")
 
 
+## Returns upgrade requirements for a troop instance.
+## { can_upgrade, reason, upgrade_id, cost, min_exp, current_exp }
+func get_troop_upgrade_requirements(troop: Dictionary) -> Dictionary:
+	var current_id: String = troop.get("troop_id", "")
+	var upgrade_id: String = get_troop_upgrade_target(current_id)
+	if upgrade_id == "":
+		return {"can_upgrade": false, "reason": "no_upgrade_path", "upgrade_id": ""}
+	var current_def: Dictionary = GameData.TROOP_TYPES.get(current_id, {})
+	var target_def: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
+	if current_def.is_empty() or target_def.is_empty():
+		return {"can_upgrade": false, "reason": "invalid_upgrade_def", "upgrade_id": upgrade_id}
+
+	var current_tier: int = int(current_def.get("tier", 1))
+	var tier_exp_cap: int = int(GameData.TIER_EXP_CAP.get(current_tier, 30))
+	var min_exp: int = maxi(10, int(round(float(tier_exp_cap) * 0.5)))
+	var current_exp: int = int(troop.get("experience", 0))
+	var cost: Dictionary = {
+		"gold": 20 + current_tier * 20,
+		"iron": 8 + current_tier * 7,
+	}
+	if current_exp < min_exp:
+		return {
+			"can_upgrade": false,
+			"reason": "insufficient_experience",
+			"upgrade_id": upgrade_id,
+			"cost": cost,
+			"min_exp": min_exp,
+			"current_exp": current_exp,
+		}
+	return {
+		"can_upgrade": true,
+		"reason": "",
+		"upgrade_id": upgrade_id,
+		"cost": cost,
+		"min_exp": min_exp,
+		"current_exp": current_exp,
+	}
+
+
 ## Mutates troop dictionary in place and returns operation result.
 ## Returns { "ok": bool, "old_name": String, "new_name": String }.
 func apply_troop_upgrade(troop: Dictionary) -> Dictionary:
@@ -155,6 +194,8 @@ func apply_troop_upgrade(troop: Dictionary) -> Dictionary:
 	var new_max: int = new_data.get("max_soldiers", troop.get("max_soldiers", troop.get("soldiers", 1)))
 	troop["max_soldiers"] = new_max
 	troop["soldiers"] = mini(troop.get("soldiers", new_max), new_max)
+	troop["hp_per_soldier"] = new_data.get("hp_per_soldier", troop.get("hp_per_soldier", 5))
+	troop["total_hp"] = troop["soldiers"] * troop["hp_per_soldier"]
 	if new_data.has("passive"):
 		troop["passive"] = new_data["passive"]
 	return {"ok": true, "old_name": old_name, "new_name": troop["name"]}

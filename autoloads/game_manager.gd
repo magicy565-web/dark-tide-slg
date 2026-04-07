@@ -3438,20 +3438,19 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 
 	var troop: Dictionary = troops[troop_index]
 	var current_id: String = troop.get("troop_id", "")
-	var upgrade_id: String = ""
-	if RecruitManager != null and RecruitManager.has_method("get_troop_upgrade_target"):
-		upgrade_id = RecruitManager.get_troop_upgrade_target(current_id)
-	if upgrade_id == "":
-		EventBus.message_log.emit("该兵种无法升级!")
+	if RecruitManager == null or not RecruitManager.has_method("get_troop_upgrade_requirements"):
+		EventBus.message_log.emit("升级系统未就绪!")
 		return false
-
-	# Validate target definition before spending AP/resources.
-	var new_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
-	if new_data.is_empty():
-		EventBus.message_log.emit("升级目标数据缺失!")
+	var req: Dictionary = RecruitManager.get_troop_upgrade_requirements(troop)
+	if not req.get("can_upgrade", false):
+		var reason: String = req.get("reason", "unknown")
+		if reason == "insufficient_experience":
+			EventBus.message_log.emit("经验不足! 兵种升级需要%d经验 (当前%d)" % [req.get("min_exp", 0), req.get("current_exp", 0)])
+		else:
+			EventBus.message_log.emit("该兵种无法升级!")
 		return false
-
-	var cost: Dictionary = {"gold": 40, "iron": 15}
+	var upgrade_id: String = req.get("upgrade_id", "")
+	var cost: Dictionary = req.get("cost", {"gold": 40, "iron": 15})
 	if not ResourceManager.can_afford(player_id, cost):
 		EventBus.message_log.emit("资源不足! 需要金%d 铁%d" % [cost["gold"], cost["iron"]])
 		return false
