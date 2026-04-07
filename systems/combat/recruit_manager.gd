@@ -1,5 +1,6 @@
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
+const TROOP_UPGRADE_RULES_PATH: String = "res://systems/combat/data/troop_upgrade_rules.json"
 
 ## recruit_manager.gd — Army composition system (v0.9 / Phase 3)
 ##
@@ -52,10 +53,29 @@ const _TROOP_UPGRADE_PATHS: Dictionary = {
 	"mage_battle": "mage_grand",
 }
 
+const _DEFAULT_UPGRADE_RULES: Dictionary = {
+	"default": {
+		"min_exp_ratio": 0.5,
+		"min_exp_floor": 10,
+		"cost": {
+			"gold_base": 20,
+			"gold_per_tier": 20,
+			"iron_base": 8,
+			"iron_per_tier": 7,
+		},
+	},
+	"rules": {}
+}
+
+var _upgrade_rules: Dictionary = _DEFAULT_UPGRADE_RULES.duplicate(true)
+
 
 # ---------------------------------------------------------------------------
 # Lifecycle
 # ---------------------------------------------------------------------------
+
+func _ready() -> void:
+	_load_troop_upgrade_rules()
 
 func reset() -> void:
 	_armies.clear()
@@ -66,6 +86,31 @@ func reset() -> void:
 
 func init_player(player_id: int) -> void:
 	_armies[player_id] = []
+
+
+func _load_troop_upgrade_rules() -> void:
+	_upgrade_rules = _DEFAULT_UPGRADE_RULES.duplicate(true)
+	if not FileAccess.file_exists(TROOP_UPGRADE_RULES_PATH):
+		push_warning("RecruitManager: upgrade rules file missing, using defaults")
+		return
+	var file := FileAccess.open(TROOP_UPGRADE_RULES_PATH, FileAccess.READ)
+	if file == null:
+		push_warning("RecruitManager: failed to open %s, using defaults" % TROOP_UPGRADE_RULES_PATH)
+		return
+	var json_str: String = file.get_as_text()
+	file.close()
+	var json := JSON.new()
+	if json.parse(json_str) != OK:
+		push_warning("RecruitManager: invalid upgrade rules json: %s" % json.get_error_message())
+		return
+	if not json.data is Dictionary:
+		push_warning("RecruitManager: upgrade rules root must be Dictionary")
+		return
+	var loaded: Dictionary = json.data
+	if loaded.has("default") and loaded["default"] is Dictionary:
+		_upgrade_rules["default"] = loaded["default"]
+	if loaded.has("rules") and loaded["rules"] is Dictionary:
+		_upgrade_rules["rules"] = loaded["rules"]
 
 
 # ---------------------------------------------------------------------------
@@ -132,12 +177,15 @@ func recruit_default_unit_for_faction(player_id: int, faction_id: int) -> Dictio
 
 
 func get_troop_upgrade_target(troop_id: String) -> String:
+	var rule: Dictionary = _get_upgrade_rule(troop_id)
+	if not rule.is_empty():
+		return String(rule.get("to_troop_id", ""))
 	return _TROOP_UPGRADE_PATHS.get(troop_id, "")
 
 
 ## Returns upgrade requirements for a troop instance.
 ## { can_upgrade, reason, upgrade_id, cost, min_exp, current_exp }
-func get_troop_upgrade_requirements(troop: Dictionary) -> Dictionary:
+func get_troop_upgrade_requirements(troop: Dictionary, player_id: int = -1) -> Dictionary:
 	var current_id: String = troop.get("troop_id", "")
 	var upgrade_id: String = get_troop_upgrade_target(current_id)
 	if upgrade_id == "":
@@ -147,18 +195,24 @@ func get_troop_upgrade_requirements(troop: Dictionary) -> Dictionary:
 	if current_def.is_empty() or target_def.is_empty():
 		return {"can_upgrade": false, "reason": "invalid_upgrade_def", "upgrade_id": upgrade_id}
 
+	var rule: Dictionary = _get_upgrade_rule(current_id)
 	var current_tier: int = int(current_def.get("tier", 1))
-	var tier_exp_cap: int = int(GameData.TIER_EXP_CAP.get(current_tier, 30))
-	var min_exp: int = maxi(10, int(round(float(tier_exp_cap) * 0.5)))
+	var min_exp: int = _compute_upgrade_min_exp(current_tier, rule)
 	var current_exp: int = int(troop.get("experience", 0))
-	var cost: Dictionary = {
-		"gold": 20 + current_tier * 20,
-		"iron": 8 + current_tier * 7,
-	}
+	var cost: Dictionary = _compute_upgrade_cost(current_tier, rule)
 	if current_exp < min_exp:
 		return {
 			"can_upgrade": false,
 			"reason": "insufficient_experience",
+			"upgrade_id": upgrade_id,
+			"cost": cost,
+			"min_exp": min_exp,
+			"current_exp": current_exp,
+		}
+	if player_id >= 0 and not ResourceManager.can_afford(player_id, cost):
+		return {
+			"can_upgrade": false,
+			"reason": "insufficient_resources",
 			"upgrade_id": upgrade_id,
 			"cost": cost,
 			"min_exp": min_exp,
@@ -172,6 +226,80 @@ func get_troop_upgrade_requirements(troop: Dictionary) -> Dictionary:
 		"min_exp": min_exp,
 		"current_exp": current_exp,
 	}
+
+
+func get_upgrade_failure_reason_text(req: Dictionary) -> String:
+	var reason: String = req.get("reason", "")
+	match reason:
+		"no_upgrade_path":
+			return "无可用升级路线"
+		"invalid_upgrade_def":
+			return "目标兵种数据异常"
+		"insufficient_experience":
+			return "经验不足 %d/%d" % [int(req.get("current_exp", 0)), int(req.get("min_exp", 0))]
+		"insufficient_resources":
+			var cost: Dictionary = req.get("cost", {})
+			return "资源不足 (金%d 铁%d)" % [int(cost.get("gold", 0)), int(cost.get("iron", 0))]
+	return "暂不可升级"
+
+
+func plan_default_recruit_for_faction(player_id: int, faction_id: int) -> Dictionary:
+	var troop_id: String = get_default_troop_id_for_faction(faction_id)
+	var result: Dictionary = {
+		"ok": false,
+		"reason": "",
+		"troop_id": troop_id,
+		"cost": {},
+	}
+	if FactionData.FACTION_PARAMS.has(faction_id):
+		var fp: Dictionary = FactionData.FACTION_PARAMS[faction_id]
+		result["cost"] = {
+			"gold": int(fp.get("recruit_cost_gold", 0)),
+			"iron": int(fp.get("recruit_cost_iron", 0)),
+		}
+	if get_remaining_pop_slots(player_id) <= 0:
+		result["reason"] = "pop_cap"
+		return result
+	if not ResourceManager.can_afford(player_id, result["cost"]):
+		result["reason"] = "insufficient_resources"
+		return result
+	var instance: Dictionary = GameData.create_troop_instance(troop_id)
+	if instance.is_empty():
+		result["reason"] = "invalid_troop_def"
+		return result
+	result["ok"] = true
+	return result
+
+
+func _get_upgrade_rule(troop_id: String) -> Dictionary:
+	var rules: Dictionary = _upgrade_rules.get("rules", {})
+	if rules.has(troop_id) and rules[troop_id] is Dictionary:
+		return rules[troop_id]
+	return {}
+
+
+func _compute_upgrade_min_exp(current_tier: int, rule: Dictionary) -> int:
+	var tier_exp_cap: int = int(GameData.TIER_EXP_CAP.get(current_tier, 30))
+	var default_rule: Dictionary = _upgrade_rules.get("default", {})
+	var ratio: float = float(default_rule.get("min_exp_ratio", 0.5))
+	var floor_val: int = int(default_rule.get("min_exp_floor", 10))
+	if rule.has("min_exp_ratio"):
+		ratio = float(rule.get("min_exp_ratio", ratio))
+	if rule.has("min_exp"):
+		return maxi(0, int(rule.get("min_exp", floor_val)))
+	return maxi(floor_val, int(round(float(tier_exp_cap) * ratio)))
+
+
+func _compute_upgrade_cost(current_tier: int, rule: Dictionary) -> Dictionary:
+	var default_rule: Dictionary = _upgrade_rules.get("default", {})
+	var cost_rule: Dictionary = default_rule.get("cost", {})
+	var gold: int = int(cost_rule.get("gold_base", 20)) + current_tier * int(cost_rule.get("gold_per_tier", 20))
+	var iron: int = int(cost_rule.get("iron_base", 8)) + current_tier * int(cost_rule.get("iron_per_tier", 7))
+	if rule.has("cost") and rule["cost"] is Dictionary:
+		var override_cost: Dictionary = rule["cost"]
+		gold = int(override_cost.get("gold", gold))
+		iron = int(override_cost.get("iron", iron))
+	return {"gold": maxi(0, gold), "iron": maxi(0, iron)}
 
 
 ## Mutates troop dictionary in place and returns operation result.

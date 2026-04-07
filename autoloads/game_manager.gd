@@ -679,6 +679,28 @@ func restore_ap(player_id: int, amount: int) -> void:
 	EventBus.ap_changed.emit(player_id, p["ap"])
 
 
+func _commit_operation_costs(player_id: int, ap_cost: int, resource_cost: Dictionary) -> Dictionary:
+	if ap_cost > 0 and not spend_ap(player_id, ap_cost):
+		return {"ok": false, "reason": "insufficient_ap"}
+	if not resource_cost.is_empty():
+		if not ResourceManager.can_afford(player_id, resource_cost):
+			if ap_cost > 0:
+				restore_ap(player_id, ap_cost)
+			return {"ok": false, "reason": "insufficient_resources"}
+		var consume: Dictionary = {}
+		for k in resource_cost.keys():
+			consume[k] = -int(resource_cost.get(k, 0))
+		ResourceManager.apply_delta(player_id, consume)
+	return {"ok": true, "reason": ""}
+
+
+func _rollback_operation_costs(player_id: int, ap_cost: int, resource_cost: Dictionary) -> void:
+	if not resource_cost.is_empty():
+		ResourceManager.apply_delta(player_id, resource_cost)
+	if ap_cost > 0:
+		restore_ap(player_id, ap_cost)
+
+
 func sync_player_army(player_id: int) -> void:
 	## Sync player dict army_count/combat_power from ResourceManager.
 	var p: Dictionary = get_player_by_id(player_id)
@@ -3388,32 +3410,41 @@ func action_reinforce_army(player_id: int, army_id: int) -> bool:
 		EventBus.message_log.emit("军队必须在己方领地!")
 		return false
 
-	# Reinforce: restore each depleted troop by up to 2 soldiers
+	# Reinforce: restore each depleted troop by up to 2 soldiers.
+	# Use a two-phase flow so AP/resources are charged atomically once.
 	var total_restored: int = 0
+	var total_cost: Dictionary = {"gold": 0, "food": 0}
 	var troops: Array = army.get("troops", [])
 	for troop in troops:
 		var current: int = troop.get("soldiers", 0)
 		var max_sol: int = troop.get("max_soldiers", current)
 		if current < max_sol:
 			var restore: int = mini(2, max_sol - current)
-			# Cost: 5 gold + 2 food per soldier restored
-			var cost: Dictionary = {"gold": restore * 5, "food": restore * 2}
-			if ResourceManager.can_afford(player_id, cost):
-				ResourceManager.apply_delta(player_id, {"gold": -cost["gold"], "food": -cost["food"]})
-				troop["soldiers"] = current + restore
-				var hpp: int = troop.get("hp_per_soldier", 5)
-				troop["total_hp"] = troop["soldiers"] * hpp
-				total_restored += restore
+			total_restored += restore
+			total_cost["gold"] += restore * 5
+			total_cost["food"] += restore * 2
 
-	if total_restored > 0:
-		if not spend_ap(player_id, reinforce_ap_cost):
-			return false
-		EventBus.message_log.emit("军队补充: +%d兵 (消耗金%d 粮%d)" % [total_restored, total_restored * 5, total_restored * 2])
-		sync_player_army(player_id)
-		return true
-	else:
-		EventBus.message_log.emit("所有部队已满编或资源不足!")
+	if total_restored <= 0:
+		EventBus.message_log.emit("所有部队已满编!")
 		return false
+
+	var pay_result: Dictionary = _commit_operation_costs(player_id, reinforce_ap_cost, total_cost)
+	if not pay_result.get("ok", false):
+		EventBus.message_log.emit("资源或行动力不足，无法补充部队!")
+		return false
+
+	for troop in troops:
+		var current: int = troop.get("soldiers", 0)
+		var max_sol: int = troop.get("max_soldiers", current)
+		if current < max_sol:
+			var restore: int = mini(2, max_sol - current)
+			troop["soldiers"] = current + restore
+			var hpp: int = troop.get("hp_per_soldier", 5)
+			troop["total_hp"] = troop["soldiers"] * hpp
+
+	EventBus.message_log.emit("军队补充: +%d兵 (消耗金%d 粮%d)" % [total_restored, total_cost["gold"], total_cost["food"]])
+	sync_player_army(player_id)
+	return true
 
 
 ## Upgrade a troop type in army (e.g., ashigaru -> samurai) — 1 AP + resources
@@ -3441,33 +3472,31 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 	if RecruitManager == null or not RecruitManager.has_method("get_troop_upgrade_requirements"):
 		EventBus.message_log.emit("升级系统未就绪!")
 		return false
-	var req: Dictionary = RecruitManager.get_troop_upgrade_requirements(troop)
+	var req: Dictionary = RecruitManager.get_troop_upgrade_requirements(troop, player_id)
 	if not req.get("can_upgrade", false):
 		var reason: String = req.get("reason", "unknown")
 		if reason == "insufficient_experience":
 			EventBus.message_log.emit("经验不足! 兵种升级需要%d经验 (当前%d)" % [req.get("min_exp", 0), req.get("current_exp", 0)])
+		elif reason == "insufficient_resources":
+			var req_cost: Dictionary = req.get("cost", {})
+			EventBus.message_log.emit("资源不足! 需要金%d 铁%d" % [int(req_cost.get("gold", 0)), int(req_cost.get("iron", 0))])
 		else:
 			EventBus.message_log.emit("该兵种无法升级!")
 		return false
 	var upgrade_id: String = req.get("upgrade_id", "")
 	var cost: Dictionary = req.get("cost", {"gold": 40, "iron": 15})
-	if not ResourceManager.can_afford(player_id, cost):
-		EventBus.message_log.emit("资源不足! 需要金%d 铁%d" % [cost["gold"], cost["iron"]])
+	var pay_result: Dictionary = _commit_operation_costs(player_id, upgrade_ap_cost, cost)
+	if not pay_result.get("ok", false):
+		EventBus.message_log.emit("资源或行动力不足! 升级失败")
 		return false
-
-	if not spend_ap(player_id, upgrade_ap_cost):
-		return false
-	ResourceManager.apply_delta(player_id, {"gold": -cost["gold"], "iron": -cost["iron"]})
 
 	if RecruitManager == null or not RecruitManager.has_method("apply_troop_upgrade"):
-		ResourceManager.apply_delta(player_id, {"gold": cost["gold"], "iron": cost["iron"]})
-		restore_ap(player_id, upgrade_ap_cost)
+		_rollback_operation_costs(player_id, upgrade_ap_cost, cost)
 		EventBus.message_log.emit("升级系统未就绪!")
 		return false
 	var upgrade_result: Dictionary = RecruitManager.apply_troop_upgrade(troop, int(req.get("min_exp", 0)))
 	if not upgrade_result.get("ok", false):
-		ResourceManager.apply_delta(player_id, {"gold": cost["gold"], "iron": cost["iron"]})
-		restore_ap(player_id, upgrade_ap_cost)
+		_rollback_operation_costs(player_id, upgrade_ap_cost, cost)
 		EventBus.message_log.emit("兵种升级失败: %s" % upgrade_result.get("reason", "unknown"))
 		return false
 	EventBus.message_log.emit("兵种升格: %s -> %s (金-%d 铁-%d, 经验-%d)" % [
@@ -6876,26 +6905,30 @@ func action_domestic(player_id: int, target_tile_index: int, domestic_type: Stri
 	match domestic_type:
 		"recruit":
 			var params: Dictionary = FactionData.FACTION_PARAMS[faction_id]
-			var gold_cost: int = params["recruit_cost_gold"]
-			var iron_cost: int = params["recruit_cost_iron"]
+			var recruit_plan: Dictionary = {}
+			if RecruitManager != null and RecruitManager.has_method("plan_default_recruit_for_faction"):
+				recruit_plan = RecruitManager.plan_default_recruit_for_faction(pid, faction_id)
+			var recruit_cost: Dictionary = recruit_plan.get("cost", {
+				"gold": int(params.get("recruit_cost_gold", 0)),
+				"iron": int(params.get("recruit_cost_iron", 0)),
+			})
 			if tile.get("building_id", "") == "training_ground":
 				var bld_level: int = tile.get("building_level", 1)
 				var bld_effects: Dictionary = BuildingRegistry.get_building_effects("training_ground", bld_level)
-				gold_cost = maxi(0, gold_cost - bld_effects.get("recruit_discount", 10))
-			if not ResourceManager.can_afford(pid, {"gold": gold_cost, "iron": iron_cost}):
-				EventBus.message_log.emit("资源不足! 需要 %d金 %d铁" % [gold_cost, iron_cost])
+				recruit_cost["gold"] = maxi(0, int(recruit_cost.get("gold", 0)) - int(bld_effects.get("recruit_discount", 10)))
+			if not ResourceManager.can_afford(pid, recruit_cost):
+				EventBus.message_log.emit("资源不足! 需要 %d金 %d铁" % [int(recruit_cost.get("gold", 0)), int(recruit_cost.get("iron", 0))])
 				return false
 			if ResourceManager.get_army(pid) >= get_population_cap(pid):
 				EventBus.message_log.emit("已达人口上限!")
 				return false
-			ResourceManager.spend(pid, {"gold": gold_cost, "iron": iron_cost})
-			player["ap"] -= domestic_ap_cost
-			EventBus.ap_changed.emit(pid, player["ap"])
+			var pay_result: Dictionary = _commit_operation_costs(pid, domestic_ap_cost, recruit_cost)
+			if not pay_result.get("ok", false):
+				EventBus.message_log.emit("[color=red]招募失败：行动力或资源不足。[/color]")
+				return false
 			var recruit_result: Dictionary = _recruit_default_troop_instance(pid, faction_id)
 			if not recruit_result.get("ok", false):
-				ResourceManager.apply_delta(pid, {"gold": gold_cost, "iron": iron_cost})
-				player["ap"] += domestic_ap_cost
-				EventBus.ap_changed.emit(pid, player["ap"])
+				_rollback_operation_costs(pid, domestic_ap_cost, recruit_cost)
 				EventBus.message_log.emit("[color=red]招募失败：兵种数据异常或军团名额不足。[/color]")
 				return false
 			var default_troop_id: String = recruit_result.get("troop_id", "ashigaru")

@@ -2627,8 +2627,10 @@ func _on_upgrade_troop() -> void:
 				min_exp
 			]
 			label_text += " [%s]" % army["name"]
-			var can_afford: bool = ResourceManager.can_afford(pid, cost)
-			var can_upgrade: bool = req.get("can_upgrade", false) and can_afford
+			var req_with_player: Dictionary = RecruitManager.get_troop_upgrade_requirements(troop, pid) if RecruitManager.has_method("get_troop_upgrade_requirements") else req
+			var can_upgrade: bool = req_with_player.get("can_upgrade", false)
+			if not can_upgrade and RecruitManager.has_method("get_upgrade_failure_reason_text"):
+				label_text += " | %s" % RecruitManager.get_upgrade_failure_reason_text(req_with_player)
 			_add_target_button(label_text, _on_upgrade_troop_confirm.bind(army["id"], i), not can_upgrade)
 			found = true
 
