@@ -60,7 +60,32 @@ const STORY_DATA_FILES: Dictionary = {
 	"akane":    "res://systems/story/data/akane_story.gd",
 	"hanabi":   "res://systems/story/data/hanabi_story.gd",
 	"epilogue": "res://systems/story/data/epilogue_events.gd",
+	"faction_intro": "res://systems/story/data/faction_intro_events.gd",
+	"main_quest": "res://systems/story/data/main_quest_events.gd",
+	"h_event": "res://systems/story/data/h_event_data.gd",
 }
+
+# ── Faction ID → epilogue ending type mapping ──
+const VICTORY_TO_ENDING: Dictionary = {
+	"Conquest Victory": "conquest",
+	"Domination Victory": "conquest",
+	"Shadow Domination": "dark",
+	"Harem Victory": "romance",
+	"Diplomatic Victory": "alliance",
+	"Survival Victory": "sacrifice",
+}
+
+# ── Faction ID → intro route key mapping ──
+const FACTION_INTRO_MAP: Dictionary = {
+	0: "orc",      # FactionData.Faction.ORC
+	1: "pirate",   # FactionData.Faction.PIRATE
+	2: "dark_elf", # FactionData.Faction.DARK_ELF
+}
+
+# ── State: whether faction intro has been shown this campaign ──
+var _faction_intro_shown: bool = false
+# ── State: whether epilogue has been initialized ──
+var _epilogue_started: bool = false
 
 # ═══════════════ LIFECYCLE ═══════════════
 
@@ -73,12 +98,17 @@ func reset() -> void:
 	_story_cache.clear()
 	_choice_history.clear()
 	_pending_choices.clear()
+	_faction_intro_shown = false
+	_epilogue_started = false
 
 
 func _connect_signals() -> void:
 	EventBus.hero_captured.connect(_on_hero_captured)
 	EventBus.hero_recruited.connect(_on_hero_recruited)
 	EventBus.hero_affection_changed.connect(_on_affection_changed)
+	EventBus.game_over_detailed.connect(_on_game_over_detailed)
+	EventBus.turn_started.connect(_on_turn_started_intro)
+	EventBus.main_quest_completed.connect(_on_main_quest_completed)
 	if EventBus.has_signal("story_choice_made"):
 		EventBus.story_choice_made.connect(_on_story_choice_made)
 
@@ -604,10 +634,168 @@ func _on_affection_changed(hero_id: String, _new_value: int) -> void:
 				EventBus.mission_available.emit(hero_id, next_event)
 		return
 	try_trigger_next(hero_id)
+	# Check if H events should trigger for this hero
+	_check_h_events(hero_id)
+
+
+## Check and trigger H events for a hero based on current affection/corruption.
+func _check_h_events(hero_id: String) -> void:
+	var h_data: Dictionary = _get_story_data("h_event")
+	if not h_data.has(hero_id):
+		return
+	var events: Array = h_data[hero_id]
+	var h_progress: Dictionary = story_progress.get("h_event", {})
+	var completed: Array = h_progress.get("completed_events", [])
+	for ev in events:
+		if ev["id"] in completed:
+			continue
+		if not _evaluate_h_trigger(hero_id, ev.get("trigger", {})):
+			continue
+		# Trigger this H event
+		if not story_progress.has("h_event"):
+			story_progress["h_event"] = {
+				"route": hero_id,
+				"current_event": 0,
+				"completed_events": completed.duplicate(),
+				"flags": {},
+			}
+		story_progress["h_event"]["completed_events"].append(ev["id"])
+		EventBus.story_event_triggered.emit(hero_id, ev)
+		break  # One H event per trigger check
+
+
+## Evaluate H event trigger conditions.
+func _evaluate_h_trigger(hero_id: String, trigger: Dictionary) -> bool:
+	var affection: int = HeroSystem.hero_affection.get(hero_id, 0)
+	var corruption: int = HeroSystem.hero_corruption.get(hero_id, 0)
+	if trigger.has("affection_min") and affection < trigger["affection_min"]:
+		return false
+	if trigger.has("corruption_min") and corruption < trigger["corruption_min"]:
+		return false
+	if trigger.has("requires_flag"):
+		var hero_prog: Dictionary = story_progress.get(hero_id, {})
+		var flags: Dictionary = hero_prog.get("flags", {})
+		for flag_key in trigger["requires_flag"]:
+			if not flags.get(flag_key, false):
+				return false
+	if trigger.has("prev_event"):
+		var h_progress: Dictionary = story_progress.get("h_event", {})
+		var completed: Array = h_progress.get("completed_events", [])
+		if trigger["prev_event"] not in completed:
+			return false
+	return true
 
 
 func _on_story_choice_made(hero_id: String, event_id: String, choice_index: int) -> void:
 	resolve_story_choice(hero_id, event_id, choice_index)
+
+
+## Trigger faction intro story on first turn of a new campaign.
+func _on_turn_started_intro(_player_id: int) -> void:
+	if _faction_intro_shown:
+		return
+	_faction_intro_shown = true
+	var pid: int = GameManager.get_human_player_id()
+	var faction_id: int = GameManager.get_player_faction(pid)
+	var route_key: String = FACTION_INTRO_MAP.get(faction_id, "")
+	if route_key == "":
+		return
+	# Initialize faction_intro progress on the appropriate route
+	var intro_id := "faction_intro"
+	if story_progress.has(intro_id):
+		return  # Already initialized (e.g. from save load)
+	story_progress[intro_id] = {
+		"route": route_key,
+		"current_event": 0,
+		"completed_events": [],
+		"flags": {},
+	}
+	# Trigger the intro event immediately
+	var event: Dictionary = get_next_event(intro_id)
+	if not event.is_empty():
+		complete_current_event(intro_id)
+		EventBus.story_event_triggered.emit(intro_id, event)
+
+
+## Main quest completion → story cutscene.
+func _on_main_quest_completed(quest_id: String) -> void:
+	var mq_id := "main_quest"
+	# Initialize progress if needed (route = quest_id, e.g. "main_1")
+	var data: Dictionary = _get_story_data(mq_id)
+	if not data.has(quest_id):
+		return  # No cutscene for this quest
+	# Set route to this quest's cutscene route and reset to event 0
+	story_progress[mq_id] = {
+		"route": quest_id,
+		"current_event": 0,
+		"completed_events": story_progress.get(mq_id, {}).get("completed_events", []),
+		"flags": story_progress.get(mq_id, {}).get("flags", {}),
+	}
+	var event: Dictionary = get_next_event(mq_id)
+	if not event.is_empty():
+		complete_current_event(mq_id)
+		EventBus.story_event_triggered.emit(mq_id, event)
+
+
+## Victory → Epilogue bridge: map victory type to ending type and start epilogue.
+func _on_game_over_detailed(data: Dictionary) -> void:
+	if _epilogue_started:
+		return
+	var is_victory: bool = data.get("is_victory", false)
+	if not is_victory:
+		return
+	_epilogue_started = true
+	var victory_type: String = data.get("victory_type", "")
+	var ending_type: String = VICTORY_TO_ENDING.get(victory_type, "")
+	if ending_type == "":
+		# Fallback: if many heroines have pure_love_complete, use romance; otherwise conquest
+		ending_type = _determine_ending_type()
+	# Check for true ending conditions (all heroines max affection + all main quests done)
+	if _check_true_ending_conditions():
+		ending_type = "true_ending"
+	# Initialize epilogue progress
+	var epilogue_id := "epilogue"
+	story_progress[epilogue_id] = {
+		"route": ending_type,
+		"current_event": 0,
+		"completed_events": [],
+		"flags": {"ending_type": ending_type},
+	}
+	# Trigger first epilogue event
+	var event: Dictionary = get_next_event(epilogue_id)
+	if not event.is_empty():
+		complete_current_event(epilogue_id)
+		EventBus.story_event_triggered.emit(epilogue_id, event)
+
+
+## Determine ending type from story state when victory type mapping is ambiguous.
+func _determine_ending_type() -> String:
+	var pure_love_count: int = 0
+	for hero_id in story_progress:
+		if hero_id in ["epilogue", "faction_intro", "main_quest", "h_event"]:
+			continue
+		var flags: Dictionary = story_progress[hero_id].get("flags", {})
+		for key in flags:
+			if key.ends_with("_pure_love_complete") and flags[key]:
+				pure_love_count += 1
+	if pure_love_count >= 3:
+		return "romance"
+	return "conquest"
+
+
+## Check if conditions for the true ending are met.
+func _check_true_ending_conditions() -> bool:
+	# True ending requires: 3+ heroines at max affection AND all main quests completed
+	var max_affection_count: int = 0
+	for hero_id in HeroSystem.hero_affection:
+		if HeroSystem.hero_affection[hero_id] >= 10:
+			max_affection_count += 1
+	if max_affection_count < 3:
+		return false
+	# Check if main quest chain is fully completed
+	if QuestJournal._is_completed(QuestJournal._main_progress, "main_6"):
+		return true
+	return false
 
 
 ## Called by UI when player selects a story choice.
@@ -763,6 +951,8 @@ func get_save_data() -> Dictionary:
 	return {
 		"story_progress": story_progress.duplicate(true),
 		"choice_history": _choice_history.duplicate(true),
+		"faction_intro_shown": _faction_intro_shown,
+		"epilogue_started": _epilogue_started,
 	}
 
 
@@ -770,6 +960,8 @@ func load_save_data(data: Dictionary) -> void:
 	story_progress = data.get("story_progress", {}).duplicate(true)
 	_choice_history = data.get("choice_history", {}).duplicate(true)
 	_pending_choices.clear()
+	_faction_intro_shown = data.get("faction_intro_shown", false)
+	_epilogue_started = data.get("epilogue_started", false)
 
 
 ## Aliases for SaveManager compatibility

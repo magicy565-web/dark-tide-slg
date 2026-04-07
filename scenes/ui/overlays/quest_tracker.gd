@@ -13,6 +13,9 @@ const COLOR_MAIN := Color(1.0, 0.84, 0.3)      # gold for main quests
 const COLOR_SIDE := Color(0.7, 0.85, 0.55)      # soft green for side
 const COLOR_CHALLENGE := Color(0.6, 0.75, 1.0)  # blue for challenge
 const COLOR_CHARACTER := Color(0.85, 0.6, 0.9)  # purple for character
+const COLOR_OUTPOST := Color(1.0, 0.65, 0.3)    # orange for outpost
+const COLOR_DEVELOPMENT := Color(0.4, 0.85, 0.85) # teal for development
+const COLOR_H_EVENT := Color(1.0, 0.55, 0.7)    # pink for H events
 const COLOR_DEFAULT := Color(0.8, 0.75, 0.6)    # muted gold default
 const COLOR_DONE := Color(0.4, 0.9, 0.4)        # green checkmark
 const COLOR_PENDING := Color(0.7, 0.65, 0.5)    # dim for incomplete
@@ -206,6 +209,12 @@ func _get_category_color(category: String) -> Color:
 			return COLOR_CHALLENGE
 		"角色":
 			return COLOR_CHARACTER
+		"据点":
+			return COLOR_OUTPOST
+		"发展":
+			return COLOR_DEVELOPMENT
+		"亲密":
+			return COLOR_H_EVENT
 		_:
 			return COLOR_DEFAULT
 

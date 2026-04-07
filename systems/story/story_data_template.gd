@@ -34,6 +34,7 @@ class_name StoryDataTemplate
 #
 #   "scene": "场景描写文本...",          # Scene description (narrative/setting)
 #
+#   "bgm": "event",                     # Optional: BGM track name (see AudioManager)
 #   "cg": "rin_cg_01",                # (v2.0) Optional: event CG ID (fullscreen background)
 #                                      # Resolves to: res://assets/cg/{hero_id}/{cg_id}.png
 #                                      # When set, replaces scene description panel with CG image
@@ -44,19 +45,23 @@ class_name StoryDataTemplate
 #       "text": "叙述文本...",
 #       "expression": "sad",           # (v2.0) Optional: change portrait expression
 #       "cg": "rin_cg_02",            # (v2.0) Optional: switch CG mid-dialogue
+#       "voice": "rin_01_001.ogg",     # Optional: voice line (res://assets/audio/voice/)
+#       "sfx": "event_trigger",        # Optional: SFX name (see AudioManager)
 #     },
 #     {
 #       "type": "action",              # Stage direction [in brackets]
-#       "text": "指挥官推开牢房的铁门，脚步声在石壁间回荡"
+#       "text": "指挥官推开牢房的铁门，脚步声在石壁间回荡",
+#       "sfx": "ui_confirm",           # Optional: SFX for action
 #     },
 #     {
 #       "type": "dialogue",            # Character speech (default type)
-#       "speaker": "凛",               # Speaker display name
+#       "speaker": "凛",               # Speaker display name (also used for portrait lookup)
 #       "speaker_id": "rin",           # (v2.0) Optional: hero_id of speaker (for portrait switching)
 #       "text": "……又来了吗。",         # Spoken text
 #       "action": "凛抬起头",           # Optional: action before/during speech
 #       "expression": "angry",         # (v2.0) Optional: expression variant for this line
 #                                      # Values: normal, happy, angry, sad, surprised, shy, serious
+#       "voice": "rin_01_002.ogg",     # Optional: character voice line
 #     },
 #     {
 #       "type": "choice",              # Player choice point
@@ -110,6 +115,25 @@ class_name StoryDataTemplate
 # Per art spec: 3 event CGs per character minimum (training/affection milestones)
 
 # ═══════════════ EXAMPLE (abbreviated) ═══════════════
+#
+# ═══════════════ DIALOGUE SYSTEM FEATURES (v2.0) ═══════════════
+#
+# 1. CHARACTER PORTRAITS — speaker name is auto-mapped to portrait textures
+#    in res://assets/characters/portraits/ via PORTRAIT_MAP in story_dialog.gd.
+#    Supported names: 凛, 雪乃, 千姬, 暗精灵女王, 海盗女王, 兽人战酋, 她, 主角, etc.
+#
+# 2. CG DISPLAY LAYER — set "cg" on event or individual dialogue entry.
+#    Full res:// paths or short names resolved against res://assets/cg/.
+#
+# 3. TEXT SPEED SETTINGS — player cycles through 4 presets: 慢速/普通/快速/瞬间.
+#
+# 4. AUTO-ADVANCE — toggle auto-play; advances after 2.5s delay post-reveal.
+#
+# 5. DIALOGUE HISTORY — "Log" button opens scrollable backlog of all past entries.
+#
+# 6. AUDIO PLAYBACK — per-entry "voice" (voice line path) and "sfx" (SFX name).
+#    Event-level "bgm" sets background music track via AudioManager.
+#
 
 const EVENTS: Dictionary = {
 	"training": [

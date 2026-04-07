@@ -842,3 +842,337 @@ const WORLD_EVENTS: Array = [
 		"ai_effects": {"mercenary_costs_pct": -50, "duration": 3},
 	},
 ]
+
+## ═══════════════ OUTPOST QUESTS ═══════════════
+## Location-based side quests tied to named outposts and strategic tiles.
+const OUTPOST_QUESTS: Array = [
+	# ── Chokepoint Quests ──
+	{
+		"id": "outpost_iron_gate",
+		"name": "铁门关的守望",
+		"desc": "占领铁门关隘口，在这座古老的要塞中建立防线，扼守通往腹地的咽喉要道。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "iron_gate_pass"},
+		"objectives": [
+			{"type": "named_outpost", "value": "iron_gate_pass"},
+			{"type": "building_level_min", "building": "wall", "value": 2},
+		],
+		"reward": {"gold": 200, "defense_bonus_tile": "iron_gate_pass"},
+		"choices": [
+			{"text": "加固城墙（+3防御）", "effects": {"tile_defense": 3}},
+			{"text": "设置陷阱（进攻方-10%兵力）", "effects": {"tile_trap_pct": -10}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_chokepoint_lord",
+		"name": "关隘之主",
+		"desc": "控制三个以上的战略要冲，成为无可争议的关隘之主。",
+		"category": "outpost",
+		"trigger": {"chokepoints_min": 2},
+		"objectives": [
+			{"type": "chokepoints_min", "value": 3},
+		],
+		"reward": {"gold": 300, "trait": "chokepoint_lord"},
+		"choices": [
+			{"text": "建立关税制度（每回合+30金）", "effects": {"gold_per_turn": 30}},
+			{"text": "军事要塞化（所有关隘+2防御）", "effects": {"chokepoint_defense": 2}},
+		],
+		"ai_effects": {},
+	},
+	# ── Ruins Quests ──
+	{
+		"id": "outpost_library_secrets",
+		"name": "古代图书馆的秘密",
+		"desc": "占领古代图书馆遗迹，派遣学者解读失落的魔法典籍，揭开远古文明的知识宝藏。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "ancient_library"},
+		"objectives": [
+			{"type": "named_outpost", "value": "ancient_library"},
+			{"type": "turns_held_min", "outpost": "ancient_library", "value": 3},
+		],
+		"reward": {"gold": 150, "research_points": 50},
+		"choices": [
+			{"text": "研究攻击魔法（全军+5%攻击）", "effects": {"army_atk_pct": 5}},
+			{"text": "研究防御结界（全军+5%防御）", "effects": {"army_def_pct": 5}},
+			{"text": "出售典籍（+500金）", "effects": {"gold": 500}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_void_altar",
+		"name": "虚空祭坛的低语",
+		"desc": "虚空祭坛散发着不祥的能量。占领它，你可以选择利用或封印这股力量。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "void_altar"},
+		"objectives": [
+			{"type": "named_outpost", "value": "void_altar"},
+		],
+		"reward": {"gold": 100},
+		"choices": [
+			{"text": "汲取虚空之力（+15%攻击，-10%防御，持续5回合）", "effects": {"army_atk_pct": 15, "army_def_pct": -10, "duration": 5}},
+			{"text": "封印祭坛（+200金，+10士气）", "effects": {"gold": 200, "morale": 10}},
+			{"text": "献祭俘虏（+1暗影精英单位）", "effects": {"elite_unit": "shadow_elite"}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_fallen_temple",
+		"name": "堕落神殿的遗产",
+		"desc": "这座被遗弃的神殿曾是光明信仰的圣地。如今它的祝福已经扭曲——但力量犹在。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "fallen_temple"},
+		"objectives": [
+			{"type": "named_outpost", "value": "fallen_temple"},
+			{"type": "battles_won_min", "value": 3},
+		],
+		"reward": {"gold": 180},
+		"choices": [
+			{"text": "亵渎神殿（+20%暗影伤害，光明敌意+10）", "effects": {"shadow_dmg_pct": 20, "light_hostility": 10}},
+			{"text": "修复神殿（+治疗设施，每回合恢复伤兵）", "effects": {"healing_per_turn": 5}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_crystal_spire",
+		"name": "水晶尖塔的共鸣",
+		"desc": "水晶尖塔中蕴含着远古的魔力结晶。控制它，可以为你的军队提供强大的魔法增益。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "crystal_spire"},
+		"objectives": [
+			{"type": "named_outpost", "value": "crystal_spire"},
+			{"type": "hero_count_min", "value": 2},
+		],
+		"reward": {"gold": 200, "mana_crystals": 30},
+		"choices": [
+			{"text": "共鸣增幅（英雄技能伤害+15%）", "effects": {"hero_skill_dmg_pct": 15}},
+			{"text": "水晶护盾（全军+护盾，吸收一次攻击）", "effects": {"army_shield": 1}},
+		],
+		"ai_effects": {},
+	},
+	# ── Trading Post Quests ──
+	{
+		"id": "outpost_silk_road",
+		"name": "丝路商会的邀请",
+		"desc": "丝路集市是大陆最繁忙的贸易中心。控制它，你将获得源源不断的商业收入和独家商品。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "silk_road_bazaar"},
+		"objectives": [
+			{"type": "named_outpost", "value": "silk_road_bazaar"},
+			{"type": "gold_min", "value": 300},
+		],
+		"reward": {"gold": 250, "trade_route": true},
+		"choices": [
+			{"text": "建立商会（每回合+50金）", "effects": {"gold_per_turn": 50}},
+			{"text": "走私军火（-100金，+武器升级）", "effects": {"gold": -100, "weapon_upgrade": 1}},
+			{"text": "征收重税（+300金，商人好感-20）", "effects": {"gold": 300, "merchant_rep": -20}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_shadow_market",
+		"name": "影子市场的暗门",
+		"desc": "影子市场隐藏在地下，交易着大陆上最危险的商品。掌控它意味着掌控黑市。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "shadowmarket"},
+		"objectives": [
+			{"type": "named_outpost", "value": "shadowmarket"},
+		],
+		"reward": {"gold": 200, "black_market_access": true},
+		"choices": [
+			{"text": "垄断毒药贸易（暗杀成功率+20%）", "effects": {"assassin_rate_pct": 20}},
+			{"text": "情报网络（每回合揭示1块敌方领地信息）", "effects": {"intel_reveal": 1}},
+			{"text": "奴隶贸易（每回合+30金，士气-5）", "effects": {"gold_per_turn": 30, "morale": -5}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_trade_monopoly",
+		"name": "贸易霸权",
+		"desc": "同时控制丝路集市和影子市场——合法与非法贸易尽在掌握，建立无可匹敌的经济帝国。",
+		"category": "outpost",
+		"trigger": {"named_outposts_min": 2},
+		"objectives": [
+			{"type": "named_outpost", "value": "silk_road_bazaar"},
+			{"type": "named_outpost", "value": "shadowmarket"},
+		],
+		"reward": {"gold": 500, "trait": "trade_emperor"},
+		"choices": [
+			{"text": "统一货币（所有收入+20%）", "effects": {"income_pct": 20}},
+			{"text": "经济制裁（敌方每回合-30金）", "effects": {"enemy_gold_per_turn": -30}},
+		],
+		"ai_effects": {},
+	},
+	# ── Harbor Quests ──
+	{
+		"id": "outpost_smugglers_cove",
+		"name": "走私者的港湾",
+		"desc": "走私者海湾是海盗和亡命之徒的天堂。占领它，你将获得一支不受法律约束的舰队。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "smugglers_cove"},
+		"objectives": [
+			{"type": "named_outpost", "value": "smugglers_cove"},
+		],
+		"reward": {"gold": 150, "naval_unit": "smuggler_fleet"},
+		"choices": [
+			{"text": "招募走私船队（+海上突袭能力）", "effects": {"naval_raid": true}},
+			{"text": "建造秘密船坞（+1战舰产能）", "effects": {"ship_production": 1}},
+			{"text": "清剿海盗（+200金，失去走私渠道）", "effects": {"gold": 200, "lose_smuggle": true}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_naval_supremacy",
+		"name": "制海权",
+		"desc": "控制走私者海湾和渔人码头，建立对沿海水域的绝对统治。",
+		"category": "outpost",
+		"trigger": {"named_outposts_min": 2},
+		"objectives": [
+			{"type": "named_outpost", "value": "smugglers_cove"},
+			{"type": "named_outpost", "value": "fishermans_wharf"},
+		],
+		"reward": {"gold": 400, "trait": "sea_lord"},
+		"choices": [
+			{"text": "海上封锁（敌方沿海领地产出-30%）", "effects": {"enemy_coastal_income_pct": -30}},
+			{"text": "自由港政策（所有港口收入+50%）", "effects": {"harbor_income_pct": 50}},
+		],
+		"ai_effects": {},
+	},
+	# ── Watchtower Quests ──
+	{
+		"id": "outpost_eagles_perch",
+		"name": "鹰巢瞭望",
+		"desc": "鹰巢哨站矗立在最高的山峰上，占领它可以监视方圆数十里的一切动向。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "eagles_perch"},
+		"objectives": [
+			{"type": "named_outpost", "value": "eagles_perch"},
+		],
+		"reward": {"gold": 120, "vision_range": 2},
+		"choices": [
+			{"text": "部署侦察兵（揭示3块周围领地）", "effects": {"reveal_tiles": 3}},
+			{"text": "建造信号塔（预警系统，敌方进攻-1回合延迟）", "effects": {"early_warning": 1}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_beacon_network",
+		"name": "烽火连城",
+		"desc": "控制鹰巢哨站和边境烽火台，建立覆盖全境的预警网络。",
+		"category": "outpost",
+		"trigger": {"named_outposts_min": 2},
+		"objectives": [
+			{"type": "named_outpost", "value": "eagles_perch"},
+			{"type": "named_outpost", "value": "border_beacon"},
+		],
+		"reward": {"gold": 300, "trait": "all_seeing"},
+		"choices": [
+			{"text": "全境监控（揭示所有敌方领地）", "effects": {"reveal_all": true}},
+			{"text": "快速反应（防御战+15%兵力）", "effects": {"defense_troops_pct": 15}},
+		],
+		"ai_effects": {},
+	},
+	# ── Special Quests ──
+	{
+		"id": "outpost_bone_fortress",
+		"name": "白骨要塞的诅咒",
+		"desc": "白骨要塞由无数战死者的骸骨堆砌而成。占领它需要极大的勇气——以及承受诅咒的代价。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "bone_fortress"},
+		"objectives": [
+			{"type": "named_outpost", "value": "bone_fortress"},
+			{"type": "battles_won_min", "value": 5},
+		],
+		"reward": {"gold": 250},
+		"choices": [
+			{"text": "接受诅咒（+亡灵军团，士气-10）", "effects": {"undead_legion": true, "morale": -10}},
+			{"text": "净化要塞（+300金，+15士气）", "effects": {"gold": 300, "morale": 15}},
+			{"text": "利用骸骨（+骨甲装备，防御+3）", "effects": {"bone_armor": true, "defense": 3}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_obsidian_gate",
+		"name": "黑曜石之门",
+		"desc": "黑曜石之门据说连接着另一个维度。打开它可能带来无尽的力量——或者毁灭。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "obsidian_gate"},
+		"objectives": [
+			{"type": "named_outpost", "value": "obsidian_gate"},
+			{"type": "hero_count_min", "value": 3},
+		],
+		"reward": {"gold": 200},
+		"choices": [
+			{"text": "打开大门（随机强力效果或灾难）", "effects": {"random_major_event": true}},
+			{"text": "封印大门（+500金，获得'封印者'称号）", "effects": {"gold": 500, "title": "sealed_the_gate"}},
+			{"text": "研究大门（+30研究点，揭示隐藏任务线）", "effects": {"research_points": 30, "unlock_hidden_quest": true}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_collector",
+		"name": "据点收藏家",
+		"desc": "占领10个以上的命名据点，成为大陆上最强大的领主。",
+		"category": "outpost",
+		"trigger": {"named_outposts_min": 5},
+		"objectives": [
+			{"type": "named_outposts_min", "value": 10},
+		],
+		"reward": {"gold": 1000, "trait": "outpost_collector"},
+		"choices": [
+			{"text": "宣布帝国（所有据点效果+50%）", "effects": {"outpost_bonus_pct": 50}},
+			{"text": "分封诸侯（每据点+20金/回合，失去直接控制）", "effects": {"gold_per_outpost": 20}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_dragon_ford",
+		"name": "龙渡口伏击战",
+		"desc": "龙渡口是连接南北的唯一浅滩。在这里设伏，可以给过河的敌军以毁灭性打击。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "dragon_ford"},
+		"objectives": [
+			{"type": "named_outpost", "value": "dragon_ford"},
+			{"type": "battles_won_min", "value": 1},
+		],
+		"reward": {"gold": 180, "ambush_site": "dragon_ford"},
+		"choices": [
+			{"text": "永久伏击点（此处防御战+30%伤害）", "effects": {"tile_ambush_dmg_pct": 30}},
+			{"text": "收取过路费（每回合+40金）", "effects": {"gold_per_turn": 40}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_dust_bazaar",
+		"name": "尘沙集市的秘宝",
+		"desc": "荒漠中的尘沙集市藏着来自失落文明的珍宝。只有控制这里才能解锁它的秘密。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "dust_bazaar"},
+		"objectives": [
+			{"type": "named_outpost", "value": "dust_bazaar"},
+		],
+		"reward": {"gold": 160},
+		"choices": [
+			{"text": "搜刮宝藏（+400金，一次性）", "effects": {"gold": 400}},
+			{"text": "开设古物交易所（每回合+25金）", "effects": {"gold_per_turn": 25}},
+			{"text": "寻找失落武器（+传奇武器碎片）", "effects": {"legendary_fragment": 1}},
+		],
+		"ai_effects": {},
+	},
+	{
+		"id": "outpost_mist_bridge",
+		"name": "迷雾之桥的幽灵",
+		"desc": "迷雾之桥常年笼罩在浓雾中，据说有幽灵出没。占领它需要面对超自然的挑战。",
+		"category": "outpost",
+		"trigger": {"named_outpost": "mist_bridge"},
+		"objectives": [
+			{"type": "named_outpost", "value": "mist_bridge"},
+		],
+		"reward": {"gold": 140},
+		"choices": [
+			{"text": "驱散幽灵（+安全通道，移动+1）", "effects": {"movement_bonus": 1}},
+			{"text": "与幽灵契约（+幽灵斥候，侦查+3）", "effects": {"ghost_scouts": true, "scout_range": 3}},
+		],
+		"ai_effects": {},
+	},
+]
