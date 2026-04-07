@@ -63,6 +63,7 @@ const _DEFAULT_UPGRADE_RULES: Dictionary = {
 			"iron_base": 8,
 			"iron_per_tier": 7,
 		},
+		"tier_profiles": {},
 	},
 	"rules": {}
 }
@@ -281,8 +282,9 @@ func _get_upgrade_rule(troop_id: String) -> Dictionary:
 func _compute_upgrade_min_exp(current_tier: int, rule: Dictionary) -> int:
 	var tier_exp_cap: int = int(GameData.TIER_EXP_CAP.get(current_tier, 30))
 	var default_rule: Dictionary = _upgrade_rules.get("default", {})
-	var ratio: float = float(default_rule.get("min_exp_ratio", 0.5))
-	var floor_val: int = int(default_rule.get("min_exp_floor", 10))
+	var tier_profile: Dictionary = _get_tier_profile(current_tier)
+	var ratio: float = float(tier_profile.get("min_exp_ratio", default_rule.get("min_exp_ratio", 0.5)))
+	var floor_val: int = int(tier_profile.get("min_exp_floor", default_rule.get("min_exp_floor", 10)))
 	if rule.has("min_exp_ratio"):
 		ratio = float(rule.get("min_exp_ratio", ratio))
 	if rule.has("min_exp"):
@@ -292,14 +294,27 @@ func _compute_upgrade_min_exp(current_tier: int, rule: Dictionary) -> int:
 
 func _compute_upgrade_cost(current_tier: int, rule: Dictionary) -> Dictionary:
 	var default_rule: Dictionary = _upgrade_rules.get("default", {})
+	var tier_profile: Dictionary = _get_tier_profile(current_tier)
 	var cost_rule: Dictionary = default_rule.get("cost", {})
 	var gold: int = int(cost_rule.get("gold_base", 20)) + current_tier * int(cost_rule.get("gold_per_tier", 20))
 	var iron: int = int(cost_rule.get("iron_base", 8)) + current_tier * int(cost_rule.get("iron_per_tier", 7))
+	if not tier_profile.is_empty():
+		gold = int(tier_profile.get("gold_base", gold)) + current_tier * int(tier_profile.get("gold_per_tier", 0))
+		iron = int(tier_profile.get("iron_base", iron)) + current_tier * int(tier_profile.get("iron_per_tier", 0))
 	if rule.has("cost") and rule["cost"] is Dictionary:
 		var override_cost: Dictionary = rule["cost"]
 		gold = int(override_cost.get("gold", gold))
 		iron = int(override_cost.get("iron", iron))
 	return {"gold": maxi(0, gold), "iron": maxi(0, iron)}
+
+
+func _get_tier_profile(source_tier: int) -> Dictionary:
+	var default_rule: Dictionary = _upgrade_rules.get("default", {})
+	var tier_profiles: Dictionary = default_rule.get("tier_profiles", {})
+	var key: String = str(source_tier)
+	if tier_profiles.has(key) and tier_profiles[key] is Dictionary:
+		return tier_profiles[key]
+	return {}
 
 
 ## Mutates troop dictionary in place and returns operation result.

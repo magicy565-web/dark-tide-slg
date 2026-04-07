@@ -7,9 +7,24 @@
       "gold_per_tier": 20,
       "iron_base": 8,
       "iron_per_tier": 7
+    },
+    "tier_profiles": {
+      "0": { "min_exp_floor": 0, "min_exp_ratio": 0.0, "gold_base": 8, "gold_per_tier": 8, "iron_base": 2, "iron_per_tier": 2 },
+      "1": { "min_exp_floor": 16, "min_exp_ratio": 0.55, "gold_base": 30, "gold_per_tier": 18, "iron_base": 10, "iron_per_tier": 7 },
+      "2": { "min_exp_floor": 42, "min_exp_ratio": 0.62, "gold_base": 56, "gold_per_tier": 28, "iron_base": 22, "iron_per_tier": 10 },
+      "3": { "min_exp_floor": 70, "min_exp_ratio": 0.70, "gold_base": 96, "gold_per_tier": 34, "iron_base": 36, "iron_per_tier": 14 },
+      "4": { "min_exp_floor": 999, "min_exp_ratio": 1.0, "gold_base": 999, "gold_per_tier": 0, "iron_base": 999, "iron_per_tier": 0 }
     }
   },
   "rules": {
+    "slave_fodder": { "to_troop_id": "de_samurai", "min_exp": 12, "cost": { "gold": 30, "iron": 10 } },
+
+    "orc_ashigaru": { "to_troop_id": "orc_samurai" },
+    "orc_samurai": { "to_troop_id": "orc_cavalry" },
+    "orc_cavalry": { "to_troop_id": "orc_ultimate", "min_exp": 85, "cost": { "gold": 145, "iron": 60 } },
+    "orc_warg_rider": { "to_troop_id": "orc_ultimate", "min_exp": 90, "cost": { "gold": 165, "iron": 68 } },
+
+    "pirate_ashigaru": { "to_troop_id": "pirate_archer" },
     "pirate_archer": {
       "to_troop_id": "pirate_cannon",
       "min_exp_ratio": 0.6,
@@ -18,6 +33,21 @@
         "iron": 45
       }
     },
+    "pirate_cannon": { "to_troop_id": "pirate_ultimate", "min_exp": 82, "cost": { "gold": 132, "iron": 52 } },
+    "pirate_bombard": { "to_troop_id": "pirate_ultimate", "min_exp": 95, "cost": { "gold": 172, "iron": 74 } },
+
+    "de_samurai": { "to_troop_id": "de_ninja" },
+    "de_ninja": { "to_troop_id": "de_cavalry" },
+    "de_cavalry": { "to_troop_id": "de_ultimate", "min_exp": 88, "cost": { "gold": 160, "iron": 66 } },
+    "de_shadow_guard": { "to_troop_id": "de_ultimate", "min_exp": 92, "cost": { "gold": 180, "iron": 76 } },
+
+    "human_ashigaru": { "to_troop_id": "human_cavalry" },
+    "human_cavalry": { "to_troop_id": "human_samurai" },
+
+    "elf_archer": { "to_troop_id": "elf_mage" },
+    "elf_mage": { "to_troop_id": "elf_ashigaru" },
+
+    "mage_apprentice": { "to_troop_id": "mage_battle" },
     "mage_battle": {
       "to_troop_id": "mage_grand",
       "min_exp": 70,
@@ -25,6 +55,18 @@
         "gold": 110,
         "iron": 55
       }
-    }
+    },
+
+    "neutral_dwarf_guard": { "to_troop_id": "neutral_dwarf_cannon", "min_exp": 58, "cost": { "gold": 92, "iron": 42 } },
+    "neutral_skeleton": { "to_troop_id": "neutral_necromancer", "min_exp": 56, "cost": { "gold": 84, "iron": 36 } },
+    "neutral_green_archer": { "to_troop_id": "neutral_treant", "min_exp": 60, "cost": { "gold": 95, "iron": 40 } },
+    "neutral_blood_berserker": { "to_troop_id": "neutral_blood_shaman", "min_exp": 62, "cost": { "gold": 104, "iron": 44 } },
+    "neutral_goblin_cannon": { "to_troop_id": "neutral_goblin_mech", "min_exp": 62, "cost": { "gold": 100, "iron": 48 } },
+    "neutral_caravan_guard": { "to_troop_id": "neutral_merc_captain", "min_exp": 58, "cost": { "gold": 88, "iron": 38 } },
+    "mercenary_veteran": { "to_troop_id": "neutral_merc_captain", "min_exp": 65, "cost": { "gold": 108, "iron": 48 } },
+
+    "rebel_militia": { "to_troop_id": "rebel_archer", "min_exp": 18, "cost": { "gold": 24, "iron": 8 } },
+    "wanderer_deserter": { "to_troop_id": "wanderer_bandit", "min_exp": 18, "cost": { "gold": 26, "iron": 10 } },
+    "wanderer_bandit": { "to_troop_id": "wanderer_refugee", "min_exp": 24, "cost": { "gold": 34, "iron": 12 } }
   }
 }
