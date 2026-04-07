@@ -1,6 +1,5 @@
 extends Node
 const FactionData = preload("res://systems/faction/faction_data.gd")
-const TROOP_UPGRADE_RULES_PATH: String = "res://systems/combat/data/troop_upgrade_rules.json"
 
 ## recruit_manager.gd — Army composition system (v0.9 / Phase 3)
 ##
@@ -55,15 +54,13 @@ const _TROOP_UPGRADE_PATHS: Dictionary = {
 
 const _DEFAULT_UPGRADE_RULES: Dictionary = {
 	"default": {
-		"min_exp_ratio": 0.5,
-		"min_exp_floor": 10,
-		"cost": {
-			"gold_base": 20,
-			"gold_per_tier": 20,
-			"iron_base": 8,
-			"iron_per_tier": 7,
+		"tier_profiles": {
+			"0": {"min_exp_floor": 0, "min_exp_ratio": 0.0, "gold_base": 8, "gold_per_tier": 8, "iron_base": 2, "iron_per_tier": 2},
+			"1": {"min_exp_floor": 16, "min_exp_ratio": 0.55, "gold_base": 30, "gold_per_tier": 18, "iron_base": 10, "iron_per_tier": 7},
+			"2": {"min_exp_floor": 42, "min_exp_ratio": 0.62, "gold_base": 56, "gold_per_tier": 28, "iron_base": 22, "iron_per_tier": 10},
+			"3": {"min_exp_floor": 70, "min_exp_ratio": 0.70, "gold_base": 96, "gold_per_tier": 34, "iron_base": 36, "iron_per_tier": 14},
+			"4": {"min_exp_floor": 999, "min_exp_ratio": 1.0, "gold_base": 999, "gold_per_tier": 0, "iron_base": 999, "iron_per_tier": 0},
 		},
-		"tier_profiles": {},
 	},
 	"rules": {}
 }
@@ -76,7 +73,7 @@ var _upgrade_rules: Dictionary = _DEFAULT_UPGRADE_RULES.duplicate(true)
 # ---------------------------------------------------------------------------
 
 func _ready() -> void:
-	_load_troop_upgrade_rules()
+	_rebuild_upgrade_rules_from_game_data()
 
 func reset() -> void:
 	_armies.clear()
@@ -89,29 +86,67 @@ func init_player(player_id: int) -> void:
 	_armies[player_id] = []
 
 
-func _load_troop_upgrade_rules() -> void:
+func _rebuild_upgrade_rules_from_game_data() -> void:
 	_upgrade_rules = _DEFAULT_UPGRADE_RULES.duplicate(true)
-	if not FileAccess.file_exists(TROOP_UPGRADE_RULES_PATH):
-		push_warning("RecruitManager: upgrade rules file missing, using defaults")
+	var defs: Dictionary = GameData.TROOP_TYPES
+	if defs.is_empty():
+		push_warning("RecruitManager: GameData.TROOP_TYPES empty, cannot build upgrade graph")
 		return
-	var file := FileAccess.open(TROOP_UPGRADE_RULES_PATH, FileAccess.READ)
-	if file == null:
-		push_warning("RecruitManager: failed to open %s, using defaults" % TROOP_UPGRADE_RULES_PATH)
-		return
-	var json_str: String = file.get_as_text()
-	file.close()
-	var json := JSON.new()
-	if json.parse(json_str) != OK:
-		push_warning("RecruitManager: invalid upgrade rules json: %s" % json.get_error_message())
-		return
-	if not json.data is Dictionary:
-		push_warning("RecruitManager: upgrade rules root must be Dictionary")
-		return
-	var loaded: Dictionary = json.data
-	if loaded.has("default") and loaded["default"] is Dictionary:
-		_upgrade_rules["default"] = loaded["default"]
-	if loaded.has("rules") and loaded["rules"] is Dictionary:
-		_upgrade_rules["rules"] = loaded["rules"]
+	var built_rules: Dictionary = {}
+	# Start from legacy map as strong overrides.
+	for from_id in _TROOP_UPGRADE_PATHS.keys():
+		var to_id: String = _TROOP_UPGRADE_PATHS[from_id]
+		if defs.has(from_id) and defs.has(to_id):
+			built_rules[from_id] = {"to_troop_id": to_id}
+
+	# Auto-complete missing chains by faction/tier using existing troop archive.
+	for troop_id in defs.keys():
+		if built_rules.has(troop_id):
+			continue
+		var current_def: Dictionary = defs[troop_id]
+		var current_tier: int = int(current_def.get("tier", -1))
+		if current_tier < 0 or current_tier >= 4:
+			continue
+		var next_id: String = _find_next_tier_troop_id(troop_id, current_def, defs)
+		if next_id != "":
+			built_rules[troop_id] = {"to_troop_id": next_id}
+	_upgrade_rules["rules"] = built_rules
+
+
+func _find_next_tier_troop_id(current_id: String, current_def: Dictionary, defs: Dictionary) -> String:
+	var current_tier: int = int(current_def.get("tier", -1))
+	var faction: String = String(current_def.get("faction", ""))
+	var category: int = int(current_def.get("category", -1))
+	var troop_class: int = int(current_def.get("troop_class", -1))
+	if current_tier < 0:
+		return ""
+	var target_tier: int = current_tier + 1
+	var best_same_class: String = ""
+	var best_same_class_cost: int = -1
+	var best_any: String = ""
+	var best_any_cost: int = -1
+	for cand_id in defs.keys():
+		if cand_id == current_id:
+			continue
+		var cand: Dictionary = defs[cand_id]
+		if int(cand.get("tier", -1)) != target_tier:
+			continue
+		if String(cand.get("faction", "")) != faction:
+			continue
+		var cand_category: int = int(cand.get("category", -1))
+		# Allow faction T3 -> ultimate T4 promotion.
+		if cand_category != category and not (target_tier == 4 and cand_category == GameData.TroopCategory.ULTIMATE):
+			continue
+		var cand_cost: int = int(cand.get("recruit_cost", 0))
+		if int(cand.get("troop_class", -1)) == troop_class and cand_cost > best_same_class_cost:
+			best_same_class = cand_id
+			best_same_class_cost = cand_cost
+		if cand_cost > best_any_cost:
+			best_any = cand_id
+			best_any_cost = cand_cost
+	if best_same_class != "":
+		return best_same_class
+	return best_any
 
 
 # ---------------------------------------------------------------------------
