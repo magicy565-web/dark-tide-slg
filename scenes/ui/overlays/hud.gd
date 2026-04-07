@@ -2608,17 +2608,28 @@ func _on_upgrade_troop() -> void:
 		for i in range(troops.size()):
 			var troop: Dictionary = troops[i]
 			var current_id: String = troop.get("troop_id", "")
-			var upgrade_id: String = GameManager._get_troop_upgrade(current_id)
-			if upgrade_id == "":
+			if RecruitManager == null or not RecruitManager.has_method("get_troop_upgrade_requirements"):
+				continue
+			var req: Dictionary = RecruitManager.get_troop_upgrade_requirements(troop)
+			var upgrade_id: String = req.get("upgrade_id", "")
+			if upgrade_id == "" or req.get("reason", "") == "no_upgrade_path":
 				continue
 			var upgrade_data: Dictionary = GameData.TROOP_TYPES.get(upgrade_id, {})
-			var label_text: String = "%s -> %s (40g 15iron)" % [
+			var cost: Dictionary = req.get("cost", {"gold": 0, "iron": 0})
+			var min_exp: int = int(req.get("min_exp", 0))
+			var cur_exp: int = int(req.get("current_exp", 0))
+			var label_text: String = "%s -> %s (%dg %diron, EXP %d/%d)" % [
 				troop.get("name", current_id),
-				upgrade_data.get("name", upgrade_id)
+				upgrade_data.get("name", upgrade_id),
+				int(cost.get("gold", 0)),
+				int(cost.get("iron", 0)),
+				cur_exp,
+				min_exp
 			]
 			label_text += " [%s]" % army["name"]
-			var can_afford: bool = ResourceManager.can_afford(pid, {"gold": 40, "iron": 15})
-			_add_target_button(label_text, _on_upgrade_troop_confirm.bind(army["id"], i), not can_afford)
+			var can_afford: bool = ResourceManager.can_afford(pid, cost)
+			var can_upgrade: bool = req.get("can_upgrade", false) and can_afford
+			_add_target_button(label_text, _on_upgrade_troop_confirm.bind(army["id"], i), not can_upgrade)
 			found = true
 
 	if not found:
