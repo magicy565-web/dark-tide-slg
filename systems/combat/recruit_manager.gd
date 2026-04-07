@@ -176,7 +176,7 @@ func get_troop_upgrade_requirements(troop: Dictionary) -> Dictionary:
 
 ## Mutates troop dictionary in place and returns operation result.
 ## Returns { "ok": bool, "old_name": String, "new_name": String }.
-func apply_troop_upgrade(troop: Dictionary) -> Dictionary:
+func apply_troop_upgrade(troop: Dictionary, exp_cost: int = 0) -> Dictionary:
 	var current_id: String = troop.get("troop_id", "")
 	var upgrade_id: String = get_troop_upgrade_target(current_id)
 	if upgrade_id == "":
@@ -198,7 +198,14 @@ func apply_troop_upgrade(troop: Dictionary) -> Dictionary:
 	troop["total_hp"] = troop["soldiers"] * troop["hp_per_soldier"]
 	if new_data.has("passive"):
 		troop["passive"] = new_data["passive"]
-	return {"ok": true, "old_name": old_name, "new_name": troop["name"]}
+	var spent: int = maxi(0, exp_cost)
+	var cur_exp: int = int(troop.get("experience", 0))
+	if spent > 0:
+		troop["experience"] = maxi(0, cur_exp - spent)
+	troop["upgrade_count"] = int(troop.get("upgrade_count", 0)) + 1
+	if GameManager != null:
+		troop["last_upgrade_turn"] = int(GameManager.turn_number)
+	return {"ok": true, "old_name": old_name, "new_name": troop["name"], "exp_spent": spent}
 
 ## Returns recruitable troops at a tile for a player.
 func get_available_units(player_id: int, tile: Dictionary) -> Array:
@@ -355,6 +362,8 @@ func reinforce_army(player_id: int, reinforcements: Array) -> void:
 	var army_ref: Array = _get_army_ref(player_id)
 	var slots_left: int = get_remaining_pop_slots(player_id)
 	if slots_left <= 0:
+		if EventBus != null:
+			EventBus.message_log.emit("[color=yellow]军团名额已满，无法接收增援[/color]")
 		return
 	var accepted: Array = reinforcements
 	if reinforcements.size() > slots_left:

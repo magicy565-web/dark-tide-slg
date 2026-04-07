@@ -3464,16 +3464,16 @@ func action_upgrade_troop(player_id: int, army_id: int, troop_index: int) -> boo
 		restore_ap(player_id, upgrade_ap_cost)
 		EventBus.message_log.emit("升级系统未就绪!")
 		return false
-	var upgrade_result: Dictionary = RecruitManager.apply_troop_upgrade(troop)
+	var upgrade_result: Dictionary = RecruitManager.apply_troop_upgrade(troop, int(req.get("min_exp", 0)))
 	if not upgrade_result.get("ok", false):
 		ResourceManager.apply_delta(player_id, {"gold": cost["gold"], "iron": cost["iron"]})
 		restore_ap(player_id, upgrade_ap_cost)
 		EventBus.message_log.emit("兵种升级失败: %s" % upgrade_result.get("reason", "unknown"))
 		return false
-	EventBus.message_log.emit("兵种升格: %s -> %s (金-%d 铁-%d)" % [
+	EventBus.message_log.emit("兵种升格: %s -> %s (金-%d 铁-%d, 经验-%d)" % [
 		upgrade_result.get("old_name", current_id),
 		upgrade_result.get("new_name", troop.get("name", upgrade_id)),
-		cost["gold"], cost["iron"]
+		cost["gold"], cost["iron"], upgrade_result.get("exp_spent", 0)
 	])
 	return true
 
